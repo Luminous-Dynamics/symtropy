@@ -187,11 +187,7 @@ fn run() -> Result<ExitCode, String> {
         ));
     }
 
-    let metrics = calculate_metrics(
-        &baseline.pixels,
-        &candidate.pixels,
-        options.pixel_threshold,
-    )?;
+    let metrics = calculate_metrics(&baseline.pixels, &candidate.pixels, options.pixel_threshold)?;
     let budget = RegressionBudget {
         max_mean_absolute_channel_delta: options.max_mean_channel_delta,
         max_changed_pixel_fraction: options.max_changed_pixel_fraction,
@@ -215,8 +211,11 @@ fn run() -> Result<ExitCode, String> {
             sha256: baseline.sha256,
             width_px: baseline.width_px,
             height_px: baseline.height_px,
-            source_commit: required(&baseline_receipt.metadata.source_commit, "baseline.source_commit")?
-                .to_owned(),
+            source_commit: required(
+                &baseline_receipt.metadata.source_commit,
+                "baseline.source_commit",
+            )?
+            .to_owned(),
             renderer_version: required(
                 &baseline_receipt.metadata.renderer_version,
                 "baseline.renderer_version",
@@ -298,7 +297,10 @@ fn parse_options(args: Vec<String>) -> Result<Option<Options>, String> {
     let candidate = required_option(&mut values, "--candidate")?;
     let candidate_receipt = required_option(&mut values, "--candidate-receipt")?;
     let output = required_option(&mut values, "--output")?;
-    let pixel_threshold = parse_u8(required_option(&mut values, "--pixel-threshold")?, "--pixel-threshold")?;
+    let pixel_threshold = parse_u8(
+        required_option(&mut values, "--pixel-threshold")?,
+        "--pixel-threshold",
+    )?;
     let max_mean_channel_delta = parse_f64(
         required_option(&mut values, "--max-mean-channel-delta")?,
         "--max-mean-channel-delta",
@@ -318,14 +320,10 @@ fn parse_options(args: Vec<String>) -> Result<Option<Options>, String> {
             values.keys().next().expect("map is non-empty")
         ));
     }
-    if !(0.0..=255.0).contains(&max_mean_channel_delta)
-        || !max_mean_channel_delta.is_finite()
-    {
+    if !(0.0..=255.0).contains(&max_mean_channel_delta) || !max_mean_channel_delta.is_finite() {
         return Err("--max-mean-channel-delta must be finite and within 0..=255".to_owned());
     }
-    if !(0.0..=1.0).contains(&max_changed_pixel_fraction)
-        || !max_changed_pixel_fraction.is_finite()
-    {
+    if !(0.0..=1.0).contains(&max_changed_pixel_fraction) || !max_changed_pixel_fraction.is_finite() {
         return Err("--max-changed-pixel-fraction must be within 0..=1".to_owned());
     }
 
@@ -398,10 +396,15 @@ fn read_receipt(path: &Path) -> Result<CaptureReceipt, String> {
 
 fn validate_receipt(receipt: &CaptureReceipt, label: &str) -> Result<(), String> {
     if receipt.schema_version != 1 {
-        return Err(format!("{label} receipt schema {} is unsupported", receipt.schema_version));
+        return Err(format!(
+            "{label} receipt schema {} is unsupported",
+            receipt.schema_version
+        ));
     }
     if !receipt.capture_complete || receipt.capture_status != "complete" {
-        return Err(format!("{label} receipt does not record a complete capture"));
+        return Err(format!(
+            "{label} receipt does not record a complete capture"
+        ));
     }
     if receipt.qualification_status != "qualified_metadata" {
         return Err(format!("{label} receipt has unqualified metadata"));
@@ -419,17 +422,49 @@ fn validate_context(
 ) -> Result<MatchedContext, String> {
     let text_fields = [
         ("fixture_id", &baseline.fixture_id, &candidate.fixture_id),
-        ("fixture_sha256", &baseline.fixture_sha256, &candidate.fixture_sha256),
-        ("simulation_seed", &baseline.simulation_seed, &candidate.simulation_seed),
-        ("simulation_tick", &baseline.simulation_tick, &candidate.simulation_tick),
-        ("quality_profile", &baseline.quality_profile, &candidate.quality_profile),
+        (
+            "fixture_sha256",
+            &baseline.fixture_sha256,
+            &candidate.fixture_sha256,
+        ),
+        (
+            "simulation_seed",
+            &baseline.simulation_seed,
+            &candidate.simulation_seed,
+        ),
+        (
+            "simulation_tick",
+            &baseline.simulation_tick,
+            &candidate.simulation_tick,
+        ),
+        (
+            "quality_profile",
+            &baseline.quality_profile,
+            &candidate.quality_profile,
+        ),
         ("camera_id", &baseline.camera_id, &candidate.camera_id),
-        ("render_settings_sha256", &baseline.render_settings_sha256, &candidate.render_settings_sha256),
+        (
+            "render_settings_sha256",
+            &baseline.render_settings_sha256,
+            &candidate.render_settings_sha256,
+        ),
         ("gpu_adapter", &baseline.gpu_adapter, &candidate.gpu_adapter),
         ("gpu_driver", &baseline.gpu_driver, &candidate.gpu_driver),
-        ("render_backend", &baseline.render_backend, &candidate.render_backend),
-        ("operating_system", &baseline.operating_system, &candidate.operating_system),
-        ("rustc_version", &baseline.rustc_version, &candidate.rustc_version),
+        (
+            "render_backend",
+            &baseline.render_backend,
+            &candidate.render_backend,
+        ),
+        (
+            "operating_system",
+            &baseline.operating_system,
+            &candidate.operating_system,
+        ),
+        (
+            "rustc_version",
+            &baseline.rustc_version,
+            &candidate.rustc_version,
+        ),
     ];
 
     for (field, left, right) in text_fields {
@@ -455,37 +490,54 @@ fn validate_context(
         ));
     }
 
-    let width_baseline = baseline.width_px.filter(|value| *value > 0)
+    let width_baseline = baseline
+        .width_px
+        .filter(|value| *value > 0)
         .ok_or_else(|| "baseline.width_px is missing or zero".to_owned())?;
-    let width_candidate = candidate.width_px.filter(|value| *value > 0)
+    let width_candidate = candidate
+        .width_px
+        .filter(|value| *value > 0)
         .ok_or_else(|| "candidate.width_px is missing or zero".to_owned())?;
-    let height_baseline = baseline.height_px.filter(|value| *value > 0)
+    let height_baseline = baseline
+        .height_px
+        .filter(|value| *value > 0)
         .ok_or_else(|| "baseline.height_px is missing or zero".to_owned())?;
-    let height_candidate = candidate.height_px.filter(|value| *value > 0)
+    let height_candidate = candidate
+        .height_px
+        .filter(|value| *value > 0)
         .ok_or_else(|| "candidate.height_px is missing or zero".to_owned())?;
     if (width_baseline, height_baseline) != (width_candidate, height_candidate) {
         return Err("incomparable context: declared image dimensions differ".to_owned());
     }
 
     let fixture_sha = required(&baseline.fixture_sha256, "baseline.fixture_sha256")?;
-    let render_settings_sha =
-        required(&baseline.render_settings_sha256, "baseline.render_settings_sha256")?;
+    let render_settings_sha = required(
+        &baseline.render_settings_sha256,
+        "baseline.render_settings_sha256",
+    )?;
     if !is_sha256(fixture_sha) || !is_sha256(render_settings_sha) {
-        return Err("fixture_sha256 and render_settings_sha256 must be 64-character SHA-256 hex digests".to_owned());
+        return Err(
+            "fixture_sha256 and render_settings_sha256 must be 64-character SHA-256 hex digests"
+                .to_owned(),
+        );
     }
 
     Ok(MatchedContext {
         fixture_id: required(&baseline.fixture_id, "baseline.fixture_id")?.to_owned(),
         fixture_sha256: fixture_sha.to_owned(),
-        simulation_seed: required(&baseline.simulation_seed, "baseline.simulation_seed")?.to_owned(),
-        simulation_tick: required(&baseline.simulation_tick, "baseline.simulation_tick")?.to_owned(),
-        quality_profile: required(&baseline.quality_profile, "baseline.quality_profile")?.to_owned(),
+        simulation_seed: required(&baseline.simulation_seed, "baseline.simulation_seed")?
+            .to_owned(),
+        simulation_tick: required(&baseline.simulation_tick, "baseline.simulation_tick")?
+            .to_owned(),
+        quality_profile: required(&baseline.quality_profile, "baseline.quality_profile")?
+            .to_owned(),
         camera_id: required(&baseline.camera_id, "baseline.camera_id")?.to_owned(),
         render_settings_sha256: render_settings_sha.to_owned(),
         gpu_adapter: required(&baseline.gpu_adapter, "baseline.gpu_adapter")?.to_owned(),
         gpu_driver: required(&baseline.gpu_driver, "baseline.gpu_driver")?.to_owned(),
         render_backend: required(&baseline.render_backend, "baseline.render_backend")?.to_owned(),
-        operating_system: required(&baseline.operating_system, "baseline.operating_system")?.to_owned(),
+        operating_system: required(&baseline.operating_system, "baseline.operating_system")?
+            .to_owned(),
         rustc_version: required(&baseline.rustc_version, "baseline.rustc_version")?.to_owned(),
     })
 }
@@ -494,9 +546,12 @@ fn load_verified_image(path: &Path, receipt: &CaptureReceipt) -> Result<LoadedIm
     let bytes = read_bounded(path, MAX_ARTIFACT_BYTES)
         .map_err(|error| format!("cannot read image {}: {error}", path.display()))?;
     let sha256 = format!("{:x}", Sha256::digest(&bytes));
-    let dimensions = image::ImageReader::with_format(Cursor::new(bytes.as_slice()), ImageFormat::Png)
-        .into_dimensions()
-        .map_err(|error| format!("cannot read PNG dimensions for {}: {error}", path.display()))?;
+    let dimensions =
+        image::ImageReader::with_format(Cursor::new(bytes.as_slice()), ImageFormat::Png)
+            .into_dimensions()
+            .map_err(|error| {
+                format!("cannot read PNG dimensions for {}: {error}", path.display())
+            })?;
     let (width_px, height_px) = dimensions;
     let pixel_count = u64::from(width_px)
         .checked_mul(u64::from(height_px))
@@ -504,7 +559,9 @@ fn load_verified_image(path: &Path, receipt: &CaptureReceipt) -> Result<LoadedIm
     if width_px == 0 || height_px == 0 || pixel_count > MAX_IMAGE_PIXELS {
         return Err(format!(
             "image {} dimensions {}x{} exceed the supported pixel budget",
-            path.display(), width_px, height_px
+            path.display(),
+            width_px,
+            height_px
         ));
     }
 
@@ -581,10 +638,8 @@ fn calculate_metrics(
     let p95_rank = ((pixel_count * 95).div_ceil(100)).max(1) - 1;
     let p95_max_channel_delta = pixel_max_deltas[p95_rank as usize];
     let channel_count = pixel_count * 4;
-    let mean_absolute_channel_delta =
-        total_absolute_delta as f64 / channel_count as f64;
-    let root_mean_square_channel_delta =
-        (total_squared_delta as f64 / channel_count as f64).sqrt();
+    let mean_absolute_channel_delta = total_absolute_delta as f64 / channel_count as f64;
+    let root_mean_square_channel_delta = (total_squared_delta as f64 / channel_count as f64).sqrt();
 
     Ok(DifferenceMetrics {
         pixel_count,
@@ -607,8 +662,7 @@ fn required<'a>(value: &'a Option<String>, name: &str) -> Result<&'a str, String
 }
 
 fn is_commit_id(value: &str) -> bool {
-    (value.len() == 40 || value.len() == 64)
-        && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    (value.len() == 40 || value.len() == 64) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -639,8 +693,12 @@ fn ensure_output_is_distinct(output: &Path, inputs: &[&Path]) -> Result<(), Stri
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("cannot create report directory {}: {error}", parent.display()))?;
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "cannot create report directory {}: {error}",
+            parent.display()
+        )
+    })?;
     let file_name = output
         .file_name()
         .ok_or_else(|| "report path must name a file".to_owned())?;
@@ -649,7 +707,12 @@ fn ensure_output_is_distinct(output: &Path, inputs: &[&Path]) -> Result<(), Stri
             .map_err(|error| format!("cannot resolve report path {}: {error}", output.display()))?
     } else {
         fs::canonicalize(parent)
-            .map_err(|error| format!("cannot resolve report directory {}: {error}", parent.display()))?
+            .map_err(|error| {
+                format!(
+                    "cannot resolve report directory {}: {error}",
+                    parent.display()
+                )
+            })?
             .join(file_name)
     };
 
@@ -667,27 +730,45 @@ fn ensure_output_is_distinct(output: &Path, inputs: &[&Path]) -> Result<(), Stri
 }
 
 fn write_report(path: &Path, report: &VisualDiffReport) -> Result<(), String> {
-    let parent = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("cannot create report directory {}: {error}", parent.display()))?;
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "cannot create report directory {}: {error}",
+            parent.display()
+        )
+    })?;
     let file_name = path
         .file_name()
         .ok_or_else(|| "report path must name a file".to_owned())?
         .to_string_lossy()
         .into_owned();
     let absolute_path = fs::canonicalize(parent)
-        .map_err(|error| format!("cannot resolve report directory {}: {error}", parent.display()))?
+        .map_err(|error| {
+            format!(
+                "cannot resolve report directory {}: {error}",
+                parent.display()
+            )
+        })?
         .join(file_name);
     let report_bytes = serde_json::to_vec_pretty(report)
         .map_err(|error| format!("cannot serialize report JSON: {error}"))?;
 
     let temporary = absolute_path.with_file_name(format!(
         ".{}.{}.tmp",
-        absolute_path.file_name().unwrap_or_default().to_string_lossy(),
+        absolute_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy(),
         std::process::id()
     ));
     let write_result = (|| -> io::Result<()> {
-        let mut file = OpenOptions::new().write(true).create_new(true).open(&temporary)?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
         file.write_all(&report_bytes)?;
         file.sync_all()?;
         drop(file);
@@ -700,7 +781,10 @@ fn write_report(path: &Path, report: &VisualDiffReport) -> Result<(), String> {
     })();
     if let Err(error) = write_result {
         let _ = fs::remove_file(&temporary);
-        return Err(format!("cannot write report {}: {error}", absolute_path.display()));
+        return Err(format!(
+            "cannot write report {}: {error}",
+            absolute_path.display()
+        ));
     }
     Ok(())
 }
@@ -710,8 +794,12 @@ mod tests {
     use super::*;
 
     fn pixels(values: &[[u8; 4]]) -> RgbaImage {
-        RgbaImage::from_raw(values.len() as u32, 1, values.iter().flatten().copied().collect())
-            .expect("test pixel data should form an image")
+        RgbaImage::from_raw(
+            values.len() as u32,
+            1,
+            values.iter().flatten().copied().collect(),
+        )
+        .expect("test pixel data should form an image")
     }
 
     #[test]
@@ -729,8 +817,8 @@ mod tests {
     fn one_changed_pixel_is_counted_and_measured() {
         let baseline = pixels(&[[0, 0, 0, 255], [0, 0, 0, 255]]);
         let candidate = pixels(&[[0, 0, 0, 255], [32, 0, 0, 255]]);
-        let metrics = calculate_metrics(&baseline, &candidate, 8)
-            .expect("metrics should calculate");
+        let metrics =
+            calculate_metrics(&baseline, &candidate, 8).expect("metrics should calculate");
         assert_eq!(metrics.pixel_count, 2);
         assert_eq!(metrics.channel_count, 8);
         assert_eq!(metrics.changed_pixel_count, 1);
