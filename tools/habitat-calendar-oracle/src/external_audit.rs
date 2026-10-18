@@ -241,7 +241,7 @@ fn parse_instance(input: &InstanceInput) -> Result<InstanceBound, String> {
 
 fn parse_results_csv(
     bytes: &[u8],
-    longest_by_scenario: &BTreeMap<&str, f64>,
+    longest_by_scenario: &BTreeMap<String, f64>,
 ) -> Result<Vec<SolverRowAudit>, String> {
     let actual_sha = sha256_hex(bytes);
     if actual_sha != CSV_SHA256 {
@@ -341,19 +341,15 @@ fn parse_results_csv(
 /// report finding, not a command failure or a solver-ranking claim.
 pub fn audit_embedded_external_corpus() -> Result<ExternalAuditReport, String> {
     let mut instance_bounds = Vec::with_capacity(INSTANCE_INPUTS.len());
-    let mut by_scenario: BTreeMap<&str, f64> = BTreeMap::new();
+    let mut by_scenario: BTreeMap<String, f64> = BTreeMap::new();
     for input in INSTANCE_INPUTS {
         let bound = parse_instance(input)?;
+        let scenario_id = bound.scenario_id.clone();
         if by_scenario
-            .insert(
-                // The String remains owned by instance_bounds for this entire function.
-                // Store a borrowed key only after pushing the owning record.
-                Box::leak(bound.scenario_id.clone().into_boxed_str()),
-                bound.longest_task_duration_hours,
-            )
+            .insert(scenario_id.clone(), bound.longest_task_duration_hours)
             .is_some()
         {
-            return Err(format!("duplicate_source_scenario_id:{}", bound.scenario_id));
+            return Err(format!("duplicate_source_scenario_id:{scenario_id}"));
         }
         instance_bounds.push(bound);
     }
@@ -374,7 +370,9 @@ pub fn audit_embedded_external_corpus() -> Result<ExternalAuditReport, String> {
         }
         *pair_counts.entry(row.scenario_id.as_str()).or_default() += 1;
     }
-    if by_scenario.keys().any(|scenario| pair_counts.get(scenario).copied() != Some(3))
+    if by_scenario
+            .keys()
+            .any(|scenario| pair_counts.get(scenario.as_str()).copied() != Some(3))
         || solver_rows.len() != EXPECTED_RESULT_ROW_COUNT
     {
         return Err("results_csv_does_not_have_exactly_three_rows_per_scenario".to_owned());
