@@ -99,15 +99,17 @@ pub mod architectural_review;
 pub mod loader;
 
 pub use architectural_review::{
-    ArchitecturalReviewRoute, ReviewRig, ReviewRouteIssue, ReviewWaypoint,
-    review_waypoint_transform, sample_review_route, validate_review_route,
+    ArchitecturalReviewRoute, ReviewRig, ReviewRouteIssue, ReviewRoutePlayback, ReviewWaypoint,
+    advance_architectural_review_routes, review_waypoint_transform, sample_review_route,
+    validate_review_route,
 };
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
 impl Plugin for SymtropyScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<SymtropyScene>()
-            .init_asset_loader::<SymtropySceneLoader>();
+            .init_asset_loader::<SymtropySceneLoader>()
+            .add_systems(Update, advance_architectural_review_routes);
 
         let cfg = self.config.clone();
         app.insert_resource(ClearColor(cfg.clear_color))
