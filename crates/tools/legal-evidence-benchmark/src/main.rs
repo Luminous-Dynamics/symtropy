@@ -141,8 +141,7 @@ fn run() -> Result<bool, String> {
                 dataset_kind: benchmark.dataset_kind.clone(),
                 authority_count: benchmark.authorities.len(),
                 case_count: benchmark.cases.len(),
-                claim_ceiling:
-                    "Dataset structure only; not legal correctness or model performance.",
+                claim_ceiling: "Dataset structure only; not legal correctness or model performance.",
             };
             println!(
                 "{}",
@@ -191,8 +190,7 @@ fn usage() -> String {
 }
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, String> {
-    let raw = fs::read_to_string(path)
-        .map_err(|e| format!("cannot read {path}: {e}"))?;
+    let raw = fs::read_to_string(path).map_err(|e| format!("cannot read {path}: {e}"))?;
     serde_json::from_str(&raw).map_err(|e| format!("{path} is invalid JSON: {e}"))
 }
 
@@ -247,12 +245,8 @@ fn validate_benchmark(benchmark: &Benchmark) -> Result<(), String> {
                 authority.id, authority.force
             ));
         }
-        if ![
-            "synthetic_test_only",
-            "citation_only",
-            "prohibited",
-        ]
-        .contains(&authority.permitted_ai_use.as_str())
+        if !["synthetic_test_only", "citation_only", "prohibited"]
+            .contains(&authority.permitted_ai_use.as_str())
         {
             errors.push(format!(
                 "authority {} has unsupported permitted_ai_use {}",
@@ -287,9 +281,10 @@ fn validate_benchmark(benchmark: &Benchmark) -> Result<(), String> {
                 ));
             }
         }
-        if let (Some(from), Some(to)) =
-            (authority.valid_from.as_deref(), authority.valid_to.as_deref())
-        {
+        if let (Some(from), Some(to)) = (
+            authority.valid_from.as_deref(),
+            authority.valid_to.as_deref(),
+        ) {
             match (parse_date(from), parse_date(to)) {
                 (Some(from), Some(to)) if from < to => {}
                 _ => errors.push(format!(
@@ -360,16 +355,10 @@ fn validate_benchmark(benchmark: &Benchmark) -> Result<(), String> {
             ));
         }
         if has_duplicates(&case.expected_claim_codes) {
-            errors.push(format!(
-                "case {} repeats an expected claim code",
-                case.id
-            ));
+            errors.push(format!("case {} repeats an expected claim code", case.id));
         }
         if has_duplicates(&case.expected_citations) {
-            errors.push(format!(
-                "case {} repeats an expected citation",
-                case.id
-            ));
+            errors.push(format!("case {} repeats an expected citation", case.id));
         }
 
         for citation in &case.expected_citations {
@@ -522,10 +511,7 @@ fn percent(numerator: usize, denominator: usize) -> f64 {
     }
 }
 
-fn evaluate(
-    benchmark: &Benchmark,
-    submission: &Submission,
-) -> Result<EvaluationReport, String> {
+fn evaluate(benchmark: &Benchmark, submission: &Submission) -> Result<EvaluationReport, String> {
     if submission.schema_version != "0.1.0" {
         return Err(format!(
             "unsupported submission schema version {}",
@@ -652,7 +638,11 @@ fn evaluate(
                         authority_role_mismatches += 1;
                         case_bad = true;
                     }
-                    if !authority.span_ids.iter().any(|span| span == &citation.span_id) {
+                    if !authority
+                        .span_ids
+                        .iter()
+                        .any(|span| span == &citation.span_id)
+                    {
                         unknown_span_citations += 1;
                         case_bad = true;
                     }
@@ -815,9 +805,11 @@ mod tests {
         result.claim_codes = vec!["GEOGRAPHY_PROVES_COMPETENCE".to_string()];
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
         assert!(!report.fixture_gate_passed);
-        assert!(report
-            .critical_failure_case_ids
-            .contains(&"SYN-JUR-001".to_string()));
+        assert!(
+            report
+                .critical_failure_case_ids
+                .contains(&"SYN-JUR-001".to_string())
+        );
     }
 
     #[test]
@@ -862,15 +854,21 @@ mod tests {
     fn missing_result_never_counts_as_success() {
         let benchmark = fixture();
         let mut submission = reference_submission(&benchmark);
-        submission.results.retain(|result| result.case_id != "SYN-TIME-002");
+        submission
+            .results
+            .retain(|result| result.case_id != "SYN-TIME-002");
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
         assert!(!report.fixture_gate_passed);
-        assert!(report
-            .missing_result_case_ids
-            .contains(&"SYN-TIME-002".to_string()));
-        assert!(report
-            .critical_failure_case_ids
-            .contains(&"SYN-TIME-002".to_string()));
+        assert!(
+            report
+                .missing_result_case_ids
+                .contains(&"SYN-TIME-002".to_string())
+        );
+        assert!(
+            report
+                .critical_failure_case_ids
+                .contains(&"SYN-TIME-002".to_string())
+        );
     }
 
     #[test]
@@ -925,9 +923,11 @@ mod tests {
             .clone();
         submission.results.push(duplicate);
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
-        assert!(report
-            .duplicate_result_case_ids
-            .contains(&"SYN-TIME-001".to_string()));
+        assert!(
+            report
+                .duplicate_result_case_ids
+                .contains(&"SYN-TIME-001".to_string())
+        );
         assert!(!report.fixture_gate_passed);
     }
 
@@ -942,9 +942,11 @@ mod tests {
             citations: vec![],
         });
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
-        assert!(report
-            .extra_result_case_ids
-            .contains(&"SYN-NOT-IN-CORPUS".to_string()));
+        assert!(
+            report
+                .extra_result_case_ids
+                .contains(&"SYN-NOT-IN-CORPUS".to_string())
+        );
         assert!(!report.fixture_gate_passed);
     }
 
