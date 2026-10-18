@@ -19,7 +19,7 @@ Every report accounts for all eight mandatory gates, in this order:
 | `exchange_semantic_preservation` | Required meaning survives a source→target export/import, not just that files parse |
 | `engineering_release_qualification` | Separate discipline-specific engineering / release evidence for the claimed use |
 
-The gate states are `PASS`, `FAIL`, `UNRESOLVED` and `NOT_RUN`. Every gate is mandatory in this profile. Unknown, unsupported or unrun is never success. Overall decision is derived, not trusted from the producer:
+The report contract is version `1.0.0`; the IDS standard itself is version `1.0`. The gate states are `PASS`, `FAIL`, `UNRESOLVED` and `NOT_RUN`. Every gate is mandatory in this profile. Unknown, unsupported or unrun is never success. Overall decision is derived, not trusted from the producer:
 
 - **QUALIFIED** — every gate is `PASS`.
 - **BLOCKED** — at least one gate is `FAIL`.
@@ -46,7 +46,7 @@ The synthetic fixtures deliberately make no claim about any actual building, IDS
 
 ## Benchmarks / acceptance criteria
 
-Current executable controls target 100% rejection of the seeded malformed-report cases: missing gate, duplicate gate identity, `QUALIFIED` with `NOT_RUN`, `PASS` without evidence, malformed artifact hash, overall-decision mismatch, `NOT_RUN` with execution evidence, and an unknown top-level field. CI also accepts one consistent `QUALIFIED`, one `UNQUALIFIED` and one `BLOCKED` synthetic report.
+Current executable controls target 100% rejection of the seeded malformed-report cases: missing gate, duplicate gate identity, `QUALIFIED` with `NOT_RUN`, `PASS` without evidence, malformed artifact hash, overall-decision mismatch, `NOT_RUN` with execution evidence, unknown top-level field, and malformed report timestamp. CI also accepts one consistent `QUALIFIED`, one `UNQUALIFIED` and one `BLOCKED` synthetic report.
 
 Future evidence-based targets (not claimed achieved by this contract slice):
 
