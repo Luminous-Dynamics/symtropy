@@ -175,7 +175,10 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         || !nonempty(&corpus.claim_ceiling)
         || corpus.scenarios.len() != EXPECTED_SCENARIOS
     {
-        return Err("invalid suite identity, evidence class, claim ceiling, or frozen scenario count".to_owned());
+        return Err(
+            "invalid suite identity, evidence class, claim ceiling, or frozen scenario count"
+                .to_owned(),
+        );
     }
     let mut ids = BTreeSet::new();
     for scenario in &corpus.scenarios {
@@ -185,18 +188,32 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         let mut expected_codes = BTreeSet::new();
         for code in &scenario.expected_reason_codes {
             if !nonempty(code) || !expected_codes.insert(code.clone()) {
-                return Err(format!("{}: expected reason codes must be non-empty and unique", scenario.scenario_id));
+                return Err(format!(
+                    "{}: expected reason codes must be non-empty and unique",
+                    scenario.scenario_id
+                ));
             }
         }
-        if (scenario.expected_disposition == Disposition::Pass) != scenario.expected_reason_codes.is_empty() {
-            return Err(format!("{}: disposition and expected reason codes disagree", scenario.scenario_id));
+        if (scenario.expected_disposition == Disposition::Pass)
+            != scenario.expected_reason_codes.is_empty()
+        {
+            return Err(format!(
+                "{}: disposition and expected reason codes disagree",
+                scenario.scenario_id
+            ));
         }
         if scenario.decisions.is_empty() {
-            return Err(format!("{}: at least one policy decision is required", scenario.scenario_id));
+            return Err(format!(
+                "{}: at least one policy decision is required",
+                scenario.scenario_id
+            ));
         }
         if let Some(pair) = &scenario.counterfactual {
             if !nonempty(&pair.group_id) || !nonempty(&pair.branch_id) {
-                return Err(format!("{}: counterfactual group and branch IDs must be non-empty", scenario.scenario_id));
+                return Err(format!(
+                    "{}: counterfactual group and branch IDs must be non-empty",
+                    scenario.scenario_id
+                ));
             }
         }
     }
@@ -222,7 +239,11 @@ fn audit_scenario(scenario: &Scenario) -> BTreeSet<String> {
         if event.delivered_at_hour < event.observed_at_hour {
             reasons.insert("delivery_before_observation".to_owned());
         }
-        if event.source_record_id.as_ref().is_some_and(|source| !nonempty(source)) {
+        if event
+            .source_record_id
+            .as_ref()
+            .is_some_and(|source| !nonempty(source))
+        {
             reasons.insert("empty_source_record_id".to_owned());
         }
     }
@@ -257,7 +278,11 @@ fn audit_scenario(scenario: &Scenario) -> BTreeSet<String> {
             if event.status != EventStatus::Qualified {
                 reasons.insert("event_not_qualified".to_owned());
             }
-            if event.source_record_id.as_ref().is_none_or(|source| !nonempty(source)) {
+            if event
+                .source_record_id
+                .as_ref()
+                .is_none_or(|source| !nonempty(source))
+            {
                 reasons.insert("event_source_missing".to_owned());
             }
             if !event.qc_pass {
@@ -325,8 +350,14 @@ fn audit_counterfactual_groups(
             let right_index = indexes[1];
             let left = &scenarios[left_index];
             let right = &scenarios[right_index];
-            let left_pair = left.counterfactual.as_ref().expect("group member has metadata");
-            let right_pair = right.counterfactual.as_ref().expect("group member has metadata");
+            let left_pair = left
+                .counterfactual
+                .as_ref()
+                .expect("group member has metadata");
+            let right_pair = right
+                .counterfactual
+                .as_ref()
+                .expect("group member has metadata");
 
             if left_pair.fork_hour != right_pair.fork_hour {
                 group_reasons.insert("counterfactual_fork_hour_mismatch".to_owned());
@@ -367,7 +398,10 @@ fn audit_counterfactual_groups(
 
 fn source_commit_from_args(args: &[String]) -> Check<String> {
     if args.len() != 4 || args[2] != "--source-commit" {
-        return Err("usage: mine-adaptive-causality-bench <corpus.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: mine-adaptive-causality-bench <corpus.json> --source-commit <40-hex-sha>"
+                .to_owned(),
+        );
     }
     let source_commit = args[3].to_ascii_lowercase();
     if !is_lower_hex(&source_commit, 40) {
@@ -380,16 +414,13 @@ fn run() -> Check<ExitCode> {
     let args: Vec<String> = env::args().collect();
     let source_commit = source_commit_from_args(&args)?;
     let corpus_path = &args[1];
-    let bytes = fs::read(corpus_path).map_err(|error| format!("cannot read corpus {corpus_path}: {error}"))?;
+    let bytes = fs::read(corpus_path)
+        .map_err(|error| format!("cannot read corpus {corpus_path}: {error}"))?;
     let corpus: Corpus =
         serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
     validate_corpus(&corpus)?;
 
-    let mut reasons: Vec<BTreeSet<String>> = corpus
-        .scenarios
-        .iter()
-        .map(audit_scenario)
-        .collect();
+    let mut reasons: Vec<BTreeSet<String>> = corpus.scenarios.iter().map(audit_scenario).collect();
     let (counterfactual_group_count, counterfactual_groups_rejected) =
         audit_counterfactual_groups(&corpus.scenarios, &mut reasons);
 
@@ -438,8 +469,8 @@ fn run() -> Check<ExitCode> {
         .filter(|reason| causal_reason_names.contains(&reason.as_str()))
         .count();
 
-    let all_controls_matched = expected_controls_matched == corpus.scenarios.len()
-        && counterfactual_groups_rejected == 1;
+    let all_controls_matched =
+        expected_controls_matched == corpus.scenarios.len() && counterfactual_groups_rejected == 1;
 
     let receipt = Receipt {
         result: if all_controls_matched {
@@ -488,8 +519,10 @@ mod tests {
     use super::*;
 
     fn corpus() -> Corpus {
-        serde_json::from_str(include_str!("../../../docs/tech/mine-adaptive-causality-corpus-v0.1.json"))
-            .expect("frozen causal trace corpus must deserialize")
+        serde_json::from_str(include_str!(
+            "../../../docs/tech/mine-adaptive-causality-corpus-v0.1.json"
+        ))
+        .expect("frozen causal trace corpus must deserialize")
     }
 
     fn audited_corpus() -> (Corpus, Vec<BTreeSet<String>>) {
@@ -511,7 +544,11 @@ mod tests {
             } else {
                 Disposition::Reject
             };
-            assert_eq!(scenario.expected_disposition, actual_disposition, "{}", scenario.scenario_id);
+            assert_eq!(
+                scenario.expected_disposition, actual_disposition,
+                "{}",
+                scenario.scenario_id
+            );
             assert_eq!(
                 scenario.expected_reason_codes,
                 reason_codes.iter().cloned().collect::<Vec<_>>(),
@@ -592,7 +629,10 @@ mod tests {
             corpus.scenarios.iter().map(audit_scenario).collect();
         audit_counterfactual_groups(&corpus.scenarios, &mut reasons);
         for (scenario, actual) in corpus.scenarios.iter().zip(reasons.iter()) {
-            if scenario.scenario_id.starts_with("COUNTERFACTUAL_EARLY_CHANGE_") {
+            if scenario
+                .scenario_id
+                .starts_with("COUNTERFACTUAL_EARLY_CHANGE_")
+            {
                 assert!(actual.contains("counterfactual_pre_fork_decision_mismatch"));
             }
         }
