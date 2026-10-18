@@ -2067,6 +2067,10 @@ mod tests {
         assert_eq!(data.sources.len(), 7);
         assert_eq!(data.claims.len(), 9);
         assert_eq!(data.estimates.len(), 10);
+        assert_eq!(data.analysis_runs.len(), 1);
+        assert_eq!(data.analysis_runs[0].status, AnalysisRunStatus::Planned);
+        assert!(data.analysis_runs[0].input_artifacts.is_empty());
+        assert!(data.analysis_runs[0].output_artifacts.is_empty());
         assert_eq!(data.reconstruction_models.len(), 3);
         assert_eq!(data.model_comparisons.len(), 1);
         assert!(data.model_comparisons[0].model_ids.len() >= 2);
@@ -2074,6 +2078,16 @@ mod tests {
         assert!(data.model_comparisons[0].assessments.iter().any(|assessment| {
             assessment.status == AssessmentStatus::NotEvaluated
         }));
+    }
+
+    #[test]
+    fn synthetic_json_fixture_deserializes_and_validates() {
+        let raw = include_str!("../fixtures/synthetic-validation.json");
+        let data: Dataset = serde_json::from_str(raw).expect("parse synthetic validation fixture");
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+        assert_eq!(data.analysis_runs.len(), 1);
+        assert_eq!(data.analysis_runs[0].status, AnalysisRunStatus::Planned);
     }
 
     #[test]
