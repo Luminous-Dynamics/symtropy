@@ -780,14 +780,14 @@ mod tests {
     #[test]
     fn exact_oracle_matches_independent_machine_order_enumeration_on_twenty_cases() {
         for case_index in 0..20 {
-            let machine_count = if case_index % 3 == 0 { 2 } else { 3 };
-            let job_count = if case_index % 2 == 0 { 2 } else { 3 };
+            let machine_count = if case_index.is_multiple_of(3) { 2 } else { 3 };
+            let job_count = if case_index.is_multiple_of(2) { 2 } else { 3 };
             let mut jobs = Vec::with_capacity(job_count);
 
             for job_index in 0..job_count {
                 let mut route: Vec<usize> = (0..machine_count).collect();
                 route.rotate_left((case_index + job_index) % machine_count);
-                if (case_index + job_index) % 2 == 1 {
+                if !(case_index + job_index).is_multiple_of(2) {
                     route.reverse();
                 }
                 let job = route
