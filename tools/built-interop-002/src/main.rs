@@ -644,20 +644,31 @@ mod tests {
     #[test]
     fn malformed_global_id_blocks_even_when_name_matches() {
         let (ifc, ids) = fixtures();
-        let malformed_id = String::from_utf8(ifc)
-            .expect("fixture is UTF-8")
-            .replace("'0000000000000000000000'", "'not-a-guid'")
-            .into_bytes();
-        let report = evaluate(&malformed_id, &ids).expect("synthetic IFC still parses");
-        assert_eq!(report.decision, Decision::Blocked);
-        assert_eq!(
-            report.observations[0].outcome,
-            PropertyOutcome::NotEvaluated
-        );
-        assert_eq!(
-            report.observations[0].diagnostic_code.as_deref(),
-            Some("GLOBAL_ID_INVALID")
-        );
+        let invalid_ids = [
+            "not-a-guid",
+            "4000000000000000000000",
+            "000000000000000000000!",
+        ];
+        for invalid_id in invalid_ids {
+            let source = String::from_utf8(ifc.clone()).expect("fixture is UTF-8");
+            let mutated = source.replace(
+                "'0000000000000000000000'",
+                &format!("'{invalid_id}'"),
+            );
+            let report =
+                evaluate(mutated.as_bytes(), &ids).expect("synthetic IFC still parses");
+            assert_eq!(report.decision, Decision::Blocked, "ID={invalid_id}");
+            assert_eq!(
+                report.observations[0].outcome,
+                PropertyOutcome::NotEvaluated,
+                "ID={invalid_id}"
+            );
+            assert_eq!(
+                report.observations[0].diagnostic_code.as_deref(),
+                Some("GLOBAL_ID_INVALID"),
+                "ID={invalid_id}"
+            );
+        }
     }
 
     #[test]
