@@ -420,37 +420,32 @@ fn append_exclusive_resource_overlaps(
     operations: &[ScheduledOperation],
     violations: &mut Vec<ScheduleViolation>,
 ) {
-    let mut by_resource: HashMap<&str, Vec<(usize, &ScheduledOperation, f64, f64)>> =
-        HashMap::new();
+    let mut by_resource: HashMap<&str, Vec<(&ScheduledOperation, f64, f64)>> = HashMap::new();
 
-    for (index, operation) in operations.iter().enumerate() {
+    for operation in operations {
         let (Some(start), Some(end)) = (valid_start(operation), operation.end_seconds()) else {
             continue;
         };
-        if operation.resource_id.trim().is_empty() {
-            continue;
-        }
         by_resource
             .entry(operation.resource_id.as_str())
             .or_default()
-            .push((index, operation, start, end));
+            .push((operation, start, end));
     }
 
     for (_resource_id, mut intervals) in by_resource {
         intervals.sort_by(|left, right| {
-            left.2
-                .total_cmp(&right.2)
-                .then_with(|| left.3.total_cmp(&right.3))
-                .then_with(|| left.1.id.cmp(&right.1.id))
-                .then_with(|| left.0.cmp(&right.0))
+            left.1
+                .total_cmp(&right.1)
+                .then_with(|| left.2.total_cmp(&right.2))
+                .then_with(|| left.0.id.cmp(&right.0.id))
         });
 
         // Only active intervals can overlap the current interval. Remove intervals
         // ending at the current start because the model uses half-open [start, end).
-        let mut active: Vec<(usize, &ScheduledOperation, f64)> = Vec::new();
-        for (index, operation, start, end) in intervals {
-            active.retain(|(_, _, active_end)| *active_end > start);
-            for (_, other, _) in &active {
+        let mut active: Vec<(&ScheduledOperation, f64)> = Vec::new();
+        for (operation, start, end) in intervals {
+            active.retain(|(_, active_end)| *active_end > start);
+            for (other, _) in &active {
                 let mut ids = vec![operation.id.clone(), other.id.clone()];
                 ids.sort();
                 push_violation(
@@ -460,7 +455,7 @@ fn append_exclusive_resource_overlaps(
                     "two operations overlap on one exclusive resource",
                 );
             }
-            active.push((index, operation, end));
+            active.push((operation, end));
         }
     }
 }
