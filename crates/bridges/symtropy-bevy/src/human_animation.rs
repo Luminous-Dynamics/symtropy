@@ -125,22 +125,28 @@ impl Error for SemanticIntentAdapterError {}
 ///
 /// Only idle and locomote are implemented in this first adapter. Richer actions such as
 /// reach/grasp/sit/yield fail explicitly instead of being silently mapped to an unrelated clip.
+#[derive(Debug, Clone, Copy)]
+pub struct AdaptedHumanMotionIntent {
+    pub locomotion: HumanLocomotionIntent,
+    pub motion_override: Option<HumanMotion>,
+}
+
 pub fn adapt_semantic_intent_to_locomotion(
     intent: &SemanticMotionIntent,
-) -> Result<HumanLocomotionIntent, SemanticIntentAdapterError> {
+) -> Result<AdaptedHumanMotionIntent, SemanticIntentAdapterError> {
     intent
         .validate()
         .map_err(SemanticIntentAdapterError::InvalidIntent)?;
 
-    let desired_planar_velocity_mps = match intent.intent_kind {
-        MotionIntentKind::Idle => bevy::math::Vec2::ZERO,
+    let (desired_planar_velocity_mps, motion_override) = match intent.intent_kind {
+        MotionIntentKind::Idle => (bevy::math::Vec2::ZERO, Some(HumanMotion::Idle)),
         MotionIntentKind::Locomote => {
             let [x, z] = intent.desired_planar_velocity_mps.ok_or(
                 SemanticIntentAdapterError::InvalidIntent(
                     IntentValidationError::MissingLocomotionVelocity,
                 ),
             )?;
-            bevy::math::Vec2::new(x, z)
+            (bevy::math::Vec2::new(x, z), None)
         }
         unsupported => {
             return Err(SemanticIntentAdapterError::UnsupportedIntentKind(
@@ -149,8 +155,11 @@ pub fn adapt_semantic_intent_to_locomotion(
         }
     };
 
-    Ok(HumanLocomotionIntent {
-        desired_planar_velocity_mps,
+    Ok(AdaptedHumanMotionIntent {
+        locomotion: HumanLocomotionIntent {
+            desired_planar_velocity_mps,
+        },
+        motion_override,
     })
 }
 
@@ -383,15 +392,17 @@ mod tests {
     fn semantic_locomotion_intent_maps_velocity_without_applying_motion() {
         let intent = semantic_intent_for_test(MotionIntentKind::Locomote, Some([0.8, -0.2]), None);
         let adapted = adapt_semantic_intent_to_locomotion(&intent).unwrap();
-        assert!((adapted.desired_planar_velocity_mps.x - 0.8).abs() < 1e-6);
-        assert!((adapted.desired_planar_velocity_mps.y + 0.2).abs() < 1e-6);
+        assert!(adapted.motion_override.is_none());
+        assert!((adapted.locomotion.desired_planar_velocity_mps.x - 0.8).abs() < 1e-6);
+        assert!((adapted.locomotion.desired_planar_velocity_mps.y + 0.2).abs() < 1e-6);
     }
 
     #[test]
     fn semantic_idle_maps_to_zero_velocity() {
         let intent = semantic_intent_for_test(MotionIntentKind::Idle, None, None);
         let adapted = adapt_semantic_intent_to_locomotion(&intent).unwrap();
-        assert_eq!(adapted.desired_planar_velocity_mps, Vec2::ZERO);
+        assert_eq!(adapted.locomotion.desired_planar_velocity_mps, Vec2::ZERO);
+        assert_eq!(adapted.motion_override, Some(HumanMotion::Idle));
     }
 
     #[test]
