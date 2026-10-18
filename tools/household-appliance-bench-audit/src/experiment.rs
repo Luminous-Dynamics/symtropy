@@ -108,7 +108,7 @@ fn audit_values(
             != Some(12)
         || text_at(design, "denominator_policy")
             != Some(
-                "every_started_attempt_including_failed_abandoned_and_safety_stop_stays_in_attempt_denominator",
+                "every_started_task_attempt_including_failed_abandoned_and_safety_stop_stays_in_attempt_denominator",
             )
     {
         errors.push(
