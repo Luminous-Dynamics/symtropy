@@ -405,7 +405,7 @@ mod tests {
         let cfg = config(1_000.0, 2_000.0, 0.1, 400.0);
         let ambient = k(300.0);
         let initial = cfg.initial_state();
-        let (after_first, _) =
+        let (after_first, first_report) =
             apply_analytic_standing_loss(&cfg, initial, ambient, seconds(4_000.0)).unwrap();
         let (after_split, split_report) =
             apply_analytic_standing_loss(&cfg, after_first, ambient, seconds(6_000.0)).unwrap();
@@ -413,8 +413,8 @@ mod tests {
             apply_analytic_standing_loss(&cfg, initial, ambient, seconds(10_000.0)).unwrap();
 
         assert!((after_split.temperature.value() - after_whole.temperature.value()).abs() < 1.0e-9);
-        assert!((split_report.heat_lost.value() + whole_report.heat_lost.value()
-            - 2.0 * whole_report.heat_lost.value()).abs() >= 0.0);
+        assert!((first_report.heat_lost.value() + split_report.heat_lost.value()
+            - whole_report.heat_lost.value()).abs() < 1.0e-6);
         verify_analytic_standing_loss_report(
             &cfg, after_first, ambient, seconds(6_000.0), split_report,
         ).unwrap();
