@@ -396,14 +396,13 @@ mod tests {
             gpu_adapter: Some("test-adapter".to_owned()),
             gpu_driver: Some("test-driver".to_owned()),
             render_backend: Some("vulkan".to_owned()),
-            width_px: Some(1920),
-            height_px: Some(1080),
+            width_px: Some(1),
+            height_px: Some(1),
             operating_system: Some("test-os".to_owned()),
             rustc_version: Some("rustc test".to_owned()),
         }
     }
 
-    #[test]
     fn write_test_png(path: &Path, width: u32, height: u32) {
         use image::ImageEncoder;
         let pixels = vec![127_u8; (width * height * 4) as usize];
@@ -421,7 +420,10 @@ mod tests {
         let byte_len = fs::metadata(&path).expect("PNG metadata should exist").len();
         let path_string = path.to_string_lossy().into_owned();
 
-        let receipt = CaptureReceipt::build("test", &[1.5], &[path_string], qualified_metadata());
+        let mut metadata = qualified_metadata();
+        metadata.width_px = Some(2);
+        metadata.height_px = Some(1);
+        let receipt = CaptureReceipt::build("test", &[1.5], &[path_string], metadata);
         assert!(receipt.capture_complete);
         assert_eq!(receipt.capture_status, "complete");
         assert_eq!(receipt.qualification_status, "qualified_metadata");
