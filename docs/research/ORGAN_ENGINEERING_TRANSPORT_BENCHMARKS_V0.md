@@ -284,11 +284,12 @@ The next software tranche should encode these distinctions in benchmark metadata
 
 ## Q0 executable corpus verifier
 
-The first executable tranche now includes a test-driven verifier under `research/organ-transport-q0/tests/fixture_corpus.rs`. The numerical reference library has no runtime dependencies; JSON parsing is a development-only test dependency.
+The first executable tranche now includes a test-driven verifier under `research/organ-transport-q0/tests/fixture_corpus.rs`. The numerical reference library has no runtime dependencies; `serde_json` and `sha2` are development-only dependencies for parsing fixtures and verifying exact bytes.
 
 Pinned inputs:
 - `tube-reference-cases.v0.json`: five cases for an analytic baseline, pressure reversal, zero pressure, nonpositive radius, and a non-finite pressure negative control.
 - `network-reference-cases.v0.json`: three prescribed-pressure networks—two equal-resistance tubes in series, one inlet splitting into two equal outlets, and two inlets merging to one outlet. The verifier checks each edge's analytical flow and mass conservation at every declared internal junction.
+- `corpus-manifest.v0.json`: pins SHA-256 and byte length for both JSON inputs. The verifier refuses byte drift until the corpus change is reviewed and the digest manifest is intentionally repinned.
 
 Executable commands:
 ```sh
@@ -298,6 +299,6 @@ cargo test --manifest-path research/organ-transport-q0/Cargo.toml
 
 The network fixtures prescribe node pressures and check the resulting flows; they do not yet solve an unknown-pressure network. That is intentional: Q0 first verifies constitutive equations and conservation against exact analytical cases before introducing a network solver or design optimization.
 
-A dedicated `Organ Transport Q0` workflow now pins Rust 1.96.0, checks formatting, and executes the isolated unit and fixture-corpus tests. Its status must be read from the run attached to the exact final source SHA. A queued run, a previous-head success, or the existence of a fixture is not a passing receipt. Because this editing environment has no `cargo` or `rustc`, Rust execution has not been performed locally; the exact-head workflow remains the required verification evidence.
+A dedicated `Organ Transport Q0` workflow now pins Rust 1.96.0, checks formatting, and executes the isolated unit and fixture-corpus tests. A future versioned result receipt must include this source SHA, the manifest and fixture digests, the toolchain, exact commands and observed outcomes; a matching hash identifies bytes but does not prove their scientific correctness. Its status must be read from the run attached to the exact final source SHA. A queued run, a previous-head success, or the existence of a fixture is not a passing receipt. Because this editing environment has no `cargo` or `rustc`, Rust execution has not been performed locally; the exact-head workflow remains the required verification evidence.
 
 This verifier's maximum claim is analytical/software conformance under the declared steady, laminar, Newtonian, rigid-tube assumptions. It does not validate pressure solutions for arbitrary networks, pulsatile flow, vessel compliance, barrier transport, oxygen delivery, viability, tissue-specific biology, or clinical use.
