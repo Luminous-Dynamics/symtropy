@@ -1172,6 +1172,109 @@ mod tests {
     }
 
     #[test]
+    fn serialized_contracts_contain_all_schema_required_fields() {
+        use serde_json::Value;
+
+        fn check_required_fields(
+            root_schema: &Value,
+            schema: &Value,
+            instance: &Value,
+            path: &str,
+        ) {
+            if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
+                let name = reference
+                    .strip_prefix("#/$defs/")
+                    .unwrap_or_else(|| panic!("{path}: unsupported reference {reference}"));
+                let definition = root_schema["$defs"]
+                    .get(name)
+                    .unwrap_or_else(|| panic!("{path}: unresolved reference {reference}"));
+                check_required_fields(root_schema, definition, instance, path);
+                return;
+            }
+
+            if let Some(required) = schema.get("required").and_then(Value::as_array) {
+                for field in required {
+                    let name = field
+                        .as_str()
+                        .unwrap_or_else(|| panic!("{path}: non-string required field"));
+                    assert!(
+                        instance.get(name).is_some(),
+                        "{path}: serialized instance is missing required field {name}"
+                    );
+                }
+            }
+
+            if let Some(properties) = schema.get("properties").and_then(Value::as_object) {
+                for (name, child_schema) in properties {
+                    if let Some(child_instance) = instance.get(name) {
+                        check_required_fields(
+                            root_schema,
+                            child_schema,
+                            child_instance,
+                            &format!("{path}.{name}"),
+                        );
+                    }
+                }
+            }
+
+            if let (Some(items_schema), Some(items)) =
+                (schema.get("items"), instance.as_array())
+            {
+                for (index, item) in items.iter().enumerate() {
+                    check_required_fields(
+                        root_schema,
+                        items_schema,
+                        item,
+                        &format!("{path}[{index}]"),
+                    );
+                }
+            }
+        }
+
+        let benchmark = fixture();
+        let submission = reference_submission(&benchmark);
+        let evaluation = evaluate(&benchmark, &submission).expect("evaluation runs");
+        let validation = ValidationReport {
+            status: "VALID",
+            dataset_kind: benchmark.dataset_kind.clone(),
+            corpus_sha256: sha256_hex(
+                &serde_json::to_vec(&benchmark).expect("benchmark serializes"),
+            ),
+            authority_count: benchmark.authorities.len(),
+            case_count: benchmark.cases.len(),
+            claim_ceiling: "Synthetic corpus structure only.",
+        };
+        let instances = [
+            (
+                "benchmark",
+                include_str!("../schemas/benchmark-v0.1.schema.json"),
+                serde_json::to_value(&benchmark).expect("benchmark serializes"),
+            ),
+            (
+                "submission",
+                include_str!("../schemas/submission-v0.1.schema.json"),
+                serde_json::to_value(&submission).expect("submission serializes"),
+            ),
+            (
+                "evaluation",
+                include_str!("../schemas/evaluation-report-v0.1.schema.json"),
+                serde_json::to_value(&evaluation).expect("evaluation serializes"),
+            ),
+            (
+                "validation",
+                include_str!("../schemas/validation-report-v0.1.schema.json"),
+                serde_json::to_value(&validation).expect("validation serializes"),
+            ),
+        ];
+
+        for (name, schema_source, instance) in instances {
+            let schema: Value =
+                serde_json::from_str(schema_source).unwrap_or_else(|error| panic!("{name}: {error}"));
+            check_required_fields(&schema, &schema, &instance, name);
+        }
+    }
+
+    #[test]
     fn published_json_schemas_are_json_and_local_references_resolve() {
         use serde_json::Value;
 
