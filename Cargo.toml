@@ -29,6 +29,7 @@ symthaea-stack = ["dep:symthaea", "dep:symthaea-core"]
 muse-audio = ["dep:symthaea-muse"]
 live-audio = ["muse-audio", "dep:cpal"]
 egui-ui = ["dep:bevy_egui", "symtropy-render-bridge/inspector"]
+human-animation = ["physics-bridge", "symtropy-bevy/human-animation"]
 physics-bridge = [
     "dep:symtropy-bevy",
     "dep:symtropy-bevy-scene",
