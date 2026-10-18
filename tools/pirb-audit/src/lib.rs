@@ -1021,7 +1021,7 @@ fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec
 
         let lead = alert.get("remaining_lead_minutes").and_then(Value::as_i64);
         let latency = alert
-            .get("estimated_response_minutes")
+            .get("response_latency_bound_minutes")
             .and_then(Value::as_i64);
         let owner = alert
             .get("accountable_owner_authorized")
