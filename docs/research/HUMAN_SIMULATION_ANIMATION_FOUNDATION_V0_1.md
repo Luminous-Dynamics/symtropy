@@ -40,6 +40,8 @@ The first increment adds an opt-in Bevy skeletal-animation driver for licensed g
 
 Accept externally supplied, licensed glTF/GLB assets; do not bundle unreviewed models or motion-capture files. A production-quality “realistic person” needs more than a skeleton: believable proportions, skin and clothing materials, facial details, correct lighting, deformation, and suitable LODs. Choose assets only after checking redistribution and commercial-use terms.
 
+**First demo candidate (not bundled):** [Maya 3D Person, Animated — locomotion collection](https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-maya-3d-person-animated-1499b2fd) is listed by its publisher as a 20.3 MB CC0 GLB with named idle/walk/jog/run/carry/sit-stand clips. The publisher describes these as original authored periodic-pose animations, not motion-capture data. Use it as a loader/render/clip-switching smoke fixture only; do not treat its motion as human-reference ground truth. Re-check the asset page and library terms before adopting it, and record the downloaded file's SHA-256.
+
 SMPL-X is a useful research body representation with articulated body, hands, and face, but its body-asset terms and its full model/software terms are not identical; review the exact license before shipping or redistributing any asset. AMASS provides more than 40 hours of motion-capture data from over 300 subjects and 11,000 motions, but access/use is subject to its dataset terms. Neither should be repackaged into this repository without a separate provenance/license decision.
 
 ## Benchmark contract
