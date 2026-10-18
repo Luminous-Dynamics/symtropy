@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: legal-evidence-benchmark-\${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
+  group: legal-evidence-benchmark-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
