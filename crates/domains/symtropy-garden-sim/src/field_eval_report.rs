@@ -1222,7 +1222,10 @@ mod tests {
 
         let other_report = preflight_field_study_v1(&valid_manifest());
         let altered_bytes = build_field_eval_receipt_v1(b"abc\n", other_report);
-        assert_ne!(receipt.source_manifest_sha256, altered_bytes.source_manifest_sha256);
+        assert_ne!(
+            receipt.source_manifest_sha256,
+            altered_bytes.source_manifest_sha256
+        );
     }
 
     #[test]
