@@ -458,7 +458,7 @@ fn resource_fits(
     true
 }
 
-pub fn independently_validate_schedule(
+fn independently_validate_schedule(
     case: &Case,
     schedule: &[ScheduleStep],
     durations: &[u32],
@@ -847,6 +847,45 @@ mod tests {
             "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT"
         );
         assert_eq!(uncertain.optimality_claim, "NOT_PROVEN");
+    }
+
+    #[test]
+    fn independent_validator_rejects_a_resource_overlapping_schedule() {
+        let fixture: Fixture = serde_json::from_slice(FIXTURE).unwrap();
+        let case = fixture
+            .cases
+            .iter()
+            .find(|case| case.case_id == "independent_tasks_shared_exclusive_crew")
+            .unwrap();
+        let durations = durations_for(case, false);
+        let valid = solve_scenario(case, false, true);
+        assert_eq!(valid.status, "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL");
+        let mut invalid = valid.schedule;
+        let second = invalid
+            .iter_mut()
+            .find(|step| step.task_id == "B")
+            .unwrap();
+        second.start = 0;
+        second.finish = 6;
+        assert!(independently_validate_schedule(case, &invalid, &durations, true).is_err());
+    }
+
+    #[test]
+    fn impossible_gates_windows_and_cycles_are_proven_prechecks() {
+        let report = plan_fixture_bytes(FIXTURE).unwrap();
+        for case_id in [
+            "inspection_window_conflicts_with_precedence",
+            "missing_hard_approval_gate",
+            "resource_demand_exceeds_capacity",
+            "cycle_in_precedence_graph",
+        ] {
+            let result = report
+                .case_results
+                .iter()
+                .find(|result| result.case_id == case_id)
+                .unwrap();
+            assert_eq!(result.nominal.status, "PROVEN_INFEASIBLE_PRECHECK");
+        }
     }
 
     #[test]
