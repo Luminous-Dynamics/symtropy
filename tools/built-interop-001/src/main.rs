@@ -657,6 +657,66 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_manifest_passes_its_pinned_json_schema() {
+        let schema: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../semantic-loss-v0.1.schema.json"
+        ))
+        .expect("input JSON Schema parses");
+        let validator = jsonschema::validator_for(&schema)
+            .expect("input JSON Schema compiles");
+        let instance: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../fixtures/panel-exchange-v0.1.json"
+        ))
+        .expect("fixture manifest parses");
+        let errors: Vec<String> = validator
+            .iter_errors(&instance)
+            .map(|error| error.to_string())
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "manifest schema validation failed: {}",
+            errors.join("; ")
+        );
+
+        let mut invalid = instance;
+        invalid["evidence_class"] = serde_json::json!("Measured");
+        assert!(
+            !validator.is_valid(&invalid),
+            "the synthetic-only evidence-class guard must reject a measured manifest"
+        );
+    }
+
+    #[test]
+    fn serialized_report_passes_schema_and_rejects_unknown_diagnostic_code() {
+        let (manifest, raw) = fixture();
+        let report = build_report(&manifest, &raw);
+        let instance = serde_json::to_value(&report).expect("report serializes");
+        let schema: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../report-v0.1.schema.json"
+        ))
+        .expect("report JSON Schema parses");
+        let validator = jsonschema::validator_for(&schema)
+            .expect("report JSON Schema compiles");
+        let errors: Vec<String> = validator
+            .iter_errors(&instance)
+            .map(|error| error.to_string())
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "report schema validation failed: {}",
+            errors.join("; ")
+        );
+
+        let mut invalid = instance;
+        invalid["scenario_results"][0]["requirement_results"][0]["diagnostic_codes"] =
+            serde_json::json!(["UNLISTED_DIAGNOSTIC_CODE"]);
+        assert!(
+            !validator.is_valid(&invalid),
+            "output schema must reject a diagnostic code outside the pinned vocabulary"
+        );
+    }
+
+    #[test]
     fn independent_pinned_scenario_oracles_match() {
         const EXPECTED: &[(&str, Decision)] = &[
             ("01-exact-property-preservation", Decision::Conformant),
