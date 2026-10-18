@@ -1,0 +1,69 @@
+name: Lunar Seed-Base Utility Benchmark
+
+on:
+  push:
+    branches: ["feat/lunar-seed-utility-bench"]
+    paths:
+      - "tools/lunar-base-bench/**"
+      - ".github/workflows/lunar-seed-utility-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/lunar-base-bench/**"
+      - ".github/workflows/lunar-seed-utility-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lunar-seed-utility-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/lunar-base-bench/Cargo.toml -- --check
+
+      - name: Run unit and negative-control tests
+        run: cargo test --manifest-path tools/lunar-base-bench/Cargo.toml
+
+      - name: Execute exact-head synthetic campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/lunar-base-bench/Cargo.toml -- \
+            tools/lunar-base-bench/fixtures/lunar_seed_utility_case_v0_1.json \
+            --source-commit "$source_commit" > lunar-seed-utility-receipt.json
+          jq -e '
+            .receipt_schema_version == "0.1"
+            and .source_commit != null
+            and .greedy.all_accounting_balanced == true
+            and .forecast_reserve.all_accounting_balanced == true
+            and .comparison.critical_service_floor_met_by_forecast_reserve == true
+            and .comparison.forecast_reserve_reduces_critical_unserved_wh == true
+          ' lunar-seed-utility-receipt.json
+
+      - name: Upload deterministic campaign receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: lunar-seed-utility-${{ github.event.pull_request.head.sha || github.sha }}
+          path: lunar-seed-utility-receipt.json
+          if-no-files-found: error
+          retention-days: 30
