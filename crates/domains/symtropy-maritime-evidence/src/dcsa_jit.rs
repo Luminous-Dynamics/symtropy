@@ -469,27 +469,7 @@ mod tests {
 
     #[test]
     fn preserves_eta_berth_without_calling_it_pco_pilot_boarding_place_arrival() {
-        let payload = r#"{
-            "publisher": {"partyName": "Synthetic Terminal"},
-            "publisherRole": "TR",
-            "eventClassifierCode": "EST",
-            "operationsEventTypeCode": "ARRI",
-            "facilityTypeCode": "BRTH",
-            "portCallPhaseTypeCode": null,
-            "portCallServiceTypeCode": null,
-            "eventDateTime": "2026-10-18T12:10:00.000+01:00",
-            "eventLocation": {
-                "locationName": "SYNTHETIC BERTH A",
-                "UNLocationCode": "ZZSYN",
-                "facilityCode": "SYN1",
-                "facilityCodeListProvider": "SMDG"
-            },
-            "UNLocationCode": "ZZSYN",
-            "facilitySMDGCode": "SYN1",
-            "vessel": {"vesselIMONumber": "9990001"},
-            "vesselIMONumber": "9990001",
-            "transportCallSequenceNumber": 1
-        }"#;
+        let payload = include_str!("../fixtures/dcsa-jit-eta-berth.json");
         let parsed = parse_timestamp(payload, context("DCSA-ETA-01")).unwrap();
         assert_eq!(parsed.time_meaning(), TimeMeaning::Estimated);
         assert_eq!(parsed.facility_type_code, FacilityTypeCode::Berth);
@@ -505,35 +485,14 @@ mod tests {
 
     #[test]
     fn maps_only_planned_pilot_boarding_arrival_and_planned_berth_departure() {
-        let pbp = r#"{
-            "eventClassifierCode": "PLN",
-            "operationsEventTypeCode": "ARRI",
-            "facilityTypeCode": "PBPL",
-            "portCallPhaseTypeCode": null,
-            "portCallServiceTypeCode": null,
-            "eventDateTime": "2026-10-18T12:10:00Z",
-            "eventLocation": {"locationName": "SYNTHETIC PBP", "UNLocationCode": "ZZSYN"},
-            "vessel": {"vesselIMONumber": "9990001"}
-        }"#;
+        let pbp = include_str!("../fixtures/dcsa-jit-pta-pbp.json");
         let arrival = parse_timestamp(pbp, context("DCSA-PTA-PBP")).unwrap();
         assert_eq!(
             pco_field_candidate(&arrival),
             Ok(super::super::PcoField::ArrivalAtPilotBoardingPlace)
         );
 
-        let departure = r#"{
-            "eventClassifierCode": "PLN",
-            "operationsEventTypeCode": "DEPA",
-            "facilityTypeCode": "BRTH",
-            "eventDateTime": "2026-10-19T17:20:50.52Z",
-            "eventLocation": {
-                "locationName": "SYNTHETIC BERTH A",
-                "UNLocationCode": "ZZSYN",
-                "facilityCode": "SYN1",
-                "facilityCodeListProvider": "SMDG"
-            },
-            "vesselIMONumber": "9990001"
-        }"#;
+        let departure = include_str!("../fixtures/dcsa-jit-ptd-berth.json");
         let departure = parse_timestamp(departure, context("DCSA-PTD-BERTH")).unwrap();
         assert_eq!(
             pco_field_candidate(&departure),
@@ -543,19 +502,7 @@ mod tests {
 
     #[test]
     fn rejects_pbp_departure_and_terminal_fields_on_pbpl() {
-        let payload = r#"{
-            "eventClassifierCode": "PLN",
-            "operationsEventTypeCode": "DEPA",
-            "facilityTypeCode": "PBPL",
-            "eventDateTime": "2026-10-18T12:10:00Z",
-            "eventLocation": {
-                "locationName": "SYNTHETIC PBP",
-                "UNLocationCode": "ZZSYN",
-                "facilityCode": "SYN1",
-                "facilityCodeListProvider": "SMDG"
-            },
-            "vesselIMONumber": "9990001"
-        }"#;
+        let payload = include_str!("../fixtures/dcsa-jit-invalid-pbpl-terminal.json");
         assert_eq!(
             parse_timestamp(payload, context("DCSA-UNSUPPORTED")),
             Err(DcsaJitParseError::UnsupportedCombination(
