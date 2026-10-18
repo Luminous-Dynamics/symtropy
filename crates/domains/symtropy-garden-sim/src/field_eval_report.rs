@@ -504,15 +504,15 @@ fn validate_acceptance_evidence(
         );
     }
 
-    if let Some(event_ref) = &record.acceptance_evidence_ref {
-        if !valid_opaque_reference(event_ref, "evt-", 3, 64) {
-            push_blocker(
-                blockers,
-                FieldEvalBlockerCodeV1::InvalidAcceptanceEventReference,
-                Some(&record.request_ref),
-                "acceptance evidence must use an opaque evt-* event reference",
-            );
-        }
+    if let Some(event_ref) = &record.acceptance_evidence_ref
+        && !valid_opaque_reference(event_ref, "evt-", 3, 64)
+    {
+        push_blocker(
+            blockers,
+            FieldEvalBlockerCodeV1::InvalidAcceptanceEventReference,
+            Some(&record.request_ref),
+            "acceptance evidence must use an opaque evt-* event reference",
+        );
     }
 
     match record.acceptance_decision_mode {
