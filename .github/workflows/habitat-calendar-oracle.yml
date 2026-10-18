@@ -102,7 +102,7 @@ jobs:
             .schema_version == "luminous.ca_rcpsp_external_audit_report.v0.1" and
             .audit_status == "COMPLETE_PUBLISHED_METRIC_LOWER_BOUND_DISCREPANCIES_FOUND" and
             .source_artifacts_match_pinned_sha256 == true and
-            .source_results_csv_sha256 == "b9244c2f08ee0ca013b15478ecd12c35facf45b7ca79a63d777246040c740c38" and
+            .source_results_csv_sha256 == "834ad0cf18b8062497d2a0a5387524c340145fd164d6a2071982d83688555ce1" and
             .instance_count == 12 and
             .solver_result_row_count == 36 and
             .successful_solver_row_count == 30 and
