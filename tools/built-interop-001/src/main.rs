@@ -179,14 +179,18 @@ fn normalize_manifest(manifest: &mut Manifest) {
                 .then_with(|| a.unit.cmp(&b.unit))
                 .then_with(|| a.transform_id.cmp(&b.transform_id))
         });
-        case.transforms.sort_by(|a, b| a.transform_id.cmp(&b.transform_id));
+        case.transforms
+            .sort_by(|a, b| a.transform_id.cmp(&b.transform_id));
     }
 }
 
 fn validate_manifest(manifest: &Manifest) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
     if manifest.schema_version != "0.1.0" {
-        errors.push(format!("unsupported_schema_version:{}", manifest.schema_version));
+        errors.push(format!(
+            "unsupported_schema_version:{}",
+            manifest.schema_version
+        ));
     }
     if manifest.benchmark_id.trim().is_empty() {
         errors.push("empty_benchmark_id".to_string());
@@ -253,7 +257,10 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                 &mut blocked,
                 &mut unresolved,
                 Severity::Blocked,
-                format!("duplicate_source_requirement_id:{}", requirement.requirement_id),
+                format!(
+                    "duplicate_source_requirement_id:{}",
+                    requirement.requirement_id
+                ),
             );
         }
     }
@@ -293,7 +300,10 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                 &mut blocked,
                 &mut unresolved,
                 Severity::Blocked,
-                format!("observation_without_source_requirement:{}", observation.requirement_id),
+                format!(
+                    "observation_without_source_requirement:{}",
+                    observation.requirement_id
+                ),
             );
         }
         if observation.requirement_id.trim().is_empty() || observation.object_id.trim().is_empty() {
@@ -336,7 +346,10 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                     &mut blocked,
                     &mut unresolved,
                     Severity::Blocked,
-                    format!("duplicate_target_observation:{}", requirement.requirement_id),
+                    format!(
+                        "duplicate_target_observation:{}",
+                        requirement.requirement_id
+                    ),
                 );
                 continue;
             }
@@ -375,7 +388,8 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                         ),
                     );
                 }
-                if observation.observed_value.as_deref() != Some(requirement.expected_value.as_str())
+                if observation.observed_value.as_deref()
+                    != Some(requirement.expected_value.as_str())
                     || observation.unit != requirement.unit
                 {
                     add_issue(
@@ -383,20 +397,33 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                         &mut blocked,
                         &mut unresolved,
                         nonconformity_severity,
-                        format!("preserved_value_or_unit_mismatch:{}", requirement.requirement_id),
+                        format!(
+                            "preserved_value_or_unit_mismatch:{}",
+                            requirement.requirement_id
+                        ),
                     );
                 }
             }
             LossDisposition::TransformedWithDeclaredRule => {
-                let matching_rules: Vec<&TransformRule> = match observation.transform_id.as_deref() {
-                    Some(id) => case.transforms.iter().filter(|rule| rule.transform_id == id).collect(),
+                let matching_rules: Vec<&TransformRule> = match observation.transform_id.as_deref()
+                {
+                    Some(id) => case
+                        .transforms
+                        .iter()
+                        .filter(|rule| rule.transform_id == id)
+                        .collect(),
                     None => Vec::new(),
                 };
                 match matching_rules.as_slice() {
                     [rule] => {
                         let expected_number = requirement.expected_value.parse::<f64>();
-                        let observed_number = observation.observed_value.as_deref().unwrap_or("").parse::<f64>();
-                        let valid_units = requirement.unit.as_deref() == Some(rule.from_unit.as_str())
+                        let observed_number = observation
+                            .observed_value
+                            .as_deref()
+                            .unwrap_or("")
+                            .parse::<f64>();
+                        let valid_units = requirement.unit.as_deref()
+                            == Some(rule.from_unit.as_str())
                             && observation.unit.as_deref() == Some(rule.to_unit.as_str());
                         match (expected_number, observed_number) {
                             (Ok(expected), Ok(observed))
@@ -441,7 +468,10 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                         &mut blocked,
                         &mut unresolved,
                         nonconformity_severity,
-                        format!("missing_or_duplicate_transform_rule:{}", requirement.requirement_id),
+                        format!(
+                            "missing_or_duplicate_transform_rule:{}",
+                            requirement.requirement_id
+                        ),
                     ),
                 }
             }
@@ -471,7 +501,10 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                 &mut blocked,
                 &mut unresolved,
                 nonconformity_severity,
-                format!("target_property_not_evaluated:{}", requirement.requirement_id),
+                format!(
+                    "target_property_not_evaluated:{}",
+                    requirement.requirement_id
+                ),
             ),
         }
     }
@@ -520,8 +553,8 @@ fn build_report(manifest: &Manifest, raw_input: &[u8]) -> Report {
         scenario_results: &scenario_results,
         summary: &summary,
     };
-    let digest_bytes = serde_json::to_vec(&digest_payload)
-        .expect("serializing a report payload should not fail");
+    let digest_bytes =
+        serde_json::to_vec(&digest_payload).expect("serializing a report payload should not fail");
     Report {
         schema_version: canonical_manifest.schema_version,
         benchmark_id: canonical_manifest.benchmark_id,
@@ -589,8 +622,7 @@ fn main() {
         process::exit(2);
     }
     let report = build_report(&manifest, &raw_input);
-    let json = serde_json::to_vec_pretty(&report)
-        .expect("serializing a report should not fail");
+    let json = serde_json::to_vec_pretty(&report).expect("serializing a report should not fail");
     if let Some(path) = output_path
         && let Err(error) = fs::write(&path, &json)
     {
@@ -636,12 +668,21 @@ mod tests {
         assert_eq!(report.summary.oracle_matches, EXPECTED.len());
         assert!(report.summary.suite_passed);
         for result in &report.scenario_results {
-            let expected = EXPECTED.iter()
+            let expected = EXPECTED
+                .iter()
                 .find(|(id, _)| *id == result.case_id.as_str())
                 .map(|(_, value)| *value)
                 .expect("scenario ID must have a separately pinned oracle");
-            assert_eq!(result.expected_decision, expected, "fixture oracle changed: {}", result.case_id);
-            assert_eq!(result.computed_decision, expected, "comparison outcome changed: {}", result.case_id);
+            assert_eq!(
+                result.expected_decision, expected,
+                "fixture oracle changed: {}",
+                result.case_id
+            );
+            assert_eq!(
+                result.computed_decision, expected,
+                "comparison outcome changed: {}",
+                result.case_id
+            );
         }
     }
 
@@ -666,19 +707,28 @@ mod tests {
     #[test]
     fn numeric_transform_does_not_hide_a_wrong_unit_or_wrong_value() {
         let (manifest, _) = fixture();
-        let mut case = manifest.cases.iter()
+        let mut case = manifest
+            .cases
+            .iter()
             .find(|c| c.case_id == "05-declared-unit-transform-correct")
-            .expect("transform fixture exists").clone();
+            .expect("transform fixture exists")
+            .clone();
         case.observations[0].observed_value = Some("0.02".to_string());
-        assert_eq!(evaluate_scenario(&case).computed_decision, Decision::Blocked);
+        assert_eq!(
+            evaluate_scenario(&case).computed_decision,
+            Decision::Blocked
+        );
     }
 
     #[test]
     fn criticality_cannot_be_laundered_by_observation_label() {
         let (manifest, _) = fixture();
-        let mut case = manifest.cases.iter()
+        let mut case = manifest
+            .cases
+            .iter()
             .find(|c| c.case_id == "02-hard-property-explicitly-missing")
-            .expect("missing fixture exists").clone();
+            .expect("missing fixture exists")
+            .clone();
         case.observations[0].disposition = LossDisposition::NotEvaluated;
         assert_eq!(evaluate_scenario(&case).computed_decision, Decision::Blocked);
     }
