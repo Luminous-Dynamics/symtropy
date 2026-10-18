@@ -212,3 +212,6 @@ The Rust decision-impact test suite includes a deterministic generated different
 
 
 Additional decision-impact negative controls inject duplicate state membership within one outcome and an undeclared state ID. Duplicate membership is rejected by the schema; undeclared membership is rejected semantically and causes the full partition to fail closed. These cases guard the distinction between a partition's cardinality and its exact, valid state membership.
+
+
+The planner reports three separate forms of decision impact: a change to the hard-feasible candidate set, a change to the Pareto set, and a change to the set of unresolved critical blockers. An action that clears one blocker may be the correct next step in a staged survey plan even when another blocker keeps the robust-feasible set empty. The output marks that blocker-set change explicitly; it must not mislabel the candidate as feasible or Pareto-admitted until all critical blockers are resolved.
