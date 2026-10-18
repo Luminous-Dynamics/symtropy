@@ -125,9 +125,13 @@ struct ShiftedStream {
     integrated_heat_capacity_j_per_k: f64,
 }
 
-fn shifted_streams(
-    problem: &PinchProblem,
-) -> Result<(Vec<ShiftedStream>, Vec<ShiftedStream>, Vec<f64>), ModelError> {
+struct PreparedPinchStreams {
+    hot: Vec<ShiftedStream>,
+    cold: Vec<ShiftedStream>,
+    endpoints: Vec<f64>,
+}
+
+fn shifted_streams(problem: &PinchProblem) -> Result<PreparedPinchStreams, ModelError> {
     let half = problem.minimum_approach.value() / 2.0;
     let mut hot = Vec::with_capacity(problem.hot_streams.len());
     let mut cold = Vec::with_capacity(problem.cold_streams.len());
@@ -173,7 +177,7 @@ fn shifted_streams(
     if endpoints.len() < 2 {
         return Err(ModelError::NoProcessStreams);
     }
-    Ok((hot, cold, endpoints))
+    Ok(PreparedPinchStreams { hot, cold, endpoints })
 }
 
 fn build_intervals(
@@ -218,8 +222,9 @@ fn build_intervals(
 }
 
 fn target_from_problem(problem: &PinchProblem) -> Result<PinchTargets, ModelError> {
-    let (hot, cold, endpoints) = shifted_streams(problem)?;
-    let (intervals, total_net, minimum_cumulative) = build_intervals(&hot, &cold, &endpoints)?;
+    let prepared = shifted_streams(problem)?;
+    let (intervals, total_net, minimum_cumulative) =
+        build_intervals(&prepared.hot, &prepared.cold, &prepared.endpoints)?;
     let hot_utility = (-minimum_cumulative).max(0.0);
     let cold_utility = (hot_utility + total_net).max(0.0);
 
@@ -269,27 +274,27 @@ pub fn verify_pinch_targets(
     problem: &PinchProblem,
     claimed: &PinchTargets,
 ) -> Result<(), ModelError> {
-    let (hot, cold, endpoints) = shifted_streams(problem)?;
+    let prepared = shifted_streams(problem)?;
     let mut recomputed_cascade = 0.0_f64;
     let mut minimum_cascade = 0.0_f64;
     let mut recomputed_intervals = Vec::with_capacity(endpoints.len().saturating_sub(1));
 
     // Deliberately re-express the interval loop here rather than calling the
     // production target calculator or build_intervals().
-    for bounds in endpoints.windows(2) {
+    for bounds in prepared.endpoints.windows(2) {
         let top = bounds[0];
         let bottom = bounds[1];
         if top - bottom <= 0.0 || close(top, bottom) {
             continue;
         }
         let mut hot_sum = 0.0;
-        for stream in &hot {
+        for stream in &prepared.hot {
             if stream.high >= top && stream.low <= bottom {
                 hot_sum += stream.integrated_heat_capacity_j_per_k;
             }
         }
         let mut cold_sum = 0.0;
-        for stream in &cold {
+        for stream in &prepared.cold {
             if stream.high >= top && stream.low <= bottom {
                 cold_sum += stream.integrated_heat_capacity_j_per_k;
             }
