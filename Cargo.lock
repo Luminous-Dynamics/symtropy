@@ -9227,14 +9227,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "symtropy-motion-contract"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "symtropy-mesh"
 version = "0.1.0"
 dependencies = [
@@ -9245,6 +9237,15 @@ dependencies = [
  "serde_json",
  "symtropy-math",
  "symtropy-physics",
+]
+
+
+[[package]]
+name = "symtropy-motion-contract"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
