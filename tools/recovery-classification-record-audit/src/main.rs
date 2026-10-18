@@ -155,7 +155,11 @@ struct AuditReceipt {
 
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join("")
+    digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn is_nonempty(value: &str) -> bool {
@@ -260,8 +264,12 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
 
 fn canonical_packet_digest(packet: &Packet) -> String {
     let mut canonical = packet.clone();
-    canonical.records.sort_by(|a, b| a.record_id.cmp(&b.record_id));
-    canonical.case_bindings.sort_by(|a, b| a.case_id.cmp(&b.case_id));
+    canonical
+        .records
+        .sort_by(|a, b| a.record_id.cmp(&b.record_id));
+    canonical
+        .case_bindings
+        .sort_by(|a, b| a.case_id.cmp(&b.case_id));
     canonical
         .revocation_entries
         .sort_by(|a, b| a.record_id.cmp(&b.record_id));
@@ -271,12 +279,18 @@ fn canonical_packet_digest(packet: &Packet) -> String {
     }
 }
 
-fn payload_for(record: &StoredRecord, errors: &mut Vec<String>) -> Option<ClassificationRecordPayload> {
+fn payload_for(
+    record: &StoredRecord,
+    errors: &mut Vec<String>,
+) -> Option<ClassificationRecordPayload> {
     let payload: ClassificationRecordPayload =
         match serde_json::from_str(&record.canonical_payload_json) {
             Ok(value) => value,
             Err(error) => {
-                errors.push(format!("RECORD_PAYLOAD_JSON_INVALID:{}:{error}", record.record_id));
+                errors.push(format!(
+                    "RECORD_PAYLOAD_JSON_INVALID:{}:{error}",
+                    record.record_id
+                ));
                 return None;
             }
         };
@@ -284,7 +298,10 @@ fn payload_for(record: &StoredRecord, errors: &mut Vec<String>) -> Option<Classi
     let canonical = match serde_json::to_string(&payload) {
         Ok(value) => value,
         Err(error) => {
-            errors.push(format!("RECORD_CANONICAL_SERIALIZATION_FAILED:{}:{error}", record.record_id));
+            errors.push(format!(
+                "RECORD_CANONICAL_SERIALIZATION_FAILED:{}:{error}",
+                record.record_id
+            ));
             return None;
         }
     };
@@ -299,18 +316,32 @@ fn payload_for(record: &StoredRecord, errors: &mut Vec<String>) -> Option<Classi
         errors.push(format!("RECORD_OUTER_ID_MISMATCH:{}", record.record_id));
     }
     if payload.source_authenticity_status != "UNVERIFIED_SYNTHETIC" {
-        errors.push(format!("RECORD_AUTHENTICITY_CEILING_VIOLATION:{}", record.record_id));
+        errors.push(format!(
+            "RECORD_AUTHENTICITY_CEILING_VIOLATION:{}",
+            record.record_id
+        ));
     }
-    if payload.issued_day > payload.valid_from_day || payload.valid_from_day > payload.valid_until_day {
-        errors.push(format!("RECORD_VALIDITY_RANGE_INVALID:{}", record.record_id));
+    if payload.issued_day > payload.valid_from_day
+        || payload.valid_from_day > payload.valid_until_day
+    {
+        errors.push(format!(
+            "RECORD_VALIDITY_RANGE_INVALID:{}",
+            record.record_id
+        ));
     }
     if !is_nonempty(&payload.revocation_policy_id) {
         errors.push(format!("REVOCATION_POLICY_ID_MISSING:{}", record.record_id));
     } else if payload.revocation_policy_id != "synthetic-revocation-policy-v1" {
-        errors.push(format!("REVOCATION_POLICY_UNSUPPORTED:{}", record.record_id));
+        errors.push(format!(
+            "REVOCATION_POLICY_UNSUPPORTED:{}",
+            record.record_id
+        ));
     }
     if payload.classified_failure_families != sorted(&payload.classified_failure_families) {
-        errors.push(format!("CLASSIFIED_FAMILIES_NOT_CANONICAL:{}", record.record_id));
+        errors.push(format!(
+            "CLASSIFIED_FAMILIES_NOT_CANONICAL:{}",
+            record.record_id
+        ));
     }
     if payload.evidence_tags != sorted(&payload.evidence_tags) {
         errors.push(format!("EVIDENCE_TAGS_NOT_CANONICAL:{}", record.record_id));
@@ -319,13 +350,19 @@ fn payload_for(record: &StoredRecord, errors: &mut Vec<String>) -> Option<Classi
         payload.classification_status.as_str(),
         "COMPLETE" | "INCOMPLETE" | "UNKNOWN"
     ) {
-        errors.push(format!("CLASSIFICATION_STATUS_INVALID:{}", record.record_id));
+        errors.push(format!(
+            "CLASSIFICATION_STATUS_INVALID:{}",
+            record.record_id
+        ));
     }
     if !matches!(
         payload.classification_review_status.as_str(),
         "REVIEWED" | "UNREVIEWED" | "UNKNOWN"
     ) {
-        errors.push(format!("CLASSIFICATION_REVIEW_STATUS_INVALID:{}", record.record_id));
+        errors.push(format!(
+            "CLASSIFICATION_REVIEW_STATUS_INVALID:{}",
+            record.record_id
+        ));
     }
 
     Some(payload)
@@ -371,8 +408,10 @@ fn evaluate_case(
         errors.push(format!("CASE_REFERENCE_MISMATCH:{}", case.case_id));
     }
 
-    let matching_records: Vec<&StoredRecord> =
-        records.iter().filter(|record| record.record_id == binding.record_id).collect();
+    let matching_records: Vec<&StoredRecord> = records
+        .iter()
+        .filter(|record| record.record_id == binding.record_id)
+        .collect();
     if matching_records.len() != 1 {
         result.record_integrity_status = if matching_records.is_empty() {
             "MISSING".to_string()
@@ -392,7 +431,8 @@ fn evaluate_case(
     };
     result.authenticity_status = payload.source_authenticity_status.clone();
 
-    let record_digest_matches = sha256_hex(record.canonical_payload_json.as_bytes()) == record.sha256;
+    let record_digest_matches =
+        sha256_hex(record.canonical_payload_json.as_bytes()) == record.sha256;
     let binding_digest_matches = binding.sha256 == record.sha256;
     if record_digest_matches && binding_digest_matches && errors.len() == before_errors {
         result.record_integrity_status = "MATCH".to_string();
@@ -423,7 +463,10 @@ fn evaluate_case(
         result.case_binding_status = "MATCH".to_string();
     }
 
-    if let Some(profile) = profiles.iter().find(|profile| profile.profile_id == case.profile_id) {
+    if let Some(profile) = profiles
+        .iter()
+        .find(|profile| profile.profile_id == case.profile_id)
+    {
         let in_scope = case.domain == profile.domain
             && case.profile_version == profile.profile_version
             && case.criteria_regime == profile.criteria_regime
@@ -511,7 +554,11 @@ fn audit(
     let mut binding_case_ids = BTreeSet::new();
     for binding in &packet.case_bindings {
         binding_case_ids.insert(binding.case_id.clone());
-        if !envelope.cases.iter().any(|case| case.case_id == binding.case_id) {
+        if !envelope
+            .cases
+            .iter()
+            .any(|case| case.case_id == binding.case_id)
+        {
             errors.push(format!("ORPHAN_CASE_BINDING:{}", binding.case_id));
         }
         if !record_ids.contains(&binding.record_id) {
@@ -524,7 +571,11 @@ fn audit(
         }
     }
     for record in &packet.records {
-        if !packet.case_bindings.iter().any(|binding| binding.record_id == record.record_id) {
+        if !packet
+            .case_bindings
+            .iter()
+            .any(|binding| binding.record_id == record.record_id)
+        {
             errors.push(format!("ORPHAN_RECORD:{}", record.record_id));
         }
         if !packet
@@ -589,7 +640,9 @@ fn audit(
                 && result.case_binding_status == "MATCH"
         });
     let all_actuation_disabled = !packet.claim_ceiling.expected_actuation
-        && case_results.iter().all(|result| !result.actuation_authorized);
+        && case_results
+            .iter()
+            .all(|result| !result.actuation_authorized);
     if !all_authenticity_unverified {
         errors.push("AUTHENTICITY_CEILING_VIOLATED".to_string());
     }
@@ -712,11 +765,16 @@ mod tests {
         serde_json::from_str(&record.canonical_payload_json).expect("payload should parse")
     }
 
-    fn update_payload(packet: &mut Packet, record_id: &str, mutate: impl FnOnce(&mut ClassificationRecordPayload)) {
+    fn update_payload(
+        packet: &mut Packet,
+        record_id: &str,
+        mutate: impl FnOnce(&mut ClassificationRecordPayload),
+    ) {
         let record = record_mut(packet, record_id);
         let mut payload = payload_of(record);
         mutate(&mut payload);
-        record.canonical_payload_json = serde_json::to_string(&payload).expect("payload serializes");
+        record.canonical_payload_json =
+            serde_json::to_string(&payload).expect("payload serializes");
         record.sha256 = sha256_hex(record.canonical_payload_json.as_bytes());
         let digest = record.sha256.clone();
         for binding in &mut packet.case_bindings {
@@ -759,8 +817,14 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_DIGEST_MISMATCH")));
-        assert!(!result_for(&receipt, "forest-known-family-complete-evidence").synthetic_review_candidate);
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("RECORD_DIGEST_MISMATCH")));
+        assert!(
+            !result_for(&receipt, "forest-known-family-complete-evidence")
+                .synthetic_review_candidate
+        );
     }
 
     #[test]
@@ -770,27 +834,41 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("CASE_BINDING_DIGEST_MISMATCH")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("CASE_BINDING_DIGEST_MISMATCH")));
     }
 
     #[test]
     fn semantic_mutation_rehashed_still_fails_case_binding() {
         let mut value = packet();
-        update_payload(&mut value, "synthetic://classification-review/forest-known-family-complete-evidence", |p| {
-            p.criteria_regime = "unrelated-regime".to_string();
-        });
+        update_payload(
+            &mut value,
+            "synthetic://classification-review/forest-known-family-complete-evidence",
+            |p| {
+                p.criteria_regime = "unrelated-regime".to_string();
+            },
+        );
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.contains("RECORD_CASE_SEMANTIC_MISMATCH")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("RECORD_CASE_SEMANTIC_MISMATCH")));
     }
 
     #[test]
     fn taxonomy_mutation_rehashed_fails_semantic_and_scope_checks() {
         let mut value = packet();
-        update_payload(&mut value, "synthetic://classification-review/forest-known-family-complete-evidence", |p| {
-            p.taxonomy_version = "forest-hazard-taxonomy-v2".to_string();
-        });
+        update_payload(
+            &mut value,
+            "synthetic://classification-review/forest-known-family-complete-evidence",
+            |p| {
+                p.taxonomy_version = "forest-hazard-taxonomy-v2".to_string();
+            },
+        );
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
@@ -804,8 +882,18 @@ mod tests {
         let mut value = packet();
         let a = "forest-known-family-complete-evidence";
         let b = "pv-known-family-complete-evidence";
-        let a_binding = value.case_bindings.iter().find(|x| x.case_id == a).unwrap().clone();
-        let b_binding = value.case_bindings.iter().find(|x| x.case_id == b).unwrap().clone();
+        let a_binding = value
+            .case_bindings
+            .iter()
+            .find(|x| x.case_id == a)
+            .unwrap()
+            .clone();
+        let b_binding = value
+            .case_bindings
+            .iter()
+            .find(|x| x.case_id == b)
+            .unwrap()
+            .clone();
         for binding in &mut value.case_bindings {
             if binding.case_id == a {
                 binding.record_id = b_binding.record_id.clone();
@@ -830,8 +918,14 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert_eq!(result_for(&receipt, "forest-known-family-complete-evidence").lifecycle_status, "EXPIRED");
-        assert!(!result_for(&receipt, "forest-known-family-complete-evidence").synthetic_review_candidate);
+        assert_eq!(
+            result_for(&receipt, "forest-known-family-complete-evidence").lifecycle_status,
+            "EXPIRED"
+        );
+        assert!(
+            !result_for(&receipt, "forest-known-family-complete-evidence")
+                .synthetic_review_candidate
+        );
     }
 
     #[test]
@@ -841,7 +935,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_REVOKED")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("RECORD_REVOKED")));
     }
 
     #[test]
@@ -851,17 +948,25 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_REVOCATION_UNKNOWN")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("RECORD_REVOCATION_UNKNOWN")));
     }
 
     #[test]
     fn missing_binding_is_detected() {
         let mut value = packet();
-        value.case_bindings.retain(|binding| binding.case_id != "forest-known-family-complete-evidence");
+        value
+            .case_bindings
+            .retain(|binding| binding.case_id != "forest-known-family-complete-evidence");
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.contains("CASE_BINDING_MISSING")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("CASE_BINDING_MISSING")));
     }
 
     #[test]
@@ -872,7 +977,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_CASE_BINDING")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("DUPLICATE_CASE_BINDING")));
     }
 
     #[test]
@@ -883,7 +991,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_RECORD_ID")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("DUPLICATE_RECORD_ID")));
     }
 
     #[test]
@@ -900,7 +1011,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("ORPHAN_RECORD")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("ORPHAN_RECORD")));
     }
 
     #[test]
@@ -916,22 +1030,37 @@ mod tests {
     #[test]
     fn payload_cannot_claim_verified_source_authenticity() {
         let mut value = packet();
-        update_payload(&mut value, "synthetic://classification-review/forest-known-family-complete-evidence", |p| {
-            p.source_authenticity_status = "AUTHENTICATED".to_string();
-        });
+        update_payload(
+            &mut value,
+            "synthetic://classification-review/forest-known-family-complete-evidence",
+            |p| {
+                p.source_authenticity_status = "AUTHENTICATED".to_string();
+            },
+        );
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(!receipt.all_authenticity_unverified);
-        assert!(receipt.errors.iter().any(|error| error.contains("RECORD_AUTHENTICITY_CEILING_VIOLATION")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("RECORD_AUTHENTICITY_CEILING_VIOLATION")));
     }
 
     #[test]
     fn invalid_source_commit_fails_closed() {
-        let receipt = audit(&packet(), &envelope(), Some("bad-sha".to_string()), Vec::new());
+        let receipt = audit(
+            &packet(),
+            &envelope(),
+            Some("bad-sha".to_string()),
+            Vec::new(),
+        );
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error == "SOURCE_COMMIT_INVALID"));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error == "SOURCE_COMMIT_INVALID"));
     }
 
     #[test]
@@ -943,7 +1072,10 @@ mod tests {
         reordered.revocation_entries.reverse();
         let first = run(&original);
         let second = run(&reordered);
-        assert_eq!(first.canonical_packet_sha256, second.canonical_packet_sha256);
+        assert_eq!(
+            first.canonical_packet_sha256,
+            second.canonical_packet_sha256
+        );
         assert_eq!(
             serde_json::to_vec(&first).expect("receipt serializes"),
             serde_json::to_vec(&second).expect("receipt serializes")
@@ -965,7 +1097,10 @@ mod tests {
         let receipt = run(&packet());
         assert!(receipt.all_actuation_disabled);
         assert!(receipt.all_authenticity_unverified);
-        assert!(receipt.case_results.iter().all(|result| !result.actuation_authorized));
+        assert!(receipt
+            .case_results
+            .iter()
+            .all(|result| !result.actuation_authorized));
         assert!(receipt
             .case_results
             .iter()
@@ -996,7 +1131,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_POLICY_UNSUPPORTED")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("REVOCATION_POLICY_UNSUPPORTED")));
     }
 
     #[test]
@@ -1057,17 +1195,25 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_ENTRY_FROM_FUTURE")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("REVOCATION_ENTRY_FROM_FUTURE")));
     }
     #[test]
     fn missing_revocation_entry_is_rejected() {
         let mut value = packet();
         let record_id = value.records[0].record_id.clone();
-        value.revocation_entries.retain(|entry| entry.record_id != record_id);
+        value
+            .revocation_entries
+            .retain(|entry| entry.record_id != record_id);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_ENTRY_MISSING")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("REVOCATION_ENTRY_MISSING")));
     }
 
     #[test]
@@ -1078,7 +1224,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_REVOCATION_ENTRY")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("DUPLICATE_REVOCATION_ENTRY")));
     }
 
     #[test]
@@ -1092,7 +1241,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_VALIDITY_RANGE_INVALID")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("RECORD_VALIDITY_RANGE_INVALID")));
     }
 
     #[test]
@@ -1105,8 +1257,9 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("CLASSIFIED_FAMILIES_NOT_CANONICAL")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("CLASSIFIED_FAMILIES_NOT_CANONICAL")));
     }
-
-
 }
