@@ -749,12 +749,33 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     let temporal_report = temporal::simulate_schedule(&temporal_config, &temporal_schedule)?;
     temporal::verify_schedule_report(&temporal_config, &temporal_schedule, &temporal_report)?;
 
+    // Separate direct-beam input fixture. It is audited as incident energy,
+    // not conflated with the independent collector-performance fixture below.
+    let dni_input = solar_input::DirectBeamIntervalInput {
+        direct_normal_irradiance: solar_input::IrradianceWPerM2::new(800.0)?,
+        aperture_area: solar_input::ApertureAreaM2::new(10.0)?,
+        incidence_cosine: Fraction::new(0.5)?,
+        unshaded_fraction: Fraction::new(0.8)?,
+        duration: Seconds::new(3_600.0)?,
+    };
+    let dni_report = solar_input::integrate_direct_beam(dni_input)?;
+    solar_input::verify_direct_beam_interval(dni_input, dni_report)?;
+
     let mut json = String::from(
         "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
     fn number(out: &mut String, key: &str, value: f64) {
         write!(out, ",\"{key}\":{value:.9}").expect("writing to a String cannot fail");
     }
+    json.push_str(",\"dni_fixture_id\":\"direct-beam-interval-001\"");
+    number(&mut json, "dni_direct_normal_irradiance_w_per_m2", 800.0);
+    number(&mut json, "dni_aperture_area_m2", 10.0);
+    number(&mut json, "dni_incidence_cosine", 0.5);
+    number(&mut json, "dni_unshaded_fraction", 0.8);
+    number(&mut json, "dni_duration_s", 3_600.0);
+    number(&mut json, "dni_incident_power_w", dni_report.incident_power_at_aperture.value());
+    number(&mut json, "dni_incident_energy_j", dni_report.incident_energy.value());
+
     number(&mut json, "exergy_reference_temperature_k", 300.0);
     number(&mut json, "optical_efficiency", 0.8);
     number(&mut json, "store_mass_kg", 1.0);
