@@ -11,4 +11,8 @@ serde = { version = "1.0", features = ["derive"] }
 [dev-dependencies]
 serde_json = "1.0"
 
+[[bench]]
+name = "portfolio_frontier"
+harness = false
+
 [workspace]
