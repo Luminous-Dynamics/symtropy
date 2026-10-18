@@ -96,7 +96,7 @@ struct SweepContext {
     sample_window_end_secs: f32,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 struct LoadedReport {
     path: PathBuf,
     sha256: String,
