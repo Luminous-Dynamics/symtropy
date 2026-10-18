@@ -165,7 +165,8 @@
           "minLength": 1
         },
         "scale": {
-          "type": "number"
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "offset": {
           "type": "number"
