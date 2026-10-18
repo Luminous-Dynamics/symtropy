@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use std::process;
 
 const PROFILE_ID: &str = "DECLARED-IFC-SCHEMA-SUPPORTED-RULES-v0.1";
-const POLICY_ID: &str = "BUILT-INTEROP-005/v0.1;declared-schema;error=FAIL;evaluation-error-unsupported-truncated=UNRESOLVED;strict-step";
+const POLICY_ID: &str = "BUILT-INTEROP-005/v0.1;step=ifc-step-0.5.0-strict;model=ifc-model-0.3.1;schema=ifc-schema-0.3.2-ifc4-only;validator=ifc-validate-0.6.0;schema-selection=declared-only;errors=FAIL;evaluation-errors-unsupported-truncated=UNRESOLVED;findings=stable-sorted;lock-sha256=cdf5e081cacba012ed1e52246b399f1062934b0e71eeeb5f6743f4f81a279c7c";
 const CLAIM_SCOPE: &str = "Checks implemented by ifc-validate 0.6.0 against the schema tables in ifc-schema 0.3.2 selected from the artifact's declared schema token.";
 const LIMITATIONS: [&str; 4] = [
     "Not every normative EXPRESS WHERE or INVERSE rule is implemented; unsupported checks are reported and prevent PASS.",
@@ -272,6 +272,24 @@ mod tests {
         assert_eq!(output["evidence_payload"]["declared_schema_token"], "IFC4");
         assert_eq!(output["gate"]["gate_id"], "ifc_schema_conformance");
         assert_eq!(output["gate"]["mandatory"], true);
+        assert_eq!(
+            output["gate"]["evidence"][0]["kind"],
+            "validator_report"
+        );
+        assert_eq!(
+            output["gate"]["evidence"][0]["sha256"],
+            sha256_hex(&serde_json::to_vec(&output["evidence_payload"]).unwrap())
+        );
+        assert!(
+            output["gate"]["status"] == "PASS"
+                || output["gate"]["status"] == "FAIL"
+                || output["gate"]["status"] == "UNRESOLVED"
+        );
+        assert!(output["gate"]["tool"]["config_sha256"]
+            .as_str()
+            .unwrap()
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
         assert!(
             output["gate"]["tool"]["config_sha256"]
                 .as_str()
@@ -305,6 +323,36 @@ mod tests {
             output["evidence_payload"]["declared_schema_token"],
             "IFC_FUTURE_TEST"
         );
+        assert_eq!(
+            output["evidence_payload"]["decision_reason"]["code"],
+            "DECLARED_SCHEMA_UNAVAILABLE"
+        );
+    }
+
+    #[test]
+    fn known_but_unbundled_schema_is_unresolved_not_guessed() {
+        let mutated = String::from_utf8(VALID_IFC.to_vec())
+            .expect("synthetic fixture is UTF-8")
+            .replace("FILE_SCHEMA(('IFC4'));", "FILE_SCHEMA(('IFC4X3_ADD2'));");
+        let output = evaluate_bytes(mutated.as_bytes(), "fixture://unbundled-schema.ifc");
+        assert_eq!(status(&output), "UNRESOLVED");
+        assert_eq!(
+            output["evidence_payload"]["declared_schema_token"],
+            "IFC4X3_ADD2"
+        );
+        assert_eq!(
+            output["evidence_payload"]["decision_reason"]["code"],
+            "DECLARED_SCHEMA_UNAVAILABLE"
+        );
+    }
+
+    #[test]
+    fn absent_schema_declaration_is_unresolved() {
+        let mutated = String::from_utf8(VALID_IFC.to_vec())
+            .expect("synthetic fixture is UTF-8")
+            .replace("FILE_SCHEMA(('IFC4'));", "FILE_SCHEMA(());");
+        let output = evaluate_bytes(mutated.as_bytes(), "fixture://missing-schema.ifc");
+        assert_eq!(status(&output), "UNRESOLVED");
         assert_eq!(
             output["evidence_payload"]["decision_reason"]["code"],
             "DECLARED_SCHEMA_UNAVAILABLE"
