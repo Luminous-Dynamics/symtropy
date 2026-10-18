@@ -604,21 +604,9 @@ pub fn drive_free_review_camera(
     keys: Res<ButtonInput<KeyCode>>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mouse_motion: Res<AccumulatedMouseMotion>,
-    mut query: bevy::prelude::Query<(
-        &mut Transform,
-        &mut ReviewFreeCameraController,
-        Option<&mut ReviewRoutePlayback>,
-    )>,
+    mut query: bevy::prelude::Query<(&mut Transform, &mut ReviewFreeCameraController)>,
 ) {
-    for (mut transform, mut controller, playback) in &mut query {
-        if keys.just_pressed(KeyCode::KeyF) {
-            controller.enabled = !controller.enabled;
-            if controller.enabled {
-                if let Some(mut playback) = playback {
-                    playback.set_playing(false);
-                }
-            }
-        }
+    for (mut transform, mut controller) in &mut query {
         if !controller.enabled || !controller.settings_are_valid() {
             continue;
         }
@@ -663,6 +651,41 @@ pub fn drive_free_review_camera(
                 1.0
             };
         transform.translation += movement.normalize_or_zero() * speed * time.delta_secs();
+    }
+}
+
+/// Handle discrete review controls in one deterministic system. Space pauses or
+/// resumes the scripted route; R restarts it; F toggles the direct floating
+/// camera. Enabling free camera pauses the route. Space/R exits free camera
+/// before changing the route state, so the route player and free camera never
+/// intentionally drive the same Transform in the same frame.
+pub fn manage_architectural_review_controls(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut query: bevy::prelude::Query<(
+        &mut ReviewRoutePlayback,
+        &mut ReviewFreeCameraController,
+    )>,
+) {
+    if !(keys.just_pressed(KeyCode::Space)
+        || keys.just_pressed(KeyCode::KeyR)
+        || keys.just_pressed(KeyCode::KeyF))
+    {
+        return;
+    }
+
+    for (mut playback, mut free_camera) in &mut query {
+        if keys.just_pressed(KeyCode::KeyF) {
+            free_camera.set_enabled(!free_camera.is_enabled());
+            if free_camera.is_enabled() {
+                playback.set_playing(false);
+            }
+        } else if keys.just_pressed(KeyCode::Space) {
+            free_camera.set_enabled(false);
+            playback.set_playing(!playback.is_playing());
+        } else if keys.just_pressed(KeyCode::KeyR) {
+            free_camera.set_enabled(false);
+            playback.restart();
+        }
     }
 }
 
@@ -934,6 +957,25 @@ mod tests {
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
             matches!(issue, ReviewRouteIssue::DegenerateLookDirection { waypoint_id } if waypoint_id == "kitchen")
         }));
+    }
+
+    #[test]
+    fn free_camera_toggle_pauses_route_and_restart_resets_elapsed_time() {
+        let camera_pose = Transform::from_xyz(0.0, 1.6, 3.0)
+            .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
+        let route = sample_route_fixture();
+        let mut playback = ReviewRoutePlayback::new(route).unwrap();
+        let mut controller = ReviewFreeCameraController::from_transform(&camera_pose);
+
+        controller.set_enabled(true);
+        playback.set_playing(false);
+        assert!(controller.is_enabled());
+        assert!(!playback.is_playing());
+        playback.elapsed_seconds = 4.0;
+        controller.set_enabled(false);
+        playback.restart();
+        assert_eq!(playback.elapsed_seconds(), 0.0);
+        assert!(playback.is_playing());
     }
 
     #[test]
