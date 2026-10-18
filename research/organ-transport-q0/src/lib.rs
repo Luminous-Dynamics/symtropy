@@ -223,14 +223,11 @@ mod tests {
 
     #[test]
     fn junction_residual_detects_balance_and_imbalance() {
-        assert_eq!(
-            junction_residual_m3_per_s(&[2e-6, 3e-6, -5e-6]).unwrap(),
-            0.0
-        );
-        assert_eq!(
-            junction_residual_m3_per_s(&[2e-6, 3e-6, -4e-6]).unwrap(),
-            1e-6
-        );
+        let balanced = junction_residual_m3_per_s(&[2e-6, 3e-6, -5e-6]).unwrap();
+        assert!(balanced.abs() < 1e-20, "residual {balanced:e}");
+
+        let imbalanced = junction_residual_m3_per_s(&[2e-6, 3e-6, -4e-6]).unwrap();
+        assert!((imbalanced - 1e-6).abs() < 1e-20, "residual {imbalanced:e}");
     }
 
     #[test]
