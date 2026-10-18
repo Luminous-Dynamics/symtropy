@@ -145,6 +145,7 @@ fn policy_cycle_is_rejected() {
             outcome_id: "tunnel-dry".to_owned(),
             next_action_id: "bridge-screen".to_owned(),
         });
+    input.candidate_policy.max_supported_action_depth = 3;
     let bytes = serde_json::to_vec(&input).expect("serialize changed input");
     let error = evaluate_bytes(&bytes).expect_err("cycle must fail closed");
     assert!(error.contains("cycle"), "{error}");
@@ -210,7 +211,9 @@ fn out_of_model_support_never_drops_unknown_design_states() {
         .iter()
         .find(|leaf| {
             leaf.terminal == LeafTerminal::ReviewRequired
-                && leaf.path.first().map(|step| step.action_id.as_str()) == Some("bridge-screen")
+                && leaf.path.len() == 1
+                && leaf.path[0].outcome_id == "out_of_model_support"
+                && leaf.path[0].action_id == "bridge-screen"
         })
         .expect("root support failure");
     let active = failure.state_ids.iter().cloned().collect::<BTreeSet<_>>();
