@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Versioned, renderer-independent semantic intent for embodied agents.
 //!
 //! This contract is the boundary between cognition/planning and embodiment. It is not a
