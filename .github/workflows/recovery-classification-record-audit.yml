@@ -59,6 +59,8 @@ jobs:
             and .properties.claim_ceiling.properties.expected_actuation.const == false
             and (.properties.records.items.properties.sha256."$ref" == "#/$defs/sha256")
           ' schemas/recovery/classification-record-packet-v0.1.schema.json
+          jq -e 'all(.revocation_entries[]; .policy_id == "synthetic-revocation-policy-v1")' \
+            docs/tech/recovery-classification-record-packet-v0.1.json
           jq -e --arg head "$source_commit" '
             .result == "pass"
             and .schema_version == "recovery-classification-record-packet-v0.1"
