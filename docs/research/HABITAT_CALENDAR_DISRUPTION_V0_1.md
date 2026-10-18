@@ -1,6 +1,6 @@
 # Habitat Calendar and Disruption Benchmark v0.1
 
-**Status:** research contract and hand-calculated synthetic fixture; no solver implementation or performance result is claimed by this document.
+**Status:** research contract, frozen synthetic fixture and bounded Rust micro-oracle implementation; Rust compilation/tests and performance remain unverified in this authoring environment.
 **Tracking issue:** [HABITAT-CALENDAR-001 #1938](https://github.com/Luminous-Dynamics/symtropy/issues/1938)
 **Fixture:** [HABITAT_CALENDAR_DISRUPTION_V0_1.json](fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json)
 
