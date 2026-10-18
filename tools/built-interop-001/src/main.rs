@@ -161,26 +161,6 @@ struct ResultDigestPayload<'a> {
     summary: &'a Summary,
 }
 
-#[derive(Clone, Copy)]
-enum Severity {
-    Blocked,
-    Unresolved,
-}
-
-fn add_issue(
-    issues: &mut Vec<String>,
-    blocked: &mut bool,
-    unresolved: &mut bool,
-    severity: Severity,
-    message: String,
-) {
-    match severity {
-        Severity::Blocked => *blocked = true,
-        Severity::Unresolved => *unresolved = true,
-    }
-    issues.push(message);
-}
-
 fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
