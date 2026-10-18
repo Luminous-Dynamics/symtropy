@@ -493,9 +493,9 @@ pub fn run_demo() -> Result<CostLedgerReport, CostLedgerError> {
         case_id: "synthetic-component-cost-ledger-v0.1".to_owned(),
         currency_code: "USD".to_owned(),
         evidence_tier: EvidenceTier::Synthetic,
-        baseline_receipt_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
-        treatment_receipt_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
-        comparison_contract_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+        baseline_receipt_sha256: "a".repeat(64),
+        treatment_receipt_sha256: "b".repeat(64),
+        comparison_contract_sha256: "c".repeat(64),
         baseline_service_contract_id: "container-delivery-service-v1".to_owned(),
         treatment_service_contract_id: "container-delivery-service-v1".to_owned(),
         baseline_horizon_id: "2026-Q3".to_owned(),
@@ -510,9 +510,21 @@ pub fn run_demo() -> Result<CostLedgerReport, CostLedgerError> {
         ParticipantCostLedger {
             participant_id: "PORT-OPS".to_owned(),
             components: vec![
-                CostComponent { category_id: "bunkers".to_owned(), baseline_cost_minor: 70_000, treatment_cost_minor: 68_000 },
-                CostComponent { category_id: "coordination".to_owned(), baseline_cost_minor: 20_000, treatment_cost_minor: 22_000 },
-                CostComponent { category_id: "demurrage".to_owned(), baseline_cost_minor: 10_000, treatment_cost_minor: 5_000 },
+                CostComponent {
+                    category_id: "bunkers".to_owned(),
+                    baseline_cost_minor: 70_000,
+                    treatment_cost_minor: 68_000,
+                },
+                CostComponent {
+                    category_id: "coordination".to_owned(),
+                    baseline_cost_minor: 20_000,
+                    treatment_cost_minor: 22_000,
+                },
+                CostComponent {
+                    category_id: "demurrage".to_owned(),
+                    baseline_cost_minor: 10_000,
+                    treatment_cost_minor: 5_000,
+                },
             ],
             transfer_in_minor: -500,
             minimum_acceptable_benefit_minor: 0,
@@ -520,9 +532,21 @@ pub fn run_demo() -> Result<CostLedgerReport, CostLedgerError> {
         ParticipantCostLedger {
             participant_id: "SHIP-OWNER".to_owned(),
             components: vec![
-                CostComponent { category_id: "bunkers".to_owned(), baseline_cost_minor: 100_000, treatment_cost_minor: 101_000 },
-                CostComponent { category_id: "coordination".to_owned(), baseline_cost_minor: 10_000, treatment_cost_minor: 15_000 },
-                CostComponent { category_id: "demurrage".to_owned(), baseline_cost_minor: 10_000, treatment_cost_minor: 6_000 },
+                CostComponent {
+                    category_id: "bunkers".to_owned(),
+                    baseline_cost_minor: 100_000,
+                    treatment_cost_minor: 101_000,
+                },
+                CostComponent {
+                    category_id: "coordination".to_owned(),
+                    baseline_cost_minor: 10_000,
+                    treatment_cost_minor: 15_000,
+                },
+                CostComponent {
+                    category_id: "demurrage".to_owned(),
+                    baseline_cost_minor: 10_000,
+                    treatment_cost_minor: 6_000,
+                },
             ],
             transfer_in_minor: 2_000,
             minimum_acceptable_benefit_minor: 0,
@@ -530,9 +554,21 @@ pub fn run_demo() -> Result<CostLedgerReport, CostLedgerError> {
         ParticipantCostLedger {
             participant_id: "CHARTERER".to_owned(),
             components: vec![
-                CostComponent { category_id: "bunkers".to_owned(), baseline_cost_minor: 70_000, treatment_cost_minor: 68_000 },
-                CostComponent { category_id: "coordination".to_owned(), baseline_cost_minor: 5_000, treatment_cost_minor: 4_000 },
-                CostComponent { category_id: "demurrage".to_owned(), baseline_cost_minor: 5_000, treatment_cost_minor: 5_000 },
+                CostComponent {
+                    category_id: "bunkers".to_owned(),
+                    baseline_cost_minor: 70_000,
+                    treatment_cost_minor: 68_000,
+                },
+                CostComponent {
+                    category_id: "coordination".to_owned(),
+                    baseline_cost_minor: 5_000,
+                    treatment_cost_minor: 4_000,
+                },
+                CostComponent {
+                    category_id: "demurrage".to_owned(),
+                    baseline_cost_minor: 5_000,
+                    treatment_cost_minor: 5_000,
+                },
             ],
             transfer_in_minor: -1_500,
             minimum_acceptable_benefit_minor: 0,
@@ -696,7 +732,11 @@ mod tests {
             second.participants[0]
                 .components
                 .iter()
-                .any(|c| c.category_id == "other" && c.baseline_cost_minor == 0 && c.treatment_cost_minor == 0)
+                .any(|component| {
+                    component.category_id == "other"
+                        && component.baseline_cost_minor == 0
+                        && component.treatment_cost_minor == 0
+                })
         );
     }
 
@@ -764,7 +804,10 @@ mod tests {
                 let ledgers = vec![
                     ledger(
                         "A",
-                        vec![component("fuel", 7 + offset, 4 + cost_shift), component("delay", 3, 2)],
+                        vec![
+                            component("fuel", 7 + offset, 4 + cost_shift),
+                            component("delay", 3, 2),
+                        ],
                         0,
                         i64::MIN,
                     ),
