@@ -232,5 +232,226 @@
       "interpretation_note": null
     }
   ],
-  "assets": []
+  "assets": [],
+  "estimates": [
+    {
+      "id": "antikythera:estimate-ring-365",
+      "claim_id": "antikythera:calendar-ring-365-model",
+      "quantity": "proposed calendar-ring hole count",
+      "value_decimal": "365",
+      "unit": "holes",
+      "kind": "reconstruction_parameter",
+      "method": "Value stated in a published reconstruction",
+      "assumptions": [
+        "This is the parameter of the cited reconstruction, not a direct count of a complete surviving ring.",
+        "The record does not claim the interpretation is historically settled."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-nature-2008",
+          "locator": "Supplementary Information, Front Dials",
+          "relation": "supports",
+          "note": "The 2008 reconstruction describes a movable 365-hole calendar scale."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:estimate-ring-354-proposal",
+      "claim_id": "antikythera:calendar-ring-354-proposal",
+      "quantity": "proposed calendar-ring hole count",
+      "value_decimal": "354",
+      "unit": "holes",
+      "kind": "reconstruction_parameter",
+      "method": "Value implied by the published lunar-calendar interpretation",
+      "assumptions": [
+        "The 354 value is recorded as the proposed model parameter and not a direct count of the incomplete ring.",
+        "The interpretation depends on the measurements and geometric assumptions described by the source."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-bhi-2020",
+          "locator": "Synopsis and hole-measurement discussion",
+          "relation": "supports",
+          "note": "The authors propose a 354-day lunar calendar from the measured hole spacing."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:estimate-woan-bayley-all-points",
+      "claim_id": "antikythera:calendar-hole-count-statistics-2024",
+      "quantity": "estimated complete calendar-ring hole count",
+      "value_decimal": "355.24",
+      "unit": "holes",
+      "kind": "reported_interval_estimate",
+      "method": "68% credible estimate reported by Woan and Bayley using all measured data",
+      "assumptions": [
+        "Uses the authors' statistical model and all measured hole positions.",
+        "Treats the value as a model-conditioned estimate rather than a direct physical count.",
+        "Does not harmonize source assumptions across the separate 2008 and 2020 reconstructions."
+      ],
+      "interval": {
+        "lower_decimal": "353.88",
+        "upper_decimal": "356.63",
+        "kind": "credible",
+        "coverage_percent": "68",
+        "conditioning_note": "All measured data; reported asymmetric offsets are -1.36 and +1.39 around 355.24."
+      },
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The abstract reports a 68%-credible estimate of 355.24 with -1.36/+1.39 offsets."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:estimate-woan-bayley-exclude-fractures",
+      "claim_id": "antikythera:calendar-hole-count-statistics-2024",
+      "quantity": "estimated complete calendar-ring hole count",
+      "value_decimal": "354.08",
+      "unit": "holes",
+      "kind": "reported_interval_estimate",
+      "method": "68% credible estimate reported by Woan and Bayley excluding holes adjacent to fractures",
+      "assumptions": [
+        "Excludes holes adjacent to fractures from the measurement analysis.",
+        "Uses the authors' statistical model; it is not an independent dataset from the all-points estimate.",
+        "Must be compared with the all-points estimate as a sensitivity analysis, not as a statistically independent replicate."
+      ],
+      "interval": {
+        "lower_decimal": "352.67",
+        "upper_decimal": "355.55",
+        "kind": "credible",
+        "coverage_percent": "68",
+        "conditioning_note": "Excludes holes adjacent to fractures; reported asymmetric offsets are -1.41 and +1.47 around 354.08."
+      },
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The abstract reports 354.08 with -1.41/+1.47 offsets when holes adjacent to fractures are removed."
+        }
+      ]
+    }
+  ],
+  "reconstruction_models": [
+    {
+      "id": "antikythera:model-calendar-ring-365",
+      "title": "Movable 365-hole calendar-ring interpretation",
+      "summary": "A published 2008 reconstruction models the front calendar scale as a movable 365-hole ring associated with an Egyptian civil-calendar interpretation.",
+      "status": "published_interpretation",
+      "method": "Published reconstruction from the mechanism's inscriptions, recovered fragments, and associated astronomical/calendar interpretation",
+      "target_claim_ids": [
+        "antikythera:calendar-ring-365-model"
+      ],
+      "estimate_ids": [
+        "antikythera:estimate-ring-365"
+      ],
+      "assumptions": [
+        "The ring is modeled with 365 hole positions.",
+        "The reconstruction's parameter is not a direct complete-ring observation.",
+        "Visual and kinematic details not represented in the fixture remain outside the scope of this record."
+      ],
+      "evidence": [
+        {
+          "source_id": "antikythera:src-nature-2008",
+          "locator": "Supplementary Information, Front Dials",
+          "relation": "supports",
+          "note": "The paper describes a movable 365-hole calendar scale."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:model-calendar-ring-354-lunar",
+      "title": "354-division lunar-calendar interpretation",
+      "summary": "A later published analysis proposes that the calendar ring was associated with a 354-day lunar calendar, challenging the previously assumed 365-day model.",
+      "status": "published_interpretation",
+      "method": "Analysis of the angular spacing of surviving holes and inferred total ring divisions",
+      "target_claim_ids": [
+        "antikythera:calendar-ring-354-proposal",
+        "antikythera:calendar-hole-count-statistics-2024"
+      ],
+      "estimate_ids": [
+        "antikythera:estimate-ring-354-proposal",
+        "antikythera:estimate-woan-bayley-all-points",
+        "antikythera:estimate-woan-bayley-exclude-fractures"
+      ],
+      "assumptions": [
+        "The incomplete ring's surviving hole positions constrain but do not directly reveal every missing division.",
+        "The 354 proposal and later statistical estimates are related but are not identical analytical methods.",
+        "The two Woan-Bayley estimates share a measurement basis and must not be counted as independent confirmation."
+      ],
+      "evidence": [
+        {
+          "source_id": "antikythera:src-bhi-2020",
+          "locator": "Synopsis",
+          "relation": "supports",
+          "note": "The paper proposes a 354-day lunar-calendar interpretation."
+        },
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The later statistical analysis reports model-conditioned estimates and sensitivity to fracture-adjacent holes."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:model-354-candidate-kinematics-2025",
+      "title": "Candidate date-subsystem designs under a 354-division interpretation",
+      "summary": "A 2025 engineering paper presents three feasible candidate designs for the front date subsystem under a lunar-calendar interpretation; this is a family of candidate kinematic models, not one uniquely established ancient mechanism.",
+      "status": "published_candidate_design",
+      "method": "Generalized-chain synthesis, kinematic specialization, geometric constraints, and gear-tooth-count analysis as reported by the authors",
+      "target_claim_ids": [
+        "antikythera:calendar-designs-2025",
+        "antikythera:calendar-ring-354-proposal"
+      ],
+      "estimate_ids": [
+        "antikythera:estimate-ring-354-proposal",
+        "antikythera:estimate-woan-bayley-exclude-fractures"
+      ],
+      "assumptions": [
+        "The source proposes three conceptual candidates, not three proven historical gear layouts.",
+        "The 354-division calendar premise is accepted for this candidate family.",
+        "Published mechanical feasibility is not independently reproduced by this dataset or validator."
+      ],
+      "evidence": [
+        {
+          "source_id": "antikythera:src-lin-2025",
+          "locator": "Abstract and Highlights",
+          "relation": "supports",
+          "note": "The paper describes three conceptual models and reports kinematic/geometric feasibility analyses."
+        }
+      ]
+    }
+  ],
+  "model_comparisons": [
+    {
+      "id": "antikythera:comparison-calendar-ring",
+      "question": "Which front calendar-ring interpretation best fits the surviving evidence under its stated assumptions?",
+      "model_ids": [
+        "antikythera:model-calendar-ring-365",
+        "antikythera:model-calendar-ring-354-lunar",
+        "antikythera:model-354-candidate-kinematics-2025"
+      ],
+      "evaluation_axes": [
+        "fit to measured surviving hole spacing",
+        "sensitivity to excluding holes adjacent to fractures",
+        "consistency with the cited calendar interpretation",
+        "mechanical or kinematic feasibility",
+        "dependence on inferred missing geometry",
+        "independence and provenance of supporting evidence"
+      ],
+      "decision_rule": "Do not calculate a single aggregate winner. Report each evaluation axis separately and mark axes for which comparable measurements or reimplementations are unavailable.",
+      "caveats": [
+        "This metadata seed is not a locally reproduced gear simulation.",
+        "The two 2024 estimates are sensitivity analyses on related measurements, not independent replications.",
+        "A candidate design can be mechanically feasible without being proven to match the original artifact.",
+        "Source methods and assumptions have not yet been harmonized into a common statistical model."
+      ]
+    }
+  ]
 }
