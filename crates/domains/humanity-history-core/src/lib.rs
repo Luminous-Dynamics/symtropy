@@ -1689,7 +1689,9 @@ mod tests {
         let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
         let report = validate(&data);
         assert!(report.is_valid(), "{:#?}", report.issues);
-        assert_eq!(data.estimates.len(), 4);
+        assert_eq!(data.sources.len(), 7);
+        assert_eq!(data.claims.len(), 9);
+        assert_eq!(data.estimates.len(), 10);
         assert_eq!(data.reconstruction_models.len(), 3);
         assert_eq!(data.model_comparisons.len(), 1);
         assert!(data.model_comparisons[0].model_ids.len() >= 2);
