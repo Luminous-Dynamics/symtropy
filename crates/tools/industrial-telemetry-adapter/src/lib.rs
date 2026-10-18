@@ -46,8 +46,15 @@ pub struct TraceSummary {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TraceError {
     EmptyTrace,
-    InvalidRow { line_number: usize, reason: &'static str },
-    InvalidTimestamp { line_number: usize, value: String, reason: &'static str },
+    InvalidRow {
+        line_number: usize,
+        reason: &'static str,
+    },
+    InvalidTimestamp {
+        line_number: usize,
+        value: String,
+        reason: &'static str,
+    },
     CountOverflow,
 }
 
@@ -55,11 +62,21 @@ impl fmt::Display for TraceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyTrace => write!(f, "trace has no event records"),
-            Self::InvalidRow { line_number, reason } => {
+            Self::InvalidRow {
+                line_number,
+                reason,
+            } => {
                 write!(f, "invalid row at line {line_number}: {reason}")
             }
-            Self::InvalidTimestamp { line_number, value, reason } => {
-                write!(f, "invalid UTC timestamp at line {line_number} ({value:?}): {reason}")
+            Self::InvalidTimestamp {
+                line_number,
+                value,
+                reason,
+            } => {
+                write!(
+                    f,
+                    "invalid UTC timestamp at line {line_number} ({value:?}): {reason}"
+                )
             }
             Self::CountOverflow => write!(f, "trace counter overflow"),
         }
@@ -101,13 +118,12 @@ pub fn parse_trace(input: &str) -> Result<Vec<TraceEvent>, TraceError> {
                 reason: "field column must not be empty",
             });
         }
-        let timestamp_unix_ns = parse_utc_timestamp_ns(timestamp).map_err(|reason| {
-            TraceError::InvalidTimestamp {
+        let timestamp_unix_ns =
+            parse_utc_timestamp_ns(timestamp).map_err(|reason| TraceError::InvalidTimestamp {
                 line_number,
                 value: timestamp.to_owned(),
                 reason,
-            }
-        })?;
+            })?;
         events.push(TraceEvent {
             timestamp_utc: timestamp.to_owned(),
             timestamp_unix_ns,
@@ -249,9 +265,7 @@ pub fn parse_utc_timestamp_ns(value: &str) -> Result<i128, &'static str> {
     let fractional_ns = match fraction {
         None => 0_i128,
         Some(digits) => {
-            if digits.is_empty()
-                || digits.len() > 9
-                || !digits.bytes().all(|b| b.is_ascii_digit())
+            if digits.is_empty() || digits.len() > 9 || !digits.bytes().all(|b| b.is_ascii_digit())
             {
                 return Err("fraction must contain 1..=9 decimal digits");
             }
@@ -275,7 +289,9 @@ fn parse_digits(value: &str) -> Result<u32, &'static str> {
     if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
         return Err("numeric timestamp component is invalid");
     }
-    value.parse::<u32>().map_err(|_| "numeric timestamp component is invalid")
+    value
+        .parse::<u32>()
+        .map_err(|_| "numeric timestamp component is invalid")
 }
 
 fn is_leap_year(year: u32) -> bool {
@@ -377,7 +393,12 @@ mod tests {
         let names: Vec<&str> = summary.field_counts.keys().map(String::as_str).collect();
         assert_eq!(
             names,
-            vec!["Block_Number", "Program_Runtime_Seconds", "Program_Status", "Spindle_Speed"]
+            vec![
+                "Block_Number",
+                "Program_Runtime_Seconds",
+                "Program_Status",
+                "Spindle_Speed"
+            ]
         );
     }
 
