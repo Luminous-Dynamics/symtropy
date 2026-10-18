@@ -1,11 +1,9 @@
 use civ_infra_decision_impact_planner::{plan, sha256_hex, PlannerInput};
 
-const FIXTURE: &[u8] =
-    include_bytes!("../fixtures/bridge-tunnel-decision-impact-v0.1.json");
+const FIXTURE: &[u8] = include_bytes!("../fixtures/bridge-tunnel-decision-impact-v0.1.json");
 
 fn run_fixture() -> civ_infra_decision_impact_planner::PlanReport {
-    let input: PlannerInput =
-        serde_json::from_slice(FIXTURE).expect("bridge/tunnel fixture must parse");
+    let input: PlannerInput = serde_json::from_slice(FIXTURE).expect("fixture must parse");
     let digest = sha256_hex(FIXTURE);
     plan(&input, &digest).expect("declared finite bridge/tunnel case must validate")
 }
@@ -56,8 +54,7 @@ fn targeted_investigation_ranking_matches_hand_checkable_reference() {
 
 #[test]
 fn incomplete_investigation_outcomes_fail_closed() {
-    let mut input: PlannerInput =
-        serde_json::from_slice(FIXTURE).expect("fixture must parse");
+    let mut input: PlannerInput = serde_json::from_slice(FIXTURE).expect("fixture must parse");
 
     let outcome = input.actions[0]
         .outcomes
@@ -68,8 +65,7 @@ fn incomplete_investigation_outcomes_fail_closed() {
         .state_ids
         .retain(|state_id| state_id != "unresolved-deep-geology");
 
-    let mutated_bytes =
-        serde_json::to_vec(&input).expect("mutated input must serialize");
+    let mutated_bytes = serde_json::to_vec(&input).expect("mutated input must serialize");
     let digest = sha256_hex(&mutated_bytes);
     let error = plan(&input, &digest).expect_err("omitted state must block planner run");
 
