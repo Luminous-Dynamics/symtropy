@@ -13,7 +13,9 @@ This is **not** a network pressure solver, vascular growth model, oxygen transpo
 ## Run
 
 ```sh
-cargo test --manifest-path research/organ-transport-q0/Cargo.toml
+bash research/organ-transport-q0/verify-q0.sh \
+  target/organ-transport-q0-receipt.json \
+  "$(git rev-parse HEAD)"
 ```
 
 The crate owns a tiny workspace so it is not implicitly added to the production Symtropy workspace. Review licensing and domain ownership before product integration.
@@ -24,7 +26,6 @@ The crate owns a tiny workspace so it is not implicitly added to the production 
 - [`tube-reference-cases.v0.json`](tube-reference-cases.v0.json) pins baseline, pressure-reversal, zero-pressure, and negative-control examples.
 - [`network-reference-cases.v0.json`](network-reference-cases.v0.json) pins six prescribed-pressure networks: equal-resistance series flow, a two-outlet bifurcation, a two-inlet merge, a 3:1 flow split, two-level branching with multiple junctions, and reversed edge orientation. The verifier checks analytical edge flows and mass conservation at each declared internal junction. Node pressures are specified inputs; Q0 does not solve for unknown network pressures.
 - [`corpus-manifest.v0.json`](corpus-manifest.v0.json) pins SHA-256 digests, byte lengths, case counts, and ordered case IDs for both exact fixture files. The verifier fails closed on byte or case-identity drift until the change is reviewed and intentionally repinned.
-- [`corpus-manifest.v0.json`](corpus-manifest.v0.json) pins SHA-256 and byte length for both exact fixture files. The verifier rejects fixture-byte drift until the change is deliberately reviewed and the manifest repinned.
 
 These are intended to make benchmark results comparable without pretending unlike contexts (for example, flow-only and barrier-function assays) are interchangeable. Future receipt producers must bind the digest to exact input bytes and must never promote a synthetic result into physical or biological validation.
 
@@ -36,6 +37,6 @@ Run the pinned tube and small-network specifications against the Rust reference 
 cargo test --manifest-path research/organ-transport-q0/Cargo.toml
 ```
 
-The `tests/fixture_corpus.rs` integration tests first compare exact fixture bytes with `corpus-manifest.v0.json` SHA-256 digests, then parse the checked-in JSON, execute every tube fixture, compare network edge flows with the pinned expected values, and check junction mass balance with declared tolerances. The negative controls must be rejected with the specified error. This is an analytic/software gate only; the fixture JSON describes expected cases while the exact-head test receipt records whether verification actually ran.
+The `verify-q0.sh` entrypoint runs the format check and Cargo unit/integration tests, then writes a receipt shaped by `benchmark-receipt.schema.json`. The integration tests compare exact fixture bytes with manifest digests and byte lengths, enforce ordered case IDs, execute every tube fixture, compare network edge flows with the pinned expected values, and check junction mass balance at every declared internal junction. The negative controls must be rejected with the specified error. The receipt records the exact code commit, toolchain, fixture digests, command outcomes, and claim ceiling. `PASS`, `FAIL`, `BLOCKED`, and `NOT_RUN` remain distinct; every non-PASS status exits nonzero.
 
-The dedicated `Organ Transport Q0` workflow checks formatting and executes both unit and corpus tests on the research branch and pull requests. The source/configuration/fixture digests should be captured in a versioned benchmark receipt before comparing results across implementations.
+The dedicated `Organ Transport Q0` workflow checks out the exact PR head, pins Rust 1.96.0, runs the same receipt-producing entrypoint, and uploads the receipt artifact even if verification fails. A queued run or receipt from a previous source head is not a current pass.
