@@ -163,6 +163,7 @@ Each case binds scenario_id, semantic version, fixed seed, initial state and evi
 | MS-010 Compound disturbance | Test graceful degradation | Combine selected failures while preserving explicit stop, retreat, inspection and recovery semantics |
 | MS-011 Brownfield reuse vs new build | Avoid assuming new excavation is the default | Compare reuse-as-is, rehabilitation, partial reuse plus targeted new excavation, new build and no-build on equivalent qualified service; unqualified site evidence blocks use-specific capacity |
 | MS-012 Rock-breakage + spoil-removal tournament | Avoid optimizing cutting in isolation | Compare compatible mechanical / hybrid / research technology profiles on equivalent specimen/geometry and full-cycle boundaries; keep cutting-only and full-cycle denominators separate; out-of-domain models cannot claim physical outputs |
+| MS-013 Coupled fleet + ventilation | Avoid siloed vehicle/ventilation optimization | Compare diesel + fixed ventilation, battery-electric + fixed ventilation, battery-electric + VOD, and coupled fleet/charging/ventilation/cooling scheduling under identical task traces; stale sensors, airway restriction, fan/power failures and emergency override must preserve hard service constraints |
 
 These cases are synthetic definitions, not a model of any actual mine or a claim that one source/architecture is suitable for a particular site.
 
@@ -211,7 +212,7 @@ Every metric record must declare name, version, value, unit, numerator/denominat
 - **Excavation:** advance metres per productive hour stratified by geology; removed volume; overbreak/support quantities; cutting energy per m³; cutter wear/replacement per removed volume.
 - **Logistics:** kWh/t moved; queue/idle time; route completion and return reserve; hoist/conveyor availability.
 - **Processing:** energy and water per tonne feed and per tonne saleable product; product yield/grade; residues/tailings; qualified versus uncredited coproducts.
-- **Mine services:** ventilation, cooling, pumping and water-treatment energy/capacity; unserved demand and constraint violations.
+- **Mine services:** ventilation, cooling, pumping and water-treatment energy/capacity; airflow and required service by declared zone/time window; heat load, peak power, unserved demand and constraint violations. Never let an aggregate energy or output gain compensate for a breached local service constraint.
 - **Reliability:** productive availability, unscheduled downtime, repair lead time, spare-part stockout, mission recovery, inspection rejection/rework.
 - **Economics/environment:** capex/opex basis; cost per accepted saleable tonne; sensitivity ranges; energy/emissions basis; water withdrawal/treatment; closure/rehabilitation cost and omitted-cost disclosure.
 - **Risk and evidence:** hard-constraint false-safe count; stops/retreats; unknown/conflicting evidence dispositions; interval coverage on held-out measurements; unresolved applicability requirements.
@@ -238,6 +239,18 @@ Never rank literature studies on their headline percentage alone. Different stud
 ## 10.2 Reuse-first campaign extension
 
 Track the focused [BROWNFIELD-UNDERGROUND-001 issue #1951](https://github.com/Luminous-Dynamics/symtropy/issues/1951). The campaign benchmark includes a synthetic reuse-versus-new-build scenario, but it does not become an authoritative asset register, GIS, geotechnical solver or asset-reuse approval engine. Reuse may lose to new build or no-build when site evidence, costs, remediation or lifecycle risk justify that outcome.
+
+## 10.4 Coupled fleet and ventilation benchmark
+
+Track [VENT-FLEET-001 issue #1961](https://github.com/Luminous-Dynamics/symtropy/issues/1961). This is a new coupled-system scenario, not a replacement ventilation solver or mine-safety authority. It compares a fixed diesel reference, battery-electric fleet under the same fixed ventilation schedule, independently scheduled ventilation-on-demand (VOD), a coupled evidence-bounded fleet/charging/ventilation/cooling schedule, and an exact oracle only for small synthetic instances.
+
+The critical gates are local, time-indexed airflow and contaminant/thermal service requirements supplied by the applicable mine authority. A global energy or productivity improvement cannot compensate for a breached zone constraint. Stale/missing/conflicting critical sensors, unsupported operating envelopes or absent local limits must lead to a typed non-success disposition, never an inferred safe state. Include fan outage, air-path restriction, power interruption, communications loss and emergency ventilation override negative controls. Record fan, cooling, pumping, charging and vehicle energy separately and reconcile them to whole-site energy without double counting.
+
+Two useful but non-transferable research anchors:
+- [Safety implications of integrating battery-electric vehicles with ventilation-on-demand at Turquoise Ridge (online 15 July 2026)](https://doi.org/10.1016/j.jinse.2026.06.001) reports a simulation result of up to 20% airflow reduction and 47% ventilation-energy/CO₂ reduction in its modeled scenario. Reproduce the study boundary and assumptions before comparing; do not treat these percentages as universal or as field measurements.
+- [Achieving energy efficiency with medium-voltage variable-speed drives for ventilation-on-demand in South African mines](https://doi.org/10.1016/j.jclepro.2019.118676) reports audit-derived potential across ten ventilation networks. Preserve its audit assumptions and energy/emissions boundary; this is not a universal expected saving.
+
+Use [ISO 17757:2019](https://www.iso.org/standard/76126.html) as one standards input for autonomous/semi-autonomous mining machine system safety; the benchmark is not a compliance assessment or certification. Begin with synthetic scenario contracts and fail-closed negative controls. No real-world fan, vehicle or mine-control actuation is in scope.
 
 ## 10.3 Rock-breakage technology tournament extension
 

@@ -36,6 +36,10 @@ See [MINE_SYSTEM_BENCHMARK_V0_1.md](../../../docs/research/MINE_SYSTEM_BENCHMARK
 
 The campaign extension for reuse-first comparisons is tracked in [BROWNFIELD-UNDERGROUND-001](https://github.com/Luminous-Dynamics/symtropy/issues/1951): compare existing-asset reuse, rehabilitation, partial reuse plus new excavation, new build, and no-build/remediation under equivalent service needs.
 
+## Coupled fleet and ventilation research
+
+The [VENT-FLEET-001 workstream](https://github.com/Luminous-Dynamics/symtropy/issues/1961) compares diesel and battery-electric fleet/ventilation baselines, VOD, and a coupled schedule. It treats airflow, contaminant clearance, thermal limits, emergency ventilation and critical evidence as hard gates. Published efficiency results are scenario-specific research anchors, not portable mine-wide savings. This reference evaluator does not actuate equipment or certify mine safety.
+
 ## Rock-breakage research
 
 The specialized [ROCK-BREAKAGE-TOURNAMENT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1952) work compares mechanical, hybrid and non-mechanical approaches using explicit evidence tiers and full-cycle output boundaries.
