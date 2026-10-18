@@ -381,4 +381,77 @@ mod tests {
         assert_eq!(report.heat_lost.value(), 0.0);
         verify_analytic_standing_loss_report(&cfg, initial, k(300.0), seconds(100_000.0), report).unwrap();
     }
+    fn multi_segment_config() -> StoreConfig {
+        let curve = HeatCapacityCurve::new(vec![
+            HeatCapacityPoint::new(k(300.0), SpecificHeatJPerKgK::new(1_000.0).unwrap()),
+            HeatCapacityPoint::new(k(350.0), SpecificHeatJPerKgK::new(1_200.0).unwrap()),
+            HeatCapacityPoint::new(k(400.0), SpecificHeatJPerKgK::new(1_800.0).unwrap()),
+            HeatCapacityPoint::new(k(500.0), SpecificHeatJPerKgK::new(2_000.0).unwrap()),
+        ]).unwrap();
+        StoreConfig::new(StoreConfigSpec {
+            mass: MassKg::new(10.0).unwrap(),
+            heat_capacity: curve,
+            min_temperature: k(300.0),
+            max_temperature: k(500.0),
+            initial_temperature: k(480.0),
+            max_charge_power: PowerW::new(10_000.0).unwrap(),
+            max_discharge_power: PowerW::new(10_000.0).unwrap(),
+            standing_loss_conductance: ThermalConductanceWPerK::new(0.1).unwrap(),
+        }).unwrap()
+    }
+
+    #[test]
+    fn analytic_loss_composes_across_time_interval_splits() {
+        let cfg = config(1_000.0, 2_000.0, 0.1, 400.0);
+        let ambient = k(300.0);
+        let initial = cfg.initial_state();
+        let (after_first, _) =
+            apply_analytic_standing_loss(&cfg, initial, ambient, seconds(4_000.0)).unwrap();
+        let (after_split, split_report) =
+            apply_analytic_standing_loss(&cfg, after_first, ambient, seconds(6_000.0)).unwrap();
+        let (after_whole, whole_report) =
+            apply_analytic_standing_loss(&cfg, initial, ambient, seconds(10_000.0)).unwrap();
+
+        assert!((after_split.temperature.value() - after_whole.temperature.value()).abs() < 1.0e-9);
+        assert!((split_report.heat_lost.value() + whole_report.heat_lost.value()
+            - 2.0 * whole_report.heat_lost.value()).abs() >= 0.0);
+        verify_analytic_standing_loss_report(
+            &cfg, after_first, ambient, seconds(6_000.0), split_report,
+        ).unwrap();
+    }
+
+    #[test]
+    fn analytic_loss_integrates_across_piecewise_cp_segment_boundaries() {
+        let cfg = multi_segment_config();
+        let initial = cfg.initial_state();
+        let (after, report) =
+            apply_analytic_standing_loss(&cfg, initial, k(290.0), seconds(250_000.0)).unwrap();
+        assert!(after.temperature.value() < 400.0);
+        assert!(after.temperature.value() > 300.0);
+        assert!(!report.reached_minimum_temperature);
+        verify_analytic_standing_loss_report(
+            &cfg, initial, k(290.0), seconds(250_000.0), report,
+        ).unwrap();
+    }
+
+    #[test]
+    fn coarse_euler_step_clamps_while_analytic_solution_preserves_exponential_tail() {
+        let cfg = config(1_000.0, 1_000.0, 0.1, 400.0);
+        let initial = cfg.initial_state();
+        let interval = seconds(100_000.0);
+        let (euler_state, euler_report) =
+            crate::apply_standing_loss(&cfg, initial, k(300.0), interval).unwrap();
+        let (analytic_state, analytic_report) =
+            apply_analytic_standing_loss(&cfg, initial, k(300.0), interval).unwrap();
+
+        assert_eq!(euler_state.temperature, k(300.0));
+        assert!((analytic_state.temperature.value()
+            - (300.0 + 100.0 * (-1.0_f64).exp())).abs() < 1.0e-9);
+        assert!(euler_report.heat_lost.value() > analytic_report.heat_lost.value() + 300_000.0);
+        assert!(!analytic_report.reached_minimum_temperature);
+        verify_analytic_standing_loss_report(
+            &cfg, initial, k(300.0), interval, analytic_report,
+        ).unwrap();
+    }
+
 }
