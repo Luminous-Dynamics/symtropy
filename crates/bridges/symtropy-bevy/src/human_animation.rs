@@ -57,7 +57,8 @@ impl HumanAnimationClips {
 ///
 /// Another system changes motion in response to movement intent, interaction state,
 /// or a Symthaea decision. The plugin cross-fades to the corresponding animation node.
-/// transition_seconds is sanitized to a finite value in the range 0–2 seconds.
+/// The graph is bound when this component is initialized; use a new player entity to
+/// switch to a different graph. transition_seconds is clamped to 0–2 seconds.
 #[derive(Component, Debug, Clone)]
 pub struct HumanAnimationController {
     pub graph: Handle<AnimationGraph>,
@@ -83,7 +84,6 @@ impl HumanAnimationController {
 
 #[derive(Component, Default)]
 struct HumanAnimationRuntime {
-    graph: Option<Handle<AnimationGraph>>,
     motion: Option<HumanMotion>,
 }
 
@@ -119,18 +119,11 @@ fn drive_human_animation_players(
     mut query: Query<(
         &HumanAnimationController,
         &mut AnimationPlayer,
-        &mut AnimationGraphHandle,
         &mut AnimationTransitions,
         &mut HumanAnimationRuntime,
     )>,
 ) {
-    for (controller, mut player, mut graph_handle, mut transitions, mut runtime) in &mut query {
-        if runtime.graph.as_ref() != Some(&controller.graph) {
-            graph_handle.0 = controller.graph.clone();
-            runtime.graph = Some(controller.graph.clone());
-            runtime.motion = None;
-        }
-
+    for (controller, mut player, mut transitions, mut runtime) in &mut query {
         if runtime.motion == Some(controller.motion) {
             continue;
         }
