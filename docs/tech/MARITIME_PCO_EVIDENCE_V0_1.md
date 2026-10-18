@@ -1,0 +1,41 @@
+# MARITIME-PCO-001: Evidence-Preserving Observation Contract v0.1
+
+**Status:** initial Rust reference contract; compiler/test/Clippy status unverified.  
+**Implementation:** crates/domains/symtropy-maritime-evidence  
+**Tracking:** [Symtropy #1930](https://github.com/Luminous-Dynamics/symtropy/issues/1930)  
+**Standard references:** [IAPH announcement and minimum dataset](https://www.iaphworldports.org/pickup/21900/), [IMO GreenVoyage2050 launch notice](https://greenvoyage2050.imo.org/port-call-optimization-guide-launched-at-imo/), and [official PCO Guide PDF](https://greenvoyage2050.imo.org/wp-content/uploads/2026/03/Guide-IAPH-IHMA-PCO-Guide-Final.pdf).
+
+## Why this slice exists
+
+A solver is only as safe as the evidence it consumes. Port-call systems can contain multiple reports for one event, delayed corrections, timezone differences, stale master data, and planned times that are mistaken for actual times. Picking the most recently ingested record is not a general conflict-resolution policy.
+
+The IAPH–IHMA PCO Guide takes a basics-first approach: identify terminal and berth, and exchange planned arrival at the Pilot Boarding Place (PTA-PBP) and planned departure from berth (PTD). It bases semantics on IMO/IHO concepts and requires ISO 8601 date/time with timezone for timestamps. This crate maps the core concepts while retaining the source field code and original time text. It is not an official PCO SDK or a certified API adapter.
+
+## Contract
+
+Each observation carries stable observation, port, port-call and source identifiers; the semantic field and exact source field code; a typed identifier or typed timestamp with planned/requested/estimated/forecast/actual meaning; source-event time, ingestion time and optional validity end; schema version; original timestamp text; source UTC offset; and normalized UTC nanoseconds.
+
+The timestamp parser accepts a strict RFC 3339 subset: YYYY-MM-DDTHH:MM:SS[.1-9 digits](Z or signed HH:MM offset). It rejects timezone-less values, invalid calendar values, leap-second notation and precision beyond nanoseconds rather than guessing. A broader adapter must test any wider ISO 8601 syntax used by its actual provider. The original string is retained.
+
+## Safe conflict semantics
+
+Observations are grouped by port, port call, field and time meaning. Thus planned and actual arrival are separate groups; they do not conflict merely because the instants differ. Same-semantic observations from distinct offsets are consistent when their normalized UTC instant agrees. Different values for the same semantic key produce an explicit conflict with all source candidates preserved. The crate never applies last-write-wins or source ranking.
+
+An observation with an unknown terminal/berth identifier, malformed field/value pairing, duplicate observation ID, stale source event, future-dated source/ingestion metadata, invalid validity window or expired validity is rejected with a reason. A future timestamp inside a planned event value is allowed: future plans are normal. Master-data registries are explicit policy inputs; empty registries reject all terminal/berth references.
+
+## Frozen synthetic tests
+
+The Rust module includes tests for timezone normalization, fractional timestamp precision, malformed calendars/timezones, planned-future versus source-future time, planned/actual separation, equal-time different-offset reports, conflicting sources and permutation invariance, stale data, unknown identifiers, field/value mismatch, duplicate identities and validity-window errors. All test data is synthetic.
+
+These tests are authored but have not been executed here because no Rust toolchain is available through this authoring path. No compile, test, Clippy or CI pass is claimed.
+
+## Claim ceiling and next integration steps
+
+This first slice validates an in-memory contract, not the source's authority or truth. It does not authenticate source signatures, query a live PCO API, resolve entity aliases automatically, apply port-specific trust rankings, generate a cryptographic evidence digest, or change a berth/schedule. The report is deterministic over normalized inputs but does not yet issue a cryptographic replay receipt. Do not treat this as end-to-end provenance or official API conformance.
+
+Next gates:
+1. Implement a field-by-field PCO Guide mapping table with source examples, exact semantic definitions and known-loss notes.
+2. Add fixture vectors from the official PCO API testbed or a port-authorized endpoint once permitted; clearly label synthetic values meanwhile.
+3. Add a cryptographic digest and versioned canonical serialization only after selecting an established implementation and updating the lockfile—not a hand-rolled hash.
+4. Run cargo fmt --check, crate-scoped cargo test, cargo clippy -- -D warnings, then verify exact-head CI evidence.
+5. Only then build a read-only adapter for Symtropy/Sol Atlas. Mycelix retains authority over participant consent, offer activation, schedule changes and settlement.
