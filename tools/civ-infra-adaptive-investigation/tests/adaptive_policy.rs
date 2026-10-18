@@ -294,7 +294,6 @@ fn semantic_report_is_invariant_to_record_order_while_digest_tracks_exact_bytes(
     assert_eq!(baseline, permuted_report);
 }
 
-
 #[test]
 fn exponential_policy_expansion_fails_closed_at_the_work_budget() {
     const LAYERS: usize = 6;
