@@ -450,6 +450,9 @@ fn verify_trace(
         .iter()
         .map(|observation| (observation.event_id.as_str(), observation))
         .collect();
+    if delivered.len() != delivered_observations.len() {
+        return Err("duplicate delivered observation ID".to_owned());
+    }
     let pending_ids: BTreeSet<&str> = pending_observations
         .iter()
         .map(|observation| observation.event_id.as_str())
@@ -463,6 +466,14 @@ fn verify_trace(
         let visible: BTreeSet<&str> = decision.visible_event_ids.iter().map(String::as_str).collect();
         if visible.len() != decision.visible_event_ids.len() {
             return Err("visible-event snapshot has duplicate IDs".to_owned());
+        }
+        let expected_visible: BTreeSet<&str> = delivered_observations
+            .iter()
+            .filter(|observation| observation.delivered_at_epoch <= decision.epoch)
+            .map(|observation| observation.event_id.as_str())
+            .collect();
+        if visible != expected_visible {
+            return Err("visible-event snapshot does not match observations delivered by the decision epoch".to_owned());
         }
         let used: BTreeSet<&str> = decision.used_event_ids.iter().map(String::as_str).collect();
         if used.len() != decision.used_event_ids.len() {
@@ -806,6 +817,21 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn visible_snapshot_must_match_delivered_observations() {
+        let corpus = corpus();
+        let scenario = corpus
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "WORLD_A_LOW_B_HIGH")
+            .expect("scenario exists");
+        let prior = prior_route(&corpus).expect("prior baseline");
+        let mut outcome = simulate_policy(Policy::RollingHorizon, scenario, &corpus, prior)
+            .expect("rolling policy");
+        outcome.decisions[0].visible_event_ids.push("ASSAY_A".to_owned());
+        assert!(verify_trace(&outcome.decisions, &outcome.delivered_observations, &[]).is_err());
     }
 
     #[test]
