@@ -179,8 +179,10 @@ pub struct CampaignCase {
     pub product_state: ProductState,
     /// Each ledger must represent one declared material stream or energy
     /// carrier, with consistent units and a documented system boundary.
-    pub mass_ledger_kg: BalanceLedger,
+    pub mass_ledger_kg_per_shift: BalanceLedger,
     pub energy_ledger_kwh: BalanceLedger,
+    /// Admitted error tolerance for the derived energy intensity, kWh/t.
+    pub energy_intensity_tolerance_kwh_per_tonne: f64,
     pub metrics: CandidateMetrics,
 }
 
@@ -234,8 +236,17 @@ pub fn evaluate(case: &CampaignCase) -> Evaluation {
     if invalid_metrics(case.metrics) {
         reasons.push("candidate metrics are invalid");
     }
+    if !case.energy_intensity_tolerance_kwh_per_tonne.is_finite()
+        || case.energy_intensity_tolerance_kwh_per_tonne < 0.0
+    {
+        reasons.push("energy-intensity tolerance is invalid");
+    }
+    let accepted_product_kg = case.metrics.accepted_tonnes_per_shift * 1_000.0;
+    if !accepted_product_kg.is_finite() {
+        reasons.push("accepted-product tonnes-to-kilograms conversion overflowed");
+    }
 
-    let mass_audit = case.mass_ledger_kg.audit();
+    let mass_audit = case.mass_ledger_kg_per_shift.audit();
     let energy_audit = case.energy_ledger_kwh.audit();
 
     if mass_audit.is_err() {
@@ -259,6 +270,21 @@ pub fn evaluate(case: &CampaignCase) -> Evaluation {
 
     if !mass_audit.within_tolerance {
         reasons.push("mass ledger does not close within declared tolerance");
+    }
+    if accepted_product_kg > case.mass_ledger_kg_per_shift.outputs
+        && accepted_product_kg - case.mass_ledger_kg_per_shift.outputs
+            > case.mass_ledger_kg_per_shift.tolerance
+    {
+        reasons.push("accepted product mass exceeds the aggregate accounted output for the shift");
+    }
+    let derived_energy_intensity =
+        case.energy_ledger_kwh.outputs / case.metrics.accepted_tonnes_per_shift;
+    if !derived_energy_intensity.is_finite() {
+        reasons.push("derived energy intensity is non-finite");
+    } else if (derived_energy_intensity - case.metrics.energy_kwh_per_saleable_tonne).abs()
+        > case.energy_intensity_tolerance_kwh_per_tonne
+    {
+        reasons.push("reported energy intensity does not match the shift energy ledger");
     }
     if !energy_audit.within_tolerance {
         reasons.push("energy ledger does not close within declared tolerance");
@@ -332,12 +358,12 @@ mod tests {
 
     fn balanced_ledger() -> BalanceLedger {
         BalanceLedger {
-            opening: 100.0,
-            inputs: 50.0,
+            opening: 100_000.0,
+            inputs: 50_000.0,
             recoveries: 0.0,
-            outputs: 120.0,
-            losses: 10.0,
-            closing: 20.0,
+            outputs: 120_000.0,
+            losses: 10_000.0,
+            closing: 20_000.0,
             tolerance: 1e-9,
         }
     }
@@ -347,14 +373,14 @@ mod tests {
             comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 42.0,
             lifecycle_cost_per_saleable_tonne: 80.0,
-            energy_kwh_per_saleable_tonne: 12.0,
+            energy_kwh_per_saleable_tonne: 110.0 / 42.0,
             water_m3_per_saleable_tonne: 0.2,
             emissions_kg_co2e_per_saleable_tonne: 4.0,
         }
     }
 
     fn eligible_case() -> CampaignCase {
-        let mass_ledger_kg = balanced_ledger();
+        let mass_ledger_kg_per_shift = balanced_ledger();
         let energy_ledger_kwh = BalanceLedger {
             opening: 30.0,
             inputs: 100.0,
@@ -369,8 +395,9 @@ mod tests {
             evidence: vec![EvidenceState::Qualified],
             hard_constraints: vec![ConstraintState::Satisfied],
             product_state: ProductState::MeetsSpecification,
-            mass_ledger_kg,
+            mass_ledger_kg_per_shift,
             energy_ledger_kwh,
+            energy_intensity_tolerance_kwh_per_tonne: 1e-9,
             metrics: metrics(),
         }
     }
@@ -432,7 +459,7 @@ mod tests {
     #[test]
     fn unbalanced_mass_or_energy_is_not_eligible() {
         let mut mass_case = eligible_case();
-        mass_case.mass_ledger_kg.outputs += 1.0;
+        mass_case.mass_ledger_kg_per_shift.outputs += 1.0;
         assert_eq!(evaluate(&mass_case).disposition, Disposition::BalanceFailure);
 
         let mut energy_case = eligible_case();
@@ -443,7 +470,7 @@ mod tests {
     #[test]
     fn nonfinite_or_negative_quantity_is_invalid_input() {
         let mut nan_case = eligible_case();
-        nan_case.mass_ledger_kg.inputs = f64::NAN;
+        nan_case.mass_ledger_kg_per_shift.inputs = f64::NAN;
         assert_eq!(evaluate(&nan_case).disposition, Disposition::InvalidInput);
 
         let mut negative_case = eligible_case();
@@ -453,6 +480,28 @@ mod tests {
         let mut no_output = eligible_case();
         no_output.metrics.accepted_tonnes_per_shift = 0.0;
         assert_eq!(evaluate(&no_output).disposition, Disposition::InvalidInput);
+    }
+
+    #[test]
+    fn accepted_product_must_fit_inside_the_accounted_shift_output() {
+        let mut case = eligible_case();
+        case.mass_ledger_kg_per_shift = BalanceLedger {
+            opening: 0.0,
+            inputs: 60_000.0,
+            recoveries: 0.0,
+            outputs: 30_000.0,
+            losses: 10_000.0,
+            closing: 20_000.0,
+            tolerance: 1e-9,
+        };
+        assert_eq!(evaluate(&case).disposition, Disposition::BalanceFailure);
+    }
+
+    #[test]
+    fn reported_energy_intensity_must_match_the_shift_energy_ledger() {
+        let mut case = eligible_case();
+        case.metrics.energy_kwh_per_saleable_tonne = 12.0;
+        assert_eq!(evaluate(&case).disposition, Disposition::BalanceFailure);
     }
 
 
