@@ -104,3 +104,12 @@ The report is explicitly `synthetic_only` and sets `policy_simulation_executed: 
 
 
 Each emitted scenario now includes its full normalized synthetic proposal, a SHA-256 of that proposal, a SHA-256 of the normalized decision (admission, next state and sorted reason codes), and the report-level digest over the ordered scenario set. These hashes support replay and tamper detection for the emitted report; they do **not** authenticate caller-supplied evidence or establish code identity on their own.
+
+
+### Recovery-admission contract: semantics and limits
+
+The `recovery-admission-contract` report includes normalized synthetic proposals, input/decision digests and an ordered scenario-set digest. CI separately emits a run receipt binding the decision report to the source commit/tree, fixture and lockfile hashes, toolchain, and workflow run. These digests aid replay and tamper detection; they do not authenticate caller-supplied evidence or prove physical truth.
+
+The admission model now requires `Authorization::Granted` when a visible R-012 approval gate is active and an action advances the task; `NotRequired` is not a bypass. A visible R-011 utility risk blocks acceptance until the utility gate is resolved. Protective-stop and abort transitions do not consume policy observation references, and future/unknown references or exhaustion of the planner's bounded tick horizon must not veto a protective stop.
+
+These are semantic guarantees being tested in a synthetic harness—not a guarantee that a physical robot, actuator, or site-level safety circuit will actually stop. Live integration still requires an authoritative task/resource state source, verified evidence envelopes, replay-safe history, and independent safety validation. See [CIV-INFRA-ROLLOUT-003](https://github.com/Luminous-Dynamics/symtropy/issues/1923), [CIV-INFRA-ROLLOUT-004](https://github.com/Luminous-Dynamics/symtropy/issues/1939), and the [benchmark protocol](https://github.com/Luminous-Dynamics/symtropy/blob/feat/civ-infra-recovery-admission-contract-v0-1/docs/research/civ-infra-resilience/RECOVERY_ADMISSION_BENCHMARK_PROTOCOL_V0_1.md).
