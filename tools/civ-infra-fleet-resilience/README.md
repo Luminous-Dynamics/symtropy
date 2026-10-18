@@ -120,3 +120,6 @@ These are semantic guarantees being tested in a synthetic harness—not a guaran
 The standalone recovery-admission-oracle binary reads the exact frozen fixture and a candidate admission report, recomputes each proposal's expected state/action decision through a separate implementation, and compares admission, next state, and sorted reason codes. It also counts the 81 pairs in the declared 9-state by 9-action transition space. A mismatch fails the workflow and the per-scenario oracle report is retained when available.
 
 This is an **independent implementation cross-check over the report's current scenario corpus**, not yet an exhaustive oracle over all resource/evidence combinations and not a proof of physical safety. The benchmark protocol's full qualification bar still requires exhaustive bounded-state differential tests, deterministic adversarial mutation, paired B0/B1/B2 rollouts, and explicit denominator reporting. The current candidate report must remain synthetic_only.
+
+
+The admission binary's seeded property test now authors 10,000 deterministic gate mutations across nine safety gates, checking fail-closed behavior and byte-stable decision/reason replay for every mutation. This is a test target in the source; report it as exercised only after the exact-head test step passes.
