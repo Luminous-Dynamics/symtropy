@@ -157,7 +157,7 @@ pub fn summarize_events(events: &[TraceEvent]) -> Result<TraceSummary, TraceErro
     if let Some(mut prior) = sorted.next().copied() {
         for current in sorted {
             let gap = *current - prior;
-            if maximum_gap_ns.map_or(true, |observed| gap > observed) {
+            if maximum_gap_ns.is_none_or(|observed| gap > observed) {
                 maximum_gap_ns = Some(gap);
                 maximum_gap_start_timestamp_unix_ns = Some(prior);
                 maximum_gap_end_timestamp_unix_ns = Some(*current);
@@ -279,7 +279,7 @@ fn parse_digits(value: &str) -> Result<u32, &'static str> {
 }
 
 fn is_leap_year(year: u32) -> bool {
-    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+    year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400))
 }
 
 /// Howard Hinnant's civil-date conversion, returning days from 1970-01-01.
