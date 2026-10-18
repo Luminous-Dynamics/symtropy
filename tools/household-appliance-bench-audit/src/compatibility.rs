@@ -7,8 +7,8 @@ const SCHEMA_ID: &str = "urn:luminous-dynamics:parts-compatibility-evidence-grap
 const GRAPH_ID: &str = "PARTS-EVIDENCE-001";
 const EXPECTED_MODELS: [&str; 3] = ["SYN-MODEL-WASHER-A", "SYN-MODEL-WASHER-B", "SYN-MODEL-HVAC-A"];
 const EXPECTED_PARTS: [&str; 5] = ["SYN-PART-PUMP-A", "SYN-PART-SEAL-A", "SYN-PART-VALVE-A", "SYN-PART-PUMP-OLD", "SYN-PART-FAN-A"];
-const EXPECTED_CLAIMS: [&str; 8] = ["SYN-COMP-001","SYN-COMP-002","SYN-COMP-003","SYN-COMP-004","SYN-COMP-005","SYN-COMP-006","SYN-COMP-007","SYN-COMP-008"];
-const EXPECTED_EVIDENCE: [&str; 13] = ["SYN-EV-001","SYN-EV-002","SYN-EV-003","SYN-EV-004","SYN-EV-005","SYN-EV-006","SYN-EV-007","SYN-EV-008","SYN-EV-009","SYN-EV-010","SYN-EV-011","SYN-EV-012","SYN-EV-013"];
+const EXPECTED_CLAIMS: [&str; 9] = ["SYN-COMP-001","SYN-COMP-002","SYN-COMP-003","SYN-COMP-004","SYN-COMP-005","SYN-COMP-006","SYN-COMP-007","SYN-COMP-008","SYN-COMP-009"];
+const EXPECTED_EVIDENCE: [&str; 14] = ["SYN-EV-001","SYN-EV-002","SYN-EV-003","SYN-EV-004","SYN-EV-005","SYN-EV-006","SYN-EV-007","SYN-EV-008","SYN-EV-009","SYN-EV-010","SYN-EV-011","SYN-EV-012","SYN-EV-013","SYN-EV-014"];
 const EXPECTED_PATHS: [&str; 3] = ["SYN-PATH-001","SYN-PATH-002","SYN-PATH-003"];
 const EXPECTED_BENCHMARKS: [&str; 6] = ["PC-B-001","PC-B-002","PC-B-003","PC-B-004","PC-B-005","PC-B-006"];
 const VALID_FAMILIES: [&str; 9] = ["F1-WASHER","F2-DISHWASHER","F3-REFRIGERATOR-FREEZER","F4-HEAT-PUMP-DRYER","F5-WASHER-DRYER-COMBO","F6-HEAT-PUMP-WATER-HEATER","F7-RESIDENTIAL-HVAC","F8-COOKING-APPLIANCES","F9-VENTILATION-HRV"];
@@ -74,7 +74,7 @@ fn audit_values(schema: &Value, graph: &Value, schema_raw: &str, graph_raw: &str
     let Some(claims)=graph.get("compatibility_claims").and_then(Value::as_array) else {return Err(vec!["compatibility_claims must be an array".to_owned()]);};
     let Some(paths)=graph.get("supplier_paths").and_then(Value::as_array) else {return Err(vec!["supplier_paths must be an array".to_owned()]);};
     let Some(benchmarks)=graph.get("benchmarks").and_then(Value::as_array) else {return Err(vec!["benchmarks must be an array".to_owned()]);};
-    if models.len()!=3 || parts.len()!=5 || ev_items.len()!=13 || claims.len()!=8 || paths.len()!=3 || benchmarks.len()!=6 {
+    if models.len()!=3 || parts.len()!=5 || ev_items.len()!=14 || claims.len()!=9 || paths.len()!=3 || benchmarks.len()!=6 {
         errors.push("synthetic compatibility fixture census changed".to_owned());
     }
     let mut model_by_id:BTreeMap<String,&Value>=BTreeMap::new();
@@ -189,6 +189,15 @@ fn audit_values(schema: &Value, graph: &Value, schema_raw: &str, graph_raw: &str
             if text_at(item,"evidence_kind")==Some("delivery_receipt") {delivery_receipt=true;}
         }
         if text_at(path,"commercial_state")==Some("delivered_inspected") && !delivery_receipt {errors.push(format!("{id}: delivered path requires delivery receipt"));}
+        let path_kinds: BTreeSet<&str> = path.get("evidence_ids").and_then(Value::as_array).into_iter().flatten()
+            .filter_map(Value::as_str).filter_map(|ev_id| evidence_by_id.get(ev_id).copied())
+            .filter_map(|item| text_at(item, "evidence_kind")).collect();
+        if text_at(path,"commercial_state")==Some("written_quote") && !path_kinds.contains("supplier_quote") {
+            errors.push(format!("{id}: written quote state requires quote evidence"));
+        }
+        if text_at(path,"commercial_state")==Some("accepted_order") && !path_kinds.contains("accepted_order") {
+            errors.push(format!("{id}: accepted order state requires order evidence"));
+        }
         if text_at(path,"commercial_state")==Some("delivered_inspected") {
             delivered_groups.entry(claim_id.to_owned()).or_default().insert(text_at(path,"upstream_dependency_group_token").unwrap_or("").to_owned());
         }
@@ -243,7 +252,7 @@ mod tests {
         let graph_raw=serde_json::to_string(graph).expect("graph serializes");
         audit_values(&schema,graph,&schema_raw,&graph_raw)
     }
-    #[test] fn canonical_graph_qualifies_synthetic_contract(){let s=audit_compatibility_texts(SCHEMA,GRAPH).expect("canonical graph");assert_eq!(s.model_count,3);assert_eq!(s.part_count,5);assert_eq!(s.claim_count,8);assert_eq!(s.evidence_count,13);assert_eq!(s.supplier_path_count,3);assert_eq!(s.functional_claim_examples,1);assert_eq!(s.incompatible_claim_examples,1);assert_eq!(s.unknown_claim_examples,1);assert_eq!(s.independent_delivered_groups_in_fixture,1);assert_eq!(s.benchmark_count,6);}
+    #[test] fn canonical_graph_qualifies_synthetic_contract(){let s=audit_compatibility_texts(SCHEMA,GRAPH).expect("canonical graph");assert_eq!(s.model_count,3);assert_eq!(s.part_count,5);assert_eq!(s.claim_count,9);assert_eq!(s.evidence_count,14);assert_eq!(s.supplier_path_count,3);assert_eq!(s.functional_claim_examples,2);assert_eq!(s.incompatible_claim_examples,1);assert_eq!(s.unknown_claim_examples,1);assert_eq!(s.independent_delivered_groups_in_fixture,1);assert_eq!(s.benchmark_count,6);}
     #[test] fn duplicate_model_identity_is_rejected(){let mut g=canonical();g["models"][1]["model_id"]=json!("SYN-MODEL-WASHER-A");assert!(audit(&g).is_err());}
     #[test] fn seller_claim_cannot_be_promoted_to_functional(){let mut g=canonical();g["compatibility_claims"][1]["claim_status"]=json!("functional_compatibility_verified");g["compatibility_claims"][1]["physical_fit_check"]=json!("passed");g["compatibility_claims"][1]["functional_check"]=json!("passed");assert!(audit(&g).is_err());}
     #[test] fn manufacturer_listing_is_not_a_fit_test(){let mut g=canonical();g["compatibility_claims"][0]["claim_status"]=json!("physical_fit_verified");g["compatibility_claims"][0]["physical_fit_check"]=json!("passed");assert!(audit(&g).is_err());}
@@ -253,7 +262,7 @@ mod tests {
     #[test] fn expired_claim_cannot_remain_current(){let mut g=canonical();g["compatibility_claims"][0]["effective_until"]=json!("2025-01-01");assert!(audit(&g).is_err());}
     #[test] fn superseded_claim_requires_valid_successor(){let mut g=canonical();g["compatibility_claims"][7]["superseded_by_claim_id"]=json!("SYN-COMP-999");assert!(audit(&g).is_err());}
     #[test] fn upstream_group_collapses_apparent_duplicate_sources(){let mut g=canonical();g["supplier_paths"][1]["upstream_dependency_group_token"]=json!("SYN-UPSTREAM-2");let s=audit(&g).expect("well-formed synthetic regrouping");assert_eq!(s.independent_delivered_groups_in_fixture,2);}
-    #[test] fn listing_is_not_a_delivered_supply_path(){let mut g=canonical();g["supplier_paths"][0]["commercial_state"]=json!("listing_only");let s=audit(&g).expect("listing remains valid weak state");assert_eq!(s.independent_delivered_groups_in_fixture,0);}
+    #[test] fn listing_only_paths_do_not_count_as_delivered_supply(){let mut g=canonical();for path in g["supplier_paths"].as_array_mut().unwrap(){path["commercial_state"]=json!("listing_only");}let s=audit(&g).expect("listing state is valid but not delivered");assert_eq!(s.independent_delivered_groups_in_fixture,0);}
     #[test] fn synthetic_evidence_cannot_be_promoted_to_empirical(){let mut g=canonical();g["evidence"][0]["empirical_eligible"]=json!(true);assert!(audit(&g).is_err());}
     #[test] fn safety_qualification_requires_distinct_evidence(){let mut g=canonical();g["compatibility_claims"][4]["safety_qualification"]=json!("qualified_for_declared_scope");assert!(audit(&g).is_err());}
 }

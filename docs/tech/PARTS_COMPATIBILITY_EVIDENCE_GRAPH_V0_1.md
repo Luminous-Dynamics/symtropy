@@ -35,7 +35,7 @@ Do not treat a catalogue listing as a quote, a quote as a delivery, or multiple 
 
 ## 4. Research and data limits
 
-The [Open Repair Alliance October 2026 release](https://openrepair.org/announcements/over-half-a-million-records-of-open-data-on-repair/) reports 619,875 repair attempts across 34 countries, from community repair events; the [current download page](https://openrepair.org/open-data/downloads/) says the dataset includes records through July 2026, uses ORDS v0.3 and is CC BY-SA 4.0. This is useful for repair-event vocabulary and workflow questions. It is a selected community-event sample, not a representative estimate of South African large-appliance failure prevalence or part-fit reliability.
+The [Open Repair Alliance October 2026 release](https://openrepair.org/announcements/over-half-a-million-records-of-open-data-on-repair/) reports 619,873 repair attempts across 34 countries, from community repair events; the [current download page](https://openrepair.org/open-data/downloads/) says the dataset includes records through July 2026, uses ORDS v0.3 and is CC BY-SA 4.0. This is useful for repair-event vocabulary and workflow questions. It is a selected community-event sample, not a representative estimate of South African large-appliance failure prevalence or part-fit reliability.
 
 [GS1's system architecture](https://www.gs1.org/standards/gs1-system-architecture-document/current-standard) is useful background on interoperable product identification and shared data semantics, not an appliance-part compatibility source. Preserve exact model suffixes, revision tokens, market and serial scope rather than rely on name similarity.
 

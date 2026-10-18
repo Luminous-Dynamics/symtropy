@@ -225,6 +225,17 @@
       "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "empirical_eligible": false,
       "notes": "Synthetic scenario: another retailer delivery receipt but from the same upstream supply group."
+    },
+    {
+      "evidence_id": "SYN-EV-014",
+      "evidence_kind": "supplier_quote",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-UPSTREAM-2",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: written quote from a separate upstream supplier group."
     }
   ],
   "compatibility_claims": [
@@ -387,6 +398,28 @@
       ],
       "superseded_by_claim_id": "SYN-COMP-005",
       "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-009",
+      "model_id": "SYN-MODEL-HVAC-A",
+      "model_revision_token": "SYN-REV-C",
+      "part_id": "SYN-PART-FAN-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "functional_compatibility_verified",
+      "physical_fit_check": "passed",
+      "functional_check": "passed",
+      "safety_qualification": "qualified_for_declared_scope",
+      "evidence_ids": [
+        "SYN-EV-009",
+        "SYN-EV-010",
+        "SYN-EV-011"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
     }
   ],
   "supplier_paths": [
@@ -419,7 +452,7 @@
       "upstream_dependency_group_token": "SYN-UPSTREAM-2",
       "commercial_state": "written_quote",
       "evidence_ids": [
-        "SYN-EV-005"
+        "SYN-EV-014"
       ],
       "empirical_eligible": false
     }
