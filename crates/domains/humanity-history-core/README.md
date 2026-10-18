@@ -21,11 +21,11 @@ The CLI prints a JSON report. Exit codes are:
 ## Initial invariants
 
 - IDs are non-empty and globally unique across record kinds.
-- Attested claims and evidence-based reconstructions need at least one source-linked evidence locator.
+- Attested claims and evidence-based reconstructions need at least one source-linked evidence locator explicitly marked as supporting; a challenge-only citation cannot satisfy the positive-support gate. Challenging evidence is preserved rather than erased.
 - Hypotheses and counterfactuals require an explicit interpretation note instead of being silently treated as attested.
 - Documented knowledge-graph relations need evidence. Unknown claim/source references are rejected.
 - Reversed date ranges are rejected. Certain temporal contradictions are detected only when two intervals use the same named calendar and the intervals decisively conflict. Overlapping/uncertain dates are not silently converted to exact timestamps.
-- Rights declarations preserve an exact license identifier or permission basis when required. Distributable assets fail closed for restricted, unknown, or community-protocol rights.
+- Rights declarations preserve an exact license identifier or permission basis when required. Public-domain assertions require a recorded determination basis. Distributable assets fail closed for restricted, unknown, or community-protocol rights.
 - Asset records carry the SHA-256 digest of the precise asset bytes; this crate validates digest shape, not asset bytes, so the ingestion/build pipeline must calculate and independently verify the digest.
 - Validation issues have stable sort order, intended for repeatable local checks.
 
