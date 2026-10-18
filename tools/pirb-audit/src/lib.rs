@@ -46,6 +46,33 @@ impl AuditReport {
     }
 }
 
+/// Validates both the schema document and a corpus instance against Draft 2020-12.
+///
+/// Schema validity is checked first. A malformed schema, malformed corpus, or
+/// any instance validation error fails closed. This is structural validation;
+/// domain-specific semantic checks remain the responsibility of the auditor.
+pub fn validate_corpus_schema(schema_input: &str, corpus_input: &str) -> Result<(), Vec<String>> {
+    let schema: Value = serde_json::from_str(schema_input)
+        .map_err(|error| vec![format!("schema JSON is invalid: {error}")])?;
+    jsonschema::draft202012::meta::validate(&schema)
+        .map_err(|error| vec![format!("Draft 2020-12 schema meta-validation failed: {error}")])?;
+
+    let corpus: Value = serde_json::from_str(corpus_input)
+        .map_err(|error| vec![format!("corpus JSON is invalid: {error}")])?;
+    let validator = jsonschema::draft202012::new(&schema)
+        .map_err(|error| vec![format!("cannot build Draft 2020-12 validator: {error}")])?;
+    let errors: Vec<String> = validator
+        .iter_errors(&corpus)
+        .map(|error| format!("{} at {}", error, error.instance_path()))
+        .collect();
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
 /// Audits the PIRB v0.1 synthetic reference corpus.
 ///
 /// A passing result establishes only that the known synthetic fixtures obey
@@ -1318,6 +1345,8 @@ mod tests {
 
     const FIXTURE: &str =
         include_str!("../../../docs/fixtures/peace-infrastructure-resilience-v0.1.json");
+    const SCHEMA: &str =
+        include_str!("../../../docs/schemas/peace-infrastructure-resilience-v0.1.schema.json");
 
     fn corpus() -> Value {
         serde_json::from_str(FIXTURE).expect("checked-in PIRB fixture must parse as JSON")
@@ -1356,6 +1385,37 @@ mod tests {
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_RESPONSE_EVENT_ID_INVALID"));
         assert!(has_code(&report, "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED"));
+    }
+
+    #[test]
+    fn checked_in_schema_is_valid_and_accepts_reference_corpus() {
+        assert!(
+            jsonschema::draft202012::meta::validate(
+                &serde_json::from_str::<Value>(SCHEMA).expect("schema JSON parses")
+            )
+            .is_ok(),
+            "checked-in Draft 2020-12 schema must validate against its meta-schema"
+        );
+        assert_eq!(validate_corpus_schema(SCHEMA, FIXTURE), Ok(()));
+    }
+
+    #[test]
+    fn schema_rejects_corpus_version_mutation() {
+        let mut value = corpus();
+        value["corpus_version"] = json!("999");
+        let mutated = serde_json::to_string(&value).expect("mutation serializes");
+        let errors = validate_corpus_schema(SCHEMA, &mutated)
+            .expect_err("schema must reject a wrong corpus version");
+        assert!(!errors.is_empty());
+    }
+
+    #[test]
+    fn malformed_schema_fails_closed() {
+        let invalid_schema = SCHEMA.replace("\\"type\\": \\"object\\"", "\\"type\\": \\"not-a-json-schema-type\\"");
+        let errors = validate_corpus_schema(&invalid_schema, FIXTURE)
+            .expect_err("invalid schema must not be used");
+        assert!(!errors.is_empty());
+        assert!(errors[0].contains("schema meta-validation failed"));
     }
 
     #[test]
