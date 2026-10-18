@@ -220,3 +220,74 @@ fn out_of_model_support_never_drops_unknown_design_states() {
     assert!(active.contains("unresolved-geology"));
     assert_eq!(failure.state_count, 5);
 }
+
+
+#[test]
+fn nested_support_failure_preserves_exactly_the_active_state_set() {
+    let mut input = input_from(FIXTURE);
+    let tunnel = input
+        .actions
+        .iter_mut()
+        .find(|action| action.action_id == "tunnel-borehole")
+        .expect("tunnel-borehole action");
+    tunnel.model_support = civ_infra_adaptive_investigation::ModelSupport::Open;
+
+    let bytes = serde_json::to_vec(&input).expect("serialize changed input");
+    let report = evaluate_bytes(&bytes).expect("nested support failure should be represented");
+
+    let leaf = report
+        .leaves
+        .iter()
+        .find(|leaf| {
+            leaf.terminal == LeafTerminal::ReviewRequired
+                && leaf.path.len() == 2
+                && leaf.path[0].action_id == "bridge-screen"
+                && leaf.path[0].outcome_id == "bridge-clear"
+                && leaf.path[1].action_id == "tunnel-borehole"
+                && leaf.path[1].outcome_id == "out_of_model_support"
+        })
+        .expect("nested review leaf after bridge-clear");
+    assert_eq!(
+        leaf.state_ids,
+        vec![
+            "marginal-ground".to_owned(),
+            "stable-dry-ground".to_owned(),
+            "tunnel-groundwater-risk".to_owned(),
+            "unresolved-geology".to_owned(),
+        ]
+    );
+    assert_eq!(leaf.state_count, 4);
+    assert!(!leaf.state_ids.iter().any(|id| id == "bridge-scour-risk"));
+}
+
+#[test]
+fn semantic_report_is_invariant_to_record_order_while_digest_tracks_exact_bytes() {
+    let baseline = report_from(FIXTURE);
+    let mut input = input_from(FIXTURE);
+
+    input.candidate_ids.reverse();
+    input.state_signatures.reverse();
+    for state in &mut input.state_signatures {
+        state.signature.feasible_candidates.reverse();
+        state.signature.infeasible_candidates.reverse();
+        state.signature.unknown_candidates.reverse();
+        state.signature.frontier_candidates.reverse();
+    }
+    input.actions.reverse();
+    for action in &mut input.actions {
+        action.outcomes.reverse();
+        for outcome in &mut action.outcomes {
+            outcome.compatible_state_ids.reverse();
+        }
+    }
+    input.candidate_policy.branches.reverse();
+
+    let permuted_bytes = serde_json::to_vec(&input).expect("permuted input serializes");
+    let mut permuted_report =
+        evaluate_bytes(&permuted_bytes).expect("permuted input remains semantically valid");
+    assert_ne!(baseline.input_sha256, permuted_report.input_sha256);
+
+    // Semantic equivalence does not erase provenance: only normalize the digest for comparison.
+    permuted_report.input_sha256 = baseline.input_sha256.clone();
+    assert_eq!(baseline, permuted_report);
+}
