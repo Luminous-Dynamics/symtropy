@@ -37,7 +37,7 @@ Payload arrays used as sets are sorted before serialization. Payload fields are 
 
 Each case binding contains the case ID, record ID and expected digest. Exactly one binding must exist for every parent corpus case; every record and revocation entry must be referenced; orphaned, duplicate, missing or ambiguous identities fail closed.
 
-The lifecycle is intentionally finite and synthetic: the packet declares a `decision_day`, each record declares issue/validity days, and each record has one active/revoked/unknown entry under the named policy. Those day counts are fixture units, not a proposed real-world retention policy.
+The lifecycle is intentionally finite and synthetic: the packet declares a `decision_day`, each record declares issue/validity days, and each record has one active/revoked/unknown entry under the same versioned policy ID named by the record. A policy ID mismatch fails closed. Those day counts are fixture units, not a proposed real-world retention policy.
 
 ## Independent evaluator and result semantics
 
