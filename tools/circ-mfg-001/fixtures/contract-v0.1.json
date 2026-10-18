@@ -4,7 +4,7 @@
   "evidence_class": "Synthetic",
   "cases": [
     {
-      "case_id": "01-complete-evidence-balanced",
+      "case_id": "01-complete-evidence-and-external-bindings",
       "expected_decision": "Eligible",
       "required_evidence_ids": [
         "design-revision",
@@ -41,11 +41,42 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 10,
-        "accounted_outputs_kg": 9.99,
-        "tolerance_kg": 0.02
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:01-complete-evidence-and-external-bindings",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:01-complete-evidence-and-external-bindings",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:01-complete-evidence-and-external-bindings",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:01-complete-evidence-and-external-bindings",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:01-complete-evidence-and-external-bindings",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:01-complete-evidence-and-external-bindings",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:01-complete-evidence-and-external-bindings",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:01-complete-evidence-and-external-bindings",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "02-verified-payload-digest-mismatch",
@@ -67,11 +98,42 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 10,
-        "accounted_outputs_kg": 10,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:02-verified-payload-digest-mismatch",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:02-verified-payload-digest-mismatch",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:02-verified-payload-digest-mismatch",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:02-verified-payload-digest-mismatch",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:02-verified-payload-digest-mismatch",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:02-verified-payload-digest-mismatch",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:02-verified-payload-digest-mismatch",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:02-verified-payload-digest-mismatch",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "03-required-material-lot-missing",
@@ -94,11 +156,42 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 4,
-        "accounted_outputs_kg": 4,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:03-required-material-lot-missing",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:03-required-material-lot-missing",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:03-required-material-lot-missing",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:03-required-material-lot-missing",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:03-required-material-lot-missing",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:03-required-material-lot-missing",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:03-required-material-lot-missing",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:03-required-material-lot-missing",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "04-mandatory-quality-gate-fails",
@@ -124,15 +217,46 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 2.5,
-        "accounted_outputs_kg": 2.5,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:04-mandatory-quality-gate-fails",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:04-mandatory-quality-gate-fails",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:04-mandatory-quality-gate-fails",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:04-mandatory-quality-gate-fails",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:04-mandatory-quality-gate-fails",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:04-mandatory-quality-gate-fails",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:04-mandatory-quality-gate-fails",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:04-mandatory-quality-gate-fails",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
-      "case_id": "05-mass-balance-out-of-tolerance",
-      "expected_decision": "Blocked",
+      "case_id": "05-required-material-flow-account-missing",
+      "expected_decision": "Unresolved",
       "required_evidence_ids": [
         "design-revision"
       ],
@@ -150,11 +274,38 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 10,
-        "accounted_outputs_kg": 9.5,
-        "tolerance_kg": 0.1
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:05-required-material-flow-account-missing",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:05-required-material-flow-account-missing",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:05-required-material-flow-account-missing",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:05-required-material-flow-account-missing",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:05-required-material-flow-account-missing",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:05-required-material-flow-account-missing",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "custody-profile:05-required-material-flow-account-missing",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "06-required-evidence-stale",
@@ -176,11 +327,42 @@
           "status": "Unresolved"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 5,
-        "accounted_outputs_kg": 5,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:06-required-evidence-stale",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:06-required-evidence-stale",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:06-required-evidence-stale",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:06-required-evidence-stale",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:06-required-evidence-stale",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:06-required-evidence-stale",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:06-required-evidence-stale",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:06-required-evidence-stale",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "07-critical-evidence-wrong-unit",
@@ -202,11 +384,42 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 2,
-        "accounted_outputs_kg": 2,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:07-critical-evidence-wrong-unit",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:07-critical-evidence-wrong-unit",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:07-critical-evidence-wrong-unit",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:07-critical-evidence-wrong-unit",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:07-critical-evidence-wrong-unit",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:07-critical-evidence-wrong-unit",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:07-critical-evidence-wrong-unit",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:07-critical-evidence-wrong-unit",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "08-critical-evidence-contradictory",
@@ -228,11 +441,42 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 2,
-        "accounted_outputs_kg": 2,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:08-critical-evidence-contradictory",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:08-critical-evidence-contradictory",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:08-critical-evidence-contradictory",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:08-critical-evidence-contradictory",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:08-critical-evidence-contradictory",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:08-critical-evidence-contradictory",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:08-critical-evidence-contradictory",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:08-critical-evidence-contradictory",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "09-critical-evidence-scope-invalid",
@@ -254,11 +498,42 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 2,
-        "accounted_outputs_kg": 2,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:09-critical-evidence-scope-invalid",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:09-critical-evidence-scope-invalid",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:09-critical-evidence-scope-invalid",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:09-critical-evidence-scope-invalid",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:09-critical-evidence-scope-invalid",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:09-critical-evidence-scope-invalid",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:09-critical-evidence-scope-invalid",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:09-critical-evidence-scope-invalid",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "10-duplicate-evidence-record",
@@ -286,11 +561,42 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 2,
-        "accounted_outputs_kg": 2,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:10-duplicate-evidence-record",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:10-duplicate-evidence-record",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:10-duplicate-evidence-record",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:10-duplicate-evidence-record",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:10-duplicate-evidence-record",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:10-duplicate-evidence-record",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:10-duplicate-evidence-record",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:10-duplicate-evidence-record",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
       "case_id": "11-unreferenced-evidence-record",
@@ -318,15 +624,46 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": 2,
-        "accounted_outputs_kg": 2,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:11-unreferenced-evidence-record",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:11-unreferenced-evidence-record",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:11-unreferenced-evidence-record",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:11-unreferenced-evidence-record",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:11-unreferenced-evidence-record",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:11-unreferenced-evidence-record",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:11-unreferenced-evidence-record",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:11-unreferenced-evidence-record",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     },
     {
-      "case_id": "12-mass-ledger-quantity-unknown",
-      "expected_decision": "Unresolved",
+      "case_id": "12-custody-reference-role-mismatch",
+      "expected_decision": "Blocked",
       "required_evidence_ids": [
         "design-revision"
       ],
@@ -344,11 +681,115 @@
           "status": "Pass"
         }
       ],
-      "mass_balance": {
-        "inputs_kg": null,
-        "accounted_outputs_kg": 2,
-        "tolerance_kg": 0.01
-      }
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:12-custody-reference-role-mismatch",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:12-custody-reference-role-mismatch",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:12-custody-reference-role-mismatch",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:12-custody-reference-role-mismatch",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:12-custody-reference-role-mismatch",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:12-custody-reference-role-mismatch",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:12-custody-reference-role-mismatch",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:12-custody-reference-role-mismatch",
+          "role": "MaterialFlowAccount"
+        }
+      ]
+    },
+    {
+      "case_id": "13-duplicate-custody-reference",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "bom-revision",
+          "status": "Verified",
+          "payload": "bom-rev-a",
+          "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"
+        },
+        {
+          "evidence_id": "inspection-result",
+          "status": "Verified",
+          "payload": "inspection-result-pass",
+          "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:13-duplicate-custody-reference",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:13-duplicate-custody-reference",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:13-duplicate-custody-reference",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:13-duplicate-custody-reference",
+          "role": "ChainOfCustodyProfile"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:13-duplicate-custody-reference",
+          "role": "ProcessExecutionReceipt"
+        },
+        {
+          "reference_id": "qualification-receipt:13-duplicate-custody-reference",
+          "role": "QualificationReceipt"
+        },
+        {
+          "reference_id": "material-flow-account:13-duplicate-custody-reference",
+          "role": "MaterialFlowAccount"
+        },
+        {
+          "reference_id": "custody-profile:13-duplicate-custody-reference",
+          "role": "ChainOfCustodyProfile"
+        },
+        {
+          "reference_id": "custody-profile:13-duplicate-custody-reference",
+          "role": "ChainOfCustodyProfile"
+        }
+      ]
     }
   ]
 }
