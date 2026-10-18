@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! # symtropy-bevy-scene
 //!
-//! Opinionated scene scaffolding for Bevy 0.18 apps. Adds a single plugin
+//! Opinionated scene scaffolding for Bevy 0.19 apps. Adds a single plugin
 //! that sets up sensible defaults so demos don't repeat the
 //! camera/light/clear-color boilerplate.
 //!
