@@ -17,6 +17,7 @@ const MAX_CASES: usize = 64;
 const MAX_TASKS: usize = 128;
 const MAX_TIME_BOUND: u32 = 10_000;
 const PRIORITY_RULES: usize = 5;
+const MAX_FALLBACK_STATES: usize = 20_000;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -105,6 +106,12 @@ pub struct ScenarioResult {
     pub validation_status: String,
     pub rejection_reason: Option<String>,
     pub priority_rules_tried: usize,
+    pub priority_only_status: String,
+    pub priority_only_makespan: Option<u32>,
+    pub fallback_status: String,
+    pub fallback_states_expanded: usize,
+    pub fallback_orders_evaluated: usize,
+    pub fallback_search_complete: bool,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -628,6 +635,103 @@ fn candidate_key(candidate: &Candidate) -> (u32, Vec<ScheduleStep>) {
     (candidate.makespan, candidate.schedule.clone())
 }
 
+#[derive(Default)]
+struct FallbackSearchState {
+    states_expanded: usize,
+    orders_evaluated: usize,
+    budget_exhausted: bool,
+    best: Option<Candidate>,
+}
+
+fn enumerate_topological_orders(
+    case: &Case,
+    durations: &[u32],
+    enforce_deadline: bool,
+    prefix: &mut Vec<usize>,
+    selected: &mut [bool],
+    indegree: &mut [usize],
+    successors: &[Vec<usize>],
+    state: &mut FallbackSearchState,
+) {
+    if state.states_expanded >= MAX_FALLBACK_STATES {
+        state.budget_exhausted = true;
+        return;
+    }
+    state.states_expanded += 1;
+    if prefix.len() == case.tasks.len() {
+        state.orders_evaluated += 1;
+        if let Some(candidate) = schedule_one_order(case, durations, prefix, enforce_deadline) {
+            if state
+                .best
+                .as_ref()
+                .is_none_or(|existing| candidate_key(&candidate) < candidate_key(existing))
+            {
+                state.best = Some(candidate);
+            }
+        }
+        return;
+    }
+
+    let mut ready: Vec<usize> = (0..case.tasks.len())
+        .filter(|index| !selected[*index] && indegree[*index] == 0)
+        .collect();
+    ready.sort_by(|left, right| case.tasks[*left].id.cmp(&case.tasks[*right].id));
+
+    for index in ready {
+        selected[index] = true;
+        prefix.push(index);
+        for child in &successors[index] {
+            indegree[*child] -= 1;
+        }
+        enumerate_topological_orders(
+            case,
+            durations,
+            enforce_deadline,
+            prefix,
+            selected,
+            indegree,
+            successors,
+            state,
+        );
+        for child in &successors[index] {
+            indegree[*child] += 1;
+        }
+        prefix.pop();
+        selected[index] = false;
+        if state.budget_exhausted {
+            break;
+        }
+    }
+}
+
+fn bounded_topological_order_fallback(
+    case: &Case,
+    durations: &[u32],
+    enforce_deadline: bool,
+) -> FallbackSearchState {
+    let indices = task_index(case);
+    let mut indegree = vec![0usize; case.tasks.len()];
+    let mut successors = vec![Vec::new(); case.tasks.len()];
+    for edge in &case.precedence {
+        let before = indices[edge.before.as_str()];
+        let after = indices[edge.after.as_str()];
+        indegree[after] += 1;
+        successors[before].push(after);
+    }
+    let mut state = FallbackSearchState::default();
+    enumerate_topological_orders(
+        case,
+        durations,
+        enforce_deadline,
+        &mut Vec::with_capacity(case.tasks.len()),
+        &mut vec![false; case.tasks.len()],
+        &mut indegree,
+        &successors,
+        &mut state,
+    );
+    state
+}
+
 fn solve_scenario(case: &Case, upper: bool, enforce_deadline: bool) -> ScenarioResult {
     let durations = durations_for(case, upper);
     if let Some(reason) = lower_bound_rejection(case, &durations, enforce_deadline) {
@@ -638,6 +742,12 @@ fn solve_scenario(case: &Case, upper: bool, enforce_deadline: bool) -> ScenarioR
             validation_status: "NOT_APPLICABLE_NO_CANDIDATE".to_owned(),
             rejection_reason: Some(reason),
             priority_rules_tried: 0,
+            priority_only_status: "PROVEN_INFEASIBLE_PRECHECK".to_owned(),
+            priority_only_makespan: None,
+            fallback_status: "NOT_RUN_PRECHECK_PROVEN".to_owned(),
+            fallback_states_expanded: 0,
+            fallback_orders_evaluated: 0,
+            fallback_search_complete: true,
         };
     }
 
@@ -657,43 +767,115 @@ fn solve_scenario(case: &Case, upper: bool, enforce_deadline: bool) -> ScenarioR
             }
         }
     }
-    match best {
-        Some(candidate) => {
-            let validation = independently_validate_schedule(
-                case,
-                &candidate.schedule,
-                &durations,
-                enforce_deadline,
-            );
-            if validation.is_err() {
-                return ScenarioResult {
-                    status: "INTERNAL_VALIDATOR_DISAGREEMENT".to_owned(),
-                    makespan: None,
-                    schedule: Vec::new(),
-                    validation_status: "FAILED".to_owned(),
-                    rejection_reason: validation.err(),
-                    priority_rules_tried: tried,
-                };
-            }
-            ScenarioResult {
-                status: "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL".to_owned(),
-                makespan: Some(candidate.makespan),
-                schedule: candidate.schedule,
-                validation_status: "INDEPENDENT_VALIDATOR_PASSED".to_owned(),
-                rejection_reason: None,
+    if let Some(candidate) = best {
+        let validation = independently_validate_schedule(
+            case,
+            &candidate.schedule,
+            &durations,
+            enforce_deadline,
+        );
+        if validation.is_err() {
+            return ScenarioResult {
+                status: "INTERNAL_VALIDATOR_DISAGREEMENT".to_owned(),
+                makespan: None,
+                schedule: Vec::new(),
+                validation_status: "FAILED".to_owned(),
+                rejection_reason: validation.err(),
                 priority_rules_tried: tried,
-            }
+                priority_only_status: "INTERNAL_VALIDATOR_DISAGREEMENT".to_owned(),
+                priority_only_makespan: None,
+                fallback_status: "NOT_RUN_VALIDATOR_FAILURE".to_owned(),
+                fallback_states_expanded: 0,
+                fallback_orders_evaluated: 0,
+                fallback_search_complete: true,
+            };
         }
-        None => ScenarioResult {
-            status: "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY".to_owned(),
-            makespan: None,
-            schedule: Vec::new(),
-            validation_status: "NOT_APPLICABLE_NO_CANDIDATE".to_owned(),
-            rejection_reason: Some(
-                "all deterministic priority rules failed to construct a candidate".to_owned(),
-            ),
+        return ScenarioResult {
+            status: "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL".to_owned(),
+            makespan: Some(candidate.makespan),
+            schedule: candidate.schedule,
+            validation_status: "INDEPENDENT_VALIDATOR_PASSED".to_owned(),
+            rejection_reason: None,
             priority_rules_tried: tried,
+            priority_only_status: "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL".to_owned(),
+            priority_only_makespan: Some(candidate.makespan),
+            fallback_status: "NOT_NEEDED_PRIORITY_CANDIDATE_FOUND".to_owned(),
+            fallback_states_expanded: 0,
+            fallback_orders_evaluated: 0,
+            fallback_search_complete: true,
+        };
+    }
+
+    let priority_only_status = "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY".to_owned();
+    let fallback = bounded_topological_order_fallback(case, &durations, enforce_deadline);
+    if let Some(candidate) = fallback.best {
+        let validation = independently_validate_schedule(
+            case,
+            &candidate.schedule,
+            &durations,
+            enforce_deadline,
+        );
+        if let Err(error) = validation {
+            return ScenarioResult {
+                status: "INTERNAL_VALIDATOR_DISAGREEMENT".to_owned(),
+                makespan: None,
+                schedule: Vec::new(),
+                validation_status: "FAILED".to_owned(),
+                rejection_reason: Some(error),
+                priority_rules_tried: tried,
+                priority_only_status,
+                priority_only_makespan: None,
+                fallback_status: "CANDIDATE_REJECTED_BY_INDEPENDENT_VALIDATOR".to_owned(),
+                fallback_states_expanded: fallback.states_expanded,
+                fallback_orders_evaluated: fallback.orders_evaluated,
+                fallback_search_complete: !fallback.budget_exhausted,
+            };
+        }
+        return ScenarioResult {
+            status: "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL".to_owned(),
+            makespan: Some(candidate.makespan),
+            schedule: candidate.schedule,
+            validation_status: "INDEPENDENT_VALIDATOR_PASSED".to_owned(),
+            rejection_reason: None,
+            priority_rules_tried: tried,
+            priority_only_status,
+            priority_only_makespan: None,
+            fallback_status: if fallback.budget_exhausted {
+                "CANDIDATE_FOUND_BUDGET_EXHAUSTED".to_owned()
+            } else {
+                "CANDIDATE_FOUND_SEARCH_COMPLETE_NOT_OPTIMAL_PROVEN".to_owned()
+            },
+            fallback_states_expanded: fallback.states_expanded,
+            fallback_orders_evaluated: fallback.orders_evaluated,
+            fallback_search_complete: !fallback.budget_exhausted,
+        };
+    }
+
+    ScenarioResult {
+        status: if fallback.budget_exhausted {
+            "FALLBACK_SEARCH_INCOMPLETE_NO_CANDIDATE_NOT_PROOF_OF_INFEASIBILITY".to_owned()
+        } else {
+            "FALLBACK_EXHAUSTED_NO_CANDIDATE_NOT_PROOF_OF_INFEASIBILITY".to_owned()
         },
+        makespan: None,
+        schedule: Vec::new(),
+        validation_status: "NOT_APPLICABLE_NO_CANDIDATE".to_owned(),
+        rejection_reason: Some(if fallback.budget_exhausted {
+            "bounded topological-order fallback exhausted its state budget".to_owned()
+        } else {
+            "bounded topological-order fallback found no candidate".to_owned()
+        }),
+        priority_rules_tried: tried,
+        priority_only_status,
+        priority_only_makespan: None,
+        fallback_status: if fallback.budget_exhausted {
+            "BUDGET_EXHAUSTED_NO_CANDIDATE".to_owned()
+        } else {
+            "SEARCH_COMPLETE_NO_CANDIDATE_NOT_PROOF_OF_INFEASIBILITY".to_owned()
+        },
+        fallback_states_expanded: fallback.states_expanded,
+        fallback_orders_evaluated: fallback.orders_evaluated,
+        fallback_search_complete: !fallback.budget_exhausted,
     }
 }
 
@@ -777,7 +959,8 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         suite_id: fixture.suite_id,
         input_sha256: sha256_hex(bytes),
         input_bytes: bytes.len(),
-        algorithm: "deterministic_five_rule_list_scheduler_with_independent_validator".to_owned(),
+        algorithm: "five_priority_rules_plus_bounded_topological_fallback_with_independent_validator"
+            .to_owned(),
         case_count: results.len(),
         all_returned_schedules_independently_validated: every_schedule_valid,
         claim_ceiling: CLAIM_CEILING.to_owned(),
