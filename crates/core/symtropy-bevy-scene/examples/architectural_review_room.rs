@@ -21,7 +21,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(SymtropyScenePlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, toggle_review_pause)
         .run();
 }
 
@@ -163,21 +162,3 @@ fn waypoint(
     }
 }
 
-fn toggle_review_pause(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut players: Query<(&mut ReviewRoutePlayback, &mut ReviewFreeCameraController)>,
-) {
-    if keys.just_pressed(KeyCode::Space) {
-        for (mut player, mut free_camera) in &mut players {
-            if free_camera.is_enabled() {
-                free_camera.set_enabled(false);
-            }
-            player.set_playing(!player.is_playing());
-        }
-    } else if keys.just_pressed(KeyCode::KeyR) {
-        for (mut player, mut free_camera) in &mut players {
-            free_camera.set_enabled(false);
-            player.restart();
-        }
-    }
-}
