@@ -374,7 +374,8 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
 
     let expected_outcomes_match = case_results.iter().all(|result| result.expected_outcome_matches);
     let all_review_only = case_results.iter().all(|result| result.review_only);
-    let all_actuation_disabled = case_results.iter().all(|result| !result.actuation_authorized);
+    let all_actuation_disabled = !corpus.claim_ceiling.expected_actuation
+        && case_results.iter().all(|result| !result.actuation_authorized);
     if !all_review_only {
         errors.push("REVIEW_ONLY_CEILING_VIOLATED".to_string());
     }
@@ -673,7 +674,8 @@ mod tests {
     #[test]
     fn duplicate_profile_ids_fail_closed() {
         let mut value = corpus();
-        value.profiles.push(value.profiles[0].clone());
+        let duplicate = value.profiles[0].clone();
+        value.profiles.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_PROFILE_ID")));
