@@ -1,0 +1,226 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "ORGAN-TRANSPORT-Q0-NETWORK",
+  "status": "REFERENCE_FIXTURES_NOT_EXECUTED",
+  "purpose": "Prescribed-pressure small networks for checking analytic edge flow and junction conservation. These cases verify a network of known node pressures; they do not solve for unknown pressures.",
+  "units": {
+    "pressure": "Pa",
+    "length": "m",
+    "radius": "m",
+    "dynamic_viscosity": "Pa*s",
+    "volume_flow": "m^3/s",
+    "junction_residual": "m^3/s"
+  },
+  "model": {
+    "id": "prescribed-pressure-hagen-poiseuille-network-v0",
+    "equations": [
+      "R = 8 * mu * L / (pi * r^4)",
+      "Q(from,to) = (P_from - P_to) / R"
+    ],
+    "assumptions": [
+      "steady flow",
+      "laminar flow",
+      "Newtonian fluid",
+      "rigid circular tubes",
+      "constant tube radius",
+      "pressure at every node is pre-specified",
+      "SI units"
+    ],
+    "claim_ceiling": [
+      "analytic edge-flow conformance under declared assumptions",
+      "mass conservation at named junctions"
+    ],
+    "unsupported_claims": [
+      "vascular growth",
+      "compliant vessels",
+      "pulsatile hemodynamics",
+      "endothelial barrier function",
+      "oxygen transport",
+      "cell viability",
+      "organ function",
+      "transplant safety"
+    ]
+  },
+  "tolerance": {
+    "relative": 1e-12,
+    "absolute": 1e-18
+  },
+  "cases": [
+    {
+      "id": "q0-network-series-equal-resistance",
+      "kind": "analytic_network",
+      "description": "Two identical tubes in series with equal prescribed pressure drops; flow must match through the internal junction.",
+      "nodes": [
+        {
+          "id": "inlet",
+          "pressure_pa": 1000,
+          "kind": "source"
+        },
+        {
+          "id": "junction",
+          "pressure_pa": 500,
+          "kind": "junction"
+        },
+        {
+          "id": "outlet",
+          "pressure_pa": 0,
+          "kind": "sink"
+        }
+      ],
+      "edges": [
+        {
+          "id": "inlet-to-junction",
+          "from": "inlet",
+          "to": "junction",
+          "length_m": 0.1,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 0.000001963495408493621
+        },
+        {
+          "id": "junction-to-outlet",
+          "from": "junction",
+          "to": "outlet",
+          "length_m": 0.1,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 0.000001963495408493621
+        }
+      ],
+      "junctions": [
+        {
+          "node_id": "junction",
+          "expected_residual_m3_per_s": 0
+        }
+      ]
+    },
+    {
+      "id": "q0-network-bifurcation-two-equal-outlets",
+      "kind": "analytic_network",
+      "description": "One inlet divides into two identical outlets; inlet flow must equal the sum of outlet flows.",
+      "nodes": [
+        {
+          "id": "inlet",
+          "pressure_pa": 1200,
+          "kind": "source"
+        },
+        {
+          "id": "junction",
+          "pressure_pa": 800,
+          "kind": "junction"
+        },
+        {
+          "id": "outlet-a",
+          "pressure_pa": 0,
+          "kind": "sink"
+        },
+        {
+          "id": "outlet-b",
+          "pressure_pa": 0,
+          "kind": "sink"
+        }
+      ],
+      "edges": [
+        {
+          "id": "inlet-to-junction",
+          "from": "inlet",
+          "to": "junction",
+          "length_m": 0.1,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 0.0000015707963267948969
+        },
+        {
+          "id": "junction-to-outlet-a",
+          "from": "junction",
+          "to": "outlet-a",
+          "length_m": 0.4,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 7.853981633974484e-7
+        },
+        {
+          "id": "junction-to-outlet-b",
+          "from": "junction",
+          "to": "outlet-b",
+          "length_m": 0.4,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 7.853981633974484e-7
+        }
+      ],
+      "junctions": [
+        {
+          "node_id": "junction",
+          "expected_residual_m3_per_s": 0
+        }
+      ]
+    },
+    {
+      "id": "q0-network-merge-two-inlets",
+      "kind": "analytic_network",
+      "description": "Two inlet streams merge at one junction and leave through a lower-resistance outlet; summed inlet flow must equal outlet flow.",
+      "nodes": [
+        {
+          "id": "inlet-a",
+          "pressure_pa": 1000,
+          "kind": "source"
+        },
+        {
+          "id": "inlet-b",
+          "pressure_pa": 800,
+          "kind": "source"
+        },
+        {
+          "id": "junction",
+          "pressure_pa": 500,
+          "kind": "junction"
+        },
+        {
+          "id": "outlet",
+          "pressure_pa": 0,
+          "kind": "sink"
+        }
+      ],
+      "edges": [
+        {
+          "id": "inlet-a-to-junction",
+          "from": "inlet-a",
+          "to": "junction",
+          "length_m": 0.1,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 0.000001963495408493621
+        },
+        {
+          "id": "inlet-b-to-junction",
+          "from": "inlet-b",
+          "to": "junction",
+          "length_m": 0.1,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 0.0000011780972450961726
+        },
+        {
+          "id": "junction-to-outlet",
+          "from": "junction",
+          "to": "outlet",
+          "length_m": 0.0625,
+          "radius_m": 0.001,
+          "dynamic_viscosity_pa_s": 0.001,
+          "expected_flow_m3_per_s": 0.0000031415926535897938
+        }
+      ],
+      "junctions": [
+        {
+          "node_id": "junction",
+          "expected_residual_m3_per_s": 0
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "fixture_status": "Expected edge flows are analytic specifications. The fixture file does not assert that the executable verifier or Rust CI has run.",
+    "next_step": "Execute the corpus verifier on the exact source revision and attach exact-head workflow receipts."
+  }
+}
