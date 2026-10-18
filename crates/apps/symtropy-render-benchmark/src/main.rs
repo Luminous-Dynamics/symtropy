@@ -8,7 +8,7 @@
 
 use bevy::prelude::*;
 use serde::Serialize;
-use std::{env, path::PathBuf};
+use std::{env, path::{Path, PathBuf}};
 use symtropy_demo_capture::CapturePlugin;
 
 const FIXTURE_ID: &str = "SCENE-LIGHT-01";
@@ -249,13 +249,7 @@ fn build_frame_time_report(
     let mut sorted = samples_ms.to_vec();
     sorted.sort_by(f64::total_cmp);
     let count = sorted.len();
-    let percentile = |percent: usize| -> Option<f64> {
-        if count == 0 {
-            return None;
-        }
-        let rank = (count * percent).div_ceil(100).max(1) - 1;
-        sorted.get(rank).copied()
-    };
+    let percentile = |percent: usize| percentile_value(&sorted, percent);
     let mean = if count == 0 {
         None
     } else {
@@ -318,6 +312,16 @@ fn build_frame_time_report(
     }
 }
 
+fn percentile_value(sorted_values: &[f64], percent: usize) -> Option<f64> {
+    if sorted_values.is_empty() || percent == 0 || percent > 100 {
+        return None;
+    }
+    let mut sorted = sorted_values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let rank = (sorted.len() * percent).div_ceil(100).max(1) - 1;
+    sorted.get(rank).copied()
+}
+
 fn not_empty(value: &str) -> bool {
     !value.trim().is_empty()
 }
@@ -331,7 +335,7 @@ fn is_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn write_report_atomically(path: &PathBuf, report: &FrameTimeReport) -> std::io::Result<()> {
+fn write_report_atomically(path: &Path, report: &FrameTimeReport) -> std::io::Result<()> {
     use std::io::Write as _;
     let parent = path.parent().filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(std::path::Path::new("."));
@@ -509,16 +513,6 @@ mod tests {
         assert_eq!(percentile_value(&values, 95), Some(100.0));
         assert_eq!(percentile_value(&values, 99), Some(100.0));
         assert_eq!(percentile_value(&[], 95), None);
-    }
-
-    fn percentile_value(values: &[f64], percent: usize) -> Option<f64> {
-        if values.is_empty() {
-            return None;
-        }
-        let mut sorted = values.to_vec();
-        sorted.sort_by(f64::total_cmp);
-        let rank = (sorted.len() * percent).div_ceil(100).max(1) - 1;
-        sorted.get(rank).copied()
     }
 
     #[test]
