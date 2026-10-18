@@ -74,8 +74,12 @@ pub enum ObservedValue {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PcoObservation {
     pub observation_id: String,
+    /// Raw PCO source value from shipReportingSystemEntryPortCode.
     pub port_id: String,
+    /// Raw PCO source value from shipStayReferenceNumber.
     pub port_call_id: String,
+    /// Raw PCO source value from shipIMONumber; not normalized here.
+    pub ship_imo_number: String,
     pub field: PcoField,
     /// Standard code or source-system field name; retained verbatim.
     pub source_field_code: String,
@@ -133,6 +137,7 @@ pub enum RejectionReason {
     DuplicateObservationId,
     MissingPortId,
     MissingPortCallId,
+    MissingShipImoNumber,
     MissingSourceFieldCode,
     MissingSourceId,
     MissingSchemaVersion,
@@ -390,6 +395,9 @@ pub fn validate_observation(
     if observation.port_call_id.trim().is_empty() {
         return Err(RejectionReason::MissingPortCallId);
     }
+    if observation.ship_imo_number.trim().is_empty() {
+        return Err(RejectionReason::MissingShipImoNumber);
+    }
     if observation.source_field_code.trim().is_empty() {
         return Err(RejectionReason::MissingSourceFieldCode);
     }
@@ -596,6 +604,7 @@ mod tests {
             observation_id: id.to_owned(),
             port_id: "PORT-SYNTHETIC-1".to_owned(),
             port_call_id: "CALL-SYNTHETIC-1".to_owned(),
+            ship_imo_number: "IMO-SYNTHETIC-1".to_owned(),
             field,
             source_field_code: "synthetic-field-v1".to_owned(),
             value,
@@ -935,6 +944,21 @@ mod tests {
         assert!(uncontested.iter().all(|item| {
             item.field != PcoField::ArrivalAtPilotBoardingPlace
         }));
+    }
+
+    #[test]
+    fn missing_vessel_identity_is_rejected() {
+        let mut item = arrival(
+            "OBS-NO-IMO",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T14:00:00Z",
+        );
+        item.ship_imo_number.clear();
+        assert_eq!(
+            validate_observation(&item, &policy()),
+            Err(RejectionReason::MissingShipImoNumber)
+        );
     }
 
     #[test]
