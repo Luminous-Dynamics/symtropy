@@ -1047,3 +1047,10 @@ pub use decision_impact::{
     EMBEDDED_DECISION_IMPACT_CORPUS, EMBEDDED_DECISION_IMPACT_SCHEMA, OutcomeImpact,
     validate_decision_impact_bytes,
 };
+
+
+pub mod adaptive_policy;
+pub use adaptive_policy::{
+    validate_adaptive_policy_bytes, AdaptivePolicyFailure, AdaptivePolicySummary,
+    EMBEDDED_ADAPTIVE_POLICY_CORPUS, EMBEDDED_ADAPTIVE_POLICY_SCHEMA,
+};
