@@ -524,7 +524,10 @@ mod tests {
     #[test]
     fn insufficient_frame_samples_cannot_be_qualified() {
         assert_eq!(measurement_status(0, true), "insufficient_samples");
-        assert_eq!(measurement_status(MIN_FRAME_SAMPLES - 1, true), "insufficient_samples");
+        assert_eq!(
+            measurement_status(MIN_FRAME_SAMPLES - 1, true),
+            "insufficient_samples"
+        );
         assert_eq!(
             measurement_status(MIN_FRAME_SAMPLES, true),
             "measured_metadata_qualified"
