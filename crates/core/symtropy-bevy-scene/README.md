@@ -53,7 +53,9 @@ The crate also exposes a deterministic route model for pre-construction design r
 - `sample_review_route` returns a deterministic Bevy `Transform` at a given elapsed time. Invalid routes return `None`, allowing the application to preserve a static camera.
 - `ReviewRoutePlayback::new(route)` validates a route once, then the scene plugin advances its Transform during Update; playback can be paused/resumed. Accessible-teleport routes do not auto-play and require user-selected waypoint poses.
 
-Coordinates are metres in the model's declared frame, not georeferencing. The route sampler does not perform wall collision, visibility, accessibility-code, daylight, energy, or building-code checks. A production reviewer should pair it with geometry collision tests, a real model-revision ID, user-controlled speed/pause/comfort settings, a desktop fallback, and an independently implemented XR adapter. A pleasant walkthrough is design feedback, not proof that the proposed building is buildable.
+Coordinates are metres in the model's declared frame, not georeferencing. The `ReviewAnnotation` types distinguish binding requirements, unresolved binding conflicts, required missing evidence, engineering evidence, non-binding guidance, unknown site facts, owner preferences, and code-reform proposals. An annotation must be pinned to the displayed design revision; binding findings require source/module provenance, owner preferences can be marked `UnfulfilledPreference` but cannot be styled as a binding failure, and guidance/reform proposals remain informational. The validator checks annotation semantics and digest syntax only—not legal truth or evidence bytes.
+
+The route sampler does not perform wall collision, visibility, accessibility-code, daylight, energy, or building-code checks. A production reviewer should pair it with geometry collision tests, a real model-revision ID, user-controlled speed/pause/comfort settings, a desktop fallback, and an independently implemented XR adapter. A pleasant walkthrough is design feedback, not proof that the proposed building is buildable.
 
 ### Try the synthetic-room example
 
