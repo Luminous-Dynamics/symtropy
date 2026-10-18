@@ -6,7 +6,7 @@
 - **Non-goal:** claiming that one model, one civilization narrative, or one physics engine can explain all human history
 - **Decision requested:** review the domain model, evidence contract, first vertical slice, and benchmark gates before implementation expands
 
-> **Implementation snapshot (2026-10-18):** This draft branch now includes an initial `humanity-history-core` Rust package, typed source/claim/evidence/relation/asset records, a JSON validation CLI, a synthetic fixture, an Antikythera research seed (6 sources, 7 claims, 2 challenge edges, no bundled media), and 19 unit tests. The tests have been authored but **have not been executed** in this environment because a Rust toolchain is unavailable. This is a prototype snapshot, not a passing build claim. The validator checks structural invariants; it does not establish historical truth or evaluate whether cited text semantically entails a claim.
+> **Implementation snapshot (2026-10-18):** This draft branch now includes an initial `humanity-history-core` Rust package, typed source/claim/evidence/relation/asset records, numerical estimates with uncertainty intervals, reconstruction models and model-comparison groups, a JSON validation CLI, a synthetic fixture, an Antikythera research seed (6 sources, 7 claims, 4 estimates, 3 models, 1 comparison group, no bundled media), and 27 unit tests. The tests have been authored but **have not been executed** in this environment because a Rust toolchain is unavailable. This is a prototype snapshot, not a passing build claim. The validator checks structural invariants; it does not establish historical truth or evaluate whether cited text semantically entails a claim.
 
 ## 1. Executive thesis
 
@@ -245,6 +245,15 @@ All numeric targets below are **proposed acceptance targets**, not measured curr
 - **Mutation tests:** removing a required source, changing an evidence relation, or replacing a known source digest must cause the expected validator failure or invalidate the dependent review state.
 - **Contradiction preservation:** fixtures with conflicting sources must retain both sides in the query result; the validator must never silently discard a conflict to force a single timeline.
 - **Citation evaluation:** human-annotated benchmark of Symthaea answers measuring supported-claim precision, claim coverage, and unsupported assertions separately. Start with a target of 0 unsupported high-confidence claims in the release-gating fixture suite, not a claim that general hallucinations can be eliminated.
+
+### 6.2 Quantitative evidence and reconstruction comparison
+
+- Numeric values are stored as decimal strings with units and source anchors; the validator rejects non-finite values and reversed uncertainty bounds.
+- Credible/confidence intervals require explicit coverage and conditioning notes; a sensitivity variant must not be counted as an independent replication merely because it is a separate estimate record.
+- Every reconstruction model points to its target claims and quantitative estimates, declares assumptions, and carries source evidence.
+- Every model comparison contains at least two distinct models, named evaluation axes, and a declared decision rule. The default case-study rule is no aggregate winner when axes or evidence are not comparable.
+- Mutation suite: malformed numeric values, reversed intervals, missing coverage, source-less estimates, dangling model/estimate references, and duplicate comparison models must fail with specific validator codes.
+- Numerical benchmark outputs must show interval coverage/calibration where ground truth or suitable reference data exist; otherwise report conditional model results without implying a calibrated probability of historical truth.
 
 ### 6.2 Graph correctness and scale
 
