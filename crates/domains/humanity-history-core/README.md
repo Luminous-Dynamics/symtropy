@@ -35,6 +35,26 @@ The CLI prints a JSON report. Exit codes are:
 
 See [the pilot case-study note](../../../docs/research/case-studies/ANTIKYTHERA_MECHANISM_PILOT.md) for source choices, caveats, expected checks, and adversarial mutation controls. This European/Mediterranean case is an epistemic stress test, not a globally representative selection of historical significance.
 
+## Quantitative estimates and model alternatives
+
+Datasets may include `estimates`, `reconstruction_models`, and `model_comparisons`.
+
+- Quantitative values and uncertainty endpoints are serialized as decimal strings to avoid rewriting the source's displayed precision.
+- Each estimate declares a quantity, unit, method, assumptions, source evidence, and (when applicable) an interval kind, coverage percentage, and conditioning note.
+- Credible and confidence intervals require an explicit coverage percentage. Bounds must be finite and ordered. The validator does not recompute the source analysis.
+- Reconstruction records name the claim IDs and estimate IDs they depend on, and declare whether they describe a published interpretation, a published candidate design, or a hypothesis.
+- A comparison group must reference at least two distinct models and list explicit evaluation axes and a decision rule. The schema does not infer a single winner or aggregate incomparable evidence into a score.
+
+The Antikythera seed now contains four estimate records: the 365-hole parameter from a 2008 reconstruction, the 354-hole parameter from a later interpretation, and two 68% credible estimates from a 2024 analysis under different handling of fracture-adjacent measurements. The two 2024 estimates share a measurement basis and are sensitivity variants, not independent replications. It also includes three reconstruction-model records and one explicit comparison group.
+
+Run against this case study:
+
+```sh
+cargo run -p humanity-history-core --bin humanity-history-validate -- crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
+```
+
+The authored unit suite also parses and validates the seed via `include_str!`. This check has **not been executed in the current environment**; do not treat its expected clean result as a passing test until a Rust toolchain runs the suite.
+
 ## Synthetic fixture
 
 `fixtures/synthetic-validation.json` is test data only. It deliberately contains no real historical assertion or media. Its asset digest is the standard SHA-256 digest for an empty byte sequence, used to demonstrate the required 64-hex-character field.
