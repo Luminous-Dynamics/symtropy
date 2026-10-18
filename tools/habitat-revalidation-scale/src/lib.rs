@@ -14,6 +14,10 @@ pub const WORKLOAD_SCHEMA: &str = "luminous.habitat_revalidation_scale_instance.
 pub const RECEIPT_SCHEMA: &str = "luminous.habitat_revalidation_scale_receipt.v0.1";
 pub const CLAIM_CEILING: &str =
     "deterministic_synthetic_scale_input_not_measured_performance_or_real_world_authority";
+const MAX_ARTIFACTS: usize = 100_000;
+const MAX_TASKS: usize = 10_000;
+const MAX_GATES: usize = 10_000;
+const MAX_ALTERNATIVES: usize = 100_000;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -96,6 +100,17 @@ pub struct ObjectiveAlternative {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct BudgetScenario {
+    pub case_id: String,
+    pub max_expanded_states: Option<usize>,
+    pub stop_after_first_candidate: Option<bool>,
+    pub expected_status: String,
+    pub expected_frontier_complete: bool,
+    pub expected_known_plan_count_min: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Workload {
     pub schema_version: String,
     pub workload_id: String,
@@ -115,6 +130,7 @@ pub struct Workload {
     pub tasks: Vec<RepairTask>,
     pub objective_alternatives: Vec<ObjectiveAlternative>,
     pub expected_pareto_candidate_ids: Vec<String>,
+    pub budget_scenarios: Vec<BudgetScenario>,
     pub independent_exhaustive_oracle_required: bool,
     pub required_expected_class: String,
     pub profile_purpose: String,
@@ -240,11 +256,19 @@ fn validate_profile(profile: &ProfileSpec) -> Result<(), String> {
         || profile.reachable_task_count == 0
         || profile.target_count == 0
         || profile.gate_count == 0
-        || profile.max_dependency_depth == 0
+        || profile.max_dependency_depth < 2
         || profile.max_expanded_states == 0
         || profile.tradeoff_alternatives == 0
     {
-        return Err(format!("{prefix}counts and the search budget must be positive"));
+        return Err(format!("{prefix}counts and the search budget must be positive; depth must be at least two"));
+    }
+    if profile.artifact_count > MAX_ARTIFACTS
+        || profile.task_count > MAX_TASKS
+        || profile.gate_count > MAX_GATES
+        || profile.tradeoff_alternatives > MAX_ALTERNATIVES
+        || profile.max_dependency_depth > MAX_ARTIFACTS
+    {
+        return Err(format!("{prefix}requested workload exceeds generator safety limits"));
     }
     if profile.task_count > profile.artifact_count
         || profile.reachable_task_count > profile.task_count
@@ -257,8 +281,9 @@ fn validate_profile(profile: &ProfileSpec) -> Result<(), String> {
     {
         return Err(format!("{prefix}fraction must be between zero and one million ppm"));
     }
-    let unrelated_count =
-        profile.artifact_count * profile.unrelated_artifact_fraction_ppm as usize / 1_000_000;
+    let unrelated_count = ((profile.artifact_count as u128
+        * profile.unrelated_artifact_fraction_ppm as u128)
+        / 1_000_000u128) as usize;
     let detached_tasks = profile.task_count - profile.reachable_task_count;
     if unrelated_count < detached_tasks {
         return Err(format!(
@@ -354,17 +379,9 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
     let unrelated_count = n * profile.unrelated_artifact_fraction_ppm as usize / 1_000_000;
     let extra_unrelated_count = unrelated_count - detached_count;
     let support_count = n - unrelated_count - reachable_count;
-
-    let support_tails = chunk_tails("E-SUPPORT-", support_count, profile.max_dependency_depth);
-    let unrelated_tails = chunk_tails(
-        "E-UNRELATED-",
-        extra_unrelated_count,
-        profile.max_dependency_depth,
-    );
-
     let mut predecessors: Vec<Vec<usize>> = vec![Vec::new(); profile.task_count];
     let mut target_task_indices = Vec::new();
-    let mut shared_prefix_count = 0usize;
+    let mut shared_task_count = 0usize;
 
     if profile.profile_id == "deep_chain" {
         for index in 1..reachable_count {
@@ -381,23 +398,32 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
             let requested = (available_shared as u128
                 * profile.shared_task_fraction_ppm as u128
                 / 1_000_000u128) as usize;
-            shared_prefix_count = requested.max(1).min(available_shared);
+            let minimum_for_depth =
+                reachable_count.saturating_sub(branch_count * (profile.max_dependency_depth - 1));
+            let maximum_shared = available_shared.min(profile.max_dependency_depth);
+            if minimum_for_depth > maximum_shared {
+                return Err(format!(
+                    "profile {} cannot fit its reachable tasks within declared dependency depth",
+                    profile.profile_id
+                ));
+            }
+            shared_task_count = requested
+                .max(1)
+                .max(minimum_for_depth)
+                .min(maximum_shared);
         }
-        for index in 1..shared_prefix_count {
-            predecessors[index].push(index - 1);
-        }
-        let branch_tasks = reachable_count - shared_prefix_count;
+        let branch_tasks = reachable_count - shared_task_count;
         let base_size = branch_tasks / branch_count;
         let remainder = branch_tasks % branch_count;
-        let mut cursor = shared_prefix_count;
+        let mut cursor = shared_task_count;
         for branch in 0..branch_count {
             let branch_size = base_size + usize::from(branch < remainder);
             let mut previous = None;
             for _ in 0..branch_size {
                 if let Some(prior) = previous {
                     predecessors[cursor].push(prior);
-                } else if shared_prefix_count > 0 {
-                    predecessors[cursor].push(shared_prefix_count - 1);
+                } else {
+                    predecessors[cursor].extend(0..shared_task_count);
                 }
                 previous = Some(cursor);
                 cursor += 1;
@@ -408,9 +434,31 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
         }
     }
 
-    for index in reachable_count + 1..profile.task_count {
-        predecessors[index].push(index - 1);
+    let mut task_edge_depth = vec![0usize; reachable_count];
+    for index in 0..reachable_count {
+        if let Some(max_prior_depth) = predecessors[index].iter().map(|prior| task_edge_depth[*prior]).max() {
+            task_edge_depth[index] = max_prior_depth + 1;
+        }
     }
+    let longest_target_task_path = target_task_indices
+        .iter()
+        .map(|index| task_edge_depth[*index])
+        .max()
+        .unwrap_or(0);
+    if longest_target_task_path >= profile.max_dependency_depth {
+        return Err(format!(
+            "profile {} task graph exceeds its declared dependency depth",
+            profile.profile_id
+        ));
+    }
+    let support_chunk_depth = profile.max_dependency_depth - longest_target_task_path;
+    let unrelated_chunk_depth = (profile.max_dependency_depth - 1).max(1);
+    let support_tails = chunk_tails("E-SUPPORT-", support_count, support_chunk_depth);
+    let unrelated_tails = chunk_tails(
+        "E-UNRELATED-",
+        extra_unrelated_count,
+        unrelated_chunk_depth,
+    );
 
     let mut task_requirements: Vec<Vec<String>> = vec![Vec::new(); profile.task_count];
     for index in 0..profile.task_count {
@@ -418,16 +466,12 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
             .iter()
             .map(|prior| artifact_for_task(*prior))
             .collect();
-        if index < reachable_count {
-            let needs_support = predecessors[index].is_empty()
-                || (profile.profile_id != "deep_chain"
-                    && shared_prefix_count == 0
-                    && predecessors[index].is_empty());
-            if needs_support {
+        if predecessors[index].is_empty() {
+            if index < reachable_count {
                 requirements.extend(support_tails.iter().cloned());
+            } else {
+                requirements.extend(unrelated_tails.iter().cloned());
             }
-        } else if index == reachable_count {
-            requirements.extend(unrelated_tails.iter().cloned());
         }
         requirements.sort();
         requirements.dedup();
@@ -512,6 +556,20 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
 
     let alternatives = objective_alternatives(profile.tradeoff_alternatives);
     let expected_pareto_candidate_ids = expected_frontier_formula(profile.tradeoff_alternatives);
+    let budget_scenarios = profile
+        .budget_cases
+        .clone()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|case| BudgetScenario {
+            case_id: case.case_id,
+            max_expanded_states: case.max_expanded_states,
+            stop_after_first_candidate: case.stop_after_first_candidate,
+            expected_status: case.expected_status,
+            expected_frontier_complete: case.expected_frontier_complete,
+            expected_known_plan_count_min: case.expected_known_plan_count_min,
+        })
+        .collect();
 
     Ok(Workload {
         schema_version: WORKLOAD_SCHEMA.to_owned(),
@@ -532,6 +590,7 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
         tasks,
         objective_alternatives: alternatives,
         expected_pareto_candidate_ids,
+        budget_scenarios,
         independent_exhaustive_oracle_required: profile.independent_exhaustive_oracle_required,
         required_expected_class: profile.required_expected_class.clone(),
         profile_purpose: profile.purpose.clone(),
