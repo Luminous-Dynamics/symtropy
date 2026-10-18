@@ -93,7 +93,11 @@ struct AuditReceipt {
 
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join("")
+    digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn is_hex_sha(value: &str) -> bool {
@@ -176,7 +180,11 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             ("criteria_regime", profile.criteria_regime.as_str()),
         ] {
             if !is_nonempty(value) {
-                errors.push(format!("PROFILE_{}_EMPTY:{}", field.to_ascii_uppercase(), profile.profile_id));
+                errors.push(format!(
+                    "PROFILE_{}_EMPTY:{}",
+                    field.to_ascii_uppercase(),
+                    profile.profile_id
+                ));
             }
         }
         validate_string_list(
@@ -210,7 +218,11 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             ("criteria_regime", case.criteria_regime.as_str()),
         ] {
             if !is_nonempty(value) {
-                errors.push(format!("CASE_{}_EMPTY:{}", field.to_ascii_uppercase(), case.case_id));
+                errors.push(format!(
+                    "CASE_{}_EMPTY:{}",
+                    field.to_ascii_uppercase(),
+                    case.case_id
+                ));
             }
         }
         if !matches!(
@@ -234,7 +246,10 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
         if !matches!(case.hard_gate_status.as_str(), "PASS" | "BLOCK" | "UNKNOWN") {
             errors.push(format!("HARD_GATE_STATUS_INVALID:{}", case.case_id));
         }
-        if !matches!(case.expected_scope_status.as_str(), "IN_SCOPE" | "OUT_OF_SCOPE") {
+        if !matches!(
+            case.expected_scope_status.as_str(),
+            "IN_SCOPE" | "OUT_OF_SCOPE"
+        ) {
             errors.push(format!("EXPECTED_SCOPE_STATUS_INVALID:{}", case.case_id));
         }
         if !matches!(
@@ -245,10 +260,7 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
         }
         if !matches!(
             case.expected_disposition.as_str(),
-            "REVIEW_ONLY_CANDIDATE"
-                | "REASSESS_SCOPE"
-                | "HOLD_EVIDENCE"
-                | "BLOCKED_HARD_GATE"
+            "REVIEW_ONLY_CANDIDATE" | "REASSESS_SCOPE" | "HOLD_EVIDENCE" | "BLOCKED_HARD_GATE"
         ) {
             errors.push(format!("EXPECTED_DISPOSITION_INVALID:{}", case.case_id));
         }
@@ -262,7 +274,9 @@ fn canonical_corpus_sha256(corpus: &Corpus) -> String {
         profile.covered_failure_families.sort();
         profile.required_evidence_tags.sort();
     }
-    canonical.profiles.sort_by(|a, b| a.profile_id.cmp(&b.profile_id));
+    canonical
+        .profiles
+        .sort_by(|a, b| a.profile_id.cmp(&b.profile_id));
 
     for case in &mut canonical.cases {
         case.observed_failure_families.sort();
@@ -277,7 +291,9 @@ fn canonical_corpus_sha256(corpus: &Corpus) -> String {
 }
 
 fn evaluate_case(case: &ScenarioCase, profiles: &[ScopeProfile]) -> CaseResult {
-    let profile = profiles.iter().find(|profile| profile.profile_id == case.profile_id);
+    let profile = profiles
+        .iter()
+        .find(|profile| profile.profile_id == case.profile_id);
 
     let scope_in_bounds = match profile {
         None => false,
@@ -372,10 +388,14 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
         }
     }
 
-    let expected_outcomes_match = case_results.iter().all(|result| result.expected_outcome_matches);
+    let expected_outcomes_match = case_results
+        .iter()
+        .all(|result| result.expected_outcome_matches);
     let all_review_only = case_results.iter().all(|result| result.review_only);
     let all_actuation_disabled = !corpus.claim_ceiling.expected_actuation
-        && case_results.iter().all(|result| !result.actuation_authorized);
+        && case_results
+            .iter()
+            .all(|result| !result.actuation_authorized);
     if !all_review_only {
         errors.push("REVIEW_ONLY_CEILING_VIOLATED".to_string());
     }
@@ -385,7 +405,8 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
     errors.sort();
     errors.dedup();
 
-    let passed = errors.is_empty() && expected_outcomes_match && all_review_only && all_actuation_disabled;
+    let passed =
+        errors.is_empty() && expected_outcomes_match && all_review_only && all_actuation_disabled;
 
     AuditReceipt {
         result: if passed { "pass" } else { "fail" }.to_string(),
@@ -498,17 +519,24 @@ mod tests {
         assert_eq!(receipt.scope_counts.get("IN_SCOPE"), Some(&10));
         assert_eq!(receipt.scope_counts.get("OUT_OF_SCOPE"), Some(&7));
         assert_eq!(receipt.evidence_counts.get("INSUFFICIENT"), Some(&5));
-        assert_eq!(receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"), Some(&3));
+        assert_eq!(
+            receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"),
+            Some(&3)
+        );
         assert_eq!(receipt.disposition_counts.get("REASSESS_SCOPE"), Some(&7));
         assert_eq!(receipt.disposition_counts.get("HOLD_EVIDENCE"), Some(&5));
-        assert_eq!(receipt.disposition_counts.get("BLOCKED_HARD_GATE"), Some(&2));
+        assert_eq!(
+            receipt.disposition_counts.get("BLOCKED_HARD_GATE"),
+            Some(&2)
+        );
     }
 
     #[test]
     fn any_uncovered_family_blocks_candidate_promotion() {
         let mut value = corpus();
         let case = find_case_mut(&mut value, "forest-known-family-complete-evidence");
-        case.observed_failure_families.push("chemical_residue_contamination".to_string());
+        case.observed_failure_families
+            .push("chemical_residue_contamination".to_string());
         let receipt = run(&value);
         let result = result_for(&receipt, "forest-known-family-complete-evidence");
         assert_eq!(result.scope_status, "OUT_OF_SCOPE");
@@ -567,8 +595,14 @@ mod tests {
     #[test]
     fn stale_evidence_is_insufficient() {
         let receipt = run(&corpus());
-        assert_eq!(result_for(&receipt, "forest-stale-evidence").evidence_status, "INSUFFICIENT");
-        assert_eq!(result_for(&receipt, "pv-stale-inspection").disposition, "HOLD_EVIDENCE");
+        assert_eq!(
+            result_for(&receipt, "forest-stale-evidence").evidence_status,
+            "INSUFFICIENT"
+        );
+        assert_eq!(
+            result_for(&receipt, "pv-stale-inspection").disposition,
+            "HOLD_EVIDENCE"
+        );
     }
 
     #[test]
@@ -658,7 +692,10 @@ mod tests {
             .clear();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.contains("LIST_MUST_NOT_BE_EMPTY")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("LIST_MUST_NOT_BE_EMPTY")));
     }
 
     #[test]
@@ -668,7 +705,10 @@ mod tests {
         value.cases.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_CASE_ID")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("DUPLICATE_CASE_ID")));
     }
 
     #[test]
@@ -678,7 +718,10 @@ mod tests {
         value.profiles.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_PROFILE_ID")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("DUPLICATE_PROFILE_ID")));
     }
 
     #[test]
@@ -687,7 +730,10 @@ mod tests {
         value.profiles[0].covered_failure_families.clear();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.contains("LIST_MUST_NOT_BE_EMPTY")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("LIST_MUST_NOT_BE_EMPTY")));
     }
 
     #[test]
@@ -703,7 +749,10 @@ mod tests {
     fn invalid_source_commit_fails_closed() {
         let receipt = audit(&corpus(), Some("not-a-commit".to_string()), Vec::new());
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error == "SOURCE_COMMIT_INVALID"));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error == "SOURCE_COMMIT_INVALID"));
     }
 
     #[test]
@@ -722,7 +771,10 @@ mod tests {
         }
         let first = run(&original);
         let second = run(&permuted);
-        assert_eq!(first.canonical_corpus_sha256, second.canonical_corpus_sha256);
+        assert_eq!(
+            first.canonical_corpus_sha256,
+            second.canonical_corpus_sha256
+        );
         assert_eq!(
             serde_json::to_vec(&first).expect("receipt serializes"),
             serde_json::to_vec(&second).expect("receipt serializes")
@@ -732,13 +784,20 @@ mod tests {
     #[test]
     fn results_are_sorted_and_all_outputs_remain_review_only() {
         let receipt = run(&corpus());
-        let ids: Vec<&str> = receipt.case_results.iter().map(|result| result.case_id.as_str()).collect();
+        let ids: Vec<&str> = receipt
+            .case_results
+            .iter()
+            .map(|result| result.case_id.as_str())
+            .collect();
         let mut sorted = ids.clone();
         sorted.sort();
         assert_eq!(ids, sorted);
         assert!(receipt.all_review_only);
         assert!(receipt.all_actuation_disabled);
-        assert!(receipt.case_results.iter().all(|result| !result.actuation_authorized));
+        assert!(receipt
+            .case_results
+            .iter()
+            .all(|result| !result.actuation_authorized));
     }
 
     #[test]
@@ -748,14 +807,18 @@ mod tests {
             "MAYBE".to_string();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.contains("HARD_GATE_STATUS_INVALID")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("HARD_GATE_STATUS_INVALID")));
     }
 
     #[test]
     fn unrecognized_failure_family_cannot_be_hidden_by_complete_evidence() {
         let mut value = corpus();
         let case = find_case_mut(&mut value, "pv-known-family-complete-evidence");
-        case.observed_failure_families.push("delamination_with_hidden_interconnect_corrosion".to_string());
+        case.observed_failure_families
+            .push("delamination_with_hidden_interconnect_corrosion".to_string());
         let receipt = run(&value);
         let result = result_for(&receipt, "pv-known-family-complete-evidence");
         assert_eq!(result.evidence_status, "SUFFICIENT");
@@ -860,5 +923,4 @@ mod tests {
 
         assert_eq!(combinations, 216);
     }
-
 }
