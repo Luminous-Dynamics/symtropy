@@ -607,7 +607,7 @@ mod tests {
             .expect("valid scenario exists");
         scenario.decisions.push(PolicyDecision {
             decision_id: "D1".to_owned(),
-            at_hour: 0,
+            at_hour: 2,
             action: Action::Hold,
             used_event_ids: Vec::new(),
         });
