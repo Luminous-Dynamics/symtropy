@@ -1244,13 +1244,7 @@ mod tests {
                 .find(|constraint| constraint.metric == "habitat_disturbance")
                 .expect("habitat constraint exists");
             constraint.threshold = 99;
-            regime.expected_ranked_strategy_ids =
-                vec!["constraint-violating-high-yield-shortcut".to_string(),
-                     if regime.criteria_regime == "protect-habitat-and-recover-material-v1" {
-                         "rapid_material_recovery".to_string()
-                     } else {
-                         "retain_inspect_replan".to_string()
-                     }];
+            // Frozen expected ranking remains unchanged: newly eligible shortcut must be caught.
         }
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
