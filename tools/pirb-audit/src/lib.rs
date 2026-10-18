@@ -984,6 +984,17 @@ fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec
         return;
     };
 
+    let safety_buffer = scenario
+        .get("required_safety_buffer_minutes")
+        .and_then(Value::as_i64);
+    if safety_buffer.is_none_or(|value| value < 0) {
+        findings.push(finding(
+            "PIRB_RESPONSE_BUFFER_INVALID",
+            &format!("{path}.required_safety_buffer_minutes"),
+            "A non-negative integer response safety buffer must be declared; missing or invalid reserves fail closed.",
+        ));
+    }
+
     let mut seen_ids = BTreeSet::new();
     let mut actionable_ids = Vec::new();
     let mut non_actionable_ids = Vec::new();
@@ -1055,15 +1066,35 @@ fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec
             ));
         }
 
-        let actionable = matches!((owner, resource, lead, latency), (Some(true), Some(true), Some(lead), Some(latency)) if lead > latency);
+        let actionable = match (owner, resource, lead, latency, safety_buffer) {
+            (Some(true), Some(true), Some(lead), Some(latency), Some(buffer))
+                if buffer >= 0 =>
+            {
+                latency
+                    .checked_add(buffer)
+                    .is_some_and(|required_minutes| lead > required_minutes)
+            }
+            _ => false,
+        };
         if actionable {
             actionable_ids.push(id.to_owned());
         } else {
             non_actionable_ids.push(id.to_owned());
         }
 
-        let independently_verified =
-            state == Some("verified") && actionable && response_evidence == Some(true);
+        let event_trace_valid = if state == Some("verified") {
+            audit_response_events(
+                alert.get("response_events"),
+                &format!("{alert_path}.response_events"),
+                findings,
+            )
+        } else {
+            false
+        };
+        let independently_verified = state == Some("verified")
+            && actionable
+            && response_evidence == Some(true)
+            && event_trace_valid;
         if independently_verified {
             verified_ids.push(id.to_owned());
         } else {
@@ -1129,6 +1160,132 @@ fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec
     }
 }
 
+fn audit_response_events(
+    value: Option<&Value>,
+    path: &str,
+    findings: &mut Vec<Finding>,
+) -> bool {
+    const REQUIRED_EVENTS: [&str; 6] = [
+        "alert_issued",
+        "acknowledged",
+        "dispatched",
+        "arrived",
+        "action_completed",
+        "outcome_verified",
+    ];
+
+    let Some(events) = value.and_then(Value::as_array) else {
+        findings.push(finding(
+            "PIRB_RESPONSE_EVENT_TRACE_MISSING",
+            path,
+            "A verified response requires a traceable sequence from alert issuance through independent outcome verification.",
+        ));
+        return false;
+    };
+
+    let mut valid = true;
+    if events.len() != REQUIRED_EVENTS.len() {
+        findings.push(finding(
+            "PIRB_RESPONSE_EVENT_SEQUENCE_INVALID",
+            path,
+            "A response trace must contain exactly the six required lifecycle events in order.",
+        ));
+        valid = false;
+    }
+
+    let mut seen_ids = BTreeSet::new();
+    let mut previous_minute: Option<i64> = None;
+    for (index, event) in events.iter().enumerate() {
+        let event_path = format!("{path}[{index}]");
+        let event_id = event.get("event_id").and_then(Value::as_str);
+        if event_id.is_none_or(str::is_empty)
+            || !seen_ids.insert(event_id.unwrap_or_default().to_owned())
+        {
+            findings.push(finding(
+                "PIRB_RESPONSE_EVENT_ID_INVALID",
+                &format!("{event_path}.event_id"),
+                "Every response event needs a non-empty, unique event identifier.",
+            ));
+            valid = false;
+        }
+
+        let event_type = event.get("event_type").and_then(Value::as_str);
+        if REQUIRED_EVENTS.get(index).copied() != event_type {
+            findings.push(finding(
+                "PIRB_RESPONSE_EVENT_SEQUENCE_INVALID",
+                &format!("{event_path}.event_type"),
+                "Response events must follow the declared alert-to-verification lifecycle order.",
+            ));
+            valid = false;
+        }
+
+        let minute = event.get("minute_offset").and_then(Value::as_i64);
+        match minute {
+            Some(value) if value >= 0 => {
+                if previous_minute.is_some_and(|previous| value < previous) {
+                    findings.push(finding(
+                        "PIRB_RESPONSE_EVENT_TIME_ORDER",
+                        &format!("{event_path}.minute_offset"),
+                        "Response event times must be non-negative and non-decreasing from alert issuance.",
+                    ));
+                    valid = false;
+                }
+                previous_minute = Some(value);
+            }
+            _ => {
+                findings.push(finding(
+                    "PIRB_RESPONSE_EVENT_TIME_INVALID",
+                    &format!("{event_path}.minute_offset"),
+                    "Every response event requires a non-negative integer minute offset.",
+                ));
+                valid = false;
+            }
+        }
+
+        if event
+            .get("evidence_ref")
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+        {
+            findings.push(finding(
+                "PIRB_RESPONSE_EVENT_EVIDENCE_MISSING",
+                &format!("{event_path}.evidence_ref"),
+                "Every response lifecycle event must reference its supporting evidence record.",
+            ));
+            valid = false;
+        }
+
+        if event
+            .get("independent_attestation")
+            .and_then(Value::as_bool)
+            .is_none()
+        {
+            findings.push(finding(
+                "PIRB_RESPONSE_EVENT_ATTESTATION_UNKNOWN",
+                &format!("{event_path}.independent_attestation"),
+                "Independence status must be explicit for each response event.",
+            ));
+            valid = false;
+        }
+    }
+
+    if events
+        .last()
+        .and_then(|event| event.get("independent_attestation"))
+        .and_then(Value::as_bool)
+        != Some(true)
+    {
+        findings.push(finding(
+            "PIRB_RESPONSE_OUTCOME_ATTESTATION_MISSING",
+            path,
+            "The final outcome-verification event must carry an explicit independent attestation.",
+        ));
+        valid = false;
+    }
+
+    valid
+}
+
 fn string_list(value: Option<&Value>) -> Vec<String> {
     value
         .and_then(Value::as_array)
@@ -1190,6 +1347,42 @@ mod tests {
                 "dispatched-not-verified"
             ])
         );
+    }
+
+    #[test]
+    fn warning_response_requires_a_declared_safety_buffer() {
+        let mut value = corpus();
+        value["scenarios"][9]["required_safety_buffer_minutes"] = Value::Null;
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_RESPONSE_BUFFER_INVALID"));
+    }
+
+    #[test]
+    fn verified_response_requires_monotonic_event_history() {
+        let mut value = corpus();
+        value["scenarios"][9]["alerts"][0]["response_events"][3]["minute_offset"] = json!(19);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_RESPONSE_EVENT_TIME_ORDER"));
+        assert!(has_code(&report, "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED"));
+    }
+
+    #[test]
+    fn verified_response_requires_event_provenance() {
+        let mut value = corpus();
+        value["scenarios"][9]["alerts"][0]["response_events"][4]["evidence_ref"] = json!("");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_RESPONSE_EVENT_EVIDENCE_MISSING"));
+        assert!(has_code(&report, "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED"));
+    }
+
+    #[test]
+    fn verified_response_requires_independent_outcome_attestation() {
+        let mut value = corpus();
+        value["scenarios"][9]["alerts"][0]["response_events"][5]["independent_attestation"] =
+            json!(false);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_RESPONSE_OUTCOME_ATTESTATION_MISSING"));
+        assert!(has_code(&report, "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED"));
     }
 
     #[test]
