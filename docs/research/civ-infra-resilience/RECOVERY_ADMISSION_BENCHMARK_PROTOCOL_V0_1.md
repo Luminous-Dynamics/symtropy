@@ -26,7 +26,7 @@ Every arm gets the same scenario IDs, paired seeds, dependency graph and exogeno
 - **Hard blocks:** missing/failed inspection, declined or unknown approval, insufficient capacity, incompatible capability, stale calibration, poor localization, lost communications, infeasible energy reserve, unsafe or unknown utility.
 - **Temporal adversaries:** future observation reference, hidden observation, duplicate/irrelevant observation, reordered delivery, delayed fault reporting, contradiction and corrected/revoked claim.
 - **Dependency/concurrency:** accepted-predecessor requirement, cyclic dependencies, shared-resource contention, crews competing for capacity, invalid reassignment and cascading power/water/communications dependencies.
-- **Evidence adversaries:** missing, stale, wrong-task, wrong-resource-revision, wrong-kind, duplicate, tampered, expired, revoked, replayed or causally unbound receipts. B3-only cases remain blocked until B3 exists.
+- **Evidence adversaries:** missing, stale, wrong-task, wrong-resource-revision, wrong-kind, duplicate, tampered, expired, revoked, replayed or causally unbound receipts. B2V-only cases remain blocked until B2V exists.
 - **Boundary/counterfactual:** exact capacity boundary, visible tick equal to decision tick, work done without acceptance receipt, successful inspection attached to stale artifact, protective stop before fault visibility.
 
 Keep ground truth, injected event time, policy-observation availability, policy-visible projection and evidence-creation time separate. Never expose evaluator-only truth to the policy.
@@ -57,7 +57,7 @@ Implement the bounded-state oracle independently of production `assess`; exhaust
 - **No temporal privilege:** adding a future/hidden observation cannot improve admissibility.
 - **Evidence discipline:** adding relevant, current, verified evidence may resolve a deficit; irrelevant, stale, revoked or unauthenticated evidence cannot.
 - **Resource consistency:** turning a resource unavailable/incompatible cannot improve admissibility.
-- **Stop dominance:** protective stop can interrupt without planner visibility of the fault.
+- **Stop dominance:** protective stop does not need planner visibility of the fault, and future/unknown observation references or a bounded-horizon overrun must not veto the stop.
 - **Replay stability:** same canonical inputs yield byte-equivalent normalized decisions; unordered fields must canonicalize or be rejected.
 - **Correction safety:** correction/revocation appends history and invalidates the affected claim without rewriting prior records.
 - **No hidden-state leakage:** decisions depend on public decision inputs, not injection timestamps or evaluator-only truth.
@@ -78,7 +78,7 @@ Build repeatable elemental checks and composed mission scenarios rather than one
 
 1. **Contract only:** exact-head format, manifest and adversarial tests plus independent tiny-model oracle pass.
 2. **Synthetic comparison:** all hard gates pass; >=1,000 paired seeded scenarios; denominators and uncertainty intervals are public.
-3. **Evidence verification:** B3 passes canonical interoperability vectors and all frozen negative mutations; signature validity remains distinct from physical truth.
+3. **Evidence verification:** B2V passes canonical interoperability vectors and all frozen negative mutations; signature validity remains distinct from physical truth.
 4. **Shadow deployment:** read-only capture in sandbox/supervised testing, no control path, compare decisions to domain experts.
 5. **Operational use:** out of scope until independent engineering/safety and cybersecurity review, site-specific hazard analysis, operator procedures and controlled validation.
 
