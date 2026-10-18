@@ -22,6 +22,26 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
     assert_eq!(report.excluded_count, 2);
     assert!(report.blockers.is_empty());
 
+    let in_window = manifest
+        .outcome_records
+        .iter()
+        .find(|record| record.request_ref == "req-study-001")
+        .expect("in-window acceptance record");
+    assert_eq!(in_window.useful_window_deadline_minute, 100);
+    assert_eq!(in_window.acceptance_at_minute, Some(80));
+    assert_eq!(
+        in_window.acceptance_evidence_ref.as_deref(),
+        Some("evt-study-001-acceptance")
+    );
+    assert_eq!(
+        in_window.useful_window_evidence_ref,
+        "evt-study-001-window"
+    );
+    assert_eq!(
+        in_window.outcome_evidence_ref,
+        "evt-study-001-outcome"
+    );
+
     let counts = report
         .outcome_counts
         .as_ref()
