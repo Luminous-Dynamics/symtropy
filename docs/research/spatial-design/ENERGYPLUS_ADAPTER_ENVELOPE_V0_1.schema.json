@@ -200,11 +200,19 @@
           "timestep_minutes",
           "run_start_date",
           "run_end_date",
-          "warmup_max_days"
+          "warmup_max_days",
+          "schema_artifact_path",
+          "model_artifact_path",
+          "geometry_sha256",
+          "geometry_artifact_path",
+          "weather_artifact_path",
+          "schedule_artifact_path",
+          "configuration_artifact_path",
+          "run_log_artifact_path"
         ]
       },
-      "minItems": 14,
-      "maxItems": 14
+      "minItems": 22,
+      "maxItems": 22
     },
     "required_outputs": {
       "type": "array",
