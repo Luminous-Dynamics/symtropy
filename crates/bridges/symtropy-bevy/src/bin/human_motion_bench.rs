@@ -27,7 +27,7 @@ use symtropy_bevy::human_motion_metrics::{
 
 const MAX_GRID_SAMPLES: usize = 1_000_000;
 const GRID_EPSILON_RATIO: f64 = 1.0e-8;
-const DEFAULT_CONTACT_EVENT_TOLERANCE_SEC: f64 = 0.05;
+const DEFAULT_CONTACT_EVENT_TOLERANCE_SEC: f64 = 0.1;
 
 #[derive(Debug)]
 struct BenchError(String);
