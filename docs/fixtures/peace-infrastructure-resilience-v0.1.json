@@ -550,9 +550,9 @@
           "expected_transition": "BLOCKED"
         },
         {
-          "case_id": "unregistered-trigger",
+          "case_id": "prohibited-sensitive-field",
           "current_state": "ACTIVE",
-          "trigger": "unregistered-trigger",
+          "trigger": "prohibited_sensitive_field",
           "evidence_status": "verified",
           "accountable_owner_authorized": true,
           "affected_scope_assessed": true,

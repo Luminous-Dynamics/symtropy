@@ -1909,6 +1909,79 @@ mod tests {
     }
 
     #[test]
+    fn stop_rule_state_space_matches_independent_oracle() {
+        let mut value = corpus();
+        let triggers = [
+            "mandatory_floor_breached",
+            "mandatory_evidence_stale",
+            "mandatory_evidence_conflict",
+            "prohibited_sensitive_field",
+            "material_spillover_unassessed",
+            "metric_definition_changed_after_outcomes",
+            "appeal_suppressed",
+            "none",
+        ];
+        let evidence_states = ["verified", "stale", "conflicting", "unknown"];
+
+        // This table-driven oracle is intentionally expressed differently from
+        // the production branch logic: first authority/evidence vetoes, then
+        // hard stops, then review triggers, and finally ordinary continuation.
+        let oracle = |trigger: &str,
+                      evidence: &str,
+                      owner_authorized: bool,
+                      scope_assessed: bool|
+         -> &'static str {
+            if !owner_authorized || evidence != "verified" {
+                return "BLOCKED";
+            }
+            match trigger {
+                "mandatory_floor_breached"
+                | "mandatory_evidence_stale"
+                | "mandatory_evidence_conflict"
+                | "prohibited_sensitive_field" => "BLOCKED",
+                "material_spillover_unassessed"
+                | "metric_definition_changed_after_outcomes"
+                | "appeal_suppressed" => "REVIEW_REQUIRED",
+                "none" if scope_assessed => "CONTINUE",
+                "none" => "REVIEW_REQUIRED",
+                _ => "BLOCKED",
+            }
+        };
+
+        let mut generated = Vec::new();
+        for (trigger_index, trigger) in triggers.iter().enumerate() {
+            for (evidence_index, evidence) in evidence_states.iter().enumerate() {
+                for owner_authorized in [false, true] {
+                    for scope_assessed in [false, true] {
+                        let case_id = format!(
+                            "grid-t{trigger_index}-e{evidence_index}-o{owner_authorized}-s{scope_assessed}"
+                        );
+                        generated.push(json!({
+                            "case_id": case_id,
+                            "current_state": "ACTIVE",
+                            "trigger": trigger,
+                            "evidence_status": evidence,
+                            "accountable_owner_authorized": owner_authorized,
+                            "affected_scope_assessed": scope_assessed,
+                            "expected_transition": oracle(
+                                trigger,
+                                evidence,
+                                owner_authorized,
+                                scope_assessed
+                            )
+                        }));
+                    }
+                }
+            }
+        }
+        assert_eq!(generated.len(), 128);
+        value["scenarios"][11]["stop_rule_cases"] = json!(generated);
+        value["scenarios"][11]["expected"]["case_count"] = json!(128);
+        let report = audit_corpus(&value);
+        assert!(report.passed, "{:#?}", report.findings);
+    }
+
+    #[test]
     fn stop_rule_reference_corpus_has_explicit_safe_transitions() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
