@@ -16,7 +16,8 @@ use bevy::{
     world_serialization::WorldInstanceReady,
 };
 use symtropy_bevy::{
-    HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanMotion,
+    HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanLocomotionIntent,
+    HumanMotion,
 };
 
 #[derive(Resource)]
@@ -219,10 +220,13 @@ fn bind_controller_to_rig(
     let mut bound = 0usize;
     for entity in targets {
         if players.get(entity).is_ok() {
-            commands.entity(entity).insert(HumanAnimationController::new(
-                bindings.graph.clone(),
-                bindings.clips.clone(),
-                HumanMotion::Idle,
+            commands.entity(entity).insert((
+                HumanAnimationController::new(
+                    bindings.graph.clone(),
+                    bindings.clips.clone(),
+                    HumanMotion::Idle,
+                ),
+                HumanLocomotionIntent::default(),
             ));
             bound += 1;
         }
@@ -237,24 +241,25 @@ fn bind_controller_to_rig(
 
 fn keyboard_motion_control(
     keys: Res<ButtonInput<KeyCode>>,
-    mut controllers: Query<&mut HumanAnimationController>,
+    mut controllers: Query<(&mut HumanAnimationController, &mut HumanLocomotionIntent)>,
 ) {
     let requested = if keys.just_pressed(KeyCode::Digit1) {
-        Some(HumanMotion::Idle)
+        Some((HumanMotion::Idle, 0.0))
     } else if keys.just_pressed(KeyCode::Digit2) {
-        Some(HumanMotion::Walk)
+        Some((HumanMotion::Walk, 0.8))
     } else if keys.just_pressed(KeyCode::Digit3) {
-        Some(HumanMotion::Run)
+        Some((HumanMotion::Run, 2.5))
     } else if keys.just_pressed(KeyCode::Digit4) {
-        Some(HumanMotion::Talk)
+        Some((HumanMotion::Talk, 0.0))
     } else {
         None
     };
 
-    if let Some(motion) = requested {
-        for mut controller in &mut controllers {
+    if let Some((motion, speed_mps)) = requested {
+        for (mut controller, mut intent) in &mut controllers {
             controller.motion = motion;
             controller.transition_seconds = 0.2;
+            intent.desired_planar_velocity_mps = Vec2::new(0.0, speed_mps);
         }
     }
 }
