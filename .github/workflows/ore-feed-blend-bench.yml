@@ -53,8 +53,8 @@ jobs:
             --source-commit "$source_commit" > ore-feed-blend-receipt.json
           jq -e '
             .result == "pass"
-            and .scenario_count == 11
-            and .expected_controls_matched == 11
+            and .scenario_count == 12
+            and .expected_controls_matched == 12
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
             and ([.scenarios[].scenario_id] == [
@@ -68,12 +68,13 @@ jobs:
               "ASSAY_QC_FAILURE_EXCLUDED",
               "WATER_LIMIT_FORCES_ALTERNATIVE",
               "MISSING_ASSAY_SOURCE_EXCLUDED",
-              "INVALID_BELOW_DETECTION_LIMIT_EXCLUDED"
+              "INVALID_BELOW_DETECTION_LIMIT_EXCLUDED",
+              "ANALYTE_ID_MISMATCH_EXCLUDED"
             ])
             and ([.scenarios[].baseline_independently_validated] | all)
             and ([.scenarios[].oracle_independently_validated] | all)
             and ([.scenarios[].oracle_status] == [
               "optimal", "no_feasible_blend", "optimal", "no_feasible_blend",
-              "optimal", "optimal", "optimal", "optimal", "optimal", "optimal", "optimal"
+              "optimal", "optimal", "optimal", "optimal", "optimal", "optimal", "optimal", "optimal"
             ])
           ' ore-feed-blend-receipt.json
