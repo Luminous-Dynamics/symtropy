@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 const SPEED_OF_LIGHT_M_PER_S: f64 = 299_792_458.0;
 const MAX_FIELD_SAMPLES: usize = 100_000;
+const MAX_FIELD_LAYERS: usize = 256;
 
 /// A physical quantity with a corresponding display unit.
 ///
@@ -117,18 +118,6 @@ impl FieldUnit {
         }
     }
 
-    fn is_vector_unit(&self) -> bool {
-        matches!(
-            self,
-            Self::VoltPerMeter
-                | Self::Tesla
-                | Self::AmperePerMeter
-                | Self::WattPerSquareMeter
-                | Self::MeterPerSecond
-                | Self::Newton
-                | Self::Custom(_)
-        )
-    }
 }
 
 /// How values entered the visualization pipeline. This is provenance, not proof.
@@ -383,6 +372,8 @@ pub struct FieldLayerSet {
     pub enabled: bool,
     pub max_scalar_markers_per_layer: usize,
     pub max_vector_glyphs_per_layer: usize,
+    pub max_scalar_markers_total: usize,
+    pub max_vector_glyphs_total: usize,
     pub scalar_layers: Vec<ScalarFieldLayer>,
     pub vector_layers: Vec<VectorFieldLayer>,
 }
@@ -393,6 +384,8 @@ impl Default for FieldLayerSet {
             enabled: true,
             max_scalar_markers_per_layer: 2_048,
             max_vector_glyphs_per_layer: 1_024,
+            max_scalar_markers_total: 8_192,
+            max_vector_glyphs_total: 4_096,
             scalar_layers: Vec::new(),
             vector_layers: Vec::new(),
         }
@@ -472,6 +465,9 @@ pub fn extract_vector_glyphs(
             return Err(format!("layer {:?} contains invalid magnitude uncertainty", layer.metadata.id));
         }
         let magnitude = sample.vector.iter().fold(0.0_f64, |norm, value| norm.hypot(*value));
+        if !magnitude.is_finite() {
+            return Err(format!("layer {:?} contains an unrepresentable vector magnitude", layer.metadata.id));
+        }
         let direction = if magnitude > f64::EPSILON {
             [
                 (sample.vector[0] / magnitude) as f32,
@@ -563,11 +559,11 @@ fn validate_vector_layer(layer: &VectorFieldLayer) -> Result<(), String> {
 
 fn project_position(position: [f64; 3]) -> Result<[f32; 3], String> {
     let mut projected = [0.0; 3];
-    for index in 0..3 {
-        if !position[index].is_finite() || position[index].abs() > f64::from(f32::MAX) {
+    for (index, value) in position.iter().enumerate() {
+        if !value.is_finite() || value.abs() > f64::from(f32::MAX) {
             return Err("field sample has a non-finite or unrepresentable position".to_owned());
         }
-        projected[index] = position[index] as f32;
+        projected[index] = *value as f32;
     }
     Ok(projected)
 }
@@ -584,18 +580,29 @@ impl Plugin for FieldVisualizationPlugin {
 }
 
 fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
-    if !layers.enabled {
+    if !layers.enabled
+        || layers.scalar_layers.len() > MAX_FIELD_LAYERS
+        || layers.vector_layers.len() > MAX_FIELD_LAYERS
+    {
         return;
     }
 
+    let mut total_scalar_markers = 0;
     for layer in layers.scalar_layers.iter().filter(|layer| layer.enabled) {
+        let remaining = layers
+            .max_scalar_markers_total
+            .saturating_sub(total_scalar_markers);
+        if remaining == 0 {
+            break;
+        }
         let glyphs = match extract_scalar_glyphs(
             layer,
-            layers.max_scalar_markers_per_layer,
+            layers.max_scalar_markers_per_layer.min(remaining),
         ) {
             Ok(glyphs) => glyphs,
             Err(_) => continue,
         };
+        total_scalar_markers += glyphs.len();
         let extent = layer.marker_radius.clamp(0.0, 10.0);
         if extent <= 0.0 {
             continue;
@@ -609,14 +616,22 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
         }
     }
 
+    let mut total_vector_glyphs = 0;
     for layer in layers.vector_layers.iter().filter(|layer| layer.enabled) {
+        let remaining = layers
+            .max_vector_glyphs_total
+            .saturating_sub(total_vector_glyphs);
+        if remaining == 0 {
+            break;
+        }
         let glyphs = match extract_vector_glyphs(
             layer,
-            layers.max_vector_glyphs_per_layer,
+            layers.max_vector_glyphs_per_layer.min(remaining),
         ) {
             Ok(glyphs) => glyphs,
             Err(_) => continue,
         };
+        total_vector_glyphs += glyphs.len();
         let scale = layer.vector_scale.clamp(0.0, 100.0);
         let max_length = layer.max_vector_length.clamp(0.0, 100.0);
         if scale <= 0.0 || max_length <= 0.0 {
@@ -795,6 +810,19 @@ mod tests {
             }],
         };
         assert!(extract_scalar_glyphs(&layer, 10).is_err());
+    }
+
+    #[test]
+    fn wavelength_and_frequency_are_consistent_for_visible_band() {
+        let band = WavelengthBand {
+            min_wavelength_m: 380.0e-9,
+            max_wavelength_m: 700.0e-9,
+        };
+        let (min_frequency, max_frequency) =
+            band.frequency_range_hz().expect("valid optical band");
+        assert!(min_frequency < max_frequency);
+        assert!((min_frequency - SPEED_OF_LIGHT_M_PER_S / 700.0e-9).abs() < 1.0);
+        assert!((max_frequency - SPEED_OF_LIGHT_M_PER_S / 380.0e-9).abs() < 1.0);
     }
 
     #[test]
