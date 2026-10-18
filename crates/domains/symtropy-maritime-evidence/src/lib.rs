@@ -138,6 +138,7 @@ pub enum RejectionReason {
     MissingPortId,
     MissingPortCallId,
     MissingShipImoNumber,
+    PortCallVesselIdentityConflict,
     MissingSourceFieldCode,
     MissingSourceId,
     MissingSchemaVersion,
@@ -164,6 +165,7 @@ pub struct RejectedObservation {
 pub struct ObservationKey {
     pub port_id: String,
     pub port_call_id: String,
+    pub ship_imo_number: String,
     pub field: PcoField,
     /// A planned arrival and an actual arrival are different semantic keys.
     pub time_meaning: Option<TimeMeaning>,
@@ -373,9 +375,7 @@ fn days_from_civil(year: i64, month: u32, day: u32) -> i64 {
     let era = (if year >= 0 { year } else { year - 399 }) / 400;
     let year_of_era = year - era * 400;
     let month = i64::from(month);
-    let day_of_year = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5
-        + i64::from(day)
-        - 1;
+    let day_of_year = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5 + i64::from(day) - 1;
     let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
     era * 146_097 + day_of_era - 719_468
 }
@@ -432,8 +432,7 @@ pub fn validate_observation(
         _ => return Err(RejectionReason::InvalidValueForField),
     }
 
-    let skew = i128::from(policy.allowed_future_clock_skew_seconds.max(0))
-        * NANOS_PER_SECOND;
+    let skew = i128::from(policy.allowed_future_clock_skew_seconds.max(0)) * NANOS_PER_SECOND;
     let latest_acceptable = policy.now_utc_nanos.saturating_add(skew);
     if let ObservedValue::Timestamp {
         meaning: TimeMeaning::Actual,
@@ -492,7 +491,12 @@ pub fn resolve_observations(
     for observation in input {
         let reason = if observation.observation_id.trim().is_empty() {
             Some(RejectionReason::MissingObservationId)
-        } else if id_counts.get(&observation.observation_id).copied().unwrap_or(0) > 1 {
+        } else if id_counts
+            .get(&observation.observation_id)
+            .copied()
+            .unwrap_or(0)
+            > 1
+        {
             Some(RejectionReason::DuplicateObservationId)
         } else {
             validate_observation(observation, policy).err()
@@ -508,11 +512,43 @@ pub fn resolve_observations(
         }
     }
 
+    // A port-call reference is scoped to its reporting port, but one
+    // (port, call-reference) pair must not name multiple vessels. Quarantine
+    // all otherwise-valid observations for the ambiguous identity.
+    let mut vessel_ids_by_call =
+        BTreeMap::<(String, String), BTreeSet<String>>::new();
+    for observation in &accepted {
+        vessel_ids_by_call
+            .entry((observation.port_id.clone(), observation.port_call_id.clone()))
+            .or_default()
+            .insert(observation.ship_imo_number.clone());
+    }
+    let conflicting_calls = vessel_ids_by_call
+        .into_iter()
+        .filter_map(|(call_key, vessels)| (vessels.len() > 1).then_some(call_key))
+        .collect::<BTreeSet<_>>();
+    let mut identity_checked = Vec::with_capacity(accepted.len());
+    for observation in accepted.drain(..) {
+        let call_key = (observation.port_id.clone(), observation.port_call_id.clone());
+        if conflicting_calls.contains(&call_key) {
+            rejected.push(RejectedObservation {
+                observation_id: observation.observation_id.clone(),
+                reason: RejectionReason::PortCallVesselIdentityConflict,
+            });
+        } else {
+            identity_checked.push(observation);
+        }
+    }
+    accepted = identity_checked;
+
     accepted.sort_by(|a, b| {
         a.source_id
             .cmp(&b.source_id)
             .then(a.observation_id.cmp(&b.observation_id))
-            .then(a.source_event_time_utc_nanos.cmp(&b.source_event_time_utc_nanos))
+            .then(
+                a.source_event_time_utc_nanos
+                    .cmp(&b.source_event_time_utc_nanos),
+            )
     });
     rejected.sort();
     let mut groups = BTreeMap::<ObservationKey, Vec<PcoObservation>>::new();
@@ -553,6 +589,7 @@ fn observation_key(observation: &PcoObservation) -> ObservationKey {
     ObservationKey {
         port_id: observation.port_id.clone(),
         port_call_id: observation.port_call_id.clone(),
+        ship_imo_number: observation.ship_imo_number.clone(),
         field: observation.field.clone(),
         time_meaning,
     }
@@ -755,11 +792,12 @@ mod tests {
         );
         let report = resolve_observations(&[b.clone(), a.clone()], &policy());
         assert!(report.has_conflicts());
-        assert!(report
-            .resolutions
-            .iter()
-            .all(|resolution| resolution.agreed_value().is_none()
-                == resolution.is_conflict()));
+        assert!(
+            report
+                .resolutions
+                .iter()
+                .all(|resolution| resolution.agreed_value().is_none() == resolution.is_conflict())
+        );
         let reversed = resolve_observations(&[a, b], &policy());
         assert_eq!(report, reversed);
     }
@@ -772,8 +810,7 @@ mod tests {
             TimeMeaning::Planned,
             "2026-10-18T14:00:00Z",
         );
-        item.source_event_time_utc_nanos =
-            policy().now_utc_nanos - 7 * 60 * 60 * NANOS_PER_SECOND;
+        item.source_event_time_utc_nanos = policy().now_utc_nanos - 7 * 60 * 60 * NANOS_PER_SECOND;
         assert_eq!(
             validate_observation(&item, &policy()),
             Err(RejectionReason::SourceRecordTooOld)
@@ -788,8 +825,7 @@ mod tests {
             TimeMeaning::Planned,
             "2026-10-18T14:00:00Z",
         );
-        item.source_event_time_utc_nanos =
-            policy().now_utc_nanos + 10 * 60 * NANOS_PER_SECOND;
+        item.source_event_time_utc_nanos = policy().now_utc_nanos + 10 * 60 * NANOS_PER_SECOND;
         assert_eq!(
             validate_observation(&item, &policy()),
             Err(RejectionReason::SourceEventTooFarInFuture)
@@ -840,8 +876,7 @@ mod tests {
             validate_observation(&item, &policy()),
             Err(RejectionReason::ObservationExpired)
         );
-        item.valid_until_utc_nanos =
-            Some(item.source_event_time_utc_nanos - NANOS_PER_SECOND);
+        item.valid_until_utc_nanos = Some(item.source_event_time_utc_nanos - NANOS_PER_SECOND);
         assert_eq!(
             validate_observation(&item, &policy()),
             Err(RejectionReason::InvalidValidityWindow)
@@ -865,10 +900,12 @@ mod tests {
         let report = resolve_observations(&[a, b], &policy());
         assert!(report.accepted.is_empty());
         assert_eq!(report.rejected.len(), 2);
-        assert!(report
-            .rejected
-            .iter()
-            .all(|item| item.reason == RejectionReason::DuplicateObservationId));
+        assert!(
+            report
+                .rejected
+                .iter()
+                .all(|item| item.reason == RejectionReason::DuplicateObservationId)
+        );
     }
 
     #[test]
@@ -941,9 +978,11 @@ mod tests {
         let uncontested = report.uncontested();
         assert_eq!(uncontested.len(), 1);
         assert_eq!(uncontested[0].field, PcoField::DepartureFromBerth);
-        assert!(uncontested.iter().all(|item| {
-            item.field != PcoField::ArrivalAtPilotBoardingPlace
-        }));
+        assert!(
+            uncontested
+                .iter()
+                .all(|item| { item.field != PcoField::ArrivalAtPilotBoardingPlace })
+        );
     }
 
     #[test]
@@ -959,6 +998,60 @@ mod tests {
             validate_observation(&item, &policy()),
             Err(RejectionReason::MissingShipImoNumber)
         );
+    }
+
+    #[test]
+    fn conflicting_vessel_ids_for_one_port_call_reject_the_entire_call() {
+        let mut a = arrival(
+            "OBS-IDENTITY-A",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T12:00:00Z",
+        );
+        let mut b = arrival(
+            "OBS-IDENTITY-B",
+            "SOURCE-B",
+            TimeMeaning::Planned,
+            "2026-10-18T13:00:00Z",
+        );
+        a.field = PcoField::ArrivalAtPilotBoardingPlace;
+        b.field = PcoField::DepartureFromBerth;
+        b.ship_imo_number = "IMO-SYNTHETIC-2".to_owned();
+
+        let report = resolve_observations(&[a.clone(), b.clone()], &policy());
+        assert!(report.accepted.is_empty());
+        assert_eq!(report.rejected.len(), 2);
+        assert!(report.resolutions.is_empty());
+        assert!(report.rejected.iter().all(|item| {
+            item.reason == RejectionReason::PortCallVesselIdentityConflict
+        }));
+
+        let reversed = resolve_observations(&[b, a], &policy());
+        assert_eq!(report, reversed);
+    }
+
+    #[test]
+    fn same_call_reference_at_different_ports_is_not_a_vessel_collision() {
+        let mut a = arrival(
+            "OBS-PORT-A",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T12:00:00Z",
+        );
+        let mut b = arrival(
+            "OBS-PORT-B",
+            "SOURCE-B",
+            TimeMeaning::Planned,
+            "2026-10-18T13:00:00Z",
+        );
+        a.port_id = "PORT-SYNTHETIC-A".to_owned();
+        b.port_id = "PORT-SYNTHETIC-B".to_owned();
+        b.ship_imo_number = "IMO-SYNTHETIC-2".to_owned();
+
+        let report = resolve_observations(&[a, b], &policy());
+        assert_eq!(report.rejected.len(), 0);
+        assert_eq!(report.accepted.len(), 2);
+        assert_eq!(report.resolutions.len(), 2);
     }
 
     #[test]
