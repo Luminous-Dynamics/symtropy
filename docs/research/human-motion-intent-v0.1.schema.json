@@ -118,37 +118,16 @@
       },
       "anyOf": [
         {
-          "properties": {
-            "entity_ref": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
           "required": [
             "entity_ref"
           ]
         },
         {
-          "properties": {
-            "position_world_m": {
-              "$ref": "#/$defs/position"
-            }
-          },
           "required": [
             "position_world_m"
           ]
         },
         {
-          "properties": {
-            "orientation_xyzw": {
-              "type": "array",
-              "minItems": 4,
-              "maxItems": 4,
-              "items": {
-                "type": "number"
-              }
-            }
-          },
           "required": [
             "orientation_xyzw"
           ]
@@ -288,7 +267,18 @@
         ],
         "properties": {
           "target": {
-            "type": "object"
+            "anyOf": [
+              {
+                "required": [
+                  "entity_ref"
+                ]
+              },
+              {
+                "required": [
+                  "position_world_m"
+                ]
+              }
+            ]
           }
         }
       }
