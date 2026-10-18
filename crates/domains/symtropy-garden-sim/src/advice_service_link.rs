@@ -333,9 +333,13 @@ mod tests {
             "task_mismatch" => record.advice_task_code = "harvest".to_owned(),
             "request_reference_mismatch" => record.service_request_ref = "other-request".to_owned(),
             "missing_authorization_ref" => record.authorization_ref = None,
-            "duplicate_outcome_ref" => record.observed_outcome_claim_refs.push(
-                record.observed_outcome_claim_refs[0].clone()
-            ),
+            "duplicate_outcome_ref" => {
+                let existing = record.observed_outcome_claim_refs
+                    .first()
+                    .cloned()
+                    .expect("base link fixture has an outcome reference");
+                record.observed_outcome_claim_refs.push(existing);
+            },
             "empty_outcome_ref" => record.observed_outcome_claim_refs.push(" ".to_owned()),
             "stale_link" => record.state = AdviceServiceLinkStateV1::Stale,
             "disputed_link" => record.state = AdviceServiceLinkStateV1::Disputed,
