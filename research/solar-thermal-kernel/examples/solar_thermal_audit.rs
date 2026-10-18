@@ -148,6 +148,9 @@ fn verify_report(json: &str) -> Result<(), String> {
     if !boolean(json, "all_verifiers_passed")? {
         return Err("model-side verifier flag is false".to_owned());
     }
+    if text_field(json, "bni_fixture_id")? != "interval-bni-to-mean-dni-001" {
+        return Err("unexpected interval-BNI fixture id".to_owned());
+    }
     if text_field(json, "dni_fixture_id")? != "direct-beam-interval-001" {
         return Err("unexpected direct-beam fixture id".to_owned());
     }
@@ -164,6 +167,8 @@ fn verify_report(json: &str) -> Result<(), String> {
         ("dni_incidence_cosine", 0.5),
         ("dni_unshaded_fraction", 0.8),
         ("dni_duration_s", 3_600.0),
+        ("bni_interval_irradiation_wh_per_m2", 100.0),
+        ("bni_interval_duration_s", 900.0),
         ("optical_efficiency", 0.8),
         ("receiver_loss_j", 100_000.0),
         ("store_mass_kg", 1.0),
@@ -210,6 +215,19 @@ fn verify_report(json: &str) -> Result<(), String> {
     near("direct-beam incident power", number(json, "dni_incident_power_w")?, dni_expected_power)?;
     near("direct-beam interval energy",
         required_nonnegative(json, "dni_incident_energy_j")?, dni_expected_energy)?;
+
+    // Independently convert interval-integrated BNI to mean DNI.
+    let bni_wh_per_m2 = required_nonnegative(json, "bni_interval_irradiation_wh_per_m2")?;
+    let bni_duration_s = required_nonnegative(json, "bni_interval_duration_s")?;
+    if bni_duration_s <= 0.0 {
+        return Err("interval-BNI duration must be positive".to_owned());
+    }
+    let expected_mean_dni = bni_wh_per_m2 * 3_600.0 / bni_duration_s;
+    near(
+        "interval BNI to mean DNI",
+        required_nonnegative(json, "bni_interval_mean_dni_w_per_m2")?,
+        expected_mean_dni,
+    )?;
 
     let incident = required_nonnegative(json, "incident_solar_j")?;
     let optical_efficiency = number(json, "optical_efficiency")?;
@@ -781,6 +799,28 @@ mod tests {
         let tampered = report.replace(
             "\"dni_direct_normal_irradiance_w_per_m2\":800.000000000",
             "\"dni_direct_normal_irradiance_w_per_m2\":801.000000000",
+        );
+        assert_ne!(tampered, report);
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_interval_bni_conversion_output() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"bni_interval_mean_dni_w_per_m2\":400.000000000",
+            "\"bni_interval_mean_dni_w_per_m2\":401.000000000",
+        );
+        assert_ne!(tampered, report);
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_interval_bni_input() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"bni_interval_irradiation_wh_per_m2\":100.000000000",
+            "\"bni_interval_irradiation_wh_per_m2\":101.000000000",
         );
         assert_ne!(tampered, report);
         assert!(verify_report(&tampered).is_err());
