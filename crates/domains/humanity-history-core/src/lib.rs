@@ -724,6 +724,10 @@ struct DecimalParts {
 }
 
 /// Parse a plain base-10 decimal exactly. Exponents and non-finite tokens are rejected.
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 fn parse_decimal_parts(value: &str) -> Option<DecimalParts> {
     if value.trim() != value || value.is_empty() {
         return None;
@@ -1331,6 +1335,159 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
                         "paired estimate delta requires two point-valued estimates",
                     );
                 }
+            }
+        }
+    }
+
+    for run in &dataset.analysis_runs {
+        register_id(&run.id, &mut all_ids, &run.id, &mut issues);
+        require_nonempty(&run.purpose, &run.id, "analysis run purpose", &mut issues);
+        require_nonempty(&run.model_spec_version, &run.id, "model specification version", &mut issues);
+        if run.limitations.is_empty() || run.limitations.iter().any(|limitation| limitation.trim().is_empty()) {
+            issue(
+                &mut issues,
+                &run.id,
+                ValidationCode::InvalidAnalysisRun,
+                "analysis run must record at least one explicit limitation",
+            );
+        }
+
+        let requires_execution_record = matches!(
+            run.status,
+            AnalysisRunStatus::Executed | AnalysisRunStatus::Reproduced | AnalysisRunStatus::Failed
+        );
+        let requires_inputs = matches!(
+            run.status,
+            AnalysisRunStatus::InputsVerified
+                | AnalysisRunStatus::Executed
+                | AnalysisRunStatus::Reproduced
+                | AnalysisRunStatus::Failed
+        );
+
+        if requires_inputs {
+            if run.input_artifacts.is_empty() {
+                issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::InvalidAnalysisRun,
+                    "input-verified or later runs require at least one content-addressed input artifact",
+                );
+            }
+            match run.input_manifest_sha256.as_deref() {
+                Some(digest) if is_sha256(digest) => {}
+                _ => issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::InvalidAnalysisRun,
+                    "input-verified or later runs require a valid input_manifest_sha256",
+                ),
+            }
+        }
+
+        if requires_execution_record {
+            require_nonempty(
+                run.command.as_deref().unwrap_or(""),
+                &run.id,
+                "executed command",
+                &mut issues,
+            );
+            require_nonempty(
+                run.code_revision.as_deref().unwrap_or(""),
+                &run.id,
+                "code revision",
+                &mut issues,
+            );
+            require_nonempty(
+                run.environment_fingerprint.as_deref().unwrap_or(""),
+                &run.id,
+                "environment fingerprint",
+                &mut issues,
+            );
+            require_nonempty(
+                run.result_summary.as_deref().unwrap_or(""),
+                &run.id,
+                "result or failure summary",
+                &mut issues,
+            );
+        }
+
+        if matches!(run.status, AnalysisRunStatus::Executed | AnalysisRunStatus::Reproduced)
+            && run.output_artifacts.is_empty()
+        {
+            issue(
+                &mut issues,
+                &run.id,
+                ValidationCode::InvalidAnalysisRun,
+                "executed or reproduced runs require at least one content-addressed output artifact",
+            );
+        }
+
+        if run.status == AnalysisRunStatus::Reproduced {
+            if !run
+                .comparison_source_id
+                .as_deref()
+                .is_some_and(|source_id| source_ids.contains(source_id))
+            {
+                issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::InvalidAnalysisRun,
+                    "reproduced runs require a comparison_source_id pointing to a source record",
+                );
+            }
+            if run.target_estimate_ids.is_empty() {
+                issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::InvalidAnalysisRun,
+                    "reproduced runs must identify the target estimate records being reproduced",
+                );
+            }
+        }
+
+        for target_id in &run.target_estimate_ids {
+            if !estimate_ids.contains(target_id) {
+                issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::MissingEstimateReference,
+                    format!("analysis run refers to unknown target estimate ID '{target_id}'"),
+                );
+            }
+        }
+
+        for artifact in run.input_artifacts.iter().chain(run.output_artifacts.iter()) {
+            require_nonempty(&artifact.name, &run.id, "run artifact name", &mut issues);
+            if !is_sha256(&artifact.sha256) {
+                issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::InvalidAnalysisRun,
+                    format!("run artifact '{}' must have a 64-character SHA-256 digest", artifact.name),
+                );
+            }
+        }
+
+        let mut input_names = BTreeSet::new();
+        for artifact in &run.input_artifacts {
+            if !input_names.insert(artifact.name.as_str()) {
+                issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::InvalidAnalysisRun,
+                    format!("duplicate input artifact name '{}'", artifact.name),
+                );
+            }
+        }
+        let mut output_names = BTreeSet::new();
+        for artifact in &run.output_artifacts {
+            if !output_names.insert(artifact.name.as_str()) {
+                issue(
+                    &mut issues,
+                    &run.id,
+                    ValidationCode::InvalidAnalysisRun,
+                    format!("duplicate output artifact name '{}'", artifact.name),
+                );
             }
         }
     }
