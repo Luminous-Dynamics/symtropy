@@ -4,7 +4,7 @@ Tracking issue: https://github.com/Luminous-Dynamics/symtropy/issues/1984
 
 ## v0.1 scope
 
-This first software slice is a **synthetic contract evaluator**, not a product design optimizer and not an engineering approval system. It verifies that required evidence, hard gates and a simple material mass balance are handled conservatively, and that outcomes are deterministic under semantically irrelevant row reordering.
+This first software slice is a **synthetic contract evaluator**, not a product design optimizer and not an engineering approval system. It verifies required evidence dispositions, non-compensable gates, and exact external reference-role bindings. Mycelix remains authoritative for lifecycle events, custody semantics, and material-flow accounts; this harness does not duplicate quantities or those domain records.
 
 `Eligible` means only “eligible to proceed to the next controlled benchmark stage.” It does **not** mean that a manufactured unit is qualified, a building meets code, an environmental claim is substantiated, or a safety-critical design is approved.
 
@@ -28,30 +28,31 @@ The current manifest accepts `evidence_class: Synthetic` only. Measured or model
 
 ## Contract semantics
 
-- A missing required record, stale evidence, unresolved gate or unknown mass quantity yields `Unresolved`.
-- A digest mismatch, contradictory evidence, wrong unit, scope-invalid evidence, failed mandatory gate, invalid quantity or out-of-tolerance mass ledger yields `Blocked`.
+- A missing required record, stale evidence, unresolved gate, or missing required external reference yields `Unresolved`.
+- A digest mismatch, contradictory evidence, wrong unit, scope-invalid evidence, failed mandatory gate, external-reference role mismatch, or duplicate reference binding yields `Blocked`.
 - No mandatory gate can be compensated for by cost, circularity or another favorable metric.
-- Every listed evidence record must be referenced exactly once by the case; unreferenced/duplicate records fail closed.
+- Every listed evidence record and external reference must bind to a declared requirement exactly once; unreferenced/duplicate records fail closed.
 - Evidence marked `Verified` must include a payload whose SHA-256 matches the declared digest.
-- Mass balance checks `abs(inputs_kg - accounted_outputs_kg) <= tolerance_kg`; the actual accounting boundary must be defined before physical measurements are used.
+- External references are checked for exact identifier and declared role only. The target record is not dereferenced or qualified by this tool. Its source owner must validate target integrity, accounting boundary, custody strategy, and physical meaning.
 - Expected dispositions are test oracles only. They are not passed into any optimizer/policy as candidate guidance.
 
 ## Initial adversarial cases
 
 | Fixture | Expected disposition | Control |
 |---|---|---|
-| `01-complete-evidence-balanced` | Eligible | complete hashes, gates pass and balanced ledger |
+| `01-complete-evidence-and-external-bindings` | Eligible | complete hashes, gates pass and required external references match roles |
 | `02-verified-payload-digest-mismatch` | Blocked | digest mismatch must not be accepted |
 | `03-required-material-lot-missing` | Unresolved | unknown provenance is not assumed nominal |
 | `04-mandatory-quality-gate-fails` | Blocked | failed hard gate dominates other metrics |
-| `05-mass-balance-out-of-tolerance` | Blocked | unaccounted mass outside the declared tolerance |
+| `05-required-material-flow-account-missing` | Unresolved | required external accounting reference is absent |
 | `06-required-evidence-stale` | Unresolved | stale evidence/currentness does not silently pass |
 | `07-critical-evidence-wrong-unit` | Blocked | unit-invalid evidence cannot satisfy a requirement |
 | `08-critical-evidence-contradictory` | Blocked | conflicting critical evidence blocks eligibility |
 | `09-critical-evidence-scope-invalid` | Blocked | evidence for another scope cannot be substituted |
 | `10-duplicate-evidence-record` | Blocked | repeated identities do not silently collapse |
 | `11-unreferenced-evidence-record` | Blocked | undeclared evidence does not silently enter a decision |
-| `12-mass-ledger-quantity-unknown` | Unresolved | unknown mass is not treated as zero |
+| `12-custody-reference-role-mismatch` | Blocked | a custody reference cannot substitute for a material-flow account or vice versa |
+| `13-duplicate-custody-reference` | Blocked | duplicate lifecycle reference bindings fail closed |
 
 All cases are synthetic. They are not evidence of the frequency of real production defects or material loss.
 
@@ -70,7 +71,7 @@ All cases are synthetic. They are not evidence of the frequency of real producti
 - [NIST — Manufacturing in a Circular Economy: Research Needs in Design, Systems Modeling, and Digital Thread (2026-09-08)](https://www.nist.gov/publications/manufacturing-circular-economy-research-needs-design-systems-modeling-and-digital) grounds the cross-lifecycle and value-retention direction. This is a research-needs report, not proof that any candidate performs better.
 - [NIST Digital Twins for Advanced Manufacturing](https://www.nist.gov/programs-projects/digital-twins-advanced-manufacturing) — trustworthy integration, verification/validation and quantified uncertainty.
 - [ISO 20887:2020](https://www.iso.org/standard/69370.html) — design for disassembly/adaptability. ISO lists this edition as confirmed in 2025 and current. It does not prescribe universal numeric performance targets; set project-specific gates and document why they are appropriate.
-- [EN 15978:2026 — CEN-CENELEC overview](https://www.cencenelec.eu/news-events/news/2026/en-in-the-spotlight/2026-04-17-en-15978-2026/) — harmonized building environmental-performance assessment using life-cycle assessment and quantified data. For a building LCA, keep life-cycle modules, declared boundaries, EPD input quality and uncertainty explicit; do not substitute the v0.1 mass ledger for an LCA.
+- [EN 15978:2026 — CEN-CENELEC overview](https://www.cencenelec.eu/news-events/news/2026/en-in-the-spotlight/2026-04-17-en-15978-2026/) — harmonized building environmental-performance assessment using life-cycle assessment and quantified data. For a building LCA, keep life-cycle modules, declared boundaries, EPD input quality and uncertainty explicit; this reference-binding harness is not an LCA.
 - [OPC UA / MTConnect](https://opcfoundation.org/markets-collaboration/mtconnect/) — candidate open semantics for factory-device data; no single protocol should be assumed present on every machine.
 - [European Commission Digital Product Passport roadmap](https://single-market-economy.ec.europa.eu/single-market/digital-product-passport_en) — planned sector-specific requirements are subject to applicable legal acts and can change. Do not claim legal compliance from this benchmark.
 
@@ -78,6 +79,6 @@ All cases are synthetic. They are not evidence of the frequency of real producti
 
 - The evaluator is a small fixture contract, not a general JSON Schema engine. Run a Draft 2020-12 schema validator separately when validating arbitrary manifest files.
 - SHA-256 proves byte consistency with the declared payload, not source truth, signer identity, physical measurement accuracy or source authorization.
-- The mass balance is a basic accounting guard. Before real use, define process boundaries, moisture/content transformations, rounding, measurement calibration, waste streams and uncertainty.
+- External-reference presence and role agreement do not prove that the referenced records are true or qualified. The harness deliberately does not copy material-flow quantities from Mycelix's accounting owner.
 - No engineering simulation, structural analysis, IFC round trip, machine actuation, life-cycle assessment, or physical trial is implemented here.
 - Local compilation/test status must be reported separately from workflow status. Queued, skipped, stale or absent CI is not a pass.
