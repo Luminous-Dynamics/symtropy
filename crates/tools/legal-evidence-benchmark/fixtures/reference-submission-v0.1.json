@@ -5,7 +5,9 @@
     {
       "case_id": "SYN-TIME-001",
       "action": "answer",
-      "claim_codes": ["COASTLAND_CIVIL_ACT_V1_APPLIES_AT_DATE"],
+      "claim_codes": [
+        "COASTLAND_CIVIL_ACT_V1_APPLIES_AT_DATE"
+      ],
       "citations": [
         {
           "authority_id": "coastland-civil-act-v1",
@@ -17,7 +19,9 @@
     {
       "case_id": "SYN-TIME-002",
       "action": "answer",
-      "claim_codes": ["COASTLAND_CIVIL_ACT_V2_APPLIES_AT_DATE"],
+      "claim_codes": [
+        "COASTLAND_CIVIL_ACT_V2_APPLIES_AT_DATE"
+      ],
       "citations": [
         {
           "authority_id": "coastland-civil-act-v2",
@@ -47,7 +51,9 @@
     {
       "case_id": "SYN-AUTH-001",
       "action": "answer",
-      "claim_codes": ["FARLAND_CASE_IS_PERSUASIVE_NOT_BINDING_IN_COASTLAND"],
+      "claim_codes": [
+        "FARLAND_CASE_IS_PERSUASIVE_NOT_BINDING_IN_COASTLAND"
+      ],
       "citations": [
         {
           "authority_id": "farland-case-17",
@@ -59,7 +65,9 @@
     {
       "case_id": "SYN-POLICY-001",
       "action": "answer",
-      "claim_codes": ["ORGANIZATION_POLICY_IS_NOT_UNIVERSAL_EXTERNAL_LAW"],
+      "claim_codes": [
+        "ORGANIZATION_POLICY_IS_NOT_UNIVERSAL_EXTERNAL_LAW"
+      ],
       "citations": [
         {
           "authority_id": "demo-coop-policy-9",
@@ -82,6 +90,12 @@
     },
     {
       "case_id": "SYN-AMEND-001",
+      "action": "abstain",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-CONFLICT-001",
       "action": "abstain",
       "claim_codes": [],
       "citations": []
