@@ -260,6 +260,10 @@ Required baselines:
 
 Do not grant Symthaea richer forecasts, extra search evaluations, hidden realized weather, greater actuator authority, or a weaker baseline model. Account for differences in compute and expensive simulator calls.
 
+**Treat data volume as an experimental variable, not a footnote.** Mohammadzadeh et al. (2024), [stochastic-MILP dispatch under uncertainty](https://doi.org/10.1016/j.segan.2024.101458), studied a hypothetical 115 MW CST + 10-hour storage plant. With a limited historical weather corpus, its stochastic optimizer reported about 6–9% more profit than the closest heuristic on novel conditions; with a larger corpus, the stochastic approach and strongest heuristic became nearly indistinguishable, and on some holdout subsets the heuristic slightly led. This result is specific to its power-plant/electricity-profit boundary, but it motivates a general causal experiment: **sweep training-corpus size while holding confirmatory weather/load cases fixed**.
+
+For the dispatch tournament, compare rule-based control, deterministic MPC, stochastic/robust/CVaR control, a strong cross-weather historical-profile heuristic, and Symthaea under the same information and budget. Increase the training scenario corpus across preregistered sizes (e.g. 5, 10, 20, 50, 100 independent day/week trajectories where available); preserve temporal/weather correlation, and keep full weather years/events as holdouts rather than randomly splitting adjacent intervals. Record expected useful service and cost, P95/CVaR95 shortfall, regret on cloudy/ramp events, runtime, memory, simulator evaluations, scenario-generation time and data-preparation effort. Plot quality-versus-data-volume and quality-versus-compute, and report where added model/search complexity stops producing a material, statistically defensible benefit. Perfect foresight stays a separately labeled oracle bound, never a deployable controller. See [THERMAL-OPT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1877).
+
 ### Mandatory ablations
 
 - remove Symthaea design search while keeping its chosen starting design and evaluation budget fixed;
