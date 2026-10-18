@@ -983,8 +983,8 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             checked_add(totals.critical_served_wh, step.critical_served_wh, "verifier totals")?;
         totals.critical_unserved_wh =
             checked_add(totals.critical_unserved_wh, step.critical_unserved_wh, "verifier totals")?;
-        totals.batches_available += usize::from(step.process_batch_available);
-        totals.batches_run += usize::from(step.process_batch_ran);
+        totals.batches_available += if step.process_batch_available { 1 } else { 0 };
+        totals.batches_run += if step.process_batch_ran { 1 } else { 0 };
         totals.feed_processed_g = checked_add(
             totals.feed_processed_g,
             step.process_feed_processed_g,
