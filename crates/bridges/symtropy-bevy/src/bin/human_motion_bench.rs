@@ -624,6 +624,7 @@ struct ContactEvent {
 #[derive(Debug, Serialize)]
 struct ContactEventClassReport {
     event_type: &'static str,
+    matching_method: &'static str,
     tolerance_sec: f64,
     reference_events: usize,
     prediction_events: usize,
@@ -662,7 +663,9 @@ fn extract_contact_events(
         };
         if let Some(kind) = kind {
             let time_sec = timestamps[index];
-            if (overlap_start_sec..=overlap_end_sec).contains(&time_sec) {
+            // The shared interval's left boundary is excluded: event state before it may
+            // be unavailable in one trace. The right endpoint is included.
+            if time_sec > overlap_start_sec && time_sec <= overlap_end_sec {
                 events.push(ContactEvent { time_sec, kind });
             }
         }
@@ -671,7 +674,10 @@ fn extract_contact_events(
 }
 
 fn percentile_nearest_rank(sorted_values: &[f64], percentile: f64) -> Option<f64> {
-    if sorted_values.is_empty() || !percentile.is_finite() || !(0.0..=1.0).contains(&percentile) {
+    if sorted_values.is_empty()
+        || !percentile.is_finite()
+        || !(0.0..=1.0).contains(&percentile)
+    {
         return None;
     }
     let index = ((percentile * sorted_values.len() as f64).ceil() as usize)
@@ -760,6 +766,7 @@ fn score_contact_event_class(
 
     ContactEventClassReport {
         event_type: event_type.label(),
+        matching_method: "chronological_first_eligible",
         tolerance_sec,
         reference_events: reference.len(),
         prediction_events: prediction.len(),
@@ -1112,7 +1119,7 @@ fn evaluate(
     let mut caveats = vec![
         "Low-level trajectory and stance-foot metrics do not prove visual, biomechanical, or behavioral realism.",
         "Foot drift is measured only over predicted contact intervals; inspect contact precision, recall and F1 because incorrect labels can make drift look deceptively good.",
-        "Touchdown/liftoff errors are extracted at native source timestamps before grid resampling; the first contact sample is left-censored because no preceding state is available.",
+        "Touchdown/liftoff errors use native source timestamps before grid resampling; event extraction excludes the shared interval's left boundary because it is left-censored, and includes the right boundary.",
         "Root jerk is noise-sensitive. Interpret it with tracking error and task success, never as a standalone quality score.",
         "ADE and maximum error use the common uniform grid; FDE is evaluated at the exact overlap end by position interpolation.",
         "Root-path error alone is not a full-body fidelity score; inspect named-joint trajectory metrics when the trace includes them.",
@@ -1186,7 +1193,7 @@ fn print_usage() {
         "Usage: human-motion-bench <reference.json> <prediction.json> [--step-sec SECONDS] [--output report.json]\n\
          \n\
          Trace contract: docs/research/human-motion-trace-v0.1.schema.json\n\
-         Metrics: root ADE/FDE/max error, predicted left/right stance-foot drift, root jerk.\n\
+         Metrics: root/joint error, foot drift/contact agreement, native-time touchdown/liftoff event timing, and root jerk.\n\
          Without --step-sec the coarser of the two median input sample intervals is used.\n\
          Synthetic traces are accepted for software tests, but reports are labelled synthetic_fixture_only."
     );
@@ -1404,16 +1411,29 @@ mod tests {
         assert_eq!(report.liftoff.matched_events, 1);
         assert!((report.touchdown.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
         assert!((report.liftoff.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
-        assert!((report.touchdown.median_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
-        assert!((report.liftoff.p95_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
+        assert!(
+            (report.touchdown.median_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9
+        );
+        assert!(
+            (report.liftoff.p95_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9
+        );
     }
 
     #[test]
     fn contact_event_matching_is_one_to_one_and_counts_duplicate_detections() {
-        let reference = vec![ContactEvent { time_sec: 0.1, kind: ContactEventKind::Touchdown }];
+        let reference = vec![ContactEvent {
+            time_sec: 0.1,
+            kind: ContactEventKind::Touchdown,
+        }];
         let prediction = vec![
-            ContactEvent { time_sec: 0.08, kind: ContactEventKind::Touchdown },
-            ContactEvent { time_sec: 0.11, kind: ContactEventKind::Touchdown },
+            ContactEvent {
+                time_sec: 0.08,
+                kind: ContactEventKind::Touchdown,
+            },
+            ContactEvent {
+                time_sec: 0.11,
+                kind: ContactEventKind::Touchdown,
+            },
         ];
         let report = score_contact_event_class(
             ContactEventKind::Touchdown,
