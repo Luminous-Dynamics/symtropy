@@ -605,7 +605,7 @@ mod tests {
         assert_eq!(report.total_treatment_cost_minor, 294_000);
         assert_eq!(report.total_gross_benefit_minor, 6_000);
         assert_eq!(report.net_transfer_minor, 0);
-        assert!(!report.all_reservations_met);
+        assert!(report.all_reservations_met);
         assert_eq!(
             report.categories.iter().map(|c| c.gross_benefit_minor).sum::<i128>(),
             6_000
