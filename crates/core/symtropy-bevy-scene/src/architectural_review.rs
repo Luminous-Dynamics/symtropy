@@ -168,8 +168,14 @@ pub fn validate_review_annotations_for_revision(
 
         match annotation.kind {
             ReviewAnnotationKind::BindingRequirement | ReviewAnnotationKind::RequiredEvidence => {
-                if !annotation.source_ref.as_deref().is_some_and(|value| !value.trim().is_empty())
-                    || !annotation.module_id.as_deref().is_some_and(|value| !value.trim().is_empty())
+                if !annotation
+                    .source_ref
+                    .as_deref()
+                    .is_some_and(|value| !value.trim().is_empty())
+                    || !annotation
+                        .module_id
+                        .as_deref()
+                        .is_some_and(|value| !value.trim().is_empty())
                 {
                     issues.push(ReviewAnnotationIssue::MissingBindingProvenance {
                         annotation_id: annotation.annotation_id.clone(),
@@ -197,7 +203,10 @@ pub fn validate_review_annotations_for_revision(
             }
             ReviewAnnotationKind::BindingConflict => {
                 if annotation.state != ReviewAnnotationState::Conflict
-                    || !annotation.source_ref.as_deref().is_some_and(|value| !value.trim().is_empty())
+                    || !annotation
+                        .source_ref
+                        .as_deref()
+                        .is_some_and(|value| !value.trim().is_empty())
                 {
                     issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
                         annotation_id: annotation.annotation_id.clone(),
@@ -248,7 +257,8 @@ pub fn validate_review_annotations_for_revision(
             annotation.evidence_sha256.as_deref(),
         ) {
             (Some(id), Some(digest)) => {
-                if id.trim().is_empty() || digest.len() != 64
+                if id.trim().is_empty()
+                    || digest.len() != 64
                     || !digest.bytes().all(|byte| byte.is_ascii_hexdigit())
                 {
                     issues.push(ReviewAnnotationIssue::InvalidEvidenceDigest {
@@ -307,9 +317,7 @@ pub fn validate_review_route(
     if route.waypoints.len() < 2 {
         issues.push(ReviewRouteIssue::TooFewWaypoints);
     }
-    if !route.max_translation_speed_mps.is_finite()
-        || route.max_translation_speed_mps <= 0.0
-    {
+    if !route.max_translation_speed_mps.is_finite() || route.max_translation_speed_mps <= 0.0 {
         issues.push(ReviewRouteIssue::InvalidSpeedLimit);
     }
 
@@ -468,10 +476,9 @@ fn sample_valid_route_pose(
             return waypoint_transform(to);
         }
         let amount = ((elapsed_seconds - movement_start) / duration).clamp(0.0, 1.0);
-        let position = Vec3::from_array(from.position_m)
-            .lerp(Vec3::from_array(to.position_m), amount);
-        let look_at = Vec3::from_array(from.look_at_m)
-            .lerp(Vec3::from_array(to.look_at_m), amount);
+        let position =
+            Vec3::from_array(from.position_m).lerp(Vec3::from_array(to.position_m), amount);
+        let look_at = Vec3::from_array(from.look_at_m).lerp(Vec3::from_array(to.look_at_m), amount);
         if !position.is_finite()
             || !look_at.is_finite()
             || position.distance_squared(look_at) <= POSE_EPSILON * POSE_EPSILON
@@ -668,10 +675,7 @@ pub fn drive_free_review_camera(
 /// intentionally drive the same Transform in the same frame.
 pub fn manage_architectural_review_controls(
     keys: Res<ButtonInput<KeyCode>>,
-    mut query: bevy::prelude::Query<(
-        &mut ReviewRoutePlayback,
-        &mut ReviewFreeCameraController,
-    )>,
+    mut query: bevy::prelude::Query<(&mut ReviewRoutePlayback, &mut ReviewFreeCameraController)>,
 ) {
     if !(keys.just_pressed(KeyCode::Space)
         || keys.just_pressed(KeyCode::KeyR)
@@ -701,20 +705,14 @@ pub fn manage_architectural_review_controls(
 /// leaves the last valid Transform unchanged (a safe static fallback).
 pub fn advance_architectural_review_routes(
     time: bevy::prelude::Res<bevy::prelude::Time>,
-    mut query: bevy::prelude::Query<(
-        &mut Transform,
-        &mut ReviewRoutePlayback,
-    )>,
+    mut query: bevy::prelude::Query<(&mut Transform, &mut ReviewRoutePlayback)>,
 ) {
     for (mut transform, mut playback) in &mut query {
         if !playback.playing {
             continue;
         }
         playback.elapsed_seconds += time.delta_secs();
-        if let Some(pose) = sample_valid_route_pose(
-            &playback.route,
-            playback.elapsed_seconds,
-        ) {
+        if let Some(pose) = sample_valid_route_pose(&playback.route, playback.elapsed_seconds) {
             *transform = pose;
         } else {
             playback.playing = false;
@@ -807,11 +805,13 @@ mod tests {
             ReviewAnnotationKind::OwnerPreference,
             ReviewAnnotationState::Failed,
         );
-        assert!(validate_review_annotations_for_revision(&[preference], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
-                annotation_id: "owner:arched-window".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[preference], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                    annotation_id: "owner:arched-window".into(),
+                })
+        );
     }
 
     #[test]
@@ -822,11 +822,13 @@ mod tests {
             ReviewAnnotationKind::BindingRequirement,
             ReviewAnnotationState::Unknown,
         );
-        assert!(validate_review_annotations_for_revision(&[binding], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::MissingBindingProvenance {
-                annotation_id: "rule:egress".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[binding], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::MissingBindingProvenance {
+                    annotation_id: "rule:egress".into(),
+                })
+        );
     }
 
     #[test]
@@ -839,11 +841,13 @@ mod tests {
         );
         missing.source_ref = Some("rule:fire-review".into());
         missing.module_id = Some("jurisdiction:pilot".into());
-        assert!(validate_review_annotations_for_revision(&[missing], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
-                annotation_id: "evidence:fire-review".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[missing], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                    annotation_id: "evidence:fire-review".into(),
+                })
+        );
     }
 
     #[test]
@@ -854,11 +858,13 @@ mod tests {
             ReviewAnnotationKind::BindingRequirement,
             ReviewAnnotationState::Conflict,
         );
-        assert!(validate_review_annotations_for_revision(&[conflict], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
-                annotation_id: "rule:ventilation".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[conflict], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                    annotation_id: "rule:ventilation".into(),
+                })
+        );
     }
 
     #[test]
@@ -889,11 +895,13 @@ mod tests {
             ReviewAnnotationKind::EngineeringEvidence,
             ReviewAnnotationState::Unknown,
         );
-        assert!(validate_review_annotations_for_revision(&[stale], "house:r2")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::RevisionMismatch {
-                annotation_id: "evidence:energy".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[stale], "house:r2")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::RevisionMismatch {
+                    annotation_id: "evidence:energy".into(),
+                })
+        );
     }
 
     #[test]
@@ -917,9 +925,11 @@ mod tests {
     fn duplicated_waypoint_ids_are_rejected() {
         let mut route = sample_route_fixture();
         route.waypoints[1].waypoint_id = route.waypoints[0].waypoint_id.clone();
-        assert!(validate_review_route(&route).unwrap_err().contains(
-            &ReviewRouteIssue::DuplicateWaypointId("entry".into())
-        ));
+        assert!(
+            validate_review_route(&route)
+                .unwrap_err()
+                .contains(&ReviewRouteIssue::DuplicateWaypointId("entry".into()))
+        );
         assert!(sample_review_route(&route, 1.0).is_none());
     }
 
@@ -944,9 +954,14 @@ mod tests {
         let mut route = sample_route_fixture();
         route.waypoints[1].arrival_seconds = 2.1;
         route.max_translation_speed_mps = 0.5;
-        assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
-            matches!(issue, ReviewRouteIssue::TranslationSpeedExceeded { .. })
-        }));
+        assert!(
+            validate_review_route(&route)
+                .unwrap_err()
+                .iter()
+                .any(|issue| {
+                    matches!(issue, ReviewRouteIssue::TranslationSpeedExceeded { .. })
+                })
+        );
     }
 
     #[test]
@@ -969,8 +984,8 @@ mod tests {
 
     #[test]
     fn free_camera_toggle_pauses_route_and_restart_resets_elapsed_time() {
-        let camera_pose = Transform::from_xyz(0.0, 1.6, 3.0)
-            .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
+        let camera_pose =
+            Transform::from_xyz(0.0, 1.6, 3.0).looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
         let route = sample_route_fixture();
         let mut playback = ReviewRoutePlayback::new(route).unwrap();
         let mut controller = ReviewFreeCameraController::from_transform(&camera_pose);
@@ -987,8 +1002,8 @@ mod tests {
 
     #[test]
     fn free_camera_controller_starts_disabled_and_inherits_current_view() {
-        let transform = Transform::from_xyz(0.0, 1.6, 3.0)
-            .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
+        let transform =
+            Transform::from_xyz(0.0, 1.6, 3.0).looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
         let controller = ReviewFreeCameraController::from_transform(&transform);
         assert!(!controller.is_enabled());
         assert!(controller.settings_are_valid());
