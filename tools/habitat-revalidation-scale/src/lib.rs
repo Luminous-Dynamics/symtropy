@@ -429,7 +429,7 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
         let remainder = branch_tasks % branch_count;
         let mut cursor = shared_task_count;
         for branch in 0..branch_count {
-            let branch_size = base_size + usize::from(branch < remainder);
+            let branch_size = base_size + if branch < remainder { 1 } else { 0 };
             let mut previous = None;
             for _ in 0..branch_size {
                 if let Some(prior) = previous {
