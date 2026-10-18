@@ -879,21 +879,21 @@ mod tests {
                 let dependencies = possible_edges
                     .iter()
                     .enumerate()
-                    .filter_map(|(edge_index, (from, to))| {
-                        ((edge_mask & (1usize << edge_index)) != 0).then(|| Dependency {
-                            predecessor_id: format!("OP-{from}"),
-                            successor_id: format!("OP-{to}"),
-                            lag_minutes: i64::try_from((from + to) % 2).unwrap(),
-                        })
+                    .filter(|(edge_index, _)| (edge_mask & (1usize << edge_index)) != 0)
+                    .map(|(_, (from, to))| Dependency {
+                        predecessor_id: format!("OP-{from}"),
+                        successor_id: format!("OP-{to}"),
+                        lag_minutes: i64::try_from((from + to) % 2).unwrap(),
                     })
                     .collect::<Vec<_>>();
 
                 let baseline = independent_relaxation_oracle(&operations, &dependencies, &[]);
                 for target in 0..node_count {
+                    let target_id = format!("OP-{target}");
                     for delay in [0_i64, 1, 3] {
                         let shocks = vec![shock(
                             &format!("SHOCK-{target}-{delay}"),
-                            &format!("OP-{target}"),
+                            &target_id,
                             delay,
                         )];
                         let scenario =
@@ -919,7 +919,7 @@ mod tests {
                             let expected_delay = scenario[index] - baseline[index];
                             let expected_end = scenario[index] + operation.duration_minutes;
                             let expected_direct_shock =
-                                if operation.id == format!("OP-{target}") { delay } else { 0 };
+                                if operation.id == target_id { delay } else { 0 };
 
                             assert_eq!(
                                 impact.baseline_start_minute, baseline[index],
@@ -945,7 +945,7 @@ mod tests {
                             if expected_delay > 0 {
                                 expected_affected += 1;
                             }
-                            if operation.id != format!("OP-{target}") {
+                            if operation.id != target_id {
                                 expected_downstream_delay +=
                                     u128::try_from(expected_delay).unwrap();
                             }
