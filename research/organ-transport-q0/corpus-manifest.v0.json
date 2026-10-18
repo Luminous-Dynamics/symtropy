@@ -10,7 +10,14 @@
       "schema_version": "0.1.0",
       "sha256": "c06c6db575b8b88077f524cc93a13f6d10ad7e6987fbed2d0c1a6ff6b57ce031",
       "byte_length": 3574,
-      "case_count": 5
+      "case_count": 5,
+      "case_ids": [
+        "q0-tube-baseline",
+        "q0-tube-reverse-pressure",
+        "q0-tube-zero-pressure",
+        "q0-tube-nonpositive-radius",
+        "q0-tube-nonfinite-pressure"
+      ]
     },
     {
       "path": "network-reference-cases.v0.json",
