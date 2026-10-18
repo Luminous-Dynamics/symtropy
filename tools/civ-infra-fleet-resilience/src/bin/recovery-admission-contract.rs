@@ -1450,7 +1450,10 @@ mod tests {
                 .iter()
                 .find(|result| result.scenario_id == scenario_id)
                 .expect("protective stop scenario should exist");
-            assert!(result.admitted, "{scenario_id} must not be blocked by planner evidence");
+            assert!(
+                result.admitted,
+                "{scenario_id} must not be blocked by planner evidence"
+            );
             assert_eq!(result.next_state, Some(TaskState::Interrupted));
         }
     }
