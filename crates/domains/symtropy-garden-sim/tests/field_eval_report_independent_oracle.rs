@@ -30,6 +30,14 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
     assert_eq!(counts.disputed_or_rework, 1);
     assert_eq!(counts.outcome_unknown, 1);
     assert_eq!(counts.follow_up_missing_or_inaccessible, 0);
+    assert_eq!(counts.known_non_acceptance_reasons.no_provider_available, 1);
+    assert_eq!(counts.known_non_acceptance_reasons.provider_no_show, 0);
+    assert_eq!(counts.dispute_resolutions.unresolved, 1);
+    assert_eq!(
+        counts.confirmed_in_window_acceptances_including_resolved_rework,
+        1
+    );
+    assert_eq!(counts.genuinely_unascertainable_for_upper_bound, 3);
 
     let lower = report
         .evidence_confirmed_lower_bound
