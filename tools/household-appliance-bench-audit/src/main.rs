@@ -6,8 +6,8 @@ use std::env;
 use std::fs::{self, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 mod compatibility;
 mod decision;
@@ -1014,12 +1014,10 @@ mod tests {
 
     #[test]
     fn failed_ords_import_preserves_existing_output_file() {
-        let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
-            "../../schemas/appliances/ords_adapter_mapping_v0_1.schema.json",
-        );
-        let mapping_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
-            "../../fixtures/appliances/ords_adapter_mapping_v0_1.json",
-        );
+        let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../schemas/appliances/ords_adapter_mapping_v0_1.schema.json");
+        let mapping_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/appliances/ords_adapter_mapping_v0_1.json");
         let csv_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../fixtures/appliances/ords_v0_3_synthetic.csv");
         let schema = fs::read_to_string(schema_path).unwrap();
@@ -1036,10 +1034,7 @@ mod tests {
 
         let result = write_ords_output_atomically(&schema, &mapping, &csv, &output_path);
         assert!(result.is_err(), "weakened evidence policy must fail closed");
-        assert_eq!(
-            fs::read(&output_path).unwrap(),
-            b"preserve-existing-output"
-        );
+        assert_eq!(fs::read(&output_path).unwrap(), b"preserve-existing-output");
         fs::remove_file(output_path).unwrap();
     }
 

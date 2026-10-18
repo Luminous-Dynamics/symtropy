@@ -840,7 +840,10 @@ mod tests {
             "\"Later duplicated source identity\",G-01",
             "\"Later duplicated source identity\",G-99",
         );
-        assert_ne!(source, changed, "mutation must alter optional group metadata");
+        assert_ne!(
+            source, changed,
+            "mutation must alter optional group metadata"
+        );
         let (summary, output) = run_fixture(SCHEMA, PROFILE, changed.as_bytes());
         assert_eq!(summary.duplicate_identity_row_count, 2);
         let records: Vec<Value> = output
@@ -852,9 +855,11 @@ mod tests {
             .filter(|record| record["source_provenance"]["source_record_id_raw"] == "r-001")
             .collect();
         assert_eq!(duplicates.len(), 2);
-        assert!(duplicates
-            .iter()
-            .all(|record| record["quarantine"]["disposition"] == "quarantined"));
+        assert!(
+            duplicates
+                .iter()
+                .all(|record| record["quarantine"]["disposition"] == "quarantined")
+        );
     }
 
     #[test]
