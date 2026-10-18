@@ -452,6 +452,8 @@ pub fn generate_stimulus(
         "source_corpus_git_blob_sha1": CORPUS_BLOB_SHA1,
         "manifest_sha256": manifest_sha256,
         "recipe_sha256": recipe_sha256,
+        "recipe_schema_sha256": sha256_hex(schema_text.as_bytes()),
+        "report_schema_sha256": sha256_hex(REPORT_SCHEMA_TEXT.as_bytes()),
         "generator": "display-stimulus-reference",
         "generator_version": env!("CARGO_PKG_VERSION"),
         "generator_source_revision": std::env::var("ODRH_STIMULUS_SOURCE_COMMIT")
