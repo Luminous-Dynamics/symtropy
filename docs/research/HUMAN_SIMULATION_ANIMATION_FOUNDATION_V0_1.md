@@ -27,6 +27,10 @@ The first increment adds an opt-in Bevy skeletal-animation driver for licensed g
 6. **Multi-rate simulation.** Run high-frequency animation and physics only where needed; update cognition and distant agents less frequently with explicit interpolation/LOD. Measure artifacts as well as throughput.
 7. **Open benchmark before grand claims.** Use held-out real motion/trajectory data, fixed seeds, negative controls, ablations, and baselines. Publish raw aggregate metrics and exact asset/data versions.
 
+## Benchmark protocol
+
+The detailed task suite, metric definitions, rights constraints, target gates and reproducibility procedure now live in [`HUMAN_MOTION_BENCHMARK_PROTOCOL_V0_1.md`](HUMAN_MOTION_BENCHMARK_PROTOCOL_V0_1.md). Those values are proposed gates, not measured performance. In particular, foot drift and frame-rate targets need a real rigged avatar and a recorded scene before they can be evaluated.
+
 ## Layered architecture
 
 - **Appearance/asset layer:** legally sourced, rigged glTF/GLB body mesh; PBR materials; consistent scale; skin weights; optional facial blend shapes, eye/teeth geometry, hair, clothing, hands, footwear, and LODs.
