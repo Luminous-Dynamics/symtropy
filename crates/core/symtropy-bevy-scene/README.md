@@ -40,7 +40,9 @@ Everything is overridable via `SymtropyScenePlugin::with_config(...)`. Set `sun_
 - `fixed_camera(position: Vec3, target: Vec3)` — `Camera3d + Transform`
   one-liner.
 - `fixed_light(illuminance, color, euler_xyz)` — secondary directional
-  light spawn.
+  light spawn without shadow maps
+- `fixed_light_with_shadows(illuminance, color, euler_xyz, enabled)` —
+  secondary directional light with explicit shadow-map control.
 
 ## License
 
