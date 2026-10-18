@@ -163,6 +163,21 @@ These fixtures test semantics and failure handling only. Numeric quantities are 
 
 No later gate is implied by passing an earlier one.
 
+### Quantitative acceptance targets
+
+For the **synthetic v0.1 reference suite**, acceptance is binary and invariant-specific—not an averaged peace score:
+
+- **Bounded decision oracle:** 100% exact agreement with the independent exhaustive oracle on every enumerated small-instance candidate and Pareto-frontier membership; unknown/failing hard gates must never be eligible.
+- **Authority and consent:** zero active agreements when a required acceptance or authority proof is missing; refusal and non-participation remain non-consent.
+- **Evidence integrity:** 100% detection of required negative controls for stale mandatory evidence, contradictory uncorroborated claims, missing provenance, duplicate event IDs, and out-of-order lifecycle events.
+- **Warning-to-response feasibility:** zero alerts classified actionable when owner authorization or resources are missing, the reserve is missing/invalid, or lead time is less than or equal to response-latency bound plus declared reserve.
+- **Response verification:** zero responses marked verified without the full ordered lifecycle, non-empty evidence references, monotonic event offsets, and an independently attested terminal outcome.
+- **Privacy and non-maleficence:** zero prohibited sensitive-field mutations accepted; zero mandatory minimum-service-floor violations accepted; zero displacement cases mislabeled as aggregate improvement.
+- **Reproducibility:** exact semantic outcome under tested scenario/alert reordering; every receipt binds the exact source commit, corpus digest, dependency lock, and toolchain metadata.
+- **Impact claims:** zero causal prevention claims accepted from synthetic runs or before/after-only observations. Field impact requires a separately governed evaluation design and empirical evidence.
+
+These are software-conformance targets only. The 15-minute reserve in the current fictional fixture is not a policy recommendation, a universal safety standard, or an empirically calibrated response-time model. Future operational thresholds must be set and reviewed by legitimate local actors with context-specific evidence. Passing this suite does not demonstrate conflict reduction, causal prevention, legal legitimacy, or deployment safety.
+
 ## 8. Research anchors
 
 - United Nations and World Bank, *Pathways for Peace: Inclusive Approaches to Preventing Violent Conflict* (2018): https://www.worldbank.org/en/topic/fragilityconflictviolence/publication/pathways-for-peace-inclusive-approaches-to-preventing-violent-conflict
