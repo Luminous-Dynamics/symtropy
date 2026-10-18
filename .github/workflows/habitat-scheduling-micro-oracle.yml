@@ -53,9 +53,9 @@ jobs:
           cargo run --locked --manifest-path tools/habitat-scheduling-oracle/Cargo.toml -- "$fixture" > "$report"
           jq -e '
             .schema_version == "luminous.habitat_schedule_oracle_report.v0.1" and
-            .case_count == 9 and
+            .case_count == 10 and
             .all_expected_outcomes_match == true and
-            (.case_results | length == 9) and
+            (.case_results | length == 10) and
             all(.case_results[]; .expected_outcome_match == true)
           ' "$report" >/dev/null
-          echo "All nine exhaustive schedule micro-oracle expectations match."
+          echo "All ten exhaustive schedule micro-oracle expectations match."
