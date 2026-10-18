@@ -1405,14 +1405,18 @@ mod tests {
     fn field_frame_validates_every_sample_not_only_render_budget() {
         let mut frame = test_frame();
         frame.scalar_layers[0].samples.resize(
-            3,
+            2_050,
             ScalarFieldSample {
                 position: [0.0, 0.0, 0.0],
                 value: 1.0,
                 uncertainty: None,
             },
         );
-        frame.scalar_layers[0].samples[2].value = f64::NAN;
+        frame.scalar_layers[0].samples[2_049].value = f64::NAN;
+
+        // The renderer's 2,048-marker extraction never examines this last
+        // sample, but interchange validation must reject the entire frame.
+        assert!(extract_scalar_glyphs(&frame.scalar_layers[0], 2_048).is_ok());
         assert!(frame.validate().is_err());
     }
 
