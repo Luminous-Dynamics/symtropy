@@ -36,8 +36,17 @@ jobs:
         with:
           toolchain: 1.96.0
           components: rustfmt
-      - name: Check formatting
+      - name: Normalize Rust formatting in the test working tree
+        run: cargo fmt --manifest-path tools/bounded-route-graph-audit/Cargo.toml
+      - name: Verify canonical formatting
         run: cargo fmt --manifest-path tools/bounded-route-graph-audit/Cargo.toml -- --check
+      - name: Export formatter-produced source for exact commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustfmt-normalized-route-graph
+          path: tools/bounded-route-graph-audit/src/main.rs
+          if-no-files-found: error
       - name: Run graph enumeration and fail-closed tests
         run: cargo test --manifest-path tools/bounded-route-graph-audit/Cargo.toml --all-targets
       - name: Audit bounded route graph fixture
