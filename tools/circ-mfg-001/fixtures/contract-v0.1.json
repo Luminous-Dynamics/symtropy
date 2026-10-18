@@ -5,7 +5,7 @@
   "cases": [
     {
       "case_id": "01-complete-evidence-and-external-bindings",
-      "expected_decision": "Eligible",
+      "expected_decision": "Conformant",
       "required_evidence_ids": [
         "design-revision",
         "bom-revision",
