@@ -52,3 +52,7 @@ The specialized [ROCK-BREAKAGE-TOURNAMENT-001](https://github.com/Luminous-Dynam
 
 
 Physical through-the-earth (TTE) characterization and held-out test traces are tracked in [Symthaea MINE-TTE-CHAR-001 #8047](https://github.com/Luminous-Dynamics/symthaea/issues/8047). These are required before synthetic TTE scenarios can support stronger physical claims.
+
+## Human mobility and assisted egress
+
+Compose with [SUBTERRANEAN-HUMAN-MOBILITY-001 #2037](https://github.com/Luminous-Dynamics/symtropy/issues/2037) and its [research contract PR #2038](https://github.com/Luminous-Dynamics/symtropy/pull/2038). Keep person/PPE/load/device geometry and route/hazard evidence explicit, distinguish self-egress from casualty extraction, and count no-safe-route when required evidence is unknown. Synthetic routing is not a rescue or mobility-device safety claim.

@@ -282,6 +282,16 @@ Symthaea [MINE-COMMS-001 PR #8011](https://github.com/Luminous-Dynamics/symthaea
 
 The snapshot model does not represent a fault occurring mid-flight, per-hop queues, channel contention or acknowledgement airtime. Those are specified as the next implementation stage in [MINE-COMMS-TRACE-001 #8066](https://github.com/Luminous-Dynamics/symthaea/issues/8066). For cross-subsystem evaluation, reuse a common versioned fault manifest (stable link/node/domain IDs, scheduled fault times, message class, deadline and expiry) while keeping the mine layout/engineering dependency inventory authoritative here. Do not treat the current static snapshot results as time-varying or end-to-end radio reliability evidence.
 
+
+## 10.6 Human mobility and assisted egress
+
+Compose with [SUBTERRANEAN-HUMAN-MOBILITY-001 issue #2037](https://github.com/Luminous-Dynamics/symtropy/issues/2037) and its [benchmark contract PR #2038](https://github.com/Luminous-Dynamics/symtropy/pull/2038). Treat evacuation/rescue as a coupled person–aid–route–hazard problem, not a shortest-path or highest-speed objective.
+
+The campaign should distinguish ordinary travel, self-egress, responder access, conscious casualty assistance, unconscious-casualty litter transport, device/robot passage and responder counterflow. Each mode needs its own dimensions, load, turning/grade/step limits and route evidence. Unknown or stale geometry, water/air/support evidence or anchor rating must remain explicit; no planner may promote unknown to safe.
+
+Include route closure/inrush, localization loss, stale person position, stuck/failed aid, failed battery/brake/drive, casualty/load change and blocked-passage scenarios. Report course completion by environment class, hard-envelope rejection accuracy, load-release/rollover/pinch events, exertion/hauling force, setup/recovery time, battery/energy, route false-safe rate and whether a tool/relay itself obstructed egress. A 95% course-completion target may be explored only for a defined test class and never trades against zero-catastrophic-failure hard gates.
+
+Use Sol Atlas as the spatial/topology evidence authority, Symtropy for scenario evaluation and Symthaea for communication/receipt semantics; do not create a parallel authoritative cave/mine map. See [SUBTERRANEAN_HUMAN_MOBILITY_BENCHMARK_V0_1.md](https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-human-mobility-v0-1/docs/research/SUBTERRANEAN_HUMAN_MOBILITY_BENCHMARK_V0_1.md).
 ## 11. Implementation sequence
 
 1. Freeze this contract and small synthetic manifest.
