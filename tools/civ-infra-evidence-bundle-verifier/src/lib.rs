@@ -443,6 +443,22 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_declared_size_limit_is_checked_before_file_reads() {
+        let mut manifest = parsed_manifest();
+        let template = manifest.artifacts[0].clone();
+        manifest.artifacts.clear();
+        for index in 0..9usize {
+            let mut artifact = template.clone();
+            artifact.artifact_id = format!("oversize-{index:02}");
+            artifact.relative_path = format!("missing/artifact-{index:02}.json");
+            artifact.expected_byte_len = MAX_ARTIFACT_BYTES;
+            manifest.artifacts.push(artifact);
+        }
+        let error = verify_mutated(&manifest).expect_err("declared aggregate must exceed the cap");
+        assert!(error.contains("declared artifact bytes exceed total limit"), "{error}");
+    }
+
+    #[test]
     fn verifies_every_frozen_artifact_against_exact_bytes() {
         let report = verify_bundle(Path::new(ROOT), MANIFEST).expect("manifest is valid");
         assert!(report.qualified);
