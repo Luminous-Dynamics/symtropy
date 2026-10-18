@@ -9369,6 +9369,7 @@ dependencies = [
  "bytemuck",
  "nalgebra 0.34.2",
  "serde",
+ "serde_json",
  "symtropy-math",
  "symtropy-physics",
 ]
