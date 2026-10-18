@@ -341,7 +341,7 @@ fn synthetic_millikan_observations() -> Vec<f64> {
     multiplicities
         .iter()
         .zip(noise.iter())
-        .map(|(multiple, error)| multiple * elementary_charge + error)
+        .map(|(multiple, error)| *multiple * elementary_charge + *error)
         .collect()
 }
 
