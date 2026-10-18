@@ -40,7 +40,8 @@ struct Case {
     required_evidence_ids: Vec<String>,
     evidence: Vec<EvidenceRecord>,
     mandatory_gates: Vec<MandatoryGate>,
-    mass_balance: Option<MassBalance>,
+    required_external_refs: Vec<ExternalRefRequirement>,
+    external_refs: Vec<ExternalReference>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -78,12 +79,26 @@ enum GateStatus {
     Unresolved,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-struct MassBalance {
-    inputs_kg: Option<f64>,
-    accounted_outputs_kg: Option<f64>,
-    tolerance_kg: f64,
+struct ExternalRefRequirement {
+    reference_id: String,
+    role: ExternalRefRole,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct ExternalReference {
+    reference_id: String,
+    role: ExternalRefRole,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+enum ExternalRefRole {
+    ProcessExecutionReceipt,
+    QualificationReceipt,
+    MaterialFlowAccount,
+    ChainOfCustodyProfile,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -170,6 +185,16 @@ fn normalize_manifest(manifest: &mut Manifest) {
             a.name
                 .cmp(&b.name)
                 .then_with(|| a.status.cmp(&b.status))
+        });
+        case.required_external_refs.sort_by(|a, b| {
+            a.reference_id
+                .cmp(&b.reference_id)
+                .then_with(|| a.role.cmp(&b.role))
+        });
+        case.external_refs.sort_by(|a, b| {
+            a.reference_id
+                .cmp(&b.reference_id)
+                .then_with(|| a.role.cmp(&b.role))
         });
     }
 }
@@ -401,62 +426,94 @@ fn evaluate_case(case: &Case) -> CaseResult {
         }
     }
 
-    match case.mass_balance.as_ref() {
-        None => add_issue(
+    if case.required_external_refs.is_empty() {
+        add_issue(
             &mut issues,
             &mut blocked,
             &mut unresolved,
             Severity::Unresolved,
-            "mass_balance_missing".to_string(),
-        ),
-        Some(balance) => {
-            if !balance.tolerance_kg.is_finite()
-                || balance.tolerance_kg < 0.0
-            {
-                add_issue(
-                    &mut issues,
-                    &mut blocked,
-                    &mut unresolved,
-                    Severity::Blocked,
-                    "mass_balance_invalid_tolerance".to_string(),
-                );
-            } else {
-                match (balance.inputs_kg, balance.accounted_outputs_kg) {
-                    (Some(inputs), Some(outputs)) => {
-                        if !inputs.is_finite()
-                            || !outputs.is_finite()
-                            || inputs < 0.0
-                            || outputs < 0.0
-                        {
-                            add_issue(
-                                &mut issues,
-                                &mut blocked,
-                                &mut unresolved,
-                                Severity::Blocked,
-                                "mass_balance_invalid_quantity".to_string(),
-                            );
-                        } else if (inputs - outputs).abs() > balance.tolerance_kg {
-                            add_issue(
-                                &mut issues,
-                                &mut blocked,
-                                &mut unresolved,
-                                Severity::Blocked,
-                                format!(
-                                    "mass_balance_out_of_tolerance:residual_kg={:.6}",
-                                    inputs - outputs
-                                ),
-                            );
-                        }
-                    }
-                    _ => add_issue(
-                        &mut issues,
-                        &mut blocked,
-                        &mut unresolved,
-                        Severity::Unresolved,
-                        "mass_balance_quantity_unknown".to_string(),
-                    ),
-                }
-            }
+            "no_required_external_refs_declared".to_string(),
+        );
+    }
+
+    let mut required_ref_ids = BTreeSet::new();
+    for requirement in &case.required_external_refs {
+        if requirement.reference_id.trim().is_empty()
+            || !required_ref_ids.insert(requirement.reference_id.clone())
+        {
+            add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Blocked,
+                format!(
+                    "empty_or_duplicate_external_ref_requirement:{}",
+                    requirement.reference_id
+                ),
+            );
+        }
+    }
+
+    let mut external_ref_counts = std::collections::BTreeMap::<String, usize>::new();
+    for reference in &case.external_refs {
+        *external_ref_counts
+            .entry(reference.reference_id.clone())
+            .or_insert(0) += 1;
+        if !required_ref_ids.contains(&reference.reference_id) {
+            add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Blocked,
+                format!("unreferenced_external_ref:{}", reference.reference_id),
+            );
+        }
+    }
+
+    for requirement in &case.required_external_refs {
+        let matches: Vec<&ExternalReference> = case
+            .external_refs
+            .iter()
+            .filter(|reference| reference.reference_id == requirement.reference_id)
+            .collect();
+        match matches.as_slice() {
+            [] => add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Unresolved,
+                format!("missing_external_ref:{}", requirement.reference_id),
+            ),
+            [reference] if reference.role != requirement.role => add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Blocked,
+                format!(
+                    "external_ref_role_mismatch:{}:expected={:?}:actual={:?}",
+                    requirement.reference_id, requirement.role, reference.role
+                ),
+            ),
+            [_] => {}
+            _ => add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Blocked,
+                format!("duplicate_external_ref:{}", requirement.reference_id),
+            ),
+        }
+    }
+
+    for (reference_id, count) in external_ref_counts {
+        if count > 1 && !required_ref_ids.contains(&reference_id) {
+            add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Blocked,
+                format!("duplicate_unreferenced_external_ref:{reference_id}"),
+            );
         }
     }
 
@@ -612,14 +669,15 @@ mod tests {
             ("02-verified-payload-digest-mismatch", Decision::Blocked),
             ("03-required-material-lot-missing", Decision::Unresolved),
             ("04-mandatory-quality-gate-fails", Decision::Blocked),
-            ("05-mass-balance-out-of-tolerance", Decision::Blocked),
+            ("05-required-material-flow-account-missing", Decision::Unresolved),
             ("06-required-evidence-stale", Decision::Unresolved),
             ("07-critical-evidence-wrong-unit", Decision::Blocked),
             ("08-critical-evidence-contradictory", Decision::Blocked),
             ("09-critical-evidence-scope-invalid", Decision::Blocked),
             ("10-duplicate-evidence-record", Decision::Blocked),
             ("11-unreferenced-evidence-record", Decision::Blocked),
-            ("12-mass-ledger-quantity-unknown", Decision::Unresolved),
+            ("12-custody-reference-role-mismatch", Decision::Blocked),
+            ("13-duplicate-custody-reference", Decision::Blocked),
         ];
 
         let (manifest, raw) = fixture();
@@ -692,11 +750,37 @@ mod tests {
     }
 
     #[test]
-    fn unknown_mass_balance_is_unresolved_not_zero() {
+    fn missing_required_external_reference_is_unresolved() {
         let (manifest, _) = fixture();
         let mut case = manifest.cases[0].clone();
-        case.mass_balance.as_mut().expect("fixture has mass balance").inputs_kg = None;
+        let required_id = case.required_external_refs[0].reference_id.clone();
+        case.external_refs.retain(|reference| reference.reference_id != required_id);
         assert_eq!(evaluate_case(&case).computed_decision, Decision::Unresolved);
+    }
+
+    #[test]
+    fn external_reference_role_mismatch_blocks() {
+        let (manifest, _) = fixture();
+        let mut case = manifest.cases[0].clone();
+        let required = case.required_external_refs[0].clone();
+        let actual = case
+            .external_refs
+            .iter_mut()
+            .find(|reference| reference.reference_id == required.reference_id)
+            .expect("fixture contains required external reference");
+        actual.role = match required.role {
+            ExternalRefRole::ProcessExecutionReceipt => ExternalRefRole::QualificationReceipt,
+            _ => ExternalRefRole::ProcessExecutionReceipt,
+        };
+        assert_eq!(evaluate_case(&case).computed_decision, Decision::Blocked);
+    }
+
+    #[test]
+    fn duplicate_external_reference_blocks() {
+        let (manifest, _) = fixture();
+        let mut case = manifest.cases[0].clone();
+        case.external_refs.push(case.external_refs[0].clone());
+        assert_eq!(evaluate_case(&case).computed_decision, Decision::Blocked);
     }
 
     #[test]
