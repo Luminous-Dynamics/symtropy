@@ -645,6 +645,20 @@ mod tests {
     }
 
     #[test]
+    fn generated_report_is_schema_valid_and_cannot_promote_physical_output() {
+        let generated = generate("ODRH-STIM-GREY-RAMP-001");
+        super::validate_report(&generated.report)
+            .expect("generated report must satisfy its frozen schema");
+
+        let mut mutated = generated.report;
+        mutated["physical_output_validation"] = Value::String("VALIDATED".to_owned());
+        assert!(super::validate_report(&mutated)
+            .expect_err("report cannot self-promote physical validation")
+            .0
+            .contains("generated report schema violation"));
+    }
+
+    #[test]
     fn sha256_matches_independent_standard_known_answer() {
         assert_eq!(
             sha256_hex(b"abc"),
