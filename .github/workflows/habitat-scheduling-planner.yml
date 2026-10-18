@@ -1,0 +1,63 @@
+name: Habitat Scheduling Heuristic Baseline
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-scheduling-planner/**"
+      - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+      - ".github/workflows/habitat-scheduling-planner.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-scheduling-planner/**"
+      - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+      - ".github/workflows/habitat-scheduling-planner.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checked-heuristic-scheduler:
+    name: Checked heuristic schedule baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-scheduling-planner/Cargo.toml -- --check
+
+      - name: Run heuristic, validator, and epistemic-status tests
+        run: cargo test --locked --manifest-path tools/habitat-scheduling-planner/Cargo.toml
+
+      - name: Verify all output schedules are independently checked
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+          report="$RUNNER_TEMP/habitat-scheduling-planner-report.json"
+          cargo run --locked --manifest-path tools/habitat-scheduling-planner/Cargo.toml -- "$fixture" > "$report"
+
+          jq -e '
+            .schema_version == "luminous.habitat_schedule_planner_report.v0.1" and
+            .case_count == 9 and
+            .all_returned_schedules_independently_validated == true and
+            .claim_ceiling == "synthetic_heuristic_schedule_candidates_not_optimality_construction_or_safety_authority" and
+            all(.case_results[];
+              .optimality_claim == "NOT_PROVEN" and
+              (.nominal.schedule | length == 0 or (. | length > 0))
+            ) and
+            ((.case_results[] | select(.case_id == "independent_tasks_distinct_crews") | .nominal.makespan) == 6) and
+            ((.case_results[] | select(.case_id == "independent_tasks_shared_exclusive_crew") | .nominal.makespan) == 10) and
+            ((.case_results[] | select(.case_id == "nominally_fast_but_not_upper_scenario_robust") | .robust_status) == "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT")
+          ' "$report" >/dev/null
+          echo "All returned schedule candidates were independently validated; optimality is not claimed."
