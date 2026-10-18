@@ -376,7 +376,8 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
     let n = profile.artifact_count;
     let reachable_count = profile.reachable_task_count;
     let detached_count = profile.task_count - reachable_count;
-    let unrelated_count = n * profile.unrelated_artifact_fraction_ppm as usize / 1_000_000;
+    let unrelated_count = ((n as u128 * profile.unrelated_artifact_fraction_ppm as u128)
+        / 1_000_000u128) as usize;
     let extra_unrelated_count = unrelated_count - detached_count;
     let support_count = n - unrelated_count - reachable_count;
     let mut predecessors: Vec<Vec<usize>> = vec![Vec::new(); profile.task_count];
@@ -835,6 +836,32 @@ mod tests {
     fn invalid_source_commit_and_unknown_profile_fail_closed() {
         assert!(generate_workload(MATRIX_BYTES, "micro_oracle", "main").is_err());
         assert!(generate_workload(MATRIX_BYTES, "missing-profile", TEST_COMMIT).is_err());
+    }
+
+    #[test]
+    fn absurd_workload_sizes_are_rejected_before_materialization() {
+        let mut value: Value = serde_json::from_slice(MATRIX_BYTES).unwrap();
+        value["profiles"][0]["artifact_count"] = Value::from(1_000_000_000u64);
+        assert!(parse_matrix(value.to_string().as_bytes()).is_err());
+    }
+
+    #[test]
+    fn cyclic_or_mismatched_graphs_fail_closed() {
+        let generated =
+            generate_workload(MATRIX_BYTES, "micro_oracle", TEST_COMMIT).unwrap();
+        let mut workload: Workload = serde_json::from_slice(&generated.workload_bytes).unwrap();
+        let target_id = workload.target_artifact_ids[0].clone();
+        let target = workload
+            .artifacts
+            .iter_mut()
+            .find(|artifact| artifact.id == target_id)
+            .unwrap();
+        target.depends_on.push(target_id);
+        assert!(verify_workload(&workload).is_err());
+
+        let mut workload: Workload = serde_json::from_slice(&generated.workload_bytes).unwrap();
+        workload.tasks[0].required_artifact_ids.push("E-UNKNOWN".to_owned());
+        assert!(verify_workload(&workload).is_err());
     }
 
     #[test]
