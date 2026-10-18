@@ -1017,7 +1017,7 @@ mod tests {
         let mut playback = ReviewRoutePlayback::new(route).unwrap();
         let mut controller = ReviewFreeCameraController::from_transform(&camera_pose);
 
-        controller.enable(&mut playback);
+        controller.enable(&mut playback, &camera_pose);
         assert!(controller.is_enabled());
         assert!(!playback.is_playing());
         playback.elapsed_seconds = 4.0;
