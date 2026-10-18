@@ -13,7 +13,7 @@ and the [solar–thermal benchmark contract](https://github.com/Luminous-Dynamic
 - A two-store sensible-heat cascade primitive that respects source temperature grade, exchanger approach, source discharge power, receiving-store capacity, and heat-exchanger effectiveness.
 - Static sensible-heat pinch targeting for non-isothermal streams with constant integrated heat capacity: shifted-temperature intervals, minimum hot/cold utility targets, maximum process-recovery target, pinch-side temperatures, and an independent target verifier.
 - Separate recomputation verifiers for collector, charging, standing loss, discharge, and cascade transfers.
-- A standalone, dependency-free receipt auditor that consumes the emitted JSON and independently recomputes the solar, charge, standing-loss, discharge, temperature, sensible-exergy, and hand-computable two-store cascade ledgers without calling the model verifier.
+- A standalone, dependency-free receipt auditor that consumes the emitted JSON and independently recomputes the solar, charge, standing-loss, discharge, temperature, sensible-exergy, two-store cascade, and static pinch-target ledgers without calling the model verifiers.
 - Hand-calculable cases and tampered-report negative controls for both the kernel and the artifact auditor.
 
 ## Model limitations
