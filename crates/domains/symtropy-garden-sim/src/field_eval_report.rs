@@ -398,12 +398,13 @@ fn outcome_evidence_kind_valid(
     evidence_kind: OutcomeEvidenceKindV1,
 ) -> bool {
     match outcome {
-        RequestOutcomeClassV1::AcceptedWithinUsefulWindow
-        | RequestOutcomeClassV1::AcceptedLate => matches!(
-            evidence_kind,
-            OutcomeEvidenceKindV1::FarmerDecisionEvent
-                | OutcomeEvidenceKindV1::AuthorizedRecordedFarmerDecisionEvent
-        ),
+        RequestOutcomeClassV1::AcceptedWithinUsefulWindow | RequestOutcomeClassV1::AcceptedLate => {
+            matches!(
+                evidence_kind,
+                OutcomeEvidenceKindV1::FarmerDecisionEvent
+                    | OutcomeEvidenceKindV1::AuthorizedRecordedFarmerDecisionEvent
+            )
+        }
         RequestOutcomeClassV1::KnownNotAccepted { reason_code } => match reason_code {
             KnownNonAcceptanceReasonV1::NoProviderAvailable => {
                 evidence_kind == OutcomeEvidenceKindV1::ProviderAvailabilityCheck
@@ -487,8 +488,7 @@ fn validate_acceptance_evidence(
 
     match record.acceptance_decision_mode {
         Some(AcceptanceDecisionModeV1::FarmerDirect) => {
-            if record.outcome_evidence_kind
-                != OutcomeEvidenceKindV1::FarmerDecisionEvent
+            if record.outcome_evidence_kind != OutcomeEvidenceKindV1::FarmerDecisionEvent
                 && matches!(
                     &record.outcome,
                     RequestOutcomeClassV1::AcceptedWithinUsefulWindow
@@ -1051,10 +1051,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
 mod tests {
     use super::*;
 
-    fn outcome_record(
-        request_ref: &str,
-        outcome: RequestOutcomeClassV1,
-    ) -> RequestOutcomeRecordV1 {
+    fn outcome_record(request_ref: &str, outcome: RequestOutcomeClassV1) -> RequestOutcomeRecordV1 {
         let acceptance_at_minute = match &outcome {
             RequestOutcomeClassV1::AcceptedWithinUsefulWindow
             | RequestOutcomeClassV1::DisputedOrRework {
@@ -1066,7 +1063,9 @@ mod tests {
             } => Some(120),
             _ => None,
         };
-        let suffix = request_ref.strip_prefix("req-").expect("opaque request ref");
+        let suffix = request_ref
+            .strip_prefix("req-")
+            .expect("opaque request ref");
         let acceptance_evidence_ref =
             acceptance_at_minute.map(|_| format!("evt-{suffix}-acceptance"));
         let outcome_evidence_kind = match &outcome {
@@ -1512,8 +1511,7 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.eligible_request_refs.clear();
         manifest.outcome_records.clear();
-        manifest.preregistered_exclusion_rule_refs =
-            vec!["rule-outside-scope".to_owned()];
+        manifest.preregistered_exclusion_rule_refs = vec!["rule-outside-scope".to_owned()];
         manifest.exclusions = manifest
             .screened_request_refs
             .iter()
