@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: bounded-route-graph-audit-${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
+  group: bounded-route-graph-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
