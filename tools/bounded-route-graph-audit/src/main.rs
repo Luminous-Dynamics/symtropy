@@ -1011,6 +1011,58 @@ mod tests {
     }
 
     #[test]
+    fn intermediate_hub_time_energy_and_condition_margins_are_counted_once() {
+        let output = report();
+        let assessment = route(&output, "amz-rivercraft+amz-ground-transfer");
+        assert_eq!(assessment["lower_bound_duration_minutes"].as_i64().unwrap(), 90);
+        assert_eq!(assessment["upper_bound_duration_minutes"].as_i64().unwrap(), 130);
+        assert!((assessment["worst_case_energy_consumption_pct"].as_f64().unwrap() - 40.0).abs() < 1e-9);
+        assert!((assessment["remaining_energy_reserve_pct"].as_f64().unwrap() - 45.0).abs() < 1e-9);
+        assert!((assessment["minimum_condition_margin_c"].as_f64().unwrap() - 2.4).abs() < 1e-9);
+    }
+
+    #[test]
+    fn route_enumeration_limit_fails_instead_of_returning_a_partial_frontier() {
+        let mut adjacency: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+        for from in 0..10 {
+            for to in 0..10 {
+                if from == to {
+                    continue;
+                }
+                let from_id = format!("n{from}");
+                let to_id = format!("n{to}");
+                adjacency.entry(from_id.clone()).or_default().push(json!({
+                    "edge_id": format!("{from_id}-to-{to_id}"),
+                    "to_node": to_id
+                }));
+            }
+        }
+        for outgoing in adjacency.values_mut() {
+            outgoing.sort_by(|left, right| left["edge_id"].as_str().cmp(&right["edge_id"].as_str()));
+        }
+        let origin = "n0".to_string();
+        let mut visited = BTreeSet::from([origin.clone()]);
+        let mut node_path = vec![origin.clone()];
+        let mut edge_path = Vec::new();
+        let mut routes = Vec::new();
+        let mut expansions = 0usize;
+        let error = enumerate_from(
+            &origin,
+            "n9",
+            8,
+            &adjacency,
+            &mut visited,
+            &mut node_path,
+            &mut edge_path,
+            &mut routes,
+            &mut expansions,
+        )
+        .unwrap_err();
+        assert!(error.contains("route enumeration exceeded the per-mission route limit"));
+        assert_eq!(routes.len(), MAX_PATHS_PER_MISSION);
+    }
+
+    #[test]
     fn unknown_fields_duplicate_identifiers_and_dangling_edges_are_rejected() {
         let mut extra = fixture();
         extra["nodes"][0]["optimistic_score"] = json!(999);
