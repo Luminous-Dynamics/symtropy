@@ -143,7 +143,11 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         return Err("invalid corpus metadata".to_owned());
     }
 
-    let scenario_ids: Vec<_> = corpus.scenarios.iter().map(|s| s.scenario_id.clone()).collect();
+    let scenario_ids: Vec<_> = corpus
+        .scenarios
+        .iter()
+        .map(|s| s.scenario_id.clone())
+        .collect();
     unique_nonempty(&scenario_ids, "corpus.scenario_id")?;
 
     for scenario in &corpus.scenarios {
@@ -153,11 +157,22 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             || scenario.kilns.is_empty()
             || scenario.batches.is_empty()
         {
-            return Err(format!("{}: empty or invalid scenario envelope", scenario.scenario_id));
+            return Err(format!(
+                "{}: empty or invalid scenario envelope",
+                scenario.scenario_id
+            ));
         }
-        let kiln_ids: Vec<_> = scenario.kilns.iter().map(|kiln| kiln.kiln_id.clone()).collect();
+        let kiln_ids: Vec<_> = scenario
+            .kilns
+            .iter()
+            .map(|kiln| kiln.kiln_id.clone())
+            .collect();
         unique_nonempty(&kiln_ids, &format!("{}.kiln_id", scenario.scenario_id))?;
-        let batch_ids: Vec<_> = scenario.batches.iter().map(|batch| batch.batch_id.clone()).collect();
+        let batch_ids: Vec<_> = scenario
+            .batches
+            .iter()
+            .map(|batch| batch.batch_id.clone())
+            .collect();
         unique_nonempty(&batch_ids, &format!("{}.batch_id", scenario.scenario_id))?;
 
         let mut possible_total_volume = 0_u64;
@@ -168,11 +183,17 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
                 || kiln.max_power_kw == 0
                 || kiln.supported_profiles.is_empty()
             {
-                return Err(format!("{}: invalid kiln declaration", scenario.scenario_id));
+                return Err(format!(
+                    "{}: invalid kiln declaration",
+                    scenario.scenario_id
+                ));
             }
             unique_nonempty(
                 &kiln.supported_profiles,
-                &format!("{}.{}.supported_profiles", scenario.scenario_id, kiln.kiln_id),
+                &format!(
+                    "{}.{}.supported_profiles",
+                    scenario.scenario_id, kiln.kiln_id
+                ),
             )?;
         }
 
@@ -189,7 +210,10 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
                     "qualified" | "missing" | "not_required" | "unresolved"
                 )
             {
-                return Err(format!("{}.{}: invalid batch declaration", scenario.scenario_id, batch.batch_id));
+                return Err(format!(
+                    "{}.{}: invalid batch declaration",
+                    scenario.scenario_id, batch.batch_id
+                ));
             }
             possible_total_volume = possible_total_volume
                 .checked_add(batch.dry_volume_units)
@@ -198,29 +222,57 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
                 .checked_add(
                     u64::from(batch.heat_demand_kw)
                         .checked_mul(u64::from(batch.duration_hours))
-                        .ok_or_else(|| format!("{}: batch energy overflow", scenario.scenario_id))?,
+                        .ok_or_else(|| {
+                            format!("{}: batch energy overflow", scenario.scenario_id)
+                        })?,
                 )
                 .ok_or_else(|| format!("{}: total energy overflow", scenario.scenario_id))?;
         }
         let _ = (possible_total_volume, possible_total_energy);
-        if scenario.expected.baseline_scheduled_batch_ids.iter().any(|id| !batch_ids.contains(id))
-            || scenario.expected.oracle_scheduled_batch_ids.iter().any(|id| !batch_ids.contains(id))
+        if scenario
+            .expected
+            .baseline_scheduled_batch_ids
+            .iter()
+            .any(|id| !batch_ids.contains(id))
+            || scenario
+                .expected
+                .oracle_scheduled_batch_ids
+                .iter()
+                .any(|id| !batch_ids.contains(id))
         {
-            return Err(format!("{}: expected schedule references unknown batch", scenario.scenario_id));
+            return Err(format!(
+                "{}: expected schedule references unknown batch",
+                scenario.scenario_id
+            ));
         }
         unique_nonempty(
             &scenario.expected.baseline_scheduled_batch_ids,
-            &format!("{}.expected.baseline_scheduled_batch_ids", scenario.scenario_id),
+            &format!(
+                "{}.expected.baseline_scheduled_batch_ids",
+                scenario.scenario_id
+            ),
         )?;
         unique_nonempty(
             &scenario.expected.oracle_scheduled_batch_ids,
-            &format!("{}.expected.oracle_scheduled_batch_ids", scenario.scenario_id),
+            &format!(
+                "{}.expected.oracle_scheduled_batch_ids",
+                scenario.scenario_id
+            ),
         )?;
         for (batch_id, reasons) in &scenario.expected.gate_blocked_reasons {
             if !batch_ids.contains(batch_id) || reasons.is_empty() {
-                return Err(format!("{}: invalid gate-blocked expected record", scenario.scenario_id));
+                return Err(format!(
+                    "{}: invalid gate-blocked expected record",
+                    scenario.scenario_id
+                ));
             }
-            unique_nonempty(reasons, &format!("{}.expected.gate_blocked_reasons.{batch_id}", scenario.scenario_id))?;
+            unique_nonempty(
+                reasons,
+                &format!(
+                    "{}.expected.gate_blocked_reasons.{batch_id}",
+                    scenario.scenario_id
+                ),
+            )?;
         }
     }
     Ok(())
@@ -228,18 +280,24 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
 
 fn gate_reasons(scenario: &Scenario, batch: &Batch) -> Vec<String> {
     let mut reasons = BTreeSet::new();
-    let profile_kilns: Vec<_> = scenario.kilns.iter()
+    let profile_kilns: Vec<_> = scenario
+        .kilns
+        .iter()
         .filter(|kiln| kiln.supported_profiles.contains(&batch.profile_id))
         .collect();
     if profile_kilns.is_empty() {
         reasons.insert("PROFILE_UNSUPPORTED".to_owned());
     } else {
-        let capacity_kilns: Vec<_> = profile_kilns.iter()
+        let capacity_kilns: Vec<_> = profile_kilns
+            .iter()
             .filter(|kiln| kiln.capacity_volume_units >= batch.dry_volume_units)
             .collect();
         if capacity_kilns.is_empty() {
             reasons.insert("BATCH_EXCEEDS_KILN_CAPACITY".to_owned());
-        } else if capacity_kilns.iter().all(|kiln| kiln.max_power_kw < batch.heat_demand_kw) {
+        } else if capacity_kilns
+            .iter()
+            .all(|kiln| kiln.max_power_kw < batch.heat_demand_kw)
+        {
             reasons.insert("KILN_POWER_INSUFFICIENT".to_owned());
         }
     }
@@ -259,21 +317,34 @@ fn gate_reasons(scenario: &Scenario, batch: &Batch) -> Vec<String> {
 }
 
 fn gate_blocked(scenario: &Scenario) -> BTreeMap<String, Vec<String>> {
-    scenario.batches.iter().filter_map(|batch| {
-        let reasons = gate_reasons(scenario, batch);
-        (!reasons.is_empty()).then(|| (batch.batch_id.clone(), reasons))
-    }).collect()
+    scenario
+        .batches
+        .iter()
+        .filter_map(|batch| {
+            let reasons = gate_reasons(scenario, batch);
+            (!reasons.is_empty()).then(|| (batch.batch_id.clone(), reasons))
+        })
+        .collect()
 }
 
 fn batch_by_id<'a>(scenario: &'a Scenario, batch_id: &str) -> Option<&'a Batch> {
-    scenario.batches.iter().find(|batch| batch.batch_id == batch_id)
+    scenario
+        .batches
+        .iter()
+        .find(|batch| batch.batch_id == batch_id)
 }
 
 fn kiln_by_id<'a>(scenario: &'a Scenario, kiln_id: &str) -> Option<&'a Kiln> {
     scenario.kilns.iter().find(|kiln| kiln.kiln_id == kiln_id)
 }
 
-fn can_place(scenario: &Scenario, batch: &Batch, kiln: &Kiln, start_hour: u32, current: &[Placement]) -> bool {
+fn can_place(
+    scenario: &Scenario,
+    batch: &Batch,
+    kiln: &Kiln,
+    start_hour: u32,
+    current: &[Placement],
+) -> bool {
     if !gate_reasons(scenario, batch).is_empty()
         || !kiln.supported_profiles.contains(&batch.profile_id)
         || kiln.capacity_volume_units < batch.dry_volume_units
@@ -316,10 +387,16 @@ fn can_place(scenario: &Scenario, batch: &Batch, kiln: &Kiln, start_hour: u32, c
 fn scheduled_ids(placements: &[Placement]) -> Vec<String> {
     let mut values = placements.to_vec();
     values.sort_by(|left, right| {
-        (left.start_hour, &left.batch_id, &left.kiln_id)
-            .cmp(&(right.start_hour, &right.batch_id, &right.kiln_id))
+        (left.start_hour, &left.batch_id, &left.kiln_id).cmp(&(
+            right.start_hour,
+            &right.batch_id,
+            &right.kiln_id,
+        ))
     });
-    values.into_iter().map(|placement| placement.batch_id).collect()
+    values
+        .into_iter()
+        .map(|placement| placement.batch_id)
+        .collect()
 }
 
 fn metrics(scenario: &Scenario, placements: &[Placement]) -> Check<Metrics> {
@@ -331,14 +408,18 @@ fn metrics(scenario: &Scenario, placements: &[Placement]) -> Check<Metrics> {
     for placement in placements {
         let batch = batch_by_id(scenario, &placement.batch_id)
             .ok_or_else(|| format!("unknown batch in placement {}", placement.batch_id))?;
-        volume = volume.checked_add(batch.dry_volume_units)
+        volume = volume
+            .checked_add(batch.dry_volume_units)
             .ok_or_else(|| "scheduled volume overflow".to_owned())?;
         makespan = makespan.max(placement.finish_hour);
-        wait = wait.checked_add(u64::from(placement.start_hour - batch.ready_hour))
+        wait = wait
+            .checked_add(u64::from(placement.start_hour - batch.ready_hour))
             .ok_or_else(|| "wait-hours overflow".to_owned())?;
-        energy = energy.checked_add(u64::from(batch.heat_demand_kw) * u64::from(batch.duration_hours))
+        energy = energy
+            .checked_add(u64::from(batch.heat_demand_kw) * u64::from(batch.duration_hours))
             .ok_or_else(|| "energy-unit-hours overflow".to_owned())?;
-        busy_kiln_hours = busy_kiln_hours.checked_add(u64::from(batch.duration_hours))
+        busy_kiln_hours = busy_kiln_hours
+            .checked_add(u64::from(batch.duration_hours))
             .ok_or_else(|| "kiln-hours overflow".to_owned())?;
     }
     let available_kiln_hours = u64::from(scenario.horizon_hours)
@@ -369,24 +450,38 @@ fn independently_validate_schedule(scenario: &Scenario, placements: &[Placement]
             .ok_or_else(|| format!("unknown kiln scheduled: {}", placement.kiln_id))?;
 
         if !gate_reasons(scenario, batch).is_empty() {
-            return Err(format!("quality-gated batch scheduled: {}", placement.batch_id));
+            return Err(format!(
+                "quality-gated batch scheduled: {}",
+                placement.batch_id
+            ));
         }
         if !kiln.supported_profiles.contains(&batch.profile_id)
             || kiln.capacity_volume_units < batch.dry_volume_units
             || kiln.max_power_kw < batch.heat_demand_kw
         {
-            return Err(format!("kiln is incompatible with batch {}", placement.batch_id));
+            return Err(format!(
+                "kiln is incompatible with batch {}",
+                placement.batch_id
+            ));
         }
         if placement.start_hour < batch.ready_hour
             || placement.finish_hour > scenario.horizon_hours
             || placement.start_hour >= placement.finish_hour
         {
-            return Err(format!("batch outside release/horizon window: {}", placement.batch_id));
+            return Err(format!(
+                "batch outside release/horizon window: {}",
+                placement.batch_id
+            ));
         }
-        let expected_finish = placement.start_hour.checked_add(batch.duration_hours)
+        let expected_finish = placement
+            .start_hour
+            .checked_add(batch.duration_hours)
             .ok_or_else(|| "schedule time overflow".to_owned())?;
         if expected_finish != placement.finish_hour {
-            return Err(format!("finish time mismatches duration: {}", placement.batch_id));
+            return Err(format!(
+                "finish time mismatches duration: {}",
+                placement.batch_id
+            ));
         }
 
         for previous in &checked {
@@ -416,16 +511,26 @@ fn independently_validate_schedule(scenario: &Scenario, placements: &[Placement]
 
 fn baseline_schedule(scenario: &Scenario) -> Vec<Placement> {
     let blocked = gate_blocked(scenario);
-    let mut jobs: Vec<_> = scenario.batches.iter()
-        .filter(|batch| !blocked.contains_key(&batch.batch_id)).cloned().collect();
-    jobs.sort_by(|left, right| (left.ready_hour, &left.batch_id).cmp(&(right.ready_hour, &right.batch_id)));
+    let mut jobs: Vec<_> = scenario
+        .batches
+        .iter()
+        .filter(|batch| !blocked.contains_key(&batch.batch_id))
+        .cloned()
+        .collect();
+    jobs.sort_by(|left, right| {
+        (left.ready_hour, &left.batch_id).cmp(&(right.ready_hour, &right.batch_id))
+    });
     let mut kilns = scenario.kilns.clone();
     kilns.sort_by(|left, right| left.kiln_id.cmp(&right.kiln_id));
     let mut placements = Vec::new();
     for batch in jobs {
-        if batch.duration_hours > scenario.horizon_hours { continue; }
+        if batch.duration_hours > scenario.horizon_hours {
+            continue;
+        }
         let latest_start = scenario.horizon_hours - batch.duration_hours;
-        if batch.ready_hour > latest_start { continue; }
+        if batch.ready_hour > latest_start {
+            continue;
+        }
         let mut found = None;
         'starts: for start in batch.ready_hour..=latest_start {
             for kiln in &kilns {
@@ -440,11 +545,16 @@ fn baseline_schedule(scenario: &Scenario) -> Vec<Placement> {
                 }
             }
         }
-        if let Some(placement) = found { placements.push(placement); }
+        if let Some(placement) = found {
+            placements.push(placement);
+        }
     }
     placements.sort_by(|left, right| {
-        (left.start_hour, &left.batch_id, &left.kiln_id)
-            .cmp(&(right.start_hour, &right.batch_id, &right.kiln_id))
+        (left.start_hour, &left.batch_id, &left.kiln_id).cmp(&(
+            right.start_hour,
+            &right.batch_id,
+            &right.kiln_id,
+        ))
     });
     placements
 }
@@ -459,17 +569,27 @@ struct Score {
 }
 
 fn schedule_signature(placements: &[Placement]) -> String {
-    let mut values: Vec<_> = placements.iter()
-        .map(|p| format!("{}@{}@{}", p.batch_id, p.start_hour, p.kiln_id)).collect();
+    let mut values: Vec<_> = placements
+        .iter()
+        .map(|p| format!("{}@{}@{}", p.batch_id, p.start_hour, p.kiln_id))
+        .collect();
     values.sort();
     values.join("|")
 }
 
 fn score_is_better(candidate: &Score, current: &Score) -> bool {
-    if candidate.volume != current.volume { return candidate.volume > current.volume; }
-    if candidate.makespan != current.makespan { return candidate.makespan < current.makespan; }
-    if candidate.energy != current.energy { return candidate.energy < current.energy; }
-    if candidate.wait != current.wait { return candidate.wait < current.wait; }
+    if candidate.volume != current.volume {
+        return candidate.volume > current.volume;
+    }
+    if candidate.makespan != current.makespan {
+        return candidate.makespan < current.makespan;
+    }
+    if candidate.energy != current.energy {
+        return candidate.energy < current.energy;
+    }
+    if candidate.wait != current.wait {
+        return candidate.wait < current.wait;
+    }
     candidate.signature < current.signature
 }
 
@@ -502,7 +622,11 @@ impl Search<'_> {
         self.nodes += 1;
         if index == self.jobs.len() {
             if let Ok(candidate) = score(self.scenario, current) {
-                if self.best_score.as_ref().is_none_or(|best| score_is_better(&candidate, best)) {
+                if self
+                    .best_score
+                    .as_ref()
+                    .is_none_or(|best| score_is_better(&candidate, best))
+                {
                     self.best_score = Some(candidate);
                     self.best_placements = current.clone();
                 }
@@ -526,7 +650,9 @@ impl Search<'_> {
                             });
                             self.visit(index + 1, current);
                             current.pop();
-                            if self.exhausted { return; }
+                            if self.exhausted {
+                                return;
+                            }
                         }
                     }
                 }
@@ -538,12 +664,22 @@ impl Search<'_> {
 
 fn exhaustive_schedule(scenario: &Scenario) -> (Vec<Placement>, u64, bool) {
     let blocked = gate_blocked(scenario);
-    let mut jobs: Vec<_> = scenario.batches.iter()
-        .filter(|batch| !blocked.contains_key(&batch.batch_id)).cloned().collect();
-    jobs.sort_by(|left, right| (left.ready_hour, &left.batch_id).cmp(&(right.ready_hour, &right.batch_id)));
+    let mut jobs: Vec<_> = scenario
+        .batches
+        .iter()
+        .filter(|batch| !blocked.contains_key(&batch.batch_id))
+        .cloned()
+        .collect();
+    jobs.sort_by(|left, right| {
+        (left.ready_hour, &left.batch_id).cmp(&(right.ready_hour, &right.batch_id))
+    });
     let mut search = Search {
-        scenario, jobs, nodes: 0, exhausted: false,
-        best_score: None, best_placements: Vec::new(),
+        scenario,
+        jobs,
+        nodes: 0,
+        exhausted: false,
+        best_score: None,
+        best_placements: Vec::new(),
     };
     search.visit(0, &mut Vec::new());
     (search.best_placements, search.nodes, search.exhausted)
@@ -559,21 +695,35 @@ fn analyze_scenario(scenario: &Scenario) -> Check<ScenarioResult> {
     let oracle_metrics = metrics(scenario, &oracle)?;
     let baseline_ids = scheduled_ids(&baseline);
     let oracle_ids = scheduled_ids(&oracle);
-    let eligible_ids: BTreeSet<_> = scenario.batches.iter()
+    let eligible_ids: BTreeSet<_> = scenario
+        .batches
+        .iter()
         .filter(|batch| !gate_blocked_reasons.contains_key(&batch.batch_id))
-        .map(|batch| batch.batch_id.clone()).collect();
+        .map(|batch| batch.batch_id.clone())
+        .collect();
     let baseline_ids_set: BTreeSet<_> = baseline_ids.iter().cloned().collect();
     let oracle_ids_set: BTreeSet<_> = oracle_ids.iter().cloned().collect();
-    let baseline_unscheduled_eligible_ids = eligible_ids.difference(&baseline_ids_set).cloned().collect();
-    let oracle_unscheduled_eligible_ids = eligible_ids.difference(&oracle_ids_set).cloned().collect();
-    let oracle_disposition = if exhausted { "indeterminate_search_limit" } else { "optimal" }.to_owned();
-    let baseline_volume_gap_units = oracle_metrics.conforming_dry_volume_units
+    let baseline_unscheduled_eligible_ids = eligible_ids
+        .difference(&baseline_ids_set)
+        .cloned()
+        .collect();
+    let oracle_unscheduled_eligible_ids =
+        eligible_ids.difference(&oracle_ids_set).cloned().collect();
+    let oracle_disposition = if exhausted {
+        "indeterminate_search_limit"
+    } else {
+        "optimal"
+    }
+    .to_owned();
+    let baseline_volume_gap_units = oracle_metrics
+        .conforming_dry_volume_units
         .saturating_sub(baseline_metrics.conforming_dry_volume_units);
     let expected = &scenario.expected;
     let expected_control_matched = !exhausted
         && gate_blocked_reasons == expected.gate_blocked_reasons
         && baseline_ids == expected.baseline_scheduled_batch_ids
-        && baseline_metrics.conforming_dry_volume_units == expected.baseline_conforming_volume_units
+        && baseline_metrics.conforming_dry_volume_units
+            == expected.baseline_conforming_volume_units
         && oracle_ids == expected.oracle_scheduled_batch_ids
         && oracle_metrics.conforming_dry_volume_units == expected.oracle_conforming_volume_units
         && oracle_metrics.makespan_hour == expected.oracle_makespan_hour;
@@ -596,10 +746,16 @@ fn analyze_scenario(scenario: &Scenario) -> Check<ScenarioResult> {
 
 fn source_commit_from_args(args: &[String]) -> Check<String> {
     if args.len() != 4 || args[2] != "--source-commit" {
-        return Err("usage: wood-flow-kiln-bench <corpus.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: wood-flow-kiln-bench <corpus.json> --source-commit <40-hex-sha>".to_owned(),
+        );
     }
     let source_commit = args[3].to_ascii_lowercase();
-    if source_commit.len() != 40 || !source_commit.chars().all(|character| character.is_ascii_hexdigit()) {
+    if source_commit.len() != 40
+        || !source_commit
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
+    {
         return Err("--source-commit must be exactly 40 hexadecimal characters".to_owned());
     }
     Ok(source_commit)
@@ -608,18 +764,32 @@ fn source_commit_from_args(args: &[String]) -> Check<String> {
 fn run() -> Check<ExitCode> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
-        return Err("usage: wood-flow-kiln-bench <corpus.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: wood-flow-kiln-bench <corpus.json> --source-commit <40-hex-sha>".to_owned(),
+        );
     }
     let source_commit = source_commit_from_args(&args)?;
     let bytes = fs::read(&args[1]).map_err(|error| format!("cannot read corpus: {error}"))?;
-    let corpus: Corpus = serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
     validate_corpus(&corpus)?;
     let corpus_sha256 = format!("{:x}", Sha256::digest(&bytes));
-    let scenarios = corpus.scenarios.iter().map(analyze_scenario).collect::<Check<Vec<_>>>()?;
-    let expected_controls_matched = scenarios.iter().filter(|scenario| scenario.expected_control_matched).count();
+    let scenarios = corpus
+        .scenarios
+        .iter()
+        .map(analyze_scenario)
+        .collect::<Check<Vec<_>>>()?;
+    let expected_controls_matched = scenarios
+        .iter()
+        .filter(|scenario| scenario.expected_control_matched)
+        .count();
     let all_controls_matched = expected_controls_matched == scenarios.len();
     let receipt = Receipt {
-        result: if all_controls_matched { "pass".to_owned() } else { "fail".to_owned() },
+        result: if all_controls_matched {
+            "pass".to_owned()
+        } else {
+            "fail".to_owned()
+        },
         validator_version: VERSION.to_owned(),
         suite_id: corpus.suite_id,
         suite_version: corpus.suite_version,
@@ -631,8 +801,16 @@ fn run() -> Check<ExitCode> {
         search_node_limit: SEARCH_NODE_LIMIT,
         scenarios,
     };
-    println!("{}", serde_json::to_string_pretty(&receipt).map_err(|error| format!("cannot serialize receipt: {error}"))?);
-    Ok(if all_controls_matched { ExitCode::SUCCESS } else { ExitCode::from(2) })
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|error| format!("cannot serialize receipt: {error}"))?
+    );
+    Ok(if all_controls_matched {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(2)
+    })
 }
 
 fn main() -> ExitCode {
@@ -650,16 +828,22 @@ mod tests {
     use super::*;
 
     fn corpus() -> Corpus {
-        serde_json::from_str(include_str!("../../../docs/tech/wood-flow-kiln-corpus-v0.1.json"))
-            .expect("frozen synthetic corpus must deserialize")
+        serde_json::from_str(include_str!(
+            "../../../docs/tech/wood-flow-kiln-corpus-v0.1.json"
+        ))
+        .expect("frozen synthetic corpus must deserialize")
     }
 
     #[test]
     fn frozen_corpus_matches_known_answers() {
         let fixture = corpus();
         validate_corpus(&fixture).expect("corpus metadata must be valid");
-        let results = fixture.scenarios.iter().map(analyze_scenario)
-            .collect::<Check<Vec<_>>>().expect("all schedules should validate");
+        let results = fixture
+            .scenarios
+            .iter()
+            .map(analyze_scenario)
+            .collect::<Check<Vec<_>>>()
+            .expect("all schedules should validate");
         assert_eq!(5, results.len());
         assert!(results.iter().all(|result| result.expected_control_matched));
     }
@@ -667,7 +851,9 @@ mod tests {
     #[test]
     fn exhaustive_oracle_beats_greedy_on_conforming_volume() {
         let fixture = corpus();
-        let scenario = fixture.scenarios.iter()
+        let scenario = fixture
+            .scenarios
+            .iter()
             .find(|scenario| scenario.scenario_id == "GREEDY_BASELINE_REGRESSION")
             .expect("greedy regression fixture exists");
         let result = analyze_scenario(scenario).expect("schedule should be analyzable");
@@ -679,12 +865,24 @@ mod tests {
     #[test]
     fn shared_power_envelope_breach_is_rejected() {
         let fixture = corpus();
-        let scenario = fixture.scenarios.iter()
+        let scenario = fixture
+            .scenarios
+            .iter()
             .find(|scenario| scenario.scenario_id == "SHARED_POWER_FORCES_SERIAL")
             .expect("shared-power fixture exists");
         let bad = vec![
-            Placement { batch_id:"BATCH_A".to_owned(), kiln_id:"KILN_A".to_owned(), start_hour:0, finish_hour:2 },
-            Placement { batch_id:"BATCH_B".to_owned(), kiln_id:"KILN_B".to_owned(), start_hour:0, finish_hour:2 },
+            Placement {
+                batch_id: "BATCH_A".to_owned(),
+                kiln_id: "KILN_A".to_owned(),
+                start_hour: 0,
+                finish_hour: 2,
+            },
+            Placement {
+                batch_id: "BATCH_B".to_owned(),
+                kiln_id: "KILN_B".to_owned(),
+                start_hour: 0,
+                finish_hour: 2,
+            },
         ];
         assert!(independently_validate_schedule(scenario, &bad).is_err());
     }
@@ -692,12 +890,24 @@ mod tests {
     #[test]
     fn same_kiln_overlap_is_rejected() {
         let fixture = corpus();
-        let scenario = fixture.scenarios.iter()
+        let scenario = fixture
+            .scenarios
+            .iter()
             .find(|scenario| scenario.scenario_id == "SHARED_POWER_FORCES_SERIAL")
             .expect("shared-power fixture exists");
         let bad = vec![
-            Placement { batch_id:"BATCH_A".to_owned(), kiln_id:"KILN_A".to_owned(), start_hour:0, finish_hour:2 },
-            Placement { batch_id:"BATCH_B".to_owned(), kiln_id:"KILN_A".to_owned(), start_hour:1, finish_hour:3 },
+            Placement {
+                batch_id: "BATCH_A".to_owned(),
+                kiln_id: "KILN_A".to_owned(),
+                start_hour: 0,
+                finish_hour: 2,
+            },
+            Placement {
+                batch_id: "BATCH_B".to_owned(),
+                kiln_id: "KILN_A".to_owned(),
+                start_hour: 1,
+                finish_hour: 3,
+            },
         ];
         assert!(independently_validate_schedule(scenario, &bad).is_err());
     }
