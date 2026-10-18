@@ -105,8 +105,8 @@ pub fn run_suite() -> Vec<ExperimentCheck> {
 
     // Kepler: velocity-Verlet integration of a circular Earth-centred two-body
     // orbit, using Earth's standard gravitational parameter.
-    let mu = 3.986_004_418e14;
-    let radius = 7.0e6;
+    let mu: f64 = 3.986_004_418e14;
+    let radius: f64 = 7.0e6;
     let circular_speed = (mu / radius).sqrt();
     let period = 2.0 * PI * (radius.powi(3) / mu).sqrt();
     let (relative_energy_drift, relative_angular_momentum_drift) =
@@ -136,9 +136,7 @@ pub fn run_suite() -> Vec<ExperimentCheck> {
     // This checks the extraction pipeline, not an experimental measurement of h.
     let h_over_e_ev_s = 4.135_667_696e-15;
     let work_function_ev = 2.0;
-    let frequencies = [
-        5.5e14, 6.0e14, 6.5e14, 7.0e14, 7.5e14, 8.0e14, 8.5e14,
-    ];
+    let frequencies = [5.5e14, 6.0e14, 6.5e14, 7.0e14, 7.5e14, 8.0e14, 8.5e14];
     let stopping_voltages: Vec<f64> = frequencies
         .iter()
         .map(|frequency| h_over_e_ev_s * frequency - work_function_ev)
@@ -181,10 +179,10 @@ pub fn run_suite() -> Vec<ExperimentCheck> {
 
     // Michelson-Morley: compare idealized predictions. The classical value is
     // a counterfactual model prediction, not a historical observed shift.
-    let c = 299_792_458.0;
-    let arm_length_m = 11.0;
-    let assumed_aether_speed_m_s = 30_000.0;
-    let wavelength_m = 500.0e-9;
+    let c: f64 = 299_792_458.0;
+    let arm_length_m: f64 = 11.0;
+    let assumed_aether_speed_m_s: f64 = 30_000.0;
+    let wavelength_m: f64 = 500.0e-9;
     let classical_shift =
         2.0 * arm_length_m * (assumed_aether_speed_m_s / c).powi(2) / wavelength_m;
     checks.push(check(
@@ -303,8 +301,8 @@ pub fn run_suite() -> Vec<ExperimentCheck> {
     let impact_two = 2.0;
     let angle_one = rutherford_scattering_angle(k, kinetic_energy, impact_one);
     let angle_two = rutherford_scattering_angle(k, kinetic_energy, impact_two);
-    let invariant = 0.5
-        * (impact_one * (angle_one / 2.0).tan() + impact_two * (angle_two / 2.0).tan());
+    let invariant =
+        0.5 * (impact_one * (angle_one / 2.0).tan() + impact_two * (angle_two / 2.0).tan());
     checks.push(check(
         "rutherford_scattering",
         "impact_parameter_angle_invariant",
@@ -335,8 +333,7 @@ fn synthetic_millikan_observations() -> Vec<f64> {
     let elementary_charge = 1.602_176_634_f64;
     let multiplicities = [2.0, 3.0, 5.0, 4.0, 7.0, 6.0, 9.0, 8.0, 11.0, 10.0];
     let noise = [
-        0.0008, -0.0012, 0.0004, -0.0006, 0.0011, -0.0003, 0.0002, -0.0010, 0.0005,
-        -0.0002,
+        0.0008, -0.0012, 0.0004, -0.0006, 0.0011, -0.0003, 0.0002, -0.0010, 0.0005, -0.0002,
     ];
     multiplicities
         .iter()
@@ -349,7 +346,11 @@ fn synthetic_millikan_observations() -> Vec<f64> {
 /// each observation to its nearest allowed integer multiple. Observations use
 /// units of 1e-19 C; a declared search interval prevents trivial scale aliases.
 fn estimate_elementary_charge(observations: &[f64]) -> Option<f64> {
-    if observations.len() < 3 || observations.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+    if observations.len() < 3
+        || observations
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+    {
         return None;
     }
     let mut best_charge = f64::NAN;
@@ -374,7 +375,9 @@ fn lattice_rms_residual(observations: &[f64], elementary_charge: f64) -> Option<
     if observations.is_empty()
         || !elementary_charge.is_finite()
         || elementary_charge <= 0.0
-        || observations.iter().any(|value| !value.is_finite() || *value <= 0.0)
+        || observations
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
     {
         return None;
     }
@@ -426,9 +429,8 @@ fn integrate_circular_orbit(
     let mut vx = 0.0;
     let mut vy = initial_speed;
 
-    let specific_energy = |x: f64, y: f64, vx: f64, vy: f64| {
-        0.5 * (vx * vx + vy * vy) - mu / x.hypot(y)
-    };
+    let specific_energy =
+        |x: f64, y: f64, vx: f64, vy: f64| 0.5 * (vx * vx + vy * vy) - mu / x.hypot(y);
     let specific_angular_momentum = |x: f64, y: f64, vx: f64, vy: f64| x * vy - y * vx;
 
     let energy_initial = specific_energy(x, y, vx, vy);
@@ -454,8 +456,8 @@ fn integrate_circular_orbit(
 
         let energy = specific_energy(x, y, vx, vy);
         let angular_momentum = specific_angular_momentum(x, y, vx, vy);
-        max_relative_energy_drift = max_relative_energy_drift
-            .max(((energy - energy_initial) / energy_initial).abs());
+        max_relative_energy_drift =
+            max_relative_energy_drift.max(((energy - energy_initial) / energy_initial).abs());
         max_relative_angular_momentum_drift = max_relative_angular_momentum_drift
             .max(((angular_momentum - angular_momentum_initial) / angular_momentum_initial).abs());
     }
@@ -466,7 +468,11 @@ fn integrate_circular_orbit(
     )
 }
 
-fn double_slit_intensity(position_in_fringe_units: f64, fringe_spacing: f64, visibility: f64) -> f64 {
+fn double_slit_intensity(
+    position_in_fringe_units: f64,
+    fringe_spacing: f64,
+    visibility: f64,
+) -> f64 {
     let phase = 2.0 * PI * position_in_fringe_units / fringe_spacing;
     1.0 + visibility * phase.cos()
 }
@@ -475,7 +481,11 @@ fn spin_up_probability(axis_angle_rad: f64) -> f64 {
     (axis_angle_rad / 2.0).cos().powi(2)
 }
 
-fn rutherford_scattering_angle(coulomb_parameter: f64, kinetic_energy: f64, impact_parameter: f64) -> f64 {
+fn rutherford_scattering_angle(
+    coulomb_parameter: f64,
+    kinetic_energy: f64,
+    impact_parameter: f64,
+) -> f64 {
     2.0 * (coulomb_parameter / (2.0 * kinetic_energy * impact_parameter)).atan()
 }
 
@@ -491,13 +501,20 @@ fn check_is_passing(entry: &ExperimentCheck) -> bool {
 }
 
 pub fn json_report(checks: &[ExperimentCheck]) -> String {
-    let passed = checks.iter().filter(|entry| check_is_passing(entry)).count();
+    let passed = checks
+        .iter()
+        .filter(|entry| check_is_passing(entry))
+        .count();
     let all_passed = !checks.is_empty() && passed == checks.len();
     let mut output = String::from(
         "{\"suite_id\":\"physics-experiment-atlas-v0.1\",\"claim_ceiling\":\"analytic and synthetic model checks only; no historical raw-data reproduction or apparatus validation\",\"passed\":",
     );
     output.push_str(if all_passed { "true" } else { "false" });
-    output.push_str(&format!(",\"check_count\":{},\"passed_count\":{},\"checks\":[", checks.len(), passed));
+    output.push_str(&format!(
+        ",\"check_count\":{},\"passed_count\":{},\"checks\":[",
+        checks.len(),
+        passed
+    ));
 
     for (index, entry) in checks.iter().enumerate() {
         if index > 0 {
@@ -587,9 +604,15 @@ mod tests {
     #[test]
     fn foucault_precession_matches_latitude_and_hemisphere_controls() {
         assert!(foucault_precession_rate_deg_per_hour(0.0).abs() < 1.0e-12);
-        assert!((foucault_precession_rate_deg_per_hour(90.0) + 15.041_066_876_065_45).abs() < 1.0e-10);
-        assert!((foucault_precession_rate_deg_per_hour(45.0)
-            + foucault_precession_rate_deg_per_hour(-45.0)).abs() < 1.0e-12);
+        assert!(
+            (foucault_precession_rate_deg_per_hour(90.0) + 15.041_066_876_065_45).abs() < 1.0e-10
+        );
+        assert!(
+            (foucault_precession_rate_deg_per_hour(45.0)
+                + foucault_precession_rate_deg_per_hour(-45.0))
+            .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]

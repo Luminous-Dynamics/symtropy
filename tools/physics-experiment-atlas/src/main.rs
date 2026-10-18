@@ -12,7 +12,9 @@ fn main() -> ExitCode {
     match args.get(1).map(String::as_str) {
         Some("--help") => {
             println!("physics-experiment-atlas");
-            println!("Runs deterministic analytic/synthetic checks for ten landmark physics experiment families.");
+            println!(
+                "Runs deterministic analytic/synthetic checks for ten landmark physics experiment families."
+            );
             println!("  --json  emit a stable JSON qualification receipt");
             println!("  --help  show this help");
             println!("No row is historical raw data or evidence of laboratory reproduction.");
