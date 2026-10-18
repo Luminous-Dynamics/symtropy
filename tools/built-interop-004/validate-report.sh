@@ -25,13 +25,13 @@ require_contract REPORT_ENVELOPE_INVALID '
   .schema_version == "1.0.0" and
   .benchmark_id == "BUILT-INTEROP-004" and
   (.run_id | type == "string" and length > 0) and
-  (.reported_at | type == "string" and length > 0) and
+  (.reported_at | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$")) and
   (.scope_statement | type == "string" and length > 0) and
   (.limitations | type == "array" and length > 0 and all(.[]; type == "string" and length > 0)) and
   (.evaluation_profile | type == "object" and
     ([keys[]] | sort) == (["ifc_schema", "ids_version", "supported_subset"] | sort) and
     (.ifc_schema | type == "string" and length > 0) and
-    .ids_version == "1.0.0" and
+    .ids_version == "1.0" and
     (.supported_subset | type == "string" and length > 0)) and
   (.evaluator | type == "object" and
     ([keys[]] | sort) == (["name", "version", "source_commit_sha"] | sort) and
