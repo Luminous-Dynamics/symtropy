@@ -959,7 +959,7 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         suite_id: fixture.suite_id,
         input_sha256: sha256_hex(bytes),
         input_bytes: bytes.len(),
-        algorithm: "five_priority_rules_plus_bounded_topological_fallback_with_independent_validator"
+        algorithm: "priority_portfolio_with_bounded_order_recovery_and_independent_validation"
             .to_owned(),
         case_count: results.len(),
         all_returned_schedules_independently_validated: every_schedule_valid,
@@ -994,12 +994,22 @@ mod tests {
             {
                 assert_eq!(
                     result.nominal.status,
+                    "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL"
+                );
+                assert_eq!(result.nominal.makespan, Some(19));
+                assert_eq!(
+                    result.nominal.priority_only_status,
                     "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY"
                 );
-                assert!(result.nominal.makespan.is_none());
+                assert_eq!(
+                    result.nominal.fallback_status,
+                    "CANDIDATE_FOUND_SEARCH_COMPLETE_NOT_OPTIMAL_PROVEN"
+                );
+                assert!(result.nominal.fallback_states_expanded > 0);
+                assert!(result.nominal.fallback_search_complete);
                 assert_eq!(
                     result.nominal.validation_status,
-                    "NOT_APPLICABLE_NO_CANDIDATE"
+                    "INDEPENDENT_VALIDATOR_PASSED"
                 );
             } else if case_feasible {
                 assert_ne!(
@@ -1014,7 +1024,7 @@ mod tests {
     }
 
     #[test]
-    fn failure_to_find_a_candidate_is_not_reported_as_infeasibility() {
+    fn bounded_fallback_recovers_a_schedule_after_priority_rules_miss() {
         let report = plan_fixture_bytes(FIXTURE).unwrap();
         let result = report
             .case_results
@@ -1022,10 +1032,14 @@ mod tests {
             .find(|case| case.case_id == "priority_rules_miss_feasible_schedule")
             .unwrap();
         assert_eq!(
-            result.nominal.status,
+            result.nominal.priority_only_status,
             "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY"
         );
-        assert_eq!(result.nominal.makespan, None);
+        assert_eq!(
+            result.nominal.status,
+            "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL"
+        );
+        assert_eq!(result.nominal.makespan, Some(19));
         assert_eq!(result.optimality_claim, "NOT_PROVEN");
     }
 
