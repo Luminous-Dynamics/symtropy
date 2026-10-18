@@ -375,7 +375,7 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                         ),
                     );
                 }
-                if observation.observed_value.as_deref() != Some(&requirement.expected_value)
+                if observation.observed_value.as_deref() != Some(requirement.expected_value.as_str())
                     || observation.unit != requirement.unit
                 {
                     add_issue(
@@ -591,11 +591,11 @@ fn main() {
     let report = build_report(&manifest, &raw_input);
     let json = serde_json::to_vec_pretty(&report)
         .expect("serializing a report should not fail");
-    if let Some(path) = output_path {
-        if let Err(error) = fs::write(&path, &json) {
-            eprintln!("Cannot write {}: {error}", path.display());
-            process::exit(2);
-        }
+    if let Some(path) = output_path
+        && let Err(error) = fs::write(&path, &json)
+    {
+        eprintln!("Cannot write {}: {error}", path.display());
+        process::exit(2);
     }
     println!("{}", String::from_utf8_lossy(&json));
     if !report.summary.suite_passed {
