@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/ENERGYPLUS_RUN_RECEIPT_FIXTURES_V0_1.schema.json",
+  "title": "Synthetic EnergyPlus receipt-gate fixtures v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "benchmark_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "required_fixture_count",
+    "fixtures"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "benchmark_id": {
+      "const": "ENERGYPLUS-RUN-RECEIPT-GATE"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_receipt_gate_fixtures_not_engine_runs"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    },
+    "required_fixture_count": {
+      "const": 10
+    },
+    "fixtures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fixture_id",
+          "title",
+          "receipt",
+          "expected_gate",
+          "expected_blocker_codes"
+        ],
+        "properties": {
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^EPLUS-F-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 8
+          },
+          "receipt": {
+            "$ref": "ENERGYPLUS_RUN_RECEIPT_V0_1.schema.json"
+          },
+          "expected_gate": {
+            "type": "string",
+            "enum": [
+              "eligible_for_reference_comparison",
+              "blocked",
+              "unknown"
+            ]
+          },
+          "expected_blocker_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_:-]{1,100}$"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 10,
+      "maxItems": 10
+    }
+  }
+}
