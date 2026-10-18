@@ -45,13 +45,19 @@ jobs:
           set -euo pipefail
           fixture="docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
           report="$RUNNER_TEMP/habitat-scheduling-planner-report.json"
-          cargo run --locked --manifest-path tools/habitat-scheduling-planner/Cargo.toml -- "$fixture" > "$report"
+          cargo run --locked \
+            --manifest-path tools/habitat-scheduling-planner/Cargo.toml -- \
+            "$fixture" > "$report"
 
-          jq -e '
+          jq -e \
+            --arg claim_ceiling \
+              "synthetic_heuristic_schedule_candidates_not_optimality_construction_or_safety_authority" \
+            --arg robust_status \
+              "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT" '
             .schema_version == "luminous.habitat_schedule_planner_report.v0.1" and
             .case_count == 9 and
             .all_returned_schedules_independently_validated == true and
-            .claim_ceiling == "synthetic_heuristic_schedule_candidates_not_optimality_construction_or_safety_authority" and
+            .claim_ceiling == $claim_ceiling and
             all(.case_results[];
               .optimality_claim == "NOT_PROVEN" and
               all([.nominal, .upper_duration_unconstrained, .upper_duration_with_deadline][];
@@ -59,8 +65,14 @@ jobs:
                 .validation_status == "INDEPENDENT_VALIDATOR_PASSED"
               )
             ) and
-            ((.case_results[] | select(.case_id == "independent_tasks_distinct_crews") | .nominal.makespan) == 6) and
-            ((.case_results[] | select(.case_id == "independent_tasks_shared_exclusive_crew") | .nominal.makespan) == 10) and
-            ((.case_results[] | select(.case_id == "nominally_fast_but_not_upper_scenario_robust") | .robust_status) == "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT")
+            ((.case_results[] |
+              select(.case_id == "independent_tasks_distinct_crews") |
+              .nominal.makespan) == 6) and
+            ((.case_results[] |
+              select(.case_id == "independent_tasks_shared_exclusive_crew") |
+              .nominal.makespan) == 10) and
+            ((.case_results[] |
+              select(.case_id == "nominally_fast_but_not_upper_scenario_robust") |
+              .robust_status) == $robust_status)
           ' "$report" >/dev/null
           echo "All returned schedule candidates were independently validated; optimality is not claimed."
