@@ -541,6 +541,55 @@ fn sample_contact_nearest(
         .collect()
 }
 
+/// Compare binary stance labels after each trace is aligned to the common time grid.
+/// Undefined precision/recall are represented as null instead of silently coerced to zero.
+fn contact_agreement(
+    reference: &[bool],
+    prediction: &[bool],
+) -> Result<ContactAgreementReport, BenchError> {
+    if reference.is_empty() {
+        return fail("contact agreement requires at least one aligned sample");
+    }
+    if reference.len() != prediction.len() {
+        return fail("contact agreement requires equal aligned sample counts");
+    }
+
+    let mut true_positive = 0usize;
+    let mut true_negative = 0usize;
+    let mut false_positive = 0usize;
+    let mut false_negative = 0usize;
+    for (expected, actual) in reference.iter().zip(prediction) {
+        match (*expected, *actual) {
+            (true, true) => true_positive += 1,
+            (false, false) => true_negative += 1,
+            (false, true) => false_positive += 1,
+            (true, false) => false_negative += 1,
+        }
+    }
+
+    let predicted_contact = true_positive + false_positive;
+    let reference_contact = true_positive + false_negative;
+    let precision = (predicted_contact > 0)
+        .then_some(true_positive as f64 / predicted_contact as f64);
+    let recall =
+        (reference_contact > 0).then_some(true_positive as f64 / reference_contact as f64);
+    let f1_denominator = 2 * true_positive + false_positive + false_negative;
+    let f1 = (f1_denominator > 0)
+        .then_some((2 * true_positive) as f64 / f1_denominator as f64);
+
+    Ok(ContactAgreementReport {
+        samples: reference.len(),
+        true_positive,
+        true_negative,
+        false_positive,
+        false_negative,
+        accuracy: (true_positive + true_negative) as f64 / reference.len() as f64,
+        precision,
+        recall,
+        f1,
+    })
+}
+
 #[derive(Debug, Serialize)]
 struct RootTrajectoryReport {
     samples: usize,
@@ -572,6 +621,19 @@ struct FootDriftReport {
     samples_in_contact: usize,
     rms_drift_m: f64,
     max_drift_m: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct ContactAgreementReport {
+    samples: usize,
+    true_positive: usize,
+    true_negative: usize,
+    false_positive: usize,
+    false_negative: usize,
+    accuracy: f64,
+    precision: Option<f64>,
+    recall: Option<f64>,
+    f1: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -622,6 +684,8 @@ struct BenchmarkReport {
     joint_trajectory_error: JointTrajectoryReport,
     left_stance_foot_drift: FootDriftReport,
     right_stance_foot_drift: FootDriftReport,
+    left_foot_contact_agreement: ContactAgreementReport,
+    right_foot_contact_agreement: ContactAgreementReport,
     prediction_root_mean_squared_jerk_m2_s6: f64,
     elapsed_metric_computation_ms: f64,
     caveats: Vec<&'static str>,
@@ -747,6 +811,11 @@ fn evaluate(
         per_joint: joint_metrics,
     };
 
+    let reference_left_contact = sample_contact_nearest(
+        &reference.timestamps_sec,
+        &reference.left_foot_contact,
+        &grid.timestamps_sec,
+    );
     let left_foot = interpolate_positions(
         &prediction.timestamps_sec,
         &prediction.left_foot_world_m,
@@ -757,9 +826,15 @@ fn evaluate(
         &prediction.left_foot_contact,
         &grid.timestamps_sec,
     );
+    let left_contact_agreement = contact_agreement(&reference_left_contact, &left_contact)?;
     let left_drift = stance_foot_drift(&left_foot, &left_contact)
         .map_err(|error| BenchError(format!("left stance-foot metric failed: {error}")))?;
 
+    let reference_right_contact = sample_contact_nearest(
+        &reference.timestamps_sec,
+        &reference.right_foot_contact,
+        &grid.timestamps_sec,
+    );
     let right_foot = interpolate_positions(
         &prediction.timestamps_sec,
         &prediction.right_foot_world_m,
@@ -770,6 +845,7 @@ fn evaluate(
         &prediction.right_foot_contact,
         &grid.timestamps_sec,
     );
+    let right_contact_agreement = contact_agreement(&reference_right_contact, &right_contact)?;
     let right_drift = stance_foot_drift(&right_foot, &right_contact)
         .map_err(|error| BenchError(format!("right stance-foot metric failed: {error}")))?;
 
@@ -781,7 +857,7 @@ fn evaluate(
         reference.run.source_kind.is_synthetic() || prediction.run.source_kind.is_synthetic();
     let mut caveats = vec![
         "Low-level trajectory and stance-foot metrics do not prove visual, biomechanical, or behavioral realism.",
-        "Foot drift is measured only over predicted contact intervals; false contact labels can make this metric misleading.",
+        "Foot drift is measured only over predicted contact intervals; inspect contact precision, recall and F1 because incorrect labels can make drift look deceptively good.",
         "Root jerk is noise-sensitive. Interpret it with tracking error and task success, never as a standalone quality score.",
         "ADE and maximum error use the common uniform grid; FDE is evaluated at the exact overlap end by position interpolation.",
         "Root-path error alone is not a full-body fidelity score; inspect named-joint trajectory metrics when the trace includes them.",
@@ -840,6 +916,8 @@ fn evaluate(
             rms_drift_m: right_drift.rms_drift_m,
             max_drift_m: right_drift.max_drift_m,
         },
+        left_foot_contact_agreement: left_contact_agreement,
+        right_foot_contact_agreement: right_contact_agreement,
         prediction_root_mean_squared_jerk_m2_s6: jerk,
         elapsed_metric_computation_ms,
         caveats,
@@ -919,7 +997,8 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             "Motion benchmark: validity={}, samples={}, joints_scored={}, ",
             "root ADE={:.4} m, FDE={:.4} m, max={:.4} m, ",
             "macro joint ADE={}, max joint FDE={}, ",
-            "left-foot drift RMS={:.4} m, right-foot drift RMS={:.4} m, ",
+            "left-foot drift RMS={:.4} m (contact F1={}), ",
+            "right-foot drift RMS={:.4} m (contact F1={}), ",
             "root jerk={:.4} m²/s⁶"
         ),
         report.validity,
@@ -931,7 +1010,9 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         joint_ade,
         joint_fde,
         report.left_stance_foot_drift.rms_drift_m,
+        report.left_foot_contact_agreement.f1.map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
         report.right_stance_foot_drift.rms_drift_m,
+        report.right_foot_contact_agreement.f1.map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
         report.prediction_root_mean_squared_jerk_m2_s6
     );
 
@@ -972,12 +1053,54 @@ mod tests {
         assert_eq!(report.root_trajectory_error.final_displacement_error_m, 0.0);
         assert_eq!(report.left_stance_foot_drift.max_drift_m, 0.0);
         assert_eq!(report.right_stance_foot_drift.max_drift_m, 0.0);
+        assert_eq!(report.left_foot_contact_agreement.f1, Some(1.0));
+        assert_eq!(report.right_foot_contact_agreement.f1, Some(1.0));
         assert!(!report.provenance.asset_hashes_match);
         assert!(
             report
                 .caveats
                 .iter()
                 .any(|value| value.contains("not evidence"))
+        );
+    }
+
+    #[test]
+    fn contact_negative_control_detects_mistimed_stance_labels() {
+        let reference = fixture();
+        let mut prediction = fixture();
+        // Invert left-foot support labels while leaving the foot trajectory unchanged.
+        // The drift metric can still look perfect for a stationary foot; contact F1 cannot.
+        prediction.left_foot_contact = vec![false, false, true, true];
+
+        let report =
+            evaluate(&reference, &prediction, None).expect("contact labels remain evaluable");
+        let contact = &report.left_foot_contact_agreement;
+        assert_eq!(contact.true_positive, 0);
+        assert_eq!(contact.true_negative, 0);
+        assert_eq!(contact.false_positive, 2);
+        assert_eq!(contact.false_negative, 2);
+        assert_eq!(contact.accuracy, 0.0);
+        assert_eq!(contact.f1, Some(0.0));
+        assert_eq!(report.left_stance_foot_drift.rms_drift_m, 0.0);
+    }
+
+    #[test]
+    fn contact_agreement_represents_undefined_positive_class_metrics_as_null() {
+        let report = contact_agreement(&[false, false], &[false, false])
+            .expect("aligned labels compare");
+        assert_eq!(report.accuracy, 1.0);
+        assert_eq!(report.precision, None);
+        assert_eq!(report.recall, None);
+        assert_eq!(report.f1, None);
+    }
+
+    #[test]
+    fn rejects_contact_label_length_mismatch() {
+        assert!(
+            contact_agreement(&[true, false], &[true])
+                .unwrap_err()
+                .to_string()
+                .contains("equal aligned sample counts")
         );
     }
 
