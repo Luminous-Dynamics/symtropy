@@ -684,6 +684,23 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
         cascade_report,
     )?;
 
+    // Canonical static pinch target fixture: one hot and one cold sensible stream.
+    let pinch_problem = pinch::PinchProblem::new(
+        vec![pinch::HotProcessStream::new(
+            Kelvin::new(423.15)?,
+            Kelvin::new(323.15)?,
+            EnergyJ::new(100_000.0)?,
+        )?],
+        vec![pinch::ColdProcessStream::new(
+            Kelvin::new(393.15)?,
+            Kelvin::new(493.15)?,
+            EnergyJ::new(120_000.0)?,
+        )?],
+        TemperatureDifferenceK::new(20.0)?,
+    )?;
+    let pinch_targets = pinch::target_pinch_utilities(&pinch_problem)?;
+    pinch::verify_pinch_targets(&pinch_problem, &pinch_targets)?;
+
     let mut json = String::from(
         "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
@@ -760,6 +777,23 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "cascade_high_store_final_temperature_k", cascade_high_end.temperature.value());
     number(&mut json, "cascade_low_store_final_temperature_k", cascade_low_end.temperature.value());
     json.push_str(",\"cascade_blocked_by_temperature\":false");
+
+    json.push_str(",\"pinch_fixture_id\":\"static-sensible-pinch-001\"");
+    number(&mut json, "pinch_hot_supply_temperature_k", 423.15);
+    number(&mut json, "pinch_hot_target_temperature_k", 323.15);
+    number(&mut json, "pinch_hot_available_heat_j", 100_000.0);
+    number(&mut json, "pinch_cold_supply_temperature_k", 393.15);
+    number(&mut json, "pinch_cold_target_temperature_k", 493.15);
+    number(&mut json, "pinch_cold_required_heat_j", 120_000.0);
+    number(&mut json, "pinch_minimum_approach_k", 20.0);
+    number(&mut json, "pinch_minimum_hot_utility_j", pinch_targets.minimum_hot_utility.value());
+    number(&mut json, "pinch_minimum_cold_utility_j", pinch_targets.minimum_cold_utility.value());
+    number(&mut json, "pinch_maximum_process_heat_recovery_j", pinch_targets.maximum_process_heat_recovery.value());
+    number(&mut json, "pinch_interval_count", pinch_targets.intervals.len() as f64);
+    number(&mut json, "pinch_point_count", pinch_targets.pinch_points.len() as f64);
+    number(&mut json, "pinch_shifted_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.shifted_temperature.value()));
+    number(&mut json, "pinch_hot_side_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.hot_side_temperature.value()));
+    number(&mut json, "pinch_cold_side_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.cold_side_temperature.value()));
     json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}");
     Ok(json)
 }
@@ -816,6 +850,11 @@ mod tests {
         assert!(first.contains("\"standing_loss_ambient_temperature_k\":300.000000000"));
         assert!(first.contains("\"useful_captured_heat_j\":700000.000000000"));
         assert!(first.contains("\"unmet_useful_heat_j\":0.000000000"));
+        assert!(first.contains("\"pinch_fixture_id\":\"static-sensible-pinch-001\""));
+        assert!(first.contains("\"pinch_minimum_hot_utility_j\":110000.000000000"));
+        assert!(first.contains("\"pinch_minimum_cold_utility_j\":90000.000000000"));
+        assert!(first.contains("\"pinch_maximum_process_heat_recovery_j\":10000.000000000"));
+        assert!(first.contains("\"pinch_point_count\":1.000000000"));
     }
 
     #[test]
