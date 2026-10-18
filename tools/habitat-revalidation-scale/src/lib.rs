@@ -285,6 +285,12 @@ fn validate_profile(profile: &ProfileSpec) -> Result<(), String> {
         * profile.unrelated_artifact_fraction_ppm as u128)
         / 1_000_000u128) as usize;
     let detached_tasks = profile.task_count - profile.reachable_task_count;
+    let relevant_count = profile.artifact_count - unrelated_count;
+    if relevant_count < profile.reachable_task_count {
+        return Err(format!(
+            "{prefix}unrelated fraction leaves too few artifacts for the target-reachable graph"
+        ));
+    }
     if unrelated_count < detached_tasks {
         return Err(format!(
             "{prefix}unrelated fraction cannot accommodate detached task outputs"
@@ -662,7 +668,7 @@ fn verify_workload(workload: &Workload) -> Result<(), String> {
         if let Some(children) = dependents.get(id) {
             for child in children {
                 let count = remaining_dependencies
-                    .get_mut(child)
+                    .get_mut(*child)
                     .ok_or_else(|| format!("internal graph index missing {child}"))?;
                 *count -= 1;
                 if *count == 0 {
@@ -842,6 +848,13 @@ mod tests {
     fn absurd_workload_sizes_are_rejected_before_materialization() {
         let mut value: Value = serde_json::from_slice(MATRIX_BYTES).unwrap();
         value["profiles"][0]["artifact_count"] = Value::from(1_000_000_000u64);
+        assert!(parse_matrix(value.to_string().as_bytes()).is_err());
+    }
+
+    #[test]
+    fn unrelated_fraction_cannot_consume_required_target_graph() {
+        let mut value: Value = serde_json::from_slice(MATRIX_BYTES).unwrap();
+        value["profiles"][0]["unrelated_artifact_fraction_ppm"] = Value::from(999_999u64);
         assert!(parse_matrix(value.to_string().as_bytes()).is_err());
     }
 
