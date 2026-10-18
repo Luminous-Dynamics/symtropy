@@ -89,6 +89,7 @@ pub enum KnownNonAcceptanceReasonV1 {
 #[serde(rename_all = "snake_case")]
 pub enum UsefulWindowStatusV1 {
     Open,
+    Closed,
     Unknown,
 }
 
@@ -896,6 +897,62 @@ mod tests {
         assert!(report.blockers.iter().any(|blocker| {
             blocker.code == FieldEvalBlockerCodeV1::DuplicateOutcomeRecord
         }));
+    }
+
+    #[test]
+    fn closed_window_cannot_remain_in_pending_farmer_decision_class() {
+        let mut manifest = valid_manifest();
+        let record = manifest
+            .outcome_records
+            .iter_mut()
+            .find(|record| record.request_ref == "req-study-004")
+            .expect("pending farmer decision record");
+        record.outcome =
+            RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision {
+                useful_window_status: UsefulWindowStatusV1::Closed,
+            };
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::InvalidOutcomeShape
+        }));
+    }
+
+    #[test]
+    fn rework_accepted_inside_window_counts_as_confirmed_acceptance() {
+        let mut manifest = valid_manifest();
+        let record = manifest
+            .outcome_records
+            .iter_mut()
+            .find(|record| record.request_ref == "req-study-005")
+            .expect("dispute record");
+        record.outcome = RequestOutcomeClassV1::DisputedOrRework {
+            resolution: DisputeResolutionV1::AcceptedWithinUsefulWindow,
+        };
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Calculated);
+        assert_eq!(
+            report
+                .evidence_confirmed_lower_bound
+                .as_ref()
+                .map(|rate| (rate.numerator, rate.denominator)),
+            Some((2, 6))
+        );
+        assert_eq!(
+            report
+                .missingness_upper_identification_bound
+                .as_ref()
+                .map(|rate| (rate.numerator, rate.denominator)),
+            Some((4, 6))
+        );
+        assert_eq!(
+            report
+                .outcome_counts
+                .as_ref()
+                .map(|counts| counts.confirmed_in_window_acceptances_including_resolved_rework),
+            Some(2)
+        );
     }
 
     #[test]
