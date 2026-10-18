@@ -34,7 +34,7 @@ jobs:
           toolchain: "1.96.0"
           components: rustfmt, clippy
       - name: Verify committed dependency lock
-        run: sha256sum tools/built-interop-002/Cargo.lock
+        run: echo "c1b085da9595c03b93d5f9b959532f7c4d9c56eaa325d1b4118c0399308f6c7e  tools/built-interop-002/Cargo.lock" | sha256sum -c -
       - name: Check formatting
         run: cargo fmt --manifest-path tools/built-interop-002/Cargo.toml -- --check
       - name: Run IFC/IDS synthetic contract tests
