@@ -1,6 +1,6 @@
 # Recovery Multi-Axis Pathway Audit
 
-Standalone Rust evaluator for the frozen multi-axis recovery/pathway corpus. It recomputes scope, evidence sufficiency, hard-gate status, lead-time adequacy, disposition and lock-in warning for every synthetic case rather than trusting the labels stored in the fixture.
+Standalone Rust evaluator for the 864-case factorial matrix plus four targeted singleton-hazard controls (868 synthetic cases total). It recomputes scope, evidence sufficiency, hard-gate status, lead-time adequacy, disposition and lock-in warning for every synthetic case rather than trusting the labels stored in the fixture.
 
 ## Run
 
@@ -8,7 +8,7 @@ Run formatting and tests with Cargo using this crate manifest, then run the audi
 
 ## What it tests
 
-- Known single and paired hazards, including a capacity-sensitive pair.
+- Known single and paired hazards, including a capacity-sensitive pair tested against habitat-only and route-capacity-only controls under normal/degraded capacity.
 - Out-of-profile mixed family; changed criteria and a superficially reverted regime that has a different version ID.
 - Complete/incomplete classification, fresh/stale/conflicting evidence, normal/degraded capacity.
 - Remaining lead time vs reversible and irreversible action requirements.
