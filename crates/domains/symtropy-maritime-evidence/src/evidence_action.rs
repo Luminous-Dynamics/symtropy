@@ -322,6 +322,23 @@ pub fn decide(
                     .then(left.starts_at_utc_nanos.cmp(&right.starts_at_utc_nanos))
                     .then(left.id.cmp(&right.id))
             });
+            let Some(chosen_window) = chosen else {
+                return decision(policy, DecisionMode::Abstain, None, Vec::new(), &report);
+            };
+            let worst_case_cost = instants
+                .iter()
+                .map(|instant| {
+                    score_window(
+                        *instant,
+                        chosen_window,
+                        input.missed_window_penalty_minutes,
+                    )
+                })
+                .max()
+                .unwrap_or(u64::MAX);
+            if worst_case_cost >= input.abstention_cost_minutes {
+                return decision(policy, DecisionMode::Abstain, None, Vec::new(), &report);
+            }
             let ids = report
                 .accepted
                 .iter()
@@ -330,7 +347,7 @@ pub fn decide(
             decision(
                 policy,
                 DecisionMode::RobustAgainstCandidateSet,
-                chosen.map(|window| window.id.clone()),
+                Some(chosen_window.id.clone()),
                 ids,
                 &report,
             )
@@ -384,7 +401,7 @@ pub fn evaluate_decision(
             )
         })
         .unwrap_or(input.abstention_cost_minutes);
-    let oracle_cost_minutes = input
+    let best_window_cost = input
         .windows
         .iter()
         .map(|window| {
@@ -396,6 +413,7 @@ pub fn evaluate_decision(
         })
         .min()
         .unwrap_or(input.abstention_cost_minutes);
+    let oracle_cost_minutes = best_window_cost.min(input.abstention_cost_minutes);
     let served = selected_window.is_some_and(|window| {
         truth.actual_arrival_utc_nanos
             <= window.starts_at_utc_nanos
@@ -580,6 +598,29 @@ mod tests {
         let latest = decide(EvidencePolicy::LatestIngestedPointEstimate, &input);
         assert_eq!(latest.chosen_window_id.as_deref(), Some("WINDOW-13"));
         assert!(latest.has_evidence_quality_issue());
+    }
+
+    #[test]
+    fn robust_policy_abstains_when_every_candidate_exceeds_abstention_cost() {
+        let input = input(vec![
+            observation(
+                "OBS-EARLY",
+                "SOURCE-A",
+                "2026-10-18T10:00:00Z",
+                10,
+                5,
+            ),
+            observation(
+                "OBS-LATE",
+                "SOURCE-B",
+                "2026-10-18T16:00:00Z",
+                12,
+                4,
+            ),
+        ]);
+        let decision = decide(EvidencePolicy::BoundedWorstCaseContingency, &input);
+        assert!(decision.abstained());
+        assert_eq!(decision.mode, DecisionMode::Abstain);
     }
 
     #[test]
