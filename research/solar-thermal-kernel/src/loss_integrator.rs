@@ -254,9 +254,9 @@ fn reference_cooling_time(
     let mut sum = 0.0;
     let range_low = to.value();
     let range_high = from.value();
-    for index in 0..points.len() - 1 {
-        let left = points[index];
-        let right = points[index + 1];
+    for pair in points.windows(2) {
+        let left = pair[0];
+        let right = pair[1];
         let segment_low = range_low.max(left.temperature.value());
         let segment_high = range_high.min(right.temperature.value());
         if segment_high <= segment_low {
