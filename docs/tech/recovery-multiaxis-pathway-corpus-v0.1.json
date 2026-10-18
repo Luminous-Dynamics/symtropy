@@ -27551,5 +27551,90 @@
       "expected_timing_status": "TOO_LATE",
       "expected_disposition": "REASSESS_SCOPE"
     }
-  ]
+  ],
+  "temporal_evidence_records": [
+    {
+      "evidence_id": "synthetic://temporal-evidence/current-access-inspection",
+      "observed_day": 0,
+      "available_day": 0,
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC"
+    },
+    {
+      "evidence_id": "synthetic://temporal-evidence/stable-state-day-5",
+      "observed_day": 5,
+      "available_day": 5,
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC"
+    },
+    {
+      "evidence_id": "synthetic://temporal-evidence/criteria-shift-signpost-day-5",
+      "observed_day": 5,
+      "available_day": 5,
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC"
+    }
+  ],
+  "temporal_policy_decisions": [
+    {
+      "decision_id": "shared-prefix-baseline-stage-0",
+      "policy_id": "adaptive-review-policy-v1",
+      "scenario_id": "baseline-future",
+      "stage_id": "stage-0",
+      "decision_day": 0,
+      "visible_history_id": "visible-history-day-0-v1",
+      "action_id": "DEFER_COMMITMENT_AND_REVIEW",
+      "evidence_refs": [
+        "synthetic://temporal-evidence/current-access-inspection"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "decision_id": "shared-prefix-shift-stage-0",
+      "policy_id": "adaptive-review-policy-v1",
+      "scenario_id": "criteria-shift-future",
+      "stage_id": "stage-0",
+      "decision_day": 0,
+      "visible_history_id": "visible-history-day-0-v1",
+      "action_id": "DEFER_COMMITMENT_AND_REVIEW",
+      "evidence_refs": [
+        "synthetic://temporal-evidence/current-access-inspection"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "decision_id": "baseline-stage-1",
+      "policy_id": "adaptive-review-policy-v1",
+      "scenario_id": "baseline-future",
+      "stage_id": "stage-1",
+      "decision_day": 5,
+      "visible_history_id": "visible-history-day-5-baseline-v1",
+      "action_id": "REVIEW_CONTINUATION_OPTION",
+      "evidence_refs": [
+        "synthetic://temporal-evidence/current-access-inspection",
+        "synthetic://temporal-evidence/stable-state-day-5"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "decision_id": "criteria-shift-stage-1",
+      "policy_id": "adaptive-review-policy-v1",
+      "scenario_id": "criteria-shift-future",
+      "stage_id": "stage-1",
+      "decision_day": 5,
+      "visible_history_id": "visible-history-day-5-criteria-shift-v1",
+      "action_id": "REASSESS_SCOPE_AND_REPLAN",
+      "evidence_refs": [
+        "synthetic://temporal-evidence/current-access-inspection",
+        "synthetic://temporal-evidence/criteria-shift-signpost-day-5"
+      ],
+      "expected_actuation": false
+    }
+  ],
+  "expected_temporal_counts": {
+    "evidence_record_count": 3,
+    "decision_count": 4,
+    "visible_history_group_count": 3,
+    "nonanticipativity_violation_count": 0,
+    "future_evidence_violation_count": 0,
+    "missing_evidence_reference_count": 0,
+    "actuation_authorized_count": 0
+  }
 }
