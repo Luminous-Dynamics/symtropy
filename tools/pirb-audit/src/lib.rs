@@ -3,9 +3,9 @@
 
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
-const REQUIRED_SCENARIOS: [&str; 7] = [
+const REQUIRED_SCENARIOS: [&str; 9] = [
     "pirb-r2-minimum-service-floor-01",
     "pirb-r1-required-acceptance-01",
     "pirb-r0-stale-capacity-01",
@@ -13,6 +13,8 @@ const REQUIRED_SCENARIOS: [&str; 7] = [
     "pirb-r4-personal-data-boundary-01",
     "pirb-r3-no-lookahead-01",
     "pirb-r1-refused-participation-01",
+    "pirb-r3-worst-case-frontier-01",
+    "pirb-r5-displacement-not-net-impact-01",
 ];
 
 const ALLOWED_TRACKS: [&str; 6] = [
@@ -173,7 +175,8 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r1-required-acceptance-01" | "pirb-r1-refused-participation-01" => "PIRB-1",
             "pirb-r0-stale-capacity-01" | "pirb-r0-conflicting-reports-01" => "PIRB-0",
             "pirb-r4-personal-data-boundary-01" => "PIRB-4",
-            "pirb-r3-no-lookahead-01" => "PIRB-3",
+            "pirb-r3-no-lookahead-01" | "pirb-r3-worst-case-frontier-01" => "PIRB-3",
+            "pirb-r5-displacement-not-net-impact-01" => "PIRB-5",
             _ => "UNKNOWN",
         };
         if track != Some(expected_track) {
@@ -209,6 +212,8 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r4-personal-data-boundary-01" => audit_privacy_boundary(scenario, &path, &mut findings),
             "pirb-r3-no-lookahead-01" => audit_no_lookahead(scenario, &path, &mut findings),
             "pirb-r1-refused-participation-01" => audit_refusal(scenario, &path, &mut findings),
+            "pirb-r3-worst-case-frontier-01" => audit_robust_frontier(scenario, &path, &mut findings),
+            "pirb-r5-displacement-not-net-impact-01" => audit_displacement(scenario, &path, &mut findings),
             _ => findings.push(finding(
                 "PIRB_EVALUATOR_MISSING",
                 &format!("{path}.id"),
@@ -494,6 +499,265 @@ fn audit_refusal(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
     }
 }
 
+fn audit_robust_frontier(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
+    let scenario_ids = string_list(scenario.get("scenario_ids"));
+    if scenario_ids.is_empty() || scenario_ids.iter().collect::<BTreeSet<_>>().len() != scenario_ids.len() {
+        findings.push(finding(
+            "PIRB_ROBUST_SCENARIOS_INVALID",
+            &format!("{path}.scenario_ids"),
+            "Robustness scenarios must be non-empty and uniquely named.",
+        ));
+        return;
+    }
+    if scenario.get("scenario_probabilities_assigned").and_then(Value::as_bool) != Some(false) {
+        findings.push(finding(
+            "PIRB_SYNTHETIC_PROBABILITY_CLAIM",
+            &format!("{path}.scenario_probabilities_assigned"),
+            "Named stress scenarios must not imply empirical probabilities.",
+        ));
+    }
+    let Some(options) = scenario.get("options").and_then(Value::as_array) else {
+        findings.push(finding("PIRB_OPTIONS_MISSING", path, "Robust plan options must be an array."));
+        return;
+    };
+
+    let scenario_set: BTreeSet<String> = scenario_ids.into_iter().collect();
+    let mut option_ids = BTreeSet::new();
+    let mut feasible = Vec::<(String, i64, i64)>::new();
+    let mut excluded = Vec::<String>::new();
+    let mut worst_by_id = BTreeMap::<String, i64>::new();
+
+    for (index, option) in options.iter().enumerate() {
+        let option_path = format!("{path}.options[{index}]");
+        let Some(id) = option.get("id").and_then(Value::as_str).map(str::to_owned) else {
+            findings.push(finding("PIRB_OPTION_ID_MISSING", &option_path, "Each option requires a string id."));
+            continue;
+        };
+        if !option_ids.insert(id.clone()) {
+            findings.push(finding("PIRB_OPTION_ID_DUPLICATE", &option_path, "Option ids must be unique."));
+        }
+
+        let cost = option.get("cost_ticks").and_then(Value::as_i64);
+        if !cost.is_some_and(|value| value >= 0) {
+            findings.push(finding("PIRB_OPTION_COST_INVALID", &format!("{option_path}.cost_ticks"), "Cost must be a non-negative integer tick count."));
+        }
+
+        let Some(gates) = option.get("hard_gates").and_then(Value::as_object) else {
+            findings.push(finding("PIRB_OPTION_GATES_MISSING", &option_path, "Every option must declare its hard gates."));
+            excluded.push(id);
+            continue;
+        };
+        let gate_values_valid = !gates.is_empty() && gates.values().all(|gate| {
+            matches!(gate.as_str(), Some("pass") | Some("fail") | Some("unknown"))
+        });
+        if !gate_values_valid {
+            findings.push(finding("PIRB_OPTION_GATE_INVALID", &format!("{option_path}.hard_gates"), "Hard gates must be non-empty and use pass/fail/unknown."));
+            excluded.push(id);
+            continue;
+        }
+        let gates_pass = gates.values().all(|gate| gate.as_str() == Some("pass"));
+
+        let Some(gaps) = option.get("service_gap_by_scenario").and_then(Value::as_object) else {
+            findings.push(finding("PIRB_OPTION_GAPS_MISSING", &option_path, "Every option requires per-scenario service gaps."));
+            excluded.push(id);
+            continue;
+        };
+        let gap_keys: BTreeSet<String> = gaps.keys().cloned().collect();
+        if gap_keys != scenario_set {
+            findings.push(finding("PIRB_OPTION_SCENARIO_COVERAGE_MISMATCH", &format!("{option_path}.service_gap_by_scenario"), "Every option must cover exactly the declared stress scenarios."));
+            excluded.push(id);
+            continue;
+        }
+        let parsed_gaps: Option<Vec<i64>> = gaps.values().map(Value::as_i64).collect();
+        let Some(parsed_gaps) = parsed_gaps else {
+            findings.push(finding("PIRB_OPTION_GAP_INVALID", &format!("{option_path}.service_gap_by_scenario"), "Service gaps must be integer values."));
+            excluded.push(id);
+            continue;
+        };
+        if parsed_gaps.iter().any(|gap| *gap < 0) {
+            findings.push(finding("PIRB_OPTION_GAP_NEGATIVE", &format!("{option_path}.service_gap_by_scenario"), "Service gaps cannot be negative."));
+            excluded.push(id);
+            continue;
+        }
+        let Some(worst_gap) = parsed_gaps.iter().copied().max() else {
+            findings.push(finding("PIRB_OPTION_GAPS_EMPTY", &option_path, "An option needs at least one scenario gap."));
+            excluded.push(id);
+            continue;
+        };
+        worst_by_id.insert(id.clone(), worst_gap);
+
+        if !gates_pass {
+            excluded.push(id);
+            continue;
+        }
+        if let Some(cost) = cost.filter(|value| *value >= 0) {
+            feasible.push((id, cost, worst_gap));
+        } else {
+            excluded.push(id);
+        }
+    }
+
+    let mut actual_feasible: Vec<String> = feasible.iter().map(|item| item.0.clone()).collect();
+    let mut actual_excluded = excluded;
+    actual_feasible.sort();
+    actual_excluded.sort();
+    let mut expected_feasible = string_list(scenario.pointer("/expected/feasible_options"));
+    let mut expected_excluded = string_list(scenario.pointer("/expected/excluded_by_hard_gate"));
+    expected_feasible.sort();
+    expected_excluded.sort();
+
+    if actual_feasible != expected_feasible {
+        findings.push(finding(
+            "PIRB_FEASIBILITY_ORACLE_MISMATCH",
+            &format!("{path}.expected.feasible_options"),
+            "Eligible options do not match independently computed hard-gate feasibility.",
+        ));
+    }
+    if actual_excluded != expected_excluded {
+        findings.push(finding(
+            "PIRB_HARD_GATE_EXCLUSION_MISMATCH",
+            &format!("{path}.expected.excluded_by_hard_gate"),
+            "Excluded options do not match the independently computed gate result.",
+        ));
+    }
+
+    let mut frontier = Vec::new();
+    for (id, cost, worst_gap) in &feasible {
+        let dominated = feasible.iter().any(|(other_id, other_cost, other_gap)| {
+            other_id != id
+                && *other_cost <= *cost
+                && *other_gap <= *worst_gap
+                && (*other_cost < *cost || *other_gap < *worst_gap)
+        });
+        if !dominated {
+            frontier.push(id.clone());
+        }
+    }
+    frontier.sort();
+    let mut expected_frontier = string_list(scenario.pointer("/expected/pareto_frontier"));
+    expected_frontier.sort();
+    if frontier != expected_frontier {
+        findings.push(finding(
+            "PIRB_PARETO_FRONTIER_MISMATCH",
+            &format!("{path}.expected.pareto_frontier"),
+            "Declared cost/worst-case-gap Pareto frontier is incorrect.",
+        ));
+    }
+
+    if scenario.pointer("/expected/scenario_probabilities_assigned").and_then(Value::as_bool) != Some(false) {
+        findings.push(finding(
+            "PIRB_SYNTHETIC_PROBABILITY_CLAIM",
+            &format!("{path}.expected.scenario_probabilities_assigned"),
+            "Synthetic stress cases must not be represented as probabilistic forecasts.",
+        ));
+    }
+    if let Some(expected_worst) = scenario.pointer("/expected/worst_case_service_gap").and_then(Value::as_object) {
+        for (id, actual) in worst_by_id {
+            if expected_worst.get(&id).and_then(Value::as_i64) != Some(actual) {
+                findings.push(finding(
+                    "PIRB_WORST_CASE_GAP_MISMATCH",
+                    &format!("{path}.expected.worst_case_service_gap.{id}"),
+                    "Declared worst-case gap does not match the maximum across the declared stress cases.",
+                ));
+            }
+        }
+    } else {
+        findings.push(finding(
+            "PIRB_WORST_CASE_GAP_MISSING",
+            &format!("{path}.expected.worst_case_service_gap"),
+            "Expected results must publish the calculated worst-case service gap per option.",
+        ));
+    }
+}
+
+fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
+    let outcomes = scenario.get("outcomes").and_then(Value::as_array);
+    let Some(outcomes) = outcomes else {
+        findings.push(finding("PIRB_OUTCOMES_MISSING", path, "Before/after outcomes must be an array."));
+        return;
+    };
+    if outcomes.is_empty() {
+        findings.push(finding("PIRB_OUTCOMES_EMPTY", path, "At least one group outcome is required."));
+        return;
+    }
+
+    let mut before_total = 0_i64;
+    let mut after_total = 0_i64;
+    let mut improved_group = false;
+    let mut worsened_group = false;
+
+    for (index, outcome) in outcomes.iter().enumerate() {
+        let outcome_path = format!("{path}.outcomes[{index}]");
+        let before = outcome.get("service_gap_before").and_then(Value::as_i64);
+        let after = outcome.get("service_gap_after").and_then(Value::as_i64);
+        let (Some(before), Some(after)) = (before, after) else {
+            findings.push(finding("PIRB_OUTCOME_VALUE_INVALID", &outcome_path, "Before/after gaps must be integers."));
+            return;
+        };
+        if before < 0 || after < 0 {
+            findings.push(finding("PIRB_OUTCOME_VALUE_NEGATIVE", &outcome_path, "Service gaps cannot be negative."));
+            return;
+        }
+        let Some(next_before) = before_total.checked_add(before) else {
+            findings.push(finding("PIRB_OUTCOME_OVERFLOW", &outcome_path, "Before-gap total overflowed."));
+            return;
+        };
+        let Some(next_after) = after_total.checked_add(after) else {
+            findings.push(finding("PIRB_OUTCOME_OVERFLOW", &outcome_path, "After-gap total overflowed."));
+            return;
+        };
+        before_total = next_before;
+        after_total = next_after;
+        improved_group |= after < before;
+        worsened_group |= after > before;
+    }
+
+    let displacement_detected = improved_group && worsened_group;
+    if scenario.get("design_type").and_then(Value::as_str) == Some("before_after_only")
+        && scenario.get("causal_claim_requested").and_then(Value::as_bool) == Some(true)
+        && scenario.pointer("/expected/claim_status").and_then(Value::as_str) != Some("descriptive_only")
+    {
+        findings.push(finding(
+            "PIRB_CAUSAL_CLAIM_UNSUPPORTED",
+            &format!("{path}.expected.claim_status"),
+            "Before/after-only evidence with concurrent factors cannot by itself establish causal impact.",
+        ));
+    }
+    if scenario.get("concurrent_factors").and_then(Value::as_array).is_none_or(Vec::is_empty) {
+        findings.push(finding(
+            "PIRB_CONCURRENT_FACTORS_UNDECLARED",
+            &format!("{path}.concurrent_factors"),
+            "This adversarial case requires a disclosed concurrent factor.",
+        ));
+    }
+
+    if scenario.pointer("/expected/aggregate_gap_before").and_then(Value::as_i64) != Some(before_total)
+        || scenario.pointer("/expected/aggregate_gap_after").and_then(Value::as_i64) != Some(after_total)
+    {
+        findings.push(finding(
+            "PIRB_AGGREGATE_GAP_MISMATCH",
+            &format!("{path}.expected"),
+            "Expected aggregate gaps must equal the sum of the declared group outcomes.",
+        ));
+    }
+    if scenario.pointer("/expected/displacement_detected").and_then(Value::as_bool) != Some(displacement_detected) {
+        findings.push(finding(
+            "PIRB_DISPLACEMENT_MISCLASSIFIED",
+            &format!("{path}.expected.displacement_detected"),
+            "Expected displacement status must match the per-group outcome changes.",
+        ));
+    }
+    if after_total >= before_total
+        && scenario.pointer("/expected/improvement_claim").and_then(Value::as_str) != Some("not_supported")
+    {
+        findings.push(finding(
+            "PIRB_NET_IMPROVEMENT_UNSUPPORTED",
+            &format!("{path}.expected.improvement_claim"),
+            "No aggregate reduction is observed; a net improvement claim is unsupported.",
+        ));
+    }
+}
+
 fn string_list(value: Option<&Value>) -> Vec<String> {
     value
         .and_then(Value::as_array)
@@ -545,7 +809,7 @@ mod tests {
     fn reference_corpus_passes_all_semantic_checks() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
-        assert_eq!(report.scenario_count, 7);
+        assert_eq!(report.scenario_count, 9);
     }
 
     #[test]
@@ -618,6 +882,41 @@ mod tests {
         value["scenarios"][4]["expected"]["shared_record_decision"] = json!("allow");
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_PRIVACY_BOUNDARY_BYPASSED"));
+    }
+
+    #[test]
+    fn robust_frontier_excludes_unknown_hard_gate_without_scalarizing_tradeoffs() {
+        let report = audit_corpus_json(FIXTURE);
+        assert!(report.passed, "{:#?}", report.findings);
+        let value = corpus();
+        let options = &value["scenarios"][7]["expected"]["pareto_frontier"];
+        assert_eq!(options, &json!(["repair_only", "repair_plus_backup"]));
+    }
+
+    #[test]
+    fn incorrect_robust_frontier_is_rejected() {
+        let mut value = corpus();
+        value["scenarios"][7]["expected"]["pareto_frontier"] = json!(["repair_plus_backup"]);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_PARETO_FRONTIER_MISMATCH"));
+    }
+
+    #[test]
+    fn displaced_harm_cannot_be_reported_as_net_improvement() {
+        let report = audit_corpus_json(FIXTURE);
+        assert!(report.passed, "{:#?}", report.findings);
+        let value = corpus();
+        assert_eq!(value["scenarios"][8]["expected"]["aggregate_gap_before"], json!(15));
+        assert_eq!(value["scenarios"][8]["expected"]["aggregate_gap_after"], json!(15));
+        assert_eq!(value["scenarios"][8]["expected"]["claim_status"], json!("descriptive_only"));
+    }
+
+    #[test]
+    fn before_after_only_data_cannot_support_causal_claim() {
+        let mut value = corpus();
+        value["scenarios"][8]["expected"]["claim_status"] = json!("causal_effect_established");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_CAUSAL_CLAIM_UNSUPPORTED"));
     }
 
     #[test]
