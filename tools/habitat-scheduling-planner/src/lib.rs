@@ -43,7 +43,8 @@ struct Case {
     hard_deadline: Option<u32>,
     // The micro-oracle fixture stores expected results for differential tests.
     // The scheduling heuristic deliberately never reads this field.
-    expected: Value,
+    #[serde(rename = "expected")]
+    _expected: Value,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -193,14 +194,6 @@ fn validate_case_shape(case: &Case) -> Result<(), String> {
             || task.latest_finish.is_some_and(|value| value > MAX_TIME_BOUND)
         {
             return Err(format!("{}: invalid task declaration", case.case_id));
-        }
-        if task.latest_start.is_some_and(|latest| latest < task.earliest_start)
-            && case.expected["feasible"].as_bool() == Some(true)
-        {
-            return Err(format!(
-                "{}: feasible-case input has contradictory start bounds",
-                case.case_id
-            ));
         }
         if task
             .required_gates
@@ -403,13 +396,13 @@ fn ordered_by_rule(
 
 fn resource_fits(
     case: &Case,
-    task_index: usize,
+    task_idx: usize,
     start: u32,
     finish: u32,
     existing: &[ScheduleStep],
     durations: &[u32],
 ) -> bool {
-    let task = &case.tasks[task_index];
+    let task = &case.tasks[task_idx];
     let indexed = task_index(case);
     let scheduled_by_id: BTreeMap<&str, &ScheduleStep> = existing
         .iter()
@@ -426,7 +419,7 @@ fn resource_fits(
         for time in start..finish {
             let mut used = task.resource_demands[resource];
             for (id, step) in &scheduled_by_id {
-                let index = indexed[id];
+                let index = indexed[*id];
                 if step.start <= time && time < step.finish {
                     used = used.saturating_add(
                         case.tasks[index]
