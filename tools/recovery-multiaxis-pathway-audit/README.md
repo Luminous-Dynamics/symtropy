@@ -15,6 +15,7 @@ Run formatting and tests with Cargo using this crate manifest, then run the audi
 - Non-compensatory PASS/BLOCK/UNKNOWN gates, scope precedence and explicit lock-in warning.
 - Input-order invariance, duplicate identities, false labels, invalid lead time and the zero-actuation ceiling.
 - A two-future temporal trace: shared observed prefix must have identical actions; future evidence may not be referenced before its available day. Mutation tests intentionally violate both rules.
+- A tiny lexicographic criteria-sensitivity control that must reverse top-strategy order between the current material-recovery priority and an explicitly unadopted biosecurity-priority regime. The values are synthetic and do not select a real strategy.
 
 The corpus is synthetic. Passing establishes only finite contract conformance, not field safety, predicted performance, legal compliance, or authorization to perform work.
 
