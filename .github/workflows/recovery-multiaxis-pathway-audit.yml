@@ -68,6 +68,10 @@ jobs:
             and .criteria_regime_top_strategy_reversal == true
             and .criteria_regime_rankings["protect-habitat-and-recover-material-v1"][0] == "rapid_material_recovery"
             and .criteria_regime_rankings["biosecurity-priority-v2"][0] == "retain_inspect_replan"
+            and (.criteria_regime_rankings["protect-habitat-and-recover-material-v1"] | length) == 2
+            and (.criteria_regime_rankings["biosecurity-priority-v2"] | length) == 2
+            and ((.criteria_regime_rankings["protect-habitat-and-recover-material-v1"] | index("constraint-violating-high-yield-shortcut")) == null)
+            and ((.criteria_regime_rankings["biosecurity-priority-v2"] | index("constraint-violating-high-yield-shortcut")) == null)
             and .expected_outcomes_match == true
             and .aggregate_counts_match == true
             and .all_synthetic == true
