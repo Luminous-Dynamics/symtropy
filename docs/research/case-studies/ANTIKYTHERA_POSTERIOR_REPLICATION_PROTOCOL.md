@@ -12,6 +12,12 @@ Woan and Bayley (2024) state that their analysis is based entirely on the hole-p
 
 **Raw input candidate:** Thoeni, Budiselic, and Ramsey, *Replication Data for: Antikythera Mechanism Shows Evidence of Lunar Calendar*, Harvard Dataverse, DOI [10.7910/DVN/VJGLVS](https://doi.org/10.7910/DVN/VJGLVS). The BHI source links to this dataset and the 2024 paper says it used these measurements. The dataset's current file inventory, exact license/terms, byte count and hashes have **not** been verified in this project. Do not redistribute or embed the data until the terms and the actual files are reviewed.
 
+## 1.1 Current access/verification state
+
+The 2024 article cites version V3 of the 2019 Harvard Dataverse replication dataset (DOI `10.7910/DVN/VJGLVS`). The DOI and dataset citation are corroborated by the paper's bibliography and library metadata, but automated access to the repository's file listing was blocked by its verification page in this research pass. Therefore, the specific data files, file-level licenses/terms, version-specific metadata, byte sizes, and SHA-256 values remain **unverified**. Do not infer CC0 merely because Harvard Dataverse generally encourages CC0; its policy explicitly permits depositors to set other terms and file-specific restrictions.
+
+The current research seed has an `AnalysisRun` with status `planned`, no input or output artifacts, and explicit limitations. That is intentional. Change it to `inputs_verified` only after downloading the exact data version, confirming the license/terms, computing hashes from actual bytes, and reviewing the inclusion/exclusion manifest. Never relabel a planned run as executed because its protocol or expected values exist.
+
 ## 2. Freeze input provenance before analyzing it
 
 The first deliverable is an input manifest, not a sampler:
@@ -117,6 +123,20 @@ Every run must report:
 - failed initializations, divergences (for gradient methods), sampler acceptance, and computational cost.
 
 A proposed initial MCMC target is split-chain \(R\hat_\rm{hat}\) below 1.01 and effective sample size above 1,000 for key global parameters, subject to sampler-specific diagnostic validity. These targets alone do not establish correctness.
+
+## 5.1 Model criticism ladder: test assumptions, not just the published parameters
+
+The publication itself identifies possible extensions: relax the coplanarity assumption by allowing out-of-plane section displacement/orientation (adding 18 parameters), and infer segment-division locations rather than treating the original segmentation choices as fixed. These are not automatic upgrades: extra degrees of freedom can widen uncertainty and may overfit.
+
+Run these as sequential, preregistered model variants:
+1. **Baseline reproduction:** fixed six-section segmentation, coplanar geometry, source-stated radial/tangential error model.
+2. **Posterior predictive checks:** compare observed and simulated hole positions in radial/tangential coordinates, inspect residual autocorrelation and segment-specific patterns, and publish discrepancy summaries.
+3. **Noise-model sensitivity:** test a small, justified set of alternative residual models only if diagnostics show tail/heavy-error or heteroscedastic behavior.
+4. **Segmentation uncertainty:** introduce uncertain segment boundaries only after encoding the competing boundary hypotheses and a prior/penalty that prevents unrestricted boundary search from trivially improving fit.
+5. **3D/coplanarity sensitivity:** allow out-of-plane degrees of freedom only where the source geometry or systematic residuals justify the added complexity.
+6. **Out-of-sample/model-check comparison:** compare predictive checks and, where the likelihood/model permits it, held-out predictive scores. Report the complexity and uncertainty cost; do not choose solely by in-sample likelihood.
+
+For every variant, retain a separate model-specification version and analysis-run manifest. Report all failed convergence and posterior predictive checks. A more flexible model is not automatically a better explanation; the key result may be that current evidence cannot discriminate between variants.
 
 ## 6. What not to conclude
 
