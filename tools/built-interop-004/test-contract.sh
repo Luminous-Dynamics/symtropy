@@ -6,6 +6,25 @@ validator="$here/validate-report.sh"
 schema="$here/report-v1.schema.json"
 command -v jq >/dev/null 2>&1 || { echo "MISSING_TOOL: jq" >&2; exit 2; }
 jq empty "$schema" >/dev/null || { echo "REPORT_SCHEMA_JSON_INVALID" >&2; exit 1; }
+jq -e '
+  .."$schema" == "https://json-schema.org/draft/2020-12/schema" and
+  .additionalProperties == false and
+  .properties.schema_version.const == "1.0.0" and
+  .properties.benchmark_id.const == "BUILT-INTEROP-004" and
+  .properties.evaluation_profile.properties.ids_version.const == "1.0" and
+  .properties.gates.minItems == 8 and .properties.gates.maxItems == 8 and
+  ([.properties.artifacts.items.properties.role.enum[]] | sort) ==
+    (["source_ifc", "requirements_ids", "target_ifc"] | sort) and
+  ([.properties.gates.items.properties.gate_id.enum[]] | sort) == ([
+    "artifact_integrity", "step_syntax", "ifc_schema_conformance",
+    "ids_xsd_validity", "ids_semantic_validity", "ids_model_conformance",
+    "exchange_semantic_preservation", "engineering_release_qualification"
+  ] | sort) and
+  ([.properties.gates.items.properties.status.enum[]] | sort) ==
+    (["PASS", "FAIL", "UNRESOLVED", "NOT_RUN"] | sort) and
+  ([.properties.overall_decision.enum[]] | sort) ==
+    (["QUALIFIED", "BLOCKED", "UNQUALIFIED"] | sort)
+' "$schema" >/dev/null || { echo "REPORT_SCHEMA_CONTRACT_MISMATCH" >&2; exit 1; }
 bash -n "$validator"
 
 tmp="$(mktemp -d)"
