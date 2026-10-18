@@ -72,8 +72,7 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
     }
     if !jsonschema::draft202012::meta::is_valid(schema) {
         return Err(
-            "restoration schema does not validate against the Draft 2020-12 meta-schema"
-                .to_owned(),
+            "restoration schema does not validate against the Draft 2020-12 meta-schema".to_owned(),
         );
     }
     jsonschema::draft202012::options()
@@ -143,7 +142,9 @@ fn audit_values(
             ));
         }
         if text_at(episode, "evidence_class") != Some("synthetic_fixture") {
-            errors.push(format!("{episode_id}: canonical example must remain synthetic"));
+            errors.push(format!(
+                "{episode_id}: canonical example must remain synthetic"
+            ));
         }
         if bool_at(episode, "empirical_eligible") != Some(false) {
             empirical_count += 1;
@@ -158,11 +159,15 @@ fn audit_values(
         };
         let family_id = text_at(appliance, "family_id").unwrap_or("");
         if !EXPECTED_FAMILIES.contains(&family_id) {
-            errors.push(format!("{episode_id}: unknown appliance family {family_id}"));
+            errors.push(format!(
+                "{episode_id}: unknown appliance family {family_id}"
+            ));
         }
         if let Some(unit_token) = text_at(appliance, "unit_token") {
             if !unit_tokens.insert(unit_token.to_owned()) {
-                errors.push(format!("{episode_id}: duplicate synthetic unit token {unit_token}"));
+                errors.push(format!(
+                    "{episode_id}: duplicate synthetic unit token {unit_token}"
+                ));
             }
         }
 
@@ -206,7 +211,9 @@ fn audit_values(
             .map(Vec::len)
             .unwrap_or(0);
         if passed_tests > required_tests {
-            errors.push(format!("{episode_id}: passed_test_count cannot exceed required_test_count"));
+            errors.push(format!(
+                "{episode_id}: passed_test_count cannot exceed required_test_count"
+            ));
         }
         if outcome == "verified_restoration" {
             verified_restoration_count += 1;
@@ -234,13 +241,13 @@ fn audit_values(
                 "{episode_id}: diagnosis_only cannot be used to hide a started repair attempt"
             ));
         }
+        let diagnosis = episode.get("diagnosis");
+        let diagnosis_status = diagnosis.and_then(|value| text_at(value, "status"));
+        let hazard_screen = diagnosis.and_then(|value| text_at(value, "hazard_screen"));
         if outcome == "safety_stop"
-            && text_at(episode.get("diagnosis").unwrap_or(&Value::Null), "status")
-                != Some("safety_stop")
-            && text_at(episode.get("diagnosis").unwrap_or(&Value::Null), "hazard_screen")
-                != Some("stop_now")
-            && text_at(episode.get("diagnosis").unwrap_or(&Value::Null), "hazard_screen")
-                != Some("refer_to_qualified_role")
+            && diagnosis_status != Some("safety_stop")
+            && hazard_screen != Some("stop_now")
+            && hazard_screen != Some("refer_to_qualified_role")
         {
             errors.push(format!(
                 "{episode_id}: safety_stop outcome needs an explicit stop or referral record"
@@ -261,7 +268,9 @@ fn audit_values(
             continue;
         };
         let follow_status = text_at(follow_up, "status").unwrap_or("");
-        let recurred = follow_up.get("same_fault_recurred").and_then(Value::as_bool);
+        let recurred = follow_up
+            .get("same_fault_recurred")
+            .and_then(Value::as_bool);
         let recurrence_is_null = follow_up
             .get("same_fault_recurred")
             .is_none_or(Value::is_null);
@@ -328,7 +337,9 @@ fn audit_values(
 
         let preregistration = episode.get("preregistration").unwrap_or(&Value::Null);
         if bool_at(preregistration, "frozen_before_outcome") != Some(true) {
-            errors.push(format!("{episode_id}: protocol must be frozen before any eligible outcome"));
+            errors.push(format!(
+                "{episode_id}: protocol must be frozen before any eligible outcome"
+            ));
         }
         let evidence_receipts = episode
             .get("evidence_receipt_ids")
@@ -336,7 +347,9 @@ fn audit_values(
             .map(Vec::len)
             .unwrap_or(0);
         if evidence_receipts == 0 {
-            errors.push(format!("{episode_id}: evidence receipt identity cannot be omitted"));
+            errors.push(format!(
+                "{episode_id}: evidence receipt identity cannot be omitted"
+            ));
         }
     }
 
@@ -368,12 +381,16 @@ fn audit_values(
             errors.push(format!("duplicate benchmark ID {id}"));
         }
         if EXPECTED_BENCHMARKS.get(index).copied() != Some(id) {
-            errors.push(format!("benchmark order/identity changed at index {index}: {id}"));
+            errors.push(format!(
+                "benchmark order/identity changed at index {index}: {id}"
+            ));
         }
-        if text_at(benchmark, "status")
-            .is_none_or(|status| !matches!(status, "proposal_not_frozen" | "guardrail_contract_only"))
-        {
-            errors.push(format!("{id}: benchmark must remain a proposal or contract guardrail"));
+        if text_at(benchmark, "status").is_none_or(|status| {
+            !matches!(status, "proposal_not_frozen" | "guardrail_contract_only")
+        }) {
+            errors.push(format!(
+                "{id}: benchmark must remain a proposal or contract guardrail"
+            ));
         }
     }
     for expected in EXPECTED_BENCHMARKS {
@@ -419,9 +436,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const SCHEMA: &str = include_str!(
-        "../../../schemas/appliances/repair_restoration_evidence_v0_1.schema.json"
-    );
+    const SCHEMA: &str =
+        include_str!("../../../schemas/appliances/repair_restoration_evidence_v0_1.schema.json");
     const LEDGER: &str =
         include_str!("../../../fixtures/appliances/repair_restoration_evidence_v0_1.json");
 

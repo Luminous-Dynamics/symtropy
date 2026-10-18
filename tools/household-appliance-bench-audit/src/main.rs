@@ -711,15 +711,17 @@ fn run() -> Result<(), String> {
     if let (Some(restoration_schema_path), Some(restoration_ledger_path)) =
         (restoration_schema_path, restoration_ledger_path)
     {
-        let restoration_schema_raw = fs::read_to_string(&restoration_schema_path)
-            .map_err(|error| format!("cannot read {}: {error}", restoration_schema_path.display()))?;
-        let restoration_ledger_raw = fs::read_to_string(&restoration_ledger_path)
-            .map_err(|error| format!("cannot read {}: {error}", restoration_ledger_path.display()))?;
-        let restoration_summary = restoration::audit_restoration_texts(
-            &restoration_schema_raw,
-            &restoration_ledger_raw,
-        )
-        .map_err(|errors| errors.join("\n"))?;
+        let restoration_schema_raw =
+            fs::read_to_string(&restoration_schema_path).map_err(|error| {
+                format!("cannot read {}: {error}", restoration_schema_path.display())
+            })?;
+        let restoration_ledger_raw =
+            fs::read_to_string(&restoration_ledger_path).map_err(|error| {
+                format!("cannot read {}: {error}", restoration_ledger_path.display())
+            })?;
+        let restoration_summary =
+            restoration::audit_restoration_texts(&restoration_schema_raw, &restoration_ledger_raw)
+                .map_err(|errors| errors.join("\n"))?;
 
         report["repair_restoration_evidence"] = json!({
             "status": "PASS_SYNTHETIC_RESTORATION_CONTRACT_ONLY",
