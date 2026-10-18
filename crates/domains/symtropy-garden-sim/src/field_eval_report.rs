@@ -229,6 +229,7 @@ pub enum FieldEvalBlockerCodeV1 {
     MissingOutcomeRecord,
     InvalidOutcomeShape,
     AcceptanceEvidenceIncomplete,
+    DuplicateAcceptanceEvidenceReference,
     UnexpectedAcceptanceEvidence,
     InvalidAcceptanceEventReference,
     AcceptanceTimeContradictsWindow,
@@ -791,6 +792,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
     }
 
     let mut outcomes: BTreeMap<String, &RequestOutcomeRecordV1> = BTreeMap::new();
+    let mut acceptance_event_refs = BTreeSet::new();
     for record in &manifest.outcome_records {
         if !eligible.contains(record.request_ref.as_str()) {
             push_blocker(
@@ -833,6 +835,19 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
             );
         }
         validate_acceptance_evidence(record, &mut blockers);
+        let acceptance_event_reused = expected_in_window_acceptance(&record.outcome).is_some()
+            && record
+                .acceptance_evidence_ref
+                .as_ref()
+                .is_some_and(|event_ref| !acceptance_event_refs.insert(event_ref.clone()));
+        if acceptance_event_reused {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::DuplicateAcceptanceEvidenceReference,
+                Some(&record.request_ref),
+                "one acceptance event cannot establish acceptance for multiple logical requests",
+            );
+        }
         if outcomes
             .insert(record.request_ref.clone(), record)
             .is_some()
@@ -1376,6 +1391,28 @@ mod tests {
                 .iter()
                 .any(|blocker| { blocker.code == FieldEvalBlockerCodeV1::DuplicateOutcomeRecord })
         );
+    }
+
+    #[test]
+    fn one_acceptance_event_cannot_be_counted_for_multiple_requests() {
+        let mut manifest = valid_manifest();
+        let reused_event = manifest.outcome_records[0]
+            .acceptance_evidence_ref
+            .clone()
+            .expect("acceptance event");
+        let late_record = manifest
+            .outcome_records
+            .iter_mut()
+            .find(|record| record.request_ref == "req-study-002")
+            .expect("late acceptance record");
+        late_record.acceptance_evidence_ref = Some(reused_event);
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+        assert!(report.missingness_upper_identification_bound.is_none());
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::DuplicateAcceptanceEvidenceReference
+        }));
     }
 
     #[test]
