@@ -28,6 +28,23 @@ It deliberately **does not** infer a complete direct cultural-transmission route
 
 Bibliographic links are not equivalent to bundling the paper or its imagery. The fixture's rights records preserve this distinction: the 2021 article has a verified CC BY 4.0 record; unknown rights remain unknown; no paper or media files are redistributed.
 
+## Structured numerical estimates and explicit model alternatives
+
+The fixture now has four structured `QuantitativeEstimate` records:
+
+| Estimate | Value | Uncertainty / interpretation |
+|---|---:|---|
+| `antikythera:estimate-ring-365` | 365 holes | Parameter of the cited 2008 reconstruction; not a direct count of the full surviving ring |
+| `antikythera:estimate-ring-354-proposal` | 354 holes | Parameter implied by the 2020 lunar-calendar proposal; not a direct count |
+| `antikythera:estimate-woan-bayley-all-points` | 355.24 holes | 68% credible interval [353.88, 356.63], all measured data |
+| `antikythera:estimate-woan-bayley-exclude-fractures` | 354.08 holes | 68% credible interval [352.67, 355.55], excluding holes adjacent to fractures |
+
+The last two are sensitivity estimates from related measurements and a shared source, not independent replications. Their assumptions are recorded separately. Values/interval endpoints remain decimal strings so serialization does not silently round the source-reported precision.
+
+The seed defines three separate reconstruction models and one model-comparison group. Its explicit decision rule is to report axes separately instead of synthesizing a winner. Initial axes include fit to measured hole spacing, sensitivity to fracture handling, calendar-interpretation consistency, mechanical feasibility, dependence on missing geometry, and evidence provenance.
+
+This is only a typed literature comparison. We have not locally recreated any gear train, refit the published statistical model, or verified any paper's numerical output.
+
 ## Validation and adversarial tests
 
 Run from the Symtropy workspace root:
