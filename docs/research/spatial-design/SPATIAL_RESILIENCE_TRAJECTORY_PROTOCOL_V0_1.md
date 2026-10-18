@@ -206,3 +206,6 @@ This is why the v0.1 qualifier keeps synthetic known-answer mechanics, specialis
 
 
 Decision-impact receipts bind each observation outcome to its exact compatible state IDs, rather than reporting only the number of remaining states. Action outputs retain action type, evidence status, source revision and the declared cost/duration basis identifiers. A frozen negative control changes a one-state outcome to another one-state outcome; the validator must detect the wrong membership even though the cardinality stays unchanged.
+
+
+The Rust decision-impact test suite includes a deterministic generated differential check over 100 finite worlds with 100 candidates each. For each world it compares robust-feasibility and Pareto sets over the complete current state set and each one-state-excluded subset against a separately written brute-force reference, including periodic critical-unknown blockers. The generator covers 35,000 candidate/state result rows before partition replays and asserts a minimum threshold of 10,000. This is a finite-domain correctness stress test; it is not a runtime-performance, physical-accuracy or probability-calibration claim.
