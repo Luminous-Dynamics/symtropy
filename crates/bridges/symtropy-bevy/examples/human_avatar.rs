@@ -140,14 +140,16 @@ fn load_human_when_ready(
     let (graph, node_indices) = AnimationGraph::from_clips(clip_handles);
     let graph_handle = graphs.add(graph);
 
-    let idle = find_clip_index(&names, &["idle", "stand", "survey", "rest"]).unwrap_or_else(|| {
-        warn!("No idle/stand/survey clip found; using first available clip as idle.");
-        0
-    });
-    let walk = find_clip_index(&names, &["relaxedwalk", "walkcycle", "walk"]).unwrap_or_else(|| {
-        warn!("No walk clip found; walk requests will use the idle clip.");
-        idle
-    });
+    let idle =
+        find_clip_index(&names, &["idle", "stand", "survey", "rest"]).unwrap_or_else(|| {
+            warn!("No idle/stand/survey clip found; using first available clip as idle.");
+            0
+        });
+    let walk =
+        find_clip_index(&names, &["relaxedwalk", "walkcycle", "walk"]).unwrap_or_else(|| {
+            warn!("No walk clip found; walk requests will use the idle clip.");
+            idle
+        });
     let run = find_clip_index(&names, &["run", "jog", "sprint"]).unwrap_or_else(|| {
         warn!("No run/jog/sprint clip found; run requests will use the walk clip.");
         walk
@@ -264,7 +266,11 @@ mod tests {
 
     #[test]
     fn clip_name_lookup_uses_aliases_and_is_case_insensitive() {
-        let names = vec!["Idle_Standing".to_owned(), "Fast Walk".to_owned(), "Jog".to_owned()];
+        let names = vec![
+            "Idle_Standing".to_owned(),
+            "Fast Walk".to_owned(),
+            "Jog".to_owned(),
+        ];
         assert_eq!(find_clip_index(&names, &["idle"]), Some(0));
         assert_eq!(find_clip_index(&names, &["walk"]), Some(1));
         assert_eq!(find_clip_index(&names, &["run", "jog"]), Some(2));
