@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/human-motion-trace-v0.1.schema.json",
+  "$id": "urn:luminous-dynamics:symtropy:human-motion-trace:0.1",
   "title": "Symtropy Human Motion Trace v0.1",
   "description": "One time-aligned, world-space human motion trace. Array-length and monotonic-time invariants require semantic validation in addition to JSON Schema validation.",
   "type": "object",
@@ -9,6 +9,7 @@
     "schema_version",
     "trace_id",
     "run",
+    "coordinate_frame",
     "timestamps_sec",
     "root_world_m",
     "left_foot_world_m",
@@ -208,6 +209,32 @@
       "type": "string"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "run": {
+            "properties": {
+              "source_kind": { "const": "synthetic_test_fixture" }
+            },
+            "required": ["source_kind"]
+          }
+        },
+        "required": ["run"]
+      },
+      "then": {},
+      "else": {
+        "properties": {
+          "run": {
+            "required": ["asset_sha256", "asset_license", "git_commit"],
+            "properties": {
+              "git_commit": { "pattern": "^[a-fA-F0-9]{40}$" }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "position": {
       "type": "array",
