@@ -39,7 +39,7 @@ impl ScheduledOperation {
             return None;
         }
         let end = self.start_seconds + self.duration_seconds;
-        end.is_finite().then_some(end)
+        (end.is_finite() && end > self.start_seconds).then_some(end)
     }
 }
 
@@ -53,6 +53,7 @@ pub enum ScheduleViolationCode {
     InvalidStartTime,
     InvalidDuration,
     NonFiniteEndTime,
+    NonIncreasingEndTime,
     DuplicatePredecessor,
     SelfPredecessor,
     MissingPredecessor,
@@ -175,6 +176,18 @@ fn validate_schedule_internal(
                 ScheduleViolationCode::NonFiniteEndTime,
                 vec![operation.id.clone()],
                 "start plus duration must produce a finite end time",
+            );
+        }
+        else if operation.start_seconds.is_finite()
+            && operation.start_seconds >= 0.0
+            && (operation.start_seconds + operation.duration_seconds).is_finite()
+            && operation.start_seconds + operation.duration_seconds <= operation.start_seconds
+        {
+            push_violation(
+                &mut violations,
+                ScheduleViolationCode::NonIncreasingEndTime,
+                vec![operation.id.clone()],
+                "start plus duration must advance representable schedule time",
             );
         }
 
@@ -752,6 +765,13 @@ mod tests {
         );
         assert_eq!(
             report.violation_count(ScheduleViolationCode::NonFiniteEndTime),
+            1
+        );
+
+        let lost_precision = vec![operation("lost-precision", "cnc-4", f64::MAX, 1.0, &[])];
+        let report = validate_schedule(&lost_precision);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::NonIncreasingEndTime),
             1
         );
     }
