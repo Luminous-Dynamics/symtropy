@@ -8,8 +8,8 @@
 //! This module does not mutate a real port schedule or activate a booking.
 
 use super::{
-    resolve_observations, validate_observation, NANOS_PER_SECOND, ObservationReport,
-    ObservedValue, PcoField, PcoObservation, TimeMeaning, ValidationPolicy,
+    NANOS_PER_SECOND, ObservationReport, ObservedValue, PcoField, PcoObservation, TimeMeaning,
+    ValidationPolicy, resolve_observations, validate_observation,
 };
 use std::collections::BTreeSet;
 
@@ -107,10 +107,7 @@ fn planned_arrival_observations(input: &EvidenceDecisionInput) -> Vec<PcoObserva
         .collect()
 }
 
-fn target_report(
-    input: &EvidenceDecisionInput,
-    arrivals: &[PcoObservation],
-) -> ObservationReport {
+fn target_report(input: &EvidenceDecisionInput, arrivals: &[PcoObservation]) -> ObservationReport {
     resolve_observations(arrivals, &input.validation_policy)
 }
 
@@ -173,10 +170,7 @@ fn decision(
     }
 }
 
-fn choose_window_for_estimate(
-    instant: i128,
-    input: &EvidenceDecisionInput,
-) -> Option<String> {
+fn choose_window_for_estimate(instant: i128, input: &EvidenceDecisionInput) -> Option<String> {
     input
         .windows
         .iter()
@@ -201,10 +195,7 @@ fn choose_window_for_estimate(
 /// FailClosedUncontestedOnly abstains on rejected or conflicting relevant evidence.
 /// BoundedWorstCaseContingency minimizes worst predicted cost over all admissible
 /// planned arrival times for the same location context.
-pub fn decide(
-    policy: EvidencePolicy,
-    input: &EvidenceDecisionInput,
-) -> EvidenceDecision {
+pub fn decide(policy: EvidencePolicy, input: &EvidenceDecisionInput) -> EvidenceDecision {
     let arrivals = planned_arrival_observations(input);
     let report = target_report(input, &arrivals);
     if input.windows.is_empty() {
@@ -328,11 +319,7 @@ pub fn decide(
             let worst_case_cost = instants
                 .iter()
                 .map(|instant| {
-                    score_window(
-                        *instant,
-                        chosen_window,
-                        input.missed_window_penalty_minutes,
-                    )
+                    score_window(*instant, chosen_window, input.missed_window_penalty_minutes)
                 })
                 .max()
                 .unwrap_or(u64::MAX);
@@ -373,8 +360,7 @@ pub fn score_window(
     if actual_or_predicted_arrival_utc_nanos <= window.starts_at_utc_nanos {
         return ceil_minutes(window.starts_at_utc_nanos - actual_or_predicted_arrival_utc_nanos);
     }
-    let lateness =
-        ceil_minutes(actual_or_predicted_arrival_utc_nanos - window.starts_at_utc_nanos);
+    let lateness = ceil_minutes(actual_or_predicted_arrival_utc_nanos - window.starts_at_utc_nanos);
     if lateness <= u64::from(window.late_grace_minutes) {
         lateness
     } else {
@@ -416,8 +402,7 @@ pub fn evaluate_decision(
     let oracle_cost_minutes = best_window_cost.min(input.abstention_cost_minutes);
     let served = selected_window.is_some_and(|window| {
         truth.actual_arrival_utc_nanos
-            <= window.starts_at_utc_nanos
-                + i128::from(window.late_grace_minutes) * NANOS_PER_MINUTE
+            <= window.starts_at_utc_nanos + i128::from(window.late_grace_minutes) * NANOS_PER_MINUTE
     });
     let actionable_despite_evidence_issue = selected_window.is_some()
         && decision.has_evidence_quality_issue()
@@ -464,8 +449,7 @@ mod tests {
             source_field_code: "plannedTimeOfArrival".to_owned(),
             value: ObservedValue::Timestamp {
                 meaning: TimeMeaning::Planned,
-                value: super::super::parse_rfc3339_timestamp(eta)
-                    .expect("synthetic ETA parses"),
+                value: super::super::parse_rfc3339_timestamp(eta).expect("synthetic ETA parses"),
             },
             source_id: source.to_owned(),
             source_event_time_utc_nanos: current
@@ -582,13 +566,7 @@ mod tests {
 
     #[test]
     fn freshness_policy_rejects_a_stale_only_evidence_set() {
-        let mut stale = observation(
-            "OBS-STALE",
-            "SOURCE-A",
-            "2026-10-18T13:00:00Z",
-            7 * 60,
-            1,
-        );
+        let mut stale = observation("OBS-STALE", "SOURCE-A", "2026-10-18T13:00:00Z", 7 * 60, 1);
         stale.valid_until_utc_nanos = Some(now() + NANOS_PER_MINUTE);
         let input = input(vec![stale]);
         let freshest = decide(EvidencePolicy::FreshestValidatedSourcePointEstimate, &input);
@@ -732,9 +710,7 @@ mod tests {
             .map(|window| {
                 let worst = candidate_arrivals
                     .iter()
-                    .map(|arrival| {
-                        independent_oracle_window_cost(*arrival, window, missed_penalty)
-                    })
+                    .map(|arrival| independent_oracle_window_cost(*arrival, window, missed_penalty))
                     .max()
                     .unwrap_or(u64::MAX);
                 (worst, window.starts_at_utc_nanos, window.id.clone())
@@ -748,11 +724,7 @@ mod tests {
     }
 
     fn timestamp_at_minute_of_day(minute: u32) -> String {
-        format!(
-            "2026-10-18T{:02}:{:02}:00Z",
-            minute / 60,
-            minute % 60
-        )
+        format!("2026-10-18T{:02}:{:02}:00Z", minute / 60, minute % 60)
     }
 
     #[test]
@@ -786,10 +758,8 @@ mod tests {
                     let windows = window_starts
                         .iter()
                         .map(|(id, minute)| {
-                            let mut window = window(
-                                id,
-                                &timestamp_at_minute_of_day(*minute as u32),
-                            );
+                            let mut window =
+                                window(id, &timestamp_at_minute_of_day(*minute as u32));
                             window.late_grace_minutes = grace;
                             window
                         })
