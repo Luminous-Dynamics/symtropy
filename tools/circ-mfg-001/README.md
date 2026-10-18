@@ -63,11 +63,13 @@ All cases are synthetic. They are not evidence of the frequency of real producti
 4. Keep mandatory gates separate from Pareto objectives: lifecycle cost, schedule, first-pass yield, rework, material/energy/water use, service time, disassembly damage, independently accepted reuse mass, and uncertainty.
 5. Add physical measurements only after tool calibration, measurement uncertainty, custody/provenance, safe test plans and the relevant qualified engineering reviews are established.
 
-## Research grounding
+## Research grounding (reviewed 2026-10-18)
 
-- [ISO 20887:2020](https://www.iso.org/standard/69370.html) — design for disassembly/adaptability. The standard does not prescribe universal numeric targets; set project-specific gates and document how they were chosen.
+- [NISTIR 8620 — Digital Twins Workshops Summary Report (2026-07-21)](https://doi.org/10.6028/NIST.IR.8620) identifies manufacturing digital-twin research needs including interoperability, verification/validation/uncertainty quantification, cybersecurity and workforce readiness.
+- [NIST — Manufacturing in a Circular Economy: Research Needs in Design, Systems Modeling, and Digital Thread (2026-09-08)](https://www.nist.gov/publications/manufacturing-circular-economy-research-needs-design-systems-modeling-and-digital) grounds the cross-lifecycle and value-retention direction. This is a research-needs report, not proof that any candidate performs better.
 - [NIST Digital Twins for Advanced Manufacturing](https://www.nist.gov/programs-projects/digital-twins-advanced-manufacturing) — trustworthy integration, verification/validation and quantified uncertainty.
-- [NISTIR 8356](https://doi.org/10.6028/NIST.IR.8356) — trust/security considerations for digital twins.
+- [ISO 20887:2020](https://www.iso.org/standard/69370.html) — design for disassembly/adaptability. ISO lists this edition as confirmed in 2025 and current. It does not prescribe universal numeric performance targets; set project-specific gates and document why they are appropriate.
+- [EN 15978:2026 — CEN-CENELEC overview](https://www.cencenelec.eu/news-events/news/2026/en-in-the-spotlight/2026-04-17-en-15978-2026/) — harmonized building environmental-performance assessment using life-cycle assessment and quantified data. For a building LCA, keep life-cycle modules, declared boundaries, EPD input quality and uncertainty explicit; do not substitute the v0.1 mass ledger for an LCA.
 - [OPC UA / MTConnect](https://opcfoundation.org/markets-collaboration/mtconnect/) — candidate open semantics for factory-device data; no single protocol should be assumed present on every machine.
 - [European Commission Digital Product Passport roadmap](https://single-market-economy.ec.europa.eu/single-market/digital-product-passport_en) — planned sector-specific requirements are subject to applicable legal acts and can change. Do not claim legal compliance from this benchmark.
 
