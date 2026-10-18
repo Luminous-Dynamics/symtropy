@@ -484,9 +484,8 @@ mod tests {
             details: "A non-finite result must not corrupt JSON output.",
         };
         let output = json_report(&[invalid]);
-        assert!(output.contains("\\"passed\\":false"));
-        assert!(output.contains("\\"value\\":null"));
-        assert!(output.contains("\\"passed\\":false"));
+        assert!(output.contains("\"passed\":false"));
+        assert!(output.contains("\"value\":null"));
     }
 
     #[test]
