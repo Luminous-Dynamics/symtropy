@@ -482,6 +482,25 @@ mod tests {
     }
 
     #[test]
+    fn truncated_png_with_valid_signature_fails_decode() {
+        let directory = test_directory();
+        let path = directory.join("truncated.png");
+        fs::write(&path, PNG_SIGNATURE).expect("truncated fixture should be written");
+        let receipt = CaptureReceipt::build(
+            "test",
+            &[1.5],
+            &[path.to_string_lossy().into_owned()],
+            qualified_metadata(),
+        );
+
+        assert!(!receipt.capture_complete);
+        assert_eq!(receipt.images[0].status, "decode_error");
+        assert!(receipt.images[0].sha256.is_some());
+
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
     fn capture_integrity_and_provenance_qualification_are_separate() {
         let directory = test_directory();
         let path = directory.join("frame.png");
