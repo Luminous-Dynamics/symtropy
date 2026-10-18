@@ -383,7 +383,9 @@ pub fn validate_spectrum_profile(profile: &SpectrumProfile) -> Result<(), String
         || profile.source_label.trim().is_empty()
         || profile.coordinate_frame.trim().is_empty()
     {
-        return Err("spectrum profile requires an id, source label, and coordinate frame".to_owned());
+        return Err(
+            "spectrum profile requires an id, source label, and coordinate frame".to_owned(),
+        );
     }
     if profile.unit != FieldUnit::WattPerSquareMeterSteradianPerNanometer
         && profile.unit != FieldUnit::WattPerSquareMeterSteradianPerMeter
@@ -406,7 +408,9 @@ pub fn validate_spectrum_profile(profile: &SpectrumProfile) -> Result<(), String
     let mut previous_wavelength = 0.0;
     for bin in &profile.bins {
         if !bin.wavelength_m.is_finite() || bin.wavelength_m <= previous_wavelength {
-            return Err("spectrum wavelengths must be finite, positive, and strictly increasing".to_owned());
+            return Err(
+                "spectrum wavelengths must be finite, positive, and strictly increasing".to_owned(),
+            );
         }
         if !bin.spectral_radiance.is_finite() || bin.spectral_radiance < 0.0 {
             return Err("spectral radiance must be finite and non-negative".to_owned());
@@ -570,11 +574,17 @@ pub fn extract_vector_glyphs(
             .magnitude_uncertainty
             .is_some_and(|value| !value.is_finite() || value < 0.0)
         {
-            return Err(format!("layer {:?} contains invalid magnitude uncertainty", layer.metadata.id));
+            return Err(format!(
+                "layer {:?} contains invalid magnitude uncertainty",
+                layer.metadata.id
+            ));
         }
         let magnitude = sample.vector.iter().fold(0.0_f64, |norm, value| norm.hypot(*value));
         if !magnitude.is_finite() {
-            return Err(format!("layer {:?} contains an unrepresentable vector magnitude", layer.metadata.id));
+            return Err(format!(
+                "layer {:?} contains an unrepresentable vector magnitude",
+                layer.metadata.id
+            ));
         }
         let direction = if magnitude > f64::EPSILON {
             [
@@ -809,7 +819,11 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
 mod tests {
     use super::*;
 
-    fn metadata(quantity: PhysicalQuantity, unit: FieldUnit, range: DisplayRange) -> FieldLayerMetadata {
+    fn metadata(
+        quantity: PhysicalQuantity,
+        unit: FieldUnit,
+        range: DisplayRange,
+    ) -> FieldLayerMetadata {
         FieldLayerMetadata {
             id: "test-layer".to_owned(),
             quantity,
