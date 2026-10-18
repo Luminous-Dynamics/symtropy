@@ -1438,6 +1438,24 @@ mod tests {
     }
 
     #[test]
+    fn protective_stops_ignore_observation_visibility_and_contract_horizon() {
+        let report = run_contract_suite(&contract()).expect("suite should run");
+        for scenario_id in [
+            "global-protective-stop-before-observation",
+            "global-protective-stop-with-future-reference",
+            "global-protective-stop-beyond-contract-horizon",
+        ] {
+            let result = report
+                .scenario_results
+                .iter()
+                .find(|result| result.scenario_id == scenario_id)
+                .expect("protective stop scenario should exist");
+            assert!(result.admitted, "{scenario_id} must not be blocked by planner evidence");
+            assert_eq!(result.next_state, Some(TaskState::Interrupted));
+        }
+    }
+
+    #[test]
     fn visible_declined_approval_cannot_be_bypassed_as_not_required() {
         let contract = contract();
         let mut proposal = make_proposal(
