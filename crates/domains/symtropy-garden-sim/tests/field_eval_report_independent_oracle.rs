@@ -5,7 +5,8 @@
 
 use serde_json::from_str;
 use symtropy_garden_sim::field_eval_report::{
-    FieldEvalPreflightStatusV1, FieldStudyManifestV1, preflight_field_study_v1,
+    FieldEvalPreflightStatusV1, FieldStudyManifestV1, OutcomeEvidenceKindV1,
+    preflight_field_study_v1,
 };
 
 const FIXTURE: &str = include_str!("../fixtures/field_eval_report.v1.json");
@@ -32,6 +33,10 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
     assert_eq!(
         in_window.acceptance_evidence_ref.as_deref(),
         Some("evt-study-001-acceptance")
+    );
+    assert_eq!(
+        in_window.outcome_evidence_kind,
+        OutcomeEvidenceKindV1::FarmerDecisionEvent
     );
     assert_eq!(
         in_window.useful_window_evidence_ref,
