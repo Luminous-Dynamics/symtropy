@@ -119,7 +119,6 @@ impl ValidationPolicy {
     }
 }
 
-
 /// Metadata supplied by the ingest adapter; it is not inferred from the PCO
 /// event time. This keeps source update time distinct from planned arrival or
 /// departure time.
