@@ -7,7 +7,7 @@
 //! create weather scenarios or optimize dispatch. Scenario chronology/correlation
 //! and probability calibration belong to the upstream data/benchmark contract.
 
-use super::{EnergyJ, Fraction, ModelError};
+use super::{EnergyJ, Fraction};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ScenarioProbability(f64);
@@ -164,7 +164,7 @@ pub fn summarize_scenario_service_risk(
         }
 
         if shortfall > worst_shortfall
-            || (close(shortfall, worst_shortfall) && outcome.scenario_id < worst_scenario_id)
+            || (shortfall == worst_shortfall && outcome.scenario_id < worst_scenario_id)
         {
             worst_shortfall = shortfall;
             worst_scenario_id = outcome.scenario_id;
@@ -265,7 +265,7 @@ pub fn verify_scenario_service_risk_report(
             maximum_unmet = unmet;
         }
         if shortfall > maximum_shortfall
-            || (close(shortfall, maximum_shortfall) && outcome.scenario_id < worst_id)
+            || (shortfall == maximum_shortfall && outcome.scenario_id < worst_id)
         {
             maximum_shortfall = shortfall;
             worst_id = outcome.scenario_id;
