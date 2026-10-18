@@ -42,3 +42,5 @@ jobs:
 
       - name: Validate synthetic corpus
         run: cargo run --manifest-path crates/tools/legal-evidence-benchmark/Cargo.toml -- validate crates/tools/legal-evidence-benchmark/fixtures/legal-knowledge-v0.1.json
+      - name: Exercise evaluator against synthetic reference submission
+        run: cargo run --manifest-path crates/tools/legal-evidence-benchmark/Cargo.toml -- evaluate crates/tools/legal-evidence-benchmark/fixtures/legal-knowledge-v0.1.json crates/tools/legal-evidence-benchmark/fixtures/reference-submission-v0.1.json
