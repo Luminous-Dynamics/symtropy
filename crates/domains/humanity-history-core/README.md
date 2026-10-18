@@ -29,6 +29,12 @@ The CLI prints a JSON report. Exit codes are:
 - Asset records carry the SHA-256 digest of the precise asset bytes; this crate validates digest shape, not asset bytes, so the ingestion/build pipeline must calculate and independently verify the digest.
 - Validation issues have stable sort order, intended for repeatable local checks.
 
+## Historical research seed
+
+`fixtures/antikythera-research-seed.json` is a metadata-only research seed, not an adjudicated reconstruction. It keeps published 365-hole and 354-hole calendar interpretations as separate claims and links the latter to evidence that challenges the former. It includes bibliographic citations and claim-level locators but no source paper content, imagery, or external model assets.
+
+See [the pilot case-study note](../../../../docs/research/case-studies/ANTIKYTHERA_MECHANISM_PILOT.md) for source choices, caveats, expected checks, and adversarial mutation controls. This European/Mediterranean case is an epistemic stress test, not a globally representative selection of historical significance.
+
 ## Synthetic fixture
 
 `fixtures/synthetic-validation.json` is test data only. It deliberately contains no real historical assertion or media. Its asset digest is the standard SHA-256 digest for an empty byte sequence, used to demonstrate the required 64-hex-character field.
