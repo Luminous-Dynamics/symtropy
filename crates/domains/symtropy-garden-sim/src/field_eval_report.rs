@@ -8,6 +8,7 @@
 //! All identifiers are opaque references; this is not a privacy or identity proof.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const FIELD_EVAL_REPORT_SCHEMA_VERSION_V1: u16 = 1;
@@ -242,6 +243,34 @@ pub struct FieldEvalBlockerV1 {
     pub code: FieldEvalBlockerCodeV1,
     pub request_ref: Option<String>,
     pub detail: String,
+}
+
+/// Deterministic receipt binding a calculated/blocked report to the exact
+/// manifest bytes supplied to the CLI. A digest detects changed bytes; it does
+/// not authenticate the source or prove that the manifest is true.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FieldEvalReceiptV1 {
+    pub receipt_version: u16,
+    pub source_manifest_sha256: String,
+    pub report: FieldEvalPreflightReportV1,
+}
+
+pub fn build_field_eval_receipt_v1(
+    source_manifest_bytes: &[u8],
+    report: FieldEvalPreflightReportV1,
+) -> FieldEvalReceiptV1 {
+    let digest = Sha256::digest(source_manifest_bytes);
+    let mut sha256 = String::with_capacity(64);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(&mut sha256, "{byte:02x}");
+    }
+    FieldEvalReceiptV1 {
+        receipt_version: 1,
+        source_manifest_sha256: sha256,
+        report,
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -1179,6 +1208,21 @@ mod tests {
             exclusions,
             outcome_records,
         }
+    }
+
+    #[test]
+    fn receipt_digest_binds_exact_input_bytes() {
+        let report = preflight_field_study_v1(&valid_manifest());
+        let receipt = build_field_eval_receipt_v1(b"abc", report);
+        assert_eq!(receipt.receipt_version, 1);
+        assert_eq!(
+            receipt.source_manifest_sha256,
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+
+        let other_report = preflight_field_study_v1(&valid_manifest());
+        let altered_bytes = build_field_eval_receipt_v1(b"abc\n", other_report);
+        assert_ne!(receipt.source_manifest_sha256, altered_bytes.source_manifest_sha256);
     }
 
     #[test]
