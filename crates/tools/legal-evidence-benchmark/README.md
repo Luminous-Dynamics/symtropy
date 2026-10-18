@@ -41,7 +41,7 @@ Versioned JSON Schema documents are published under `schemas/`:
 - `evaluation-report-v0.1.schema.json`: score receipt, failure counts, critical-case IDs, and SHA-256 input digests. It also specifies per-case diagnostics and failure codes.
 - `validation-report-v0.1.schema.json`: corpus validation receipt and corpus digest.
 
-The Rust unit suite checks these schemas are valid JSON objects with the expected draft, closed-object posture, required lists, and resolvable local references. This is a structural consistency test, not a full JSON Schema meta-validation; downstream clients should validate against the published schema with a conforming Draft 2020-12 validator. The schemas are contract artifacts, not authority to interpret or apply actual law.
+The Rust unit suite checks these schemas are valid JSON objects with the expected draft, closed-object posture, required lists, resolvable local references, and recursive presence of required fields in serialized benchmark/submission/report examples. This is a structural consistency test, not a full JSON Schema meta-validation; downstream clients should validate against the published schema with a conforming Draft 2020-12 validator. The schemas are contract artifacts, not authority to interpret or apply actual law.
 
 ## Submission contract
 
