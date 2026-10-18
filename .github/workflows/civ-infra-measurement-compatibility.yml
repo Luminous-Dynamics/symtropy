@@ -38,6 +38,14 @@ jobs:
           cargo --version
           git rev-parse HEAD
 
+      - name: TEMP diagnostic regenerate lockfile for repair
+        run: |
+          cargo generate-lockfile --manifest-path tools/civ-infra-measurement-compatibility/Cargo.toml
+          echo LOCK_B64_BEGIN
+          base64 -w0 tools/civ-infra-measurement-compatibility/Cargo.lock
+          echo
+          echo LOCK_B64_END
+
       - name: Format check
         run: cargo fmt --manifest-path tools/civ-infra-measurement-compatibility/Cargo.toml -- --check
 
