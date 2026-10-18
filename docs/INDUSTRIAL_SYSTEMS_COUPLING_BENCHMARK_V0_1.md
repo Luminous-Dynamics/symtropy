@@ -146,6 +146,39 @@ The 5% cost target is an aspirational go/no-go target for this specific suite, n
 
 Start with versioned file contracts and adapters; do not require a distributed runtime to execute the deterministic offline benchmark.
 
+## Benchmark stack and digital-twin composition contract
+
+Do not evaluate a new industrial optimizer only on its own synthetic problem, and do not require every project to collapse into one schema or runtime. Qualify three layers separately:
+
+1. **Component-method layer.** Use recognized external instances to test individual schedulers, and pinned analytic/public references to test process models. Report the component's own validity and solver-quality metrics before measuring network-level value.
+2. **Composition layer.** Use the ISO 23247 digital-twin framework as the interoperability reference. ISO 23247-4 covers information exchange; ISO 23247-5 covers digital threads; ISO 23247-6:2026 explicitly addresses composition of manufacturing twins and distinguishes integrated, unified, and federated compositions. This project should define small, versioned composition profiles and test them rather than invent another incompatible monolithic twin format.
+3. **Outcome layer.** Use INDUSTRIAL-COUPLING-001 to measure the marginal value (or cost) of combining components under physical constraints, uncertainty, participant economics, and independent verification.
+
+### Composition profiles to test
+
+- **Integrated:** use one shared schema only where the component owners have agreed on common semantics and a common lifecycle.
+- **Unified:** keep each component's own model and schema; expose a composed view through explicit adapters with declared unit conversion, version, loss/coverage, and provenance.
+- **Federated:** keep models and source data under separate ownership; exchange only the authorized contract fields and receipts required for coordination. Treat missing, stale, revoked, or inaccessible evidence as unknown/unqualified—not as zero or an assumed default.
+
+These profiles are alternatives to compare, not a claim that one topology is always superior. Choose the narrowest composition that meets the workload and data-rights requirements. Symtropy should not import Sol-Atlas or Mycelix's internal domain logic; Symthaea should be tested as a consumer/producer of bounded decision proposals, not given implicit authority over a physical twin.
+
+### Composition-level benchmark gates
+
+- **Semantic loss:** zero silent drops, unit coercions, or enum remapping for decision-critical supported fields. Any unsupported field must be explicitly preserved as unknown or reported as unsupported.
+- **Provenance:** 100% of decision-critical inputs bind to a source identity, source time, parser/adapter version, and qualification state. A profile match is not the same as a cryptographic source-identity check.
+- **Freshness and gaps:** stale observations and large event gaps remain visible after composition; no adapter may promote event silence to machine availability.
+- **Fault isolation:** unavailable or incompatible component evidence must yield an explicit degraded/unqualified composition, not a successful-looking zero/default.
+- **Replaceability:** swapping a component implementation or version must not alter another component's authoritative source records; changes in composed outputs must be attributable to adapter/model version changes.
+- **Reproducibility:** pinned component versions and input digests reproduce the same canonical composed request/receipt, or explicitly record the permitted source of nondeterminism.
+- **Interop cost:** report adapter implementation effort, conversion/runtime overhead, payload size, end-to-end composition latency and the proportion of required fields actually observed.
+- **Privacy/authority:** report which participant owns each field, which party may read or transform it, and how authorization/revocation affects cached and composed claims.
+
+### Component benchmark preflight
+
+A 2026 open-access job-shop benchmark paper describes publicly available environments and instances for classic job shop (JSP), flow shop (FSP), flexible job shop (FJSP), assembly job shop (AJSP), sequence-dependent setup times, and online job arrivals, spanning heuristic, exact, metaheuristic and reinforcement-learning methods. Use these published instances as an external preflight for scheduling algorithms where semantics match. Pin the exact release/commit and instances; record the known optimum or best-known value, solver time, compute budget and optimality gap. Extend the benchmark with industrial-specific energy, quality, evidence, maintenance and multi-party constraints only after recording the baseline result. Never claim that an integrated synthetic case demonstrates state-of-the-art job-shop scheduling.
+
+For heat integration, use OpenPinch as an external reference candidate for the supported pinch/total-site calculations; a target calculation is not itself a validated heat-exchanger network. Keep external reference tools in the research/qualification path rather than adding a production Python runtime merely to conform to this benchmark.
+
 ## Phased work
 
 1. **Contract:** freeze canonical schema, units, scenario IDs, score accounting, hard constraints, and negative controls.
@@ -164,6 +197,8 @@ No phase authorizes direct writes to operational technology. Any future plant de
 - Applied Energy (2025), [Inter-plant heat exchanger network integration with an organic Rankine cycle](https://doi.org/10.1016/j.apenergy.2025.126126): a concrete example of the network-design and shared-cost-allocation problem; published findings are case-specific and should be reproduced rather than generalized.
 - [OpenPinch](https://github.com/waikato-ahuora-smart-energy-systems/OpenPinch): an open-source process-stream integration implementation and potential pinned reference adapter. The existing Symtropy thermal work records a candidate multiperiod fixture; numeric parity must not be claimed until it is actually reproduced under a pinned environment.
 - [Robust optimization for flexible industrial energy scheduling in a cement plant](https://doi.org/10.1016/j.egyr.2025.11.044): a recent scenario-based approach to electricity-price uncertainty and market participation, useful for baseline design. Its published outcomes are case-specific and should not be transferred to another facility without reproduction.
+- [ISO 23247-6:2026 — Digital twin composition](https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso%3A23247%3A-6%3Aed-1%3Av1%3Aen): the current manufacturing digital-twin composition reference identifies integrated, unified and federated modes and describes requirements for composition and interoperation.
+- Reijnen et al. (2026), [Job shop scheduling benchmark: environments and instances for learning and non-learning methods](https://doi.org/10.1007/s10472-026-10007-3): open benchmark environments span JSP, FSP, FJSP, AJSP, sequence-dependent setup and online job-arrival variants, allowing component scheduling results to be separated from the added difficulty of industrial coupling.
 
 ## Exit criteria
 
