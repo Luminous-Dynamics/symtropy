@@ -39,3 +39,7 @@ The same crate exposes `provenance::evaluate_fixture_bytes`, a metadata-only ver
 - Fixture: `docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json`
 
 A provenance pass is explicitly **not** evidence that UTC expansion is correct. Actual time-zone transition conformance remains a separate follow-on requiring an exact rules-data build and independent recurrence-expansion cross-check.
+
+Run the strict metadata/provenance negative-control suite as a JSON report:
+
+- `cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- --provenance docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json`
