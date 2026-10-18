@@ -432,11 +432,11 @@ fn resource_fits(
     for resource in task.resource_demands.keys() {
         let capacity = capacities[resource.as_str()];
         for time in start..finish {
-            let mut used = task.resource_demands[resource];
+            let mut used = u64::from(task.resource_demands[resource]);
             for (id, step) in &scheduled_by_id {
                 let index = indexed[*id];
                 if step.start <= time && time < step.finish {
-                    used = used.saturating_add(
+                    used += u64::from(
                         case.tasks[index]
                             .resource_demands
                             .get(resource)
@@ -445,7 +445,7 @@ fn resource_fits(
                     );
                 }
             }
-            if used > capacity {
+            if used > u64::from(capacity) {
                 return false;
             }
         }
