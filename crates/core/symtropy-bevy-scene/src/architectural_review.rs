@@ -455,7 +455,7 @@ mod tests {
         playback.set_playing(true);
         assert!(playback.is_playing());
 
-        let mut invalid = route();
+        let mut invalid = sample_route_fixture();
         invalid.max_translation_speed_mps = 0.0;
         assert!(ReviewRoutePlayback::new(invalid).is_err());
     }
