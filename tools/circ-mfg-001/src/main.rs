@@ -193,11 +193,8 @@ fn normalize_manifest(manifest: &mut Manifest) {
                 .then_with(|| a.payload.cmp(&b.payload))
                 .then_with(|| a.sha256.cmp(&b.sha256))
         });
-        case.mandatory_gates.sort_by(|a, b| {
-            a.name
-                .cmp(&b.name)
-                .then_with(|| a.status.cmp(&b.status))
-        });
+        case.mandatory_gates
+            .sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.status.cmp(&b.status)));
         case.required_external_refs.sort_by(|a, b| {
             a.authority
                 .cmp(&b.authority)
@@ -226,8 +223,7 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), Vec<String>> {
     }
     if manifest.evidence_class != EvidenceClass::Synthetic {
         errors.push(
-            "v0.1_accepts_synthetic_contract_fixtures_only_not_physical_qualification"
-                .to_string(),
+            "v0.1_accepts_synthetic_contract_fixtures_only_not_physical_qualification".to_string(),
         );
     }
     if manifest.cases.is_empty() {
@@ -288,7 +284,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     let mut evidence_counts = std::collections::BTreeMap::<String, usize>::new();
     for record in &case.evidence {
-        *evidence_counts.entry(record.evidence_id.clone()).or_insert(0) += 1;
+        *evidence_counts
+            .entry(record.evidence_id.clone())
+            .or_insert(0) += 1;
         if record.evidence_id.trim().is_empty() {
             add_issue(
                 &mut issues,
@@ -589,11 +587,8 @@ fn build_report(manifest: &Manifest, raw_input: &[u8]) -> Report {
         .expect("serializing a parsed manifest should not fail");
     let canonical_input_sha256 = sha256_hex(&canonical_bytes);
 
-    let case_results: Vec<CaseResult> = canonical_manifest
-        .cases
-        .iter()
-        .map(evaluate_case)
-        .collect();
+    let case_results: Vec<CaseResult> =
+        canonical_manifest.cases.iter().map(evaluate_case).collect();
     let oracle_matches = case_results.iter().filter(|r| r.oracle_match).count();
     let summary = Summary {
         case_count: case_results.len(),
@@ -607,8 +602,8 @@ fn build_report(manifest: &Manifest, raw_input: &[u8]) -> Report {
         case_results: &case_results,
         summary: &summary,
     };
-    let digest_bytes = serde_json::to_vec(&digest_payload)
-        .expect("serializing a report payload should not fail");
+    let digest_bytes =
+        serde_json::to_vec(&digest_payload).expect("serializing a report payload should not fail");
 
     Report {
         schema_version: canonical_manifest.schema_version,
@@ -680,8 +675,7 @@ fn main() {
     }
 
     let report = build_report(&manifest, &raw_input);
-    let json = serde_json::to_vec_pretty(&report)
-        .expect("serializing a report should not fail");
+    let json = serde_json::to_vec_pretty(&report).expect("serializing a report should not fail");
     if let Some(path) = output_path {
         if let Err(error) = fs::write(&path, &json) {
             eprintln!("Cannot write {}: {error}", path.display());
@@ -711,11 +705,17 @@ mod tests {
         // manifest. Editing both a fixture and its expected_decision must not
         // make the suite agree with itself silently.
         const EXPECTED: &[(&str, Decision)] = &[
-            ("01-complete-evidence-and-external-bindings", Decision::Conformant),
+            (
+                "01-complete-evidence-and-external-bindings",
+                Decision::Conformant,
+            ),
             ("02-verified-payload-digest-mismatch", Decision::Blocked),
             ("03-required-material-lot-missing", Decision::Unresolved),
             ("04-mandatory-quality-gate-fails", Decision::Blocked),
-            ("05-required-material-flow-account-missing", Decision::Unresolved),
+            (
+                "05-required-material-flow-account-missing",
+                Decision::Unresolved,
+            ),
             ("06-required-evidence-stale", Decision::Unresolved),
             ("07-critical-evidence-wrong-unit", Decision::Blocked),
             ("08-critical-evidence-contradictory", Decision::Blocked),
@@ -724,7 +724,10 @@ mod tests {
             ("11-unreferenced-evidence-record", Decision::Blocked),
             ("12-custody-reference-role-mismatch", Decision::Blocked),
             ("13-duplicate-custody-reference", Decision::Blocked),
-            ("14-external-reference-authority-mismatch", Decision::Blocked),
+            (
+                "14-external-reference-authority-mismatch",
+                Decision::Blocked,
+            ),
             ("15-site-resource-observation-missing", Decision::Unresolved),
         ];
 
@@ -779,7 +782,8 @@ mod tests {
     fn missing_required_evidence_remains_unresolved() {
         let (manifest, _) = fixture();
         let mut case = manifest.cases[0].clone();
-        case.required_evidence_ids.push("missing-critical-record".to_string());
+        case.required_evidence_ids
+            .push("missing-critical-record".to_string());
         assert_eq!(evaluate_case(&case).computed_decision, Decision::Unresolved);
     }
 
@@ -799,7 +803,8 @@ mod tests {
         let mut record = case.evidence[0].clone();
         record.evidence_id = " ".to_string();
         record.payload = Some("x".to_string());
-        record.sha256 = Some("2d711642b726b04401627ca9fbac32f5da7e5c8530fb1903cc4db02258717921".to_string());
+        record.sha256 =
+            Some("2d711642b726b04401627ca9fbac32f5da7e5c8530fb1903cc4db02258717921".to_string());
         case.evidence.push(record);
         assert_eq!(evaluate_case(&case).computed_decision, Decision::Blocked);
     }
@@ -825,7 +830,8 @@ mod tests {
         let (manifest, _) = fixture();
         let mut case = manifest.cases[0].clone();
         let required_id = case.required_external_refs[0].reference_id.clone();
-        case.external_refs.retain(|reference| reference.reference_id != required_id);
+        case.external_refs
+            .retain(|reference| reference.reference_id != required_id);
         assert_eq!(evaluate_case(&case).computed_decision, Decision::Unresolved);
     }
 
