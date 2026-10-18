@@ -1458,13 +1458,21 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
         let case = summary.results.iter().find(|result| result.case_id == "SPR-V-001").unwrap();
-        let action = case.actions.iter().find(|item| item.action_id == "targeted-clearance-survey").unwrap();
+        let action = case
+            .actions
+            .iter()
+            .find(|item| item.action_id == "targeted-clearance-survey")
+            .unwrap();
         assert_eq!(action.action_type, "survey");
         assert_eq!(action.evidence_state, "valid");
         assert_eq!(action.source_revision, "access-survey-v1");
         assert_eq!(action.cost_basis_id, "synthetic-cost-basis-v1");
         assert_eq!(action.duration_basis_id, "synthetic-duration-basis-v1");
-        let fail_outcome = action.outcomes.iter().find(|item| item.outcome_id == "clearance-fail").unwrap();
+        let fail_outcome = action
+            .outcomes
+            .iter()
+            .find(|item| item.outcome_id == "clearance-fail")
+            .unwrap();
         assert_eq!(fail_outcome.compatible_state_ids, vec!["width-fail"]);
     }
 
