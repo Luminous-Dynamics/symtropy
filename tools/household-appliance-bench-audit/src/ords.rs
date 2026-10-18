@@ -964,7 +964,7 @@ mod tests {
     #[test]
     fn category_id_label_disagreement_is_quarantined() {
         let source = String::from_utf8(CSV.to_vec()).unwrap();
-        let changed = source.replace(",Toaster,31,", ",Coffee maker,31,");
+        let changed = source.replace("r-004,Kitchen toaster,Toaster,31,HeatHaus", "r-004,Kitchen toaster,Coffee maker,31,HeatHaus");
         assert_ne!(source, changed, "mutation must change the synthetic category label");
         let (summary, output) = run_fixture(SCHEMA, PROFILE, changed.as_bytes());
         assert_eq!(summary.category_id_label_mismatch_row_count, 1);
