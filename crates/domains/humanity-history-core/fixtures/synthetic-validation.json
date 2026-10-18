@@ -81,5 +81,26 @@
       "distributable": true,
       "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
+  ],
+  "analysis_runs": [
+    {
+      "id": "fixture:planned-run-1",
+      "purpose": "Synthetic planned run for schema validation",
+      "status": "planned",
+      "model_spec_version": "synthetic-model-v1",
+      "code_revision": null,
+      "command": null,
+      "environment_fingerprint": null,
+      "input_manifest_sha256": null,
+      "input_artifacts": [],
+      "output_artifacts": [],
+      "random_seed": null,
+      "target_estimate_ids": [],
+      "comparison_source_id": null,
+      "result_summary": null,
+      "limitations": [
+        "Synthetic fixture only; no experiment was executed."
+      ]
+    }
   ]
 }
