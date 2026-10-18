@@ -1,0 +1,44 @@
+name: Port-Call Component Cost Ledger
+
+on:
+  pull_request:
+    paths:
+      - "tools/port-call-value-sharing-benchmark/**"
+      - "docs/research/PORT-CALL-VALUE-SHARING-BENCHMARK-V0_1.md"
+      - ".github/workflows/port-call-cost-ledger-benchmark.yml"
+  push:
+    paths:
+      - "tools/port-call-value-sharing-benchmark/**"
+      - "docs/research/PORT-CALL-VALUE-SHARING-BENCHMARK-V0_1.md"
+      - ".github/workflows/port-call-cost-ledger-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Category manifest, ledger reconciliation and determinism
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+      - name: Verify exact synthetic category manifest bytes
+        run: |
+          echo "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a  tools/port-call-value-sharing-benchmark/fixtures/cost-categories-v0.1.json" | sha256sum --check --status
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --check
+      - name: Run locked unit tests
+        run: cargo test --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Compare component ledger receipt
+        run: cargo run --quiet --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --component-ledger-json > /tmp/component-ledger.json
+      - name: Verify component ledger receipt is deterministic and exact
+        run: |
+          cargo run --quiet --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --component-ledger-json > /tmp/component-ledger-second.json
+          cmp /tmp/component-ledger.json /tmp/component-ledger-second.json
+          cmp /tmp/component-ledger.json tools/port-call-value-sharing-benchmark/fixtures/component-ledger-v0.1.expected.json
