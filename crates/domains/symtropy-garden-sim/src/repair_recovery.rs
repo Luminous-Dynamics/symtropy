@@ -382,7 +382,7 @@ fn validate_episode(
     input: &RepairRecoveryInputV1,
     episode: &RepairEpisodeV1,
     known_requests: &BTreeSet<&str>,
-    seen_episode_ids: &mut BTreeSet<&str>,
+    seen_episode_ids: &mut BTreeSet<String>,
     blockers: &mut Vec<RepairRecoveryBlockerV1>,
 ) {
     let id = Some(episode.episode_id.as_str());
@@ -397,7 +397,7 @@ fn validate_episode(
             "episode, asset and configuration identities must be non-empty",
         );
     }
-    if !seen_episode_ids.insert(episode.episode_id.as_str()) {
+    if !seen_episode_ids.insert(episode.episode_id.clone()) {
         push_blocker(
             blockers,
             RepairRecoveryBlockerCodeV1::DuplicateEpisodeId,
