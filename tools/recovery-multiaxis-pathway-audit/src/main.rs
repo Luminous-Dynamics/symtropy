@@ -1231,7 +1231,9 @@ mod tests {
         assert!(receipt
             .criteria_regime_rankings
             .values()
-            .all(|ranked| !ranked.contains(&"constraint-violating-high-yield-shortcut".to_string())));
+            .all(|ranked| {
+                !ranked.contains(&"constraint-violating-high-yield-shortcut".to_string())
+            }));
     }
 
     #[test]
@@ -1249,7 +1251,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert!(!receipt.criteria_sensitivity_control_matches);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("CRITERIA_RANKING_MISMATCH")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("CRITERIA_RANKING_MISMATCH")));
     }
 
     #[test]
