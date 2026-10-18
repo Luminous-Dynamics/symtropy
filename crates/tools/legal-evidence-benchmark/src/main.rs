@@ -141,7 +141,8 @@ fn run() -> Result<bool, String> {
                 dataset_kind: benchmark.dataset_kind.clone(),
                 authority_count: benchmark.authorities.len(),
                 case_count: benchmark.cases.len(),
-                claim_ceiling: "Dataset structure only; not legal correctness or model performance.",
+                claim_ceiling:
+                    "Dataset structure only; not legal correctness or model performance.",
             };
             println!(
                 "{}",
@@ -436,7 +437,10 @@ fn has_duplicates<T: Ord + Clone>(values: &[T]) -> bool {
 }
 
 fn parse_date(value: &str) -> Option<(i32, u32, u32)> {
-    if value.len() != 10 || value.as_bytes().get(4) != Some(&b'-') || value.as_bytes().get(7) != Some(&b'-') {
+    if value.len() != 10
+        || value.as_bytes().get(4) != Some(&b'-')
+        || value.as_bytes().get(7) != Some(&b'-')
+    {
         return None;
     }
     let year: i32 = value.get(0..4)?.parse().ok()?;
@@ -722,7 +726,10 @@ fn evaluate(
         uncited_answers,
         critical_failure_case_ids: critical_failures.into_iter().collect(),
         fixture_gate_passed,
-        claim_ceiling: "Synthetic fixture conformance only; not legal correctness, legal advice, or proof of real-world compliance.",
+        claim_ceiling: concat!(
+            "Synthetic fixture conformance only; not legal correctness, ",
+            "legal advice, or proof of real-world compliance."
+        ),
     })
 }
 
