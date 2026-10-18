@@ -122,7 +122,7 @@ fn load_human_when_ready(
     let mut named: Vec<(String, Handle<AnimationClip>)> = gltf
         .named_animations
         .iter()
-        .map(|(name, handle)| (name.clone(), handle.clone()))
+        .map(|(name, handle)| (name.to_string(), handle.clone()))
         .collect();
     named.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -136,7 +136,7 @@ fn load_human_when_ready(
         warn!("No idle/stand/survey clip found; using first available clip as idle.");
         0
     });
-    let walk = find_clip_index(&names, &["walk"]).unwrap_or_else(|| {
+    let walk = find_clip_index(&names, &["relaxedwalk", "walkcycle", "walk"]).unwrap_or_else(|| {
         warn!("No walk clip found; walk requests will use the idle clip.");
         idle
     });
