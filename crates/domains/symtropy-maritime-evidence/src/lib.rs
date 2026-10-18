@@ -839,6 +839,56 @@ mod tests {
     }
 
     #[test]
+    fn source_event_after_ingestion_beyond_clock_skew_is_rejected() {
+        let mut item = arrival(
+            "OBS-ORDER",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T14:00:00Z",
+        );
+        let now = policy().now_utc_nanos;
+        item.source_event_time_utc_nanos = now - 10 * NANOS_PER_SECOND;
+        item.ingested_at_utc_nanos = now - 300 * NANOS_PER_SECOND;
+        assert_eq!(
+            validate_observation(&item, &policy()),
+            Err(RejectionReason::SourceEventAfterIngestion)
+        );
+    }
+
+    #[test]
+    fn uncontested_projection_omits_every_conflicted_semantic_group() {
+        let planned_a = arrival(
+            "OBS-PLAN-A",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T12:00:00Z",
+        );
+        let planned_b = arrival(
+            "OBS-PLAN-B",
+            "SOURCE-B",
+            TimeMeaning::Planned,
+            "2026-10-18T13:00:00Z",
+        );
+        let departure = observation(
+            "OBS-DEPARTURE",
+            "SOURCE-C",
+            PcoField::DepartureFromBerth,
+            ObservedValue::Timestamp {
+                meaning: TimeMeaning::Planned,
+                value: utc("2026-10-18T18:00:00Z"),
+            },
+        );
+        let report = resolve_observations(&[planned_a, planned_b, departure], &policy());
+        assert!(report.has_conflicts());
+        let uncontested = report.uncontested();
+        assert_eq!(uncontested.len(), 1);
+        assert_eq!(uncontested[0].field, PcoField::DepartureFromBerth);
+        assert!(uncontested.iter().all(|item| {
+            item.field != PcoField::ArrivalAtPilotBoardingPlace
+        }));
+    }
+
+    #[test]
     fn identifiers_require_explicit_registry_entries() {
         let terminal = observation(
             "OBS-TERMINAL",
