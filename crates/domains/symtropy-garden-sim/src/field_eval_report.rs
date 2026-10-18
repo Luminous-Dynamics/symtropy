@@ -98,6 +98,22 @@ mod optional_u64_decimal_string {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OutcomeEvidenceKindV1 {
+    FarmerDecisionEvent,
+    AuthorizedRecordedFarmerDecisionEvent,
+    ProviderAvailabilityCheck,
+    ProviderDeclineEvent,
+    ProviderCancellationEvent,
+    ProviderNoShowEvent,
+    ProviderCompletionEvent,
+    NoAcceptanceAtWindowClose,
+    DisputeOrReworkEvent,
+    ReconciliationAttempt,
+    FollowUpAttempt,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RequestOutcomeRecordV1 {
@@ -107,6 +123,7 @@ pub struct RequestOutcomeRecordV1 {
     /// Event reference supporting the outcome classification (including an
     /// explicit unknown or follow-up-attempt record when no authoritative outcome exists).
     pub outcome_evidence_ref: String,
+    pub outcome_evidence_kind: OutcomeEvidenceKindV1,
     /// Minute value from the same declared period origin used by service_access.
     #[serde(
         serialize_with = "serialize_u64_decimal_string",
@@ -204,6 +221,7 @@ pub enum FieldEvalBlockerCodeV1 {
     MissingExclusionEvidenceReference,
     InvalidExclusionEvidenceReference,
     InvalidOutcomeEvidenceReference,
+    OutcomeEvidenceKindMismatch,
     InvalidUsefulWindowEvidenceReference,
     OutcomeRequestNotEligible,
     DuplicateOutcomeRecord,
@@ -375,6 +393,53 @@ fn expected_in_window_acceptance(outcome: &RequestOutcomeClassV1) -> Option<bool
     }
 }
 
+fn outcome_evidence_kind_valid(
+    outcome: &RequestOutcomeClassV1,
+    evidence_kind: OutcomeEvidenceKindV1,
+) -> bool {
+    match outcome {
+        RequestOutcomeClassV1::AcceptedWithinUsefulWindow
+        | RequestOutcomeClassV1::AcceptedLate => matches!(
+            evidence_kind,
+            OutcomeEvidenceKindV1::FarmerDecisionEvent
+                | OutcomeEvidenceKindV1::AuthorizedRecordedFarmerDecisionEvent
+        ),
+        RequestOutcomeClassV1::KnownNotAccepted { reason_code } => match reason_code {
+            KnownNonAcceptanceReasonV1::NoProviderAvailable => {
+                evidence_kind == OutcomeEvidenceKindV1::ProviderAvailabilityCheck
+            }
+            KnownNonAcceptanceReasonV1::ProviderDeclined => {
+                evidence_kind == OutcomeEvidenceKindV1::ProviderDeclineEvent
+            }
+            KnownNonAcceptanceReasonV1::FarmerDeclinedQuote
+            | KnownNonAcceptanceReasonV1::FarmerCancelled => {
+                evidence_kind == OutcomeEvidenceKindV1::FarmerDecisionEvent
+            }
+            KnownNonAcceptanceReasonV1::ProviderCancelled => {
+                evidence_kind == OutcomeEvidenceKindV1::ProviderCancellationEvent
+            }
+            KnownNonAcceptanceReasonV1::ProviderNoShow => {
+                evidence_kind == OutcomeEvidenceKindV1::ProviderNoShowEvent
+            }
+            KnownNonAcceptanceReasonV1::ProviderCompletionNotAccepted => {
+                evidence_kind == OutcomeEvidenceKindV1::NoAcceptanceAtWindowClose
+            }
+        },
+        RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision { .. } => {
+            evidence_kind == OutcomeEvidenceKindV1::ProviderCompletionEvent
+        }
+        RequestOutcomeClassV1::DisputedOrRework { .. } => {
+            evidence_kind == OutcomeEvidenceKindV1::DisputeOrReworkEvent
+        }
+        RequestOutcomeClassV1::OutcomeUnknown => {
+            evidence_kind == OutcomeEvidenceKindV1::ReconciliationAttempt
+        }
+        RequestOutcomeClassV1::FollowUpMissingOrInaccessible => {
+            evidence_kind == OutcomeEvidenceKindV1::FollowUpAttempt
+        }
+    }
+}
+
 fn validate_acceptance_evidence(
     record: &RequestOutcomeRecordV1,
     blockers: &mut Vec<FieldEvalBlockerV1>,
@@ -422,6 +487,21 @@ fn validate_acceptance_evidence(
 
     match record.acceptance_decision_mode {
         Some(AcceptanceDecisionModeV1::FarmerDirect) => {
+            if record.outcome_evidence_kind
+                != OutcomeEvidenceKindV1::FarmerDecisionEvent
+                && matches!(
+                    record.outcome,
+                    RequestOutcomeClassV1::AcceptedWithinUsefulWindow
+                        | RequestOutcomeClassV1::AcceptedLate
+                )
+            {
+                push_blocker(
+                    blockers,
+                    FieldEvalBlockerCodeV1::OutcomeEvidenceKindMismatch,
+                    Some(&record.request_ref),
+                    "direct acceptance outcome must cite farmer-decision evidence",
+                );
+            }
             if record.acceptance_authority_ref.is_some() {
                 push_blocker(
                     blockers,
@@ -432,6 +512,20 @@ fn validate_acceptance_evidence(
             }
         }
         Some(AcceptanceDecisionModeV1::AuthorizedIntermediaryRecorded) => {
+            if matches!(
+                record.outcome,
+                RequestOutcomeClassV1::AcceptedWithinUsefulWindow
+                    | RequestOutcomeClassV1::AcceptedLate
+            ) && record.outcome_evidence_kind
+                != OutcomeEvidenceKindV1::AuthorizedRecordedFarmerDecisionEvent
+            {
+                push_blocker(
+                    blockers,
+                    FieldEvalBlockerCodeV1::OutcomeEvidenceKindMismatch,
+                    Some(&record.request_ref),
+                    "intermediary-recorded acceptance must cite authorized-recorded decision evidence",
+                );
+            }
             if !record
                 .acceptance_authority_ref
                 .as_deref()
@@ -701,6 +795,14 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 "outcome classification requires an opaque evt-* source-event reference",
             );
         }
+        if !outcome_evidence_kind_valid(&record.outcome, record.outcome_evidence_kind) {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::OutcomeEvidenceKindMismatch,
+                Some(&record.request_ref),
+                "outcome evidence kind does not support the declared outcome class",
+            );
+        }
         validate_acceptance_evidence(record, &mut blockers);
         if outcomes
             .insert(record.request_ref.clone(), record)
@@ -967,10 +1069,48 @@ mod tests {
         let suffix = request_ref.strip_prefix("req-").expect("opaque request ref");
         let acceptance_evidence_ref =
             acceptance_at_minute.map(|_| format!("evt-{suffix}-acceptance"));
+        let outcome_evidence_kind = match &outcome {
+            RequestOutcomeClassV1::AcceptedWithinUsefulWindow => {
+                OutcomeEvidenceKindV1::FarmerDecisionEvent
+            }
+            RequestOutcomeClassV1::AcceptedLate => OutcomeEvidenceKindV1::FarmerDecisionEvent,
+            RequestOutcomeClassV1::KnownNotAccepted { reason_code } => match reason_code {
+                KnownNonAcceptanceReasonV1::NoProviderAvailable => {
+                    OutcomeEvidenceKindV1::ProviderAvailabilityCheck
+                }
+                KnownNonAcceptanceReasonV1::ProviderDeclined => {
+                    OutcomeEvidenceKindV1::ProviderDeclineEvent
+                }
+                KnownNonAcceptanceReasonV1::FarmerDeclinedQuote
+                | KnownNonAcceptanceReasonV1::FarmerCancelled => {
+                    OutcomeEvidenceKindV1::FarmerDecisionEvent
+                }
+                KnownNonAcceptanceReasonV1::ProviderCancelled => {
+                    OutcomeEvidenceKindV1::ProviderCancellationEvent
+                }
+                KnownNonAcceptanceReasonV1::ProviderNoShow => {
+                    OutcomeEvidenceKindV1::ProviderNoShowEvent
+                }
+                KnownNonAcceptanceReasonV1::ProviderCompletionNotAccepted => {
+                    OutcomeEvidenceKindV1::NoAcceptanceAtWindowClose
+                }
+            },
+            RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision { .. } => {
+                OutcomeEvidenceKindV1::ProviderCompletionEvent
+            }
+            RequestOutcomeClassV1::DisputedOrRework { .. } => {
+                OutcomeEvidenceKindV1::DisputeOrReworkEvent
+            }
+            RequestOutcomeClassV1::OutcomeUnknown => OutcomeEvidenceKindV1::ReconciliationAttempt,
+            RequestOutcomeClassV1::FollowUpMissingOrInaccessible => {
+                OutcomeEvidenceKindV1::FollowUpAttempt
+            }
+        };
         RequestOutcomeRecordV1 {
             request_ref: request_ref.to_owned(),
             useful_window_evidence_ref: format!("evt-{suffix}-window"),
             outcome_evidence_ref: format!("evt-{suffix}-outcome"),
+            outcome_evidence_kind,
             useful_window_deadline_minute: 100,
             acceptance_at_minute,
             acceptance_evidence_ref,
