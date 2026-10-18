@@ -209,3 +209,6 @@ Decision-impact receipts bind each observation outcome to its exact compatible s
 
 
 The Rust decision-impact test suite includes a deterministic generated differential check over 100 finite worlds with 100 candidates each. For each world it compares robust-feasibility and Pareto sets over the complete current state set and each one-state-excluded subset against a separately written brute-force reference, including periodic critical-unknown blockers. The generator covers 35,000 candidate/state result rows before partition replays and asserts a minimum threshold of 10,000. This is a finite-domain correctness stress test; it is not a runtime-performance, physical-accuracy or probability-calibration claim.
+
+
+Additional decision-impact negative controls inject duplicate state membership within one outcome and an undeclared state ID. Duplicate membership is rejected by the schema; undeclared membership is rejected semantically and causes the full partition to fail closed. These cases guard the distinction between a partition's cardinality and its exact, valid state membership.
