@@ -20,11 +20,11 @@ A scheduler must produce a timeline that can be independently validated against 
 - Required gates are hard constraints, not soft costs or optional objective weights.
 - Robust feasibility checks the upper-duration scenario against the same hard constraints. Nominal feasibility does not imply robust feasibility.
 
-## Nine exact reference cases
+## Ten exact reference cases
 
-The fixture covers parallel work with distinct crews, parallel work competing for one exclusive crew, a precedence chain, a feasible inspection window, an impossible inspection window, a missing hard approval gate, over-capacity demand, upper-duration uncertainty against a deadline, and a precedence cycle.
+The fixture covers parallel work with distinct crews, parallel work competing for one exclusive crew, a precedence chain, a feasible inspection window, an impossible inspection window, a missing hard approval gate, over-capacity demand, upper-duration uncertainty against a deadline, a precedence cycle, and a deliberately adversarial case where five heuristic priority rules miss a feasible schedule.
 
-The executable Rust reference uses exhaustive integer start-time enumeration, bounded to 12 tasks and a Cartesian candidate-start space no larger than 2,000,000 assignments. Larger instances fail with an explicit oracle-budget rejection rather than an unbounded search. This is intentionally a micro-oracle, not the large-instance solver. The following hand-calculated witnesses provide the first independent oracle for a future Rust scheduler:
+The executable Rust reference uses exhaustive integer start-time enumeration, bounded to 12 tasks and a Cartesian candidate-start space no larger than 2,000,000 assignments. Larger instances fail with an explicit oracle-budget rejection rather than an unbounded search. This is intentionally a micro-oracle, not the large-instance solver. The tenth case is a key adversarial check: exact search finds a feasible schedule of makespan 19, while the five current heuristic priority rules fail to find any candidate; the correct heuristic status is not proof of infeasibility. The following hand-calculated witnesses provide the first independent oracle for a future Rust scheduler:
 
 | Case | Expected result | Purpose |
 |---|---|---|
@@ -60,7 +60,7 @@ Do not claim all-instance exact optimality where the selected algorithms or know
 
 ## Release gates
 
-- 100% agreement with the nine micro-oracle cases.
+- 100% agreement with all ten micro-oracle cases.
 - 100% independent feasibility validation for any returned schedule.
 - Zero gate, precedence, window, or capacity violations.
 - Zero robust-feasibility claims when an upper-duration scenario violates a hard deadline.
