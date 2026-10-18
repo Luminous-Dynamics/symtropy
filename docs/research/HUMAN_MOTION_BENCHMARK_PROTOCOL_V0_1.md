@@ -31,7 +31,7 @@ Do not claim that Symthaea itself synthesizes superior body motion unless the ex
 
 The motion trace records observed/predicted trajectories; it is separate from the upstream [semantic intent schema](human-motion-intent-v0.1.schema.json), which records what an agent intends to do and with what confidence/provenance. Do not use intention correctness as a substitute for realized motion quality.
 
-[`human-motion-trace-v0.1.schema.json`](human-motion-trace-v0.1.schema.json) defines the versioned world-space trace contract; [`fixtures/human-motion-trace-synthetic-v0.1.json`](fixtures/human-motion-trace-synthetic-v0.1.json) is a synthetic fixture only. JSON Schema cannot express all cross-array rules here: the future reader must reject mismatched sample lengths, non-increasing timestamps, non-finite parsed values, missing asset provenance on non-synthetic traces, and incompatible rigs before computing scores. Compare prediction/reference traces only after an explicit alignment step.
+[`human-motion-trace-v0.1.schema.json`](human-motion-trace-v0.1.schema.json) defines the versioned world-space trace contract; [`fixtures/human-motion-trace-synthetic-v0.1.json`](fixtures/human-motion-trace-synthetic-v0.1.json) is a synthetic fixture only. JSON Schema cannot express all cross-array rules here: the Rust reader must reject mismatched sample lengths, non-increasing timestamps, non-finite parsed values, missing asset provenance on non-synthetic traces, incompatible rigs, and mismatched joint-name sets before computing scores. Compare prediction/reference traces only after an explicit alignment step.
 
 ## Task suite
 
@@ -55,6 +55,7 @@ Every scenario is executed against the same avatar, coordinate system, frame rat
 - **Mean displacement error (ADE):** mean of the Euclidean root-position error over aligned samples.
 - **Final displacement error (FDE):** Euclidean root-position error at the exact end of the shared time interval, interpolated from the two traces even when the uniform metric grid does not land exactly on that timestamp.
 - **Maximum displacement error:** largest aligned root-position error; report as an outlier measure, not a substitute for ADE.
+- **Named-joint trajectory error:** for every identically named joint in the canonical skeleton, report ADE, FDE at the exact shared endpoint, and maximum aligned error. Also report macro-mean per-joint ADE and the worst joint FDE. Reject differing joint-name sets; never score only the overlapping names because that can hide missing limbs or inconsistent retargeting. If neither trace contains joint trajectories, mark the comparison root/contact-only rather than implying whole-body evaluation.
 - **Stance-foot drift:** RMS and maximum world-space foot displacement from the beginning of each detected contact interval. Publish the contact detector and threshold. Contact labels inferred from generated output and evaluation labels must be independently specified.
 - **Mean-squared jerk:** discrete trajectory jerk estimate, reported with sample rate, filtering and units (m²/s⁶). It is noise-sensitive and must not be optimized in isolation; an immobile character would look artificially smooth.
 - **Constraint adherence:** position/orientation error for each root, waypoint, hand, foot or joint constraint; report distributions and failure rates, not only averages.
