@@ -15,9 +15,9 @@ The receipt distinguishes two separate results:
 
 - capture_status: complete only if every expected path exists, has a PNG signature,
   decodes successfully, and matches declared dimensions when dimensions are provided.
-- qualification_status: qualified_metadata only if the required source, fixture,
-  seed/tick, quality-profile, adapter, driver/backend, dimensions, OS, and toolchain
-  metadata are present and well-formed.
+- qualification_status: qualified_metadata only if source, fixture digest, seed/tick,
+  quality profile, camera/view identity, renderer version, render-settings digest,
+  adapter, driver/backend, dimensions, OS, and toolchain metadata are present and valid.
 
 A complete capture with incomplete metadata can still exit successfully: it is a
 valid file capture but must not be presented as a qualified performance comparison.
