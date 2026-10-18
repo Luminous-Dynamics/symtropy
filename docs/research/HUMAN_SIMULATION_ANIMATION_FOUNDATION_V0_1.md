@@ -134,6 +134,8 @@ Then run the visual scene with a legally sourced rigged GLB. Source presence or 
 - AMASS motion-capture archive: https://amass.is.tue.mpg.de/
 - SMPL-X body and license information: https://smpl-x.is.tue.mpg.de/
 - SIGGRAPH 2025, PARC physics-based motion augmentation: https://www.siggraph.org/wp-content/uploads/2025/08/Conference-Papers.html
+- InterPhys: Physics-aware Human Motion Synthesis in a Dynamic Scene (2026): https://arxiv.org/abs/2605.01036
+- AnimationBench: Are Video Models Good at Character-Centric Animation? (2026): https://arxiv.org/abs/2604.15299
 - ZMP-guided sampling for physically plausible character animation (August 2026): https://www.sciencedirect.com/science/article/abs/pii/S0097849326001263
 - Symthaea humanoid metrics: https://github.com/Luminous-Dynamics/symthaea/blob/main/crates/domains/symthaea-humanoid/src/benchmarks.rs
 - Symthaea psychology benchmark scope note: https://github.com/Luminous-Dynamics/symthaea/blob/main/crates/domains/symthaea-psych-bench/README.md
