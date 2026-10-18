@@ -41,8 +41,7 @@ fn run() -> Result<(), String> {
     }
 
     let case_id = case_id.ok_or_else(|| "--case is required".to_owned())?;
-    let output_path =
-        output_path.ok_or_else(|| "--out is required".to_owned())?;
+    let output_path = output_path.ok_or_else(|| "--out is required".to_owned())?;
     let manifest_text = read_file(&manifest_path)?;
     let schema_text = read_file(&schema_path)?;
 
@@ -70,25 +69,18 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn next_value(
-    args: &mut impl Iterator<Item = String>,
-    flag: &str,
-) -> Result<String, String> {
+fn next_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<String, String> {
     args.next()
         .filter(|value| !value.is_empty())
         .ok_or_else(|| format!("{flag} requires a value"))
 }
 
-fn next_path(
-    args: &mut impl Iterator<Item = String>,
-    flag: &str,
-) -> Result<PathBuf, String> {
+fn next_path(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<PathBuf, String> {
     next_value(args, flag).map(PathBuf::from)
 }
 
 fn read_file(path: &Path) -> Result<String, String> {
-    fs::read_to_string(path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))
+    fs::read_to_string(path).map_err(|error| format!("cannot read {}: {error}", path.display()))
 }
 
 fn print_help() {
