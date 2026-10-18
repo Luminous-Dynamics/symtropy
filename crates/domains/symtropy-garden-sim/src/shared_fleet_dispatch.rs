@@ -504,15 +504,14 @@ pub fn plan_shared_fleet_dispatch_v1(
 
     assignments.sort_by_key(|assignment| assignment.request_id.clone());
 
-    let count = |disposition| {
-        assignments
-            .iter()
-            .filter(|assignment| assignment.disposition == disposition)
-            .count()
-    };
-    let scheduled_within_window_count =
-        count(SharedFleetDispatchDispositionV1::ScheduledWithinUsefulWindow);
-    let scheduled_late_count = count(SharedFleetDispatchDispositionV1::ScheduledLate);
+    let scheduled_within_window_count = count_disposition(
+        &assignments,
+        SharedFleetDispatchDispositionV1::ScheduledWithinUsefulWindow,
+    );
+    let scheduled_late_count = count_disposition(
+        &assignments,
+        SharedFleetDispatchDispositionV1::ScheduledLate,
+    );
 
     Ok(SharedFleetDispatchReportV1 {
         schema_version: SHARED_FLEET_DISPATCH_SCHEMA_VERSION_V1,
@@ -524,25 +523,43 @@ pub fn plan_shared_fleet_dispatch_v1(
         scheduled_count: scheduled_within_window_count + scheduled_late_count,
         scheduled_within_window_count,
         scheduled_late_count,
-        unknown_travel_evidence_count: count(
+        unknown_travel_evidence_count: count_disposition(
+            &assignments,
             SharedFleetDispatchDispositionV1::UnknownTravelEvidence,
         ),
-        unknown_task_duration_count: count(
+        unknown_task_duration_count: count_disposition(
+            &assignments,
             SharedFleetDispatchDispositionV1::UnknownTaskDuration,
         ),
-        no_compatible_robot_count: count(
+        no_compatible_robot_count: count_disposition(
+            &assignments,
             SharedFleetDispatchDispositionV1::NoCompatibleRobot,
         ),
-        all_compatible_robots_unavailable_count: count(
+        all_compatible_robots_unavailable_count: count_disposition(
+            &assignments,
             SharedFleetDispatchDispositionV1::AllCompatibleRobotsUnavailable,
         ),
-        no_feasible_route_count: count(SharedFleetDispatchDispositionV1::NoFeasibleRoute),
-        capacity_unavailable_count: count(
+        no_feasible_route_count: count_disposition(
+            &assignments,
+            SharedFleetDispatchDispositionV1::NoFeasibleRoute,
+        ),
+        capacity_unavailable_count: count_disposition(
+            &assignments,
             SharedFleetDispatchDispositionV1::CapacityUnavailable,
         ),
         total_scheduled_modeled_route_minutes: total_modeled_route_minutes,
         assignments,
     })
+}
+
+fn count_disposition(
+    assignments: &[SharedFleetDispatchAssignmentV1],
+    disposition: SharedFleetDispatchDispositionV1,
+) -> usize {
+    assignments
+        .iter()
+        .filter(|assignment| assignment.disposition == disposition)
+        .count()
 }
 
 fn unassigned(
