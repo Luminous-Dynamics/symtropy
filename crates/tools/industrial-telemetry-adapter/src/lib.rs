@@ -312,6 +312,19 @@ mod tests {
     }
 
     #[test]
+    fn utc_epoch_and_pinned_source_timestamps_use_correct_absolute_time() {
+        assert_eq!(parse_utc_timestamp_ns("1970-01-01T00:00:00Z"), Ok(0));
+        assert_eq!(
+            parse_utc_timestamp_ns("2017-02-02T16:37:08.9062500Z"),
+            Ok(1_486_053_428_906_250_000_i128)
+        );
+        assert_eq!(
+            parse_utc_timestamp_ns("2017-02-02T18:06:38.8437500Z"),
+            Ok(1_486_058_798_843_750_000_i128)
+        );
+    }
+
+    #[test]
     fn summary_preserves_event_ties_and_reports_long_unobserved_gap() {
         let summary = parse_and_summarize(EXCERPT).expect("excerpt summarizes");
         assert_eq!(summary.record_count, 6);
