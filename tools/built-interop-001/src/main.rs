@@ -105,6 +105,24 @@ enum RequirementOutcome {
     Unresolved,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum DiagnosticCode {
+    NoTargetObservation,
+    DuplicateTargetObservation,
+    ObjectIdentityMismatch,
+    PreservedCarriesTransform,
+    PreservedValueOrUnitMismatch,
+    MissingOrDuplicateTransformRule,
+    DeclaredTransformResultMismatch,
+    DeclaredTransformScopeOrNumericValueInvalid,
+    UnsupportedTargetProperty,
+    MissingTargetProperty,
+    ChangedTargetProperty,
+    TargetPropertyNotEvaluated,
+    DuplicateSourceRequirementId,
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct RequirementResult {
     requirement_id: String,
@@ -119,7 +137,7 @@ struct RequirementResult {
     disposition: Option<LossDisposition>,
     transform_id: Option<String>,
     outcome: RequirementOutcome,
-    diagnostic_codes: Vec<String>,
+    diagnostic_codes: Vec<DiagnosticCode>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -268,14 +286,14 @@ fn evaluate_requirement(
         result.outcome = nonconformity_outcome(requirement.criticality);
         result
             .diagnostic_codes
-            .push("NO_TARGET_OBSERVATION".to_string());
+            .push(DiagnosticCode::NoTargetObservation);
         return result;
     }
     if matches.len() > 1 {
         result.outcome = RequirementOutcome::Blocked;
         result
             .diagnostic_codes
-            .push("DUPLICATE_TARGET_OBSERVATION".to_string());
+            .push(DiagnosticCode::DuplicateTargetObservation);
         return result;
     }
     let observation = matches[0];
@@ -283,7 +301,7 @@ fn evaluate_requirement(
         result.outcome = RequirementOutcome::Blocked;
         result
             .diagnostic_codes
-            .push("OBJECT_IDENTITY_MISMATCH".to_string());
+            .push(DiagnosticCode::ObjectIdentityMismatch);
         return result;
     }
 
@@ -293,7 +311,7 @@ fn evaluate_requirement(
                 result.outcome = RequirementOutcome::Blocked;
                 result
                     .diagnostic_codes
-                    .push("PRESERVED_CARRIES_TRANSFORM".to_string());
+                    .push(DiagnosticCode::PreservedCarriesTransform);
                 return result;
             }
             if observation.observed_value.as_deref() != Some(requirement.expected_value.as_str())
@@ -302,7 +320,7 @@ fn evaluate_requirement(
                 result.outcome = nonconformity_outcome(requirement.criticality);
                 result
                     .diagnostic_codes
-                    .push("PRESERVED_VALUE_OR_UNIT_MISMATCH".to_string());
+                    .push(DiagnosticCode::PreservedValueOrUnitMismatch);
                 return result;
             }
             result.outcome = RequirementOutcome::Preserved;
@@ -321,7 +339,7 @@ fn evaluate_requirement(
                     result.outcome = nonconformity_outcome(requirement.criticality);
                     result
                         .diagnostic_codes
-                        .push("MISSING_OR_DUPLICATE_TRANSFORM_RULE".to_string());
+                        .push(DiagnosticCode::MissingOrDuplicateTransformRule);
                     return result;
                 }
             };
@@ -351,7 +369,7 @@ fn evaluate_requirement(
                         result.outcome = nonconformity_outcome(requirement.criticality);
                         result
                             .diagnostic_codes
-                            .push("DECLARED_TRANSFORM_RESULT_MISMATCH".to_string());
+                            .push(DiagnosticCode::DeclaredTransformResultMismatch);
                         return result;
                     }
                     result.outcome = RequirementOutcome::Transformed;
@@ -360,7 +378,7 @@ fn evaluate_requirement(
                     result.outcome = nonconformity_outcome(requirement.criticality);
                     result
                         .diagnostic_codes
-                        .push("DECLARED_TRANSFORM_SCOPE_OR_NUMERIC_VALUE_INVALID".to_string());
+                        .push(DiagnosticCode::DeclaredTransformScopeOrNumericValueInvalid);
                 }
             }
         }
@@ -368,25 +386,25 @@ fn evaluate_requirement(
             result.outcome = nonconformity_outcome(requirement.criticality);
             result
                 .diagnostic_codes
-                .push("UNSUPPORTED_TARGET_PROPERTY".to_string());
+                .push(DiagnosticCode::UnsupportedTargetProperty);
         }
         LossDisposition::Missing => {
             result.outcome = nonconformity_outcome(requirement.criticality);
             result
                 .diagnostic_codes
-                .push("MISSING_TARGET_PROPERTY".to_string());
+                .push(DiagnosticCode::MissingTargetProperty);
         }
         LossDisposition::Changed => {
             result.outcome = nonconformity_outcome(requirement.criticality);
             result
                 .diagnostic_codes
-                .push("CHANGED_TARGET_PROPERTY".to_string());
+                .push(DiagnosticCode::ChangedTargetProperty);
         }
         LossDisposition::NotEvaluated => {
             result.outcome = nonconformity_outcome(requirement.criticality);
             result
                 .diagnostic_codes
-                .push("TARGET_PROPERTY_NOT_EVALUATED".to_string());
+                .push(DiagnosticCode::TargetPropertyNotEvaluated);
         }
     }
     result
@@ -480,7 +498,7 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                 result.outcome = RequirementOutcome::Blocked;
                 result
                     .diagnostic_codes
-                    .push("DUPLICATE_SOURCE_REQUIREMENT_ID".to_string());
+                    .push(DiagnosticCode::DuplicateSourceRequirementId);
             }
         }
     }
@@ -764,7 +782,7 @@ mod tests {
             .first()
             .expect("property result exists");
         assert_eq!(property.outcome, RequirementOutcome::Blocked);
-        assert_eq!(property.diagnostic_codes, vec!["MISSING_TARGET_PROPERTY"]);
+        assert_eq!(property.diagnostic_codes, vec![DiagnosticCode::MissingTargetProperty]);
         assert_eq!(property.source_object_id, "panel-001");
         assert_eq!(property.property_key, "RequiredFireClass");
         assert_eq!(property.disposition, Some(LossDisposition::Missing));
@@ -785,7 +803,7 @@ mod tests {
             .first()
             .expect("property result exists");
         assert_eq!(property.outcome, RequirementOutcome::Blocked);
-        assert_eq!(property.diagnostic_codes, vec!["NO_TARGET_OBSERVATION"]);
+        assert_eq!(property.diagnostic_codes, vec![DiagnosticCode::NoTargetObservation]);
         assert!(property.disposition.is_none());
         assert!(property.observed_object_id.is_none());
         assert!(property.observed_value.is_none());
