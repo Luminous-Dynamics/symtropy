@@ -7,7 +7,7 @@ publish = false
 description = "Narrow synthetic IFC4/IDS 1.0 ingestion and IF CWALL.Name requirement adapter"
 
 [dependencies]
-ifc-model = "=0.3.0"
+ifc-model = "=0.3.1"
 ifc-step = "=0.5.0"
 openbim-core = "=0.1.0"
 openbim-ids = "=0.2.2"
