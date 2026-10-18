@@ -7,7 +7,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use symtropy_garden_sim::field_eval_report::{
-    FieldEvalPreflightStatusV1, FieldStudyManifestV1, preflight_field_study_v1,
+    FieldEvalPreflightStatusV1, FieldStudyManifestV1, build_field_eval_receipt_v1,
+    preflight_field_study_v1,
 };
 
 fn main() -> ExitCode {
@@ -35,16 +36,18 @@ fn main() -> ExitCode {
         }
     };
     let report = preflight_field_study_v1(&manifest);
-    let output = match serde_json::to_string_pretty(&report) {
+    let receipt = build_field_eval_receipt_v1(&bytes, report);
+    let status = receipt.report.status;
+    let output = match serde_json::to_string_pretty(&receipt) {
         Ok(output) => output,
         Err(error) => {
-            eprintln!("cannot serialize field-study report: {error}");
+            eprintln!("cannot serialize field-study receipt: {error}");
             return ExitCode::from(2);
         }
     };
     println!("{output}");
 
-    match report.status {
+    match status {
         FieldEvalPreflightStatusV1::Calculated => ExitCode::SUCCESS,
         FieldEvalPreflightStatusV1::Blocked => ExitCode::FAILURE,
     }
