@@ -20,3 +20,7 @@ Run formatting and tests with Cargo using this crate manifest, then run the audi
 The corpus is synthetic. Passing establishes only finite contract conformance, not field safety, predicted performance, legal compliance, or authorization to perform work.
 
 See `docs/tech/MULTIAXIS_RECOVERY_PATHWAY_BENCHMARK_V0_1.md` and issue #1927.
+
+## Criteria sensitivity
+
+The corpus contains a tiny lexicographic ranking control. Under the current material-recovery-first regime, `rapid_material_recovery` ranks first; under the proposed biosecurity-first regime, `retain_inspect_replan` ranks first. The second regime remains unadopted and out of scope. The values are synthetic test numbers, not recommendations or measured field outcomes.
