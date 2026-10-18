@@ -53,8 +53,9 @@ pub use human_motion_intent::{
 };
 #[cfg(feature = "human-animation")]
 pub use human_animation::{
-    HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanLocomotionConfig,
-    HumanLocomotionIntent, HumanMotion,
+    adapt_semantic_intent_to_locomotion, HumanAnimationClips, HumanAnimationController,
+    HumanAnimationPlugin, HumanLocomotionConfig, HumanLocomotionIntent, HumanMotion,
+    SemanticIntentAdapterError,
 };
 pub use audio::{AudioEmitter, RoboticAudioPlugin};
 pub use biometrics::{PlayerBiometrics, biometric_to_phi_system};
