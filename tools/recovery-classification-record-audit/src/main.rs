@@ -403,7 +403,7 @@ fn evaluate_case(
         }
     }
 
-    let mut semantic_match = payload.record_id == binding.record_id
+    let semantic_match = payload.record_id == binding.record_id
         && payload.case_id == case.case_id
         && payload.profile_id == case.profile_id
         && payload.domain == case.domain
@@ -419,7 +419,6 @@ fn evaluate_case(
         errors.push(format!("RECORD_CASE_SEMANTIC_MISMATCH:{}", case.case_id));
     } else if case.classification_review_status != "REVIEWED" {
         result.case_binding_status = "REVIEW_NOT_COMPLETE".to_string();
-        semantic_match = false;
     } else {
         result.case_binding_status = "MATCH".to_string();
     }
