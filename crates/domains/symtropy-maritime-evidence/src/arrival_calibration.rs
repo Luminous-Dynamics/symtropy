@@ -442,6 +442,22 @@ mod tests {
             fit_split_conformal(&[invalid], CUTOFF, 1_000),
             Err(CalibrationError::ForecastIssuedAfterActualEvent)
         );
+
+        let mut issued_too_late = sample(4, 1);
+        issued_too_late.forecast_issued_at_utc_nanos =
+            issued_too_late.actual_observed_at_utc_nanos + 1;
+        assert_eq!(
+            fit_split_conformal(&[issued_too_late], CUTOFF, 1_000),
+            Err(CalibrationError::ForecastIssuedAfterObservation)
+        );
+
+        let mut observed_too_early = sample(5, 1);
+        observed_too_early.actual_observed_at_utc_nanos =
+            observed_too_early.actual_arrival_utc_nanos - 1;
+        assert_eq!(
+            fit_split_conformal(&[observed_too_early], CUTOFF, 1_000),
+            Err(CalibrationError::ActualObservedBeforeActualEvent)
+        );
     }
 
     #[test]
