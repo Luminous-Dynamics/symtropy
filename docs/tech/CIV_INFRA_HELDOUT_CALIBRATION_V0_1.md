@@ -25,7 +25,7 @@ All records must use the exact same declared unit in v0.1; no silent conversion 
 For each calibration record, residual center and interval spread are:
 
 - Center = reference value minus model prediction.
-- Spread = reference uncertainty plus model numerical uncertainty.
+- Spread = reference measurement uncertainty. Model numerical uncertainty remains a separate component applied to the prediction interval, avoiding double-counting.
 - Residual interval = [center minus spread, center plus spread].
 
 The declared envelope is the minimum lower endpoint and maximum upper endpoint over calibration records. The held-out truth residual is ground truth minus model prediction. It is counted as covered only if it falls inside that envelope.
