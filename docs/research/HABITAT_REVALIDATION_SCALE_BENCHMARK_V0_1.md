@@ -30,7 +30,7 @@ Do not treat a queued or missing CI run as measurement evidence. Do not mix numb
 
 ## 3. Frozen workload matrix
 
-The adjacent machine-readable file **fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json** defines the v0.1 profile names and parameters. The [contract workflow](https://github.com/Luminous-Dynamics/symtropy/blob/research/whole-property-habitat-benchmark-v0-1/.github/workflows/habitat-revalidation-scale-contract.yml) checks the matrix shape and wording about unmeasured targets; it does not run the search algorithm or produce performance results. A future generator must be deterministic for a fixed generator version, seed, and profile. It must emit the materialized input and digest used in each run; a profile name alone is not a reproducible fixture.
+The adjacent machine-readable file **fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json** defines the v0.1 profile names and parameters. The [contract workflow](https://github.com/Luminous-Dynamics/symtropy/blob/research/whole-property-habitat-benchmark-v0-1/.github/workflows/habitat-revalidation-scale-contract.yml) checks the matrix shape and wording about unmeasured targets; it does not run the search algorithm or produce performance results. The deterministic materializer in [tools/habitat-revalidation-scale](https://github.com/Luminous-Dynamics/symtropy/tree/research/whole-property-habitat-benchmark-v0-1/tools/habitat-revalidation-scale) now emits exact workload bytes and a sidecar SHA-256 receipt pinned to the matrix digest, seed, generator version, and source commit. Its [dedicated workflow](https://github.com/Luminous-Dynamics/symtropy/blob/research/whole-property-habitat-benchmark-v0-1/.github/workflows/habitat-revalidation-scale-generator.yml) regenerates every frozen profile twice and compares bytes. Neither workflow runs the downstream revalidation search or produces performance results.
 
 The profiles intentionally stress different failure modes:
 
@@ -110,3 +110,11 @@ Likewise, a task's existence is not evidence that work ran, and a model-generate
 7. Expand artifact and task scales only after the previous tier's correctness gates hold.
 
 This benchmark contract is intentionally conservative: a truthful partial answer is more useful than a fast, unauditable assertion of optimality.
+
+## 9. Materialized workload inputs and provenance receipts
+
+The standalone Rust crate `tools/habitat-revalidation-scale` materializes each named profile to canonical pretty-printed JSON and emits a separate receipt. The receipt contains the exact workload SHA-256 and byte length, exact profile-matrix SHA-256, generator version, source commit, profile ID, seed, and materialized counts. The CLI fails closed when the profile is unknown, the matrix includes an unknown top-level/profile field, resource dimensions exceed generator limits, or the source commit is not an exact 40-character hexadecimal SHA.
+
+Every output graph is checked for duplicate IDs, unknown or repeated dependencies, dependency cycles, task/output dependency mismatch, undeclared gates, target reachability, and agreement between the generated objective alternatives and a quadratic pairwise Pareto oracle. The objective-alternative probe deliberately includes nondominated trade-offs and dominated controls.
+
+This is a reproducibility milestone, not a search benchmark. It does **not** execute the current portfolio planner, solve a construction schedule, or claim that search complexity scales with artifact count. The generator workflow is designed to verify byte-for-byte repeatability and receipts on the seven frozen profiles. Generated files live in the workflow's temporary directory unless separately retained; the workflow is not a performance-results publication mechanism.
