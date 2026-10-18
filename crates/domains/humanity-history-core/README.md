@@ -43,7 +43,7 @@ See [the pilot case-study note](../../../docs/research/case-studies/ANTIKYTHERA_
 
 Datasets may include `estimates`, `reconstruction_models`, and `model_comparisons`.
 
-- Quantitative values and uncertainty endpoints are serialized as decimal strings to avoid rewriting the source's displayed precision.
+- Quantitative values and uncertainty endpoints are serialized as decimal strings to avoid rewriting the source's displayed precision. Calculated deltas and distances also use exact base-10 arithmetic and serialize as decimal strings, rather than leaking binary floating-point artifacts. The prototype accepts plain decimal notation, not exponent notation.
 - Each estimate declares a quantity, unit, method, assumptions, source evidence, and (when applicable) an interval kind, coverage percentage, and conditioning note.
 - Credible and confidence intervals require an explicit coverage percentage. Bounds must be finite and ordered. The validator does not recompute the source analysis.
 - Reconstruction records name the claim IDs and estimate IDs they depend on, and declare whether they describe a published interpretation, a published candidate design, or a hypothesis.
