@@ -14,6 +14,8 @@
 
 #[cfg(feature = "inspector")]
 pub mod inspector;
+#[cfg(feature = "field-visualization")]
+pub mod field_visualization;
 pub mod material;
 pub mod projection;
 pub mod sync;
@@ -21,6 +23,13 @@ pub mod telemetry_ssbo;
 
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
+#[cfg(feature = "field-visualization")]
+pub use field_visualization::{
+    CalibrationStatus, DisplayRange, FieldColorMap, FieldDataOrigin, FieldLayerMetadata,
+    FieldLayerSet, FieldVisualizationPlugin, FieldUnit, PhysicalQuantity, ScalarFieldGlyph,
+    ScalarFieldLayer, ScalarFieldSample, SpatialUnit, VectorFieldGlyph, VectorFieldLayer,
+    VectorFieldSample, WavelengthBand, extract_scalar_glyphs, extract_vector_glyphs,
+};
 pub use material::{
     NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
     TelemetryMaterialPlugin, TelemetrySettings,
