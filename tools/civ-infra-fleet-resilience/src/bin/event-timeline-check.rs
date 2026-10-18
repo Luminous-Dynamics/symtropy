@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{env, fs, process};
 
+const MAX_TIMELINE_TICK: u64 = 256;
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Fixture {
@@ -310,6 +312,7 @@ fn expected_report(fixture: &Fixture, fixture_bytes: &[u8]) -> TimelineReport {
     let mut policy_timeline = Vec::with_capacity(max_tick as usize + 1);
 
     for tick in 0..=max_tick {
+        let tick = u32::try_from(tick).expect("validated fixture tick must fit report schema");
         let injected_event_ids = sorted_unique(
             disturbances
                 .iter()
@@ -499,6 +502,12 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
                 case.case_id
             ));
         }
+        if case.injection_tick > MAX_TIMELINE_TICK || case.observable_tick > MAX_TIMELINE_TICK {
+            errors.push(format!(
+                "case {} exceeds the bounded audit horizon",
+                case.case_id
+            ));
+        }
         if case.recovery_evidence.is_empty() || case.required_invariants.is_empty() {
             errors.push(format!(
                 "case {} must declare recovery evidence and invariants",
@@ -610,6 +619,22 @@ mod tests {
         assert_eq!(checked.event_count, 13);
         assert_eq!(checked.timeline_tick_count, 8);
         assert!(!checked.policy_simulation_executed);
+    }
+
+    #[test]
+    fn rejects_fixture_ticks_outside_bounded_report_horizon() {
+        let original_report = report_bytes(EMBEDDED_FIXTURE.as_bytes());
+        let mut fixture: serde_json::Value =
+            serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should parse");
+        fixture["disturbance_cases"][0]["observable_tick"] = serde_json::json!(257);
+        let mutated_fixture = serde_json::to_vec(&fixture).expect("mutated fixture serializes");
+        let errors = verify_report_bytes(&mutated_fixture, &original_report)
+            .expect_err("out-of-horizon fixture must be rejected before timeline allocation");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("bounded audit horizon"))
+        );
     }
 
     #[test]
