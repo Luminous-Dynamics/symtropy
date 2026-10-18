@@ -391,8 +391,8 @@ mod tests {
     #[test]
     fn one_unique_timestamp_has_no_defined_inter_event_gap() {
         let trace = concat!(
-            "2017-02-02T03:00:00Z|Program_Status|ACTIVE\\n",
-            "2017-02-02T03:00:00Z|Spindle_Speed|0\\n",
+            "2017-02-02T03:00:00Z|Program_Status|ACTIVE\n",
+            "2017-02-02T03:00:00Z|Spindle_Speed|0\n",
         );
         let summary = parse_and_summarize(trace).expect("trace parses");
         assert_eq!(summary.unique_timestamp_count, 1);
