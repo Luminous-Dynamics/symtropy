@@ -144,7 +144,13 @@
         "up_axis": "+Y",
         "forward_axis": "-Z",
         "position_space": "world"
-      }
+      },
+      "required": [
+        "length_unit",
+        "up_axis",
+        "forward_axis",
+        "position_space"
+      ]
     },
     "timestamps_sec": {
       "type": "array",
