@@ -63,6 +63,11 @@ pub enum ScheduleViolationCode {
     ZeroResourceCapacity,
     UnknownResourceCapacity,
     ResourceCapacityExceeded,
+    EmptyDurationBoundOperationId,
+    MissingDurationBounds,
+    DuplicateDurationBounds,
+    InvalidDurationBounds,
+    UnknownDurationBoundOperation,
 }
 
 /// A concrete violation tied to the affected operation IDs.
@@ -251,6 +256,20 @@ fn validate_schedule_internal(
 pub struct ResourceCapacity {
     pub resource_id: String,
     pub capacity: usize,
+}
+
+/// Conservative duration envelope for one scheduled operation.
+///
+/// The nominal `ScheduledOperation::duration_seconds` must lie within this
+/// finite, positive interval. Robust validation uses `maximum_seconds` for
+/// precedence and resource-occupancy checks. These are deterministic bounds,
+/// not a probabilistic confidence interval unless a separately validated model
+/// establishes that interpretation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OperationDurationBounds {
+    pub operation_id: String,
+    pub minimum_seconds: f64,
+    pub maximum_seconds: f64,
 }
 
 /// Validate a schedule against explicit resource-pool capacities.
@@ -458,6 +477,146 @@ fn append_exclusive_resource_overlaps(
             active.push((operation, end));
         }
     }
+}
+
+/// Validate a schedule using the maximum duration in a required envelope for
+/// every operation. Missing, duplicate, malformed, or unknown bounds fail closed.
+///
+/// Upper-bound durations are used for both predecessor completion and resource
+/// overlap checks. A robust-feasible result means the schedule satisfies the
+/// modeled constraints for these declared deterministic duration bounds; it
+/// does not establish that the bounds cover all real-world outcomes.
+pub fn validate_schedule_with_duration_bounds(
+    operations: &[ScheduledOperation],
+    duration_bounds: &[OperationDurationBounds],
+) -> ScheduleValidationReport {
+    let (bounded_operations, mut bound_violations) =
+        apply_duration_bounds(operations, duration_bounds);
+    let mut report = validate_schedule(&bounded_operations);
+    report.violations.append(&mut bound_violations);
+    normalize_violations(&mut report.violations);
+    report
+}
+
+/// Capacity-aware robust validation: apply duration upper bounds before checking
+/// shared resource-pool occupancy and precedence constraints.
+pub fn validate_schedule_with_resource_capacities_and_duration_bounds(
+    operations: &[ScheduledOperation],
+    resource_capacities: &[ResourceCapacity],
+    duration_bounds: &[OperationDurationBounds],
+) -> ScheduleValidationReport {
+    let (bounded_operations, mut bound_violations) =
+        apply_duration_bounds(operations, duration_bounds);
+    let mut report =
+        validate_schedule_with_resource_capacities(&bounded_operations, resource_capacities);
+    report.violations.append(&mut bound_violations);
+    normalize_violations(&mut report.violations);
+    report
+}
+
+fn apply_duration_bounds(
+    operations: &[ScheduledOperation],
+    duration_bounds: &[OperationDurationBounds],
+) -> (Vec<ScheduledOperation>, Vec<ScheduleViolation>) {
+    let mut violations = Vec::new();
+    let mut by_operation: HashMap<&str, Vec<&OperationDurationBounds>> = HashMap::new();
+    let known_operation_ids: std::collections::HashSet<&str> =
+        operations.iter().map(|operation| operation.id.as_str()).collect();
+
+    for bound in duration_bounds {
+        if bound.operation_id.trim().is_empty() {
+            push_violation(
+                &mut violations,
+                ScheduleViolationCode::EmptyDurationBoundOperationId,
+                vec![bound.operation_id.clone()],
+                "duration-bound operation ID cannot be empty",
+            );
+            continue;
+        }
+        if !bound.minimum_seconds.is_finite()
+            || !bound.maximum_seconds.is_finite()
+            || bound.minimum_seconds <= 0.0
+            || bound.maximum_seconds < bound.minimum_seconds
+        {
+            push_violation(
+                &mut violations,
+                ScheduleViolationCode::InvalidDurationBounds,
+                vec![bound.operation_id.clone()],
+                "duration bounds must be finite, positive, and maximum must be at least minimum",
+            );
+        }
+        if !known_operation_ids.contains(bound.operation_id.as_str()) {
+            push_violation(
+                &mut violations,
+                ScheduleViolationCode::UnknownDurationBoundOperation,
+                vec![bound.operation_id.clone()],
+                "duration bounds reference an operation absent from the schedule",
+            );
+        }
+        by_operation
+            .entry(bound.operation_id.as_str())
+            .or_default()
+            .push(bound);
+    }
+
+    let mut bounded_operations = Vec::with_capacity(operations.len());
+    for operation in operations {
+        if operation.id.trim().is_empty() {
+            bounded_operations.push(operation.clone());
+            continue;
+        }
+        let Some(bounds) = by_operation.get(operation.id.as_str()) else {
+            push_violation(
+                &mut violations,
+                ScheduleViolationCode::MissingDurationBounds,
+                vec![operation.id.clone()],
+                "operation requires exactly one explicit duration envelope",
+            );
+            bounded_operations.push(operation.clone());
+            continue;
+        };
+        if bounds.len() != 1 {
+            push_violation(
+                &mut violations,
+                ScheduleViolationCode::DuplicateDurationBounds,
+                vec![operation.id.clone()],
+                "operation must have exactly one duration envelope",
+            );
+            bounded_operations.push(operation.clone());
+            continue;
+        }
+
+        let bound = bounds[0];
+        let bounds_well_formed = bound.minimum_seconds.is_finite()
+            && bound.maximum_seconds.is_finite()
+            && bound.minimum_seconds > 0.0
+            && bound.maximum_seconds >= bound.minimum_seconds;
+        if !bounds_well_formed {
+            // The malformed-bound violation was emitted during declaration intake.
+            bounded_operations.push(operation.clone());
+            continue;
+        }
+        if !operation.duration_seconds.is_finite()
+            || operation.duration_seconds < bound.minimum_seconds
+            || operation.duration_seconds > bound.maximum_seconds
+        {
+            push_violation(
+                &mut violations,
+                ScheduleViolationCode::InvalidDurationBounds,
+                vec![operation.id.clone()],
+                "duration envelope must contain the nominal operation duration",
+            );
+            bounded_operations.push(operation.clone());
+            continue;
+        }
+
+        let mut robust_operation = operation.clone();
+        robust_operation.duration_seconds = bound.maximum_seconds;
+        bounded_operations.push(robust_operation);
+    }
+
+    normalize_violations(&mut violations);
+    (bounded_operations, violations)
 }
 
 fn normalize_violations(violations: &mut Vec<ScheduleViolation>) {
@@ -910,6 +1069,172 @@ mod tests {
             .collect();
         let report = validate_schedule(&operations);
         assert!(report.is_feasible(), "{:?}", report.violations);
+    }
+
+    #[test]
+    fn duration_upper_bounds_reject_nominally_feasible_overlap() {
+        let operations = vec![
+            operation("weld-a", "bay-1", 0.0, 5.0, &[]),
+            operation("weld-b", "bay-1", 5.0, 2.0, &[]),
+        ];
+        let bounds = vec![
+            OperationDurationBounds {
+                operation_id: "weld-a".into(),
+                minimum_seconds: 5.0,
+                maximum_seconds: 8.0,
+            },
+            OperationDurationBounds {
+                operation_id: "weld-b".into(),
+                minimum_seconds: 2.0,
+                maximum_seconds: 4.0,
+            },
+        ];
+        let report = validate_schedule_with_duration_bounds(&operations, &bounds);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::ExclusiveResourceOverlap),
+            1
+        );
+        assert!(!report.is_feasible());
+    }
+
+    #[test]
+    fn duration_upper_bounds_allow_robust_back_to_back_precedence() {
+        let operations = vec![
+            operation("fit-up", "bay-1", 0.0, 5.0, &[]),
+            operation("weld", "bay-1", 6.0, 3.0, &["fit-up"]),
+        ];
+        let bounds = vec![
+            OperationDurationBounds {
+                operation_id: "fit-up".into(),
+                minimum_seconds: 4.0,
+                maximum_seconds: 6.0,
+            },
+            OperationDurationBounds {
+                operation_id: "weld".into(),
+                minimum_seconds: 3.0,
+                maximum_seconds: 4.0,
+            },
+        ];
+        let report = validate_schedule_with_duration_bounds(&operations, &bounds);
+        assert!(report.is_feasible(), "{:?}", report.violations);
+    }
+
+    #[test]
+    fn capacity_aware_duration_bounds_detect_worst_case_pool_overload() {
+        let operations = vec![
+            operation("inspect-a", "ndt-pool", 0.0, 1.0, &[]),
+            operation("inspect-b", "ndt-pool", 1.0, 1.0, &[]),
+        ];
+        let capacities = vec![ResourceCapacity {
+            resource_id: "ndt-pool".into(),
+            capacity: 1,
+        }];
+        let bounds = vec![
+            OperationDurationBounds {
+                operation_id: "inspect-a".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 3.0,
+            },
+            OperationDurationBounds {
+                operation_id: "inspect-b".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 2.0,
+            },
+        ];
+        let report = validate_schedule_with_resource_capacities_and_duration_bounds(
+            &operations,
+            &capacities,
+            &bounds,
+        );
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::ResourceCapacityExceeded),
+            1
+        );
+        assert!(!report.is_feasible());
+    }
+
+    #[test]
+    fn duration_upper_bounds_enforce_predecessor_completion() {
+        let operations = vec![
+            operation("cut", "cnc-1", 0.0, 2.0, &[]),
+            operation("inspect", "cmm-1", 2.0, 1.0, &["cut"]),
+        ];
+        let bounds = vec![
+            OperationDurationBounds {
+                operation_id: "cut".into(),
+                minimum_seconds: 2.0,
+                maximum_seconds: 4.0,
+            },
+            OperationDurationBounds {
+                operation_id: "inspect".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 2.0,
+            },
+        ];
+        let report = validate_schedule_with_duration_bounds(&operations, &bounds);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::PrecedenceViolation),
+            1
+        );
+    }
+
+    #[test]
+    fn duration_bounds_fail_closed_when_missing_duplicate_invalid_or_unknown() {
+        let operations = vec![operation("cut", "cnc-1", 0.0, 2.0, &[])];
+
+        let missing = validate_schedule_with_duration_bounds(&operations, &[]);
+        assert_eq!(
+            missing.violation_count(ScheduleViolationCode::MissingDurationBounds),
+            1
+        );
+
+        let duplicate = vec![
+            OperationDurationBounds {
+                operation_id: "cut".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 3.0,
+            },
+            OperationDurationBounds {
+                operation_id: "cut".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 4.0,
+            },
+        ];
+        let report = validate_schedule_with_duration_bounds(&operations, &duplicate);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::DuplicateDurationBounds),
+            1
+        );
+
+        let invalid = vec![OperationDurationBounds {
+            operation_id: "cut".into(),
+            minimum_seconds: 4.0,
+            maximum_seconds: 3.0,
+        }];
+        let report = validate_schedule_with_duration_bounds(&operations, &invalid);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::InvalidDurationBounds),
+            1
+        );
+
+        let unknown = vec![
+            OperationDurationBounds {
+                operation_id: "cut".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 3.0,
+            },
+            OperationDurationBounds {
+                operation_id: "missing".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 2.0,
+            },
+        ];
+        let report = validate_schedule_with_duration_bounds(&operations, &unknown);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::UnknownDurationBoundOperation),
+            1
+        );
+        assert!(!report.is_feasible());
     }
 
     #[test]
