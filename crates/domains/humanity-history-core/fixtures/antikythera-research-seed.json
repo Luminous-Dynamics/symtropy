@@ -451,6 +451,77 @@
         "The two 2024 estimates are sensitivity analyses on related measurements, not independent replications.",
         "A candidate design can be mechanically feasible without being proven to match the original artifact.",
         "Source methods and assumptions have not yet been harmonized into a common statistical model."
+      ],
+      "assessments": [
+        {
+          "model_id": "antikythera:model-calendar-ring-365",
+          "axis": "fit to measured surviving hole spacing",
+          "status": "source_reported",
+          "summary": "Woan and Bayley report that 365 holes are not plausible under their model assumptions. This pilot has not independently fitted their statistical model.",
+          "estimate_ids": [
+            "antikythera:estimate-woan-bayley-all-points",
+            "antikythera:estimate-woan-bayley-exclude-fractures"
+          ],
+          "evidence": [
+            {
+              "source_id": "antikythera:src-woan-bayley-2024",
+              "locator": "Abstract",
+              "relation": "supports",
+              "note": "The authors explicitly state that 365 holes are not plausible given their model assumptions."
+            }
+          ],
+          "interpretation_note": null,
+          "validation_artifact": null
+        },
+        {
+          "model_id": "antikythera:model-calendar-ring-354-lunar",
+          "axis": "fit to measured surviving hole spacing",
+          "status": "source_reported",
+          "summary": "The published 2024 estimates center near 354–355 holes, depending on how measurements near fractures are treated. This pilot has not independently reproduced the posterior calculation.",
+          "estimate_ids": [
+            "antikythera:estimate-woan-bayley-all-points",
+            "antikythera:estimate-woan-bayley-exclude-fractures"
+          ],
+          "evidence": [
+            {
+              "source_id": "antikythera:src-woan-bayley-2024",
+              "locator": "Abstract",
+              "relation": "supports",
+              "note": "The source reports both point estimates and uncertainty offsets under two measurement treatments."
+            }
+          ],
+          "interpretation_note": null,
+          "validation_artifact": null
+        },
+        {
+          "model_id": "antikythera:model-354-candidate-kinematics-2025",
+          "axis": "mechanical or kinematic feasibility",
+          "status": "source_reported",
+          "summary": "The 2025 paper reports three feasible candidate designs and near-zero ratio error under its design constraints; the candidate mechanisms have not been independently recreated in this pilot.",
+          "estimate_ids": [
+            "antikythera:estimate-ring-354-proposal"
+          ],
+          "evidence": [
+            {
+              "source_id": "antikythera:src-lin-2025",
+              "locator": "Abstract and Highlights",
+              "relation": "supports",
+              "note": "The paper reports three candidate subsystem models and quantitative gear-ratio analysis."
+            }
+          ],
+          "interpretation_note": "A result reported by the paper is not equivalent to local replication or proof that any candidate matches the original artifact.",
+          "validation_artifact": null
+        },
+        {
+          "model_id": "antikythera:model-calendar-ring-365",
+          "axis": "mechanical or kinematic feasibility",
+          "status": "not_evaluated",
+          "summary": "No common, locally reproduced gear model for this candidate has been built in the current pilot.",
+          "estimate_ids": [],
+          "evidence": [],
+          "interpretation_note": "Absence of an evaluation is not evidence against the model.",
+          "validation_artifact": null
+        }
       ]
     }
   ]
