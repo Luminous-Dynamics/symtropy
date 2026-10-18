@@ -1,15 +1,17 @@
-name: Habitat Scheduling Micro-Oracle Contract
+name: Habitat Scheduling Micro-Oracle
 
 on:
   push:
     branches: ["main"]
     paths:
+      - "tools/habitat-scheduling-oracle/**"
       - "docs/research/HABITAT_REVALIDATION_SCHEDULING_ORACLE_V0_1.md"
       - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
       - ".github/workflows/habitat-scheduling-micro-oracle.yml"
   pull_request:
     branches: ["main"]
     paths:
+      - "tools/habitat-scheduling-oracle/**"
       - "docs/research/HABITAT_REVALIDATION_SCHEDULING_ORACLE_V0_1.md"
       - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
       - ".github/workflows/habitat-scheduling-micro-oracle.yml"
@@ -17,43 +19,40 @@ on:
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  validate-oracle-contract:
+  exact-micro-oracle:
+    name: Exhaustive scheduling reference oracle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-      - name: Validate frozen scheduling micro-oracle
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-scheduling-oracle/Cargo.toml -- --check
+
+      - name: Run exact outcome and fail-closed tests
+        run: cargo test --locked --manifest-path tools/habitat-scheduling-oracle/Cargo.toml
+
+      - name: Verify every expected micro-oracle outcome
         shell: bash
         run: |
           set -euo pipefail
           fixture="docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+          report="$RUNNER_TEMP/habitat-schedule-oracle-report.json"
+          cargo run --locked --manifest-path tools/habitat-scheduling-oracle/Cargo.toml -- "$fixture" > "$report"
           jq -e '
-            .schema_version == "luminous.habitat_schedule_micro_oracle.v0.1" and
-            .synthetic_only == true and
-            .conventions.intervals == "half_open_start_inclusive_finish_exclusive" and
-            .conventions.precedence == "finish(before) <= start(after)" and
-            (.cases | length == 9) and
-            (([.cases[].case_id] | unique | length) == 9) and
-            all(.cases[];
-              (.tasks | length > 0) and
-              (([.tasks[].id] | unique | length) == (.tasks | length)) and
-              all(.tasks[]; .nominal_duration > 0 and .upper_duration >= .nominal_duration)
-            ) and
-            all(.cases[] | select(.expected.feasible == true);
-              (.expected.canonical_witness | length) == (.tasks | length)
-            ) and
-            all(.cases[] | select(.expected.feasible == false);
-              (.expected.canonical_witness | length) == 0 and
-              (.expected.rejection_reason | type) == "string"
-            ) and
-            ((.cases[] | select(.case_id == "independent_tasks_distinct_crews") | .expected.nominal_optimal_makespan) == 6) and
-            ((.cases[] | select(.case_id == "independent_tasks_shared_exclusive_crew") | .expected.nominal_optimal_makespan) == 10) and
-            ((.cases[] | select(.case_id == "precedence_chain") | .expected.nominal_optimal_makespan) == 10) and
-            ((.cases[] | select(.case_id == "inspection_window_with_one_period_wait") | .expected.nominal_optimal_makespan) == 6) and
-            ((.cases[] | select(.case_id == "nominally_fast_but_not_upper_scenario_robust") | .expected.robust_feasible) == false) and
-            ((.cases[] | select(.case_id == "cycle_in_precedence_graph") | .expected.rejection_reason) == "precedence_cycle")
-          ' "$fixture" >/dev/null
-
-          echo "Nine scheduling micro-oracle cases are structurally valid."
-          echo "This workflow validates expected cases only; it does not execute a scheduler."
+            .schema_version == "luminous.habitat_schedule_oracle_report.v0.1" and
+            .case_count == 9 and
+            .all_expected_outcomes_match == true and
+            (.case_results | length == 9) and
+            all(.case_results[]; .expected_outcome_match == true)
+          ' "$report" >/dev/null
+          echo "All nine exhaustive schedule micro-oracle expectations match."
