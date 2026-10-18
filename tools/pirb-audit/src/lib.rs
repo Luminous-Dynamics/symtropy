@@ -17,9 +17,7 @@ const REQUIRED_SCENARIOS: [&str; 9] = [
     "pirb-r5-displacement-not-net-impact-01",
 ];
 
-const ALLOWED_TRACKS: [&str; 6] = [
-    "PIRB-0", "PIRB-1", "PIRB-2", "PIRB-3", "PIRB-4", "PIRB-5",
-];
+const ALLOWED_TRACKS: [&str; 6] = ["PIRB-0", "PIRB-1", "PIRB-2", "PIRB-3", "PIRB-4", "PIRB-5"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Finding {
@@ -207,25 +205,25 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
         match id {
             "pirb-r2-minimum-service-floor-01" => {
                 audit_service_floor(scenario, &path, &mut findings)
-            },
+            }
             "pirb-r1-required-acceptance-01" => {
                 audit_required_acceptance(scenario, &path, &mut findings)
-            },
+            }
             "pirb-r0-stale-capacity-01" => audit_stale_evidence(scenario, &path, &mut findings),
             "pirb-r0-conflicting-reports-01" => {
                 audit_conflicting_reports(scenario, &path, &mut findings)
-            },
+            }
             "pirb-r4-personal-data-boundary-01" => {
                 audit_privacy_boundary(scenario, &path, &mut findings)
-            },
+            }
             "pirb-r3-no-lookahead-01" => audit_no_lookahead(scenario, &path, &mut findings),
             "pirb-r1-refused-participation-01" => audit_refusal(scenario, &path, &mut findings),
             "pirb-r3-worst-case-frontier-01" => {
                 audit_robust_frontier(scenario, &path, &mut findings)
-            },
+            }
             "pirb-r5-displacement-not-net-impact-01" => {
                 audit_displacement(scenario, &path, &mut findings)
-            },
+            }
             _ => findings.push(finding(
                 "PIRB_EVALUATOR_MISSING",
                 &format!("{path}.id"),
@@ -248,7 +246,10 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
 }
 
 fn audit_service_floor(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
-    let Some(floors) = scenario.pointer("/minimum_service_floor").and_then(Value::as_object) else {
+    let Some(floors) = scenario
+        .pointer("/minimum_service_floor")
+        .and_then(Value::as_object)
+    else {
         findings.push(finding(
             "PIRB_FLOOR_MISSING",
             path,
@@ -257,7 +258,11 @@ fn audit_service_floor(scenario: &Value, path: &str, findings: &mut Vec<Finding>
         return;
     };
     let Some(candidates) = scenario.get("candidates").and_then(Value::as_array) else {
-        findings.push(finding("PIRB_CANDIDATES_MISSING", path, "candidates must be an array."));
+        findings.push(finding(
+            "PIRB_CANDIDATES_MISSING",
+            path,
+            "candidates must be an array.",
+        ));
         return;
     };
 
@@ -311,7 +316,10 @@ fn audit_service_floor(scenario: &Value, path: &str, findings: &mut Vec<Finding>
             }
         }
 
-        if allocation.keys().any(|community| !floors.contains_key(community)) {
+        if allocation
+            .keys()
+            .any(|community| !floors.contains_key(community))
+        {
             findings.push(finding(
                 "PIRB_ALLOCATION_UNKNOWN_COMMUNITY",
                 &format!("{candidate_path}.allocation"),
@@ -320,10 +328,13 @@ fn audit_service_floor(scenario: &Value, path: &str, findings: &mut Vec<Finding>
             feasible = false;
         }
 
-        let computed_total: Option<i64> = allocation.values().try_fold(0_i64, |sum, value| {
-            sum.checked_add(value.as_i64()?)
-        });
-        match (candidate.get("total").and_then(Value::as_i64), computed_total) {
+        let computed_total: Option<i64> = allocation
+            .values()
+            .try_fold(0_i64, |sum, value| sum.checked_add(value.as_i64()?));
+        match (
+            candidate.get("total").and_then(Value::as_i64),
+            computed_total,
+        ) {
             (Some(declared), Some(computed)) if declared == computed => {}
             _ => findings.push(finding(
                 "PIRB_ALLOCATION_TOTAL_MISMATCH",
@@ -364,7 +375,9 @@ fn audit_service_floor(scenario: &Value, path: &str, findings: &mut Vec<Finding>
 
 fn audit_required_acceptance(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
     let required = string_list(scenario.get("required_parties"));
-    let accepted: BTreeSet<String> = string_list(scenario.get("accepted_by")).into_iter().collect();
+    let accepted: BTreeSet<String> = string_list(scenario.get("accepted_by"))
+        .into_iter()
+        .collect();
     let missing: Vec<_> = required
         .iter()
         .filter(|party| !accepted.contains(*party))
@@ -396,8 +409,12 @@ fn audit_required_acceptance(scenario: &Value, path: &str, findings: &mut Vec<Fi
 }
 
 fn audit_stale_evidence(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
-    let freshness = scenario.pointer("/required_evidence/freshness_status").and_then(Value::as_str);
-    let decision = scenario.pointer("/expected/decision").and_then(Value::as_str);
+    let freshness = scenario
+        .pointer("/required_evidence/freshness_status")
+        .and_then(Value::as_str);
+    let decision = scenario
+        .pointer("/expected/decision")
+        .and_then(Value::as_str);
     if freshness != Some("stale") {
         findings.push(finding(
             "PIRB_STALENESS_FIXTURE_INVALID",
@@ -420,9 +437,16 @@ fn audit_conflicting_reports(scenario: &Value, path: &str, findings: &mut Vec<Fi
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter_map(|report| report.get("claim").and_then(Value::as_str).map(str::to_owned))
+        .filter_map(|report| {
+            report
+                .get("claim")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        })
         .collect();
-    let state = scenario.pointer("/expected/evidence_state").and_then(Value::as_str);
+    let state = scenario
+        .pointer("/expected/evidence_state")
+        .and_then(Value::as_str);
 
     if claims.len() < 2 {
         findings.push(finding(
@@ -435,9 +459,9 @@ fn audit_conflicting_reports(scenario: &Value, path: &str, findings: &mut Vec<Fi
         .get("reports")
         .and_then(Value::as_array)
         .is_some_and(|reports| {
-            reports.iter().all(|report| {
-                report.get("corroborated").and_then(Value::as_bool) == Some(false)
-            })
+            reports
+                .iter()
+                .all(|report| report.get("corroborated").and_then(Value::as_bool) == Some(false))
         });
     if !all_uncorroborated {
         findings.push(finding(
@@ -456,19 +480,22 @@ fn audit_conflicting_reports(scenario: &Value, path: &str, findings: &mut Vec<Fi
 }
 
 fn audit_privacy_boundary(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
-    let input: BTreeSet<String> = string_list(scenario.get("input_fields")).into_iter().collect();
+    let input: BTreeSet<String> = string_list(scenario.get("input_fields"))
+        .into_iter()
+        .collect();
     let prohibited = string_list(scenario.get("prohibited_shared_fields"));
-    let shared: BTreeSet<String> =
-        string_list(scenario.get("proposed_shared_record_fields"))
-            .into_iter()
-            .collect();
+    let shared: BTreeSet<String> = string_list(scenario.get("proposed_shared_record_fields"))
+        .into_iter()
+        .collect();
     let has_prohibited_input = prohibited.iter().any(|field| input.contains(field));
     let leaked: Vec<_> = prohibited
         .iter()
         .filter(|field| shared.contains(*field))
         .cloned()
         .collect();
-    let decision = scenario.pointer("/expected/shared_record_decision").and_then(Value::as_str);
+    let decision = scenario
+        .pointer("/expected/shared_record_decision")
+        .and_then(Value::as_str);
 
     if prohibited.is_empty() || !has_prohibited_input {
         findings.push(finding(
@@ -514,16 +541,18 @@ fn audit_no_lookahead(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
 
     let initial = &stages[0];
     let later = &stages[1];
-    let initial_inputs: BTreeSet<String> =
-        string_list(initial.get("observable_inputs"))
-            .into_iter()
-            .collect();
-    let later_inputs: BTreeSet<String> =
-        string_list(later.get("observable_inputs"))
-            .into_iter()
-            .collect();
-    let initial_available = initial.get("future_observation_available").and_then(Value::as_bool);
-    let later_available = later.get("future_observation_available").and_then(Value::as_bool);
+    let initial_inputs: BTreeSet<String> = string_list(initial.get("observable_inputs"))
+        .into_iter()
+        .collect();
+    let later_inputs: BTreeSet<String> = string_list(later.get("observable_inputs"))
+        .into_iter()
+        .collect();
+    let initial_available = initial
+        .get("future_observation_available")
+        .and_then(Value::as_bool);
+    let later_available = later
+        .get("future_observation_available")
+        .and_then(Value::as_bool);
 
     if initial_available != Some(false) || initial_inputs.contains("inspection_result") {
         findings.push(finding(
@@ -543,7 +572,9 @@ fn audit_no_lookahead(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
 
 fn audit_refusal(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
     let required = string_list(scenario.get("required_parties"));
-    let accepted: BTreeSet<String> = string_list(scenario.get("accepted_by")).into_iter().collect();
+    let accepted: BTreeSet<String> = string_list(scenario.get("accepted_by"))
+        .into_iter()
+        .collect();
     let refused = string_list(scenario.get("explicit_refusal_by"));
     let state = scenario.pointer("/expected/state").and_then(Value::as_str);
 
@@ -582,7 +613,11 @@ fn audit_robust_frontier(scenario: &Value, path: &str, findings: &mut Vec<Findin
         ));
         return;
     }
-    if scenario.get("scenario_probabilities_assigned").and_then(Value::as_bool) != Some(false) {
+    if scenario
+        .get("scenario_probabilities_assigned")
+        .and_then(Value::as_bool)
+        != Some(false)
+    {
         findings.push(finding(
             "PIRB_SYNTHETIC_PROBABILITY_CLAIM",
             &format!("{path}.scenario_probabilities_assigned"),
@@ -640,9 +675,10 @@ fn audit_robust_frontier(scenario: &Value, path: &str, findings: &mut Vec<Findin
             excluded.push(id);
             continue;
         };
-        let gate_values_valid = !gates.is_empty() && gates.values().all(|gate| {
-            matches!(gate.as_str(), Some("pass") | Some("fail") | Some("unknown"))
-        });
+        let gate_values_valid = !gates.is_empty()
+            && gates
+                .values()
+                .all(|gate| matches!(gate.as_str(), Some("pass") | Some("fail") | Some("unknown")));
         if !gate_values_valid {
             findings.push(finding(
                 "PIRB_OPTION_GATE_INVALID",
@@ -654,7 +690,10 @@ fn audit_robust_frontier(scenario: &Value, path: &str, findings: &mut Vec<Findin
         }
         let gates_pass = gates.values().all(|gate| gate.as_str() == Some("pass"));
 
-        let Some(gaps) = option.get("service_gap_by_scenario").and_then(Value::as_object) else {
+        let Some(gaps) = option
+            .get("service_gap_by_scenario")
+            .and_then(Value::as_object)
+        else {
             findings.push(finding(
                 "PIRB_OPTION_GAPS_MISSING",
                 &option_path,
@@ -862,7 +901,10 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
 
     let displacement_detected = improved_group && worsened_group;
     if scenario.get("design_type").and_then(Value::as_str) == Some("before_after_only")
-        && scenario.get("causal_claim_requested").and_then(Value::as_bool) == Some(true)
+        && scenario
+            .get("causal_claim_requested")
+            .and_then(Value::as_bool)
+            == Some(true)
         && scenario
             .pointer("/expected/claim_status")
             .and_then(Value::as_str)
@@ -874,7 +916,11 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
             "Before/after data with concurrent factors cannot establish causality.",
         ));
     }
-    if scenario.get("concurrent_factors").and_then(Value::as_array).is_none_or(Vec::is_empty) {
+    if scenario
+        .get("concurrent_factors")
+        .and_then(Value::as_array)
+        .is_none_or(Vec::is_empty)
+    {
         findings.push(finding(
             "PIRB_CONCURRENT_FACTORS_UNDECLARED",
             &format!("{path}.concurrent_factors"),
@@ -1070,9 +1116,18 @@ mod tests {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
         let value = corpus();
-        assert_eq!(value["scenarios"][8]["expected"]["aggregate_gap_before"], json!(15));
-        assert_eq!(value["scenarios"][8]["expected"]["aggregate_gap_after"], json!(15));
-        assert_eq!(value["scenarios"][8]["expected"]["claim_status"], json!("descriptive_only"));
+        assert_eq!(
+            value["scenarios"][8]["expected"]["aggregate_gap_before"],
+            json!(15)
+        );
+        assert_eq!(
+            value["scenarios"][8]["expected"]["aggregate_gap_after"],
+            json!(15)
+        );
+        assert_eq!(
+            value["scenarios"][8]["expected"]["claim_status"],
+            json!("descriptive_only")
+        );
     }
 
     #[test]
