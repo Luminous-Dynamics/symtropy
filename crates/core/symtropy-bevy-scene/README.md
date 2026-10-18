@@ -55,6 +55,16 @@ The crate also exposes a deterministic route model for pre-construction design r
 
 Coordinates are metres in the model's declared frame, not georeferencing. The route sampler does not perform wall collision, visibility, accessibility-code, daylight, energy, or building-code checks. A production reviewer should pair it with geometry collision tests, a real model-revision ID, user-controlled speed/pause/comfort settings, a desktop fallback, and an independently implemented XR adapter. A pleasant walkthrough is design feedback, not proof that the proposed building is buildable.
 
+### Try the synthetic-room example
+
+From the workspace root, run:
+
+```bash
+cargo run -p symtropy-bevy-scene --example architectural_review_room
+```
+
+The example creates an illustrative room with a floating-camera route; press Space to pause/resume. It is a visual prototype with synthetic geometry, not a real home model, collision-checked navigation, XR implementation, engineering simulation, or compliance check.
+
 ## License
 
 Apache-2.0 OR MIT (permissive). No AGPL deps.
