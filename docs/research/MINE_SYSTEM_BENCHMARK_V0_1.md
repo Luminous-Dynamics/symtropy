@@ -248,7 +248,7 @@ The critical gates are local, time-indexed airflow and contaminant/thermal servi
 
 Two useful but non-transferable research anchors:
 - [Safety implications of integrating battery-electric vehicles with ventilation-on-demand at Turquoise Ridge (online 15 July 2026)](https://doi.org/10.1016/j.jinse.2026.06.001) reports a simulation result of up to 20% airflow reduction and 47% ventilation-energy/CO₂ reduction in its modeled scenario. Reproduce the study boundary and assumptions before comparing; do not treat these percentages as universal or as field measurements.
-- [Achieving energy efficiency with medium-voltage variable-speed drives for ventilation-on-demand in South African mines](https://doi.org/10.1016/j.jclepro.2019.118676) reports audit-derived potential across ten ventilation networks. Preserve its audit assumptions and energy/emissions boundary; this is not a universal expected saving.
+- [Achieving energy efficiency with medium-voltage variable-speed drives for ventilation-on-demand in South African mines](https://doi.org/10.1016/j.jclepro.2019.05.376) reports audit-derived potential across ten ventilation networks. Preserve its audit assumptions and energy/emissions boundary; this is not a universal expected saving.
 
 Use [ISO 17757:2019](https://www.iso.org/standard/76126.html) as one standards input for autonomous/semi-autonomous mining machine system safety; the benchmark is not a compliance assessment or certification. Begin with synthetic scenario contracts and fail-closed negative controls. No real-world fan, vehicle or mine-control actuation is in scope.
 
