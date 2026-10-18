@@ -12,7 +12,8 @@ fn main() -> ExitCode {
     let supplied: Vec<_> = args.collect();
     if supplied.len() != 5 {
         eprintln!(
-            "usage: habitat-revalidation-scale <matrix.json> <profile-id> <workload.json> <receipt.json> <source-commit-sha>"
+            "usage: habitat-revalidation-scale <matrix.json> <profile-id> \
+             <workload.json> <receipt.json> <source-commit-sha>"
         );
         return ExitCode::from(2);
     }
@@ -21,7 +22,10 @@ fn main() -> ExitCode {
     let workload_path = &supplied[2];
     let receipt_path = &supplied[3];
     let source_commit = supplied[4].to_string_lossy();
-    if matrix_path == workload_path || matrix_path == receipt_path || workload_path == receipt_path {
+    if matrix_path == workload_path
+        || matrix_path == receipt_path
+        || workload_path == receipt_path
+    {
         eprintln!("error: matrix, workload, and receipt paths must be distinct");
         return ExitCode::from(2);
     }
