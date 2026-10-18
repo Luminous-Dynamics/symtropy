@@ -635,6 +635,40 @@ mod tests {
     }
 
     #[test]
+    fn resource_pool_exact_capacity_is_feasible() {
+        let operations = vec![
+            operation("inspect-a", "ndt-team", 0.0, 10.0, &[]),
+            operation("inspect-b", "ndt-team", 0.0, 5.0, &[]),
+        ];
+        let capacities = vec![ResourceCapacity {
+            resource_id: "ndt-team".into(),
+            capacity: 2,
+        }];
+        let report = validate_schedule_with_resource_capacities(&operations, &capacities);
+        assert!(report.is_feasible(), "{:?}", report.violations);
+    }
+
+    #[test]
+    fn capacity_report_is_invariant_to_input_order_for_unique_operation_ids() {
+        let operations = vec![
+            operation("cut-a", "cnc-pool", 0.0, 8.0, &[]),
+            operation("cut-b", "cnc-pool", 1.0, 8.0, &[]),
+            operation("cut-c", "cnc-pool", 2.0, 8.0, &[]),
+            operation("cut-d", "cnc-pool", 10.0, 2.0, &[]),
+        ];
+        let mut reversed = operations.clone();
+        reversed.reverse();
+        let capacities = vec![ResourceCapacity {
+            resource_id: "cnc-pool".into(),
+            capacity: 2,
+        }];
+
+        let forward = validate_schedule_with_resource_capacities(&operations, &capacities);
+        let backward = validate_schedule_with_resource_capacities(&reversed, &capacities);
+        assert_eq!(forward, backward);
+    }
+
+    #[test]
     fn resource_pool_capacity_respects_half_open_back_to_back_intervals() {
         let operations = vec![
             operation("weld-a", "bay-pool", 0.0, 10.0, &[]),
