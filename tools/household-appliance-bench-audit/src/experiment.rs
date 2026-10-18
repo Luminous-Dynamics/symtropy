@@ -6,11 +6,15 @@ use std::collections::BTreeSet;
 const SCHEMA_ID: &str = "urn:luminous-dynamics:appliance-repairability-factorial-plan:0.1.0";
 const DESIGN_ID: &str = "APPLIANCE-DOE-001";
 const EXPECTED_CELLS: [&str; 8] = [
-    "DOE-000", "DOE-001", "DOE-010", "DOE-011",
-    "DOE-100", "DOE-101", "DOE-110", "DOE-111",
+    "DOE-000", "DOE-001", "DOE-010", "DOE-011", "DOE-100", "DOE-101", "DOE-110", "DOE-111",
 ];
 const EXPECTED_BENCHMARKS: [&str; 6] = [
-    "DOE-B-001", "DOE-B-002", "DOE-B-003", "DOE-B-004", "DOE-B-005", "DOE-B-006",
+    "DOE-B-001",
+    "DOE-B-002",
+    "DOE-B-003",
+    "DOE-B-004",
+    "DOE-B-005",
+    "DOE-B-006",
 ];
 
 type Errors = Vec<String>;
@@ -94,10 +98,18 @@ fn audit_values(
         || design.get("factor_count").and_then(Value::as_u64) != Some(3)
         || text_at(design, "external_control_id") != Some("W0-RETAIL-CONTROL")
         || design.get("frozen_before_outcome").and_then(Value::as_bool) != Some(false)
-        || design.get("planned_technician_count").and_then(Value::as_u64) != Some(3)
-        || design.get("planned_trials_per_cell").and_then(Value::as_u64) != Some(12)
+        || design
+            .get("planned_technician_count")
+            .and_then(Value::as_u64)
+            != Some(3)
+        || design
+            .get("planned_trials_per_cell")
+            .and_then(Value::as_u64)
+            != Some(12)
         || text_at(design, "denominator_policy")
-            != Some("every_started_attempt_including_failed_abandoned_and_safety_stop_stays_in_attempt_denominator")
+            != Some(
+                "every_started_attempt_including_failed_abandoned_and_safety_stop_stays_in_attempt_denominator",
+            )
     {
         errors.push(
             "factorial design, pilot floor, external control or denominator policy changed"
@@ -113,7 +125,10 @@ fn audit_values(
         .filter_map(Value::as_str)
         .collect();
     if actual_interactions != expected_interactions {
-        errors.push("all three two-way and the three-way interaction terms must remain preregistered".to_owned());
+        errors.push(
+            "all three two-way and the three-way interaction terms must remain preregistered"
+                .to_owned(),
+        );
     }
     let task_families: Vec<&str> = design
         .get("task_families")
@@ -146,19 +161,27 @@ fn audit_values(
             errors.push(format!("duplicate factorial cell {cell_id}"));
         }
         if EXPECTED_CELLS.get(index).copied() != Some(cell_id) {
-            errors.push(format!("factorial cell order/identity changed at index {index}: {cell_id}"));
+            errors.push(format!(
+                "factorial cell order/identity changed at index {index}: {cell_id}"
+            ));
         }
         if text_at(cell, "status") != Some("planned_not_run")
             || cell.get("observed_trial_count").and_then(Value::as_u64) != Some(0)
         {
-            errors.push(format!("{cell_id}: unrun design cell cannot contain observations"));
+            errors.push(format!(
+                "{cell_id}: unrun design cell cannot contain observations"
+            ));
         }
         let Some(bits) = cell_id.strip_prefix("DOE-") else {
-            errors.push(format!("{cell_id}: cell ID must encode three binary factor levels"));
+            errors.push(format!(
+                "{cell_id}: cell ID must encode three binary factor levels"
+            ));
             continue;
         };
         if bits.len() != 3 || !bits.chars().all(|bit| bit == '0' || bit == '1') {
-            errors.push(format!("{cell_id}: cell ID must encode three binary factor levels"));
+            errors.push(format!(
+                "{cell_id}: cell ID must encode three binary factor levels"
+            ));
             continue;
         }
         let Some(levels) = cell.get("factor_levels") else {
@@ -186,7 +209,9 @@ fn audit_values(
             "evidence_guided_test_before_replace",
         );
         if !valid {
-            errors.push(format!("{cell_id}: factor values do not match the binary cell identity"));
+            errors.push(format!(
+                "{cell_id}: factor values do not match the binary cell identity"
+            ));
         }
         let combination = format!(
             "{}|{}|{}",
@@ -208,7 +233,9 @@ fn audit_values(
             .map(Vec::len)
             .unwrap_or(0);
         if hypothesis_count < 2 || receipt_count < 3 {
-            errors.push(format!("{cell_id}: hypotheses or evidence receipt requirements are incomplete"));
+            errors.push(format!(
+                "{cell_id}: hypotheses or evidence receipt requirements are incomplete"
+            ));
         }
     }
     for expected in EXPECTED_CELLS {
@@ -232,14 +259,19 @@ fn audit_values(
         errors.push("planned trial total must equal trials per cell times cell count".to_owned());
     }
     if planned_total != 96 {
-        errors.push("v0.1 feasibility pilot plan must retain the declared 96-attempt floor".to_owned());
+        errors.push(
+            "v0.1 feasibility pilot plan must retain the declared 96-attempt floor".to_owned(),
+        );
     }
 
     let Some(benchmarks) = plan.get("benchmarks").and_then(Value::as_array) else {
         return Err(vec!["benchmarks must be an array".to_owned()]);
     };
     if benchmarks.len() != EXPECTED_BENCHMARKS.len() {
-        errors.push(format!("factorial plan must retain {} benchmark guards", EXPECTED_BENCHMARKS.len()));
+        errors.push(format!(
+            "factorial plan must retain {} benchmark guards",
+            EXPECTED_BENCHMARKS.len()
+        ));
     }
     let mut benchmark_ids = BTreeSet::new();
     for (index, benchmark) in benchmarks.iter().enumerate() {
@@ -253,10 +285,12 @@ fn audit_values(
         if EXPECTED_BENCHMARKS.get(index).copied() != Some(id) {
             errors.push(format!("benchmark identity changed at index {index}: {id}"));
         }
-        if text_at(benchmark, "status")
-            .is_none_or(|status| !matches!(status, "proposal_not_frozen" | "guardrail_contract_only"))
-        {
-            errors.push(format!("{id}: benchmark cannot be promoted to an observed result"));
+        if text_at(benchmark, "status").is_none_or(|status| {
+            !matches!(status, "proposal_not_frozen" | "guardrail_contract_only")
+        }) {
+            errors.push(format!(
+                "{id}: benchmark cannot be promoted to an observed result"
+            ));
         }
     }
     for expected in EXPECTED_BENCHMARKS {
@@ -270,10 +304,16 @@ fn audit_values(
     }
     Ok(ExperimentAuditSummary {
         cell_count: cells.len(),
-        factor_count: design.get("factor_count").and_then(Value::as_u64).unwrap_or(0) as usize,
+        factor_count: design
+            .get("factor_count")
+            .and_then(Value::as_u64)
+            .unwrap_or(0) as usize,
         planned_trials_per_cell: per_cell,
         planned_trial_count: planned_total,
-        observed_trial_count: plan.get("observed_trial_count").and_then(Value::as_u64).unwrap_or(0) as usize,
+        observed_trial_count: plan
+            .get("observed_trial_count")
+            .and_then(Value::as_u64)
+            .unwrap_or(0) as usize,
         benchmark_count: benchmarks.len(),
         schema_sha256: format!("{:x}", Sha256::digest(schema_raw.as_bytes())),
         plan_sha256: format!("{:x}", Sha256::digest(plan_raw.as_bytes())),
@@ -296,8 +336,9 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const SCHEMA: &str =
-        include_str!("../../../schemas/appliances/washer_repairability_factorial_plan_v0_1.schema.json");
+    const SCHEMA: &str = include_str!(
+        "../../../schemas/appliances/washer_repairability_factorial_plan_v0_1.schema.json"
+    );
     const PLAN: &str =
         include_str!("../../../fixtures/appliances/washer_repairability_factorial_plan_v0_1.json");
 
@@ -314,7 +355,8 @@ mod tests {
 
     #[test]
     fn canonical_factorial_has_eight_cells_and_ninety_six_planned_trials() {
-        let summary = audit_experiment_texts(SCHEMA, PLAN).expect("canonical factorial plan qualifies");
+        let summary =
+            audit_experiment_texts(SCHEMA, PLAN).expect("canonical factorial plan qualifies");
         assert_eq!(summary.cell_count, 8);
         assert_eq!(summary.factor_count, 3);
         assert_eq!(summary.planned_trials_per_cell, 12);
@@ -389,7 +431,8 @@ mod tests {
     #[test]
     fn duplicated_factor_combination_is_rejected_even_with_unique_ids() {
         let mut plan = canonical_plan();
-        plan["cells"][7]["factor_levels"] = plan["cells"][6]["factor_levels"].clone();
+        let levels = plan["cells"][6]["factor_levels"].clone();
+        plan["cells"][7]["factor_levels"] = levels;
         assert!(audit_mutation(&plan).is_err());
     }
 

@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 mod decision;
-mod faults;
 mod experiment;
+mod faults;
 mod morphology;
 mod portfolio;
 mod restoration;
@@ -759,10 +759,8 @@ fn run() -> Result<(), String> {
             fs::read_to_string(&experiment_schema_path).map_err(|error| {
                 format!("cannot read {}: {error}", experiment_schema_path.display())
             })?;
-        let experiment_plan_raw =
-            fs::read_to_string(&experiment_plan_path).map_err(|error| {
-                format!("cannot read {}: {error}", experiment_plan_path.display())
-            })?;
+        let experiment_plan_raw = fs::read_to_string(&experiment_plan_path)
+            .map_err(|error| format!("cannot read {}: {error}", experiment_plan_path.display()))?;
         let experiment_summary =
             experiment::audit_experiment_texts(&experiment_schema_raw, &experiment_plan_raw)
                 .map_err(|errors| errors.join("\n"))?;
