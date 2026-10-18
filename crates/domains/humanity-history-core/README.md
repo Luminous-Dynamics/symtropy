@@ -37,7 +37,9 @@ The CLI prints a JSON report. Exit codes are:
 
 `fixtures/antikythera-research-seed.json` is a metadata-only research seed, not an adjudicated reconstruction. It keeps published 365-hole and 354-hole calendar interpretations as separate claims and links the latter to evidence that challenges the former. It includes bibliographic citations and claim-level locators but no source paper content, imagery, or external model assets.
 
-See [the pilot case-study note](../../../docs/research/case-studies/ANTIKYTHERA_MECHANISM_PILOT.md) for source choices, caveats, expected checks, and adversarial mutation controls. This European/Mediterranean case is an epistemic stress test, not a globally representative selection of historical significance.
+See [the pilot case-study note](../../../docs/research/case-studies/ANTIKYTHERA_MECHANISM_PILOT.md) for source choices, caveats, expected checks, and adversarial mutation controls.
+
+See [the posterior replication protocol](../../../docs/research/case-studies/ANTIKYTHERA_POSTERIOR_REPLICATION_PROTOCOL.md) for the next-stage plan to retrieve and hash the measurement files, implement the source likelihood in Rust, validate it on synthetic data, and attempt an independently benchmarked posterior reproduction. This European/Mediterranean case is an epistemic stress test, not a globally representative selection of historical significance.
 
 ## Quantitative estimates and model alternatives
 
