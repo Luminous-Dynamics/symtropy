@@ -101,3 +101,6 @@ The report is explicitly `synthetic_only` and sets `policy_simulation_executed: 
 
 
 **Trust boundary:** the gate snapshot booleans and predecessor receipts in this slice are synthetic caller-supplied assertions. The contract reports `input_receipts_cryptographically_verified: false` and `immutable_history_store_executed: false`; it does not verify signatures, real sensor provenance, or durable append-only history. A later integration must validate content-addressed/version-bound evidence through an independent receipt verifier before using these types to authorize any real operation.
+
+
+Each emitted scenario now includes its full normalized synthetic proposal, a SHA-256 of that proposal, a SHA-256 of the normalized decision (admission, next state and sorted reason codes), and the report-level digest over the ordered scenario set. These hashes support replay and tamper detection for the emitted report; they do **not** authenticate caller-supplied evidence or establish code identity on their own.
