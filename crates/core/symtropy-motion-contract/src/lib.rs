@@ -162,25 +162,43 @@ impl fmt::Display for IntentValidationError {
             Self::UnsupportedSchemaVersion => "unsupported semantic motion intent schema version",
             Self::EmptyIntentId => "intent_id must not be empty",
             Self::EmptyActorRef => "actor_ref must not be empty",
-            Self::InvalidCoordinateFrame => "coordinate frame must be metres, +Y up, +Z or -Z forward, in world space",
+            Self::InvalidCoordinateFrame => concat!(
+                "coordinate frame must be metres, +Y up, ",
+                "+Z or -Z forward, in world space"
+            ),
             Self::InvalidIssuedTime => "issued_at_sec must be finite and non-negative",
             Self::InvalidEvaluationTime => "evaluation time must be finite and non-negative",
-            Self::InvalidValidityWindow => "valid_until_sec must be finite and greater than issued_at_sec",
+            Self::InvalidValidityWindow => {
+                "valid_until_sec must be finite and greater than issued_at_sec"
+            },
             Self::NotYetValid => "intent was issued after the supplied simulation time",
             Self::Expired => "intent has expired",
             Self::InvalidUrgency => "urgency must be finite and in [0, 1]",
             Self::InvalidConfidence => "confidence must be finite and in [0, 1]",
             Self::InvalidUncertainty => "uncertainty must be finite and in [0, 1]",
-            Self::MissingCalibrationProfile => "calibrated probability requires calibration_profile_id",
-            Self::MissingLocomotionVelocity => "locomote intent requires desired_planar_velocity_mps",
+            Self::MissingCalibrationProfile => {
+                "calibrated probability requires calibration_profile_id"
+            },
+            Self::MissingLocomotionVelocity => {
+                "locomote intent requires desired_planar_velocity_mps"
+            },
             Self::InvalidVelocity => "desired planar velocity contains a non-finite value",
             Self::MissingTarget => "reach/grasp intent requires an entity or positional target",
-            Self::InvalidTarget => "intent target contains no valid entity, position, or orientation",
-            Self::InvalidTargetPosition => "target position must contain finite world-space coordinates",
-            Self::InvalidTargetOrientation => "target orientation must be a finite near-unit quaternion in x,y,z,w order",
+            Self::InvalidTarget => {
+                "intent target contains no valid entity, position, or orientation"
+            },
+            Self::InvalidTargetPosition => {
+                "target position must contain finite world-space coordinates"
+            },
+            Self::InvalidTargetOrientation => concat!(
+                "target orientation must be a finite near-unit quaternion ",
+                "in x,y,z,w order"
+            ),
             Self::EmptyPolicyId => "provenance.policy_id must not be empty",
             Self::EmptyPolicyVersion => "provenance.policy_version must not be empty",
-            Self::InvalidObservationDigest => "observation_digest_sha256 must be 64 hexadecimal characters",
+            Self::InvalidObservationDigest => {
+                "observation_digest_sha256 must be 64 hexadecimal characters"
+            },
             Self::InvalidModelDigest => "model_sha256 must be 64 hexadecimal characters",
             Self::MissingModelDigest => "external_model source requires model_sha256",
         };
@@ -230,44 +248,59 @@ impl SemanticMotionIntent {
         {
             return Err(IntentValidationError::MissingCalibrationProfile);
         }
-        if let Some(velocity) = self.desired_planar_velocity_mps {
-            if velocity.iter().any(|value| !value.is_finite()) {
-                return Err(IntentValidationError::InvalidVelocity);
-            }
-        } else if self.intent_kind == MotionIntentKind::Locomote {
+        if self
+            .desired_planar_velocity_mps
+            .is_some_and(|velocity| velocity.iter().any(|value| !value.is_finite()))
+        {
+            return Err(IntentValidationError::InvalidVelocity);
+        }
+        if self.intent_kind == MotionIntentKind::Locomote
+            && self.desired_planar_velocity_mps.is_none()
+        {
             return Err(IntentValidationError::MissingLocomotionVelocity);
         }
 
-        if let Some(target) = &self.target {
-            if target.entity_ref.as_deref().is_some_and(|value| value.trim().is_empty()) {
-                return Err(IntentValidationError::InvalidTarget);
-            }
-            if let Some(position) = target.position_world_m {
-                if position.iter().any(|value| !value.is_finite()) {
-                    return Err(IntentValidationError::InvalidTargetPosition);
-                }
-            }
-            if let Some(orientation) = target.orientation_xyzw {
-                if orientation.iter().any(|value| !value.is_finite()) {
-                    return Err(IntentValidationError::InvalidTargetOrientation);
-                }
-                let norm_squared: f64 = orientation.iter().map(|value| value * value).sum();
-                let norm = norm_squared.sqrt();
-                if !norm.is_finite() || (norm - 1.0).abs() > 0.05 {
-                    return Err(IntentValidationError::InvalidTargetOrientation);
-                }
-            }
-            let has_target = target.entity_ref.as_deref().is_some_and(|value| !value.trim().is_empty())
-                || target.position_world_m.is_some()
-                || target.orientation_xyzw.is_some();
-            if !has_target {
-                return Err(IntentValidationError::InvalidTarget);
-            }
+        if self
+            .target
+            .as_ref()
+            .and_then(|target| target.entity_ref.as_deref())
+            .is_some_and(|value| value.trim().is_empty())
+        {
+            return Err(IntentValidationError::InvalidTarget);
         }
-
+        if self
+            .target
+            .as_ref()
+            .and_then(|target| target.position_world_m)
+            .is_some_and(|position| position.iter().any(|value| !value.is_finite()))
+        {
+            return Err(IntentValidationError::InvalidTargetPosition);
+        }
+        if self
+            .target
+            .as_ref()
+            .and_then(|target| target.orientation_xyzw)
+            .is_some_and(|orientation| !is_valid_orientation(orientation))
+        {
+            return Err(IntentValidationError::InvalidTargetOrientation);
+        }
+        let has_target = self.target.as_ref().is_some_and(|target| {
+            target
+                .entity_ref
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+                || target.position_world_m.is_some()
+                || target.orientation_xyzw.is_some()
+        });
+        if self.target.is_some() && !has_target {
+            return Err(IntentValidationError::InvalidTarget);
+        }
         if matches!(self.intent_kind, MotionIntentKind::Reach | MotionIntentKind::Grasp)
             && !self.target.as_ref().is_some_and(|target| {
-                target.entity_ref.as_deref().is_some_and(|value| !value.trim().is_empty())
+                target
+                    .entity_ref
+                    .as_deref()
+                    .is_some_and(|value| !value.trim().is_empty())
                     || target.position_world_m.is_some()
             })
         {
@@ -280,7 +313,12 @@ impl SemanticMotionIntent {
         if self.provenance.policy_version.trim().is_empty() {
             return Err(IntentValidationError::EmptyPolicyVersion);
         }
-        if self.provenance.observation_digest_sha256.as_deref().is_some_and(|hash| !is_hex_digest(hash, 64)) {
+        if self
+            .provenance
+            .observation_digest_sha256
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
             return Err(IntentValidationError::InvalidObservationDigest);
         }
         if self.provenance.model_sha256.as_deref().is_some_and(|hash| !is_hex_digest(hash, 64)) {
@@ -309,6 +347,15 @@ impl SemanticMotionIntent {
         }
         Ok(())
     }
+}
+
+fn is_valid_orientation(orientation: [f64; 4]) -> bool {
+    if orientation.iter().any(|value| !value.is_finite()) {
+        return false;
+    }
+    let norm_squared: f64 = orientation.iter().map(|value| value * value).sum();
+    let norm = norm_squared.sqrt();
+    norm.is_finite() && (norm - 1.0).abs() <= 0.05
 }
 
 fn in_unit_interval(value: f32) -> bool {
