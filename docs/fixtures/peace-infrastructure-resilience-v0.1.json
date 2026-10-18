@@ -276,7 +276,7 @@
         {
           "alert_id": "actionable-verified",
           "remaining_lead_minutes": 120,
-          "estimated_response_minutes": 45,
+          "response_latency_bound_minutes": 45,
           "accountable_owner_authorized": true,
           "response_resource_available": true,
           "response_state": "verified",
@@ -329,7 +329,7 @@
         {
           "alert_id": "no-owner",
           "remaining_lead_minutes": 120,
-          "estimated_response_minutes": 45,
+          "response_latency_bound_minutes": 45,
           "accountable_owner_authorized": false,
           "response_resource_available": true,
           "response_state": "unassigned",
@@ -338,7 +338,7 @@
         {
           "alert_id": "late-signal",
           "remaining_lead_minutes": 20,
-          "estimated_response_minutes": 45,
+          "response_latency_bound_minutes": 45,
           "accountable_owner_authorized": true,
           "response_resource_available": true,
           "response_state": "dispatched",
@@ -347,7 +347,7 @@
         {
           "alert_id": "no-resource",
           "remaining_lead_minutes": 120,
-          "estimated_response_minutes": 45,
+          "response_latency_bound_minutes": 45,
           "accountable_owner_authorized": true,
           "response_resource_available": false,
           "response_state": "unassigned",
@@ -356,7 +356,7 @@
         {
           "alert_id": "no-reserve-at-boundary",
           "remaining_lead_minutes": 60,
-          "estimated_response_minutes": 45,
+          "response_latency_bound_minutes": 45,
           "accountable_owner_authorized": true,
           "response_resource_available": true,
           "response_state": "ready",
@@ -365,7 +365,7 @@
         {
           "alert_id": "ready-not-executed",
           "remaining_lead_minutes": 120,
-          "estimated_response_minutes": 45,
+          "response_latency_bound_minutes": 45,
           "accountable_owner_authorized": true,
           "response_resource_available": true,
           "response_state": "ready",
@@ -374,7 +374,7 @@
         {
           "alert_id": "dispatched-not-verified",
           "remaining_lead_minutes": 120,
-          "estimated_response_minutes": 45,
+          "response_latency_bound_minutes": 45,
           "accountable_owner_authorized": true,
           "response_resource_available": true,
           "response_state": "dispatched",
