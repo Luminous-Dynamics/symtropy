@@ -549,12 +549,12 @@
         ],
         "claimed_gate": "unknown",
         "claimed_blocker_codes": [
-          "REQUIRED_OUTPUT_MISSING:Zone Air Temperature"
+          "REQUIRED_OUTPUT_MISSING:ZONE_AIR_TEMPERATURE"
         ]
       },
       "expected_gate": "unknown",
       "expected_blocker_codes": [
-        "REQUIRED_OUTPUT_MISSING:Zone Air Temperature"
+        "REQUIRED_OUTPUT_MISSING:ZONE_AIR_TEMPERATURE"
       ]
     },
     {
@@ -629,12 +629,12 @@
         ],
         "claimed_gate": "unknown",
         "claimed_blocker_codes": [
-          "OUTPUT_UNITS_MISMATCH:Electricity:Facility"
+          "OUTPUT_UNITS_MISMATCH:ELECTRICITY_FACILITY"
         ]
       },
       "expected_gate": "unknown",
       "expected_blocker_codes": [
-        "OUTPUT_UNITS_MISMATCH:Electricity:Facility"
+        "OUTPUT_UNITS_MISMATCH:ELECTRICITY_FACILITY"
       ]
     },
     {
