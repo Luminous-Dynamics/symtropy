@@ -31,34 +31,34 @@
 //! switching crates.
 
 pub mod animation;
-#[cfg(feature = "human-animation")]
-pub mod human_animation;
 pub mod audio;
 pub mod biometrics;
 #[cfg(feature = "debug-gizmos")]
 pub mod debug;
-pub mod macro_bridge;
-pub mod human_motion_metrics;
+#[cfg(feature = "human-animation")]
+pub mod human_animation;
 pub mod human_motion_intent;
+pub mod human_motion_metrics;
+pub mod macro_bridge;
 pub mod plugin;
 pub mod robot;
 pub mod scripting;
 pub mod toolbus;
 
 pub use animation::{AnimationState, RoboticAnimationPlugin};
-pub use human_motion_intent::{
-    ConfidenceSemantics, IntentProvenance, IntentSource, IntentValidationError, MotionIntentCoordinateFrame,
-    InterruptionPolicy, MotionIntentKind, MotionIntentTarget, SemanticMotionIntent,
-    HUMAN_MOTION_INTENT_SCHEMA_VERSION,
-};
-#[cfg(feature = "human-animation")]
-pub use human_animation::{
-    adapt_semantic_intent_to_locomotion, HumanAnimationClips, HumanAnimationController,
-    HumanAnimationPlugin, HumanLocomotionConfig, HumanLocomotionIntent, HumanMotion,
-    SemanticIntentAdapterError,
-};
 pub use audio::{AudioEmitter, RoboticAudioPlugin};
 pub use biometrics::{PlayerBiometrics, biometric_to_phi_system};
+#[cfg(feature = "human-animation")]
+pub use human_animation::{
+    HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanLocomotionConfig,
+    HumanLocomotionIntent, HumanMotion, SemanticIntentAdapterError,
+    adapt_semantic_intent_to_locomotion,
+};
+pub use human_motion_intent::{
+    ConfidenceSemantics, HUMAN_MOTION_INTENT_SCHEMA_VERSION, IntentProvenance, IntentSource,
+    IntentValidationError, InterruptionPolicy, MotionIntentCoordinateFrame, MotionIntentKind,
+    MotionIntentTarget, SemanticMotionIntent,
+};
 pub use macro_bridge::{MacroWorldState, apply_macro_modifiers_system};
 pub use plugin::{SymtropyPhysics, SymtropyPhysicsPlugin};
 pub use robot::spawn_robot_native;
