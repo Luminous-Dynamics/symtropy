@@ -46,8 +46,8 @@ jobs:
           jq -e '
             ."$schema" == "https://json-schema.org/draft/2020-12/schema"
             and .properties.schema_version.const == "recovery-field-validation-packet-v0.1"
-            and .properties.claim_ceiling.properties.real_field_observations.const == false
-            and .properties.claim_ceiling.properties.expected_actuation.const == false
+            and .["$defs"].claimCeiling.properties.real_field_observations.const == false
+            and .["$defs"].claimCeiling.properties.expected_actuation.const == false
             and (.["$defs"].fieldRecord.required | index("decision_manifest_payload_json") != null)
             and (.["$defs"].fieldRecord.required | index("episode_status") != null)
             and (.["$defs"].measurement.properties.measurement_state.enum | index("NOT_MEASURED") != null)

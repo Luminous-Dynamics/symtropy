@@ -269,8 +269,12 @@ fn canonical_packet_sha256(packet: &Packet) -> String {
         record.post_decision_outcome_evidence_refs.sort();
         record.required_metric_ids.sort();
         record.data_rights.allowed_purposes.sort();
-        record.authority_gates.sort_by(|a, b| a.gate_id.cmp(&b.gate_id));
-        record.measurements.sort_by(|a, b| a.metric_id.cmp(&b.metric_id));
+        record
+            .authority_gates
+            .sort_by(|a, b| a.gate_id.cmp(&b.gate_id));
+        record
+            .measurements
+            .sort_by(|a, b| a.metric_id.cmp(&b.metric_id));
         record.ground_truth.outcome_evidence_refs.sort();
     }
     serde_json::to_vec(&canonical)
@@ -300,9 +304,13 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
     {
         errors.push("ACTUATION_CLAIM_CEILING_VIOLATED".to_string());
     }
-    if !packet.protocol_contract.decision_inputs_exclude_post_decision_outcomes
+    if !packet
+        .protocol_contract
+        .decision_inputs_exclude_post_decision_outcomes
         || !packet.protocol_contract.zero_is_distinct_from_unmeasured
-        || !packet.protocol_contract.no_action_and_censored_cases_retained
+        || !packet
+            .protocol_contract
+            .no_action_and_censored_cases_retained
         || !packet
             .protocol_contract
             .source_authenticity_must_be_unverified_for_synthetic_records
@@ -328,7 +336,11 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
     if packet.decision_profile.covered_failure_families.is_empty() {
         errors.push("COVERED_FAILURE_FAMILIES_EMPTY".to_string());
     }
-    if packet.decision_profile.required_decision_evidence_tags.is_empty() {
+    if packet
+        .decision_profile
+        .required_decision_evidence_tags
+        .is_empty()
+    {
         errors.push("REQUIRED_DECISION_EVIDENCE_TAGS_EMPTY".to_string());
     }
     if packet.evidence_records.is_empty() || packet.records.is_empty() {
@@ -353,10 +365,16 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
             || !evidence.source_ref.starts_with("synthetic://")
             || evidence.source_authenticity_status != "UNVERIFIED_SYNTHETIC"
         {
-            errors.push(format!("EVIDENCE_AUTHENTICITY_CEILING_VIOLATED:{}", evidence.evidence_id));
+            errors.push(format!(
+                "EVIDENCE_AUTHENTICITY_CEILING_VIOLATED:{}",
+                evidence.evidence_id
+            ));
         }
         if evidence.available_day < evidence.observed_day {
-            errors.push(format!("EVIDENCE_AVAILABLE_BEFORE_OBSERVED:{}", evidence.evidence_id));
+            errors.push(format!(
+                "EVIDENCE_AVAILABLE_BEFORE_OBSERVED:{}",
+                evidence.evidence_id
+            ));
         }
         if evidence.evidence_tags.is_empty()
             || evidence.evidence_tags.iter().any(|tag| !is_nonempty(tag))
@@ -374,10 +392,16 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
             errors.push(format!("DUPLICATE_CASE_ID:{}", record.case_id));
         }
         if !is_sha256(&record.decision_manifest_sha256) {
-            errors.push(format!("DECISION_MANIFEST_SHA256_INVALID:{}", record.case_id));
+            errors.push(format!(
+                "DECISION_MANIFEST_SHA256_INVALID:{}",
+                record.case_id
+            ));
         }
         if !is_nonempty(&record.decision_manifest_payload_json) {
-            errors.push(format!("DECISION_MANIFEST_PAYLOAD_EMPTY:{}", record.case_id));
+            errors.push(format!(
+                "DECISION_MANIFEST_PAYLOAD_EMPTY:{}",
+                record.case_id
+            ));
         }
         if !matches!(
             record.family_classification.as_str(),
@@ -389,7 +413,10 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
             record.classification_review_status.as_str(),
             "REVIEWED" | "UNREVIEWED" | "UNKNOWN"
         ) {
-            errors.push(format!("CLASSIFICATION_REVIEW_STATUS_INVALID:{}", record.case_id));
+            errors.push(format!(
+                "CLASSIFICATION_REVIEW_STATUS_INVALID:{}",
+                record.case_id
+            ));
         }
         if !matches!(
             record.episode_status.as_str(),
@@ -401,7 +428,10 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
             errors.push(format!("EXPECTED_DISPOSITION_INVALID:{}", record.case_id));
         }
         if record.decision_day > packet.evaluation_day {
-            errors.push(format!("DECISION_DAY_AFTER_EVALUATION_DAY:{}", record.case_id));
+            errors.push(format!(
+                "DECISION_DAY_AFTER_EVALUATION_DAY:{}",
+                record.case_id
+            ));
         }
         if record.observed_failure_families.is_empty()
             || record.decision_input_evidence_refs.is_empty()
@@ -417,9 +447,7 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
     }
 }
 
-fn evidence_by_id<'a>(
-    packet: &'a Packet,
-) -> BTreeMap<&'a str, &'a EvidenceRecord> {
+fn evidence_by_id<'a>(packet: &'a Packet) -> BTreeMap<&'a str, &'a EvidenceRecord> {
     packet
         .evidence_records
         .iter()
@@ -429,30 +457,47 @@ fn evidence_by_id<'a>(
 
 fn validate_manifest(record: &FieldRecord, errors: &mut Vec<String>) -> (String, bool) {
     let start = errors.len();
-    let manifest: DecisionManifest = match serde_json::from_str(&record.decision_manifest_payload_json) {
-        Ok(value) => value,
-        Err(error) => {
-            errors.push(format!("DECISION_MANIFEST_JSON_INVALID:{}:{error}", record.case_id));
-            return ("INVALID".to_string(), false);
-        }
-    };
+    let manifest: DecisionManifest =
+        match serde_json::from_str(&record.decision_manifest_payload_json) {
+            Ok(value) => value,
+            Err(error) => {
+                errors.push(format!(
+                    "DECISION_MANIFEST_JSON_INVALID:{}:{error}",
+                    record.case_id
+                ));
+                return ("INVALID".to_string(), false);
+            }
+        };
     let canonical = match serde_json::to_string(&manifest) {
         Ok(value) => value,
         Err(error) => {
-            errors.push(format!("DECISION_MANIFEST_SERIALIZE_FAILED:{}:{error}", record.case_id));
+            errors.push(format!(
+                "DECISION_MANIFEST_SERIALIZE_FAILED:{}:{error}",
+                record.case_id
+            ));
             return ("INVALID".to_string(), false);
         }
     };
     if canonical != record.decision_manifest_payload_json {
-        errors.push(format!("DECISION_MANIFEST_NOT_CANONICAL:{}", record.case_id));
+        errors.push(format!(
+            "DECISION_MANIFEST_NOT_CANONICAL:{}",
+            record.case_id
+        ));
     }
     let digest = sha256_hex(record.decision_manifest_payload_json.as_bytes());
     if digest != record.decision_manifest_sha256.to_ascii_lowercase() {
-        errors.push(format!("DECISION_MANIFEST_DIGEST_MISMATCH:{}", record.case_id));
+        errors.push(format!(
+            "DECISION_MANIFEST_DIGEST_MISMATCH:{}",
+            record.case_id
+        ));
     }
     let refs_are_sorted_unique = sorted(&record.decision_input_evidence_refs)
         == record.decision_input_evidence_refs
-        && record.decision_input_evidence_refs.iter().collect::<BTreeSet<_>>().len()
+        && record
+            .decision_input_evidence_refs
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
             == record.decision_input_evidence_refs.len();
     let semantic_match = manifest.manifest_version == "recovery-decision-manifest-v0.1"
         && manifest.case_id == record.case_id
@@ -463,7 +508,10 @@ fn validate_manifest(record: &FieldRecord, errors: &mut Vec<String>) -> (String,
         && manifest.decision_input_evidence_refs == record.decision_input_evidence_refs
         && refs_are_sorted_unique;
     if !semantic_match {
-        errors.push(format!("DECISION_MANIFEST_SEMANTIC_MISMATCH:{}", record.case_id));
+        errors.push(format!(
+            "DECISION_MANIFEST_SEMANTIC_MISMATCH:{}",
+            record.case_id
+        ));
     }
     let status = if errors.len() == start && semantic_match {
         "MATCH"
@@ -482,23 +530,38 @@ fn validate_measurement(
 ) -> bool {
     let start = errors.len();
     if !is_nonempty(&measurement.metric_id) || !is_nonempty(&measurement.unit) {
-        errors.push(format!("MEASUREMENT_ID_OR_UNIT_EMPTY:{}:{}", record.case_id, measurement.metric_id));
+        errors.push(format!(
+            "MEASUREMENT_ID_OR_UNIT_EMPTY:{}:{}",
+            record.case_id, measurement.metric_id
+        ));
     }
     if measurement.scale == 0 {
-        errors.push(format!("MEASUREMENT_SCALE_ZERO:{}:{}", record.case_id, measurement.metric_id));
+        errors.push(format!(
+            "MEASUREMENT_SCALE_ZERO:{}:{}",
+            record.case_id, measurement.metric_id
+        ));
     }
     if !ALLOWED_METRIC_STATES.contains(&measurement.measurement_state.as_str()) {
-        errors.push(format!("MEASUREMENT_STATE_INVALID:{}:{}", record.case_id, measurement.metric_id));
+        errors.push(format!(
+            "MEASUREMENT_STATE_INVALID:{}:{}",
+            record.case_id, measurement.metric_id
+        ));
         return false;
     }
 
-    if matches!(measurement.measurement_state.as_str(), "MEASURED" | "ESTIMATED") {
+    if matches!(
+        measurement.measurement_state.as_str(),
+        "MEASURED" | "ESTIMATED"
+    ) {
         if measurement.value_scaled.is_none()
             || measurement.observed_day.is_none()
             || measurement.available_day.is_none()
             || measurement.evidence_ref.is_none()
         {
-            errors.push(format!("QUANTIFIED_MEASUREMENT_MISSING_VALUE_OR_PROVENANCE:{}:{}", record.case_id, measurement.metric_id));
+            errors.push(format!(
+                "QUANTIFIED_MEASUREMENT_MISSING_VALUE_OR_PROVENANCE:{}:{}",
+                record.case_id, measurement.metric_id
+            ));
         }
         if let (Some(lower), Some(value), Some(upper)) = (
             measurement.uncertainty_lower_scaled,
@@ -506,28 +569,51 @@ fn validate_measurement(
             measurement.uncertainty_upper_scaled,
         ) {
             if lower > value || value > upper {
-                errors.push(format!("MEASUREMENT_UNCERTAINTY_DOES_NOT_ENCLOSE_VALUE:{}:{}", record.case_id, measurement.metric_id));
+                errors.push(format!(
+                    "MEASUREMENT_UNCERTAINTY_DOES_NOT_ENCLOSE_VALUE:{}:{}",
+                    record.case_id, measurement.metric_id
+                ));
             }
         } else if measurement.uncertainty_lower_scaled.is_some()
             || measurement.uncertainty_upper_scaled.is_some()
         {
-            errors.push(format!("MEASUREMENT_UNCERTAINTY_PARTIAL:{}:{}", record.case_id, measurement.metric_id));
+            errors.push(format!(
+                "MEASUREMENT_UNCERTAINTY_PARTIAL:{}:{}",
+                record.case_id, measurement.metric_id
+            ));
         }
-        if let (Some(observed), Some(available)) = (measurement.observed_day, measurement.available_day) {
-            if observed > available || available > record.decision_day || available > packet.evaluation_day {
-                errors.push(format!("MEASUREMENT_TIME_INVALID:{}:{}", record.case_id, measurement.metric_id));
+        if let (Some(observed), Some(available)) =
+            (measurement.observed_day, measurement.available_day)
+        {
+            if observed > available
+                || available > record.decision_day
+                || available > packet.evaluation_day
+            {
+                errors.push(format!(
+                    "MEASUREMENT_TIME_INVALID:{}:{}",
+                    record.case_id, measurement.metric_id
+                ));
             }
         }
         if let Some(reference) = measurement.evidence_ref.as_deref() {
             match evidence.get(reference) {
-                None => errors.push(format!("MEASUREMENT_EVIDENCE_MISSING:{}:{}", record.case_id, measurement.metric_id)),
+                None => errors.push(format!(
+                    "MEASUREMENT_EVIDENCE_MISSING:{}:{}",
+                    record.case_id, measurement.metric_id
+                )),
                 Some(item)
                     if item.evidence_class != "DECISION_TIME"
                         || item.available_day > record.decision_day
                         || item.observed_day > record.decision_day
-                        || !record.decision_input_evidence_refs.iter().any(|v| v == reference) =>
+                        || !record
+                            .decision_input_evidence_refs
+                            .iter()
+                            .any(|v| v == reference) =>
                 {
-                    errors.push(format!("MEASUREMENT_EVIDENCE_NOT_DECISION_INPUT:{}:{}", record.case_id, measurement.metric_id));
+                    errors.push(format!(
+                        "MEASUREMENT_EVIDENCE_NOT_DECISION_INPUT:{}:{}",
+                        record.case_id, measurement.metric_id
+                    ));
                 }
                 Some(_) => {}
             }
@@ -538,13 +624,19 @@ fn validate_measurement(
             || measurement.uncertainty_lower_scaled.is_some()
             || measurement.uncertainty_upper_scaled.is_some()
         {
-            errors.push(format!("UNQUANTIFIED_STATE_HAS_NUMERIC_VALUE:{}:{}", record.case_id, measurement.metric_id));
+            errors.push(format!(
+                "UNQUANTIFIED_STATE_HAS_NUMERIC_VALUE:{}:{}",
+                record.case_id, measurement.metric_id
+            ));
         }
         if measurement.evidence_ref.is_some()
             || measurement.observed_day.is_some()
             || measurement.available_day.is_some()
         {
-            errors.push(format!("UNQUANTIFIED_STATE_HAS_MEASUREMENT_PROVENANCE:{}:{}", record.case_id, measurement.metric_id));
+            errors.push(format!(
+                "UNQUANTIFIED_STATE_HAS_MEASUREMENT_PROVENANCE:{}:{}",
+                record.case_id, measurement.metric_id
+            ));
         }
     }
     errors.len() == start
@@ -573,10 +665,12 @@ fn validate_record(
         && record.family_classification == "COMPLETE"
         && record.classification_review_status == "REVIEWED"
         && !record.observed_failure_families.is_empty()
-        && record
-            .observed_failure_families
-            .iter()
-            .all(|family| packet.decision_profile.covered_failure_families.contains(family));
+        && record.observed_failure_families.iter().all(|family| {
+            packet
+                .decision_profile
+                .covered_failure_families
+                .contains(family)
+        });
     let profile_scope_status = if scope_ok { "IN_SCOPE" } else { "OUT_OF_SCOPE" };
 
     let mut refs_valid = true;
@@ -586,33 +680,56 @@ fn validate_record(
         *decision_ref_count += 1;
         if !seen_decision_refs.insert(reference) {
             *duplicate_identity_count += 1;
-            global_errors.push(format!("DECISION_EVIDENCE_REFERENCE_DUPLICATE:{}:{}", record.case_id, reference));
+            global_errors.push(format!(
+                "DECISION_EVIDENCE_REFERENCE_DUPLICATE:{}:{}",
+                record.case_id, reference
+            ));
             refs_valid = false;
         }
-        if record.post_decision_outcome_evidence_refs.contains(reference) {
-            global_errors.push(format!("OUTCOME_REFERENCE_USED_AS_DECISION_INPUT:{}:{}", record.case_id, reference));
+        if record
+            .post_decision_outcome_evidence_refs
+            .contains(reference)
+        {
+            global_errors.push(format!(
+                "OUTCOME_REFERENCE_USED_AS_DECISION_INPUT:{}:{}",
+                record.case_id, reference
+            ));
             refs_valid = false;
         }
         match evidence.get(reference.as_str()) {
             None => {
                 *missing_ref_count += 1;
-                global_errors.push(format!("DECISION_EVIDENCE_REFERENCE_MISSING:{}:{}", record.case_id, reference));
+                global_errors.push(format!(
+                    "DECISION_EVIDENCE_REFERENCE_MISSING:{}:{}",
+                    record.case_id, reference
+                ));
                 refs_valid = false;
             }
             Some(item) => {
                 if item.evidence_class != "DECISION_TIME" {
-                    global_errors.push(format!("NON_DECISION_EVIDENCE_USED_AS_INPUT:{}:{}", record.case_id, reference));
+                    global_errors.push(format!(
+                        "NON_DECISION_EVIDENCE_USED_AS_INPUT:{}:{}",
+                        record.case_id, reference
+                    ));
                     refs_valid = false;
                 }
-                if item.observed_day > record.decision_day || item.available_day > record.decision_day {
+                if item.observed_day > record.decision_day
+                    || item.available_day > record.decision_day
+                {
                     *future_leakage_count += 1;
-                    global_errors.push(format!("FUTURE_EVIDENCE_IN_DECISION_INPUT:{}:{}", record.case_id, reference));
+                    global_errors.push(format!(
+                        "FUTURE_EVIDENCE_IN_DECISION_INPUT:{}:{}",
+                        record.case_id, reference
+                    ));
                     refs_valid = false;
                 }
                 if record.decision_day.saturating_sub(item.available_day)
                     > packet.decision_profile.max_evidence_age_days
                 {
-                    global_errors.push(format!("STALE_DECISION_EVIDENCE:{}:{}", record.case_id, reference));
+                    global_errors.push(format!(
+                        "STALE_DECISION_EVIDENCE:{}:{}",
+                        record.case_id, reference
+                    ));
                     refs_valid = false;
                 }
                 for tag in &item.evidence_tags {
@@ -623,7 +740,10 @@ fn validate_record(
     }
     for required_tag in &packet.decision_profile.required_decision_evidence_tags {
         if !observed_tags.contains(required_tag.as_str()) {
-            global_errors.push(format!("REQUIRED_DECISION_EVIDENCE_TAG_MISSING:{}:{}", record.case_id, required_tag));
+            global_errors.push(format!(
+                "REQUIRED_DECISION_EVIDENCE_TAG_MISSING:{}:{}",
+                record.case_id, required_tag
+            ));
             refs_valid = false;
         }
     }
@@ -635,29 +755,53 @@ fn validate_record(
     for gate in &record.authority_gates {
         if !gate_ids.insert(gate.gate_id.as_str()) {
             *duplicate_identity_count += 1;
-            global_errors.push(format!("AUTHORITY_GATE_DUPLICATE:{}:{}", record.case_id, gate.gate_id));
+            global_errors.push(format!(
+                "AUTHORITY_GATE_DUPLICATE:{}:{}",
+                record.case_id, gate.gate_id
+            ));
         }
         if !expected_gate_ids.contains(gate.gate_id.as_str()) {
-            global_errors.push(format!("AUTHORITY_GATE_UNSUPPORTED:{}:{}", record.case_id, gate.gate_id));
+            global_errors.push(format!(
+                "AUTHORITY_GATE_UNSUPPORTED:{}:{}",
+                record.case_id, gate.gate_id
+            ));
         }
         if !matches!(gate.status.as_str(), "PASS" | "BLOCK" | "UNKNOWN") {
-            global_errors.push(format!("AUTHORITY_GATE_STATUS_INVALID:{}:{}", record.case_id, gate.gate_id));
+            global_errors.push(format!(
+                "AUTHORITY_GATE_STATUS_INVALID:{}:{}",
+                record.case_id, gate.gate_id
+            ));
         }
         match gate.status.as_str() {
             "BLOCK" => blocked_gate = true,
             "UNKNOWN" => unknown_gate = true,
             _ => {}
         }
-        if !record.decision_input_evidence_refs.contains(&gate.evidence_ref) {
-            global_errors.push(format!("AUTHORITY_GATE_EVIDENCE_NOT_INPUT:{}:{}", record.case_id, gate.gate_id));
+        if !record
+            .decision_input_evidence_refs
+            .contains(&gate.evidence_ref)
+        {
+            global_errors.push(format!(
+                "AUTHORITY_GATE_EVIDENCE_NOT_INPUT:{}:{}",
+                record.case_id, gate.gate_id
+            ));
         }
         match evidence.get(gate.evidence_ref.as_str()) {
             None => {
                 *missing_ref_count += 1;
-                global_errors.push(format!("AUTHORITY_GATE_EVIDENCE_MISSING:{}:{}", record.case_id, gate.gate_id));
+                global_errors.push(format!(
+                    "AUTHORITY_GATE_EVIDENCE_MISSING:{}:{}",
+                    record.case_id, gate.gate_id
+                ));
             }
-            Some(item) if item.evidence_class != "DECISION_TIME" || !item.evidence_tags.contains(&gate.gate_id) => {
-                global_errors.push(format!("AUTHORITY_GATE_EVIDENCE_TAG_MISMATCH:{}:{}", record.case_id, gate.gate_id));
+            Some(item)
+                if item.evidence_class != "DECISION_TIME"
+                    || !item.evidence_tags.contains(&gate.gate_id) =>
+            {
+                global_errors.push(format!(
+                    "AUTHORITY_GATE_EVIDENCE_TAG_MISMATCH:{}:{}",
+                    record.case_id, gate.gate_id
+                ));
             }
             Some(_) => {}
         }
@@ -665,7 +809,13 @@ fn validate_record(
     if gate_ids != expected_gate_ids {
         global_errors.push(format!("AUTHORITY_GATE_SET_INCOMPLETE:{}", record.case_id));
     }
-    let authority_status = if blocked_gate { "BLOCK" } else if unknown_gate { "UNKNOWN" } else { "PASS" };
+    let authority_status = if blocked_gate {
+        "BLOCK"
+    } else if unknown_gate {
+        "UNKNOWN"
+    } else {
+        "PASS"
+    };
 
     let mut data_rights_status = "ALLOWED";
     let rights_valid = match record.data_rights.use_status.as_str() {
@@ -684,8 +834,14 @@ fn validate_record(
                 .as_deref()
                 .map(|value| value.starts_with("synthetic://license/"))
                 .unwrap_or(false);
-            let purposes_valid = record.data_rights.allowed_purposes.contains(&"research_validation".to_string())
-                && record.data_rights.allowed_purposes.contains(&"benchmarking".to_string());
+            let purposes_valid = record
+                .data_rights
+                .allowed_purposes
+                .contains(&"research_validation".to_string())
+                && record
+                    .data_rights
+                    .allowed_purposes
+                    .contains(&"benchmarking".to_string());
             if record.data_rights.retention_until_day < packet.evaluation_day {
                 data_rights_status = "EXPIRED";
                 false
@@ -702,7 +858,10 @@ fn validate_record(
         }
     };
     if record.data_rights.public_location_disclosed {
-        global_errors.push(format!("PUBLIC_LOCATION_DISCLOSURE_FORBIDDEN:{}", record.case_id));
+        global_errors.push(format!(
+            "PUBLIC_LOCATION_DISCLOSURE_FORBIDDEN:{}",
+            record.case_id
+        ));
     }
 
     let mut metric_ids = BTreeSet::new();
@@ -712,24 +871,30 @@ fn validate_record(
         inc(measurement_counts, &measurement.measurement_state);
         if !metric_ids.insert(measurement.metric_id.as_str()) {
             *duplicate_identity_count += 1;
-            global_errors.push(format!("MEASUREMENT_METRIC_ID_DUPLICATE:{}:{}", record.case_id, measurement.metric_id));
+            global_errors.push(format!(
+                "MEASUREMENT_METRIC_ID_DUPLICATE:{}:{}",
+                record.case_id, measurement.metric_id
+            ));
             measurements_valid = false;
         }
         let valid = validate_measurement(packet, record, measurement, evidence, global_errors);
-        if measurement.measurement_state == "MEASURED" && measurement.value_scaled.is_some() && valid {
+        if measurement.measurement_state == "MEASURED"
+            && measurement.value_scaled.is_some()
+            && valid
+        {
             measured_metric_ids.insert(measurement.metric_id.as_str());
         }
         if !valid {
             measurements_valid = false;
         }
     }
-    let required_metrics_measured = record
+    let missing_required_metrics: Vec<&str> = record
         .required_metric_ids
         .iter()
-        .all(|metric_id| measured_metric_ids.contains(metric_id.as_str()));
-    if !required_metrics_measured {
-        global_errors.push(format!("REQUIRED_METRIC_NOT_MEASURED:{}:{}", record.case_id));
-    }
+        .filter(|metric_id| !measured_metric_ids.contains(metric_id.as_str()))
+        .map(String::as_str)
+        .collect();
+    let required_metrics_measured = missing_required_metrics.is_empty();
     if !measurements_valid {
         global_errors.push(format!("MEASUREMENT_VALIDATION_FAILED:{}", record.case_id));
     }
@@ -737,61 +902,109 @@ fn validate_record(
     for reference in &record.post_decision_outcome_evidence_refs {
         *outcome_ref_count += 1;
         if record.decision_input_evidence_refs.contains(reference) {
-            global_errors.push(format!("POST_DECISION_OUTCOME_USED_AS_INPUT:{}:{}", record.case_id, reference));
+            global_errors.push(format!(
+                "POST_DECISION_OUTCOME_USED_AS_INPUT:{}:{}",
+                record.case_id, reference
+            ));
         }
         match evidence.get(reference.as_str()) {
             None => {
                 *missing_ref_count += 1;
-                global_errors.push(format!("POST_DECISION_OUTCOME_REFERENCE_MISSING:{}:{}", record.case_id, reference));
+                global_errors.push(format!(
+                    "POST_DECISION_OUTCOME_REFERENCE_MISSING:{}:{}",
+                    record.case_id, reference
+                ));
             }
             Some(item) => {
                 if item.evidence_class != "POST_DECISION_OUTCOME" {
-                    global_errors.push(format!("OUTCOME_REFERENCE_CLASS_INVALID:{}:{}", record.case_id, reference));
+                    global_errors.push(format!(
+                        "OUTCOME_REFERENCE_CLASS_INVALID:{}:{}",
+                        record.case_id, reference
+                    ));
                 }
-                if item.observed_day <= record.decision_day || item.available_day <= record.decision_day {
+                if item.observed_day <= record.decision_day
+                    || item.available_day <= record.decision_day
+                {
                     *outcome_before_decision_count += 1;
-                    global_errors.push(format!("OUTCOME_NOT_STRICTLY_POST_DECISION:{}:{}", record.case_id, reference));
+                    global_errors.push(format!(
+                        "OUTCOME_NOT_STRICTLY_POST_DECISION:{}:{}",
+                        record.case_id, reference
+                    ));
                 }
-                if record.ground_truth.outcome_day.map(|day| item.observed_day <= day).unwrap_or(false) == false {
-                    global_errors.push(format!("OUTCOME_EVIDENCE_AFTER_OR_MISSING_OUTCOME_DAY:{}:{}", record.case_id, reference));
+                if record
+                    .ground_truth
+                    .outcome_day
+                    .map(|day| item.observed_day <= day)
+                    .unwrap_or(false)
+                    == false
+                {
+                    global_errors.push(format!(
+                        "OUTCOME_EVIDENCE_AFTER_OR_MISSING_OUTCOME_DAY:{}:{}",
+                        record.case_id, reference
+                    ));
                 }
             }
         }
     }
-    if record.ground_truth.outcome_day.map(|day| day <= record.decision_day).unwrap_or(true) {
-        global_errors.push(format!("GROUND_TRUTH_OUTCOME_DAY_NOT_POST_DECISION:{}", record.case_id));
+    if record
+        .ground_truth
+        .outcome_day
+        .map(|day| day <= record.decision_day)
+        .unwrap_or(true)
+    {
+        global_errors.push(format!(
+            "GROUND_TRUTH_OUTCOME_DAY_NOT_POST_DECISION:{}",
+            record.case_id
+        ));
     }
     if record.ground_truth.outcome_evidence_refs.is_empty()
         || record
             .ground_truth
             .outcome_evidence_refs
             .iter()
-            .any(|reference| !record.post_decision_outcome_evidence_refs.contains(reference))
+            .any(|reference| {
+                !record
+                    .post_decision_outcome_evidence_refs
+                    .contains(reference)
+            })
     {
-        global_errors.push(format!("GROUND_TRUTH_OUTCOME_REFERENCES_INVALID:{}", record.case_id));
+        global_errors.push(format!(
+            "GROUND_TRUTH_OUTCOME_REFERENCES_INVALID:{}",
+            record.case_id
+        ));
     }
     if !matches!(
         record.ground_truth.adjudication_status.as_str(),
         "SYNTHETIC_DEMO_ONLY" | "NOT_ADJUDICATED" | "DISAGREEMENT" | "PENDING"
     ) {
-        global_errors.push(format!("GROUND_TRUTH_ADJUDICATION_STATUS_INVALID:{}", record.case_id));
+        global_errors.push(format!(
+            "GROUND_TRUTH_ADJUDICATION_STATUS_INVALID:{}",
+            record.case_id
+        ));
     }
     if !matches!(
         record.ground_truth.censoring_status.as_str(),
         "COMPLETE" | "FOLLOW_UP_CENSORED" | "UNKNOWN" | "NOT_APPLICABLE"
     ) {
-        global_errors.push(format!("GROUND_TRUTH_CENSORING_STATUS_INVALID:{}", record.case_id));
+        global_errors.push(format!(
+            "GROUND_TRUTH_CENSORING_STATUS_INVALID:{}",
+            record.case_id
+        ));
     }
     if (record.ground_truth.censoring_status == "FOLLOW_UP_CENSORED")
         != (record.episode_status == "FOLLOW_UP_CENSORED")
     {
-        global_errors.push(format!("CENSORING_EPISODE_STATUS_MISMATCH:{}", record.case_id));
+        global_errors.push(format!(
+            "CENSORING_EPISODE_STATUS_MISMATCH:{}",
+            record.case_id
+        ));
     }
 
     let evidence_ok = refs_valid && measurements_valid && required_metrics_measured;
     let disposition = if !scope_ok {
         "REASSESS_SCOPE"
-    } else if !rights_valid && (data_rights_status == "BLOCKED" || data_rights_status == "EXPIRED") {
+    } else if !rights_valid && (data_rights_status == "BLOCKED" || data_rights_status == "EXPIRED")
+    {
         "BLOCKED_DATA_RIGHTS"
     } else if !rights_valid {
         "HOLD_DATA_RIGHTS"
@@ -815,22 +1028,28 @@ fn validate_record(
         profile_scope_status: profile_scope_status.to_string(),
         data_rights_status: data_rights_status.to_string(),
         authority_status: authority_status.to_string(),
-        evidence_status: if evidence_ok { "SUFFICIENT" } else { "INSUFFICIENT" }.to_string(),
+        evidence_status: if evidence_ok {
+            "SUFFICIENT"
+        } else {
+            "INSUFFICIENT"
+        }
+        .to_string(),
         disposition: disposition.to_string(),
         episode_status: record.episode_status.clone(),
         manifest_integrity_status: manifest_status,
-        manifest_semantic_status: if manifest_matches { "MATCH".to_string() } else { "MISMATCH".to_string() },
-        synthetic_review_candidate: disposition == "REVIEW_ONLY_CANDIDATE" && global_errors.len() == error_start,
+        manifest_semantic_status: if manifest_matches {
+            "MATCH".to_string()
+        } else {
+            "MISMATCH".to_string()
+        },
+        synthetic_review_candidate: disposition == "REVIEW_ONLY_CANDIDATE"
+            && global_errors.len() == error_start,
         actuation_authorized: false,
         expected_disposition_matches: expected_matches,
     }
 }
 
-fn audit(
-    packet: &Packet,
-    source_commit: Option<String>,
-    mut errors: Vec<String>,
-) -> AuditReceipt {
+fn audit(packet: &Packet, source_commit: Option<String>, mut errors: Vec<String>) -> AuditReceipt {
     validate_packet(packet, source_commit.as_deref(), &mut errors);
     let evidence = evidence_by_id(packet);
     let mut decision_input_reference_count = 0usize;
@@ -884,13 +1103,20 @@ fn audit(
         }
     }
 
-    let expected_dispositions_match = case_results.iter().all(|result| result.expected_disposition_matches);
+    let expected_dispositions_match = case_results
+        .iter()
+        .all(|result| result.expected_disposition_matches);
     let all_records_synthetic = packet.claim_ceiling.all_records_synthetic
         && !packet.claim_ceiling.real_field_observations
-        && packet.evidence_records.iter().all(|item| item.source_authenticity_status == "UNVERIFIED_SYNTHETIC");
+        && packet
+            .evidence_records
+            .iter()
+            .all(|item| item.source_authenticity_status == "UNVERIFIED_SYNTHETIC");
     let all_actuation_disabled = !packet.claim_ceiling.expected_actuation
         && packet.claim_ceiling.execution_authority == "NO_ACTUATION_AUTHORIZED"
-        && case_results.iter().all(|result| !result.actuation_authorized);
+        && case_results
+            .iter()
+            .all(|result| !result.actuation_authorized);
     let synthetic_review_candidate_count = case_results
         .iter()
         .filter(|result| result.synthetic_review_candidate)
@@ -921,7 +1147,10 @@ fn audit(
         && missing_ref_count == 0
         && manifest_match_count == packet.records.len()
         && synthetic_review_candidate_count
-            == case_results.iter().filter(|result| result.disposition == "REVIEW_ONLY_CANDIDATE").count();
+            == case_results
+                .iter()
+                .filter(|result| result.disposition == "REVIEW_ONLY_CANDIDATE")
+                .count();
 
     AuditReceipt {
         result: if passed { "pass" } else { "fail" }.to_string(),
@@ -1025,12 +1254,18 @@ mod tests {
     }
 
     fn result_for<'a>(receipt: &'a AuditReceipt, case_id: &str) -> &'a CaseResult {
-        receipt.case_results.iter().find(|result| result.case_id == case_id).expect("case result exists")
+        receipt
+            .case_results
+            .iter()
+            .find(|result| result.case_id == case_id)
+            .expect("case result exists")
     }
 
     fn rehash_manifest(record: &mut FieldRecord, manifest: &DecisionManifest) {
-        record.decision_manifest_payload_json = serde_json::to_string(manifest).expect("manifest serializes");
-        record.decision_manifest_sha256 = sha256_hex(record.decision_manifest_payload_json.as_bytes());
+        record.decision_manifest_payload_json =
+            serde_json::to_string(manifest).expect("manifest serializes");
+        record.decision_manifest_sha256 =
+            sha256_hex(record.decision_manifest_payload_json.as_bytes());
     }
 
     #[test]
@@ -1041,11 +1276,20 @@ mod tests {
         assert_eq!(receipt.evidence_record_count, 11);
         assert_eq!(receipt.manifest_match_count, 7);
         assert_eq!(receipt.synthetic_review_candidate_count, 1);
-        assert_eq!(receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"), Some(&1));
+        assert_eq!(
+            receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"),
+            Some(&1)
+        );
         assert_eq!(receipt.disposition_counts.get("REASSESS_SCOPE"), Some(&1));
-        assert_eq!(receipt.disposition_counts.get("BLOCKED_DATA_RIGHTS"), Some(&1));
+        assert_eq!(
+            receipt.disposition_counts.get("BLOCKED_DATA_RIGHTS"),
+            Some(&1)
+        );
         assert_eq!(receipt.disposition_counts.get("HOLD_DATA_RIGHTS"), Some(&1));
-        assert_eq!(receipt.disposition_counts.get("BLOCKED_AUTHORITY"), Some(&1));
+        assert_eq!(
+            receipt.disposition_counts.get("BLOCKED_AUTHORITY"),
+            Some(&1)
+        );
         assert_eq!(receipt.disposition_counts.get("HOLD_AUTHORITY"), Some(&1));
         assert_eq!(receipt.disposition_counts.get("HOLD_EVIDENCE"), Some(&1));
         assert!(receipt.all_records_synthetic);
@@ -1084,7 +1328,8 @@ mod tests {
     fn future_decision_input_is_rejected() {
         let mut value = packet();
         let case = record_mut(&mut value, "field-valid-zero-measurement");
-        case.decision_input_evidence_refs.push("synthetic://field-evidence/outcome-follow-up-complete".to_string());
+        case.decision_input_evidence_refs
+            .push("synthetic://field-evidence/outcome-follow-up-complete".to_string());
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert!(receipt.decision_time_future_evidence_violation_count > 0);
@@ -1094,59 +1339,91 @@ mod tests {
     #[test]
     fn data_rights_block_precedes_other_gates() {
         let receipt = run(&packet());
-        assert_eq!(result_for(&receipt, "field-blocked-data-rights").disposition, "BLOCKED_DATA_RIGHTS");
+        assert_eq!(
+            result_for(&receipt, "field-blocked-data-rights").disposition,
+            "BLOCKED_DATA_RIGHTS"
+        );
     }
 
     #[test]
     fn unknown_rights_hold_and_do_not_become_allowed() {
         let receipt = run(&packet());
-        assert_eq!(result_for(&receipt, "field-unknown-data-rights").disposition, "HOLD_DATA_RIGHTS");
+        assert_eq!(
+            result_for(&receipt, "field-unknown-data-rights").disposition,
+            "HOLD_DATA_RIGHTS"
+        );
     }
 
     #[test]
     fn authority_block_is_non_compensatory() {
         let receipt = run(&packet());
-        assert_eq!(result_for(&receipt, "field-ecological-review-block").disposition, "BLOCKED_AUTHORITY");
+        assert_eq!(
+            result_for(&receipt, "field-ecological-review-block").disposition,
+            "BLOCKED_AUTHORITY"
+        );
     }
 
     #[test]
     fn unknown_legal_authority_requires_hold() {
         let receipt = run(&packet());
-        assert_eq!(result_for(&receipt, "field-unknown-legal-authority").disposition, "HOLD_AUTHORITY");
+        assert_eq!(
+            result_for(&receipt, "field-unknown-legal-authority").disposition,
+            "HOLD_AUTHORITY"
+        );
     }
 
     #[test]
     fn incomplete_hazard_classification_reassesses_scope() {
         let receipt = run(&packet());
-        assert_eq!(result_for(&receipt, "field-incomplete-hazard-classification").disposition, "REASSESS_SCOPE");
+        assert_eq!(
+            result_for(&receipt, "field-incomplete-hazard-classification").disposition,
+            "REASSESS_SCOPE"
+        );
     }
 
     #[test]
     fn expired_data_retention_blocks_use() {
         let mut value = packet();
-        record_mut(&mut value, "field-valid-zero-measurement").data_rights.retention_until_day = 11;
+        record_mut(&mut value, "field-valid-zero-measurement")
+            .data_rights
+            .retention_until_day = 11;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert_eq!(result_for(&receipt, "field-valid-zero-measurement").disposition, "BLOCKED_DATA_RIGHTS");
+        assert_eq!(
+            result_for(&receipt, "field-valid-zero-measurement").disposition,
+            "BLOCKED_DATA_RIGHTS"
+        );
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
     }
 
     #[test]
     fn missing_license_with_allowed_status_holds_rights() {
         let mut value = packet();
-        record_mut(&mut value, "field-valid-zero-measurement").data_rights.license_ref = None;
+        record_mut(&mut value, "field-valid-zero-measurement")
+            .data_rights
+            .license_ref = None;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert_eq!(result_for(&receipt, "field-valid-zero-measurement").disposition, "HOLD_DATA_RIGHTS");
+        assert_eq!(
+            result_for(&receipt, "field-valid-zero-measurement").disposition,
+            "HOLD_DATA_RIGHTS"
+        );
     }
 
     #[test]
     fn decision_manifest_digest_tampering_is_detected() {
         let mut value = packet();
-        record_mut(&mut value, "field-valid-zero-measurement").decision_manifest_payload_json.push(' ');
+        record_mut(&mut value, "field-valid-zero-measurement")
+            .decision_manifest_payload_json
+            .push(' ');
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DECISION_MANIFEST_DIGEST_MISMATCH")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("DECISION_MANIFEST_DIGEST_MISMATCH"))
+        );
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
     }
 
@@ -1154,40 +1431,65 @@ mod tests {
     fn rehashed_but_semantically_changed_manifest_is_detected() {
         let mut value = packet();
         let case = record_mut(&mut value, "field-valid-zero-measurement");
-        let mut manifest: DecisionManifest = serde_json::from_str(&case.decision_manifest_payload_json).unwrap();
+        let mut manifest: DecisionManifest =
+            serde_json::from_str(&case.decision_manifest_payload_json).unwrap();
         manifest.taxonomy_version = "forest-hazard-taxonomy-v2".to_string();
         rehash_manifest(case, &manifest);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DECISION_MANIFEST_SEMANTIC_MISMATCH")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("DECISION_MANIFEST_SEMANTIC_MISMATCH"))
+        );
     }
 
     #[test]
     fn missing_authority_gate_is_rejected() {
         let mut value = packet();
-        record_mut(&mut value, "field-valid-zero-measurement").authority_gates.pop();
+        record_mut(&mut value, "field-valid-zero-measurement")
+            .authority_gates
+            .pop();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("AUTHORITY_GATE_SET_INCOMPLETE")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("AUTHORITY_GATE_SET_INCOMPLETE"))
+        );
     }
 
     #[test]
     fn missing_required_decision_evidence_tag_is_rejected() {
         let mut value = packet();
         let record = record_mut(&mut value, "field-valid-zero-measurement");
-        record.decision_input_evidence_refs.retain(|reference| reference != "synthetic://field-evidence/data-rights-record");
-        let mut manifest: DecisionManifest = serde_json::from_str(&record.decision_manifest_payload_json).unwrap();
+        record
+            .decision_input_evidence_refs
+            .retain(|reference| reference != "synthetic://field-evidence/data-rights-record");
+        let mut manifest: DecisionManifest =
+            serde_json::from_str(&record.decision_manifest_payload_json).unwrap();
         manifest.decision_input_evidence_refs = record.decision_input_evidence_refs.clone();
         rehash_manifest(record, &manifest);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.contains("REQUIRED_DECISION_EVIDENCE_TAG_MISSING")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.contains("REQUIRED_DECISION_EVIDENCE_TAG_MISSING"))
+        );
     }
 
     #[test]
     fn post_decision_outcomes_must_be_strictly_later() {
         let mut value = packet();
-        let outcome = value.evidence_records.iter_mut().find(|e| e.evidence_id == "synthetic://field-evidence/outcome-follow-up-complete").unwrap();
+        let outcome = value
+            .evidence_records
+            .iter_mut()
+            .find(|e| e.evidence_id == "synthetic://field-evidence/outcome-follow-up-complete")
+            .unwrap();
         outcome.observed_day = 2;
         outcome.available_day = 2;
         let receipt = run(&value);
@@ -1199,43 +1501,73 @@ mod tests {
     fn post_decision_outcomes_cannot_be_used_as_decision_input() {
         let mut value = packet();
         let record = record_mut(&mut value, "field-valid-zero-measurement");
-        record.decision_input_evidence_refs.push("synthetic://field-evidence/outcome-follow-up-complete".to_string());
-        let mut manifest: DecisionManifest = serde_json::from_str(&record.decision_manifest_payload_json).unwrap();
+        record
+            .decision_input_evidence_refs
+            .push("synthetic://field-evidence/outcome-follow-up-complete".to_string());
+        let mut manifest: DecisionManifest =
+            serde_json::from_str(&record.decision_manifest_payload_json).unwrap();
         manifest.decision_input_evidence_refs = record.decision_input_evidence_refs.clone();
         rehash_manifest(record, &manifest);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("OUTCOME_REFERENCE_USED_AS_DECISION_INPUT")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("OUTCOME_REFERENCE_USED_AS_DECISION_INPUT"))
+        );
     }
 
     #[test]
     fn measured_value_requires_linked_decision_time_evidence() {
         let mut value = packet();
-        let measurement = &mut record_mut(&mut value, "field-valid-zero-measurement").measurements[0];
-        measurement.evidence_ref = Some("synthetic://field-evidence/outcome-follow-up-complete".to_string());
+        let measurement =
+            &mut record_mut(&mut value, "field-valid-zero-measurement").measurements[0];
+        measurement.evidence_ref =
+            Some("synthetic://field-evidence/outcome-follow-up-complete".to_string());
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("MEASUREMENT_EVIDENCE_NOT_DECISION_INPUT")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("MEASUREMENT_EVIDENCE_NOT_DECISION_INPUT"))
+        );
     }
 
     #[test]
     fn unmeasured_state_cannot_carry_numeric_zero() {
         let mut value = packet();
         let measurement = record_mut(&mut value, "field-required-metric-not-measured")
-            .measurements.iter_mut().find(|m| m.metric_id == "retained_deadwood_fraction").unwrap();
+            .measurements
+            .iter_mut()
+            .find(|m| m.metric_id == "retained_deadwood_fraction")
+            .unwrap();
         measurement.value_scaled = Some(0);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("UNQUANTIFIED_STATE_HAS_NUMERIC_VALUE")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("UNQUANTIFIED_STATE_HAS_NUMERIC_VALUE"))
+        );
     }
 
     #[test]
     fn public_location_disclosure_is_rejected() {
         let mut value = packet();
-        record_mut(&mut value, "field-valid-zero-measurement").data_rights.public_location_disclosed = true;
+        record_mut(&mut value, "field-valid-zero-measurement")
+            .data_rights
+            .public_location_disclosed = true;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("PUBLIC_LOCATION_DISCLOSURE_FORBIDDEN")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("PUBLIC_LOCATION_DISCLOSURE_FORBIDDEN"))
+        );
     }
 
     #[test]
@@ -1258,7 +1590,10 @@ mod tests {
         }
         let first = run(&original);
         let second = run(&permuted);
-        assert_eq!(first.canonical_packet_sha256, second.canonical_packet_sha256);
+        assert_eq!(
+            first.canonical_packet_sha256,
+            second.canonical_packet_sha256
+        );
         assert_eq!(
             serde_json::to_vec(&first).expect("receipt serializes"),
             serde_json::to_vec(&second).expect("receipt serializes")
@@ -1273,7 +1608,12 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_EVIDENCE_ID")));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error.starts_with("DUPLICATE_EVIDENCE_ID"))
+        );
     }
 
     #[test]
@@ -1281,7 +1621,10 @@ mod tests {
         let receipt = run(&packet());
         assert_eq!(receipt.episode_status_counts.get("NO_ACTION"), Some(&3));
         assert_eq!(receipt.episode_status_counts.get("REFERRED"), Some(&3));
-        assert_eq!(receipt.episode_status_counts.get("FOLLOW_UP_CENSORED"), Some(&1));
+        assert_eq!(
+            receipt.episode_status_counts.get("FOLLOW_UP_CENSORED"),
+            Some(&1)
+        );
         assert_eq!(receipt.case_count, 7);
     }
 
@@ -1289,13 +1632,23 @@ mod tests {
     fn invalid_source_commit_fails_closed() {
         let receipt = audit(&packet(), Some("bad".to_string()), Vec::new());
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error == "SOURCE_COMMIT_INVALID"));
+        assert!(
+            receipt
+                .errors
+                .iter()
+                .any(|error| error == "SOURCE_COMMIT_INVALID")
+        );
     }
 
     #[test]
     fn no_synthetic_case_can_authorize_actuation() {
         let receipt = run(&packet());
         assert!(receipt.all_actuation_disabled);
-        assert!(receipt.case_results.iter().all(|result| !result.actuation_authorized));
+        assert!(
+            receipt
+                .case_results
+                .iter()
+                .all(|result| !result.actuation_authorized)
+        );
     }
 }
