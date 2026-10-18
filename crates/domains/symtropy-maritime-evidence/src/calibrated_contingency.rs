@@ -7,8 +7,7 @@
 //! but it still does not have access to a real port schedule or schedule authority.
 
 use super::arrival_calibration::{
-    ArrivalResidualSample, CalibratedArrivalEnvelope, CalibrationError, PredictionInterval,
-    fit_split_conformal,
+    CalibratedArrivalEnvelope, CalibrationError, PredictionInterval,
 };
 use super::evidence_action::{DecisionWindow, score_window};
 
@@ -121,7 +120,9 @@ pub fn choose_calibrated_window(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::arrival_calibration::NANOS_PER_SECOND;
+    use super::super::arrival_calibration::{
+        ArrivalResidualSample, NANOS_PER_SECOND, fit_split_conformal,
+    };
 
     fn utc(value: &str) -> i128 {
         super::super::super::parse_rfc3339_timestamp(value)
@@ -178,7 +179,10 @@ mod tests {
         assert_eq!(decision.chosen_window_id.as_deref(), Some("WINDOW-13"));
         assert_eq!(decision.worst_case_cost_minutes, Some(5));
         assert_eq!(decision.abstention_reason, None);
-        assert_eq!(decision.forecast_interval.unwrap().lower_utc_nanos, predicted - 9 * NANOS_PER_SECOND);
+        assert_eq!(
+            decision.forecast_interval.unwrap().lower_utc_nanos,
+            predicted - 9 * NANOS_PER_SECOND
+        );
     }
 
     #[test]
