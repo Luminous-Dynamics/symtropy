@@ -565,7 +565,12 @@ impl ReviewFreeCameraController {
     pub fn from_transform(transform: &Transform) -> Self {
         let forward = transform.forward().as_vec3();
         let yaw_radians = (-forward.x).atan2(-forward.z);
-        let pitch_radians = forward.y.clamp(-1.0, 1.0).asin();
+        let max_pitch_radians = 1.45;
+        let pitch_radians = forward
+            .y
+            .clamp(-1.0, 1.0)
+            .asin()
+            .clamp(-max_pitch_radians, max_pitch_radians);
         Self {
             enabled: false,
             yaw_radians,
@@ -573,8 +578,21 @@ impl ReviewFreeCameraController {
             speed_mps: 1.2,
             fast_multiplier: 2.5,
             mouse_sensitivity: 0.002,
-            max_pitch_radians: 1.45,
+            max_pitch_radians,
         }
+    }
+
+    /// Rebase the controller on the currently displayed camera orientation.
+    /// This keeps a handoff from a scripted route or orbit view from snapping
+    /// back to the controller's original spawn orientation.
+    pub fn synchronize_from_transform(&mut self, transform: &Transform) {
+        let forward = transform.forward().as_vec3();
+        self.yaw_radians = (-forward.x).atan2(-forward.z);
+        self.pitch_radians = forward
+            .y
+            .clamp(-1.0, 1.0)
+            .asin()
+            .clamp(-self.max_pitch_radians, self.max_pitch_radians);
     }
 
     pub fn is_enabled(&self) -> bool {
@@ -582,7 +600,12 @@ impl ReviewFreeCameraController {
     }
 
     /// Enable direct movement and atomically pause the attached scripted route.
-    pub fn enable(&mut self, playback: &mut ReviewRoutePlayback) {
+    pub fn enable(
+        &mut self,
+        playback: &mut ReviewRoutePlayback,
+        current_transform: &Transform,
+    ) {
+        self.synchronize_from_transform(current_transform);
         self.enabled = true;
         playback.set_playing(false);
     }
@@ -675,7 +698,11 @@ pub fn drive_free_review_camera(
 /// intentionally drive the same Transform in the same frame.
 pub fn manage_architectural_review_controls(
     keys: Res<ButtonInput<KeyCode>>,
-    mut query: bevy::prelude::Query<(&mut ReviewRoutePlayback, &mut ReviewFreeCameraController)>,
+    mut query: bevy::prelude::Query<(
+        &Transform,
+        &mut ReviewRoutePlayback,
+        &mut ReviewFreeCameraController,
+    )>,
 ) {
     if !(keys.just_pressed(KeyCode::Space)
         || keys.just_pressed(KeyCode::KeyR)
@@ -684,12 +711,12 @@ pub fn manage_architectural_review_controls(
         return;
     }
 
-    for (mut playback, mut free_camera) in &mut query {
+    for (transform, mut playback, mut free_camera) in &mut query {
         if keys.just_pressed(KeyCode::KeyF) {
             if free_camera.is_enabled() {
                 free_camera.disable();
             } else {
-                free_camera.enable(&mut playback);
+                free_camera.enable(&mut playback, transform);
             }
         } else if keys.just_pressed(KeyCode::Space) {
             free_camera.disable();
@@ -998,6 +1025,26 @@ mod tests {
         playback.restart();
         assert_eq!(playback.elapsed_seconds(), 0.0);
         assert!(playback.is_playing());
+    }
+
+    #[test]
+    fn free_camera_enable_rebases_to_the_current_scripted_view() {
+        let transform = Transform::from_xyz(2.0, 1.8, -3.0)
+            .looking_at(Vec3::new(0.5, 1.2, 4.0), Vec3::Y);
+        let route = sample_route_fixture();
+        let mut playback = ReviewRoutePlayback::new(route).unwrap();
+        let mut controller = ReviewFreeCameraController::from_transform(
+            &Transform::from_xyz(0.0, 1.6, 3.0)
+                .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y),
+        );
+
+        controller.enable(&mut playback, &transform);
+
+        let forward = transform.forward().as_vec3();
+        assert!((controller.yaw_radians - (-forward.x).atan2(-forward.z)).abs() < 1.0e-5);
+        assert!((controller.pitch_radians - forward.y.asin()).abs() < 1.0e-5);
+        assert!(controller.is_enabled());
+        assert!(!playback.is_playing());
     }
 
     #[test]
