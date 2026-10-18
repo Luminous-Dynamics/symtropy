@@ -84,7 +84,10 @@ impl fmt::Display for TraceError {
                 write!(f, "coverage interval must have start < end")
             }
             Self::InvalidGapThreshold => {
-                write!(f, "maximum unobserved interval threshold must be non-negative")
+                write!(
+                    f,
+                    "maximum unobserved interval threshold must be non-negative"
+                )
             }
             Self::CountOverflow => write!(f, "trace counter overflow"),
         }
@@ -158,8 +161,7 @@ pub fn find_unobserved_intervals(
         });
     }
 
-    let unique_times: BTreeSet<i128> =
-        events.iter().map(|event| event.timestamp_unix_ns).collect();
+    let unique_times: BTreeSet<i128> = events.iter().map(|event| event.timestamp_unix_ns).collect();
     let times: Vec<i128> = unique_times.into_iter().collect();
     let mut gaps = Vec::new();
 
@@ -566,19 +568,12 @@ mod tests {
         let events = parse_trace(EXCERPT).expect("excerpt parses");
         let interval_start = timestamp("2017-02-02T17:00:00Z");
         let interval_end = timestamp("2017-02-02T17:15:00Z");
-        let gaps = find_unobserved_intervals(
-            &events,
-            interval_start,
-            interval_end,
-            60 * NANOS_PER_SECOND,
-        )
-        .expect("interval evaluated");
+        let gaps =
+            find_unobserved_intervals(&events, interval_start, interval_end, 60 * NANOS_PER_SECOND)
+                .expect("interval evaluated");
         assert_eq!(gaps.len(), 1);
         assert_eq!(gaps[0].kind, CoverageGapKind::BetweenEvents);
-        assert_eq!(
-            gaps[0].source_gap_duration_ns,
-            Some(5_369_937_500_000_i128)
-        );
+        assert_eq!(gaps[0].source_gap_duration_ns, Some(5_369_937_500_000_i128));
         assert_eq!(gaps[0].overlap_duration_ns, 15 * 60 * NANOS_PER_SECOND);
     }
 
@@ -587,9 +582,8 @@ mod tests {
         let events = parse_trace(EXCERPT).expect("excerpt parses");
         let start = timestamp("2017-02-02T18:06:38.9531250Z");
         let end = timestamp("2017-02-02T18:06:39.0000000Z");
-        let gaps =
-            find_unobserved_intervals(&events, start, end, NANOS_PER_SECOND)
-                .expect("interval evaluated");
+        let gaps = find_unobserved_intervals(&events, start, end, NANOS_PER_SECOND)
+            .expect("interval evaluated");
         assert!(gaps.is_empty());
     }
 
@@ -616,13 +610,9 @@ mod tests {
         assert_eq!(after.len(), 1);
         assert_eq!(after[0].kind, CoverageGapKind::AfterLastEvent);
 
-        let no_events = find_unobserved_intervals(
-            &[],
-            0,
-            120 * NANOS_PER_SECOND,
-            60 * NANOS_PER_SECOND,
-        )
-        .expect("empty evidence interval assessed");
+        let no_events =
+            find_unobserved_intervals(&[], 0, 120 * NANOS_PER_SECOND, 60 * NANOS_PER_SECOND)
+                .expect("empty evidence interval assessed");
         assert_eq!(no_events.len(), 1);
         assert_eq!(no_events[0].kind, CoverageGapKind::NoEvents);
     }
