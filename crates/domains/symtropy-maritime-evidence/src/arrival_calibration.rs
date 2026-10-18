@@ -384,8 +384,8 @@ mod tests {
         let mut future_forecast = sample(2, 1);
         future_forecast.forecast_issued_at_utc_nanos = CUTOFF + 1;
         assert_eq!(
-            fit_split_conformal(&[future_forecast], CUTOFF + 100, 1_000),
-            Err(CalibrationError::ForecastIssuedAfterObservation)
+            fit_split_conformal(&[future_forecast], CUTOFF, 1_000),
+            Err(CalibrationError::FutureForecastAtCutoff)
         );
     }
 
