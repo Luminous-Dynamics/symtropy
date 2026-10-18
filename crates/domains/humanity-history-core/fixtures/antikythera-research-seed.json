@@ -1404,7 +1404,8 @@
         "This run is planned only; no measurement data have been downloaded or independently analyzed by this project.",
         "The Harvard Dataverse file inventory and exact data reuse terms have not been verified.",
         "Published values currently stored in the research seed are source transcriptions, not outputs from this planned run."
-      ]
+      ],
+      "comparison_rule": "Before execution, compare the reproduced 68% interval endpoints to the paper within 0.15 holes and each source-reported discrete probability to the paper within 0.02 absolute probability; also require preregistered convergence and posterior-predictive checks. Deviations must be reported, not retroactively tuned away."
     }
   ]
 }
