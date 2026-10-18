@@ -1540,13 +1540,22 @@ mod tests {
                     for supplier in 0_i64..=2 {
                         let id = format!("grid-c{cost}-b{baseline}-d{drought}-s{supplier}");
                         let worst = baseline.max(drought).max(supplier);
+                        let gate_unknown = cost == 0 && worst == 0;
+                        let hard_gates = if gate_unknown {
+                            json!({
+                                "civilian_safety": "unknown",
+                                "evidence_qualification": "pass"
+                            })
+                        } else {
+                            json!({
+                                "civilian_safety": "pass",
+                                "evidence_qualification": "pass"
+                            })
+                        };
                         options.push(json!({
                             "id": id,
                             "cost_ticks": cost,
-                            "hard_gates": {
-                                "civilian_safety": "pass",
-                                "evidence_qualification": "pass"
-                            },
+                            "hard_gates": hard_gates,
                             "service_gap_by_scenario": {
                                 "baseline": baseline,
                                 "drought": drought,
@@ -1554,13 +1563,16 @@ mod tests {
                             }
                         }));
                         expected_worst.insert(id.clone(), json!(worst));
-                        feasible_rows.push((id, cost, worst));
+                        if !gate_unknown {
+                            feasible_rows.push((id, cost, worst));
+                        }
                     }
                 }
             }
         }
 
-        // A gate-unknown option looks excellent on service/cost but is never feasible.
+        // A second gate-unknown option looks excellent on service/cost but is never feasible.
+        let grid_control_id = "grid-c0-b0-d0-s0";
         let excluded_id = "grid-unknown-gate";
         options.push(json!({
             "id": excluded_id,
@@ -1606,7 +1618,8 @@ mod tests {
         expected_feasible.sort();
         value["scenarios"][7]["options"] = json!(options);
         value["scenarios"][7]["expected"]["feasible_options"] = json!(expected_feasible);
-        value["scenarios"][7]["expected"]["excluded_by_hard_gate"] = json!([excluded_id]);
+        value["scenarios"][7]["expected"]["excluded_by_hard_gate"] =
+            json!([grid_control_id, excluded_id]);
         value["scenarios"][7]["expected"]["worst_case_service_gap"] = json!(expected_worst);
         value["scenarios"][7]["expected"]["pareto_frontier"] = json!(expected_frontier);
 
