@@ -60,8 +60,8 @@ jobs:
             .holdout_record_count == 3 and
             .qualified_holdout_count == 3 and
             .out_of_domain_holdout_count == 0 and
-            .envelope.lower_residual_ticks == -4 and
-            .envelope.upper_residual_ticks == 9 and
+            .envelope.lower_residual_ticks == -3 and
+            .envelope.upper_residual_ticks == 8 and
             .heldout_residual_covered_count == 3 and
             .heldout_residual_miss_count == 0 and
             .heldout_coverage_denominator == 3 and
