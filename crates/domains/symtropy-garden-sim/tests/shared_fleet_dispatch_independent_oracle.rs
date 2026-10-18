@@ -107,10 +107,10 @@ fn base_input() -> SharedFleetDispatchInputV1 {
     )
 }
 
-fn assignment(
-    report: &SharedFleetDispatchReportV1,
+fn assignment<'a>(
+    report: &'a SharedFleetDispatchReportV1,
     request_id: &str,
-) -> &SharedFleetDispatchAssignmentV1 {
+) -> &'a SharedFleetDispatchAssignmentV1 {
     report
         .assignments
         .iter()
