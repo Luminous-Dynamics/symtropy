@@ -915,6 +915,8 @@ mod tests {
         assert_eq!(report.action_accuracy_pct, 100.0);
         assert_eq!(report.claim_code_exact_match_pct, 100.0);
         assert_eq!(report.citation_exact_match_pct, 100.0);
+        assert_eq!(report.case_evaluations.len(), benchmark.cases.len());
+        assert!(report.case_evaluations.iter().all(|item| item.failure_codes.is_empty()));
     }
 
     #[test]
@@ -994,6 +996,12 @@ mod tests {
                 .critical_failure_case_ids
                 .contains(&"SYN-TIME-002".to_string())
         );
+        let case = report
+            .case_evaluations
+            .iter()
+            .find(|item| item.case_id == "SYN-TIME-002")
+            .expect("missing-case diagnostic exists");
+        assert!(case.failure_codes.contains(&"missing_result".to_string()));
     }
 
     #[test]
@@ -1114,6 +1122,14 @@ mod tests {
                 .critical_failure_case_ids
                 .contains(&"SYN-CONFLICT-001".to_string())
         );
+        let case = report
+            .case_evaluations
+            .iter()
+            .find(|item| item.case_id == "SYN-CONFLICT-001")
+            .expect("conflict diagnostic exists");
+        assert!(case.failure_codes.contains(&"action_mismatch".to_string()));
+        assert!(case.failure_codes.contains(&"claim_code_set_mismatch".to_string()));
+        assert!(case.failure_codes.contains(&"citation_set_mismatch".to_string()));
     }
 
     #[test]
@@ -1192,6 +1208,13 @@ mod tests {
             assert_eq!(schema["type"], "object");
             assert_eq!(schema["additionalProperties"], false);
             assert!(schema["required"].is_array());
+            if name == "evaluation report" {
+                assert!(schema["required"]
+                    .as_array()
+                    .expect("required list")
+                    .iter()
+                    .any(|field| field == "case_evaluations"));
+            }
 
             let mut refs = Vec::new();
             collect_refs(&schema, &mut refs);
