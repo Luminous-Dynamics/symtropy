@@ -151,14 +151,41 @@ pub struct ExactRateV1 {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct KnownNonAcceptanceReasonCountsV1 {
+    pub no_provider_available: u64,
+    pub provider_declined: u64,
+    pub farmer_declined_quote: u64,
+    pub farmer_cancelled: u64,
+    pub provider_cancelled: u64,
+    pub provider_no_show: u64,
+    pub provider_completion_not_accepted: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DisputeResolutionCountsV1 {
+    pub accepted_within_useful_window: u64,
+    pub accepted_late: u64,
+    pub resolved_without_in_window_acceptance: u64,
+    pub unresolved: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FieldEvalOutcomeCountsV1 {
     pub accepted_within_useful_window: u64,
     pub accepted_late: u64,
     pub known_not_accepted: u64,
+    pub known_non_acceptance_reasons: KnownNonAcceptanceReasonCountsV1,
     pub provider_completion_awaiting_decision: u64,
     pub disputed_or_rework: u64,
+    pub dispute_resolutions: DisputeResolutionCountsV1,
     pub outcome_unknown: u64,
     pub follow_up_missing_or_inaccessible: u64,
+    /// Counts in-window acceptance including a dispute resolved after rework.
+    /// This matches the numerator of the evidence-confirmed lower bound.
+    pub confirmed_in_window_acceptances_including_resolved_rework: u64,
+    pub genuinely_unascertainable_for_upper_bound: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -523,10 +550,27 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
         accepted_within_useful_window: 0,
         accepted_late: 0,
         known_not_accepted: 0,
+        known_non_acceptance_reasons: KnownNonAcceptanceReasonCountsV1 {
+            no_provider_available: 0,
+            provider_declined: 0,
+            farmer_declined_quote: 0,
+            farmer_cancelled: 0,
+            provider_cancelled: 0,
+            provider_no_show: 0,
+            provider_completion_not_accepted: 0,
+        },
         provider_completion_awaiting_decision: 0,
         disputed_or_rework: 0,
+        dispute_resolutions: DisputeResolutionCountsV1 {
+            accepted_within_useful_window: 0,
+            accepted_late: 0,
+            resolved_without_in_window_acceptance: 0,
+            unresolved: 0,
+        },
         outcome_unknown: 0,
         follow_up_missing_or_inaccessible: 0,
+        confirmed_in_window_acceptances_including_resolved_rework: 0,
+        genuinely_unascertainable_for_upper_bound: 0,
     };
     let mut confirmed_in_window = 0_u64;
     let mut genuinely_unascertainable = 0_u64;
@@ -536,9 +580,37 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
             RequestOutcomeClassV1::AcceptedWithinUsefulWindow => {
                 counts.accepted_within_useful_window += 1;
                 confirmed_in_window += 1;
+                counts.confirmed_in_window_acceptances_including_resolved_rework += 1;
             }
             RequestOutcomeClassV1::AcceptedLate => counts.accepted_late += 1,
-            RequestOutcomeClassV1::KnownNotAccepted { .. } => counts.known_not_accepted += 1,
+            RequestOutcomeClassV1::KnownNotAccepted { reason_code } => {
+                counts.known_not_accepted += 1;
+                match reason_code {
+                    KnownNonAcceptanceReasonV1::NoProviderAvailable => {
+                        counts.known_non_acceptance_reasons.no_provider_available += 1;
+                    }
+                    KnownNonAcceptanceReasonV1::ProviderDeclined => {
+                        counts.known_non_acceptance_reasons.provider_declined += 1;
+                    }
+                    KnownNonAcceptanceReasonV1::FarmerDeclinedQuote => {
+                        counts.known_non_acceptance_reasons.farmer_declined_quote += 1;
+                    }
+                    KnownNonAcceptanceReasonV1::FarmerCancelled => {
+                        counts.known_non_acceptance_reasons.farmer_cancelled += 1;
+                    }
+                    KnownNonAcceptanceReasonV1::ProviderCancelled => {
+                        counts.known_non_acceptance_reasons.provider_cancelled += 1;
+                    }
+                    KnownNonAcceptanceReasonV1::ProviderNoShow => {
+                        counts.known_non_acceptance_reasons.provider_no_show += 1;
+                    }
+                    KnownNonAcceptanceReasonV1::ProviderCompletionNotAccepted => {
+                        counts
+                            .known_non_acceptance_reasons
+                            .provider_completion_not_accepted += 1;
+                    }
+                }
+            }
             RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision { .. } => {
                 counts.provider_completion_awaiting_decision += 1;
                 genuinely_unascertainable += 1;
@@ -547,11 +619,20 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 counts.disputed_or_rework += 1;
                 match resolution {
                     DisputeResolutionV1::AcceptedWithinUsefulWindow => {
+                        counts.dispute_resolutions.accepted_within_useful_window += 1;
                         confirmed_in_window += 1;
+                        counts.confirmed_in_window_acceptances_including_resolved_rework += 1;
                     }
-                    DisputeResolutionV1::AcceptedLate
-                    | DisputeResolutionV1::ResolvedWithoutInWindowAcceptance => {}
-                    DisputeResolutionV1::Unresolved => genuinely_unascertainable += 1,
+                    DisputeResolutionV1::AcceptedLate => {
+                        counts.dispute_resolutions.accepted_late += 1;
+                    }
+                    DisputeResolutionV1::ResolvedWithoutInWindowAcceptance => {
+                        counts.dispute_resolutions.resolved_without_in_window_acceptance += 1;
+                    }
+                    DisputeResolutionV1::Unresolved => {
+                        counts.dispute_resolutions.unresolved += 1;
+                        genuinely_unascertainable += 1;
+                    }
                 }
             }
             RequestOutcomeClassV1::OutcomeUnknown => {
@@ -564,6 +645,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
             }
         }
     }
+    counts.genuinely_unascertainable_for_upper_bound = genuinely_unascertainable;
 
     let ascertainable = eligible_denominator.saturating_sub(genuinely_unascertainable);
     let upper_numerator = match confirmed_in_window.checked_add(genuinely_unascertainable) {
@@ -691,6 +773,15 @@ mod tests {
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Calculated);
         assert!(report.blockers.is_empty());
         assert_eq!(report.eligible_denominator, 6);
+        let counts = report.outcome_counts.as_ref().expect("typed outcome counts");
+        assert_eq!(counts.known_non_acceptance_reasons.no_provider_available, 1);
+        assert_eq!(counts.known_non_acceptance_reasons.provider_no_show, 0);
+        assert_eq!(counts.dispute_resolutions.unresolved, 1);
+        assert_eq!(
+            counts.confirmed_in_window_acceptances_including_resolved_rework,
+            1
+        );
+        assert_eq!(counts.genuinely_unascertainable_for_upper_bound, 3);
         assert_eq!(
             report
                 .evidence_confirmed_lower_bound
@@ -719,7 +810,7 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.outcome_records.retain(|record| {
             !matches!(
-                record.outcome,
+                &record.outcome,
                 RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision { .. }
                     | RequestOutcomeClassV1::DisputedOrRework {
                         resolution: DisputeResolutionV1::Unresolved
