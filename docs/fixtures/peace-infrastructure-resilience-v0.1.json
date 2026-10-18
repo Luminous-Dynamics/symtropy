@@ -265,6 +265,91 @@
         "claim_status": "descriptive_only",
         "improvement_claim": "not_supported"
       }
+    },
+    {
+      "id": "pirb-r5-warning-response-chain-01",
+      "track": "PIRB-5",
+      "domain": "fictional essential-service interruption warning",
+      "claim_ceiling": "Response-chain conformance only; no forecast accuracy or causal prevention claim.",
+      "alerts": [
+        {
+          "alert_id": "actionable-verified",
+          "remaining_lead_minutes": 120,
+          "estimated_response_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "verified",
+          "response_outcome_independently_verified": true
+        },
+        {
+          "alert_id": "no-owner",
+          "remaining_lead_minutes": 120,
+          "estimated_response_minutes": 45,
+          "accountable_owner_authorized": false,
+          "response_resource_available": true,
+          "response_state": "unassigned",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "late-signal",
+          "remaining_lead_minutes": 20,
+          "estimated_response_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "dispatched",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "no-resource",
+          "remaining_lead_minutes": 120,
+          "estimated_response_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": false,
+          "response_state": "unassigned",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "ready-not-executed",
+          "remaining_lead_minutes": 120,
+          "estimated_response_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "ready",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "dispatched-not-verified",
+          "remaining_lead_minutes": 120,
+          "estimated_response_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "dispatched",
+          "response_outcome_independently_verified": false
+        }
+      ],
+      "expected": {
+        "actionable_alert_ids": [
+          "actionable-verified",
+          "ready-not-executed",
+          "dispatched-not-verified"
+        ],
+        "non_actionable_alert_ids": [
+          "no-owner",
+          "late-signal",
+          "no-resource"
+        ],
+        "verified_response_ids": [
+          "actionable-verified"
+        ],
+        "unverified_response_ids": [
+          "no-owner",
+          "late-signal",
+          "no-resource",
+          "ready-not-executed",
+          "dispatched-not-verified"
+        ],
+        "prevention_claim": "not_established_without_impact_design"
+      }
     }
   ]
 }
