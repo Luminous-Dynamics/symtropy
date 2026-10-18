@@ -32,6 +32,17 @@ Validation output records the SHA-256 digest of the exact corpus file bytes. Eva
 
 The CI workflow also evaluates `fixtures/reference-submission-v0.1.json`. This is a synthetic oracle/control submission intended to exercise the evaluator itself; it is **not a measurement of any Symthaea or other production model**.
 
+## Language-neutral contracts
+
+Versioned JSON Schema documents are published under `schemas/`:
+
+- `benchmark-v0.1.schema.json`: synthetic corpus, authority records, temporal intervals, cases and expected evidence.
+- `submission-v0.1.schema.json`: candidate action, claim-code, and citation output.
+- `evaluation-report-v0.1.schema.json`: score receipt, failure counts, critical-case IDs, and SHA-256 input digests.
+- `validation-report-v0.1.schema.json`: corpus validation receipt and corpus digest.
+
+The Rust unit suite checks these schemas are valid JSON objects with the expected draft, closed-object posture, required lists, and resolvable local references. This is a structural consistency test, not a full JSON Schema meta-validation; downstream clients should validate against the published schema with a conforming Draft 2020-12 validator. The schemas are contract artifacts, not authority to interpret or apply actual law.
+
 ## Submission contract
 
 A submission has schema version 0.1.0, a non-empty system identifier, and exactly one result per benchmark case. Each result includes:
