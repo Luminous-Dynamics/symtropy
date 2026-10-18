@@ -104,6 +104,9 @@ impl BalanceLedger {
 /// None of these metrics replaces hard safety/quality constraints.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CandidateMetrics {
+    /// Exact cost/energy/water/emissions comparison profile, including price year,
+    /// geographic and temporal boundary, and accounting scope.
+    pub comparison_basis_id: &'static str,
     pub accepted_tonnes_per_shift: f64,
     pub lifecycle_cost_per_saleable_tonne: f64,
     pub energy_kwh_per_saleable_tonne: f64,
@@ -113,6 +116,9 @@ pub struct CandidateMetrics {
 
 impl CandidateMetrics {
     pub fn validate(self) -> Result<(), &'static str> {
+        if self.comparison_basis_id.trim().is_empty() {
+            return Err("candidate comparison basis is empty");
+        }
         let values = [
             self.accepted_tonnes_per_shift,
             self.lifecycle_cost_per_saleable_tonne,
@@ -136,7 +142,10 @@ impl CandidateMetrics {
     /// and strictly better in at least one. Exact finite comparisons are used;
     /// there is no hidden tolerance or weighted aggregate score.
     pub fn dominates(self, other: Self) -> bool {
-        if self.validate().is_err() || other.validate().is_err() {
+        if self.validate().is_err()
+            || other.validate().is_err()
+            || self.comparison_basis_id != other.comparison_basis_id
+        {
             return false;
         }
 
@@ -335,6 +344,7 @@ mod tests {
 
     fn metrics() -> CandidateMetrics {
         CandidateMetrics {
+            comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 42.0,
             lifecycle_cost_per_saleable_tonne: 80.0,
             energy_kwh_per_saleable_tonne: 12.0,
@@ -445,9 +455,22 @@ mod tests {
         assert_eq!(evaluate(&no_output).disposition, Disposition::InvalidInput);
     }
 
+
+    #[test]
+    fn candidates_with_incompatible_comparison_bases_are_not_compared() {
+        let baseline = metrics();
+        let incompatible = CandidateMetrics {
+            comparison_basis_id: "DIFFERENT-COST-AND-EMISSIONS-BOUNDARY",
+            ..baseline
+        };
+        assert!(!incompatible.dominates(baseline));
+        assert!(!baseline.dominates(incompatible));
+    }
+
     #[test]
     fn pareto_dominance_does_not_hide_tradeoffs() {
         let better = CandidateMetrics {
+            comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 45.0,
             lifecycle_cost_per_saleable_tonne: 75.0,
             energy_kwh_per_saleable_tonne: 10.0,
@@ -460,6 +483,7 @@ mod tests {
         assert!(!baseline.dominates(baseline));
 
         let tradeoff = CandidateMetrics {
+            comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 47.0,
             lifecycle_cost_per_saleable_tonne: 83.0,
             energy_kwh_per_saleable_tonne: 11.0,
