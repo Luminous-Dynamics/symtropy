@@ -10,6 +10,6 @@ From the repository root:
 - cargo test --locked --manifest-path tools/habitat-scheduling-oracle/Cargo.toml
 - cargo run --locked --manifest-path tools/habitat-scheduling-oracle/Cargo.toml -- docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json
 
-The fixture is limited to at most 12 tasks per case and bounded integer-time horizons. It includes distinct/shared crews, precedence chains, feasible/infeasible inspection windows, unavailable approval gates, over-capacity demand, uncertainty against a deadline, and cycle rejection.
+The fixture is limited to at most 12 tasks per case and bounded integer-time horizons. The engine conservatively caps the Cartesian product of candidate start-time domains at 2,000,000 assignments and returns an explicit oracle-budget rejection instead of attempting an unbounded exact search. It includes distinct/shared crews, precedence chains, feasible/infeasible inspection windows, unavailable approval gates, over-capacity demand, uncertainty against a deadline, and cycle rejection.
 
 All data are synthetic. A passing micro-oracle does not imply a production solver, real schedule quality, construction estimates, permit compliance, or safety certification. The external benchmark plan is documented in docs/research/HABITAT_REVALIDATION_SCHEDULING_ORACLE_V0_1.md.
