@@ -779,7 +779,8 @@ mod tests {
     fn duplicate_external_reference_blocks() {
         let (manifest, _) = fixture();
         let mut case = manifest.cases[0].clone();
-        case.external_refs.push(case.external_refs[0].clone());
+        let duplicate = case.external_refs[0].clone();
+        case.external_refs.push(duplicate);
         assert_eq!(evaluate_case(&case).computed_decision, Decision::Blocked);
     }
 
