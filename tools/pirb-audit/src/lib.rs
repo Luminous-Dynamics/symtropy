@@ -1334,6 +1334,37 @@ mod tests {
     }
 
     #[test]
+    fn evaluator_is_invariant_to_scenario_and_alert_order() {
+        let mut value = corpus();
+        value["scenarios"].as_array_mut().unwrap().reverse();
+        let warning = value
+            .get_mut("scenarios")
+            .unwrap()
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|scenario| {
+                scenario.get("id").and_then(Value::as_str)
+                    == Some("pirb-r5-warning-response-chain-01")
+            })
+            .unwrap();
+        warning["alerts"].as_array_mut().unwrap().reverse();
+
+        let report = audit_corpus(&value);
+        assert!(report.passed, "{:#?}", report.findings);
+    }
+
+    #[test]
+    fn duplicated_response_event_id_is_rejected_as_replay_or_collision() {
+        let mut value = corpus();
+        value["scenarios"][9]["alerts"][0]["response_events"][1]["event_id"] =
+            json!("synthetic-event-001");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_RESPONSE_EVENT_ID_INVALID"));
+        assert!(has_code(&report, "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED"));
+    }
+
+    #[test]
     fn warning_response_chain_requires_authority_resources_and_lead_time() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
