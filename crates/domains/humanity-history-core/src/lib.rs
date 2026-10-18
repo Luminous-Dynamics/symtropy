@@ -727,6 +727,55 @@ mod tests {
     }
 
     #[test]
+    fn backwards_temporal_edge_is_rejected_when_intervals_decide_it() {
+        let mut data = fixture();
+        data.claims[0].valid_time.as_mut().unwrap().start_year = 500;
+        data.claims[0].valid_time.as_mut().unwrap().end_year = 500;
+        data.claims[1].valid_time = Some(TimeInterval {
+            calendar: "fixture-year-scale".to_owned(),
+            start_year: 300,
+            end_year: 350,
+            precision: DatePrecision::BroadRange,
+        });
+        data.relations[0].kind = RelationKind::Influenced;
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:relation-1"
+                && item.code == ValidationCode::TemporalContradiction
+        }));
+    }
+
+    #[test]
+    fn overlapping_intervals_are_not_assumed_to_disprove_influence() {
+        let mut data = fixture();
+        data.claims[0].valid_time.as_mut().unwrap().start_year = 100;
+        data.claims[0].valid_time.as_mut().unwrap().end_year = 120;
+        data.claims[1].valid_time = Some(TimeInterval {
+            calendar: "fixture-year-scale".to_owned(),
+            start_year: 110,
+            end_year: 140,
+            precision: DatePrecision::BroadRange,
+        });
+        data.relations[0].kind = RelationKind::Influenced;
+        assert!(
+            validate(&data).issues.iter().all(|item| {
+                item.code != ValidationCode::TemporalContradiction
+            })
+        );
+    }
+
+    #[test]
+    fn unsupported_schema_version_is_rejected() {
+        let mut data = fixture();
+        data.schema_version = "99.0".to_owned();
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "dataset"
+                && item.code == ValidationCode::UnsupportedSchemaVersion
+        }));
+    }
+
+    #[test]
     fn report_order_is_stable() {
         let mut data_a = fixture();
         data_a.claims[0].evidence.clear();
