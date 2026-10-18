@@ -21,6 +21,15 @@ The protocol treats app, SMS/voice, cooperative or extension assistance, broker-
 - Gatti et al., *Journal of Rural Studies* (June 2026), report multi-year qualitative fieldwork in Ghana and Kenya. The article highlights the gap between subscription and sustained use, socio-technical misfit, and roles for extension, peer and low-tech pathways. It does not establish a universal failure of digital services or local South African effects. https://doi.org/10.1016/j.jrurstud.2026.104210
 - FAO's Digital Services Portfolio describes local/country adaptation of service themes for smallholders and family farmers. Local language, season and institutional fit must be tested rather than assumed. https://www.fao.org/digital-services/about/
 
+### South African evidence — local warnings, not national estimates
+
+- A 2024 Eastern Cape study of 250 purposively selected smallholder farmers reported perceived cost, skill and usability barriers; 78.8% described digital technologies as expensive and 54.4% did not find them user-friendly. These values describe that study sample, not all South African farmers. DOI: https://doi.org/10.17159/2413-3221/2024/v52n5a16200
+- A 2025 survey of 104 smallholder farmers in Ingquza Hill Local Municipality, Eastern Cape, found mobile phones and social messaging were important extension-information paths while respondents reported connectivity and data-cost barriers. Its specific municipality and survey design limit generalization. https://www.frontiersin.org/journals/sustainable-food-systems/articles/10.3389/fsufs.2025.1704550/full
+- A 2025 City of Tshwane study found extension access was associated with adoption of some online information sources, but reported no statistically significant income difference attributable to digital-information adoption in that sample. This is a useful reminder to measure service access and income separately rather than assume one causes the other. DOI: https://doi.org/10.17159/2413-3221/2025/v53n3a19230
+- A 2024 study of South African agricultural advisers reports readiness to use digital platforms alongside affordability, network-coverage and digital-literacy barriers; the reported national mobile/internet figures should not be treated as proof that every farmer can reliably complete a service transaction. DOI: https://doi.org/10.17159/2413-3221/2024/v52n4a16851
+
+**Protocol consequence:** before any South African pilot, recruit through local farmer/cooperative/extension relationships, let participants select their language and existing channel, and document provider availability, data/network costs and assistance exposure. Do not recruit only smartphone-app users, equate possession of a phone with reliable transaction access, or promise an income/productivity impact from a higher adoption rate.
+
 ## 2. Staged study design
 
 ### Stage 0 — engineering and synthetic controls
