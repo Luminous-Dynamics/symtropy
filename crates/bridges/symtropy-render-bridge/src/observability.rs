@@ -216,7 +216,7 @@ fn draw_contact_overlays(
 
     let mut glyphs = Vec::new();
     if config.show_points || config.show_normals {
-        if let Some(physics) = physics_2d {
+        if let Some(physics) = physics_2d.as_deref() {
             glyphs.extend(extract_contact_glyphs(
                 &physics.world.contacts,
                 config.max_contact_points,
@@ -224,7 +224,7 @@ fn draw_contact_overlays(
         }
         let remaining = config.max_contact_points.saturating_sub(glyphs.len());
         if remaining > 0
-            && let Some(physics) = physics_3d
+            && let Some(physics) = physics_3d.as_deref()
         {
             glyphs.extend(extract_contact_glyphs(&physics.world.contacts, remaining));
         }
@@ -444,8 +444,10 @@ mod tests {
         );
         second.linear_velocity = SVector::from([0.0, 1.0, 0.0]);
 
-        assert!(extract_velocity_glyphs(&[first, second.clone()], 0).is_empty());
-        assert_eq!(extract_velocity_glyphs(&[second, first], 1).len(), 1);
+        let bodies = vec![first, second];
+        assert!(extract_velocity_glyphs(&bodies, 0).is_empty());
+        let bodies = vec![second, first];
+        assert_eq!(extract_velocity_glyphs(&bodies, 1).len(), 1);
     }
 
     #[test]
