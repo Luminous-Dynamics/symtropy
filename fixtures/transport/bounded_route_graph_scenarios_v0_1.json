@@ -138,8 +138,6 @@
       "payload_classes": [
         "cold_chain"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 4,
       "capabilities": {
@@ -157,7 +155,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "amz-river-hub",
@@ -167,8 +167,6 @@
       "payload_classes": [
         "cold_chain"
       ],
-      "transfer_duration_min": 10,
-      "transfer_duration_max": 15,
       "transfer_energy_consumption_pct_max": 2,
       "condition_margin_c": 2.4,
       "capabilities": {
@@ -186,7 +184,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 10,
+      "transfer_duration_max_minutes": 15
     },
     {
       "node_id": "amz-destination",
@@ -196,8 +196,6 @@
       "payload_classes": [
         "cold_chain"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 4,
       "capabilities": {
@@ -215,7 +213,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "congo-origin",
@@ -225,8 +225,6 @@
       "payload_classes": [
         "fragile_instrument"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 4,
       "capabilities": {
@@ -244,7 +242,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "congo-river-hub",
@@ -254,8 +254,6 @@
       "payload_classes": [
         "fragile_instrument"
       ],
-      "transfer_duration_min": 10,
-      "transfer_duration_max": 15,
       "transfer_energy_consumption_pct_max": 2,
       "condition_margin_c": 2.4,
       "capabilities": {
@@ -273,7 +271,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 10,
+      "transfer_duration_max_minutes": 15
     },
     {
       "node_id": "congo-destination",
@@ -283,8 +283,6 @@
       "payload_classes": [
         "fragile_instrument"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 4,
       "capabilities": {
@@ -302,7 +300,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "ant-origin",
@@ -312,8 +312,6 @@
       "payload_classes": [
         "seated_passengers"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 2.5,
       "capabilities": {
@@ -331,7 +329,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "ant-transfer-hub",
@@ -341,8 +341,6 @@
       "payload_classes": [
         "seated_passengers"
       ],
-      "transfer_duration_min": 10,
-      "transfer_duration_max": 20,
       "transfer_energy_consumption_pct_max": 2,
       "condition_margin_c": 1.3,
       "capabilities": {
@@ -360,7 +358,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 10,
+      "transfer_duration_max_minutes": 20
     },
     {
       "node_id": "ant-destination",
@@ -370,8 +370,6 @@
       "payload_classes": [
         "seated_passengers"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 2.5,
       "capabilities": {
@@ -389,7 +387,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "sahara-origin",
@@ -399,8 +399,6 @@
       "payload_classes": [
         "cold_chain"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 3,
       "capabilities": {
@@ -418,7 +416,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "sahara-night-hub",
@@ -428,8 +428,6 @@
       "payload_classes": [
         "cold_chain"
       ],
-      "transfer_duration_min": 15,
-      "transfer_duration_max": 20,
       "transfer_energy_consumption_pct_max": 2,
       "condition_margin_c": 1.4,
       "capabilities": {
@@ -447,7 +445,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 15,
+      "transfer_duration_max_minutes": 20
     },
     {
       "node_id": "sahara-destination",
@@ -457,8 +457,6 @@
       "payload_classes": [
         "cold_chain"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 3,
       "capabilities": {
@@ -476,7 +474,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "afg-origin",
@@ -486,8 +486,6 @@
       "payload_classes": [
         "bulk_cargo"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 2,
       "capabilities": {
@@ -505,7 +503,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "afg-aid-hub",
@@ -515,8 +515,6 @@
       "payload_classes": [
         "bulk_cargo"
       ],
-      "transfer_duration_min": 15,
-      "transfer_duration_max": 20,
       "transfer_energy_consumption_pct_max": 2,
       "condition_margin_c": 1,
       "capabilities": {
@@ -534,7 +532,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 15,
+      "transfer_duration_max_minutes": 20
     },
     {
       "node_id": "afg-destination",
@@ -544,8 +544,6 @@
       "payload_classes": [
         "bulk_cargo"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 2,
       "capabilities": {
@@ -563,7 +561,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "sh-isolated-origin",
@@ -573,8 +573,6 @@
       "payload_classes": [
         "fragile_instrument"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 2,
       "capabilities": {
@@ -592,7 +590,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     },
     {
       "node_id": "sh-isolated-destination",
@@ -602,8 +602,6 @@
       "payload_classes": [
         "fragile_instrument"
       ],
-      "transfer_duration_min": 0,
-      "transfer_duration_max": 0,
       "transfer_energy_consumption_pct_max": 0,
       "condition_margin_c": 2,
       "capabilities": {
@@ -621,7 +619,9 @@
         "recovery_status": "passed",
         "operator_status": "passed",
         "condition_control_status": "passed"
-      }
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
     }
   ],
   "edges": [
