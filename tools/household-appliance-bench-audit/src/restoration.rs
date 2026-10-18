@@ -309,7 +309,7 @@ fn audit_values(
         let currency = text_at(costs, "currency").unwrap_or("");
         let known_cost_count = COST_FIELDS
             .iter()
-            .filter(|field| costs.get(**field).is_some_and(|value| !value.is_null()))
+            .filter(|field| costs.get(*field).is_some_and(|value| !value.is_null()))
             .count();
         match cost_status {
             "complete" if known_cost_count != COST_FIELDS.len() => errors.push(format!(
