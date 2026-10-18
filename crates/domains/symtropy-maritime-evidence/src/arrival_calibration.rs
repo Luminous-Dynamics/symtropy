@@ -227,6 +227,18 @@ pub fn evaluate_coverage(
         if !seen.insert(case.case_id.clone()) {
             return Err(CalibrationError::DuplicateEvaluationId);
         }
+        if case.forecast_issued_at_utc_nanos <= envelope.calibration_as_of_utc_nanos {
+            return Err(CalibrationError::EvaluationForecastNotAfterCutoff);
+        }
+        if case.actual_observed_at_utc_nanos <= envelope.calibration_as_of_utc_nanos {
+            return Err(CalibrationError::EvaluationTruthNotAfterCutoff);
+        }
+        if case.forecast_issued_at_utc_nanos >= case.actual_arrival_utc_nanos {
+            return Err(CalibrationError::ForecastIssuedAfterActualEvent);
+        }
+        if case.actual_observed_at_utc_nanos < case.actual_arrival_utc_nanos {
+            return Err(CalibrationError::ActualObservedBeforeActualEvent);
+        }
         match envelope.interval_for(case.predicted_arrival_utc_nanos)? {
             None => abstention_count += 1,
             Some(interval) => {
@@ -270,7 +282,9 @@ pub fn evaluate_coverage(
     let mean_interval_width_nanos = if interval_count == 0 {
         None
     } else {
-        Some(total_width_nanos / u128::try_from(interval_count).unwrap_or(u128::MAX))
+        let issued =
+            u128::try_from(interval_count).map_err(|_| CalibrationError::ArithmeticOverflow)?;
+        Some(total_width_nanos / issued)
     };
 
     Ok(CoverageMetrics {
@@ -430,6 +444,26 @@ mod tests {
         assert_eq!(report.conditional_coverage_bps, None);
         assert_eq!(report.interval_issuance_rate_bps, 0);
         assert_eq!(report.mean_interval_width_nanos, None);
+    }
+
+    #[test]
+    fn evaluation_rejects_rows_that_leak_across_the_calibration_cutoff() {
+        let samples = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
+
+        let mut forecast_leak = cases(&[1]);
+        forecast_leak[0].forecast_issued_at_utc_nanos = CUTOFF;
+        assert_eq!(
+            evaluate_coverage(&fitted, &forecast_leak),
+            Err(CalibrationError::EvaluationForecastNotAfterCutoff)
+        );
+
+        let mut truth_leak = cases(&[1]);
+        truth_leak[0].actual_observed_at_utc_nanos = CUTOFF;
+        assert_eq!(
+            evaluate_coverage(&fitted, &truth_leak),
+            Err(CalibrationError::EvaluationTruthNotAfterCutoff)
+        );
     }
 
     #[test]
