@@ -1208,6 +1208,16 @@ fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleR
         });
     }
 
+    let mutation_summary = fail_closed_mutation_sweep(&fixture, source_scenarios)?;
+    let mutation_bytes = serde_json::to_vec(&mutation_summary.outcomes)
+        .map_err(|error| format!("cannot serialize mutation outcomes: {error}"))?;
+    let fail_closed_mutation_digest_sha256 = sha256_hex(&mutation_bytes);
+    let fail_closed_mutation_violation_examples = mutation_summary
+        .violations
+        .iter()
+        .take(20)
+        .cloned()
+        .collect();
     let (state_action_pairs_enumerated, legal_state_action_pairs) = all_state_action_pairs();
     let all_candidate_decisions_match = full_decision_mismatch_count == 0;
     Ok(OracleReport {
@@ -1227,6 +1237,13 @@ fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleR
         legal_state_action_pairs,
         all_candidate_decisions_match,
         all_candidate_admissions_are_oracle_admissible: false_admission_count == 0,
+        fail_closed_mutations_checked: mutation_summary.outcomes.len(),
+        fail_closed_mutation_violation_count: mutation_summary.violations.len(),
+        fail_closed_mutation_digest_sha256,
+        all_fail_closed_mutations_rejected: mutation_summary.violations.is_empty(),
+        fail_closed_mutation_violation_examples,
+        protective_stop_override_checks: mutation_summary.protective_stop_checks,
+        protective_stop_override_violations: mutation_summary.protective_stop_violations.len(),
         claim_ceiling: "Independent source-level semantic cross-check of synthetic report proposals only; it is not physical validation, evidence authentication, dispatch authorization, or an exhaustive oracle over all task/resource/evidence states.".to_string(),
         scenarios: checks,
     })
