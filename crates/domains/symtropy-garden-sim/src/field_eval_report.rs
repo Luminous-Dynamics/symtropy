@@ -39,6 +39,7 @@ pub struct StudyExclusionV1 {
     pub request_ref: String,
     pub reason_code: StudyExclusionReasonV1,
     pub preregistered_rule_ref: String,
+    pub exclusion_evidence_ref: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -101,6 +102,11 @@ mod optional_u64_decimal_string {
 #[serde(deny_unknown_fields)]
 pub struct RequestOutcomeRecordV1 {
     pub request_ref: String,
+    /// Event reference for the farmer-declared useful-window deadline.
+    pub useful_window_evidence_ref: String,
+    /// Event reference supporting the outcome classification (including an
+    /// explicit unknown or follow-up-attempt record when no authoritative outcome exists).
+    pub outcome_evidence_ref: String,
     /// Minute value from the same declared period origin used by service_access.
     #[serde(
         serialize_with = "serialize_u64_decimal_string",
@@ -195,6 +201,11 @@ pub enum FieldEvalBlockerCodeV1 {
     InvalidPreregisteredRuleReference,
     DuplicatePreregisteredRule,
     ExclusionRuleNotPreregistered,
+    MissingExclusionEvidenceReference,
+    InvalidExclusionEvidenceReference,
+    MissingOutcomeEvidenceReference,
+    InvalidOutcomeEvidenceReference,
+    InvalidUsefulWindowEvidenceReference,
     OutcomeRequestNotEligible,
     DuplicateOutcomeRecord,
     MissingOutcomeRecord,
@@ -607,6 +618,14 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 "exclusion requires a preregistered opaque rule-* reference",
             );
         }
+        if !valid_opaque_reference(&exclusion.exclusion_evidence_ref, "evt-", 3, 64) {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::InvalidExclusionEvidenceReference,
+                Some(&exclusion.request_ref),
+                "exclusion requires an opaque evt-* source-event reference",
+            );
+        }
         if !preregistered_rules.contains(&exclusion.preregistered_rule_ref) {
             push_blocker(
                 &mut blockers,
@@ -665,6 +684,22 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 FieldEvalBlockerCodeV1::InvalidOutcomeShape,
                 Some(&record.request_ref),
                 "outcome classification conflicts with its useful-window state",
+            );
+        }
+        if !valid_opaque_reference(&record.useful_window_evidence_ref, "evt-", 3, 64) {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::InvalidUsefulWindowEvidenceReference,
+                Some(&record.request_ref),
+                "useful-window deadline requires an opaque evt-* source-event reference",
+            );
+        }
+        if !valid_opaque_reference(&record.outcome_evidence_ref, "evt-", 3, 64) {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::InvalidOutcomeEvidenceReference,
+                Some(&record.request_ref),
+                "outcome classification requires an opaque evt-* source-event reference",
             );
         }
         validate_acceptance_evidence(record, &mut blockers);
@@ -935,6 +970,8 @@ mod tests {
             acceptance_at_minute.map(|_| format!("evt-{suffix}-acceptance"));
         RequestOutcomeRecordV1 {
             request_ref: request_ref.to_owned(),
+            useful_window_evidence_ref: format!("evt-{suffix}-window"),
+            outcome_evidence_ref: format!("evt-{suffix}-outcome"),
             useful_window_deadline_minute: 100,
             acceptance_at_minute,
             acceptance_evidence_ref,
@@ -955,11 +992,13 @@ mod tests {
                 request_ref: "req-study-007".to_owned(),
                 reason_code: StudyExclusionReasonV1::OutsideDeclaredScope,
                 preregistered_rule_ref: "rule-scope-eligibility".to_owned(),
+                exclusion_evidence_ref: "evt-study-007-exclusion".to_owned(),
             },
             StudyExclusionV1 {
                 request_ref: "req-study-008".to_owned(),
                 reason_code: StudyExclusionReasonV1::IneligibleServiceTask,
                 preregistered_rule_ref: "rule-task-eligibility".to_owned(),
+                exclusion_evidence_ref: "evt-study-008-exclusion".to_owned(),
             },
         ];
         let outcome_records = vec![
@@ -1192,6 +1231,30 @@ mod tests {
     }
 
     #[test]
+    fn exclusion_without_source_event_reference_is_blocked() {
+        let mut manifest = valid_manifest();
+        manifest.exclusions[0].exclusion_evidence_ref = "missing".to_owned();
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::InvalidExclusionEvidenceReference
+        }));
+    }
+
+    #[test]
+    fn outcome_without_window_event_reference_is_blocked() {
+        let mut manifest = valid_manifest();
+        manifest.outcome_records[0].useful_window_evidence_ref = "missing".to_owned();
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::InvalidUsefulWindowEvidenceReference
+        }));
+    }
+
+    #[test]
     fn exclusion_must_reference_a_listed_preregistered_rule() {
         let mut manifest = valid_manifest();
         manifest
@@ -1304,6 +1367,7 @@ mod tests {
                 request_ref: request_ref.clone(),
                 reason_code: StudyExclusionReasonV1::OutsideDeclaredScope,
                 preregistered_rule_ref: "rule-outside-scope".to_owned(),
+                exclusion_evidence_ref: format!("evt-{}-exclusion", request_ref.strip_prefix("req-").expect("request reference")).to_owned(),
             })
             .collect();
         let report = preflight_field_study_v1(&manifest);
