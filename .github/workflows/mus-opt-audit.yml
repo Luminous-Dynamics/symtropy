@@ -1,0 +1,35 @@
+name: MUS-OPT instrument matrix audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/mus-opt-audit/**"
+      - "schemas/manufacturing/instrument_architecture_matrix_v0_1.schema.json"
+      - "fixtures/manufacturing/instrument_architecture_matrix_v0_1.json"
+      - ".github/workflows/mus-opt-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/mus-opt-audit/**"
+      - "schemas/manufacturing/instrument_architecture_matrix_v0_1.schema.json"
+      - "fixtures/manufacturing/instrument_architecture_matrix_v0_1.json"
+      - ".github/workflows/mus-opt-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: MUS-OPT schema, policy tests and fixture audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mus-opt-audit/Cargo.toml -- --check
+      - name: Run auditor unit tests
+        run: cargo test --manifest-path tools/mus-opt-audit/Cargo.toml
+      - name: Audit synthetic matrix
+        run: cargo run --manifest-path tools/mus-opt-audit/Cargo.toml -- --schema schemas/manufacturing/instrument_architecture_matrix_v0_1.schema.json --corpus fixtures/manufacturing/instrument_architecture_matrix_v0_1.json
