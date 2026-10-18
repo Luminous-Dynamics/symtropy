@@ -1,0 +1,307 @@
+{
+  "schema_version": "0.1.0",
+  "curriculum_id": "WASHER-FAULT-CURRICULUM-001",
+  "status": "benchmark_design_only",
+  "claim_ceiling": "no_local_prevalence_no_physical_repair_or_superiority_claim",
+  "selection_basis": "coverage_balanced_not_prevalence_weighted",
+  "references": [
+    {
+      "id": "REPAIR-DIAG-11K",
+      "title": "Understanding lifetimes and failure modes of defective washing machines and dishwashers",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6472650/",
+      "scope_note": "Published analysis of about 11,000 diagnoses from an independent European repair centre. Supports fault-family coverage only; not a target-market prevalence distribution or a calibrated washer prior."
+    },
+    {
+      "id": "DESIGN-FOR-REPAIR-2025",
+      "title": "Design for repair: insights to develop functional modules in household appliances",
+      "url": "https://doi.org/10.1016/j.procir.2024.12.004",
+      "scope_note": "Physical disassembly and functional-module analysis across cooking-appliance categories. Useful methodology reference; conclusions do not automatically transfer to washers."
+    },
+    {
+      "id": "WASHER-BENCH-PROTOCOL",
+      "title": "Symtropy washer reference architecture and benchmark protocol",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/blob/research/large-appliance-repairable-architecture-v0-1/docs/tech/WASHER_REFERENCE_ARCHITECTURE_V0_1.md",
+      "scope_note": "Project-defined protocol and hard safety/function claim boundaries; not a physical measurement or product qualification."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "WFT-01",
+      "fault_family": "User-accessible drain filter or foreign-object blockage",
+      "observed_symptom": "Cycle ends or pauses with poor draining; water remains in the drum or drainage is slow.",
+      "competing_hypotheses": [
+        "Accessible filter obstructed by coins/lint/foreign object",
+        "Drain hose restriction or installation issue",
+        "Pump fault or internal blockage requiring qualified service",
+        "Water-level sensing/control issue"
+      ],
+      "safe_discriminating_checks": [
+        "Use only the model's approved user isolation and water-capture procedure; inspect and clean the accessible filter.",
+        "Observe whether the approved user maintenance resolves draining; if not, stop and refer rather than assume the pump is faulty.",
+        "Record symptom, visible debris, water handling and approved instructions used; no exposed or energized internals."
+      ],
+      "repair_scope_options": [
+        "Clean the intended user-accessible filter and remove an accessible foreign object",
+        "Qualified inspection and repair of drain hose/pump path",
+        "Replace a pump assembly only after model-specific diagnosis supports that scope"
+      ],
+      "service_tier": "U0",
+      "hazard_boundary": "User scope is limited to the documented accessible filter/drain maintenance with instructed isolation and water capture; internal pump, mains and powered tests remain qualified service.",
+      "post_repair_verification": [
+        "Approved drain function check with all covers/filters restored",
+        "Leak observation after reassembly or user maintenance as specified by the manual",
+        "Record recurrence status at the declared follow-up point"
+      ],
+      "recurrence_policy": "No claim of success without a completed approved drain check; recurrence remains pending until the named follow-up window is complete.",
+      "source_ids": [
+        "REPAIR-DIAG-11K",
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    },
+    {
+      "id": "WFT-02",
+      "fault_family": "Door closure, interlock or door-seal problem",
+      "observed_symptom": "Door will not close/start the cycle, or water is observed around the door seal.",
+      "competing_hypotheses": [
+        "Laundry/object obstructs closure or door alignment is poor",
+        "Door seal is dirty, displaced or damaged",
+        "Interlock/lock actuator fault",
+        "Leak has another source and is misattributed to the door"
+      ],
+      "safe_discriminating_checks": [
+        "Perform visual inspection and user-approved cleaning/obstruction checks without removing protective parts.",
+        "Compare the symptom with the model-specific indicator/manual diagnostic tree; a code alone is not confirmation.",
+        "Qualified service distinguishes lock/harness/control hypotheses using the approved isolated procedure."
+      ],
+      "repair_scope_options": [
+        "Remove obstruction or clean an intended user-accessible seal surface",
+        "Qualified seal or lock-assembly repair/replacement",
+        "Larger assembly replacement only where diagnosis and parts architecture justify it"
+      ],
+      "service_tier": "P",
+      "hazard_boundary": "Internal door-lock electrical work is qualified service; never bypass the interlock. User instructions may cover only visible inspection/cleaning allowed by the manual.",
+      "post_repair_verification": [
+        "Door closure/interlock behaviour under the approved guarded test",
+        "Leak check under the model-specific procedure",
+        "Record any interlock/bypass attempt as a critical safety failure"
+      ],
+      "recurrence_policy": "A successful repair requires the interlock/closure function and required leak checks; repeat failures are tracked through a declared observation window.",
+      "source_ids": [
+        "REPAIR-DIAG-11K",
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    },
+    {
+      "id": "WFT-03",
+      "fault_family": "Drain path, pump or pump-drive fault",
+      "observed_symptom": "Drain failure persists after approved user-accessible filter cleaning or is accompanied by abnormal pump behaviour.",
+      "competing_hypotheses": [
+        "Downstream hose/path blockage",
+        "Pump impeller or pump assembly fault",
+        "Pump power/drive/controller fault",
+        "Incorrect water-level state or sensor issue"
+      ],
+      "safe_discriminating_checks": [
+        "Confirm documented external hose routing and approved accessible-filter result before escalating the hypothesis.",
+        "Qualified technician performs approved isolated checks to separate path obstruction, pump, drive and sensing hypotheses.",
+        "Preserve original symptom and test results; do not convert missing readings into a failed pump diagnosis."
+      ],
+      "repair_scope_options": [
+        "Clear a confirmed serviceable path obstruction",
+        "Replace a proven failed pump or serviceable pump subcomponent when supported",
+        "Replace the larger pump/control assembly only if diagnosis and availability justify it"
+      ],
+      "service_tier": "P",
+      "hazard_boundary": "Internal wet/mains work and any powered tests are qualified, guarded and product-specific; no energizing opened equipment or defeating protection.",
+      "post_repair_verification": [
+        "Approved drain performance test with enclosure/guards restored",
+        "Leak and protective-electrical checks as required by the model-specific repair procedure",
+        "Document actual installed part and post-check result"
+      ],
+      "recurrence_policy": "Failed attempts and rework remain in total restore cost; recurrence is pending until follow-up is complete.",
+      "source_ids": [
+        "REPAIR-DIAG-11K",
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    },
+    {
+      "id": "WFT-04",
+      "fault_family": "Inlet valve, supply restriction or water-level sensing",
+      "observed_symptom": "Filling is slow, absent or inconsistent, or the washer appears to overfill or misjudge water level.",
+      "competing_hypotheses": [
+        "Closed/low-pressure supply or accessible inlet-screen restriction",
+        "Inlet valve fault",
+        "Pressure/water-level sensor, hose or harness fault",
+        "Controller/programme condition mistaken for a part failure"
+      ],
+      "safe_discriminating_checks": [
+        "Check external tap/hose conditions and user-accessible inlet screens only where the manual permits, with supply isolated.",
+        "Qualified service distinguishes valve response from pressure sensing, harness and control behaviour using approved tests.",
+        "Record supply condition and instrument status; a reading outside calibration/range is unknown, not a zero or confirmed component fault."
+      ],
+      "repair_scope_options": [
+        "Correct external supply or clean an intended accessible inlet screen",
+        "Qualified replacement of confirmed valve, sensor or harness component",
+        "Larger assembly replacement only when evidence and part economics support it"
+      ],
+      "service_tier": "P",
+      "hazard_boundary": "Internal valve/sensor/harness work involves water and potentially mains-adjacent components; qualified isolation and post-repair leak/electrical checks are required.",
+      "post_repair_verification": [
+        "Approved fill/level-control cycle check",
+        "Leak check and required electrical/protective checks",
+        "Confirm the original symptom is resolved under a declared programme and supply condition"
+      ],
+      "recurrence_policy": "Record full supply conditions and follow-up state; do not attribute external supply recurrence to the product without evidence.",
+      "source_ids": [
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    },
+    {
+      "id": "WFT-05",
+      "fault_family": "Suspension, imbalance or abnormal vibration",
+      "observed_symptom": "Excessive movement, noise or imbalance appears during spin or load transitions.",
+      "competing_hypotheses": [
+        "Uneven load or unsuitable installation/levelling",
+        "Worn shock absorber/suspension or mounting component",
+        "Bearing/drum damage or structural looseness",
+        "Control/speed feedback issue"
+      ],
+      "safe_discriminating_checks": [
+        "Use the model's user guidance to check load distribution and accessible installation/levelling conditions first.",
+        "Qualified inspection distinguishes suspension wear from bearing, drum, mount and feedback hypotheses with the machine de-energized as required.",
+        "Record noise/vibration method, load and cycle state; do not conduct exposed or unguarded spin trials."
+      ],
+      "repair_scope_options": [
+        "Correct load/installation condition where applicable",
+        "Qualified replacement of confirmed suspension/mounting wear items",
+        "Major tub/drum repair only if diagnosed; compare bearing/tub repair against assembly replacement"
+      ],
+      "service_tier": "P",
+      "hazard_boundary": "Internal suspension and drum work involves heavy, spring-loaded or rotating assemblies; use qualified personnel, supports/lifting procedures, guards and approved post-repair test.",
+      "post_repair_verification": [
+        "Guarded approved vibration/spin test under a declared load",
+        "Check fasteners, mounts and clearances under product-specific procedure",
+        "Record noise/vibration and recurrence during defined follow-up"
+      ],
+      "recurrence_policy": "Repeat abnormal vibration after repair is recurrence/rework, not a new clean pass; follow-up window and load conditions are recorded.",
+      "source_ids": [
+        "REPAIR-DIAG-11K",
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    },
+    {
+      "id": "WFT-06",
+      "fault_family": "Heater, temperature sensing or thermal-control fault",
+      "observed_symptom": "Cycle behaviour or wash result suggests temperature performance differs from the declared programme, or a thermal fault is reported.",
+      "competing_hypotheses": [
+        "Selected programme and supply conditions explain observed temperature",
+        "Temperature sensor or harness fault",
+        "Heater element fault",
+        "Control/relay/drive fault"
+      ],
+      "safe_discriminating_checks": [
+        "Check programme/settings and user-visible messages against the manual before assuming a hardware failure.",
+        "Qualified technician follows approved isolation/discharge and measurement procedures to discriminate sensor, heater and control hypotheses.",
+        "Do not probe exposed energized mains or treat an uncalibrated temperature/electrical measurement as evidence."
+      ],
+      "repair_scope_options": [
+        "Correct settings/use misunderstanding where supported by evidence",
+        "Qualified repair or replacement of a confirmed sensor/harness/heater component",
+        "Replace a larger control/heater assembly only when justified by diagnosis and lifecycle cost"
+      ],
+      "service_tier": "P",
+      "hazard_boundary": "Heater, mains, stored energy and thermal hazards require qualified isolation, product-specific procedures and prescribed post-repair electrical and thermal checks.",
+      "post_repair_verification": [
+        "Validated programme-specific temperature/function check using suitable calibrated measurement",
+        "Required protective electrical/insulation/earth checks under applicable service procedure",
+        "Verify the declared cycle completes with required user-visible behaviour"
+      ],
+      "recurrence_policy": "Successful status requires the defined temperature/function receipt and applicable safety check; recurrence cannot be inferred from one display state.",
+      "source_ids": [
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    },
+    {
+      "id": "WFT-07",
+      "fault_family": "Drive, motor, speed feedback or control electronics",
+      "observed_symptom": "Drum fails to agitate or spin as expected, or motion is intermittent/abnormal.",
+      "competing_hypotheses": [
+        "Belt/coupling or mechanical transmission fault where the architecture uses one",
+        "Motor or motor-winding/component fault",
+        "Speed feedback/tachometer/sensor or harness fault",
+        "Inverter/drive board/control fault"
+      ],
+      "safe_discriminating_checks": [
+        "Identify the selected physical drive architecture and check permitted user-visible diagnostics before inferring a failed motor.",
+        "Qualified technician uses the approved isolated sequence to distinguish mechanical, motor, feedback and drive electronics faults.",
+        "Log exact firmware/configuration and component IDs; do not use a live exposed-drive experiment or bypass an interlock."
+      ],
+      "repair_scope_options": [
+        "Replace a confirmed belt/coupling or other separately serviceable mechanical part",
+        "Replace a proven motor/feedback/sensor component",
+        "Replace a drive/controller module only when the diagnosis, repairability and stock cost support that scope"
+      ],
+      "service_tier": "P",
+      "hazard_boundary": "Drive, motor and power electronics work is qualified service; no open-guard powered testing, interlock bypass or unqualified stored-energy handling.",
+      "post_repair_verification": [
+        "Approved guarded agitation/spin test using declared load and programme",
+        "Required post-repair protective/electrical checks",
+        "Record noise, speed/operation and actual assembly/parts consumed"
+      ],
+      "recurrence_policy": "Track rework and return failures separately by installed part and procedure revision; follow-up remains pending until its declared window completes.",
+      "source_ids": [
+        "REPAIR-DIAG-11K",
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    },
+    {
+      "id": "WFT-08",
+      "fault_family": "Bearing, tub or drum wear/damage",
+      "observed_symptom": "Persistent rumble, drum play, leakage or mechanical symptoms remain after easier external causes are excluded.",
+      "competing_hypotheses": [
+        "Foreign object or local contact mistaken for bearing damage",
+        "Suspension/mounting or shaft issue",
+        "Bearing/seal wear",
+        "Tub/drum structural damage or assembly misalignment"
+      ],
+      "safe_discriminating_checks": [
+        "Start with an approved de-energized inspection that separates obvious foreign objects, external contact and suspension concerns.",
+        "Qualified inspection measures play, sealing/surface condition and relevant assembly tolerances using an appropriate support fixture.",
+        "Record what evidence supports bearing-only versus tub/drum replacement; do not choose scope based solely on expected lower labour."
+      ],
+      "repair_scope_options": [
+        "Remove a confirmed foreign object or correct a separately serviceable non-bearing part",
+        "Replace a separately serviceable bearing/seal unit in an architecture designed and qualified for it",
+        "Replace a bolted tub/drum or larger assembly when repairability, seal integrity, structure or tolerance requires it"
+      ],
+      "service_tier": "P",
+      "hazard_boundary": "Heavy tub/drum disassembly entails crush, lifting, stored spring and rotating hazards; use qualified staff, reviewed support fixtures, guards and product-specific safety checks.",
+      "post_repair_verification": [
+        "Static leak/seal integrity check followed by required controlled cycle checks",
+        "Guarded, approved vibration/spin check and relevant temperature/noise observations",
+        "Record assembly tolerances, fasteners/seal handling, discarded mass and follow-up recurrence"
+      ],
+      "recurrence_policy": "A repaired bearing is not proven durable by a single spin; record test exposure and recurrence window, including seal leaks, noise and rework.",
+      "source_ids": [
+        "REPAIR-DIAG-11K",
+        "DESIGN-FOR-REPAIR-2025",
+        "WASHER-BENCH-PROTOCOL"
+      ],
+      "status": "curriculum_design_only"
+    }
+  ],
+  "measurement_policy": {
+    "aggregate_policy": "per_class_plus_macro_average_no_easy_task_masking",
+    "prevalence_policy": "no_prevalence_weights_without_validated_target_market_denominator",
+    "unknown_policy": "unknown_not_zero",
+    "safety_gate": "non_compensatory",
+    "success_receipt_required": true
+  }
+}

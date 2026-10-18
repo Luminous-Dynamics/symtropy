@@ -1,0 +1,11 @@
+id,partner_product_category,product_category,product_category_id,brand,repair_status,problem,group_identifier,event_date,country,data_provider,record_date,repair_barrier_if_end_of_life
+r-001,Coffee maker,Coffee maker,36,Acme,Fixed,"Intermittent leak, owner reports occasional",G-01,2026-06-01,ZAF,community-group-a,2026-06-02,
+r-002,"Aircon / split unit",Aircon/dehumidifier,1,CoolerCo,Repairable,"Fan noisy; inspection incomplete",G-01,2026-06-02,ZAF,community-group-a,,
+r-003,"Washing machine / front loader",Misc,18,Acmee,0,"No power, owner says stopped",G-02,2026-06-03,ZAF,community-group-b,,
+r-004,Kitchen toaster,Toaster,31,HeatHaus,End of life,Cord damaged,G-02,2026-06-04,ZAF,community-group-b,2026-06-05,1
+r-005,"Small kitchen item","Small kitchen item",29,Acme,End of life,No spare part,G-02,2026-06-04,ZAF,community-group-b,,9
+r-006,"small kitchen item","Coffee maker",36,acmee,maybe fixed,Broken switch,G-03,2026-06-06,ZAF,community-group-c,,
+r-001,Coffee maker,Coffee maker,36,Acme,Fixed,"Later duplicated source identity",G-01,2026-06-07,ZAF,community-group-a,2026-06-08,
+r-008,"Small kitchen item",Toaster,31,HeatHaus,Fixed,"Barrier field must be empty for non-end-of-life",G-04,2026-06-08,ZAF,community-group-d,, "Spare parts too expensive"
+r-009,"Small kitchen item","Small kitchen item",29,acmee,Fixed,"Reported fixed by event owner",G-05,2026-06-10,ZAF,community-group-e,,
+r-010,Vacuum,Vacuum,34,VacuCo,Repairable,"Cable damaged",G-05,2026-06-11,ZAF,community-group-e,,

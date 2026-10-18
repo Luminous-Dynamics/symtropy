@@ -1,0 +1,261 @@
+{
+  "schema_version": "0.1.0",
+  "design_id": "APPLIANCE-DOE-001",
+  "status": "plan_only_not_frozen",
+  "claim_ceiling": "synthetic_plan_only_no_physical_result_no_winner",
+  "factorial_design": {
+    "design_type": "full_2_level_factorial_2_pow_3",
+    "factor_count": 3,
+    "factor_definitions": {
+      "access_architecture": {
+        "level_0": "conventional_access",
+        "level_1": "service_spine",
+        "rationale": "Test whether a deliberate reversible service path changes access and reassembly effort."
+      },
+      "repair_unit_granularity": {
+        "level_0": "assembly_level",
+        "level_1": "smallest_justified_unit",
+        "rationale": "Test whether a smaller defensible replacement unit reduces cost/material without increasing error or recurrence."
+      },
+      "diagnostic_support": {
+        "level_0": "baseline_documentation",
+        "level_1": "evidence_guided_test_before_replace",
+        "rationale": "Test whether discriminating tests reduce wrong-part replacement and rework."
+      }
+    },
+    "task_families": [
+      "FILTER_FOREIGN_OBJECT",
+      "DOOR_LOCK_SEAL",
+      "DRAIN_PUMP",
+      "BEARING_TUB_DRUM"
+    ],
+    "planned_technician_count": 3,
+    "planned_trials_per_cell": 12,
+    "planned_trial_count": 96,
+    "external_control_id": "W0-RETAIL-CONTROL",
+    "comparison_scope": "factorial_cells_share_a_common_service_mockup; retail_W0_is_an_external_contextual_baseline_not_a_factorial_cell",
+    "randomization_policy": "randomize_cell_order_within_technician_by_task_block_and_log_order",
+    "blocking_factors": [
+      "technician_token",
+      "task_family",
+      "session_order"
+    ],
+    "primary_endpoints": [
+      "verified_restoration_probability_per_started_task",
+      "time_to_verified_restoration_with_failure_outcomes_separate"
+    ],
+    "preregistered_interactions": [
+      "A:B",
+      "A:C",
+      "B:C",
+      "A:B:C"
+    ],
+    "denominator_policy": "every_started_task_attempt_including_failed_abandoned_and_safety_stop_stays_in_attempt_denominator",
+    "failure_treatment": "failure_abandonment_and_safety_stop_are_competing_outcomes; only_unresolved_work_at_observation_end_is_right_censored",
+    "frozen_before_outcome": false
+  },
+  "cells": [
+    {
+      "cell_id": "DOE-000",
+      "factor_levels": {
+        "access_architecture": "conventional_access",
+        "repair_unit_granularity": "assembly_level",
+        "diagnostic_support": "baseline_documentation"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=conventional_access; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=assembly_level; diagnostic support=baseline_documentation; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    },
+    {
+      "cell_id": "DOE-001",
+      "factor_levels": {
+        "access_architecture": "conventional_access",
+        "repair_unit_granularity": "assembly_level",
+        "diagnostic_support": "evidence_guided_test_before_replace"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=conventional_access; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=assembly_level; diagnostic support=evidence_guided_test_before_replace; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    },
+    {
+      "cell_id": "DOE-010",
+      "factor_levels": {
+        "access_architecture": "conventional_access",
+        "repair_unit_granularity": "smallest_justified_unit",
+        "diagnostic_support": "baseline_documentation"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=conventional_access; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=smallest_justified_unit; diagnostic support=baseline_documentation; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    },
+    {
+      "cell_id": "DOE-011",
+      "factor_levels": {
+        "access_architecture": "conventional_access",
+        "repair_unit_granularity": "smallest_justified_unit",
+        "diagnostic_support": "evidence_guided_test_before_replace"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=conventional_access; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=smallest_justified_unit; diagnostic support=evidence_guided_test_before_replace; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    },
+    {
+      "cell_id": "DOE-100",
+      "factor_levels": {
+        "access_architecture": "service_spine",
+        "repair_unit_granularity": "assembly_level",
+        "diagnostic_support": "baseline_documentation"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=service_spine; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=assembly_level; diagnostic support=baseline_documentation; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    },
+    {
+      "cell_id": "DOE-101",
+      "factor_levels": {
+        "access_architecture": "service_spine",
+        "repair_unit_granularity": "assembly_level",
+        "diagnostic_support": "evidence_guided_test_before_replace"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=service_spine; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=assembly_level; diagnostic support=evidence_guided_test_before_replace; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    },
+    {
+      "cell_id": "DOE-110",
+      "factor_levels": {
+        "access_architecture": "service_spine",
+        "repair_unit_granularity": "smallest_justified_unit",
+        "diagnostic_support": "baseline_documentation"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=service_spine; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=smallest_justified_unit; diagnostic support=baseline_documentation; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    },
+    {
+      "cell_id": "DOE-111",
+      "factor_levels": {
+        "access_architecture": "service_spine",
+        "repair_unit_granularity": "smallest_justified_unit",
+        "diagnostic_support": "evidence_guided_test_before_replace"
+      },
+      "status": "planned_not_run",
+      "observed_trial_count": 0,
+      "hypotheses": [
+        "Access factor=service_spine; estimate its contribution to successful task restoration without pooling failed attempts out of the denominator.",
+        "Granularity=smallest_justified_unit; diagnostic support=evidence_guided_test_before_replace; estimate main and interaction effects on rework, part scope, and restoration time."
+      ],
+      "required_receipt_types": [
+        "disassembly_and_access_path",
+        "diagnostic_hypothesis_and_test",
+        "post_task_function_and_safety_check"
+      ]
+    }
+  ],
+  "benchmarks": [
+    {
+      "id": "DOE-B-001",
+      "metric_id": "verified_restoration_probability",
+      "target_statement": "Estimate probability of verified restoration per started task with interval estimates; no superiority threshold frozen yet.",
+      "status": "proposal_not_frozen"
+    },
+    {
+      "id": "DOE-B-002",
+      "metric_id": "time_to_verified_restoration",
+      "target_statement": "Report median and P90 time plus unsuccessful, abandoned and safety-stop outcomes; only unresolved tasks at observation end may be right-censored.",
+      "status": "proposal_not_frozen"
+    },
+    {
+      "id": "DOE-B-003",
+      "metric_id": "factor_interactions",
+      "target_statement": "Estimate A:B, A:C, B:C, and A:B:C interaction terms; do not assume the benefit of an isolated pattern transfers additively.",
+      "status": "proposal_not_frozen"
+    },
+    {
+      "id": "DOE-B-004",
+      "metric_id": "diagnostic_false_safe",
+      "target_statement": "Zero false-safe recommendations on a frozen finite hazard/contradictory-control corpus; this is a corpus guardrail, not product safety certification.",
+      "status": "guardrail_contract_only"
+    },
+    {
+      "id": "DOE-B-005",
+      "metric_id": "positive_claim_receipt_coverage",
+      "target_statement": "100% of mock-up task claims labelled verified carry the required post-task function and safety evidence receipts.",
+      "status": "guardrail_contract_only"
+    },
+    {
+      "id": "DOE-B-006",
+      "metric_id": "scope_integrity",
+      "target_statement": "No claim about washer output quality, energy, water, life, or product safety from the unpowered mock-up stage.",
+      "status": "guardrail_contract_only"
+    }
+  ],
+  "physical_trials_started": false,
+  "observed_trial_count": 0,
+  "winner_declared": false,
+  "allowed_claim_scope": "service_task_mockup_hypotheses_only",
+  "prohibited_claims": [
+    "washer_cleaning_quality",
+    "energy_savings",
+    "water_savings",
+    "durability",
+    "product_safety",
+    "legal_conformity"
+  ]
+}

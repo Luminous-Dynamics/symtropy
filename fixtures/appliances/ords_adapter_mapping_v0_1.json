@@ -1,0 +1,185 @@
+{
+  "schema_version": "0.1.0",
+  "adapter_id": "REPAIR-DATA-INTEROP-001",
+  "profile_status": "synthetic_fixture_only",
+  "ords_standard_version": "0.3",
+  "source_dataset": {
+    "release_id": "ORA-2026-10",
+    "source_url": "https://openrepair.org/open-data/downloads/",
+    "license": "CC BY-SA 4.0",
+    "license_lineage": "preserve_attribution_and_share_alike",
+    "retrieved_at": "2026-10-18",
+    "attribution": "Open Repair Alliance; synthetic contract fixture only, no ORA rows embedded"
+  },
+  "mapping_version": "symtropy-ords-appliance-taxonomy/0.1.0",
+  "brand_normalization_version": "brand-lexical-key/0.1.0",
+  "product_category_mappings": [
+    {
+      "ords_product_category": "Aircon/dehumidifier",
+      "ords_product_category_id": 1,
+      "target_family_id": "F7-RESIDENTIAL-HVAC",
+      "mapping_status": "candidate",
+      "confidence": "low",
+      "ambiguity_flag": true,
+      "rationale": "Broad category candidate only; not proof of exact appliance or service compatibility."
+    },
+    {
+      "ords_product_category": "Coffee maker",
+      "ords_product_category_id": 36,
+      "target_family_id": "F8-COOKING-APPLIANCES",
+      "mapping_status": "candidate",
+      "confidence": "low",
+      "ambiguity_flag": true,
+      "rationale": "Broad family candidate; small-device event data does not prove large-appliance applicability."
+    },
+    {
+      "ords_product_category": "Food processor",
+      "ords_product_category_id": 37,
+      "target_family_id": "F8-COOKING-APPLIANCES",
+      "mapping_status": "candidate",
+      "confidence": "low",
+      "ambiguity_flag": true,
+      "rationale": "Broad family candidate only; preserve original category and do not infer product identity."
+    },
+    {
+      "ords_product_category": "Small kitchen item",
+      "ords_product_category_id": 29,
+      "target_family_id": null,
+      "mapping_status": "ambiguous",
+      "confidence": "low",
+      "ambiguity_flag": true,
+      "rationale": "Aggregate category is too broad for a unique Symtropy family assignment."
+    },
+    {
+      "ords_product_category": "Toaster",
+      "ords_product_category_id": 31,
+      "target_family_id": "F8-COOKING-APPLIANCES",
+      "mapping_status": "candidate",
+      "confidence": "low",
+      "ambiguity_flag": true,
+      "rationale": "Broad family candidate only; no part, model, or performance inference is permitted."
+    },
+    {
+      "ords_product_category": "Small home electrical",
+      "ords_product_category_id": 28,
+      "target_family_id": null,
+      "mapping_status": "unmapped",
+      "confidence": "none",
+      "ambiguity_flag": true,
+      "rationale": "Aggregate category is not sufficiently specific for a family assignment."
+    },
+    {
+      "ords_product_category": "Vacuum",
+      "ords_product_category_id": 34,
+      "target_family_id": null,
+      "mapping_status": "unmapped",
+      "confidence": "none",
+      "ambiguity_flag": true,
+      "rationale": "Out of scope for the current nine-family large-appliance portfolio."
+    },
+    {
+      "ords_product_category": "Misc",
+      "ords_product_category_id": 18,
+      "target_family_id": null,
+      "mapping_status": "unmapped",
+      "confidence": "none",
+      "ambiguity_flag": true,
+      "rationale": "Catch-all category must not be transformed into a specific appliance family."
+    }
+  ],
+  "repair_status_mappings": [
+    {
+      "raw_values": [
+        "0",
+        "",
+        "unknown"
+      ],
+      "normalized_status": "unknown",
+      "upstream_meaning": "Upstream outcome is missing or explicitly unknown; it is not failure or success."
+    },
+    {
+      "raw_values": [
+        "1",
+        "fixed"
+      ],
+      "normalized_status": "fixed",
+      "upstream_meaning": "Repairer and owner were satisfied the item could continue to be used at the event."
+    },
+    {
+      "raw_values": [
+        "2",
+        "repairable"
+      ],
+      "normalized_status": "repairable",
+      "upstream_meaning": "Repair was not completed; additional reasonable steps or professional help were identified."
+    },
+    {
+      "raw_values": [
+        "3",
+        "end of life"
+      ],
+      "normalized_status": "end_of_life",
+      "upstream_meaning": "Repairer and owner judged repair not cost-effective or realistic in that event context."
+    }
+  ],
+  "repair_barrier_mappings": [
+    {
+      "raw_values": [
+        "1",
+        "spare parts not available"
+      ],
+      "normalized_barrier": "spare_parts_unavailable",
+      "upstream_meaning": "Spare parts not available."
+    },
+    {
+      "raw_values": [
+        "2",
+        "spare parts too expensive"
+      ],
+      "normalized_barrier": "spare_parts_too_expensive",
+      "upstream_meaning": "Spare parts too expensive."
+    },
+    {
+      "raw_values": [
+        "3",
+        "no way to open product"
+      ],
+      "normalized_barrier": "product_cannot_be_opened",
+      "upstream_meaning": "No way to open product."
+    },
+    {
+      "raw_values": [
+        "4",
+        "repair information not available"
+      ],
+      "normalized_barrier": "repair_information_unavailable",
+      "upstream_meaning": "Repair information not available."
+    },
+    {
+      "raw_values": [
+        "5",
+        "lack of equipment"
+      ],
+      "normalized_barrier": "equipment_unavailable",
+      "upstream_meaning": "Lack of equipment."
+    },
+    {
+      "raw_values": [
+        "6",
+        "item too worn out",
+        "product too worn out"
+      ],
+      "normalized_barrier": "item_too_worn_out",
+      "upstream_meaning": "Item or product too worn out."
+    }
+  ],
+  "policy": {
+    "raw_values_must_be_preserved": true,
+    "barrier_only_when_end_of_life": true,
+    "verified_restoration_receipt_generation_allowed": false,
+    "physical_safety_claim_generation_allowed": false,
+    "exact_part_fit_claim_generation_allowed": false,
+    "population_prevalence_claim_allowed": false,
+    "unknowns_are_not_zero": true
+  }
+}

@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:appliance-repairability-factorial-plan:0.1.0",
+  "title": "Repairability Factorial Experiment Plan v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "design_id",
+    "status",
+    "claim_ceiling",
+    "factorial_design",
+    "cells",
+    "benchmarks",
+    "physical_trials_started",
+    "observed_trial_count",
+    "winner_declared",
+    "allowed_claim_scope",
+    "prohibited_claims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "design_id": {
+      "const": "APPLIANCE-DOE-001"
+    },
+    "status": {
+      "const": "plan_only_not_frozen"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_plan_only_no_physical_result_no_winner"
+    },
+    "factorial_design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design_type",
+        "factor_count",
+        "factor_definitions",
+        "task_families",
+        "planned_technician_count",
+        "planned_trials_per_cell",
+        "planned_trial_count",
+        "external_control_id",
+        "comparison_scope",
+        "randomization_policy",
+        "blocking_factors",
+        "primary_endpoints",
+        "preregistered_interactions",
+        "denominator_policy",
+        "failure_treatment",
+        "frozen_before_outcome"
+      ],
+      "properties": {
+        "design_type": {
+          "const": "full_2_level_factorial_2_pow_3"
+        },
+        "factor_count": {
+          "const": 3
+        },
+        "factor_definitions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "access_architecture",
+            "repair_unit_granularity",
+            "diagnostic_support"
+          ],
+          "properties": {
+            "access_architecture": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "level_0",
+                "level_1",
+                "rationale"
+              ],
+              "properties": {
+                "level_0": {
+                  "const": "conventional_access"
+                },
+                "level_1": {
+                  "const": "service_spine"
+                },
+                "rationale": {
+                  "const": "Test whether a deliberate reversible service path changes access and reassembly effort."
+                }
+              }
+            },
+            "repair_unit_granularity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "level_0",
+                "level_1",
+                "rationale"
+              ],
+              "properties": {
+                "level_0": {
+                  "const": "assembly_level"
+                },
+                "level_1": {
+                  "const": "smallest_justified_unit"
+                },
+                "rationale": {
+                  "const": "Test whether a smaller defensible replacement unit reduces cost/material without increasing error or recurrence."
+                }
+              }
+            },
+            "diagnostic_support": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "level_0",
+                "level_1",
+                "rationale"
+              ],
+              "properties": {
+                "level_0": {
+                  "const": "baseline_documentation"
+                },
+                "level_1": {
+                  "const": "evidence_guided_test_before_replace"
+                },
+                "rationale": {
+                  "const": "Test whether discriminating tests reduce wrong-part replacement and rework."
+                }
+              }
+            }
+          }
+        },
+        "task_families": {
+          "const": [
+            "FILTER_FOREIGN_OBJECT",
+            "DOOR_LOCK_SEAL",
+            "DRAIN_PUMP",
+            "BEARING_TUB_DRUM"
+          ]
+        },
+        "planned_technician_count": {
+          "const": 3
+        },
+        "planned_trials_per_cell": {
+          "const": 12
+        },
+        "planned_trial_count": {
+          "const": 96
+        },
+        "external_control_id": {
+          "const": "W0-RETAIL-CONTROL"
+        },
+        "comparison_scope": {
+          "const": "factorial_cells_share_a_common_service_mockup; retail_W0_is_an_external_contextual_baseline_not_a_factorial_cell"
+        },
+        "randomization_policy": {
+          "const": "randomize_cell_order_within_technician_by_task_block_and_log_order"
+        },
+        "blocking_factors": {
+          "const": [
+            "technician_token",
+            "task_family",
+            "session_order"
+          ]
+        },
+        "primary_endpoints": {
+          "const": [
+            "verified_restoration_probability_per_started_task",
+            "time_to_verified_restoration_with_failure_outcomes_separate"
+          ]
+        },
+        "preregistered_interactions": {
+          "const": [
+            "A:B",
+            "A:C",
+            "B:C",
+            "A:B:C"
+          ]
+        },
+        "denominator_policy": {
+          "const": "every_started_task_attempt_including_failed_abandoned_and_safety_stop_stays_in_attempt_denominator"
+        },
+        "failure_treatment": {
+          "const": "failure_abandonment_and_safety_stop_are_competing_outcomes; only_unresolved_work_at_observation_end_is_right_censored"
+        },
+        "frozen_before_outcome": {
+          "const": false
+        }
+      }
+    },
+    "cells": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/cell"
+      }
+    },
+    "benchmarks": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/benchmark"
+      }
+    },
+    "physical_trials_started": {
+      "const": false
+    },
+    "observed_trial_count": {
+      "const": 0
+    },
+    "winner_declared": {
+      "const": false
+    },
+    "allowed_claim_scope": {
+      "const": "service_task_mockup_hypotheses_only"
+    },
+    "prohibited_claims": {
+      "const": [
+        "washer_cleaning_quality",
+        "energy_savings",
+        "water_savings",
+        "durability",
+        "product_safety",
+        "legal_conformity"
+      ]
+    }
+  },
+  "$defs": {
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cell_id",
+        "factor_levels",
+        "status",
+        "observed_trial_count",
+        "hypotheses",
+        "required_receipt_types"
+      ],
+      "properties": {
+        "cell_id": {
+          "type": "string",
+          "pattern": "^DOE-[01]{3}$"
+        },
+        "factor_levels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "access_architecture",
+            "repair_unit_granularity",
+            "diagnostic_support"
+          ],
+          "properties": {
+            "access_architecture": {
+              "enum": [
+                "conventional_access",
+                "service_spine"
+              ]
+            },
+            "repair_unit_granularity": {
+              "enum": [
+                "assembly_level",
+                "smallest_justified_unit"
+              ]
+            },
+            "diagnostic_support": {
+              "enum": [
+                "baseline_documentation",
+                "evidence_guided_test_before_replace"
+              ]
+            }
+          }
+        },
+        "status": {
+          "const": "planned_not_run"
+        },
+        "observed_trial_count": {
+          "const": 0
+        },
+        "hypotheses": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 15
+          }
+        },
+        "required_receipt_types": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "metric_id",
+        "target_statement",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^DOE-B-[0-9]{3}$"
+        },
+        "metric_id": {
+          "enum": [
+            "verified_restoration_probability",
+            "time_to_verified_restoration",
+            "factor_interactions",
+            "diagnostic_false_safe",
+            "positive_claim_receipt_coverage",
+            "scope_integrity"
+          ]
+        },
+        "target_statement": {
+          "type": "string",
+          "minLength": 10
+        },
+        "status": {
+          "enum": [
+            "proposal_not_frozen",
+            "guardrail_contract_only"
+          ]
+        }
+      }
+    }
+  }
+}

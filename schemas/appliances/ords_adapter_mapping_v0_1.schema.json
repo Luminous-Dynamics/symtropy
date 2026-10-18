@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:ords-appliance-adapter-profile:0.1.0",
+  "title": "ORDS v0.3 appliance research adapter mapping profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_id",
+    "profile_status",
+    "ords_standard_version",
+    "source_dataset",
+    "mapping_version",
+    "brand_normalization_version",
+    "product_category_mappings",
+    "repair_status_mappings",
+    "repair_barrier_mappings",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "adapter_id": {
+      "const": "REPAIR-DATA-INTEROP-001"
+    },
+    "profile_status": {
+      "enum": [
+        "synthetic_fixture_only",
+        "operational_config"
+      ]
+    },
+    "ords_standard_version": {
+      "const": "0.3"
+    },
+    "source_dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_id",
+        "source_url",
+        "license",
+        "license_lineage",
+        "retrieved_at",
+        "attribution"
+      ],
+      "properties": {
+        "release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "license": {
+          "const": "CC BY-SA 4.0"
+        },
+        "license_lineage": {
+          "const": "preserve_attribution_and_share_alike"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "mapping_version": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+/[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "brand_normalization_version": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+/[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "product_category_mappings": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ords_product_category",
+          "ords_product_category_id",
+          "target_family_id",
+          "mapping_status",
+          "confidence",
+          "ambiguity_flag",
+          "rationale"
+        ],
+        "properties": {
+          "ords_product_category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_family_id": {
+            "oneOf": [
+              {
+                "enum": [
+                  "F1-WASHER",
+                  "F2-DISHWASHER",
+                  "F3-REFRIGERATOR-FREEZER",
+                  "F4-HEAT-PUMP-DRYER",
+                  "F5-WASHER-DRYER-COMBO",
+                  "F6-HEAT-PUMP-WATER-HEATER",
+                  "F7-RESIDENTIAL-HVAC",
+                  "F8-COOKING-APPLIANCES",
+                  "F9-VENTILATION-HRV"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mapping_status": {
+            "enum": [
+              "candidate",
+              "ambiguous",
+              "unmapped"
+            ]
+          },
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "none"
+            ]
+          },
+          "ambiguity_flag": {
+            "type": "boolean"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 5
+          },
+          "ords_product_category_id": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "repair_status_mappings": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "raw_values",
+          "normalized_status",
+          "upstream_meaning"
+        ],
+        "properties": {
+          "raw_values": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "normalized_status": {
+            "enum": [
+              "unknown",
+              "fixed",
+              "repairable",
+              "end_of_life"
+            ]
+          },
+          "upstream_meaning": {
+            "type": "string",
+            "minLength": 4
+          }
+        }
+      }
+    },
+    "repair_barrier_mappings": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "raw_values",
+          "normalized_barrier",
+          "upstream_meaning"
+        ],
+        "properties": {
+          "raw_values": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "normalized_barrier": {
+            "enum": [
+              "spare_parts_unavailable",
+              "spare_parts_too_expensive",
+              "product_cannot_be_opened",
+              "repair_information_unavailable",
+              "equipment_unavailable",
+              "item_too_worn_out"
+            ]
+          },
+          "upstream_meaning": {
+            "type": "string",
+            "minLength": 4
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_values_must_be_preserved",
+        "barrier_only_when_end_of_life",
+        "verified_restoration_receipt_generation_allowed",
+        "physical_safety_claim_generation_allowed",
+        "exact_part_fit_claim_generation_allowed",
+        "population_prevalence_claim_allowed",
+        "unknowns_are_not_zero"
+      ],
+      "properties": {
+        "raw_values_must_be_preserved": {
+          "const": true
+        },
+        "barrier_only_when_end_of_life": {
+          "const": true
+        },
+        "verified_restoration_receipt_generation_allowed": {
+          "const": false
+        },
+        "physical_safety_claim_generation_allowed": {
+          "const": false
+        },
+        "exact_part_fit_claim_generation_allowed": {
+          "const": false
+        },
+        "population_prevalence_claim_allowed": {
+          "const": false
+        },
+        "unknowns_are_not_zero": {
+          "const": true
+        }
+      }
+    }
+  }
+}

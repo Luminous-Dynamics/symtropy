@@ -1,0 +1,512 @@
+{
+  "schema_version": "0.1.0",
+  "graph_id": "PARTS-EVIDENCE-001",
+  "as_of_date": "2026-10-18",
+  "target_market": "ZA",
+  "status": "synthetic_contract_examples_only",
+  "claim_ceiling": "synthetic_examples_are_not_real_fitment_supply_repair_or_safety_evidence",
+  "models": [
+    {
+      "model_id": "SYN-MODEL-WASHER-A",
+      "family_id": "F1-WASHER",
+      "model_token": "SYN-WASHER-A",
+      "revision_token": "SYN-REV-A",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "serial_from_token": null,
+      "serial_to_token": null,
+      "evidence_class": "synthetic_fixture"
+    },
+    {
+      "model_id": "SYN-MODEL-WASHER-B",
+      "family_id": "F1-WASHER",
+      "model_token": "SYN-WASHER-B",
+      "revision_token": "SYN-REV-B",
+      "market_code": "ZA",
+      "serial_scope": "known_window",
+      "serial_from_token": "SYN-SN-1000",
+      "serial_to_token": "SYN-SN-1999",
+      "evidence_class": "synthetic_fixture"
+    },
+    {
+      "model_id": "SYN-MODEL-HVAC-A",
+      "family_id": "F7-RESIDENTIAL-HVAC",
+      "model_token": "SYN-HVAC-A",
+      "revision_token": "SYN-REV-C",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "serial_from_token": null,
+      "serial_to_token": null,
+      "evidence_class": "synthetic_fixture"
+    }
+  ],
+  "parts": [
+    {
+      "part_id": "SYN-PART-PUMP-A",
+      "manufacturer_part_token": "SYN-MPN-PUMP-A",
+      "part_type": "drain pump assembly",
+      "revision_token": "SYN-PARTREV-1",
+      "safety_criticality": "controlled",
+      "evidence_class": "synthetic_fixture"
+    },
+    {
+      "part_id": "SYN-PART-SEAL-A",
+      "manufacturer_part_token": "SYN-MPN-SEAL-A",
+      "part_type": "door seal",
+      "revision_token": "SYN-PARTREV-2",
+      "safety_criticality": "controlled",
+      "evidence_class": "synthetic_fixture"
+    },
+    {
+      "part_id": "SYN-PART-VALVE-A",
+      "manufacturer_part_token": "SYN-MPN-VALVE-A",
+      "part_type": "water inlet valve",
+      "revision_token": "SYN-PARTREV-1",
+      "safety_criticality": "controlled",
+      "evidence_class": "synthetic_fixture"
+    },
+    {
+      "part_id": "SYN-PART-PUMP-OLD",
+      "manufacturer_part_token": "SYN-MPN-PUMP-OLD",
+      "part_type": "superseded pump assembly",
+      "revision_token": "SYN-PARTREV-0",
+      "safety_criticality": "controlled",
+      "evidence_class": "synthetic_fixture"
+    },
+    {
+      "part_id": "SYN-PART-FAN-A",
+      "manufacturer_part_token": "SYN-MPN-FAN-A",
+      "part_type": "HVAC fan assembly",
+      "revision_token": "SYN-PARTREV-3",
+      "safety_criticality": "high",
+      "evidence_class": "synthetic_fixture"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "SYN-EV-001",
+      "evidence_kind": "manufacturer_catalogue",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: model-specific manufacturer listing, not a fit/function test."
+    },
+    {
+      "evidence_id": "SYN-EV-002",
+      "evidence_kind": "seller_claim",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-SELLER",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: seller text claims an item fits; no authoritative fit test is present."
+    },
+    {
+      "evidence_id": "SYN-EV-003",
+      "evidence_kind": "cross_reference",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CROSSREF",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: unverified cross-reference relationship only."
+    },
+    {
+      "evidence_id": "SYN-EV-004",
+      "evidence_kind": "physical_fit_test",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: controlled physical-fit check record."
+    },
+    {
+      "evidence_id": "SYN-EV-005",
+      "evidence_kind": "functional_test",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: controlled function-check record."
+    },
+    {
+      "evidence_id": "SYN-EV-006",
+      "evidence_kind": "functional_test",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: second functional verification receipt."
+    },
+    {
+      "evidence_id": "SYN-EV-007",
+      "evidence_kind": "negative_fit_test",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: measured interface mismatch and explicit incompatibility disposition."
+    },
+    {
+      "evidence_id": "SYN-EV-008",
+      "evidence_kind": "supersession_record",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: dated record identifies that an older part mapping is superseded."
+    },
+    {
+      "evidence_id": "SYN-EV-009",
+      "evidence_kind": "physical_fit_test",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: physical fit record for the HVAC fan part."
+    },
+    {
+      "evidence_id": "SYN-EV-010",
+      "evidence_kind": "functional_test",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: functional verification record for the HVAC fan part."
+    },
+    {
+      "evidence_id": "SYN-EV-011",
+      "evidence_kind": "safety_qualification",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-CATALOGUE",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: qualified-scope safety verification record."
+    },
+    {
+      "evidence_id": "SYN-EV-012",
+      "evidence_kind": "delivery_receipt",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-UPSTREAM-1",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: one physical delivery and inspection receipt."
+    },
+    {
+      "evidence_id": "SYN-EV-013",
+      "evidence_kind": "delivery_receipt",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-UPSTREAM-1",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: another retailer delivery receipt but from the same upstream supply group."
+    },
+    {
+      "evidence_id": "SYN-EV-014",
+      "evidence_kind": "supplier_quote",
+      "evidence_class": "synthetic_fixture",
+      "source_token": "SYN-SOURCE-UPSTREAM-2",
+      "source_url": null,
+      "captured_on": "2026-10-18",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "empirical_eligible": false,
+      "notes": "Synthetic scenario: written quote from a separate upstream supplier group."
+    }
+  ],
+  "compatibility_claims": [
+    {
+      "claim_id": "SYN-COMP-001",
+      "model_id": "SYN-MODEL-WASHER-A",
+      "model_revision_token": "SYN-REV-A",
+      "part_id": "SYN-PART-PUMP-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "manufacturer_listed_only",
+      "physical_fit_check": "not_assessed",
+      "functional_check": "not_assessed",
+      "safety_qualification": "not_assessed",
+      "evidence_ids": [
+        "SYN-EV-001"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-002",
+      "model_id": "SYN-MODEL-WASHER-A",
+      "model_revision_token": "SYN-REV-A",
+      "part_id": "SYN-PART-SEAL-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "seller_claim_only",
+      "physical_fit_check": "not_assessed",
+      "functional_check": "not_assessed",
+      "safety_qualification": "not_assessed",
+      "evidence_ids": [
+        "SYN-EV-002"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-003",
+      "model_id": "SYN-MODEL-WASHER-A",
+      "model_revision_token": "SYN-REV-A",
+      "part_id": "SYN-PART-VALVE-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "cross_reference_inferred",
+      "physical_fit_check": "not_assessed",
+      "functional_check": "not_assessed",
+      "safety_qualification": "not_assessed",
+      "evidence_ids": [
+        "SYN-EV-003"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-004",
+      "model_id": "SYN-MODEL-WASHER-A",
+      "model_revision_token": "SYN-REV-A",
+      "part_id": "SYN-PART-PUMP-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "physical_fit_verified",
+      "physical_fit_check": "passed",
+      "functional_check": "not_assessed",
+      "safety_qualification": "not_assessed",
+      "evidence_ids": [
+        "SYN-EV-004"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-005",
+      "model_id": "SYN-MODEL-WASHER-A",
+      "model_revision_token": "SYN-REV-A",
+      "part_id": "SYN-PART-PUMP-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "functional_compatibility_verified",
+      "physical_fit_check": "passed",
+      "functional_check": "passed",
+      "safety_qualification": "not_assessed",
+      "evidence_ids": [
+        "SYN-EV-004",
+        "SYN-EV-005",
+        "SYN-EV-006"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-006",
+      "model_id": "SYN-MODEL-WASHER-B",
+      "model_revision_token": "SYN-REV-B",
+      "part_id": "SYN-PART-SEAL-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "known_window",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "verified_incompatible",
+      "physical_fit_check": "failed",
+      "functional_check": "failed",
+      "safety_qualification": "not_applicable",
+      "evidence_ids": [
+        "SYN-EV-007"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-007",
+      "model_id": "SYN-MODEL-WASHER-B",
+      "model_revision_token": "SYN-REV-B",
+      "part_id": "SYN-PART-VALVE-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "known_window",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "unknown",
+      "physical_fit_check": "not_assessed",
+      "functional_check": "not_assessed",
+      "safety_qualification": "not_assessed",
+      "evidence_ids": [],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-008",
+      "model_id": "SYN-MODEL-WASHER-A",
+      "model_revision_token": "SYN-REV-A",
+      "part_id": "SYN-PART-PUMP-OLD",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": "2025-12-31",
+      "claim_status": "superseded",
+      "physical_fit_check": "not_assessed",
+      "functional_check": "not_assessed",
+      "safety_qualification": "not_assessed",
+      "evidence_ids": [
+        "SYN-EV-008"
+      ],
+      "superseded_by_claim_id": "SYN-COMP-005",
+      "empirical_eligible": false
+    },
+    {
+      "claim_id": "SYN-COMP-009",
+      "model_id": "SYN-MODEL-HVAC-A",
+      "model_revision_token": "SYN-REV-C",
+      "part_id": "SYN-PART-FAN-A",
+      "model_revision_scope": "exact_revision",
+      "market_code": "ZA",
+      "serial_scope": "unknown",
+      "effective_from": "2024-01-01",
+      "effective_until": null,
+      "claim_status": "functional_compatibility_verified",
+      "physical_fit_check": "passed",
+      "functional_check": "passed",
+      "safety_qualification": "qualified_for_declared_scope",
+      "evidence_ids": [
+        "SYN-EV-009",
+        "SYN-EV-010",
+        "SYN-EV-011"
+      ],
+      "superseded_by_claim_id": null,
+      "empirical_eligible": false
+    }
+  ],
+  "supplier_paths": [
+    {
+      "path_id": "SYN-PATH-001",
+      "claim_id": "SYN-COMP-005",
+      "supplier_token": "SYN-SUPPLIER-A",
+      "upstream_dependency_group_token": "SYN-UPSTREAM-1",
+      "commercial_state": "delivered_inspected",
+      "evidence_ids": [
+        "SYN-EV-012"
+      ],
+      "empirical_eligible": false
+    },
+    {
+      "path_id": "SYN-PATH-002",
+      "claim_id": "SYN-COMP-005",
+      "supplier_token": "SYN-SUPPLIER-B",
+      "upstream_dependency_group_token": "SYN-UPSTREAM-1",
+      "commercial_state": "delivered_inspected",
+      "evidence_ids": [
+        "SYN-EV-013"
+      ],
+      "empirical_eligible": false
+    },
+    {
+      "path_id": "SYN-PATH-003",
+      "claim_id": "SYN-COMP-005",
+      "supplier_token": "SYN-SUPPLIER-C",
+      "upstream_dependency_group_token": "SYN-UPSTREAM-2",
+      "commercial_state": "written_quote",
+      "evidence_ids": [
+        "SYN-EV-014"
+      ],
+      "empirical_eligible": false
+    }
+  ],
+  "benchmarks": [
+    {
+      "id": "PC-B-001",
+      "metric_id": "exact_model_evidence_coverage",
+      "target_hypothesis": "Every declared common-repair class has exact model/revision evidence or an explicit unknown/single-source marker.",
+      "status": "proposal_not_frozen",
+      "measurement_rule": "Denominator is the predeclared common-repair class set, not only classes with known parts."
+    },
+    {
+      "id": "PC-B-002",
+      "metric_id": "false_compatible_rate",
+      "target_hypothesis": "Zero false-compatible claims on a frozen positive, negative, and ambiguous holdout corpus.",
+      "status": "guardrail_contract_only",
+      "measurement_rule": "A false-compatible result is presented as verified while independent fit/function evidence disagrees."
+    },
+    {
+      "id": "PC-B-003",
+      "metric_id": "wrong_order_rate",
+      "target_hypothesis": "Reduce misfit orders and returns relative to a documented baseline; freeze a target after baseline data.",
+      "status": "proposal_not_frozen",
+      "measurement_rule": "Count all orders with the exact model/revision; preserve unknown outcomes separately."
+    },
+    {
+      "id": "PC-B-004",
+      "metric_id": "time_to_correct_part",
+      "target_hypothesis": "Reduce median and P90 time from fault confirmation to correct part physically received and identity-checked.",
+      "status": "proposal_not_frozen",
+      "measurement_rule": "Use order-acceptance and delivery timestamps; listing and quote dates are not delivery."
+    },
+    {
+      "id": "PC-B-005",
+      "metric_id": "independent_source_count",
+      "target_hypothesis": "Aim for two independent verified supply paths for critical/common repairs where feasible.",
+      "status": "proposal_not_frozen",
+      "measurement_rule": "Group distributors and suppliers by upstream dependency; same-source resellers count once."
+    },
+    {
+      "id": "PC-B-006",
+      "metric_id": "evidence_freshness",
+      "target_hypothesis": "Every active claim has dated evidence and explicit applicability; stale/superseded claims are flagged.",
+      "status": "guardrail_contract_only",
+      "measurement_rule": "Report capture date, revision coverage, serial scope, recheck date and supersession."
+    }
+  ],
+  "policy": {
+    "identity_rule": "exact_model_revision_and_market_required_for_positive_fitment_claim",
+    "evidence_hierarchy": "seller_claim_or_catalogue_listing_never_implies_physical_fit_function_or_safety_qualification",
+    "unknown_policy": "absence_of_evidence_is_unknown_not_incompatible",
+    "independence_rule": "supplier_paths_sharing_upstream_dependency_group_count_as_one_source",
+    "freshness_rule": "expired_or_superseded_claim_cannot_be_current_fitment_evidence",
+    "winner_claim_allowed": false
+  }
+}

@@ -1,0 +1,1200 @@
+{
+  "schema_version": "0.1.0",
+  "portfolio_id": "APPLIANCE-MORPHOLOGY-001",
+  "status": "design_space_hypotheses_only",
+  "claim_ceiling": "no_physical_compatibility_performance_savings_safety_or_superiority_claim",
+  "families": [
+    {
+      "id": "F1-WASHER",
+      "name": "Washing machine",
+      "primary_function": "Clean, rinse and extract water from declared laundry loads while remaining safe and serviceable.",
+      "critical_constraints": [
+        "Water containment and leakage prevention under static and dynamic load",
+        "Guarding, interlock, electrical isolation, thermal and heavy-rotating assembly hazards",
+        "Tub/bearing fatigue, vibration, noise and tolerance retention over declared life"
+      ],
+      "useful_output_metrics": [
+        "kWh per successful load",
+        "litres per successful load",
+        "cleaning/rinsing/spin performance",
+        "P90 full restoration time",
+        "repeat fault rate"
+      ],
+      "service_boundary": "U0 for intended filter/dispenser/cleaning tasks; qualified work for internal mains, heater, drive, tub and heavy rotating assemblies.",
+      "variants": [
+        {
+          "id": "F1-V0-RETAIL",
+          "kind": "control",
+          "description": "Frozen retail washer baseline with exact model/revision and documented functional state.",
+          "hypothesis": "Provides control function, repair task time, parts supply and resource use.",
+          "tradeoffs": [
+            "May contain non-serviceable tub or integrated modules.",
+            "Used donor condition can confound function and failure-history comparisons."
+          ],
+          "required_tests": [
+            "Frozen task-by-task disassembly and repair protocol.",
+            "Matched successful-load energy/water/function pilot."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F1-V1-SERVICE-SPINE",
+          "kind": "targeted_serviceability",
+          "description": "Reversible access path to documented high-value wear/repair points and diagnostic references.",
+          "hypothesis": "Reduces total restoration burden without making the structure, seals or connectors less reliable.",
+          "tradeoffs": [
+            "Access panels and extra connectors add cost and tolerance stacks.",
+            "Service access can compromise stiffness, noise or water containment."
+          ],
+          "required_tests": [
+            "Timed fault-to-restoration and assembly-error tests.",
+            "Leak, guarded spin, vibration and durability checks."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F1-V2-TUB-TRADE",
+          "kind": "orthogonal_trade",
+          "description": "Separately serviceable bearing/seal boundary compared with a sealed tub assembly.",
+          "hypothesis": "May reduce discarded assembly mass and bearing repair cost if sealing, alignment and fatigue remain acceptable.",
+          "tradeoffs": [
+            "Bolted joints can leak or loosen; precision and reassembly effort increase.",
+            "Benefits depend on bearing incidence, parts supply and labour cost."
+          ],
+          "required_tests": [
+            "Seal/vibration/fatigue test with tolerance records.",
+            "Full lifecycle break-even model including repeated repair and rework."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F2-DISHWASHER",
+      "name": "Dishwasher",
+      "primary_function": "Clean and dry declared loads of crockery while managing spray, drainage, heat and leakage.",
+      "critical_constraints": [
+        "Water leakage, overfill and flood containment",
+        "Heater/electrical and hot-water exposure boundaries",
+        "Wash coverage, drying outcome, hygiene and correct filter/spray performance"
+      ],
+      "useful_output_metrics": [
+        "kWh per successful load",
+        "litres per successful load",
+        "cleaning and drying quality",
+        "leaks after service",
+        "P90 restoration time"
+      ],
+      "service_boundary": "User access only for manual-authorized filters, racks and spray-arm tasks; internal sump, pump, heater and live electrical work require qualified procedures.",
+      "variants": [
+        {
+          "id": "F2-V0-RETAIL",
+          "kind": "control",
+          "description": "Frozen retail dishwasher with documented eco/programme function and known condition.",
+          "hypothesis": "Establishes cleaning, drying, leakage, water/energy and service baselines.",
+          "tradeoffs": [
+            "Built-in installation can bias access time.",
+            "Programme and loading variation can dominate comparisons."
+          ],
+          "required_tests": [
+            "Matched load soils and loading pattern.",
+            "Documented toe-kick and wet-path teardown."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F2-V1-WET-SERVICE",
+          "kind": "targeted_serviceability",
+          "description": "Front-access wet-service region for filter, sump and selected drain components, with explicit leak containment.",
+          "hypothesis": "Can make common wet-path faults repairable without removing unrelated electronics or the whole tank.",
+          "tradeoffs": [
+            "More service boundaries can add gasket and leak failure modes.",
+            "Service region can increase price and packaging volume."
+          ],
+          "required_tests": [
+            "Leak testing after repeated service cycles.",
+            "Cleaning/drying non-inferiority and restore-time study."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F2-V2-SPLIT-PLANES",
+          "kind": "hybrid_candidate",
+          "description": "Separate wet-process module and electronics/actuation plane with clear wiring and water-path separation.",
+          "hypothesis": "Reduces collateral teardown and keeps wet failures from forcing electronics replacement.",
+          "tradeoffs": [
+            "Longer hoses/connectors and wiring can increase parts and assembly error.",
+            "Wet/electrical segregation may complicate compactness."
+          ],
+          "required_tests": [
+            "Water path and ingress tests after repair.",
+            "Harness reassembly/error and fault-isolation trials."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F3-REFRIGERATOR-FREEZER",
+      "name": "Refrigerator/freezer",
+      "primary_function": "Maintain safe, stable chilled/frozen storage across declared ambient and loading conditions.",
+      "critical_constraints": [
+        "Sealed refrigerant and pressure boundaries; flammable refrigerant-specific precautions where applicable",
+        "Insulation, door sealing, condensation and cabinet thermal bridges",
+        "Temperature stability and food-storage functional limits"
+      ],
+      "useful_output_metrics": [
+        "kWh per declared cooled-volume service",
+        "temperature stability and excursions",
+        "door seal restoration time",
+        "air-side maintenance time",
+        "thermal-system recurrence"
+      ],
+      "service_boundary": "Intended gasket and accessible air-side maintenance separated from qualified electrical/refrigerant service; never equate a service module with permission to open a sealed circuit.",
+      "variants": [
+        {
+          "id": "F3-V0-RETAIL",
+          "kind": "control",
+          "description": "Frozen retail refrigerator/freezer baseline with model, refrigerant identity and temperature performance recorded.",
+          "hypothesis": "Sets stable temperature, energy and service baseline over declared ambient/load.",
+          "tradeoffs": [
+            "Ambient climate and door-opening patterns strongly affect measurements.",
+            "Cabinet/insulation lifetime differs from control electronics lifetime."
+          ],
+          "required_tests": [
+            "Temperature mapping and energy test at declared conditions.",
+            "Seal/hinge/defrost/fan access task trial."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F3-V1-AIR-SIDE",
+          "kind": "targeted_serviceability",
+          "description": "Accessible fan, air path, defrost drain and sensor/control service points with a sealed thermal boundary.",
+          "hypothesis": "Routine air-side faults can be resolved without touching the refrigerant circuit.",
+          "tradeoffs": [
+            "Added panels and ducts can introduce thermal leaks/noise/condensate.",
+            "Fan/coil arrangement varies across topologies."
+          ],
+          "required_tests": [
+            "Airflow and temperature uniformity before/after service.",
+            "Condensate, dust, gasket and energy tests."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F3-V2-THERMAL-ISLAND",
+          "kind": "orthogonal_trade",
+          "description": "Qualified-service replaceable sealed refrigeration subsystem as a design concept, retaining product-specific refrigerant procedures.",
+          "hypothesis": "Could isolate expensive thermal work from a durable cabinet when lifecycle costs support exchange.",
+          "tradeoffs": [
+            "Factory joints or service connections can add leak risk and losses.",
+            "Module inventory, refrigerant, charge and certification burden can overwhelm benefits."
+          ],
+          "required_tests": [
+            "Qualified leak/pressure/reliability and applicable conformity tests.",
+            "Full lifecycle comparison including evacuation/recovery and recommissioning."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F4-HEAT-PUMP-DRYER",
+      "name": "Heat-pump tumble dryer",
+      "primary_function": "Remove water from declared laundry loads efficiently while meeting final-moisture and textile-care requirements.",
+      "critical_constraints": [
+        "Sealed refrigerant circuit and qualified pressure/thermal/electrical service",
+        "Airflow, lint accumulation, accessible filter and cleanable heat-exchanger paths",
+        "Condensate drainage, humidity/temperature sensing and fire prevention"
+      ],
+      "useful_output_metrics": [
+        "kWh per kg water removed",
+        "final moisture distribution",
+        "cycle duration",
+        "airflow degradation with lint loading",
+        "condensate performance"
+      ],
+      "service_boundary": "U0 filter and manual-authorized accessible cleaning; refrigerant, power electronics, heater and guarded drive tasks remain qualified service.",
+      "variants": [
+        {
+          "id": "F4-V0-RETAIL",
+          "kind": "control",
+          "description": "Frozen retail heat-pump dryer with energy, load, initial moisture and final moisture recorded.",
+          "hypothesis": "Provides baseline drying energy, cycle time and maintenance burden.",
+          "tradeoffs": [
+            "Inlet moisture varies with washer spin performance.",
+            "Fouling state and ambient humidity influence comparison."
+          ],
+          "required_tests": [
+            "Matched load and initial-moisture protocol.",
+            "Lint/condensate maintenance disassembly study."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F4-V1-AIR-CASSETTE",
+          "kind": "targeted_serviceability",
+          "description": "Owner-accessible lint/airflow/condensate service path and replaceable air-side fan/filter submodules.",
+          "hypothesis": "Can prevent routine cleaning from requiring deep cabinet disassembly and sustain airflow.",
+          "tradeoffs": [
+            "More access seals may leak bypass air or noise.",
+            "Serviceable heat exchanger geometry may be harder to optimize."
+          ],
+          "required_tests": [
+            "Repeated fouling/cleaning and pressure-drop tests.",
+            "Drying efficiency and post-service moisture distribution."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F4-V2-THERMAL-BOUNDARY",
+          "kind": "orthogonal_trade",
+          "description": "Distinct qualified thermal service boundary for heat-pump subsystem and separated low-voltage diagnostic/sensor plane.",
+          "hypothesis": "Could reduce collateral replacements while leaving refrigerant work within qualified service.",
+          "tradeoffs": [
+            "Extra thermal and electrical interfaces can lose efficiency or add failure modes.",
+            "Module exchange cost can remain high due to evacuation/recommissioning requirements."
+          ],
+          "required_tests": [
+            "Qualified leak/energy/durability verification.",
+            "Restoration cost and parts delivery sensitivity."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F5-WASHER-DRYER-COMBO",
+      "name": "Washer-dryer combo",
+      "primary_function": "Provide wash and dry services in one installation while meeting both output specifications within acceptable time and resource use.",
+      "critical_constraints": [
+        "Combined cycle time and loss of the whole appliance from a single-point failure",
+        "Wet, airflow, condensate and thermal/refrigerant interactions",
+        "Both wash quality and dry final-moisture limits"
+      ],
+      "useful_output_metrics": [
+        "successful wash+dry outcome per cycle",
+        "kWh and water per complete cycle",
+        "cycle elapsed time and throughput",
+        "restore time for shared faults",
+        "single-point outage consequence"
+      ],
+      "service_boundary": "Washer wet-service and dryer air/thermal boundary remain independently diagnosable where feasible; qualified hazardous components cannot be downgraded because the device is integrated.",
+      "variants": [
+        {
+          "id": "F5-V0-COMBO",
+          "kind": "control",
+          "description": "Existing combo baseline with complete wash and dry cycle recorded.",
+          "hypothesis": "Establishes a matched baseline for convenience, throughput, maintenance and whole-cycle resource use.",
+          "tradeoffs": [
+            "Integrated architecture can cause a fault in one function to disable both.",
+            "Cycle times and thermal transitions complicate comparisons."
+          ],
+          "required_tests": [
+            "Full combined-cycle measurement and fault mapping.",
+            "Functional comparison to separate washer+dryer context."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F5-V1-ISOLATED-SUBSYSTEMS",
+          "kind": "targeted_serviceability",
+          "description": "Separately mapped and accessible wash hydraulic, air/condensate, and control subsystems.",
+          "hypothesis": "May prevent a localized function failure from forcing replacement of a shared assembly.",
+          "tradeoffs": [
+            "More interfaces can increase assembly effort and leak/fault coupling.",
+            "Packaging may constrain access and thermal performance."
+          ],
+          "required_tests": [
+            "Fault isolation and post-repair wash/dry verification.",
+            "Access and cycle performance under equal loads."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F5-V2-COORDINATED-DRY",
+          "kind": "hybrid_candidate",
+          "description": "Shared service/evidence contract plus moisture-aware wash extraction and drying control; no presumed shared physical heat pump.",
+          "hypothesis": "Could lower whole-laundry energy/elapsed time through better initial moisture and service coordination.",
+          "tradeoffs": [
+            "Sensors and control logic add calibration and failure modes.",
+            "Benefits may depend on load mix, spin limits and textiles."
+          ],
+          "required_tests": [
+            "Matched successful wash+dry outcomes and whole-cycle energy.",
+            "Sensor fault, safe abstention and cross-function recovery tests."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F6-HEAT-PUMP-WATER-HEATER",
+      "name": "Heat-pump water heater",
+      "primary_function": "Deliver declared hot-water volume and temperature with acceptable recovery, standing losses and safe pressure/thermal behaviour.",
+      "critical_constraints": [
+        "Tank/pressure/temperature safety and potable-water compatibility",
+        "Condensate, corrosion/anode, air filters/fan and thermal-system access",
+        "Refrigerant and high-current parts remain qualified service"
+      ],
+      "useful_output_metrics": [
+        "kWh per declared hot-water delivery",
+        "litres delivered at set temperature",
+        "recovery time",
+        "standing heat loss",
+        "condensate/corrosion maintenance"
+      ],
+      "service_boundary": "User-level checks limited to documented external maintenance; tank, pressure, heater, electrical and sealed refrigerant work require product-specific qualified service.",
+      "variants": [
+        {
+          "id": "F6-V0-RETAIL",
+          "kind": "control",
+          "description": "Baseline tank heat-pump unit with inlet conditions, ambient, hot-water draw profile and recovery measured.",
+          "hypothesis": "Sets delivered service and maintenance baseline under declared usage.",
+          "tradeoffs": [
+            "Hot-water draw profiles strongly affect measured efficiency.",
+            "Installation and incoming water conditions change results."
+          ],
+          "required_tests": [
+            "Declared draw/recovery and standby-loss protocol.",
+            "Service access, condensate and corrosion/anode plan review."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F6-V1-DURABLE-TANK-HEAD",
+          "kind": "targeted_serviceability",
+          "description": "Long-life insulated tank/hydronic section with independently accessible air-side fan/filter/condensate and replaceable sensors/controls.",
+          "hypothesis": "Can isolate air-side and control faults from the durable tank while supporting safe service.",
+          "tradeoffs": [
+            "More connections create leak and corrosion interfaces.",
+            "Air-side modules and tank form factor may increase footprint."
+          ],
+          "required_tests": [
+            "Leak/pressure and thermal safety tests.",
+            "Delivered hot-water, recovery and servicing trials."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F6-V2-RESOURCE-ORCHESTRATED",
+          "kind": "hybrid_candidate",
+          "description": "Qualified heat-pump module plus optional PV/thermal-storage scheduling layer with local standalone operating mode.",
+          "hypothesis": "May shift thermal load when energy is cheaper/available without sacrificing hot-water service.",
+          "tradeoffs": [
+            "Extra valves, tanks and controller increase cost and failure modes.",
+            "Savings depend on local climate, tariff, PV and draw profile."
+          ],
+          "required_tests": [
+            "Matched draw profile, standby loss and lifecycle sensitivity.",
+            "Offline/no-network safe operation and fault-injection tests."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F7-RESIDENTIAL-HVAC",
+      "name": "Residential HVAC / air-source heat pump",
+      "primary_function": "Deliver heating/cooling and indoor comfort across declared outdoor climate, building load and part-load operation.",
+      "critical_constraints": [
+        "Refrigerant pressure and product-specific service qualification",
+        "Airflow/coil/condensate/frost management and electrical protection",
+        "Seasonal performance, comfort, humidity, acoustics and defrost behaviour"
+      ],
+      "useful_output_metrics": [
+        "seasonal delivered heating/cooling per kWh",
+        "comfort/humidity within declared envelope",
+        "delivered airflow and sound",
+        "defrost recovery",
+        "qualified restoration time"
+      ],
+      "service_boundary": "Filters and specified accessible air-side checks separated from qualified refrigerant, high-voltage and pressure work; indoor/outdoor compatibility is model-specific.",
+      "variants": [
+        {
+          "id": "F7-V0-RETAIL",
+          "kind": "control",
+          "description": "Baseline installed heat-pump system with declared indoor/outdoor pairing, climate and load profile.",
+          "hypothesis": "Sets seasonal function, noise, comfort, energy and service baseline.",
+          "tradeoffs": [
+            "Installation quality and load sizing dominate results.",
+            "Seasonal metrics require appropriate weather/load bins."
+          ],
+          "required_tests": [
+            "Declared climate/load and seasonal test profile.",
+            "Service access and diagnostic task review."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F7-V1-AIR-THERMAL-SPLIT",
+          "kind": "targeted_serviceability",
+          "description": "Distinct air-handler service region for filters, fan, drain and sensors, separate from qualified thermal circuit work.",
+          "hypothesis": "Can lower routine maintenance time while protecting refrigerant and electrical boundaries.",
+          "tradeoffs": [
+            "Extra panels and connectors can increase airflow leaks/noise.",
+            "Outdoor coil exposure and corrosion remain location-specific."
+          ],
+          "required_tests": [
+            "Airflow/pressure, condensate and acoustic checks.",
+            "Seasonal output and safe post-service verification."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F7-V2-THERMAL-RESOURCE",
+          "kind": "hybrid_candidate",
+          "description": "Versioned control/evidence contracts with optional thermal-storage/PV load scheduling and independent safety control.",
+          "hypothesis": "May improve load shifting without making basic heating/cooling dependent on cloud services.",
+          "tradeoffs": [
+            "More valves/storage/control add maintenance points.",
+            "Savings depend on building, tariff, climate and user preferences."
+          ],
+          "required_tests": [
+            "Part-load/defrost/comfort profile with and without orchestration.",
+            "Network-loss, sensor failure and safe operating-state tests."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F8-COOKING-APPLIANCES",
+      "name": "Oven, cooker and hob",
+      "primary_function": "Deliver controlled cooking/heat output and temperature uniformity with reliable thermal, fire and electrical/gas protection.",
+      "critical_constraints": [
+        "Hot-surface, fire, high-power electrical and gas-specific hazards where applicable",
+        "Thermal insulation, cavity/seal integrity and temperature calibration",
+        "Distinct technology branches: resistance, induction and gas are not physically interchangeable"
+      ],
+      "useful_output_metrics": [
+        "temperature uniformity and recovery",
+        "energy per declared cooking task",
+        "cooking output quality",
+        "post-repair thermal/electrical protection",
+        "door/seal restoration cost"
+      ],
+      "service_boundary": "Owner scope limited to documented cleaning and accessible parts; internal heating/power/gas/insulation work is qualified service.",
+      "variants": [
+        {
+          "id": "F8-V0-RETAIL",
+          "kind": "control",
+          "description": "Baseline oven/hob with selected technology and declared cooking task/temperature programme.",
+          "hypothesis": "Establishes cooking outcome, energy, access and service baseline.",
+          "tradeoffs": [
+            "Food/task and vessel choices affect results.",
+            "Different heat technologies require separate test plans."
+          ],
+          "required_tests": [
+            "Temperature mapping and matched cooking tasks.",
+            "Door/seal/control disassembly and protection review."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F8-V1-ZONE-REPAIR",
+          "kind": "targeted_serviceability",
+          "description": "Separately replaceable zone-level component/control/heater interfaces where technically justified.",
+          "hypothesis": "Can avoid discarding a whole hob/cavity for a localized failure.",
+          "tradeoffs": [
+            "Zone modules may increase wiring/connectors and thermal interaction.",
+            "Induction and gas technology need separate validated architectures."
+          ],
+          "required_tests": [
+            "Temperature uniformity and protection after replacement.",
+            "Repeat assembly, insulation, fire/thermal cycling tests."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F8-V2-DOOR-CONTROL",
+          "kind": "hybrid_candidate",
+          "description": "Serviceable door/seal/hinge, controls and cooling-airflow modules around a durable insulated structure.",
+          "hypothesis": "May extend structural service life while replacing likely wear/control components separately.",
+          "tradeoffs": [
+            "Service seams can harm insulation, cooling airflow or hot-surface performance.",
+            "Thermal cycles can loosen fasteners and deform interfaces."
+          ],
+          "required_tests": [
+            "Thermal-cycle, seal, surface-temperature and electrical tests.",
+            "Repair time and energy under matched cooking output."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    },
+    {
+      "id": "F9-VENTILATION-HRV",
+      "name": "Residential ventilation / heat-recovery ventilator",
+      "primary_function": "Deliver declared fresh-air flow and heat recovery while managing filtration, noise, condensation and cross-contamination.",
+      "critical_constraints": [
+        "Air hygiene and separation of supply/exhaust streams",
+        "Condensate/frost control, sealing and core/bypass operation",
+        "Airflow, pressure drop, acoustic and electrical safety"
+      ],
+      "useful_output_metrics": [
+        "delivered airflow per declared pressure",
+        "heat-recovery effectiveness",
+        "fan energy and sound",
+        "filter pressure drop",
+        "leakage/cross-contamination after service"
+      ],
+      "service_boundary": "User filter maintenance only as documented; fan electrical and core/bypass balancing tasks follow product-specific qualified procedures.",
+      "variants": [
+        {
+          "id": "F9-V0-RETAIL",
+          "kind": "control",
+          "description": "Baseline ventilation/HRV unit with installation and duct configuration frozen.",
+          "hypothesis": "Sets airflow, recovery, pressure, noise and filter service baseline.",
+          "tradeoffs": [
+            "Duct design and installation dominate performance.",
+            "Weather, frost and fouling impact measurement."
+          ],
+          "required_tests": [
+            "Airflow/pressure and heat recovery measurement.",
+            "Filter/core access and condensate inspection trial."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F9-V1-CORE-CASSETTE",
+          "kind": "targeted_serviceability",
+          "description": "Accessible filter, fan and replaceable heat-recovery core with independent seals and clear flow orientation.",
+          "hypothesis": "Allows maintenance or core replacement without removing unrelated duct runs.",
+          "tradeoffs": [
+            "Cassette seals may leak or bypass; extra interfaces increase pressure drop.",
+            "Core access can affect acoustic and thermal insulation."
+          ],
+          "required_tests": [
+            "Leak/bypass and heat-recovery tests after service cycles.",
+            "Filter pressure, fan power, sound and rebalancing burden."
+          ],
+          "status": "hypothesis_not_validated"
+        },
+        {
+          "id": "F9-V2-AIR-SERVICE-FAMILY",
+          "kind": "hybrid_candidate",
+          "description": "Reuse airflow service conventions and evidence contracts with HVAC while retaining ventilation-specific flow and frost controls.",
+          "hypothesis": "May reduce technician training and improve documentation without imposing universal fan/core hardware.",
+          "tradeoffs": [
+            "Common conventions may conceal product-specific pressure/acoustic requirements.",
+            "Frost, humidity and indoor-air quality are site-dependent."
+          ],
+          "required_tests": [
+            "Cross-family usability/assembly study.",
+            "Product-specific flow, condensation, frost and cross-contamination validation."
+          ],
+          "status": "hypothesis_not_validated"
+        }
+      ],
+      "status": "family_profile_not_physically_validated"
+    }
+  ],
+  "design_patterns": [
+    {
+      "id": "M01",
+      "name": "Service spine",
+      "mechanism": "Deliberate reversible access paths and component identification for declared common repair tasks.",
+      "benefit_hypothesis": "Reduce total restore effort and reassembly uncertainty on high-value repair paths.",
+      "failure_modes": [
+        "Access cut-outs can reduce stiffness or worsen sealing.",
+        "Extra panels/fasteners can increase cost or loosen under cycling."
+      ],
+      "validation_metrics": [
+        "P50/P90 task restoration time",
+        "reassembly error and post-service integrity"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M02",
+      "name": "Smallest justified repair unit",
+      "mechanism": "Compare component, functional submodule and major assembly replacement for each fault class.",
+      "benefit_hypothesis": "Minimize lifecycle burden without creating uneconomic micro-repair or oversized modules.",
+      "failure_modes": [
+        "Small modules may be uneconomic or impossible to calibrate safely.",
+        "Large modules discard functional material and increase part cost."
+      ],
+      "validation_metrics": [
+        "all-in restore cost per fault class",
+        "discarded material mass per verified repair"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M03",
+      "name": "Hazard islands",
+      "mechanism": "Separate user task boundaries, qualified internal work and sealed/high-energy systems into explicit service tiers.",
+      "benefit_hypothesis": "Improve safe access while preserving product-specific hazard controls.",
+      "failure_modes": [
+        "Misleading visual boundary can invite unsafe opening.",
+        "Interfaces can compromise insulation, containment or qualification."
+      ],
+      "validation_metrics": [
+        "unsafe-task rate in usability tests",
+        "critical safety findings and post-repair verification completeness"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M04",
+      "name": "Separated wet/air/thermal/control paths",
+      "mechanism": "Make fluid, airflow/condensate, thermal and control routes visible and separately serviceable where justified.",
+      "benefit_hypothesis": "Prevent one subsystem fault from forcing unrelated subsystem disassembly or replacement.",
+      "failure_modes": [
+        "Longer interfaces can leak, foul or increase pressure/thermal losses.",
+        "Segregation may increase packaging and assembly cost."
+      ],
+      "validation_metrics": [
+        "cross-subsystem teardown burden",
+        "leakage, airflow/thermal performance after service"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M05",
+      "name": "Diagnostics before replacement",
+      "mechanism": "Versioned diagnostic graphs with competing hypotheses, safe discriminating checks, unknown states and receipts.",
+      "benefit_hypothesis": "Reduce unnecessary component swaps, false confident diagnoses and repeat visits.",
+      "failure_modes": [
+        "Sensor drift or stale/contradictory telemetry may mislead diagnosis.",
+        "Proprietary access or cloud dependence can block repair."
+      ],
+      "validation_metrics": [
+        "diagnostic accuracy and safe abstention",
+        "first-visit verified restoration and rework"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M06",
+      "name": "Successful-output control",
+      "mechanism": "Use measured useful service outputs, not cycle commands or nominal settings, to evaluate resource use.",
+      "benefit_hypothesis": "Avoid apparent efficiency gains that degrade cleaning, drying, cooling, cooking or comfort.",
+      "failure_modes": [
+        "Poor reference loads/tasks make comparisons incomparable.",
+        "Sensor/calibration errors hide degraded output."
+      ],
+      "validation_metrics": [
+        "energy per successful declared service",
+        "non-inferiority margin on core function"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M07",
+      "name": "Durable shell + replaceable wear layer",
+      "mechanism": "Keep durable shells/insulation/structures separate from justified wear, seal, sensor and control replacements.",
+      "benefit_hypothesis": "Extend useful structural life when replaceable wear parts actually drive repair or retirement.",
+      "failure_modes": [
+        "Service seams can weaken a pressure/thermal envelope.",
+        "Shell durability may not economically outlast other core components."
+      ],
+      "validation_metrics": [
+        "lifetime cost under fault scenarios",
+        "seal/structure endurance and material discarded"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F8-COOKING-APPLIANCES"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M08",
+      "name": "Repair-resilient parts identity",
+      "mechanism": "Exact model/revision part-fit records, supersession, source independence, delivery and returns.",
+      "benefit_hypothesis": "Reduce parts misorders and long outages without treating catalogue visibility as proof of fit.",
+      "failure_modes": [
+        "Multiple sellers can rely on one upstream supplier.",
+        "Supersession can break physical/electrical/firmware compatibility."
+      ],
+      "validation_metrics": [
+        "exact-fit fulfilment ratio",
+        "P50/P90 delivered lead time and misorder rate"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M09",
+      "name": "Selective disassembly and recovery",
+      "mechanism": "Use reversible joints and material labels where a realistic repair/refurbishment/recovery path exists.",
+      "benefit_hypothesis": "Reduce collateral breakage and improve reuse/material recovery at service/end-of-life.",
+      "failure_modes": [
+        "Reversible joints can compromise sealing/retention or add material.",
+        "Mixed-material bonding may still be best for durability/safety in some places."
+      ],
+      "validation_metrics": [
+        "discarded/recovered mass balance",
+        "damage caused per disassembly/reassembly"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "M10",
+      "name": "Shared service contracts, specialized hardware",
+      "mechanism": "Reuse diagnostics, identity, safe-state, part-fit and post-repair schemas; keep physical components product-specific until qualified.",
+      "benefit_hypothesis": "Reuse learning and training without unsafe universal-component assumptions.",
+      "failure_modes": [
+        "Overgeneric schemas may omit unique hazards or useful-output metrics.",
+        "A shared controller/protocol can introduce correlated failure or cyber exposure."
+      ],
+      "validation_metrics": [
+        "cross-family schema coverage/mutation suite",
+        "independent service task success and correlated-failure analysis"
+      ],
+      "applicable_families": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "status": "hypothesis_not_validated"
+    }
+  ],
+  "hybrid_candidates": [
+    {
+      "id": "H01",
+      "name": "Cross-family service contract platform",
+      "family_ids": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "pattern_ids": [
+        "M05",
+        "M08",
+        "M10"
+      ],
+      "combination": "Use stable identity, diagnostic evidence, safe-state, part-fit, role-boundary and post-repair receipt contracts across different appliances.",
+      "benefit_hypothesis": "Transfer service knowledge and auditability between appliance families without falsely standardizing pumps, compressors or boards.",
+      "non_claims": [
+        "No physical component interchangeability is claimed.",
+        "No safety authority is assigned to the diagnostic/control platform."
+      ],
+      "key_trades": [
+        "Shared schema must preserve unique thermal, fluid, electrical and mechanical hazards.",
+        "Common platform failure or cyber exposure could correlate across products."
+      ],
+      "discriminating_tests": [
+        "Mutate one family's hazard/unknown fields and prove the auditor fails closed.",
+        "Conduct held-out cross-family service-task data mapping with product experts."
+      ],
+      "next_gate": "desk_study",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H02",
+      "name": "Washer/dishwasher wet-service conventions",
+      "family_ids": [
+        "F1-WASHER",
+        "F2-DISHWASHER"
+      ],
+      "pattern_ids": [
+        "M01",
+        "M02",
+        "M04",
+        "M08"
+      ],
+      "combination": "Reuse service access, leak containment evidence, part identity and wet-path diagnostic conventions while retaining product-specific pumps, hoses, pressures and materials.",
+      "benefit_hypothesis": "Reduce service learning and access burden on water-handling repair tasks.",
+      "non_claims": [
+        "No shared pump, seal, hose or wetted component is claimed interchangeable.",
+        "No common pressure/temperature rating is assumed."
+      ],
+      "key_trades": [
+        "Detergents, thermal cycles, hydraulics and sanitary constraints differ.",
+        "More service boundaries can add leak points."
+      ],
+      "discriminating_tests": [
+        "Cross-family task usability and service-documentation study.",
+        "Product-specific leak, cleaning performance and connector endurance tests."
+      ],
+      "next_gate": "controlled_disassembly",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H03",
+      "name": "Air-side service cassette family",
+      "family_ids": [
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F7-RESIDENTIAL-HVAC",
+        "F9-VENTILATION-HRV"
+      ],
+      "pattern_ids": [
+        "M01",
+        "M03",
+        "M04",
+        "M08"
+      ],
+      "combination": "Reuse access, filter/fan/condensate inspection conventions and module identity for the air-side while preserving product-specific coil/fan/pressure performance.",
+      "benefit_hypothesis": "Make routine airflow maintenance easier and decouple it from sealed thermal-service procedures.",
+      "non_claims": [
+        "No fan, filter, coil or airflow cassette is claimed universally interchangeable.",
+        "No refrigerant access is granted by air-side modularization."
+      ],
+      "key_trades": [
+        "Pressure drop, noise, moisture, dust and airflow geometries differ.",
+        "Air bypass/seal failure can degrade efficiency and hygiene."
+      ],
+      "discriminating_tests": [
+        "Measure pressure drop, flow, sound, condensate and post-service output for each family.",
+        "Timed clean/service trials with controlled fouling and repeat assembly."
+      ],
+      "next_gate": "controlled_disassembly",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H04",
+      "name": "Qualified thermal-service boundary",
+      "family_ids": [
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC"
+      ],
+      "pattern_ids": [
+        "M02",
+        "M03",
+        "M04",
+        "M10"
+      ],
+      "combination": "Use common documentation and diagnosis semantics to distinguish product-specific sealed thermal subsystems from outer airflow/water service; refrigerant-side work stays qualified.",
+      "benefit_hypothesis": "Reduce collateral replacement and make service scope more predictable for thermal products.",
+      "non_claims": [
+        "No refrigerant connector, charge, compressor, coil or thermal module compatibility is claimed.",
+        "No consumer refrigerant handling is proposed."
+      ],
+      "key_trades": [
+        "Joints and module swaps may increase leak, efficiency and commissioning costs.",
+        "Refrigerant flammability/pressure/safety qualifications differ by product."
+      ],
+      "discriminating_tests": [
+        "Product-specific leak and pressure qualification by competent lab.",
+        "Compare qualified restore cost, recommissioning effort, leak incidence and lifecycle energy."
+      ],
+      "next_gate": "desk_study",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H05",
+      "name": "Durable shell plus replaceable wear layer",
+      "family_ids": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F8-COOKING-APPLIANCES"
+      ],
+      "pattern_ids": [
+        "M02",
+        "M07",
+        "M09"
+      ],
+      "combination": "Separate longer-lived tub support, cabinet/insulation or cavity from justified wear items such as bearings/seals/gaskets/hinges where design allows.",
+      "benefit_hypothesis": "Extend structural life and reduce assembly-level disposal when a wear part can be changed without degrading the safety/function envelope.",
+      "non_claims": [
+        "No universal seal/bearing/hinge geometry or fit is claimed.",
+        "A bolted/reversible joint is not assumed superior to a welded/bonded joint."
+      ],
+      "key_trades": [
+        "Sealing, fatigue, thermal cycling, corrosion and tolerances may worsen.",
+        "Labour and spare-part availability can outweigh material savings."
+      ],
+      "discriminating_tests": [
+        "Physical disassembly and full reassembly test with measured damage and time.",
+        "Seal/fatigue/thermal-vibration tests and lifecycle break-even analysis."
+      ],
+      "next_gate": "desk_study",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H06",
+      "name": "Shared evidence contracts with device-specific controllers",
+      "family_ids": [
+        "F1-WASHER",
+        "F2-DISHWASHER",
+        "F3-REFRIGERATOR-FREEZER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO",
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC",
+        "F8-COOKING-APPLIANCES",
+        "F9-VENTILATION-HRV"
+      ],
+      "pattern_ids": [
+        "M05",
+        "M06",
+        "M10"
+      ],
+      "combination": "Share diagnostic semantics, signed configuration identity, safe-state status and repair receipts, but retain product-specific sensor interfaces and independent protection/control paths.",
+      "benefit_hypothesis": "Lower engineering/support duplication without forcing all products into one fragile control board or cloud dependency.",
+      "non_claims": [
+        "No universal controller board or firmware image is proposed.",
+        "Safety protections remain product-specific and cannot be bypassed by the shared service layer."
+      ],
+      "key_trades": [
+        "Protocol abstraction can hide stale/contradictory measurements.",
+        "Shared dependency can create correlated bugs or cyber risk."
+      ],
+      "discriminating_tests": [
+        "Negative/unknown/stale sensor mutation corpus per family.",
+        "Offline, network-loss, configuration drift and safety independence tests."
+      ],
+      "next_gate": "desk_study",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H07",
+      "name": "Laundry water-removal coordination",
+      "family_ids": [
+        "F1-WASHER",
+        "F4-HEAT-PUMP-DRYER",
+        "F5-WASHER-DRYER-COMBO"
+      ],
+      "pattern_ids": [
+        "M05",
+        "M06",
+        "M10"
+      ],
+      "combination": "Coordinate validated washer extraction/moisture measurements with dryer initial moisture and successful-dry endpoint using explicit interface data.",
+      "benefit_hypothesis": "Reduce drying energy/time for some loads through better initial-state knowledge, while preserving textile and final-moisture requirements.",
+      "non_claims": [
+        "No common physical heat pump or motor is claimed.",
+        "No energy reduction is claimed before matched whole-load measurements."
+      ],
+      "key_trades": [
+        "Sensing/calibration and compatibility add complexity.",
+        "High spin may affect fabrics, noise, residual imbalance or user preferences."
+      ],
+      "discriminating_tests": [
+        "Matched laundry cohorts with initial/final moisture, energy and elapsed-time records.",
+        "Sensor-loss fallback and cross-device interoperability tests."
+      ],
+      "next_gate": "single_factor_physical_trial",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H08",
+      "name": "Thermal resource orchestration",
+      "family_ids": [
+        "F6-HEAT-PUMP-WATER-HEATER",
+        "F7-RESIDENTIAL-HVAC"
+      ],
+      "pattern_ids": [
+        "M05",
+        "M06",
+        "M10"
+      ],
+      "combination": "Optional local controller coordinates water-heating, HVAC and any validated PV/thermal storage using tariff/load forecasts while each appliance remains fully functional standalone.",
+      "benefit_hypothesis": "Shift flexible thermal loads where climate, tariffs and installed system make net lifecycle savings possible.",
+      "non_claims": [
+        "No savings or grid service is claimed for an uncharacterized site.",
+        "No cloud dependency or network-loss hazard is accepted."
+      ],
+      "key_trades": [
+        "Storage/valves/sensors/control add capital cost and failure modes.",
+        "PV/tariff/climate/demand vary and may make coordination uneconomic."
+      ],
+      "discriminating_tests": [
+        "Site-specific load/tariff simulation followed by metered field trial.",
+        "Network loss, bad forecasts, comfort/hot-water reserve and safe fallback tests."
+      ],
+      "next_gate": "desk_study",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H09",
+      "name": "Zone-level cooking repair architecture",
+      "family_ids": [
+        "F8-COOKING-APPLIANCES"
+      ],
+      "pattern_ids": [
+        "M01",
+        "M02",
+        "M03",
+        "M07"
+      ],
+      "combination": "Keep replaceable zone/heater/power/door/control boundaries around a durable insulated structure, with separate branches for induction, resistance and gas.",
+      "benefit_hypothesis": "Avoid whole-appliance replacement where one independently repairable zone/control/wear interface fails.",
+      "non_claims": [
+        "Induction, resistance and gas components are not interchangeable by default.",
+        "No internal user repair of high power, hot cavity or gas train."
+      ],
+      "key_trades": [
+        "Thermal/fire/electrical/gas safety and calibration constrain module splits.",
+        "More connections may degrade thermal uniformity or repeatability."
+      ],
+      "discriminating_tests": [
+        "Per-technology temperature/output and protection checks after service.",
+        "Thermal-cycle endurance, electrical/gas qualification and restore-cost comparison."
+      ],
+      "next_gate": "desk_study",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    },
+    {
+      "id": "H10",
+      "name": "Ventilation/HVAC airflow service conventions",
+      "family_ids": [
+        "F7-RESIDENTIAL-HVAC",
+        "F9-VENTILATION-HRV",
+        "F4-HEAT-PUMP-DRYER",
+        "F3-REFRIGERATOR-FREEZER"
+      ],
+      "pattern_ids": [
+        "M01",
+        "M04",
+        "M08",
+        "M10"
+      ],
+      "combination": "Share service documentation, access design principles and measured airflow/pressure/condensate receipts while retaining each product's flow/core/fan/thermal design.",
+      "benefit_hypothesis": "Improve maintainer training and routine cleaning without sacrificing ventilation balancing, refrigeration temperature or dryer efficiency.",
+      "non_claims": [
+        "No common airflow component or heat-recovery core is claimed.",
+        "No environmental/indoor-air quality superiority is claimed without measurements."
+      ],
+      "key_trades": [
+        "Acoustics, static pressure, condensation, lint/dust and hygiene differ.",
+        "Common interfaces can add restrictions or leakage."
+      ],
+      "discriminating_tests": [
+        "Per-product airflow/pressure/noise/condensate and core function tests.",
+        "Controlled fouling, cleaning, leakage and recalibration trials."
+      ],
+      "next_gate": "controlled_disassembly",
+      "physical_interchangeability": "none_claimed",
+      "status": "hypothesis_not_validated"
+    }
+  ],
+  "portfolio_policy": {
+    "unknown_policy": "unknown_not_zero",
+    "safety_policy": "non_compensatory_product_specific_hard_gates",
+    "component_reuse_policy": "shared_service_contracts_do_not_imply_shared_physical_components",
+    "prioritization_policy": "value_of_information_cost_and_risk_before_breadth",
+    "initial_pilots": [
+      "washer_service_spine",
+      "heat_pump_dryer_air_side_service"
+    ],
+    "market_rule": "verify_jurisdiction_specific_rules_before_design_freeze",
+    "no_winner_claim": true
+  }
+}
