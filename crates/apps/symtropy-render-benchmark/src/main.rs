@@ -8,7 +8,10 @@
 
 use bevy::prelude::*;
 use serde::Serialize;
-use std::{env, path::{Path, PathBuf}};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 use symtropy_demo_capture::CapturePlugin;
 
 const FIXTURE_ID: &str = "SCENE-LIGHT-01";
@@ -88,9 +91,7 @@ impl FrameTimeSampler {
         let context = FrameTimeContext {
             source_commit: env_nonempty("SYMTROPY_DEMO_CAPTURE_COMMIT"),
             fixture_sha256: env_nonempty("SYMTROPY_DEMO_CAPTURE_FIXTURE_SHA256"),
-            render_settings_sha256: env_nonempty(
-                "SYMTROPY_DEMO_CAPTURE_RENDER_SETTINGS_SHA256",
-            ),
+            render_settings_sha256: env_nonempty("SYMTROPY_DEMO_CAPTURE_RENDER_SETTINGS_SHA256"),
             renderer_version: env_nonempty("SYMTROPY_DEMO_CAPTURE_RENDERER_VERSION"),
             gpu_adapter: env_nonempty("SYMTROPY_DEMO_CAPTURE_GPU_ADAPTER"),
             gpu_driver: env_nonempty("SYMTROPY_DEMO_CAPTURE_GPU_DRIVER"),
@@ -118,8 +119,7 @@ impl BenchConfig {
     fn from_env() -> Result<Self, String> {
         let profile = env::var("SYMTROPY_RENDER_BENCH_PROFILE")
             .unwrap_or_else(|_| "balanced-1080p".to_owned());
-        let (width_px, height_px, default_count, default_shadows) =
-            profile_defaults(&profile)?;
+        let (width_px, height_px, default_count, default_shadows) = profile_defaults(&profile)?;
 
         let object_count = match env::var("SYMTROPY_RENDER_BENCH_OBJECTS") {
             Ok(raw) => raw
@@ -332,8 +332,7 @@ fn not_empty(value: &str) -> bool {
 }
 
 fn is_commit_id(value: &str) -> bool {
-    (value.len() == 40 || value.len() == 64)
-        && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    (value.len() == 40 || value.len() == 64) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -342,7 +341,9 @@ fn is_sha256(value: &str) -> bool {
 
 fn write_report_atomically(path: &Path, report: &FrameTimeReport) -> std::io::Result<()> {
     use std::io::Write as _;
-    let parent = path.parent().filter(|parent| !parent.as_os_str().is_empty())
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(std::path::Path::new("."));
     std::fs::create_dir_all(parent)?;
     let temporary = path.with_file_name(format!(
@@ -353,7 +354,10 @@ fn write_report_atomically(path: &Path, report: &FrameTimeReport) -> std::io::Re
     let bytes = serde_json::to_vec_pretty(report)
         .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
     let result = (|| {
-        let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&temporary)?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
         file.write_all(&bytes)?;
         file.sync_all()?;
         drop(file);
@@ -442,10 +446,9 @@ fn setup_scene(
     for index in 0..config.object_count {
         let column = index % columns;
         let row = index / columns;
-        let x = column as f32 * GRID_SPACING
-            - (columns.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
-        let z = row as f32 * GRID_SPACING
-            - (rows.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
+        let x =
+            column as f32 * GRID_SPACING - (columns.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
+        let z = row as f32 * GRID_SPACING - (rows.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
         let scale_y = if index % 11 == 0 { 1.45 } else { 1.0 };
         let material = material_handles[index % material_handles.len()].clone();
 
@@ -526,6 +529,4 @@ mod tests {
         assert_eq!(grid_dimensions(13), (4, 4));
         assert_eq!(grid_dimensions(144), (12, 12));
     }
-
-
 }
