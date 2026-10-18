@@ -226,6 +226,11 @@ fn validate_scenario(scenario: &Scenario, actual_design_basis_sha256: &str) -> C
             scenario.design_basis_sha256, actual_design_basis_sha256
         ));
     }
+    if scenario.design_basis_sha256.len() != 64
+        || !scenario.design_basis_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err("design_basis_sha256 must be 64 hexadecimal characters".to_owned());
+    }
     if scenario.interval_seconds == 0 {
         return Err("interval_seconds must be positive".to_owned());
     }
@@ -756,12 +761,16 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
     }
 
     let mut totals = BTreeTotals::default();
+    let mut expected_soc_before_wh = scenario.battery.initial_state_of_charge_wh;
     for (index, (input, step)) in scenario
         .intervals
         .iter()
         .zip(report.steps.iter())
         .enumerate()
     {
+        if step.battery_soc_before_wh != expected_soc_before_wh {
+            return Err(format!("verifier {}: SOC does not continue from prior interval", input.id));
+        }
         if step.interval_id != input.id {
             return Err(format!("verifier: interval identity mismatch at index {index}"));
         }
@@ -784,17 +793,25 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         {
             return Err(format!("verifier {}: batch energy demand mismatch", input.id));
         }
-        if step.critical_served_wh + step.critical_unserved_wh != step.critical_demand_wh {
+        let critical_reconciled_wh = checked_add(
+            step.critical_served_wh,
+            step.critical_unserved_wh,
+            &format!("verifier {}.critical_reconciliation", input.id),
+        )?;
+        if critical_reconciled_wh != step.critical_demand_wh
+            || step.critical_served_wh > step.critical_demand_wh
+        {
             return Err(format!("verifier {}: critical demand does not reconcile", input.id));
         }
-        if step.critical_generation_wh > generation
-            || step.critical_generation_wh > step.critical_demand_wh
-        {
-            return Err(format!("verifier {}: impossible critical generation allocation", input.id));
+        if step.critical_generation_wh != generation.min(input.critical_load_wh) {
+            return Err(format!("verifier {}: critical generation priority mismatch", input.id));
         }
-        if step.critical_served_wh
-            != step.critical_generation_wh + step.critical_battery_delivered_wh
-        {
+        let critical_source_split_wh = checked_add(
+            step.critical_generation_wh,
+            step.critical_battery_delivered_wh,
+            &format!("verifier {}.critical_source_split", input.id),
+        )?;
+        if step.critical_served_wh != critical_source_split_wh {
             return Err(format!("verifier {}: critical load source split mismatch", input.id));
         }
         if step.process_batch_ran {
@@ -815,14 +832,28 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         {
             return Err(format!("verifier {}: deferred batch consumed energy or feed", input.id));
         }
-        if step.process_batch_ran
-            && step.process_energy_served_wh
-                != step.process_generation_wh + step.process_battery_delivered_wh
-        {
-            return Err(format!("verifier {}: process energy sources do not reconcile", input.id));
+        if step.process_batch_ran {
+            let process_source_split_wh = checked_add(
+                step.process_generation_wh,
+                step.process_battery_delivered_wh,
+                &format!("verifier {}.process_source_split", input.id),
+            )?;
+            if step.process_energy_served_wh != process_source_split_wh {
+                return Err(format!("verifier {}: process energy sources do not reconcile", input.id));
+            }
         }
-        if step.process_generation_wh + step.critical_generation_wh > generation {
+
+        let generation_allocated_wh = checked_add(
+            step.process_generation_wh,
+            step.critical_generation_wh,
+            &format!("verifier {}.generation_allocation", input.id),
+        )?;
+        if generation_allocated_wh > generation {
             return Err(format!("verifier {}: generation allocated more than once", input.id));
+        }
+        let expected_reserve = future_critical_reserve_wh(scenario, index + 1)?;
+        if step.future_critical_reserve_wh != expected_reserve {
+            return Err(format!("verifier {}: future reserve claim mismatch", input.id));
         }
 
         let battery = &scenario.battery;
@@ -837,6 +868,7 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         {
             return Err(format!("verifier {}: battery state transition invalid", input.id));
         }
+        expected_soc_before_wh = step.battery_soc_after_wh;
         if step.battery_energy_withdrawn_wh > battery.max_discharge_withdrawal_wh_per_interval
             || step.battery_charge_input_wh > battery.max_charge_input_wh_per_interval
         {
@@ -851,15 +883,21 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             PPM,
             &format!("verifier {}.discharge_efficiency", input.id),
         )?;
+        let expected_discharge_loss = step
+            .battery_energy_withdrawn_wh
+            .checked_sub(step.battery_energy_delivered_wh)
+            .ok_or_else(|| format!("verifier {}: battery delivered more than withdrawn", input.id))?;
         if step.battery_energy_delivered_wh > physical_discharge_output
-            || step.battery_discharge_loss_wh
-                != step.battery_energy_withdrawn_wh - step.battery_energy_delivered_wh
+            || step.battery_discharge_loss_wh != expected_discharge_loss
         {
             return Err(format!("verifier {}: discharge accounting invalid", input.id));
         }
-        if step.battery_energy_delivered_wh
-            != step.critical_battery_delivered_wh + step.process_battery_delivered_wh
-        {
+        let allocated_battery_delivery_wh = checked_add(
+            step.critical_battery_delivered_wh,
+            step.process_battery_delivered_wh,
+            &format!("verifier {}.battery_delivery_allocation", input.id),
+        )?;
+        if step.battery_energy_delivered_wh != allocated_battery_delivery_wh {
             return Err(format!("verifier {}: battery delivery allocation mismatch", input.id));
         }
         let physical_charge_storage = mul_div_floor(
@@ -868,17 +906,24 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             PPM,
             &format!("verifier {}.charge_efficiency", input.id),
         )?;
+        let expected_charge_loss = step
+            .battery_charge_input_wh
+            .checked_sub(step.battery_energy_stored_wh)
+            .ok_or_else(|| format!("verifier {}: stored energy exceeds charge input", input.id))?;
         if step.battery_energy_stored_wh != physical_charge_storage
-            || step.battery_charge_loss_wh
-                != step.battery_charge_input_wh - step.battery_energy_stored_wh
+            || step.battery_charge_loss_wh != expected_charge_loss
         {
             return Err(format!("verifier {}: charge accounting invalid", input.id));
         }
-        if step.curtailed_generation_wh + step.battery_charge_input_wh
-            != generation
-                - step.critical_generation_wh
-                - step.process_generation_wh
-        {
+        let generation_surplus_wh = generation
+            .checked_sub(generation_allocated_wh)
+            .ok_or_else(|| format!("verifier {}: generation load allocation exceeds source", input.id))?;
+        let accounted_generation_surplus_wh = checked_add(
+            step.curtailed_generation_wh,
+            step.battery_charge_input_wh,
+            &format!("verifier {}.generation_surplus", input.id),
+        )?;
+        if accounted_generation_surplus_wh != generation_surplus_wh {
             return Err(format!("verifier {}: generation surplus does not reconcile", input.id));
         }
 
