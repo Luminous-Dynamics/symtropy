@@ -324,11 +324,11 @@ pub struct EstimateDeltaDiagnostic {
     pub perturbed_estimate_id: String,
     pub quantity: String,
     pub unit: String,
-    pub baseline_value: f64,
-    pub perturbed_value: f64,
-    /// Perturbed value minus baseline value, in the estimate's declared unit.
-    pub delta_value: f64,
-    pub absolute_delta: f64,
+    pub baseline_value_decimal: String,
+    pub perturbed_value_decimal: String,
+    /// Exact decimal-string difference: perturbed value minus baseline value.
+    pub delta_value_decimal: String,
+    pub absolute_delta_decimal: String,
     pub direction: DeltaDirection,
     pub variant_description: String,
     pub dependence_note: String,
@@ -356,18 +356,21 @@ pub fn analyze_estimate_delta(
     if baseline.interval.is_some() || perturbed.interval.is_some() {
         return Err("estimate delta requires two point-valued estimates; use an interval contrast otherwise".to_owned());
     }
-    let baseline_value = parse_finite_decimal(&baseline.value_decimal)
-        .ok_or_else(|| "baseline value is not a finite decimal".to_owned())?;
-    let perturbed_value = parse_finite_decimal(&perturbed.value_decimal)
-        .ok_or_else(|| "perturbed value is not a finite decimal".to_owned())?;
-    let delta_value = perturbed_value - baseline_value;
-    let direction = if delta_value > 0.0 {
-        DeltaDirection::Increase
-    } else if delta_value < 0.0 {
-        DeltaDirection::Decrease
-    } else {
-        DeltaDirection::Unchanged
+    parse_decimal_parts(&baseline.value_decimal)
+        .ok_or_else(|| "baseline value is not a finite plain decimal".to_owned())?;
+    parse_decimal_parts(&perturbed.value_decimal)
+        .ok_or_else(|| "perturbed value is not a finite plain decimal".to_owned())?;
+    let delta_value_decimal = subtract_decimal_strings(&perturbed.value_decimal, &baseline.value_decimal)
+        .ok_or_else(|| "could not calculate exact decimal difference".to_owned())?;
+    let direction = match compare_decimal_strings(&perturbed.value_decimal, &baseline.value_decimal)
+        .ok_or_else(|| "could not compare exact decimal values".to_owned())? {
+        std::cmp::Ordering::Greater => DeltaDirection::Increase,
+        std::cmp::Ordering::Less => DeltaDirection::Decrease,
+        std::cmp::Ordering::Equal => DeltaDirection::Unchanged,
     };
+    let absolute_delta_decimal = delta_value_decimal.strip_prefix('-')
+        .unwrap_or(&delta_value_decimal)
+        .to_owned();
 
     Ok(EstimateDeltaDiagnostic {
         delta_id: delta.id.clone(),
@@ -375,10 +378,10 @@ pub fn analyze_estimate_delta(
         perturbed_estimate_id: perturbed.id.clone(),
         quantity: baseline.quantity.clone(),
         unit: baseline.unit.clone(),
-        baseline_value,
-        perturbed_value,
-        delta_value,
-        absolute_delta: delta_value.abs(),
+        baseline_value_decimal: baseline.value_decimal.clone(),
+        perturbed_value_decimal: perturbed.value_decimal.clone(),
+        delta_value_decimal,
+        absolute_delta_decimal,
         direction,
         variant_description: delta.variant_description.clone(),
         dependence_note: delta.dependence_note.clone(),
@@ -393,14 +396,14 @@ pub struct PointIntervalDiagnostic {
     pub reference_estimate_id: String,
     pub quantity: String,
     pub unit: String,
-    pub candidate_value: f64,
-    pub interval_lower: f64,
-    pub interval_upper: f64,
+    pub candidate_value_decimal: String,
+    pub interval_lower_decimal: String,
+    pub interval_upper_decimal: String,
     pub interval_kind: IntervalKind,
     pub coverage_percent: Option<String>,
     pub position: IntervalPosition,
-    /// Distance in the declared unit; zero means the point lies within the reported bounds.
-    pub distance_to_interval: f64,
+    /// Exact decimal-string distance in the declared unit; zero means the point is within bounds.
+    pub distance_to_interval_decimal: String,
     pub interpretation_limit: String,
 }
 
@@ -429,23 +432,32 @@ pub fn analyze_estimate_contrast(
         .interval
         .as_ref()
         .ok_or_else(|| "reference estimate has no reported uncertainty interval".to_owned())?;
-    let candidate_value = parse_finite_decimal(&candidate.value_decimal)
-        .ok_or_else(|| "candidate value is not a finite decimal".to_owned())?;
-    let interval_lower = parse_finite_decimal(&interval.lower_decimal)
-        .ok_or_else(|| "interval lower bound is not a finite decimal".to_owned())?;
-    let interval_upper = parse_finite_decimal(&interval.upper_decimal)
-        .ok_or_else(|| "interval upper bound is not a finite decimal".to_owned())?;
-
-    if interval_lower > interval_upper {
+    parse_decimal_parts(&candidate.value_decimal)
+        .ok_or_else(|| "candidate value is not a finite plain decimal".to_owned())?;
+    let bound_order = compare_decimal_strings(&interval.lower_decimal, &interval.upper_decimal)
+        .ok_or_else(|| "reference interval endpoints must be finite plain decimals".to_owned())?;
+    if bound_order == std::cmp::Ordering::Greater {
         return Err("reference interval lower bound exceeds its upper bound".to_owned());
     }
+    let lower_order = compare_decimal_strings(&candidate.value_decimal, &interval.lower_decimal)
+        .ok_or_else(|| "candidate value and interval lower bound must be finite plain decimals".to_owned())?;
+    let upper_order = compare_decimal_strings(&candidate.value_decimal, &interval.upper_decimal)
+        .ok_or_else(|| "candidate value and interval upper bound must be finite plain decimals".to_owned())?;
 
-    let (position, distance_to_interval) = if candidate_value < interval_lower {
-        (IntervalPosition::Below, interval_lower - candidate_value)
-    } else if candidate_value > interval_upper {
-        (IntervalPosition::Above, candidate_value - interval_upper)
+    let (position, distance_to_interval_decimal) = if lower_order == std::cmp::Ordering::Less {
+        (
+            IntervalPosition::Below,
+            subtract_decimal_strings(&interval.lower_decimal, &candidate.value_decimal)
+                .ok_or_else(|| "could not calculate exact decimal distance".to_owned())?,
+        )
+    } else if upper_order == std::cmp::Ordering::Greater {
+        (
+            IntervalPosition::Above,
+            subtract_decimal_strings(&candidate.value_decimal, &interval.upper_decimal)
+                .ok_or_else(|| "could not calculate exact decimal distance".to_owned())?,
+        )
     } else {
-        (IntervalPosition::Within, 0.0)
+        (IntervalPosition::Within, "0".to_owned())
     };
 
     Ok(PointIntervalDiagnostic {
@@ -454,13 +466,13 @@ pub fn analyze_estimate_contrast(
         reference_estimate_id: reference.id.clone(),
         quantity: candidate.quantity.clone(),
         unit: candidate.unit.clone(),
-        candidate_value,
-        interval_lower,
-        interval_upper,
+        candidate_value_decimal: candidate.value_decimal.clone(),
+        interval_lower_decimal: interval.lower_decimal.clone(),
+        interval_upper_decimal: interval.upper_decimal.clone(),
         interval_kind: interval.kind,
         coverage_percent: interval.coverage_percent.clone(),
         position,
-        distance_to_interval,
+        distance_to_interval_decimal,
         interpretation_limit: contrast.interpretation_limit.clone(),
     })
 }
@@ -650,12 +662,108 @@ fn validate_rights(
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct DecimalParts {
+    coefficient: i128,
+    scale: u32,
+}
+
+/// Parse a plain base-10 decimal exactly. Exponents and non-finite tokens are rejected.
+fn parse_decimal_parts(value: &str) -> Option<DecimalParts> {
+    if value.trim() != value || value.is_empty() {
+        return None;
+    }
+    let (negative, unsigned) = if let Some(rest) = value.strip_prefix('-') {
+        (true, rest)
+    } else if let Some(rest) = value.strip_prefix('+') {
+        (false, rest)
+    } else {
+        (false, value)
+    };
+    let mut parts = unsigned.split('.');
+    let whole = parts.next()?;
+    let fraction = parts.next().unwrap_or("");
+    if parts.next().is_some() || (whole.is_empty() && fraction.is_empty()) {
+        return None;
+    }
+    if (!whole.is_empty() && !whole.bytes().all(|byte| byte.is_ascii_digit()))
+        || (!fraction.is_empty() && !fraction.bytes().all(|byte| byte.is_ascii_digit()))
+        || fraction.len() > 18
+    {
+        return None;
+    }
+    let whole = if whole.is_empty() { "0" } else { whole };
+    let digits = format!("{whole}{fraction}");
+    let mut coefficient = digits.parse::<i128>().ok()?;
+    if negative {
+        coefficient = coefficient.checked_neg()?;
+    }
+    let mut scale = fraction.len() as u32;
+    while scale > 0 && coefficient % 10 == 0 {
+        coefficient /= 10;
+        scale -= 1;
+    }
+    Some(DecimalParts { coefficient, scale })
+}
+
+fn decimal_power10(power: u32) -> Option<i128> {
+    (0..power).try_fold(1_i128, |value, _| value.checked_mul(10))
+}
+
+fn aligned_decimal_coefficients(left: &str, right: &str) -> Option<(i128, i128, u32)> {
+    let left = parse_decimal_parts(left)?;
+    let right = parse_decimal_parts(right)?;
+    let scale = left.scale.max(right.scale);
+    let left_factor = decimal_power10(scale - left.scale)?;
+    let right_factor = decimal_power10(scale - right.scale)?;
+    Some((
+        left.coefficient.checked_mul(left_factor)?,
+        right.coefficient.checked_mul(right_factor)?,
+        scale,
+    ))
+}
+
+fn compare_decimal_strings(left: &str, right: &str) -> Option<std::cmp::Ordering> {
+    let (left, right, _) = aligned_decimal_coefficients(left, right)?;
+    Some(left.cmp(&right))
+}
+
+fn format_decimal(coefficient: i128, scale: u32) -> String {
+    let negative = coefficient < 0;
+    let digits = coefficient.unsigned_abs().to_string();
+    let sign = if negative && coefficient != 0 { "-" } else { "" };
+    if scale == 0 {
+        return format!("{sign}{digits}");
+    }
+    let padded = if digits.len() <= scale as usize {
+        format!("{}{}", "0".repeat(scale as usize + 1 - digits.len()), digits)
+    } else {
+        digits
+    };
+    let split = padded.len() - scale as usize;
+    let whole = &padded[..split];
+    let fraction = padded[split..].trim_end_matches('0');
+    if fraction.is_empty() {
+        format!("{sign}{whole}")
+    } else {
+        format!("{sign}{whole}.{fraction}")
+    }
+}
+
+fn subtract_decimal_strings(left: &str, right: &str) -> Option<String> {
+    let (left, right, scale) = aligned_decimal_coefficients(left, right)?;
+    Some(format_decimal(left.checked_sub(right)?, scale))
+}
+
 fn parse_finite_decimal(value: &str) -> Option<f64> {
-    value.parse::<f64>().ok().filter(|number| number.is_finite())
+    let decimal = parse_decimal_parts(value)?;
+    let denominator = decimal_power10(decimal.scale)? as f64;
+    let number = decimal.coefficient as f64 / denominator;
+    number.is_finite().then_some(number)
 }
 
 fn is_finite_decimal(value: &str) -> bool {
-    parse_finite_decimal(value).is_some()
+    parse_decimal_parts(value).is_some()
 }
 
 fn validate_evidence_links(
@@ -1713,21 +1821,21 @@ mod tests {
             .find(|delta| delta.id == "antikythera:delta-posterior-n354-trimmed")
             .unwrap();
         let result = analyze_estimate_delta(&data, n354).unwrap();
-        assert!((result.delta_value - 0.0797).abs() < 1e-9);
+        assert_eq!(result.delta_value_decimal, "0.0797");
         assert_eq!(result.direction, DeltaDirection::Increase);
 
         let n355 = data.estimate_deltas.iter()
             .find(|delta| delta.id == "antikythera:delta-posterior-n355-trimmed")
             .unwrap();
         let result = analyze_estimate_delta(&data, n355).unwrap();
-        assert!((result.delta_value - (-0.0572)).abs() < 1e-9);
+        assert_eq!(result.delta_value_decimal, "-0.0572");
         assert_eq!(result.direction, DeltaDirection::Decrease);
 
         let n356 = data.estimate_deltas.iter()
             .find(|delta| delta.id == "antikythera:delta-posterior-n356-trimmed")
             .unwrap();
         let result = analyze_estimate_delta(&data, n356).unwrap();
-        assert!((result.delta_value - (-0.1306)).abs() < 1e-9);
+        assert_eq!(result.delta_value_decimal, "-0.1306");
         assert_eq!(result.direction, DeltaDirection::Decrease);
         assert!(result.dependence_note.contains("not independent"));
     }
@@ -1776,7 +1884,7 @@ mod tests {
             .unwrap();
         let diagnostic = analyze_estimate_contrast(&data, contrast_365).unwrap();
         assert_eq!(diagnostic.position, IntervalPosition::Above);
-        assert!((diagnostic.distance_to_interval - 8.37).abs() < 1e-9);
+        assert_eq!(diagnostic.distance_to_interval_decimal, "8.37");
         assert_eq!(diagnostic.coverage_percent.as_deref(), Some("68"));
 
         let contrast_354 = data
@@ -1786,7 +1894,7 @@ mod tests {
             .unwrap();
         let diagnostic = analyze_estimate_contrast(&data, contrast_354).unwrap();
         assert_eq!(diagnostic.position, IntervalPosition::Within);
-        assert_eq!(diagnostic.distance_to_interval, 0.0);
+        assert_eq!(diagnostic.distance_to_interval_decimal, "0");
         assert!(diagnostic.interpretation_limit.contains("does not by itself establish"));
     }
 
