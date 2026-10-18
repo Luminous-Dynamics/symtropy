@@ -16,7 +16,9 @@
 //! When `SYMTROPY_DEMO_CAPTURE_DIR` is unset the plugin is a no-op. When
 //! set, it schedules PNG screenshots at `t = 1.5, 4.0, 7.0 s` of real
 //! time, then writes `AppExit::Success` at `t = 8.5 s` so the process
-//! terminates cleanly.
+//! terminates cleanly. The plugin writes a versioned JSON receipt beside the
+//! images; missing, corrupt, undecodable, or dimension-mismatched captures
+//! produce a non-success process exit.
 //!
 //! Pattern cloned verbatim from
 //! `symtropy/crates/symtropy-bevy/examples/pendulum_swarm.rs` (which is
@@ -24,6 +26,10 @@
 
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
+use std::num::NonZeroU8;
+
+pub mod receipt;
+pub use receipt::{CaptureMetadata, CaptureReceipt, ImageReceipt, write_capture_receipt};
 
 /// Per-capture-run scheduling state. Present as a resource only when the
 /// env var was set at plugin-build time.
@@ -44,6 +50,8 @@ struct CaptureSchedule {
     last_capture_at: Option<f32>,
     /// Expected capture files. The plugin exits only after these exist.
     pending_paths: Vec<String>,
+    /// Prevent duplicate receipt writes and exit messages if the final frame runs again.
+    finished: bool,
 }
 
 /// Plugin that wires up headless capture when
@@ -79,6 +87,7 @@ impl Plugin for CapturePlugin {
             exit_at,
             last_capture_at: None,
             pending_paths: Vec::new(),
+            finished: false,
         });
         app.add_systems(Update, headless_capture);
     }
@@ -110,6 +119,9 @@ fn headless_capture(
     mut sched: ResMut<CaptureSchedule>,
     mut exit: MessageWriter<AppExit>,
 ) {
+    if sched.finished {
+        return;
+    }
     let now = time.elapsed_secs();
     if sched.fired < sched.schedule.len() && now >= sched.schedule[sched.fired] {
         let label = sched.schedule[sched.fired];
@@ -144,7 +156,34 @@ fn headless_capture(
         && captures_flushed
         && (captures_on_disk || timed_out)
     {
-        info!("symtropy-demo-capture: done — exiting");
-        exit.write(AppExit::Success);
+        sched.finished = true;
+        let receipt = CaptureReceipt::build(
+            sched.stem.clone(),
+            &sched.schedule,
+            &sched.pending_paths,
+            CaptureMetadata::from_env(),
+        );
+        let image_capture_complete = receipt.capture_complete;
+        match write_capture_receipt(&sched.dir, &sched.stem, &receipt) {
+            Ok(path) => info!(
+                "symtropy-demo-capture: wrote receipt {} ({}, {})",
+                path.display(),
+                receipt.capture_status,
+                receipt.qualification_status
+            ),
+            Err(error) => error!(
+                "symtropy-demo-capture: failed to write capture receipt: {error}"
+            ),
+        }
+
+        if captures_on_disk && image_capture_complete {
+            info!("symtropy-demo-capture: all expected PNGs verified — exiting");
+            exit.write(AppExit::Success);
+        } else {
+            error!("symtropy-demo-capture: incomplete capture; exiting with failure");
+            exit.write(AppExit::Error(
+                NonZeroU8::new(1).expect("one is a non-zero process exit code"),
+            ));
+        }
     }
 }
