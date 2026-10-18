@@ -51,7 +51,7 @@ Datasets may include `estimates`, `reconstruction_models`, and `model_comparison
 - Reconstruction records name the claim IDs and estimate IDs they depend on, and declare whether they describe a published interpretation, a published candidate design, or a hypothesis.
 - A comparison group must reference at least two distinct models and list explicit evaluation axes and a declared decision rule. Per-model/per-axis assessments distinguish `source_reported`, `independently_reproduced`, `hypothesis`, and `not_evaluated`. Independently reproduced results must include a versioned validation artifact; a paper's report cannot be relabeled as our reproduction. The schema does not infer a single winner or aggregate incomparable evidence into a score.
 
-The Antikythera seed now contains ten quantitative records: the 365-hole and 354-hole reconstruction parameters, two 68% credible estimates from the 2024 analysis under different data treatments, and six source-reported discrete posterior probabilities for N=354/355/356 under full and trimmed data. It also includes three reconstruction-model records, one explicit comparison group, four point-vs-interval contrasts, and three paired full-vs-trimmed sensitivity deltas.
+The Antikythera seed now contains 30 quantitative records: four ring-count parameters/credible estimates plus all 26 discrete posterior values in Table 2 for N=349–361 under both full and trimmed data. It includes three reconstruction-model records, one comparison group, four point-vs-interval contrasts, thirteen paired full-vs-trimmed sensitivity deltas, and one explicitly planned (not executed) reproduction run.
 
 Run against this case study:
 
@@ -85,12 +85,27 @@ For the Antikythera research seed, the expected descriptive result is:
 
 These are arithmetic locations relative to intervals reported by a paper. They are **not** posterior model probabilities, Bayes factors, or a formal adjudication of the calendar-ring interpretation. Woan and Bayley's two intervals are alternative analyses of related measurements, not independent replications. The 354 and 365 values are published reconstruction parameters; comparing one to an interval does not itself prove which historical model is correct.
 
-The same seed records Table 2's source-reported discrete posterior probabilities:
-- N=354: 0.1917 (all data) to 0.2714 (trimmed), a change of +0.0797.
-- N=355: 0.2823 to 0.2251, a change of -0.0572.
-- N=356: 0.2479 to 0.1173, a change of -0.1306.
+The seed now transcribes every displayed row in Table 2 of [Woan and Bayley's paper](https://eprints.gla.ac.uk/329337/2/329337.pdf) and records the difference (trimmed minus full) for all 13 integer counts. Values below are source-reported, rounded to four decimal places:
 
-The deltas are simple differences between table values rounded to four decimals. The trimmed dataset excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76, and 81). These outputs demonstrate sensitivity to data handling within the same paper; they are not independent observations, new posterior calculations, or proof that one calendar interpretation is true.
+| N holes | Full | Trimmed | Delta |
+|---:|---:|---:|---:|
+| 349 | 0.0000 | 0.0006 | +0.0006 |
+| 350 | 0.0002 | 0.0055 | +0.0053 |
+| 351 | 0.0027 | 0.0293 | +0.0266 |
+| 352 | 0.0187 | 0.0978 | +0.0791 |
+| 353 | 0.0776 | 0.2056 | +0.1280 |
+| 354 | 0.1917 | 0.2714 | +0.0797 |
+| 355 | 0.2823 | 0.2251 | -0.0572 |
+| 356 | 0.2479 | 0.1173 | -0.1306 |
+| 357 | 0.1298 | 0.0384 | -0.0914 |
+| 358 | 0.0405 | 0.0079 | -0.0326 |
+| 359 | 0.0075 | 0.0010 | -0.0065 |
+| 360 | 0.0008 | 0.0001 | -0.0007 |
+| 361 | 0.0001 | 0.0000 | -0.0001 |
+
+The full column sums to 0.9998 at displayed precision; the trimmed column sums to 1.0000. The small discrepancy in the full column is consistent with rounding individual probabilities to four decimals and should not be silently renormalized. The deltas are exact decimal differences between the displayed source values, not new posterior estimates.
+
+The trimmed dataset excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76, and 81). These are related analyses of the same measurements, not independent observations or proof that one calendar interpretation is true.
 
 ## Synthetic fixture
 
