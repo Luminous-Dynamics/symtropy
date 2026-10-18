@@ -8,8 +8,11 @@
 //! The visual asset is supplied by the application; no model or motion-capture asset is
 //! bundled or silently downloaded by this crate.
 
-use std::time::Duration;
+use std::{error::Error, fmt, time::Duration};
 
+use crate::human_motion_intent::{
+    IntentValidationError, MotionIntentKind, SemanticMotionIntent,
+};
 use bevy::animation::{
     AnimationGraph, AnimationGraphHandle, AnimationNodeIndex, AnimationPlayer,
     AnimationTransitions,
@@ -95,6 +98,58 @@ struct HumanAnimationRuntime {
 pub struct HumanLocomotionIntent {
     /// Desired world-space planar velocity (x, z), in metres per second.
     pub desired_planar_velocity_mps: Vec2,
+}
+
+/// Error from translating a high-level semantic intent to this controller's
+/// currently supported low-level locomotion input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SemanticIntentAdapterError {
+    InvalidIntent(IntentValidationError),
+    UnsupportedIntentKind(MotionIntentKind),
+}
+
+impl fmt::Display for SemanticIntentAdapterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidIntent(error) => write!(f, "invalid semantic motion intent: {error}"),
+            Self::UnsupportedIntentKind(kind) => {
+                write!(f, "semantic intent {kind:?} is not implemented by the idle/walk/run adapter")
+            }
+        }
+    }
+}
+
+impl Error for SemanticIntentAdapterError {}
+
+/// Adapt a versioned cognition intent to the controller's minimal planar-velocity input.
+///
+/// Only idle and locomote are implemented in this first adapter. Richer actions such as
+/// reach/grasp/sit/yield fail explicitly instead of being silently mapped to an unrelated clip.
+pub fn adapt_semantic_intent_to_locomotion(
+    intent: &SemanticMotionIntent,
+) -> Result<HumanLocomotionIntent, SemanticIntentAdapterError> {
+    intent
+        .validate()
+        .map_err(SemanticIntentAdapterError::InvalidIntent)?;
+
+    let desired_planar_velocity_mps = match intent.intent_kind {
+        MotionIntentKind::Idle => bevy::math::Vec2::ZERO,
+        MotionIntentKind::Locomote => {
+            let [x, z] = intent
+                .desired_planar_velocity_mps
+                .ok_or(SemanticIntentAdapterError::InvalidIntent(
+                    IntentValidationError::MissingLocomotionVelocity,
+                ))?;
+            bevy::math::Vec2::new(x, z)
+        }
+        unsupported => {
+            return Err(SemanticIntentAdapterError::UnsupportedIntentKind(unsupported));
+        }
+    };
+
+    Ok(HumanLocomotionIntent {
+        desired_planar_velocity_mps,
+    })
 }
 
 /// Hysteresis thresholds for choosing idle, walk, and run clips.
@@ -283,6 +338,73 @@ mod tests {
     #[test]
     fn default_motion_is_idle() {
         assert_eq!(HumanMotion::default(), HumanMotion::Idle);
+    }
+
+    fn semantic_intent_for_test(
+        intent_kind: MotionIntentKind,
+        velocity: Option<[f32; 2]>,
+        target: Option<crate::human_motion_intent::MotionIntentTarget>,
+    ) -> SemanticMotionIntent {
+        use crate::human_motion_intent::{
+            ConfidenceSemantics, IntentProvenance, IntentSource, InterruptionPolicy,
+            HUMAN_MOTION_INTENT_SCHEMA_VERSION,
+        };
+
+        SemanticMotionIntent {
+            schema_version: HUMAN_MOTION_INTENT_SCHEMA_VERSION,
+            intent_id: "test-intent-1".to_owned(),
+            actor_ref: "test-actor".to_owned(),
+            intent_kind,
+            issued_at_sec: 0.0,
+            valid_until_sec: Some(2.0),
+            urgency: 0.25,
+            confidence: 0.8,
+            confidence_semantics: ConfidenceSemantics::UncalibratedScore,
+            uncertainty: 0.2,
+            desired_planar_velocity_mps: velocity,
+            target,
+            interruption_policy: InterruptionPolicy::Preemptible,
+            calibration_profile_id: None,
+            provenance: IntentProvenance {
+                source: IntentSource::RuleBased,
+                policy_id: "adapter-test".to_owned(),
+                policy_version: "1".to_owned(),
+                observation_digest_sha256: None,
+                model_sha256: None,
+            },
+        }
+    }
+
+    #[test]
+    fn semantic_locomotion_intent_maps_velocity_without_applying_motion() {
+        let intent = semantic_intent_for_test(MotionIntentKind::Locomote, Some([0.8, -0.2]), None);
+        let adapted = adapt_semantic_intent_to_locomotion(&intent).unwrap();
+        assert!((adapted.desired_planar_velocity_mps.x - 0.8).abs() < 1e-6);
+        assert!((adapted.desired_planar_velocity_mps.y + 0.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn semantic_idle_maps_to_zero_velocity() {
+        let intent = semantic_intent_for_test(MotionIntentKind::Idle, None, None);
+        let adapted = adapt_semantic_intent_to_locomotion(&intent).unwrap();
+        assert_eq!(adapted.desired_planar_velocity_mps, Vec2::ZERO);
+    }
+
+    #[test]
+    fn unsupported_semantic_actions_fail_closed() {
+        use crate::human_motion_intent::MotionIntentTarget;
+        let target = Some(MotionIntentTarget {
+            entity_ref: Some("object:cup".to_owned()),
+            position_world_m: None,
+            orientation_xyzw: None,
+        });
+        let intent = semantic_intent_for_test(MotionIntentKind::Reach, None, target);
+        assert_eq!(
+            adapt_semantic_intent_to_locomotion(&intent),
+            Err(SemanticIntentAdapterError::UnsupportedIntentKind(
+                MotionIntentKind::Reach
+            ))
+        );
     }
 
     #[test]
