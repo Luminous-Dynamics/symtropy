@@ -37,7 +37,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -46,7 +52,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -105,7 +112,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -114,7 +127,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -177,7 +191,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -186,7 +206,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -249,7 +270,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -258,7 +285,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -321,7 +349,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "failed",
@@ -330,7 +364,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -395,7 +430,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "partial",
@@ -404,7 +445,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": true,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -469,7 +511,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -478,7 +526,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -532,7 +581,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -541,7 +596,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -604,7 +660,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -613,7 +675,8 @@
           "severe_error_count": 1,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
@@ -676,7 +739,13 @@
           "run_start_date": "2026-01-01",
           "run_end_date": "2026-01-07",
           "warmup_max_days": 25,
-          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion",
+          "schema_artifact_path": "inputs/Energy+.schema.epJSON",
+          "model_artifact_path": "inputs/single-zone-reference.epJSON",
+          "geometry_artifact_path": "inputs/geometry-manifest.json",
+          "weather_artifact_path": "inputs/weather.epw",
+          "schedule_artifact_path": "inputs/schedules.json",
+          "configuration_artifact_path": "inputs/run-configuration.json"
         },
         "execution": {
           "run_status": "completed",
@@ -685,7 +754,8 @@
           "severe_error_count": 0,
           "fatal_error_count": 0,
           "partial_outputs": false,
-          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "run_log_artifact_path": "logs/eplusout.err"
         },
         "outputs": [
           {
