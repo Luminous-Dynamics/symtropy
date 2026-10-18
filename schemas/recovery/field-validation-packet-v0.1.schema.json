@@ -408,6 +408,8 @@
         "classification_review_status",
         "decision_day",
         "decision_manifest_sha256",
+        "decision_manifest_payload_json",
+        "episode_status",
         "decision_input_evidence_refs",
         "post_decision_outcome_evidence_refs",
         "data_rights",
@@ -516,6 +518,18 @@
             "HOLD_AUTHORITY",
             "HOLD_EVIDENCE"
           ]
+        },
+        "episode_status": {
+          "enum": [
+            "NO_ACTION",
+            "REFERRED",
+            "FOLLOW_UP_CENSORED"
+          ]
+        },
+        "decision_manifest_payload_json": {
+          "type": "string",
+          "minLength": 2,
+          "description": "Compact canonical JSON manifest; Rust semantic audit parses it and checks exact identity/cutoff fields and verifies its SHA-256."
         }
       }
     }
