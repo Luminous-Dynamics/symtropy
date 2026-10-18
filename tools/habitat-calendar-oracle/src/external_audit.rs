@@ -15,6 +15,7 @@ pub const EXPECTED_SUCCESS_ROW_COUNT: usize = 30;
 pub const EXPECTED_TIMEOUT_ROW_COUNT: usize = 6;
 pub const EXPECTED_LOWER_BOUND_VIOLATION_COUNT: usize = 30;
 pub const EXPECTED_NONFULL_CALENDAR_COMPLIANCE_COUNT: usize = 18;
+const EXPECTED_SOLVER_IDS: &[&str] = &["maxplus", "ortools", "gurobi"];
 
 const CLAIM_CEILING: &str =
     "source_data_lower_bound_audit_not_solver_ranking_or_project_estimate";
@@ -371,11 +372,24 @@ pub fn audit_embedded_external_corpus() -> Result<ExternalAuditReport, String> {
         *pair_counts.entry(row.scenario_id.as_str()).or_default() += 1;
     }
     if by_scenario
-            .keys()
-            .any(|scenario| pair_counts.get(scenario.as_str()).copied() != Some(3))
+        .keys()
+        .any(|scenario| pair_counts.get(scenario.as_str()).copied() != Some(3))
         || solver_rows.len() != EXPECTED_RESULT_ROW_COUNT
     {
         return Err("results_csv_does_not_have_exactly_three_rows_per_scenario".to_owned());
+    }
+    let expected_solver_ids: BTreeSet<&str> = EXPECTED_SOLVER_IDS.iter().copied().collect();
+    for scenario in by_scenario.keys() {
+        let actual_solver_ids: BTreeSet<&str> = solver_rows
+            .iter()
+            .filter(|row| row.scenario_id == *scenario)
+            .map(|row| row.solver.as_str())
+            .collect();
+        if actual_solver_ids != expected_solver_ids {
+            return Err(format!(
+                "unexpected_solver_set_for_scenario:{scenario}"
+            ));
+        }
     }
 
     let successful = solver_rows.iter().filter(|row| row.success).count();
