@@ -102,6 +102,9 @@ struct EnvelopeCase {
     case_id: String,
     profile_id: String,
     domain: String,
+    #[serde(default)]
+    evidence_age_days: Option<u64>,
+    hard_gate_status: String,
     profile_version: String,
     criteria_regime: String,
     family_taxonomy_version: String,
@@ -121,6 +124,8 @@ struct CaseResult {
     case_binding_status: String,
     profile_scope_status: String,
     lifecycle_status: String,
+    hard_gate_status: String,
+    evidence_sufficient: bool,
     authenticity_status: String,
     synthetic_review_candidate: bool,
     actuation_authorized: bool,
@@ -301,6 +306,8 @@ fn payload_for(record: &StoredRecord, errors: &mut Vec<String>) -> Option<Classi
     }
     if !is_nonempty(&payload.revocation_policy_id) {
         errors.push(format!("REVOCATION_POLICY_ID_MISSING:{}", record.record_id));
+    } else if payload.revocation_policy_id != "synthetic-revocation-policy-v1" {
+        errors.push(format!("REVOCATION_POLICY_UNSUPPORTED:{}", record.record_id));
     }
     if payload.classified_failure_families != sorted(&payload.classified_failure_families) {
         errors.push(format!("CLASSIFIED_FAMILIES_NOT_CANONICAL:{}", record.record_id));
@@ -346,6 +353,8 @@ fn evaluate_case(
         case_binding_status: "MISSING".to_string(),
         profile_scope_status: "OUT_OF_SCOPE".to_string(),
         lifecycle_status: "UNKNOWN".to_string(),
+        hard_gate_status: case.hard_gate_status.clone(),
+        evidence_sufficient: false,
         authenticity_status: "UNVERIFIED_SYNTHETIC".to_string(),
         synthetic_review_candidate: false,
         actuation_authorized: false,
@@ -432,6 +441,14 @@ fn evaluate_case(
         } else {
             "OUT_OF_SCOPE".to_string()
         };
+        result.evidence_sufficient = case
+            .evidence_age_days
+            .map(|age| age <= profile.max_evidence_age_days)
+            .unwrap_or(false)
+            && profile
+                .required_evidence_tags
+                .iter()
+                .all(|required| case.observed_evidence_tags.contains(required));
     }
 
     let matching_revocations: Vec<&RevocationEntry> = revocations
@@ -466,9 +483,14 @@ fn evaluate_case(
         }
     }
 
+    if !matches!(case.hard_gate_status.as_str(), "PASS" | "BLOCK" | "UNKNOWN") {
+        errors.push(format!("CASE_HARD_GATE_STATUS_INVALID:{}", case.case_id));
+    }
     result.synthetic_review_candidate = result.record_integrity_status == "MATCH"
         && result.case_binding_status == "MATCH"
         && result.profile_scope_status == "IN_SCOPE"
+        && result.evidence_sufficient
+        && result.hard_gate_status == "PASS"
         && result.lifecycle_status == "VALID_ACTIVE"
         && case.expected_disposition == "REVIEW_ONLY_CANDIDATE"
         && errors.len() == case_error_start;
@@ -962,6 +984,70 @@ mod tests {
             .errors
             .iter()
             .any(|error| error.starts_with("REVOCATION_POLICY_MISMATCH")));
+    }
+
+    #[test]
+    fn arbitrary_rehashed_revocation_policy_is_rejected() {
+        let mut value = packet();
+        let id = "synthetic://classification-review/forest-known-family-complete-evidence";
+        update_payload(&mut value, id, |p| {
+            p.revocation_policy_id = "attacker-policy-v9".to_string();
+        });
+        value.revocation_entries[0].policy_id = "attacker-policy-v9".to_string();
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_POLICY_UNSUPPORTED")));
+    }
+
+    #[test]
+    fn expected_candidate_label_cannot_override_a_block_gate() {
+        let packet = packet();
+        let envelope = envelope();
+        let mut case = envelope
+            .cases
+            .iter()
+            .find(|case| case.case_id == "forest-habitat-hard-gate-block")
+            .expect("blocked case exists")
+            .clone();
+        case.expected_disposition = "REVIEW_ONLY_CANDIDATE".to_string();
+        let mut errors = Vec::new();
+        let result = evaluate_case(
+            &case,
+            &envelope.profiles,
+            &packet.case_bindings,
+            &packet.records,
+            &packet.revocation_entries,
+            packet.decision_day,
+            &mut errors,
+        );
+        assert_eq!(result.hard_gate_status, "BLOCK");
+        assert!(!result.synthetic_review_candidate);
+    }
+
+    #[test]
+    fn expected_candidate_label_cannot_override_stale_evidence() {
+        let packet = packet();
+        let envelope = envelope();
+        let mut case = envelope
+            .cases
+            .iter()
+            .find(|case| case.case_id == "forest-stale-evidence")
+            .expect("stale case exists")
+            .clone();
+        case.expected_disposition = "REVIEW_ONLY_CANDIDATE".to_string();
+        let mut errors = Vec::new();
+        let result = evaluate_case(
+            &case,
+            &envelope.profiles,
+            &packet.case_bindings,
+            &packet.records,
+            &packet.revocation_entries,
+            packet.decision_day,
+            &mut errors,
+        );
+        assert!(!result.evidence_sufficient);
+        assert!(!result.synthetic_review_candidate);
     }
 
     #[test]
