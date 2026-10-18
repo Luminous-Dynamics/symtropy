@@ -403,7 +403,7 @@ mod tests {
         let periapsis_m = semi_major_axis_m * (1.0 - eccentricity);
         let relative_speed_m_s = (gravitational_parameter * (1.0 + eccentricity)
             / (semi_major_axis_m * (1.0 - eccentricity)))
-        .sqrt();
+            .sqrt();
         let bodies = vec![
             CelestialBody::new(
                 1,
@@ -418,8 +418,8 @@ mod tests {
                 [0.0, relative_speed_m_s / 2.0, 0.0],
             ),
         ];
-        let period_s = 2.0 * std::f64::consts::PI
-            * (semi_major_axis_m.powi(3) / gravitational_parameter).sqrt();
+        let period_s =
+            2.0 * std::f64::consts::PI * (semi_major_axis_m.powi(3) / gravitational_parameter).sqrt();
         (NBodySystem::new(bodies, 0.0).unwrap(), period_s)
     }
 
@@ -441,8 +441,10 @@ mod tests {
                 dot(delta, delta)
             })
             .sum();
-        let initial_scale_squared: f64 =
-            start_positions.iter().map(|position| dot(*position, *position)).sum();
+        let initial_scale_squared: f64 = start_positions
+            .iter()
+            .map(|position| dot(*position, *position))
+            .sum();
         let position_error = (position_error_squared / initial_scale_squared).sqrt();
         let relative_energy_drift =
             (system.total_energy_j().unwrap() - start_energy).abs() / start_energy.abs();
