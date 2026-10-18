@@ -298,6 +298,12 @@ fn payload_for(record: &StoredRecord, errors: &mut Vec<String>) -> Option<Classi
     if !is_nonempty(&payload.revocation_policy_id) {
         errors.push(format!("REVOCATION_POLICY_ID_MISSING:{}", record.record_id));
     }
+    if payload.classified_failure_families != sorted(&payload.classified_failure_families) {
+        errors.push(format!("CLASSIFIED_FAMILIES_NOT_CANONICAL:{}", record.record_id));
+    }
+    if payload.evidence_tags != sorted(&payload.evidence_tags) {
+        errors.push(format!("EVIDENCE_TAGS_NOT_CANONICAL:{}", record.record_id));
+    }
     if !matches!(
         payload.classification_status.as_str(),
         "COMPLETE" | "INCOMPLETE" | "UNKNOWN"
@@ -323,8 +329,11 @@ fn evaluate_case(
     decision_day: u64,
     errors: &mut Vec<String>,
 ) -> CaseResult {
-    let matching_bindings: Vec<&CaseBinding> =
-        bindings.iter().filter(|binding| binding.case_id == case.case_id).collect();
+    let case_error_start = errors.len();
+    let matching_bindings: Vec<&CaseBinding> = bindings
+        .iter()
+        .filter(|binding| binding.case_id == case.case_id)
+        .collect();
     let binding = matching_bindings.first().copied();
     let mut result = CaseResult {
         case_id: case.case_id.clone(),
@@ -417,8 +426,6 @@ fn evaluate_case(
         } else {
             "OUT_OF_SCOPE".to_string()
         };
-    } else {
-        errors.push(format!("CASE_PROFILE_UNKNOWN:{}", case.case_id));
     }
 
     let matching_revocations: Vec<&RevocationEntry> = revocations
@@ -455,7 +462,7 @@ fn evaluate_case(
         && result.profile_scope_status == "IN_SCOPE"
         && result.lifecycle_status == "VALID_ACTIVE"
         && case.expected_disposition == "REVIEW_ONLY_CANDIDATE"
-        && !errors.iter().any(|error| error.contains(&case.case_id));
+        && errors.len() == case_error_start;
     result
 }
 
@@ -813,7 +820,8 @@ mod tests {
     #[test]
     fn duplicate_bindings_are_detected() {
         let mut value = packet();
-        value.case_bindings.push(value.case_bindings[0].clone());
+        let duplicate = value.case_bindings[0].clone();
+        value.case_bindings.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_CASE_BINDING")));
