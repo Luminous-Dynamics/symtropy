@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/ENERGYPLUS_ADAPTER_ENVELOPE_V0_1.schema.json",
+  "title": "EnergyPlus adapter envelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "benchmark_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "references",
+    "engine",
+    "input_schema",
+    "support_scope",
+    "required_input_receipt_fields",
+    "required_outputs",
+    "dispositions",
+    "gate_policy",
+    "next_gates"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "benchmark_id": {
+      "const": "ENERGYPLUS-ADAPTER-ENVELOPE"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "package_pinned_schema_capture_pending_model_not_executed"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    },
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_url",
+        "epjson_format_docs",
+        "output_reference",
+        "ashrae_standard_140"
+      ],
+      "properties": {
+        "release_url": {
+          "const": "https://github.com/NatLabRockies/EnergyPlus/releases/tag/v26.2.0"
+        },
+        "epjson_format_docs": {
+          "const": "https://energyplus.readthedocs.io/en/v26.2.0/essentials/essentials.html"
+        },
+        "output_reference": {
+          "const": "https://energyplus.readthedocs.io/en/v26.2.0/guides/input-output-reference/index.html"
+        },
+        "ashrae_standard_140": {
+          "const": "https://data.ashrae.org/standard140/"
+        }
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "git_tag",
+        "source_commit_sha",
+        "package"
+      ],
+      "properties": {
+        "name": {
+          "const": "EnergyPlus"
+        },
+        "version": {
+          "const": "26.2.0"
+        },
+        "git_tag": {
+          "const": "v26.2.0"
+        },
+        "source_commit_sha": {
+          "const": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f"
+        },
+        "package": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "platform",
+            "asset_name",
+            "download_url",
+            "sha256",
+            "size_bytes",
+            "digest_source"
+          ],
+          "properties": {
+            "platform": {
+              "const": "ubuntu-24.04-x86_64"
+            },
+            "asset_name": {
+              "const": "EnergyPlus-26.2.0-4bd7a1f26f-Linux-Ubuntu24.04-x86_64.run"
+            },
+            "download_url": {
+              "const": "https://github.com/NatLabRockies/EnergyPlus/releases/download/v26.2.0/EnergyPlus-26.2.0-4bd7a1f26f-Linux-Ubuntu24.04-x86_64.run"
+            },
+            "sha256": {
+              "const": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8"
+            },
+            "size_bytes": {
+              "const": 198937282
+            },
+            "digest_source": {
+              "const": "GitHub Release asset metadata for the exact v26.2.0 tag"
+            }
+          }
+        }
+      }
+    },
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "revision",
+        "source_url",
+        "unit_system",
+        "schema_sha256_policy",
+        "schema_capture_status"
+      ],
+      "properties": {
+        "format": {
+          "const": "epJSON"
+        },
+        "revision": {
+          "const": "EnergyPlus-v26.2.0-epJSON"
+        },
+        "source_url": {
+          "const": "https://github.com/NatLabRockies/EnergyPlus/blob/v26.2.0/idd/Energy%2B.idd.in"
+        },
+        "unit_system": {
+          "const": "SI"
+        },
+        "schema_sha256_policy": {
+          "const": "required_in_each_run_receipt_after_capture_from_the_pinned_package"
+        },
+        "schema_capture_status": {
+          "const": "pending_package_installation_and_schema_digest_capture"
+        }
+      }
+    },
+    "support_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supported_host_platform",
+        "minimum_model_complexity",
+        "native_solver_execution_implemented",
+        "weather_source_must_be_versioned",
+        "source_geometry_must_have_authoritative_revision",
+        "renders_or_collider_meshes_are_geometry_authority"
+      ],
+      "properties": {
+        "supported_host_platform": {
+          "const": "ubuntu-24.04-x86_64"
+        },
+        "minimum_model_complexity": {
+          "const": "single-zone reference model"
+        },
+        "native_solver_execution_implemented": {
+          "const": false
+        },
+        "weather_source_must_be_versioned": {
+          "const": true
+        },
+        "source_geometry_must_have_authoritative_revision": {
+          "const": true
+        },
+        "renders_or_collider_meshes_are_geometry_authority": {
+          "const": false
+        }
+      }
+    },
+    "required_input_receipt_fields": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "model_id",
+          "model_sha256",
+          "authoritative_geometry_revision",
+          "weather_id",
+          "weather_sha256",
+          "schedule_revision",
+          "schedule_sha256",
+          "configuration_sha256",
+          "epjson_schema_sha256",
+          "unit_system",
+          "timestep_minutes",
+          "run_start_date",
+          "run_end_date",
+          "warmup_max_days"
+        ]
+      },
+      "minItems": 14,
+      "maxItems": 14
+    },
+    "required_outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "kind",
+          "units",
+          "report_frequency",
+          "claim_scope"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "variable",
+              "meter"
+            ]
+          },
+          "units": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_frequency": {
+            "type": "string",
+            "enum": [
+              "timestep",
+              "hourly",
+              "daily",
+              "run_period"
+            ]
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 5
+          }
+        }
+      },
+      "minItems": 2,
+      "maxItems": 20
+    },
+    "dispositions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "eligible_for_reference_comparison",
+          "blocked",
+          "unknown"
+        ]
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true
+    },
+    "gate_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eligible_for_reference_comparison",
+        "blocked",
+        "unknown"
+      ],
+      "properties": {
+        "eligible_for_reference_comparison": {
+          "type": "string",
+          "minLength": 80
+        },
+        "blocked": {
+          "type": "string",
+          "minLength": 30
+        },
+        "unknown": {
+          "type": "string",
+          "minLength": 30
+        }
+      }
+    },
+    "next_gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^A[1-3]$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 5
+          },
+          "status": {
+            "const": "not_implemented"
+          }
+        }
+      },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}
