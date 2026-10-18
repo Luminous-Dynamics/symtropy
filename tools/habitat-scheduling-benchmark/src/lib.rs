@@ -3,7 +3,7 @@
 
 #![forbid(unsafe_code)]
 
-use habitat_scheduling_oracle::evaluate_fixture_bytes;
+use habitat_scheduling_oracle::evaluate_fixture_bytes as evaluate_oracle_fixture_bytes;
 use habitat_scheduling_planner::plan_fixture_bytes;
 use serde::Serialize;
 use serde_json::Value;
@@ -78,7 +78,7 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
         .ok_or_else(|| "benchmark fixture has no suite_id".to_owned())?
         .to_owned();
 
-    let oracle = evaluate_fixture_bytes(bytes)?;
+    let oracle = evaluate_oracle_fixture_bytes(bytes)?;
     let heuristic = plan_fixture_bytes(bytes)?;
     if oracle.input_sha256 != sha256_hex(bytes)
         || heuristic.input_sha256 != sha256_hex(bytes)
@@ -115,6 +115,7 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
     let mut rows = Vec::with_capacity(oracle.case_count);
     let mut reference_feasible = 0usize;
     let mut candidates = 0usize;
+    let mut feasible_candidates = 0usize;
     let mut misses = 0usize;
     let mut false_infeasible = 0usize;
     let mut candidate_conflicts = 0usize;
@@ -130,13 +131,16 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
             optimality_claim_count += 1;
         }
         let has_candidate = candidate.nominal.makespan.is_some();
-        let candidate_validated = !has_candidate
-            || candidate.nominal.validation_status == "INDEPENDENT_VALIDATOR_PASSED";
-        if has_candidate && candidate_validated {
+        let candidate_validated = has_candidate
+            && candidate.nominal.validation_status == "INDEPENDENT_VALIDATOR_PASSED";
+        if candidate_validated {
             validated_candidates += 1;
         }
         if reference.feasible {
             reference_feasible += 1;
+        }
+        if reference.feasible && has_candidate {
+            feasible_candidates += 1;
         }
         let missed = reference.feasible && !has_candidate;
         if missed {
@@ -188,9 +192,7 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
             oracle_optimal_makespan: reference.nominal_optimal_makespan,
             heuristic_status: candidate.nominal.status.clone(),
             heuristic_makespan: candidate.nominal.makespan,
-            candidate_independently_validated: candidate_validated
-                && (!has_candidate || candidate.nominal.validation_status
-                    == "INDEPENDENT_VALIDATOR_PASSED"),
+            candidate_independently_validated: candidate_validated,
             absolute_makespan_gap: gap.map(|value| value.0),
             relative_makespan_gap_ppm: gap.map(|value| value.1),
             heuristic_missed_feasible_candidate: missed,
@@ -202,13 +204,14 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
 
     let all_emitted_candidates_pass_independent_validation =
         heuristic.all_returned_schedules_independently_validated
-            && rows.iter().all(|row| row.candidate_independently_validated);
+            && rows.iter().all(|row| {
+                row.heuristic_makespan.is_none() || row.candidate_independently_validated
+            });
     let no_false_infeasibility_claims = false_infeasible == 0 && candidate_conflicts == 0;
     let coverage = if reference_feasible == 0 {
         1_000_000
     } else {
-        ((candidates.min(reference_feasible) as u128 * 1_000_000u128)
-            / reference_feasible as u128) as u64
+        ((feasible_candidates as u128 * 1_000_000u128) / reference_feasible as u128) as u64
     };
     let mean_gap = if relative_gap_count == 0 {
         None
