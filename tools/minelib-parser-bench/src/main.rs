@@ -528,9 +528,6 @@ fn parse_upit_model(
                 _ => return Err(format!("model line {}: unsupported header field {key}", line_index + 1)),
             }
         } else {
-            if trimmed.contains(':') {
-                return Err(format!("model line {}: unsupported section after OBJECTIVE FUNCTION", line_index + 1));
-            }
             let row = tokens(trimmed);
             if row.len() != 2 {
                 return Err(format!("model line {}: UPIT objective row needs exactly block ID and value", line_index + 1));
@@ -990,6 +987,17 @@ mod tests {
         let mut manifest = manifest();
         manifest.block_file = "../other.block".to_owned();
         assert!(validate_manifest(&manifest).is_err());
+    }
+
+    #[test]
+    fn documented_colon_and_tab_separators_are_supported() {
+        let blocks = block_fixture().replace(
+            "0 0 0 0 1000 1.250 150000.00",
+            "0:0\t0 0:1000\t1.250:150000.00",
+        );
+        let precedences = precedence_fixture().replace("1 1 0", "1:\t1:0");
+        let model = model_fixture().replace("0 150000.00", "0:150000.00");
+        assert!(analyze(&manifest(), &blocks, &precedences, &model).is_ok());
     }
 
     #[test]
