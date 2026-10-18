@@ -52,7 +52,7 @@ pub use biometrics::{PlayerBiometrics, biometric_to_phi_system};
 pub use human_animation::{
     AdaptedHumanMotionIntent, HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin,
     HumanLocomotionConfig, HumanLocomotionIntent, HumanMotion, SemanticIntentAdapterError,
-    adapt_semantic_intent_to_locomotion,
+    adapt_semantic_intent_to_locomotion_at,
 };
 pub use human_motion_intent::{
     ConfidenceSemantics, HUMAN_MOTION_INTENT_SCHEMA_VERSION, IntentProvenance, IntentSource,
