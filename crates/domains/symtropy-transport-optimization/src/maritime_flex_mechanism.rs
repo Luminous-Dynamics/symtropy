@@ -1125,6 +1125,32 @@ mod tests {
     }
 
     #[test]
+    fn buyer_budget_is_diagnostic_and_does_not_silently_change_the_allocation() {
+        let budgeted = select_consent_based_flexibility(&base_input()).unwrap();
+        let mut no_budget_input = base_input();
+        no_budget_input.buyer_budget_limit_minor_units = None;
+        let no_budget = select_consent_based_flexibility(&no_budget_input).unwrap();
+        assert_eq!(budgeted.selected_offer_ids, no_budget.selected_offer_ids);
+        assert_eq!(budgeted.payments, no_budget.payments);
+        assert_eq!(budgeted.buyer_budget_shortfall_minor_units, Some(1));
+        assert_eq!(no_budget.buyer_budget_shortfall_minor_units, None);
+    }
+
+    #[test]
+    fn baseline_capacity_overrun_fails_closed_before_mechanism_selection() {
+        let mut input = base_input();
+        input.slots[0].capacity = 1;
+        assert_eq!(
+            select_consent_based_flexibility(&input),
+            Err(FlexMechanismError::BaselineCapacityExceeded {
+                slot_id: "EARLY".to_owned(),
+                quantity: 2,
+                capacity: 1,
+            })
+        );
+    }
+
+    #[test]
     fn same_physical_resource_overlapping_slot_definitions_fail_closed() {
         let mut input = base_input();
         input.slots[1].physical_resource_id = "BERTH-A".to_owned();
