@@ -34,7 +34,7 @@ The runner collects Bevy `Time<Real>::delta_secs()` in milliseconds from 1.0 to 
 
 **Important measurement boundary:** these are observed Bevy real-frame intervals, not GPU timestamp-query durations and not isolated CPU system costs. They include effects such as scheduling and display synchronization. The report explicitly labels the method and claim ceiling. Compare runs on the same adapter/backend with the same capture settings. For true GPU time or CPU/GPU overlap, add backend timestamp-query instrumentation as a separate measurement lane.
 
-The runner removes an old frame-time report before launching the app and fails if a fresh, non-empty report is not produced. Empty samples are reported as `insufficient_samples`; metadata omissions downgrade the report to `measured_metadata_incomplete` rather than hiding the measurement.
+The runner removes an old frame-time report before launching the app and fails if a fresh, non-empty report is not produced. At least 30 sampled frame intervals are required; smaller samples are reported as `insufficient_samples` and make the runner exit nonzero. Metadata omissions downgrade the report to `measured_metadata_incomplete` rather than hiding the measurement.
 
 ## Profiles and scaling
 
