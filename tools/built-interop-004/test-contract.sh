@@ -13,6 +13,11 @@ jq -e '
   .properties.benchmark_id.const == "BUILT-INTEROP-004" and
   .properties.evaluation_profile.properties.ids_version.const == "1.0" and
   .properties.gates.minItems == 8 and .properties.gates.maxItems == 8 and
+  any(.properties.gates.items.allOf[];
+    .if.properties.status.const == "NOT_RUN" and
+    .then.properties.evidence.maxItems == 0 and
+    .then.not.required == ["tool"]
+  ) and
   ([.properties.artifacts.items.properties.role.enum[]] | sort) ==
     (["source_ifc", "requirements_ids", "target_ifc"] | sort) and
   ([.properties.gates.items.properties.gate_id.enum[]] | sort) == ([
