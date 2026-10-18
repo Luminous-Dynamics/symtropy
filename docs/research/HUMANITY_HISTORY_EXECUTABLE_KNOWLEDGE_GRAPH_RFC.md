@@ -6,6 +6,8 @@
 - **Non-goal:** claiming that one model, one civilization narrative, or one physics engine can explain all human history
 - **Decision requested:** review the domain model, evidence contract, first vertical slice, and benchmark gates before implementation expands
 
+> **Implementation snapshot (2026-10-18):** This draft branch now includes an initial `humanity-history-core` Rust package, typed source/claim/evidence/relation/asset records, a JSON validation CLI, a synthetic fixture, and 18 unit tests. The tests have been authored but **have not been executed** in this environment because a Rust toolchain is unavailable. This is a prototype snapshot, not a passing build claim. The validator checks structural invariants; it does not establish historical truth or evaluate whether cited text semantically entails a claim.
+
 ## 1. Executive thesis
 
 Build a versioned, queryable, spatially and temporally grounded model of human knowledge—not a static timeline, a list of great inventors, or a set of photorealistic scenes.
@@ -129,7 +131,7 @@ Use a deliberately small internal model with explicit mapping points to:
 - W3C PROV-O concepts for entities, activities, agents, and derivation;
 - FAIR principles for stable identifiers, discoverability, reuse, licenses, and provenance.
 
-Do not directly adopt every external ontology class as a Rust type, and do not claim full CIDOC CRM conformance prematurely. Write mapping documents and fixtures for the first supported subset. Preserve external identifiers and source-native fields so future migrations do not destroy meaning.
+Do not directly adopt every external ontology class as a Rust type, and do not claim full CIDOC CRM conformance. The CIDOC CRM versions page lists v7.4 (August 2026) as a **draft** and v7.3.2 (March 2026) as a **draft**; pin the exact vocabulary version for each mapping and test it in fixtures rather than silently following a moving URL. Until that contract is selected and checked, describe our work as concept mapping, not CIDOC CRM conformance. Write mapping documents and fixtures for the first supported subset. Preserve external identifiers and source-native fields so future migrations do not destroy meaning.
 
 ### 3.3 Initial entity set
 
