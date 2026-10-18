@@ -9,7 +9,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
 pub const EMBEDDED_SPEC: &str = include_str!(
@@ -46,6 +47,17 @@ pub struct SpecValidationSummary {
     pub schema_sha256: String,
     pub passed: bool,
     pub findings: Vec<Finding>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct PackageVerification {
+    pub artifact_path: String,
+    pub expected_sha256: String,
+    pub actual_sha256: Option<String>,
+    pub expected_size_bytes: u64,
+    pub actual_size_bytes: Option<u64>,
+    pub passed: bool,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -135,6 +147,94 @@ impl FixtureValidationSummary {
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
+}
+
+
+/// Stream the pinned installer instead of loading a ~199 MB package into memory.
+pub fn verify_package_file(path: &Path) -> PackageVerification {
+    let spec: Value = serde_json::from_str(EMBEDDED_SPEC)
+        .expect("embedded EnergyPlus adapter spec must be valid JSON");
+    let expected_sha256 = nested_string(&spec, "engine.package", "sha256")
+        .unwrap_or("")
+        .to_owned();
+    let expected_size_bytes = spec
+        .get("engine")
+        .and_then(|engine| engine.get("package"))
+        .and_then(|package| package.get("size_bytes"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let artifact_path = path.display().to_string();
+
+    let file = match File::open(path) {
+        Ok(file) => file,
+        Err(error) => {
+            return PackageVerification {
+                artifact_path,
+                expected_sha256,
+                actual_sha256: None,
+                expected_size_bytes,
+                actual_size_bytes: None,
+                passed: false,
+                error: Some(format!("PACKAGE_OPEN_FAILED: {error}")),
+            };
+        }
+    };
+    let metadata = match file.metadata() {
+        Ok(metadata) => metadata,
+        Err(error) => {
+            return PackageVerification {
+                artifact_path,
+                expected_sha256,
+                actual_sha256: None,
+                expected_size_bytes,
+                actual_size_bytes: None,
+                passed: false,
+                error: Some(format!("PACKAGE_METADATA_FAILED: {error}")),
+            };
+        }
+    };
+
+    let actual_size_bytes = metadata.len();
+    let mut reader = file;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        match reader.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(count) => hasher.update(&buffer[..count]),
+            Err(error) => {
+                return PackageVerification {
+                    artifact_path,
+                    expected_sha256,
+                    actual_sha256: None,
+                    expected_size_bytes,
+                    actual_size_bytes: Some(actual_size_bytes),
+                    passed: false,
+                    error: Some(format!("PACKAGE_READ_FAILED: {error}")),
+                };
+            }
+        }
+    }
+    let actual_sha256 = format!("{:x}", hasher.finalize());
+    let size_matches = actual_size_bytes == expected_size_bytes;
+    let digest_matches = actual_sha256 == expected_sha256;
+    let error = if !size_matches {
+        Some("PACKAGE_SIZE_MISMATCH".to_owned())
+    } else if !digest_matches {
+        Some("PACKAGE_DIGEST_MISMATCH".to_owned())
+    } else {
+        None
+    };
+
+    PackageVerification {
+        artifact_path,
+        expected_sha256,
+        actual_sha256: Some(actual_sha256),
+        expected_size_bytes,
+        actual_size_bytes: Some(actual_size_bytes),
+        passed: size_matches && digest_matches,
+        error,
+    }
 }
 
 fn parse_json(bytes: &[u8]) -> Result<Value, String> {
@@ -987,6 +1087,27 @@ mod tests {
         assert!(tampered
             .blocker_codes
             .contains(&"ARTIFACT_DIGEST_MISMATCH:ZONE_AIR_TEMPERATURE".to_owned()));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn package_verifier_streams_and_rejects_a_non_pinned_file() {
+        let root = std::env::temp_dir().join(format!(
+            "energyplus-qualifier-package-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let package = root.join("not-energyplus.run");
+        fs::write(&package, b"not the pinned installer").unwrap();
+        let result = verify_package_file(&package);
+        assert!(!result.passed);
+        assert_eq!(result.actual_size_bytes, Some(24));
+        assert_eq!(result.error.as_deref(), Some("PACKAGE_SIZE_MISMATCH"));
+        assert_eq!(
+            result.expected_sha256,
+            "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8"
+        );
         let _ = fs::remove_dir_all(&root);
     }
 
