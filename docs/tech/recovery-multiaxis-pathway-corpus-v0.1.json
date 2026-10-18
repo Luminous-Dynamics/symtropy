@@ -53,6 +53,20 @@
         "timber_condition"
       ],
       "capacity_sensitive": false
+    },
+    "known_habitat_only": {
+      "classification": "KNOWN_IN_PROFILE",
+      "families": [
+        "habitat_conflict"
+      ],
+      "capacity_sensitive": false
+    },
+    "known_route_only": {
+      "classification": "KNOWN_IN_PROFILE",
+      "families": [
+        "route_capacity"
+      ],
+      "capacity_sensitive": false
     }
   },
   "commitment_profiles": {
@@ -87,34 +101,34 @@
     "expected_actuation": false,
     "execution_authority": "NO_ACTUATION_AUTHORIZED"
   },
-  "expected_case_count": 864,
+  "expected_case_count": 868,
   "expected_counts": {
     "scope": {
-      "IN_SCOPE": 108,
+      "IN_SCOPE": 112,
       "OUT_OF_SCOPE": 756
     },
     "evidence": {
-      "SUFFICIENT": 288,
+      "SUFFICIENT": 292,
       "INSUFFICIENT": 576
     },
     "hard_gate": {
-      "PASS": 216,
-      "UNKNOWN": 540,
+      "PASS": 218,
+      "UNKNOWN": 542,
       "BLOCK": 108
     },
     "timing": {
-      "ADEQUATE": 432,
+      "ADEQUATE": 436,
       "TOO_LATE": 432
     },
     "disposition": {
-      "REVIEW_ONLY_CANDIDATE": 6,
+      "REVIEW_ONLY_CANDIDATE": 8,
       "REPLAN_TOO_LATE": 6,
-      "HOLD_EVIDENCE": 78,
+      "HOLD_EVIDENCE": 80,
       "REASSESS_SCOPE": 756,
       "BLOCKED_HARD_GATE": 18
     },
     "lock_in_warning": {
-      "false": 432,
+      "false": 436,
       "true": 432
     }
   },
@@ -27550,6 +27564,130 @@
       "expected_hard_gate_status": "UNKNOWN",
       "expected_timing_status": "TOO_LATE",
       "expected_disposition": "REASSESS_SCOPE"
+    },
+    {
+      "case_id": "mx-control-known_habitat_only-baseline-complete-fresh-normal-5-reversible_staged",
+      "family_set_id": "known_habitat_only",
+      "observed_failure_families": [
+        "habitat_conflict"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "evidence_state": "FRESH",
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review",
+        "legal_authority",
+        "species_material_id"
+      ],
+      "capacity_state": "NORMAL",
+      "remaining_lead_days": 5,
+      "required_lead_days": 2,
+      "commitment_mode": "REVERSIBLE_STAGED",
+      "reversal_days": 1,
+      "lock_in_warning": false,
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_hard_gate_status": "PASS",
+      "expected_timing_status": "ADEQUATE",
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE"
+    },
+    {
+      "case_id": "mx-control-known_habitat_only-baseline-complete-fresh-degraded-5-reversible_staged",
+      "family_set_id": "known_habitat_only",
+      "observed_failure_families": [
+        "habitat_conflict"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "evidence_state": "FRESH",
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review",
+        "legal_authority",
+        "species_material_id"
+      ],
+      "capacity_state": "DEGRADED",
+      "remaining_lead_days": 5,
+      "required_lead_days": 2,
+      "commitment_mode": "REVERSIBLE_STAGED",
+      "reversal_days": 1,
+      "lock_in_warning": false,
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_hard_gate_status": "UNKNOWN",
+      "expected_timing_status": "ADEQUATE",
+      "expected_disposition": "HOLD_EVIDENCE"
+    },
+    {
+      "case_id": "mx-control-known_route_only-baseline-complete-fresh-normal-5-reversible_staged",
+      "family_set_id": "known_route_only",
+      "observed_failure_families": [
+        "route_capacity"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "evidence_state": "FRESH",
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review",
+        "legal_authority",
+        "species_material_id"
+      ],
+      "capacity_state": "NORMAL",
+      "remaining_lead_days": 5,
+      "required_lead_days": 2,
+      "commitment_mode": "REVERSIBLE_STAGED",
+      "reversal_days": 1,
+      "lock_in_warning": false,
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_hard_gate_status": "PASS",
+      "expected_timing_status": "ADEQUATE",
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE"
+    },
+    {
+      "case_id": "mx-control-known_route_only-baseline-complete-fresh-degraded-5-reversible_staged",
+      "family_set_id": "known_route_only",
+      "observed_failure_families": [
+        "route_capacity"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "evidence_state": "FRESH",
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review",
+        "legal_authority",
+        "species_material_id"
+      ],
+      "capacity_state": "DEGRADED",
+      "remaining_lead_days": 5,
+      "required_lead_days": 2,
+      "commitment_mode": "REVERSIBLE_STAGED",
+      "reversal_days": 1,
+      "lock_in_warning": false,
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_hard_gate_status": "UNKNOWN",
+      "expected_timing_status": "ADEQUATE",
+      "expected_disposition": "HOLD_EVIDENCE"
     }
   ],
   "temporal_evidence_records": [
