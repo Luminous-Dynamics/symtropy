@@ -116,4 +116,8 @@ if [[ ! -s "$metrics_output" ]]; then
   echo "frame-time report missing or empty: $metrics_output" >&2
   exit 1
 fi
+if grep -q '"measurement_status": "insufficient_samples"' "$metrics_output"; then
+  echo "frame-time report has fewer than the minimum 30 samples; benchmark is not qualified" >&2
+  exit 1
+fi
 echo "Frame-time report: $metrics_output"
