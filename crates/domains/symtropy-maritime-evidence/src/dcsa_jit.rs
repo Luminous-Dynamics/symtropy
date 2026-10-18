@@ -537,7 +537,7 @@ mod tests {
 
         let mut port_conflict_value: serde_json::Value =
             serde_json::from_str(&vessel_conflict).unwrap();
-        port_conflict_value["vessel"]["vesselIMONumber"] =
+        port_conflict_value["vesselIMONumber"] =
             serde_json::Value::String("9990001".to_owned());
         port_conflict_value["UNLocationCode"] =
             serde_json::Value::String("ZZOTHER".to_owned());
