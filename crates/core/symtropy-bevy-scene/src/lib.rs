@@ -114,8 +114,8 @@ impl Plugin for SymtropyScenePlugin {
             .add_systems(
                 Update,
                 (
-                    advance_architectural_review_routes,
                     manage_architectural_review_controls,
+                    advance_architectural_review_routes,
                     drive_free_review_camera,
                 )
                     .chain(),
