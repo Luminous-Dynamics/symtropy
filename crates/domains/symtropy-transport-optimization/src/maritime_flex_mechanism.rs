@@ -875,6 +875,40 @@ mod tests {
         }
     }
 
+    fn multi_slot_input() -> FlexMechanismInput {
+        let mut input = base_input();
+        input.buyer_budget_limit_minor_units = None;
+        input.slots[0].capacity = 3;
+        input.slots.push(FlexMechanismSlot {
+            id: "LATER".to_owned(),
+            physical_resource_id: "BERTH-C".to_owned(),
+            start_minute: 220,
+            end_minute: 280,
+            capacity: 1,
+        });
+        input.demands.push(FlexMechanismDemand {
+            id: "CALL-C".to_owned(),
+            participant_id: "SHIPPER-C".to_owned(),
+            baseline_slot_id: "EARLY".to_owned(),
+            quantity: 1,
+            hard_latest_start_minute: 280,
+        });
+        input.offers.push(FlexMechanismOffer {
+            id: "OFFER-C".to_owned(),
+            participant_id: "SHIPPER-C".to_owned(),
+            demand_id: "CALL-C".to_owned(),
+            target_slot_id: "LATER".to_owned(),
+            state: FlexOfferState::AcceptedConditional,
+            accepted_at_minute: Some(70),
+            expires_at_minute: 100,
+            max_deviation_minutes: 120,
+            reported_cost_minor_units: 1,
+            gross_benefit_minor_units: 7,
+            benefit_evidence_id: "synthetic-benefit-C".to_owned(),
+        });
+        input
+    }
+
     /// Independent bit-mask oracle for tiny instances. It intentionally does
     /// not call the production recursive selector or subset evaluator.
     fn independent_oracle(
@@ -1201,6 +1235,89 @@ mod tests {
                         truthful_b_utility >= deviated_utility,
                         "B gains by misreport {true_cost_a}/{true_cost_b}/{reported_cost_b}"
                     );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn multi_slot_winners_and_pivot_payments_match_independent_oracle() {
+        let mut input = multi_slot_input();
+        input.offers[0].reported_cost_minor_units = 2;
+        input.offers[1].reported_cost_minor_units = 4;
+        input.offers[2].reported_cost_minor_units = 1;
+
+        let report = select_consent_based_flexibility(&input).unwrap();
+        assert_eq!(
+            report.selected_offer_ids,
+            vec!["OFFER-A".to_owned(), "OFFER-C".to_owned()]
+        );
+        assert_eq!(report.total_surplus_minor_units, 14);
+        assert_eq!(report.total_recommended_compensation_minor_units, 11);
+
+        for payment in &report.payments {
+            let (counterfactual_ids, welfare_without) =
+                independent_oracle(&input, Some(payment.offer_id.as_str()));
+            assert!(!counterfactual_ids.contains(&payment.offer_id));
+            assert_eq!(payment.counterfactual_welfare_minor_units, welfare_without);
+            let other_cost = report
+                .reported_cost_minor_units
+                .checked_sub(payment.reported_cost_minor_units)
+                .unwrap();
+            let expected_payment = i128::from(report.gross_benefit_minor_units)
+                - i128::from(other_cost)
+                - welfare_without;
+            assert_eq!(i128::from(payment.payment_minor_units), expected_payment);
+        }
+        assert_eq!(
+            report
+                .payments
+                .iter()
+                .map(|payment| (payment.offer_id.as_str(), payment.payment_minor_units))
+                .collect::<BTreeMap<_, _>>(),
+            BTreeMap::from([("OFFER-A", 4), ("OFFER-C", 7)])
+        );
+    }
+
+    #[test]
+    fn multi_slot_vcg_is_truthful_over_three_participant_cost_grid() {
+        for true_cost_a in 0..=8u64 {
+            for true_cost_b in 0..=8u64 {
+                for true_cost_c in 0..=8u64 {
+                    let true_costs = [true_cost_a, true_cost_b, true_cost_c];
+                    let offer_ids = ["OFFER-A", "OFFER-B", "OFFER-C"];
+                    let mut truthful = multi_slot_input();
+                    truthful.buyer_budget_limit_minor_units = None;
+                    for (offer, cost) in truthful.offers.iter_mut().zip(true_costs) {
+                        offer.reported_cost_minor_units = cost;
+                    }
+                    let truthful_report =
+                        select_consent_based_flexibility(&truthful).unwrap();
+
+                    for participant_index in 0..offer_ids.len() {
+                        let truthful_utility = utility_for(
+                            &truthful_report,
+                            offer_ids[participant_index],
+                            true_costs[participant_index],
+                        );
+                        for reported_cost in 0..=8u64 {
+                            let mut deviated = truthful.clone();
+                            deviated.offers[participant_index].reported_cost_minor_units =
+                                reported_cost;
+                            let deviated_report =
+                                select_consent_based_flexibility(&deviated).unwrap();
+                            let deviated_utility = utility_for(
+                                &deviated_report,
+                                offer_ids[participant_index],
+                                true_costs[participant_index],
+                            );
+                            assert!(
+                                truthful_utility >= deviated_utility,
+                                "profitable unilateral report: true={true_costs:?}, participant={}, report={reported_cost}, truthful_utility={truthful_utility}, deviated_utility={deviated_utility}",
+                                offer_ids[participant_index]
+                            );
+                        }
+                    }
                 }
             }
         }
