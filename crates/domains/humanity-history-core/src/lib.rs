@@ -1193,6 +1193,18 @@ mod tests {
     }
 
     #[test]
+    fn antikythera_research_seed_has_valid_links_and_explicit_alternatives() {
+        let raw = include_str!("../fixtures/antikythera-research-seed.json");
+        let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+        assert_eq!(data.estimates.len(), 4);
+        assert_eq!(data.reconstruction_models.len(), 3);
+        assert_eq!(data.model_comparisons.len(), 1);
+        assert!(data.model_comparisons[0].model_ids.len() >= 2);
+    }
+
+    #[test]
     fn accepts_quantitative_estimates_and_explicit_model_comparison() {
         let mut data = fixture();
         data.estimates = vec![
