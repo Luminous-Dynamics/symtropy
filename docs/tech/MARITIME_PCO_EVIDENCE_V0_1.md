@@ -34,7 +34,7 @@ Envelope identity mapping follows the PCO Guide's sample operational response:
 
 This crate does not resolve aliases or canonicalize location identifiers. Any mapping into an internal canonical port/berth ID must be provided by an explicit, audited mapping layer.
 
-Each observation carries stable observation, port, port-call, vessel and source identifiers; the semantic field and exact source field code; a typed identifier or typed timestamp with planned/requested/estimated/forecast/actual meaning; source-event time, ingestion time and optional validity end; schema version; original timestamp text; source UTC offset; and normalized UTC nanoseconds.
+Each observation carries stable observation, port, port-call, vessel and source identifiers; the semantic field and exact source field code; a typed identifier or typed timestamp with planned/requested/estimated/forecast/actual meaning; source-event time, ingestion time and optional validity end; schema version; original timestamp text; source UTC offset; normalized UTC nanoseconds; and the original pilot boarding place or berth name where applicable. A JSON adapter reads the Guide's sample planned-arrival and planned-departure response envelopes; it does not guess source-event or ingestion timestamps from the scheduled event timestamp.
 
 The timestamp parser accepts a strict RFC 3339 subset: YYYY-MM-DDTHH:MM:SS[.1-9 digits](Z or signed HH:MM offset). It rejects timezone-less values, invalid calendar values, leap-second notation and precision beyond nanoseconds rather than guessing. A broader adapter must test any wider ISO 8601 syntax used by its actual provider. The original string is retained.
 
@@ -46,7 +46,7 @@ An observation with an unknown terminal/berth identifier, malformed field/value 
 
 ## Frozen synthetic tests
 
-The Rust module includes 20 authored test cases covering timezone normalization, fractional timestamp precision, malformed calendar/timezone inputs, planned-versus-actual semantics, equal-instant different-offset reports, conflicting sources, report permutation invariance, stale/future source metadata, unknown identifiers, field/value mismatch, duplicate observation IDs, validity-window errors, conflict-filtered projection, source/ingestion ordering, and conflicting vessel identities for one port-scoped call reference. A negative control confirms the same call reference at different ports is allowed. All test data is synthetic.
+The Rust module includes 25 authored test cases covering timestamp normalization and malformed formats, planned-versus-actual semantics, PCO arrival/departure JSON mapping, malformed/missing PCO fields, equal-instant different-offset reports, conflicts and permutation invariance, stale/future source metadata, unknown identifiers, field/value mismatch, duplicate observation IDs, validity windows, conflict-filtered projection, source/ingestion ordering, conflicting location context, and conflicting vessel identities for one port-scoped call reference. A negative control confirms that the same call reference at different ports is allowed. All test data is synthetic and no testbed/live API was queried.
 
 An exact-head CI run before the latest formatting corrections failed at Check Formatting on source formatting differences; compile/test/Clippy stages were skipped. This branch now includes the identified formatting corrections, but the new exact head must still be checked. No Rust test or Clippy pass is claimed.
 
