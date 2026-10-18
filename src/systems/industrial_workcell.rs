@@ -196,15 +196,15 @@ pub fn validate_schedule(operations: &[ScheduledOperation]) -> ScheduleValidatio
                 );
                 continue;
             };
-            if let Some(predecessor_end) = predecessor.end_seconds() {
-                if predecessor_end > start {
-                    push_violation(
-                        &mut violations,
-                        ScheduleViolationCode::PrecedenceViolation,
-                        vec![predecessor.id.clone(), operation.id.clone()],
-                        "predecessor must finish no later than the dependent operation starts",
-                    );
-                }
+            if let Some(predecessor_end) = predecessor.end_seconds()
+                && predecessor_end > start
+            {
+                push_violation(
+                    &mut violations,
+                    ScheduleViolationCode::PrecedenceViolation,
+                    vec![predecessor.id.clone(), operation.id.clone()],
+                    "predecessor must finish no later than the dependent operation starts",
+                );
             }
         }
     }
