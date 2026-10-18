@@ -1835,7 +1835,10 @@ mod tests {
 
             let first = assess(&contract, &proposal);
             let replay = assess(&contract, &proposal);
-            assert!(!first.admitted, "unsafe gate mutation {gate} admitted at index {index}");
+            assert!(
+                !first.admitted,
+                "unsafe gate mutation {gate} admitted at index {index}"
+            );
             assert_eq!(first.admitted, replay.admitted);
             assert_eq!(first.next_state, replay.next_state);
             assert_eq!(first.reason_codes, replay.reason_codes);
