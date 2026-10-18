@@ -140,7 +140,9 @@ The shared fixture contract is specified in `../schemas/peace-infrastructure-res
 4. two conflicting reports that must remain contested until appropriately resolved;
 5. a sensitive person-level field that must not enter the shared evidence record;
 6. an adaptive recovery plan that may branch only after an observation becomes available;
-7. a community declining participation, which must not be silently treated as consent.
+7. a community declining participation, which must not be silently treated as consent;
+8. multiple service-recovery options evaluated over baseline, drought, and supplier-disruption scenarios, with hard gates and a separate cost/worst-case-gap Pareto frontier rather than invented scenario probabilities;
+9. a before/after case in which one area improves while a neighboring area worsens, so aggregate service gap does not improve and before/after-only data cannot establish causality.
 
 These fixtures test semantics and failure handling only. Numeric quantities are fictional and are not policy thresholds. Later versions may add multilingual materials, realistic public infrastructure topologies, historical replay sets with documented provenance, and independently governed field-evaluation protocols.
 
