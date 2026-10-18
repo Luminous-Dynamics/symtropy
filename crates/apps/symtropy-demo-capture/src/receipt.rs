@@ -337,10 +337,12 @@ fn inspect_image(
         };
     }
 
-    let (declared_width, declared_height) =
-        match image::ImageReader::with_format(Cursor::new(bytes.as_slice()), image::ImageFormat::Png)
-            .into_dimensions()
-        {
+    let (declared_width, declared_height) = match image::ImageReader::with_format(
+        Cursor::new(bytes.as_slice()),
+        image::ImageFormat::Png,
+    )
+    .into_dimensions()
+    {
             Ok(dimensions) => dimensions,
             Err(_) => {
                 return ImageReceipt {
