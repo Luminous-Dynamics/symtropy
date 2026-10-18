@@ -327,8 +327,8 @@ mod tests {
     #[test]
     fn duplicate_source_identity_fails_closed() {
         let mut registry = registry();
-        let duplicate = registry.entries[0].clone();
-        registry.entries.push(duplicate);
+        let repeated_id = registry.entries[0].source_id.clone();
+        registry.entries[1].source_id = repeated_id;
         assert!(validate_registry(&registry).is_err());
     }
 
