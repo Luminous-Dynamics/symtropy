@@ -726,6 +726,7 @@ mod tests {
         value.records[0].canonical_payload_json.push(' ');
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_DIGEST_MISMATCH")));
         assert!(!result_for(&receipt, "forest-known-family-complete-evidence").synthetic_review_candidate);
     }
@@ -736,6 +737,7 @@ mod tests {
         value.case_bindings[0].sha256 = "0".repeat(64);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("CASE_BINDING_DIGEST_MISMATCH")));
     }
 
@@ -747,6 +749,7 @@ mod tests {
         });
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.contains("RECORD_CASE_SEMANTIC_MISMATCH")));
     }
 
@@ -758,6 +761,7 @@ mod tests {
         });
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         let result = result_for(&receipt, "forest-known-family-complete-evidence");
         assert_eq!(result.case_binding_status, "SEMANTIC_MISMATCH");
         assert!(!result.synthetic_review_candidate);
@@ -781,6 +785,7 @@ mod tests {
         }
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(!result_for(&receipt, a).synthetic_review_candidate);
         assert!(!result_for(&receipt, b).synthetic_review_candidate);
     }
@@ -792,6 +797,7 @@ mod tests {
         update_payload(&mut value, id, |p| p.valid_until_day = 19999);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert_eq!(result_for(&receipt, "forest-known-family-complete-evidence").lifecycle_status, "EXPIRED");
         assert!(!result_for(&receipt, "forest-known-family-complete-evidence").synthetic_review_candidate);
     }
@@ -802,6 +808,7 @@ mod tests {
         value.revocation_entries[0].status = "REVOKED".to_string();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_REVOKED")));
     }
 
@@ -811,6 +818,7 @@ mod tests {
         value.revocation_entries[0].status = "UNKNOWN".to_string();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_REVOCATION_UNKNOWN")));
     }
 
@@ -820,6 +828,7 @@ mod tests {
         value.case_bindings.retain(|binding| binding.case_id != "forest-known-family-complete-evidence");
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.contains("CASE_BINDING_MISSING")));
     }
 
@@ -830,6 +839,7 @@ mod tests {
         value.case_bindings.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_CASE_BINDING")));
     }
 
@@ -840,6 +850,7 @@ mod tests {
         value.records.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_RECORD_ID")));
     }
 
@@ -856,6 +867,7 @@ mod tests {
         value.records.push(orphan);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("ORPHAN_RECORD")));
     }
 
@@ -865,6 +877,7 @@ mod tests {
         value.claim_ceiling.authenticity_verified = true;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(!receipt.all_authenticity_unverified);
     }
 
@@ -876,6 +889,7 @@ mod tests {
         });
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.contains("RECORD_AUTHENTICITY_CEILING_VIOLATION")));
     }
 
@@ -883,6 +897,7 @@ mod tests {
     fn invalid_source_commit_fails_closed() {
         let receipt = audit(&packet(), &envelope(), Some("bad-sha".to_string()), Vec::new());
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error == "SOURCE_COMMIT_INVALID"));
     }
 
@@ -931,6 +946,7 @@ mod tests {
         value.revocation_entries[0].recorded_day = future_day;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_ENTRY_FROM_FUTURE")));
     }
 }
