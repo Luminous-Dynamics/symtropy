@@ -25,7 +25,7 @@ Run the metadata integrity check after checking out the pinned upstream repo:
 
     bash tools/built-interop-003/verify-corpus.sh tools/built-interop-003/corpus-manifest-v1.json /path/to/IDS
 
-The verifier requires the external checkout HEAD to equal the pin, verifies the pinned license blob, checks case/file counts and uniqueness, and compares each Git blob OID and byte length. Git blob OIDs are repository object references, not raw-byte SHA-256 hashes.
+The verifier requires the external checkout HEAD to equal the pin, verifies the pinned license blob, checks case/file counts and uniqueness, compares the full manifest path set with the pinned upstream tree (so an omitted case fails), and compares each Git blob OID and byte length. Git blob OIDs are repository object references, not raw-byte SHA-256 hashes.
 
 ## Next step
 
