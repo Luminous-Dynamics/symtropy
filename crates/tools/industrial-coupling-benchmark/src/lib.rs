@@ -33,6 +33,10 @@ pub struct Scenario {
     pub coordination_fixed_cost_milli: u64,
     /// Share of positive network surplus allocated to the source participant.
     pub source_surplus_share_bps: u16,
+    /// Minimum net surplus required by the source participant to agree to exchange.
+    pub source_minimum_participation_surplus_milli: u64,
+    /// Minimum net surplus required by the sink participant to agree to exchange.
+    pub sink_minimum_participation_surplus_milli: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -94,6 +98,9 @@ impl Scenario {
                 "source_surplus_share_bps must be in 0..=10000",
             ));
         }
+        self.source_minimum_participation_surplus_milli
+            .checked_add(self.sink_minimum_participation_surplus_milli)
+            .ok_or(BenchmarkError::ArithmeticOverflow)?;
         Ok(())
     }
 
@@ -161,8 +168,18 @@ fn assess_candidate(s: &Scenario, input_kwh: u64) -> Result<Option<Plan>, Benchm
         .ok_or(BenchmarkError::ArithmeticOverflow)?;
     let surplus = (avoided as i128) - (real_cost as i128);
     let distributable = surplus.max(0) as u64;
-    let source_share = ((distributable as u128) * (s.source_surplus_share_bps as u128)
-        / (BASIS_POINTS as u128)) as u64;
+    let reserved = s.source_minimum_participation_surplus_milli
+        .checked_add(s.sink_minimum_participation_surplus_milli)
+        .ok_or(BenchmarkError::ArithmeticOverflow)?;
+    if surplus < reserved as i128 {
+        return Ok(None);
+    }
+    let remaining = distributable - reserved;
+    let source_share = s.source_minimum_participation_surplus_milli
+        + (((remaining as u128) * (s.source_surplus_share_bps as u128)
+            / (BASIS_POINTS as u128)) as u64);
+    let sink_share = s.sink_minimum_participation_surplus_milli
+        + (remaining - (source_share - s.source_minimum_participation_surplus_milli));
 
     Ok(Some(Plan {
         transfer_input_kwh: input_kwh,
@@ -174,7 +191,7 @@ fn assess_candidate(s: &Scenario, input_kwh: u64) -> Result<Option<Plan>, Benchm
         coordination_fixed_cost_milli: fixed_cost,
         network_surplus_milli: surplus,
         source_surplus_allocation_milli: source_share,
-        sink_surplus_allocation_milli: distributable - source_share,
+        sink_surplus_allocation_milli: sink_share,
     }))
 }
 
@@ -245,6 +262,14 @@ pub fn verify_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError> {
             "exchange destroys value versus the zero-exchange baseline",
         ));
     }
+    let reserved = s.source_minimum_participation_surplus_milli
+        .checked_add(s.sink_minimum_participation_surplus_milli)
+        .ok_or(BenchmarkError::ArithmeticOverflow)?;
+    if (net as u64) < reserved {
+        return Err(BenchmarkError::InfeasiblePlan(
+            "net surplus cannot satisfy both participants' reservation floors",
+        ));
+    }
     if avoided != p.utility_cost_avoided_milli
         || source_cost != p.source_opportunity_cost_milli
         || variable_cost != p.transfer_variable_cost_milli
@@ -256,9 +281,12 @@ pub fn verify_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError> {
     }
 
     let distributable = net as u64;
-    let expected_source_share = ((distributable as u128) * (s.source_surplus_share_bps as u128)
-        / (BASIS_POINTS as u128)) as u64;
-    let expected_sink_share = distributable - expected_source_share;
+    let remaining = distributable - reserved;
+    let expected_source_share = s.source_minimum_participation_surplus_milli
+        + (((remaining as u128) * (s.source_surplus_share_bps as u128)
+            / (BASIS_POINTS as u128)) as u64);
+    let expected_sink_share = s.sink_minimum_participation_surplus_milli
+        + (remaining - (expected_source_share - s.source_minimum_participation_surplus_milli));
     if p.source_surplus_allocation_milli != expected_source_share
         || p.sink_surplus_allocation_milli != expected_sink_share
         || p.source_surplus_allocation_milli + p.sink_surplus_allocation_milli != distributable
@@ -283,6 +311,9 @@ pub fn verify_optimal_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError>
             maximum_kwh: MAX_EXHAUSTIVE_TRANSFER_KWH,
         });
     }
+    let reservation_total = s.source_minimum_participation_surplus_milli
+        .checked_add(s.sink_minimum_participation_surplus_milli)
+        .ok_or(BenchmarkError::ArithmeticOverflow)?;
     for q_in in 1..=upper {
         if q_in > s.maximum_transfer_kwh() || !s.temperature_grade_is_compatible() {
             continue;
@@ -302,6 +333,9 @@ pub fn verify_optimal_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError>
             .and_then(|v| v.checked_add(s.coordination_fixed_cost_milli))
             .ok_or(BenchmarkError::ArithmeticOverflow)?;
         let candidate_surplus = (avoided as i128) - (all_real_costs as i128);
+        if candidate_surplus < reservation_total as i128 {
+            continue;
+        }
         if candidate_surplus > p.network_surplus_milli
             || (candidate_surplus == p.network_surplus_milli && q_in < p.transfer_input_kwh)
         {
@@ -335,6 +369,8 @@ mod tests {
             transfer_variable_cost_milli_per_input_kwh: 200,
             coordination_fixed_cost_milli: 1_000,
             source_surplus_share_bps: 5_000,
+            source_minimum_participation_surplus_milli: 10_000,
+            sink_minimum_participation_surplus_milli: 20_000,
         }
     }
 
@@ -350,8 +386,8 @@ mod tests {
         assert_eq!(p.transfer_variable_cost_milli, 9_000);
         assert_eq!(p.coordination_fixed_cost_milli, 1_000);
         assert_eq!(p.network_surplus_milli, 85_500);
-        assert_eq!(p.source_surplus_allocation_milli, 42_750);
-        assert_eq!(p.sink_surplus_allocation_milli, 42_750);
+        assert_eq!(p.source_surplus_allocation_milli, 37_750);
+        assert_eq!(p.sink_surplus_allocation_milli, 47_750);
         verify_optimal_plan(&s, &p).expect("exact plan audits");
     }
 
@@ -432,6 +468,27 @@ mod tests {
             evaluate(&s),
             Err(BenchmarkError::SearchSpaceTooLarge { .. })
         ));
+    }
+
+    #[test]
+    fn participant_reservation_floors_can_veto_cooperation() {
+        let mut s = scenario();
+        s.source_minimum_participation_surplus_milli = 50_000;
+        s.sink_minimum_participation_surplus_milli = 40_000;
+        let p = evaluate(&s).expect("unacceptable cooperation falls back cleanly");
+        assert_eq!(p, Plan::default());
+    }
+
+    #[test]
+    fn participant_allocations_meet_both_reservation_floors() {
+        let s = scenario();
+        let p = evaluate(&s).expect("scenario evaluates");
+        assert!(p.source_surplus_allocation_milli >= s.source_minimum_participation_surplus_milli);
+        assert!(p.sink_surplus_allocation_milli >= s.sink_minimum_participation_surplus_milli);
+        assert_eq!(
+            p.source_surplus_allocation_milli + p.sink_surplus_allocation_milli,
+            p.network_surplus_milli as u64
+        );
     }
 
     #[test]
