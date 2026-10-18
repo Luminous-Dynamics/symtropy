@@ -159,6 +159,41 @@ App::new()
 
 The plugin draws read-only glyphs. Switching views means toggling a layer's `enabled` flag or replacing its supplied sample frame. Current drawing limits are 100,000 samples per input layer, at most 256 scalar and 256 vector layers, up to 2,048 scalar markers per layer / 8,192 total, and up to 1,024 vector glyphs per layer / 4,096 total. These are safety ceilings, not claims about achieving a particular frame rate.
 
+### Wavelength-resolved spectra
+
+For spectral data, use `SpectrumProfile` rather than collapsing all wavelengths into a single scalar:
+
+```rust
+use symtropy_render_bridge::{
+    CalibrationStatus, FieldDataOrigin, FieldUnit, SpatialUnit,
+    SpectrumBin, SpectrumProfile, validate_spectrum_profile,
+};
+
+let spectrum = SpectrumProfile {
+    id: "hyperspectral-pixel-17".to_owned(),
+    unit: FieldUnit::WattPerSquareMeterSteradianPerNanometer,
+    origin: FieldDataOrigin::MeasuredSensor,
+    calibration: CalibrationStatus::Calibrated,
+    source_label: "calibrated hyperspectral camera".to_owned(),
+    calibration_reference: Some("radiance-standard-CERT-123".to_owned()),
+    coordinate_frame: "sensor-world".to_owned(),
+    spatial_unit: SpatialUnit::Meter,
+    timestamp_unix_ns: Some(1_800_000_000_000_000_000),
+    position: [1.0, 0.5, 0.0],
+    bins: vec![
+        SpectrumBin { wavelength_m: 400e-9, spectral_radiance: 1.2, uncertainty: Some(0.1) },
+        SpectrumBin { wavelength_m: 550e-9, spectral_radiance: 2.4, uncertainty: Some(0.1) },
+        SpectrumBin { wavelength_m: 700e-9, spectral_radiance: 1.7, uncertainty: Some(0.12) },
+    ],
+};
+
+validate_spectrum_profile(&spectrum)?;
+let band = spectrum.wavelength_band()?;
+let frequencies_hz = band.frequency_range_hz()?;
+```
+
+This profile preserves ordered wavelength-bin values and per-bin uncertainty at one spatial sample. It can back a host UI's spectrum plot or be sampled along an image/volume grid. The current Bevy layer renderer does **not** draw a spectrum chart or a continuous volume; it draws bounded scene glyphs. A future host UI should put an explicit legend beside the view showing quantity, unit, source, calibration status, timestamp, wavelength/frequency band, fixed range, and uncertainty policy.
+
 ### Important scientific interpretation limits
 
 - A thermal colour map is only a visual encoding. It does **not** turn visible RGB pixels into temperature, solve heat transfer, infer emissivity, or correct for reflected apparent temperature. For real thermography, bring a temperature/radiance product from a documented sensor/calibration pipeline and preserve its uncertainty and calibration status. Thermal-camera measurement accuracy depends on calibration and parameters such as emissivity. See [NIST's thermal-camera calibration procedure](https://www.nist.gov/publications/calibration-and-measurement-procedures-high-magnification-thermal-camera) and the review [Infrared Thermography for Temperature Measurement and Non-Destructive Testing](https://pmc.ncbi.nlm.nih.gov/articles/PMC4168422/).
