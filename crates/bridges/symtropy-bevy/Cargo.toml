@@ -7,6 +7,7 @@ description = "Drop-in Bevy plugin for Phi-coupled N-dimensional physics. Builds
 
 [dependencies]
 symtropy-bevy-core = { path = "../../core/symtropy-bevy-core" }
+symtropy-motion-contract = { path = "../../core/symtropy-motion-contract" }
 symthaea-bevy-brain = { path = "../../bridges/symthaea-bevy-brain" }
 symtropy-physics = { path = "../../core/symtropy-physics" }
 symtropy-rapier3d-bridge = { path = "../../bridges/symtropy-rapier3d-bridge", optional = true }
