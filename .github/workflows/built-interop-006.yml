@@ -1,0 +1,49 @@
+name: BUILT-INTEROP-006 Typed Evidence Report
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-006/**"
+      - ".github/workflows/built-interop-006.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-006/**"
+      - ".github/workflows/built-interop-006.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-interop-006-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report-assembler:
+    name: Build, test and lint typed report assembler
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      # One-time bootstrap: print the generated lock and format diff so they
+      # can be committed; the final workflow uses a lock digest + --locked.
+      - name: Bootstrap lock and show formatter diff
+        run: |
+          cargo generate-lockfile --manifest-path tools/built-interop-006/Cargo.toml
+          sha256sum tools/built-interop-006/Cargo.lock
+          echo "LOCKFILE_BASE64_BEGIN"
+          base64 -w0 tools/built-interop-006/Cargo.lock
+          echo
+          echo "LOCKFILE_BASE64_END"
+          cargo fmt --manifest-path tools/built-interop-006/Cargo.toml
+          git diff -- tools/built-interop-006/src/main.rs
+      - name: Run typed-report adversarial tests
+        run: cargo test --locked --manifest-path tools/built-interop-006/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/built-interop-006/Cargo.toml --all-targets -- -D warnings
