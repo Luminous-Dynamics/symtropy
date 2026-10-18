@@ -1,0 +1,455 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/bounded_route_graph_v0_1.schema.json",
+  "title": "Synthetic Bounded-uncertainty Transport Route Graph v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "provenance",
+    "claim_ceiling",
+    "missions",
+    "nodes",
+    "edges",
+    "expectations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "const": "bounded-route-graph-v0.1"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_route_enumeration_is_not_route_authorization_or_real_world_transport_validation"
+    },
+    "missions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/mission"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "expectations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/expectation"
+      }
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "external_real_world_data_included",
+        "notes"
+      ],
+      "properties": {
+        "kind": {
+          "const": "synthetic_only"
+        },
+        "external_real_world_data_included": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition_control",
+        "securement",
+        "accessible_transfer",
+        "patient_support",
+        "operator_present",
+        "recovery_available"
+      ],
+      "properties": {
+        "condition_control": {
+          "type": "boolean"
+        },
+        "securement": {
+          "type": "boolean"
+        },
+        "accessible_transfer": {
+          "type": "boolean"
+        },
+        "patient_support": {
+          "type": "boolean"
+        },
+        "operator_present": {
+          "type": "boolean"
+        },
+        "recovery_available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_authorization",
+        "environmental_protection",
+        "hazard_status",
+        "recovery_status",
+        "operator_status",
+        "condition_control_status"
+      ],
+      "properties": {
+        "route_authorization": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "unknown",
+            "failed"
+          ]
+        },
+        "environmental_protection": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "unknown",
+            "failed"
+          ]
+        },
+        "hazard_status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "unknown",
+            "failed"
+          ]
+        },
+        "recovery_status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "unknown",
+            "failed"
+          ]
+        },
+        "operator_status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "unknown",
+            "failed"
+          ]
+        },
+        "condition_control_status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "unknown",
+            "failed"
+          ]
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition_control",
+        "securement",
+        "accessible_transfer",
+        "patient_support",
+        "operator_present",
+        "recovery_available"
+      ],
+      "properties": {
+        "condition_control": {
+          "type": "boolean"
+        },
+        "securement": {
+          "type": "boolean"
+        },
+        "accessible_transfer": {
+          "type": "boolean"
+        },
+        "patient_support": {
+          "type": "boolean"
+        },
+        "operator_present": {
+          "type": "boolean"
+        },
+        "recovery_available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "environment_id",
+        "payload_class",
+        "origin_node",
+        "destination_node",
+        "deadline_max_minutes",
+        "initial_energy_reserve_pct",
+        "minimum_energy_reserve_pct",
+        "minimum_condition_margin_c",
+        "max_hops",
+        "requirements"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "environment_id": {
+          "type": "string",
+          "enum": [
+            "amazon_basin",
+            "congo_basin",
+            "antarctica",
+            "sahara",
+            "afghanistan"
+          ]
+        },
+        "payload_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin_node": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination_node": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deadline_max_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "initial_energy_reserve_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minimum_energy_reserve_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minimum_condition_margin_c": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "max_hops": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "requirements": {
+          "$ref": "#/$defs/requirements"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "environment_ids",
+        "payload_classes",
+        "transfer_duration_min_minutes",
+        "transfer_duration_max_minutes",
+        "transfer_energy_consumption_pct_max",
+        "condition_margin_c",
+        "capabilities",
+        "gates"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "payload_classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "transfer_duration_min_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "transfer_duration_max_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "transfer_energy_consumption_pct_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "condition_margin_c": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "gates": {
+          "$ref": "#/$defs/gates"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "from_node",
+        "to_node",
+        "mode",
+        "environment_ids",
+        "payload_classes",
+        "duration_min_minutes",
+        "duration_max_minutes",
+        "energy_consumption_pct_max",
+        "condition_margin_c",
+        "capabilities",
+        "gates",
+        "available"
+      ],
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_node": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_node": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "payload_classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "duration_min_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "duration_max_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "energy_consumption_pct_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "condition_margin_c": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "gates": {
+          "$ref": "#/$defs/gates"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "expectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "expected_topological_route_count",
+        "expected_eligible_route_count"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_topological_route_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "expected_eligible_route_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      }
+    }
+  }
+}
