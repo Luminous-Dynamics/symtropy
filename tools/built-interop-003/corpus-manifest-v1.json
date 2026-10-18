@@ -7,7 +7,7 @@
     "repository": "buildingSMART/IDS",
     "commit_sha": "870f9c4e6e8f414e737b4d84ca1aa9b46fc6c8f3",
     "commit_date": "2026-09-25T21:17:26Z",
-    "tree_sha": "870f9c4e6e8f414e737b4d84ca1aa9b46fc6c8f3",
+    "tree_sha": "5bf8bf0c266811751efe1b0896281a7467283500",
     "corpus_root": "Documentation/ImplementersDocumentation/TestCases/",
     "license": {
       "spdx_id": "CC-BY-ND-4.0",
