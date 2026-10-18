@@ -793,7 +793,10 @@ mod tests {
 
         let value = serde_json::to_value(&result).expect("scenario result serializes");
         assert_eq!(value["requirement_results"][0]["outcome"], "Transformed");
-        assert_eq!(value["requirement_results"][0]["transform_id"], "mm-to-m-v1");
+        assert_eq!(
+            value["requirement_results"][0]["transform_id"],
+            "mm-to-m-v1"
+        );
         assert_eq!(value["requirement_results"][0]["expected_unit"], "mm");
         assert_eq!(value["requirement_results"][0]["observed_unit"], "m");
     }
