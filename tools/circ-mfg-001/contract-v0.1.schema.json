@@ -190,10 +190,12 @@
     },
     "externalRefRole": {
       "enum": [
+        "ProcessPlanReference",
         "ProcessExecutionReceipt",
         "QualificationReceipt",
         "MaterialFlowAccount",
-        "ChainOfCustodyProfile"
+        "ChainOfCustodyProfile",
+        "SiteResourceObservation"
       ]
     },
     "externalRefRequirement": {
