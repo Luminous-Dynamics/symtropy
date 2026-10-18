@@ -27,6 +27,7 @@ cargo run --release -p symtropy-demo-capture --bin symtropy-visual-diff -- \
   --candidate-receipt target/candidate/scene.capture-receipt.json \
   --output target/diff/scene.json \
   --diff-image target/diff/scene-heatmap.png \
+  --diff-image target/diff/scene-heatmap.png \
   --pixel-threshold 8 \
   --max-mean-channel-delta 1.0 \
   --max-changed-pixel-fraction 0.01 \
@@ -41,6 +42,7 @@ For a Bevy migration comparison only, add `--allow-renderer-version-change`. It 
 
 The JSON report contains:
 - SHA-256 of baseline and candidate PNG byte streams, validated against their receipts;
+- optional difference heatmap path, byte digest and dimensions when `--diff-image` is supplied;
 - optional difference heatmap path, byte digest and dimensions when `--diff-image` is supplied;
 - image dimensions and the distinct source commit / renderer version for each image;
 - receipt context that had to match for a comparison to be considered valid;
