@@ -643,7 +643,7 @@ mod tests {
     use super::*;
 
     fn frozen_corpus() -> Corpus {
-        corpus_from_bytes(include_bytes!("../../../../docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json"))
+        corpus_from_bytes(include_bytes!("../../../docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json"))
             .expect("frozen synthetic corpus must parse and validate")
     }
 
@@ -656,7 +656,7 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_all_preregistered_outcomes() {
         let corpus = frozen_corpus();
-        let receipt = build_receipt(&corpus, include_bytes!("../../../../docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json"), "a".repeat(40));
+        let receipt = build_receipt(&corpus, include_bytes!("../../../docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json"), "a".repeat(40));
         assert_eq!(receipt.case_count, CASE_IDS.len());
         assert_eq!(receipt.passed_count, CASE_IDS.len());
         assert_eq!(receipt.failed_count, 0);
@@ -742,7 +742,7 @@ mod tests {
     #[test]
     fn report_has_no_wall_clock_field_and_is_deterministic() {
         let corpus = frozen_corpus();
-        let bytes = include_bytes!("../../../../docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json");
+        let bytes = include_bytes!("../../../docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json");
         let first = build_receipt(&corpus, bytes, "b".repeat(40));
         let second = build_receipt(&corpus, bytes, "b".repeat(40));
         assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
