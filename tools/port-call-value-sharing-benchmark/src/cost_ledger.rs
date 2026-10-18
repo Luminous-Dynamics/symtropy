@@ -340,7 +340,7 @@ pub fn evaluate_component_ledger(
     })
 }
 
-fn demo_demo_input() -> ComponentLedgerInput {
+fn demo_input() -> ComponentLedgerInput {
     ComponentLedgerInput {
         case_id: "component-ledger-demo".to_owned(),
         currency_code: "USD".to_owned(),
@@ -400,8 +400,12 @@ fn row(
 
 /// Deterministic synthetic cost-ledger example for a local/CI receipt.
 pub fn run_demo_component_ledger() -> Result<CostLedgerReport, CostLedgerError> {
-    evaluate_component_ledger(&demo_demo_input())
+    evaluate_component_ledger(&demo_input())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 
     #[test]
     fn synthetic_category_manifest_is_exactly_pinned() {
