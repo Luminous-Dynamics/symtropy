@@ -717,6 +717,8 @@ mod tests {
             case.required_evidence_ids.reverse();
             case.evidence.reverse();
             case.mandatory_gates.reverse();
+            case.required_external_refs.reverse();
+            case.external_refs.reverse();
         }
         let permuted_raw = serde_json::to_vec(&permuted).expect("serialize permutation");
         let second = build_report(&permuted, &permuted_raw);
