@@ -79,15 +79,21 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        cargo generate-lockfile --manifest-path tools/pirb-audit/Cargo.toml
         cargo fmt --manifest-path tools/pirb-audit/Cargo.toml -- --check
-        cargo test --manifest-path tools/pirb-audit/Cargo.toml
-        cargo clippy --manifest-path tools/pirb-audit/Cargo.toml --all-targets -- -D warnings
+        cargo test --locked --manifest-path tools/pirb-audit/Cargo.toml
+        cargo clippy --locked --manifest-path tools/pirb-audit/Cargo.toml --all-targets -- -D warnings
         source_commit="$(git rev-parse HEAD)"
         test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
         corpus="docs/fixtures/peace-infrastructure-resilience-v0.1.json"
         expected_corpus_sha="$(sha256sum "$corpus" | awk '{print $1}')"
-        cargo run --quiet --manifest-path tools/pirb-audit/Cargo.toml -- --source-commit "$source_commit" > pirb-reference-receipt.json
-        jq -e --arg source_commit "$source_commit" --arg corpus_sha "$expected_corpus_sha" '
+        cargo run --locked --quiet --manifest-path tools/pirb-audit/Cargo.toml -- --source-commit "$source_commit" > pirb-reference-receipt.json
+        dependency_lock_sha="$(sha256sum tools/pirb-audit/Cargo.lock | awk '{print $1}')"
+        rustc_version="$(rustc --version)"
+        cargo_version="$(cargo --version)"
+        jq --arg lock_sha "$dependency_lock_sha" --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" '. + {dependency_lock_sha256: $lock_sha, rustc_version: $rustc_version, cargo_version: $cargo_version}' pirb-reference-receipt.json > pirb-reference-receipt.tmp
+        mv pirb-reference-receipt.tmp pirb-reference-receipt.json
+        jq -e --arg source_commit "$source_commit" --arg corpus_sha "$expected_corpus_sha" --arg lock_sha "$dependency_lock_sha" --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" '
           .result == "pass"
           and .benchmark_version == "PIRB-0.1"
           and .execution_claim == "synthetic_conformance_only"
@@ -95,18 +101,24 @@ jobs:
           and (.source_commit | test("^[0-9a-f]{40}$"))
           and .corpus_sha256 == $corpus_sha
           and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+          and .dependency_lock_sha256 == $lock_sha
+          and (.dependency_lock_sha256 | test("^[0-9a-f]{64}$"))
+          and .rustc_version == $rustc_version
+          and .cargo_version == $cargo_version
           and .scenario_count == 7
           and (.scenarios | length == 7)
           and ((.scenarios | map(select(.status != "pass")) | length) == 0)
           and (.findings | length == 0)
         ' pirb-reference-receipt.json
 
-    - name: Upload PIRB exact-head synthetic receipt (Linux)
+    - name: Upload PIRB exact-head synthetic receipt and dependency lock (Linux)
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v4
       with:
         name: pirb-synthetic-reference-receipt
-        path: pirb-reference-receipt.json
+        path: |
+          pirb-reference-receipt.json
+          tools/pirb-audit/Cargo.lock
         if-no-files-found: error
         retention-days: 90
     - name: Run Clippy
