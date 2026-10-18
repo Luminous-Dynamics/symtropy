@@ -72,23 +72,27 @@ pub fn trajectory_errors(
         return Err(MetricInputError::LengthMismatch);
     }
 
-    let mut sum_squared = 0.0;
-    let mut max_error = 0.0;
+    let mut sum_error = 0.0;
+    let mut max_error: f64 = 0.0;
     let mut final_error = 0.0;
 
-    for (index, (predicted, reference)) in predicted.iter().zip(reference).enumerate() {
-        let error = distance(*predicted, *reference);
-        sum_squared += error * error;
-        max_error = max_error.max(error);
-        if index + 1 == predicted_len(predicted, reference, index) {
-            // This branch is replaced below by the ordinary last-sample check.
+    for (predicted_position, reference_position) in predicted.iter().zip(reference) {
+        let error = distance(*predicted_position, *reference_position);
+        if !error.is_finite() {
+            return Err(MetricInputError::NonFiniteValue);
         }
+        sum_error += error;
+        max_error = max_error.max(error);
         final_error = error;
+    }
+
+    if !sum_error.is_finite() {
+        return Err(MetricInputError::NonFiniteValue);
     }
 
     Ok(TrajectoryErrors {
         samples: predicted.len(),
-        mean_displacement_error_m: sum_squared.sqrt() / (predicted.len() as f64).sqrt(),
+        mean_displacement_error_m: sum_error / predicted.len() as f64,
         final_displacement_error_m: final_error,
         max_displacement_error_m: max_error,
     })
@@ -121,7 +125,13 @@ pub fn stance_foot_drift(
 
         let anchor_position = *anchor.get_or_insert(*position);
         let drift = distance(*position, anchor_position);
+        if !drift.is_finite() {
+            return Err(MetricInputError::NonFiniteValue);
+        }
         sum_squared += drift * drift;
+        if !sum_squared.is_finite() {
+            return Err(MetricInputError::NonFiniteValue);
+        }
         sample_count += 1;
         max_drift = max_drift.max(drift);
     }
@@ -182,8 +192,15 @@ pub fn mean_squared_jerk(
         let dd123 = scale(subtract(d23, d12), 1.0 / (t3 - t1));
         let ddd0123 = scale(subtract(dd123, dd012), 1.0 / (t3 - t0));
         let jerk = scale(ddd0123, 6.0);
+        let squared_jerk = dot(jerk, jerk);
+        if jerk.iter().any(|value| !value.is_finite()) || !squared_jerk.is_finite() {
+            return Err(MetricInputError::NonFiniteValue);
+        }
 
-        squared_jerk_sum += dot(jerk, jerk);
+        squared_jerk_sum += squared_jerk;
+        if !squared_jerk_sum.is_finite() {
+            return Err(MetricInputError::NonFiniteValue);
+        }
         windows += 1;
     }
 
