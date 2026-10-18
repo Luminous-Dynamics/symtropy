@@ -14,6 +14,16 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const NANOS_PER_SECOND: i128 = 1_000_000_000;
 pub const PCO_GUIDE_VERSION: &str = "IAPH-IHMA-PCO-Guide-1.0";
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TimestampOffsetSemantics {
+    /// Timestamp used Z/z to declare UTC.
+    UtcDesignator,
+    /// Timestamp gave an explicit numerical local offset, including +00:00.
+    ExplicitOffset,
+    /// RFC 3339 -00:00: UTC time is usable, but the source's local offset is unknown.
+    UnknownLocalOffset,
+}
+
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PcoField {
@@ -38,8 +48,11 @@ pub struct ParsedTimestamp {
     source_text: String,
     /// Nanoseconds since Unix epoch, normalized to UTC.
     utc_unix_nanos: i128,
-    /// Offset parsed from the source text, in minutes east of UTC.
+    /// Numerical offset used to normalize the instant, in minutes east of UTC.
     source_offset_minutes: i16,
+    /// Preserve RFC 3339's distinction between UTC designator, explicit offset,
+    /// and -00:00 where the local offset is unknown.
+    offset_semantics: TimestampOffsetSemantics,
     /// Number of fractional-second digits present in the source (0..=9).
     fractional_digits: u8,
 }
@@ -55,6 +68,10 @@ impl ParsedTimestamp {
 
     pub fn source_offset_minutes(&self) -> i16 {
         self.source_offset_minutes
+    }
+
+    pub fn offset_semantics(&self) -> &TimestampOffsetSemantics {
+        &self.offset_semantics
     }
 
     pub fn fractional_digits(&self) -> u8 {
@@ -466,22 +483,31 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
         fraction_nanos = i128::from(fraction_value) * 10_i128.pow(u32::from(9 - fractional_digits));
     }
 
-    let (offset_minutes, consumed) = match bytes.get(index).copied() {
-        Some(b'Z' | b'z') if index + 1 == bytes.len() => (0i16, index + 1),
-        Some(b'+' | b'-') => {
-            if bytes.len() != index + 6 || bytes[index + 3] != b':' {
-                return Err(TimestampParseError::InvalidTimezone);
+    let (offset_minutes, offset_semantics, consumed) =
+        match bytes.get(index).copied() {
+            Some(b'Z' | b'z') if index + 1 == bytes.len() => {
+                (0i16, TimestampOffsetSemantics::UtcDesignator, index + 1)
             }
-            let offset_hour = parse_digits(bytes, index + 1, 2)? as i16;
-            let offset_minute = parse_digits(bytes, index + 4, 2)? as i16;
-            if offset_hour > 23 || offset_minute > 59 {
-                return Err(TimestampParseError::InvalidTimezone);
+            Some(b'+' | b'-') => {
+                if bytes.len() != index + 6 || bytes[index + 3] != b':' {
+                    return Err(TimestampParseError::InvalidTimezone);
+                }
+                let offset_hour = parse_digits(bytes, index + 1, 2)? as i16;
+                let offset_minute = parse_digits(bytes, index + 4, 2)? as i16;
+                if offset_hour > 23 || offset_minute > 59 {
+                    return Err(TimestampParseError::InvalidTimezone);
+                }
+                let sign = if bytes[index] == b'+' { 1 } else { -1 };
+                let minutes = sign * (offset_hour * 60 + offset_minute);
+                let semantics = if sign == -1 && offset_hour == 0 && offset_minute == 0 {
+                    TimestampOffsetSemantics::UnknownLocalOffset
+                } else {
+                    TimestampOffsetSemantics::ExplicitOffset
+                };
+                (minutes, semantics, index + 6)
             }
-            let sign = if bytes[index] == b'+' { 1 } else { -1 };
-            (sign * (offset_hour * 60 + offset_minute), index + 6)
-        }
-        _ => return Err(TimestampParseError::InvalidTimezone),
-    };
+            _ => return Err(TimestampParseError::InvalidTimezone),
+        };
     if consumed != bytes.len() {
         return Err(TimestampParseError::TrailingCharacters);
     }
@@ -498,6 +524,7 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
         source_text: input.to_owned(),
         utc_unix_nanos,
         source_offset_minutes: offset_minutes,
+        offset_semantics,
         fractional_digits,
     })
 }
@@ -925,6 +952,29 @@ mod tests {
         assert_eq!(offset.source_offset_minutes, 120);
         assert_eq!(zulu.source_offset_minutes, 0);
         assert_eq!(offset.source_text, "2026-10-18T12:00:00+02:00");
+    }
+
+    #[test]
+    fn rfc3339_minus_zero_preserves_unknown_local_offset_semantics() {
+        let unknown = utc("2026-10-18T10:00:00-00:00");
+        let utc_designator = utc("2026-10-18T10:00:00Z");
+        let explicit_zero = utc("2026-10-18T10:00:00+00:00");
+
+        assert_eq!(unknown.utc_unix_nanos, utc_designator.utc_unix_nanos);
+        assert_eq!(unknown.utc_unix_nanos, explicit_zero.utc_unix_nanos);
+        assert_eq!(
+            unknown.offset_semantics(),
+            &TimestampOffsetSemantics::UnknownLocalOffset
+        );
+        assert_eq!(
+            utc_designator.offset_semantics(),
+            &TimestampOffsetSemantics::UtcDesignator
+        );
+        assert_eq!(
+            explicit_zero.offset_semantics(),
+            &TimestampOffsetSemantics::ExplicitOffset
+        );
+        assert_eq!(unknown.source_text(), "2026-10-18T10:00:00-00:00");
     }
 
     #[test]
