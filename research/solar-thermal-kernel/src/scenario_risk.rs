@@ -395,6 +395,41 @@ mod tests {
     }
 
     #[test]
+    fn equal_worst_shortfalls_use_lowest_scenario_id() {
+        let tied = vec![
+            ScenarioServiceOutcome {
+                scenario_id: 10,
+                probability: p(0.80),
+                requested_useful_heat: e(100.0),
+                delivered_useful_heat: e(100.0),
+            },
+            ScenarioServiceOutcome {
+                scenario_id: 40,
+                probability: p(0.15),
+                requested_useful_heat: e(100.0),
+                delivered_useful_heat: e(80.0),
+            },
+            ScenarioServiceOutcome {
+                scenario_id: 30,
+                probability: p(0.025),
+                requested_useful_heat: e(100.0),
+                delivered_useful_heat: e(20.0),
+            },
+            ScenarioServiceOutcome {
+                scenario_id: 20,
+                probability: p(0.025),
+                requested_useful_heat: e(100.0),
+                delivered_useful_heat: e(20.0),
+            },
+        ];
+        let report = summarize_scenario_service_risk(&tied, Fraction::new(0.8).unwrap()).unwrap();
+        assert_eq!(report.worst_case_scenario_id, 20);
+        assert!(close(report.p95_shortfall_fraction, 0.2));
+        assert!(close(report.cvar95_shortfall_fraction, 0.8));
+        verify_scenario_service_risk_report(&tied, Fraction::new(0.8).unwrap(), &report).unwrap();
+    }
+
+    #[test]
     fn empty_or_non_normalized_scenario_sets_are_rejected() {
         assert_eq!(
             summarize_scenario_service_risk(&[], Fraction::new(0.8).unwrap()),
