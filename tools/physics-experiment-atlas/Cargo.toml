@@ -1,0 +1,16 @@
+[package]
+name = "physics-experiment-atlas"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic, fail-closed reference checks for historical physics experiment models"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "physics-experiment-atlas"
+path = "src/main.rs"
+
+[workspace]
