@@ -91,6 +91,7 @@ pub struct CalibrationReport {
     pub evaluator_version: String,
     pub benchmark_id: String,
     pub input_sha256: String,
+    pub split_manifest_sha256: String,
     pub claim_ceiling: String,
     pub evidence_semantics: String,
     pub quantity_kind: String,
@@ -139,6 +140,7 @@ pub fn evaluate_bytes(bytes: &[u8]) -> Result<CalibrationReport, String> {
 fn evaluate(input: &CalibrationInput, input_sha256: &str) -> Result<CalibrationReport, String> {
     validate_digest(input_sha256, "input_sha256")?;
     validate_input(input)?;
+    let split_manifest_sha256 = split_manifest_sha256(input)?;
 
     let calibration: Vec<&PairedRecord> = input
         .records
@@ -301,6 +303,7 @@ fn evaluate(input: &CalibrationInput, input_sha256: &str) -> Result<CalibrationR
         evaluator_version: env!("CARGO_PKG_VERSION").to_owned(),
         benchmark_id: input.benchmark_id.clone(),
         input_sha256: input_sha256.to_owned(),
+        split_manifest_sha256,
         claim_ceiling: CLAIM_CEILING.to_owned(),
         evidence_semantics: "artifact SHA-256 strings are format-checked declarations only; this evaluator does not retrieve or verify external artifact bytes. Ground truth is synthetic. Coverage and envelope width are finite-suite diagnostics, not physical guarantees or probabilistic claims.".to_owned(),
         quantity_kind: input.quantity_kind.clone(),
@@ -320,6 +323,36 @@ fn evaluate(input: &CalibrationInput, input_sha256: &str) -> Result<CalibrationR
         reference_interval_truth_miss_count: reference_truth_miss_count,
         case_assessments: assessments,
     })
+}
+
+#[derive(Serialize)]
+struct SplitManifest<'a> {
+    calibration_case_ids: Vec<&'a str>,
+    holdout_case_ids: Vec<&'a str>,
+}
+
+fn split_manifest_sha256(input: &CalibrationInput) -> Result<String, String> {
+    let mut calibration_case_ids = input
+        .records
+        .iter()
+        .filter(|record| record.split == DataSplit::Calibration)
+        .map(|record| record.case_id.as_str())
+        .collect::<Vec<_>>();
+    let mut holdout_case_ids = input
+        .records
+        .iter()
+        .filter(|record| record.split == DataSplit::Holdout)
+        .map(|record| record.case_id.as_str())
+        .collect::<Vec<_>>();
+    calibration_case_ids.sort_unstable();
+    holdout_case_ids.sort_unstable();
+    let manifest = SplitManifest {
+        calibration_case_ids,
+        holdout_case_ids,
+    };
+    let bytes = serde_json::to_vec(&manifest)
+        .map_err(|error| format!("cannot serialize split manifest: {error}"))?;
+    Ok(sha256_hex(&bytes))
 }
 
 fn classify(lower: i128, upper: i128, limit: i128, lower_is_better: bool) -> DecisionStatus {
@@ -726,6 +759,17 @@ mod tests {
         let bytes = serde_json::to_vec(&value).expect("mutated JSON serializes");
         let error = evaluate_bytes(&bytes).expect_err("unknown probabilistic field must fail closed");
         assert!(error.contains("unknown field"), "{error}");
+    }
+
+    #[test]
+    fn split_manifest_digest_is_stable_when_record_order_changes() {
+        let mut input = parse_fixture();
+        let baseline = report_for(&input);
+        input.records.reverse();
+        let reordered = report_for(&input);
+        assert_ne!(baseline.input_sha256, reordered.input_sha256);
+        assert_eq!(baseline.split_manifest_sha256, reordered.split_manifest_sha256);
+        assert_eq!(baseline.split_manifest_sha256.len(), 64);
     }
 
     #[test]
