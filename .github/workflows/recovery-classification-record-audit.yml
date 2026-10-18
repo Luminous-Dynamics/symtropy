@@ -55,9 +55,11 @@ jobs:
           jq -e '
             ."$schema" == "https://json-schema.org/draft/2020-12/schema"
             and .properties.schema_version.const == "recovery-classification-record-packet-v0.1"
-            and .properties.claim_ceiling.properties.authenticity_verified.const == false
-            and .properties.claim_ceiling.properties.expected_actuation.const == false
-            and (.properties.records.items.properties.sha256."$ref" == "#/$defs/sha256")
+            and .properties.claim_ceiling."$ref" == "#/$defs/claimCeiling"
+            and .properties.records.items."$ref" == "#/$defs/storedRecord"
+            and ."$defs".claimCeiling.properties.authenticity_verified.const == false
+            and ."$defs".claimCeiling.properties.expected_actuation.const == false
+            and ."$defs".storedRecord.properties.sha256."$ref" == "#/$defs/sha256"
           ' schemas/recovery/classification-record-packet-v0.1.schema.json
           jq -e 'all(.revocation_entries[]; .policy_id == "synthetic-revocation-policy-v1")' \
             docs/tech/recovery-classification-record-packet-v0.1.json
