@@ -49,7 +49,7 @@
           "minLength": 1
         },
         "ids_version": {
-          "const": "1.0.0"
+          "const": "1.0"
         },
         "supported_subset": {
           "type": "string",
