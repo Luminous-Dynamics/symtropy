@@ -247,43 +247,37 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     };
 
     let (attribute_name, expected_value) = match &requirements.facets[0] {
-        requirement
-            if requirement.occurrence == Occurrence::Required =>
-        {
-            match &requirement.facet {
-                Facet::Attribute(attribute)
-                    if attribute.name.as_simple() == Some("Name") =>
-                {
-                    match attribute.value.as_ref() {
-                        Some(Value::Simple(value)) => ("Name", value.clone()),
-                        _ => {
-                            return Ok(unsupported_report(
-                                ifc_bytes,
-                                ids_bytes,
-                                schema_token,
-                                ids_version_evidence,
-                                model.len(),
-                                "IDS_ATTRIBUTE_VALUE_UNSUPPORTED",
-                                "v0.1 supports a literal simpleValue attribute requirement",
-                                Decision::Unresolved,
-                            ));
-                        }
+        requirement if requirement.occurrence == Occurrence::Required => match &requirement.facet {
+            Facet::Attribute(attribute) if attribute.name.as_simple() == Some("Name") => {
+                match attribute.value.as_ref() {
+                    Some(Value::Simple(value)) => ("Name", value.clone()),
+                    _ => {
+                        return Ok(unsupported_report(
+                            ifc_bytes,
+                            ids_bytes,
+                            schema_token,
+                            ids_version_evidence,
+                            model.len(),
+                            "IDS_ATTRIBUTE_VALUE_UNSUPPORTED",
+                            "v0.1 supports a literal simpleValue attribute requirement",
+                            Decision::Unresolved,
+                        ));
                     }
                 }
-                _ => {
-                    return Ok(unsupported_report(
-                        ifc_bytes,
-                        ids_bytes,
-                        schema_token,
-                        ids_version_evidence,
-                        model.len(),
-                        "IDS_REQUIREMENT_FACET_UNSUPPORTED",
-                        "v0.1 supports only a required IFC attribute named Name",
-                        Decision::Unresolved,
-                    ));
-                }
             }
-        }
+            _ => {
+                return Ok(unsupported_report(
+                    ifc_bytes,
+                    ids_bytes,
+                    schema_token,
+                    ids_version_evidence,
+                    model.len(),
+                    "IDS_REQUIREMENT_FACET_UNSUPPORTED",
+                    "v0.1 supports only a required IFC attribute named Name",
+                    Decision::Unresolved,
+                ));
+            }
+        },
         _ => {
             return Ok(unsupported_report(
                 ifc_bytes,
