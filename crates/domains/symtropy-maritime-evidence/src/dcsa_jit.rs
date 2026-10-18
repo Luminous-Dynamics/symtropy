@@ -537,10 +537,8 @@ mod tests {
 
         let mut port_conflict_value: serde_json::Value =
             serde_json::from_str(&vessel_conflict).unwrap();
-        port_conflict_value["vesselIMONumber"] =
-            serde_json::Value::String("9990001".to_owned());
-        port_conflict_value["UNLocationCode"] =
-            serde_json::Value::String("ZZOTHER".to_owned());
+        port_conflict_value["vesselIMONumber"] = serde_json::Value::String("9990001".to_owned());
+        port_conflict_value["UNLocationCode"] = serde_json::Value::String("ZZOTHER".to_owned());
         let port_conflict = port_conflict_value.to_string();
 
         assert!(matches!(
@@ -599,10 +597,7 @@ mod tests {
             parsed.event_datetime.offset_semantics(),
             &TimestampOffsetSemantics::UnknownLocalOffset
         );
-        let zulu_payload = payload.replace(
-            "2026-10-18T12:10:00-00:00",
-            "2026-10-18T12:10:00Z",
-        );
+        let zulu_payload = payload.replace("2026-10-18T12:10:00-00:00", "2026-10-18T12:10:00Z");
         let zulu =
             parse_timestamp_message(&zulu_payload, context("DCSA-Z-UNKNOWN-OFFSET")).unwrap();
         assert_eq!(
@@ -661,10 +656,7 @@ mod tests {
                 if classifier == "PLN" && operation == "DEPA" {
                     assert_eq!(candidate, Ok(super::super::PcoField::DepartureFromBerth));
                 } else {
-                    assert_eq!(
-                        candidate,
-                        Err(DcsaJitParseError::UnsupportedPcoProjection)
-                    );
+                    assert_eq!(candidate, Err(DcsaJitParseError::UnsupportedPcoProjection));
                 }
                 accepted += 1;
             }
@@ -678,10 +670,7 @@ mod tests {
                 context(&format!("DCSA-MATRIX-{classifier}-ARRI-PBPL")),
             )
             .unwrap();
-            assert_eq!(
-                pbp.facility_type_code,
-                FacilityTypeCode::PilotBoardingPlace
-            );
+            assert_eq!(pbp.facility_type_code, FacilityTypeCode::PilotBoardingPlace);
             assert_eq!(
                 pbp.operations_event_type_code,
                 OperationsEventTypeCode::Arrival
@@ -693,10 +682,7 @@ mod tests {
                     Ok(super::super::PcoField::ArrivalAtPilotBoardingPlace)
                 );
             } else {
-                assert_eq!(
-                    candidate,
-                    Err(DcsaJitParseError::UnsupportedPcoProjection)
-                );
+                assert_eq!(candidate, Err(DcsaJitParseError::UnsupportedPcoProjection));
             }
             accepted += 1;
 
@@ -723,16 +709,14 @@ mod tests {
     #[test]
     fn future_planned_timestamp_is_allowed_but_future_actual_is_not() {
         let planned_payload = include_str!("../fixtures/dcsa-jit-pta-pbp.json");
-        let planned = parse_timestamp_message(planned_payload, context("DCSA-FUTURE-PLN"))
-            .unwrap();
+        let planned = parse_timestamp_message(planned_payload, context("DCSA-FUTURE-PLN")).unwrap();
         assert!(validate_timestamp(&planned, &policy()).is_ok());
 
         let actual_payload = planned_payload.replace(
             "\"eventClassifierCode\": \"PLN\"",
             "\"eventClassifierCode\": \"ACT\"",
         );
-        let actual = parse_timestamp_message(&actual_payload, context("DCSA-FUTURE-ACT"))
-            .unwrap();
+        let actual = parse_timestamp_message(&actual_payload, context("DCSA-FUTURE-ACT")).unwrap();
         assert_eq!(
             validate_timestamp(&actual, &policy()),
             Err(DcsaJitParseError::EventTimeTooFarInFuture)
