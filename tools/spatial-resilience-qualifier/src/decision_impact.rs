@@ -173,10 +173,7 @@ fn u64_field(object: &serde_json::Map<String, Value>, key: &str) -> Option<u64> 
     object.get(key)?.as_u64()
 }
 
-fn string_field<'a>(
-    object: &'a serde_json::Map<String, Value>,
-    key: &str,
-) -> Option<&'a str> {
+fn string_field<'a>(object: &'a serde_json::Map<String, Value>, key: &str) -> Option<&'a str> {
     object.get(key)?.as_str()
 }
 
@@ -306,7 +303,8 @@ fn parse_scenario(
                 );
                 return None;
             };
-            let Some(objectives) = result_object.get("objectives").and_then(Value::as_object) else {
+            let Some(objectives) = result_object.get("objectives").and_then(Value::as_object)
+            else {
                 summary.fail(
                     "DECISION_OBJECTIVES_MISSING",
                     format!("{result_path}.objectives"),
@@ -339,7 +337,10 @@ fn parse_scenario(
                 summary.fail(
                     "DECISION_STATE_RESULT_DUPLICATE",
                     format!("{result_path}.state_id"),
-                    format!("Candidate {:?} duplicates state result {state_id:?}.", candidate_id),
+                    format!(
+                        "Candidate {:?} duplicates state result {state_id:?}.",
+                        candidate_id
+                    ),
                 );
             }
         }
@@ -373,7 +374,11 @@ fn parse_scenario(
     for (action_index, action_value) in action_values.iter().enumerate() {
         let action_path = format!("{path}.actions[{action_index}]");
         let Some(action_object) = action_value.as_object() else {
-            summary.fail("DECISION_ACTION_INVALID", &action_path, "Action must be an object.");
+            summary.fail(
+                "DECISION_ACTION_INVALID",
+                &action_path,
+                "Action must be an object.",
+            );
             return None;
         };
         let Some(action_id) = string_field(action_object, "action_id") else {
@@ -496,10 +501,22 @@ fn objective_for_states(candidate: &Candidate, states: &[String]) -> Option<Obje
         .collect::<Option<Vec<_>>>()?;
 
     Some(ObjectiveVector {
-        service_hours: results.iter().map(|result| result.objectives.service_hours).min()?,
-        energy_units: results.iter().map(|result| result.objectives.energy_units).max()?,
-        repair_ticks: results.iter().map(|result| result.objectives.repair_ticks).max()?,
-        cost_units: results.iter().map(|result| result.objectives.cost_units).max()?,
+        service_hours: results
+            .iter()
+            .map(|result| result.objectives.service_hours)
+            .min()?,
+        energy_units: results
+            .iter()
+            .map(|result| result.objectives.energy_units)
+            .max()?,
+        repair_ticks: results
+            .iter()
+            .map(|result| result.objectives.repair_ticks)
+            .max()?,
+        cost_units: results
+            .iter()
+            .map(|result| result.objectives.cost_units)
+            .max()?,
     })
 }
 
@@ -554,8 +571,7 @@ fn pareto_candidates(
         let right = objective_for_states(candidate, states)?;
         let is_dominated = admitted.iter().any(|other| {
             other.id != candidate.id
-                && objective_for_states(other, states)
-                    .is_some_and(|left| dominates(left, right))
+                && objective_for_states(other, states).is_some_and(|left| dominates(left, right))
         });
         (!is_dominated).then(|| candidate.id.clone())
     }))
@@ -641,10 +657,7 @@ fn compare_decision_set(
     );
 }
 
-fn action_rejection_codes(
-    scenario: &Scenario,
-    action: &MeasurementAction,
-) -> Vec<String> {
+fn action_rejection_codes(scenario: &Scenario, action: &MeasurementAction) -> Vec<String> {
     let mut codes = BTreeSet::new();
 
     if action.evidence_state != "valid" {
@@ -693,7 +706,10 @@ fn action_rejection_codes(
         }
     }
 
-    if !declared_current.iter().all(|state| state_memberships.contains(state)) {
+    if !declared_current
+        .iter()
+        .all(|state| state_memberships.contains(state))
+    {
         codes.insert("ACTION_PARTITION_INCOMPLETE".to_owned());
     }
 
@@ -822,12 +838,19 @@ fn compare_action_expected(
         summary.fail(
             "DECISION_EXPECTATION_MISMATCH",
             format!("{path}.status"),
-            format!("Expected {:?}, computed {:?}.", object.get("status"), actual.status),
+            format!(
+                "Expected {:?}, computed {:?}.",
+                object.get("status"),
+                actual.status
+            ),
         );
     }
 
     check_bool!("decision_relevant", actual.decision_relevant);
-    check_bool!("changes_hard_feasible_set", actual.changes_hard_feasible_set);
+    check_bool!(
+        "changes_hard_feasible_set",
+        actual.changes_hard_feasible_set
+    );
     check_bool!("changes_pareto_set", actual.changes_pareto_set);
 
     if string_field(object, "cost_basis_id") != Some(actual.cost_basis_id.as_str()) {
@@ -861,7 +884,9 @@ fn compare_action_expected(
 
     let expected_worst = match object.get("worst_case_remaining_state_count") {
         Some(Value::Null) => None,
-        Some(value) => value.as_u64().and_then(|number| usize::try_from(number).ok()),
+        Some(value) => value
+            .as_u64()
+            .and_then(|number| usize::try_from(number).ok()),
         None => {
             summary.fail(
                 "DECISION_EXPECTATION_MISSING",
@@ -899,7 +924,8 @@ fn compare_action_expected(
         );
         return;
     };
-    let expected_by_id: BTreeMap<&str, &Value> = expected_outcomes.iter()
+    let expected_by_id: BTreeMap<&str, &Value> = expected_outcomes
+        .iter()
         .filter_map(|outcome| Some((outcome.get("outcome_id")?.as_str()?, outcome)))
         .collect();
     if expected_by_id.len() != expected_outcomes.len()
@@ -929,15 +955,23 @@ fn compare_action_expected(
         {
             summary.fail(
                 "DECISION_EXPECTATION_MISMATCH",
-                format!("{path}.outcomes[{}].compatible_state_count", outcome.outcome_id),
+                format!(
+                    "{path}.outcomes[{}].compatible_state_count",
+                    outcome.outcome_id
+                ),
                 "Outcome state count differs.",
             );
         }
-        compare_decision_set(expected_outcome, &DecisionSet {
-            remaining_critical_unknown_ids: outcome.remaining_critical_unknown_ids.clone(),
-            robust_feasible_candidate_ids: outcome.robust_feasible_candidate_ids.clone(),
-            pareto_candidate_ids: outcome.pareto_candidate_ids.clone(),
-        }, &format!("{path}.outcomes[{}]", outcome.outcome_id), summary);
+        compare_decision_set(
+            expected_outcome,
+            &DecisionSet {
+                remaining_critical_unknown_ids: outcome.remaining_critical_unknown_ids.clone(),
+                robust_feasible_candidate_ids: outcome.robust_feasible_candidate_ids.clone(),
+                pareto_candidate_ids: outcome.pareto_candidate_ids.clone(),
+            },
+            &format!("{path}.outcomes[{}]", outcome.outcome_id),
+            summary,
+        );
     }
 }
 
@@ -972,7 +1006,11 @@ fn evaluate_scenario(scenario: &Scenario) -> DecisionCaseResult {
 
         right_resolved
             .cmp(&left_resolved)
-            .then_with(|| right.changes_hard_feasible_set.cmp(&left.changes_hard_feasible_set))
+            .then_with(|| {
+                right
+                    .changes_hard_feasible_set
+                    .cmp(&left.changes_hard_feasible_set)
+            })
             .then_with(|| right.changes_pareto_set.cmp(&left.changes_pareto_set))
             .then_with(|| {
                 left.worst_case_remaining_state_count
@@ -1024,7 +1062,8 @@ fn compare_case_expected(
         );
         return;
     };
-    let expected_by_id: BTreeMap<&str, &Value> = expected_actions.iter()
+    let expected_by_id: BTreeMap<&str, &Value> = expected_actions
+        .iter()
         .filter_map(|action| Some((action.get("action_id")?.as_str()?, action)))
         .collect();
     if expected_by_id.len() != expected_actions.len()
@@ -1123,7 +1162,11 @@ pub fn validate_decision_impact_bytes(
     }
 
     let Some(cases) = root.get("cases").and_then(Value::as_array) else {
-        summary.fail("DECISION_CASES_MISSING", "$.cases", "Expected a case array.");
+        summary.fail(
+            "DECISION_CASES_MISSING",
+            "$.cases",
+            "Expected a case array.",
+        );
         return summary;
     };
     summary.cases_seen = cases.len();
@@ -1176,9 +1219,10 @@ pub fn validate_decision_impact_bytes(
     summary.failures.sort_by(|left, right| {
         (&left.path, &left.code, &left.detail).cmp(&(&right.path, &right.code, &right.detail))
     });
-    summary.results.sort_by(|left, right| left.case_id.cmp(&right.case_id));
-    summary.passed =
-        summary.failures.is_empty() && summary.cases_passed == summary.cases_seen;
+    summary
+        .results
+        .sort_by(|left, right| left.case_id.cmp(&right.case_id));
+    summary.passed = summary.failures.is_empty() && summary.cases_passed == summary.cases_seen;
     summary
 }
 
@@ -1213,7 +1257,11 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
-        let case = summary.results.iter().find(|result| result.case_id == "SPR-V-001").unwrap();
+        let case = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-001")
+            .unwrap();
         assert_eq!(
             case.recommended_action_order,
             vec!["targeted-clearance-survey", "full-3d-scan"]
@@ -1226,7 +1274,11 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
-        let case = summary.results.iter().find(|result| result.case_id == "SPR-V-002").unwrap();
+        let case = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-002")
+            .unwrap();
         assert!(case.actions.iter().all(|action| !action.decision_relevant));
         assert!(case.recommended_action_order.is_empty());
     }
@@ -1237,7 +1289,11 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
-        let case = summary.results.iter().find(|result| result.case_id == "SPR-V-005").unwrap();
+        let case = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-005")
+            .unwrap();
         let wall_only = case
             .actions
             .iter()
@@ -1268,7 +1324,11 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
-        let case = summary.results.iter().find(|result| result.case_id == "SPR-V-007").unwrap();
+        let case = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-007")
+            .unwrap();
         let action = &case.actions[0];
         assert!(!action.changes_hard_feasible_set);
         assert!(action.changes_pareto_set);
@@ -1308,13 +1368,21 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
-        let stale = summary.results.iter().find(|result| result.case_id == "SPR-V-006").unwrap();
+        let stale = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-006")
+            .unwrap();
         let mis_scoped = summary
             .results
             .iter()
             .find(|result| result.case_id == "SPR-V-008")
             .unwrap();
-        assert!(stale.actions[0].rejection_codes.contains(&"ACTION_EVIDENCE_NOT_VALID".to_owned()));
+        assert!(
+            stale.actions[0]
+                .rejection_codes
+                .contains(&"ACTION_EVIDENCE_NOT_VALID".to_owned())
+        );
         assert!(
             mis_scoped.actions[0]
                 .rejection_codes
@@ -1356,7 +1424,10 @@ mod tests {
             serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
         let first = &mut corpus["cases"][0];
         first["state_ids"].as_array_mut().unwrap().reverse();
-        first["current_possible_state_ids"].as_array_mut().unwrap().reverse();
+        first["current_possible_state_ids"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
         first["candidates"].as_array_mut().unwrap().reverse();
         for candidate in first["candidates"].as_array_mut().unwrap() {
             candidate["state_results"].as_array_mut().unwrap().reverse();
@@ -1365,14 +1436,25 @@ mod tests {
         for action in first["actions"].as_array_mut().unwrap() {
             action["outcomes"].as_array_mut().unwrap().reverse();
             for outcome in action["outcomes"].as_array_mut().unwrap() {
-                outcome["compatible_state_ids"].as_array_mut().unwrap().reverse();
+                outcome["compatible_state_ids"]
+                    .as_array_mut()
+                    .unwrap()
+                    .reverse();
             }
         }
         let bytes = serde_json::to_vec(&corpus).expect("serialize reordered corpus");
         let reordered =
             validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
-        assert!(original.passed, "original failures: {:?}", original.failures);
-        assert!(reordered.passed, "reordered failures: {:?}", reordered.failures);
+        assert!(
+            original.passed,
+            "original failures: {:?}",
+            original.failures
+        );
+        assert!(
+            reordered.passed,
+            "reordered failures: {:?}",
+            reordered.failures
+        );
         assert_eq!(original.results, reordered.results);
     }
 }
