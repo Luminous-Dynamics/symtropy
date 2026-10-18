@@ -705,8 +705,8 @@ mod tests {
     #[test]
     fn unknown_json_fields_fail_closed() {
         let raw = include_str!("../../../docs/tech/wood-flow-kiln-corpus-v0.1.json").replace(
-            "\\"suite_id\\":",
-            "\\"unexpected_authority\\": true,\\n  \\"suite_id\\":",
+            "\"suite_id\":",
+            "\"unexpected_authority\": true,\n  \"suite_id\":",
         );
         assert!(serde_json::from_str::<Corpus>(&raw).is_err());
     }
