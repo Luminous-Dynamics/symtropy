@@ -10,12 +10,9 @@
 
 use std::{error::Error, fmt, time::Duration};
 
-use crate::human_motion_intent::{
-    IntentValidationError, MotionIntentKind, SemanticMotionIntent,
-};
+use crate::human_motion_intent::{IntentValidationError, MotionIntentKind, SemanticMotionIntent};
 use bevy::animation::{
-    AnimationGraph, AnimationGraphHandle, AnimationNodeIndex, AnimationPlayer,
-    AnimationTransitions,
+    AnimationGraph, AnimationGraphHandle, AnimationNodeIndex, AnimationPlayer, AnimationTransitions,
 };
 use bevy::prelude::*;
 
@@ -113,7 +110,10 @@ impl fmt::Display for SemanticIntentAdapterError {
         match self {
             Self::InvalidIntent(error) => write!(f, "invalid semantic motion intent: {error}"),
             Self::UnsupportedIntentKind(kind) => {
-                write!(f, "semantic intent {kind:?} is not implemented by the idle/walk/run adapter")
+                write!(
+                    f,
+                    "semantic intent {kind:?} is not implemented by the idle/walk/run adapter"
+                )
             }
         }
     }
@@ -135,15 +135,17 @@ pub fn adapt_semantic_intent_to_locomotion(
     let desired_planar_velocity_mps = match intent.intent_kind {
         MotionIntentKind::Idle => bevy::math::Vec2::ZERO,
         MotionIntentKind::Locomote => {
-            let [x, z] = intent
-                .desired_planar_velocity_mps
-                .ok_or(SemanticIntentAdapterError::InvalidIntent(
+            let [x, z] = intent.desired_planar_velocity_mps.ok_or(
+                SemanticIntentAdapterError::InvalidIntent(
                     IntentValidationError::MissingLocomotionVelocity,
-                ))?;
+                ),
+            )?;
             bevy::math::Vec2::new(x, z)
         }
         unsupported => {
-            return Err(SemanticIntentAdapterError::UnsupportedIntentKind(unsupported));
+            return Err(SemanticIntentAdapterError::UnsupportedIntentKind(
+                unsupported,
+            ));
         }
     };
 
@@ -220,7 +222,9 @@ fn select_locomotion_motion(
     ];
     if !speed_mps.is_finite()
         || speed_mps < 0.0
-        || thresholds.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || thresholds
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
         || config.stop_exit_speed_mps >= config.walk_enter_speed_mps
         || config.walk_enter_speed_mps >= config.run_enter_speed_mps
         || config.run_exit_speed_mps < config.walk_enter_speed_mps
@@ -346,8 +350,8 @@ mod tests {
         target: Option<crate::human_motion_intent::MotionIntentTarget>,
     ) -> SemanticMotionIntent {
         use crate::human_motion_intent::{
-            ConfidenceSemantics, IntentProvenance, IntentSource, InterruptionPolicy,
-            HUMAN_MOTION_INTENT_SCHEMA_VERSION,
+            ConfidenceSemantics, HUMAN_MOTION_INTENT_SCHEMA_VERSION, IntentProvenance,
+            IntentSource, InterruptionPolicy,
         };
 
         SemanticMotionIntent {
