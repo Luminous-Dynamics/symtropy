@@ -801,4 +801,173 @@ mod tests {
             Err(ModelError::ArithmeticOverflow)
         );
     }
+    fn independent_relaxation_oracle(
+        operations: &[Operation],
+        dependencies: &[Dependency],
+        shocks: &[Shock],
+    ) -> Vec<i64> {
+        // Independent fixed-point formulation: begin at each operation's
+        // scheduled start and repeatedly enforce predecessor completion.
+        // This intentionally does not call the production topological traversal.
+        let mut starts = operations
+            .iter()
+            .map(|operation| operation.scheduled_start_minute)
+            .collect::<Vec<_>>();
+
+        for shock in shocks {
+            let target = operations
+                .iter()
+                .position(|operation| operation.id == shock.operation_id)
+                .expect("fixture shock target exists");
+            starts[target] = starts[target]
+                .checked_add(shock.additional_start_delay_minutes)
+                .expect("small oracle fixture does not overflow");
+        }
+
+        let iteration_limit = operations
+            .len()
+            .saturating_mul(operations.len())
+            .saturating_add(1);
+        for _ in 0..iteration_limit {
+            let mut changed = false;
+            for dependency in dependencies {
+                let predecessor = operations
+                    .iter()
+                    .position(|operation| operation.id == dependency.predecessor_id)
+                    .expect("fixture predecessor exists");
+                let successor = operations
+                    .iter()
+                    .position(|operation| operation.id == dependency.successor_id)
+                    .expect("fixture successor exists");
+                let required_start = starts[predecessor]
+                    .checked_add(operations[predecessor].duration_minutes)
+                    .and_then(|end| end.checked_add(dependency.lag_minutes))
+                    .expect("small oracle fixture does not overflow");
+                if starts[successor] < required_start {
+                    starts[successor] = required_start;
+                    changed = true;
+                }
+            }
+            if !changed {
+                return starts;
+            }
+        }
+
+        panic!("acyclic tiny oracle fixture did not converge");
+    }
+
+    #[test]
+    fn exhaustive_tiny_dag_sweep_matches_independent_fixed_point_oracle() {
+        let mut configurations = 0usize;
+
+        for node_count in 1..=4 {
+            let possible_edges = (0..node_count)
+                .flat_map(|from| ((from + 1)..node_count).map(move |to| (from, to)))
+                .collect::<Vec<_>>();
+            let graph_count = 1usize << possible_edges.len();
+
+            for edge_mask in 0..graph_count {
+                let operations = (0..node_count)
+                    .map(|index| Operation {
+                        id: format!("OP-{index}"),
+                        scheduled_start_minute: i64::try_from(index * 2).unwrap(),
+                        duration_minutes: i64::try_from((index * 3) % 4 + 1).unwrap(),
+                        resource_ids: Vec::new(),
+                        deadline_minute: None,
+                    })
+                    .collect::<Vec<_>>();
+                let dependencies = possible_edges
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(edge_index, (from, to))| {
+                        ((edge_mask & (1usize << edge_index)) != 0).then(|| Dependency {
+                            predecessor_id: format!("OP-{from}"),
+                            successor_id: format!("OP-{to}"),
+                            lag_minutes: i64::try_from((from + to) % 2).unwrap(),
+                        })
+                    })
+                    .collect::<Vec<_>>();
+
+                let baseline = independent_relaxation_oracle(&operations, &dependencies, &[]);
+                for target in 0..node_count {
+                    for delay in [0_i64, 1, 3] {
+                        let shocks = vec![shock(
+                            &format!("SHOCK-{target}-{delay}"),
+                            &format!("OP-{target}"),
+                            delay,
+                        )];
+                        let scenario =
+                            independent_relaxation_oracle(&operations, &dependencies, &shocks);
+                        let case_id =
+                            format!("oracle-n{node_count}-mask{edge_mask}-target{target}-delay{delay}");
+                        let report = evaluate_scenario(
+                            &case_id,
+                            &operations,
+                            &dependencies,
+                            &shocks,
+                        )
+                        .unwrap();
+
+                        let mut expected_affected = 0usize;
+                        let mut expected_downstream_delay = 0_u128;
+                        for (index, operation) in operations.iter().enumerate() {
+                            let impact = report
+                                .operations
+                                .iter()
+                                .find(|item| item.operation_id == operation.id)
+                                .expect("report contains each operation");
+                            let expected_delay = scenario[index] - baseline[index];
+                            let expected_end = scenario[index] + operation.duration_minutes;
+                            let expected_direct_shock =
+                                if operation.id == format!("OP-{target}") { delay } else { 0 };
+
+                            assert_eq!(
+                                impact.baseline_start_minute, baseline[index],
+                                "baseline mismatch in {case_id}"
+                            );
+                            assert_eq!(
+                                impact.scenario_start_minute, scenario[index],
+                                "scenario mismatch in {case_id}"
+                            );
+                            assert_eq!(
+                                impact.scenario_end_minute, expected_end,
+                                "end mismatch in {case_id}"
+                            );
+                            assert_eq!(
+                                impact.delay_minutes, expected_delay,
+                                "delay mismatch in {case_id}"
+                            );
+                            assert_eq!(
+                                impact.direct_shock_minutes, expected_direct_shock,
+                                "direct shock mismatch in {case_id}"
+                            );
+
+                            if expected_delay > 0 {
+                                expected_affected += 1;
+                            }
+                            if operation.id != format!("OP-{target}") {
+                                expected_downstream_delay +=
+                                    u128::try_from(expected_delay).unwrap();
+                            }
+                        }
+
+                        assert_eq!(
+                            report.metrics.affected_operations, expected_affected,
+                            "affected count mismatch in {case_id}"
+                        );
+                        assert_eq!(
+                            report.metrics.downstream_delay_minutes, expected_downstream_delay,
+                            "downstream delay mismatch in {case_id}"
+                        );
+                        assert_eq!(report.metrics.missed_deadlines, 0);
+                        assert_eq!(report.metrics.resource_conflicts, 0);
+                        configurations += 1;
+                    }
+                }
+            }
+        }
+
+        assert_eq!(configurations, 855);
+    }
+
 }
