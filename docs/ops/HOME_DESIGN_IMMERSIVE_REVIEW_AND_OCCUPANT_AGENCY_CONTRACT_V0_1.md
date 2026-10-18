@@ -35,7 +35,9 @@ A design walkthrough can reveal a perceived issue; it cannot prove real dimensio
 
 ## Link to composable rules and homeowner freedom
 
-The viewer should overlay constraints rather than hide them. Each overlay distinguishes:
+The viewer should overlay constraints rather than hide them. The new `ReviewAnnotation` type makes the distinction machine-readable and ties each annotation to an exact design revision. The validator forbids labeling an owner preference as a binding failure, requires source/module provenance for binding findings, and keeps guidance and code-reform proposals informational. A stale annotation from a previous revision is rejected. It validates presentation contracts and digest syntax only; a trusted evidence and legal-status pipeline must provide the underlying determinations.
+
+Each overlay distinguishes:
 - binding requirement verified for the selected jurisdiction and code edition;
 - required evidence or unresolved interpretation;
 - engineering assumption or simulation result with uncertainty;
