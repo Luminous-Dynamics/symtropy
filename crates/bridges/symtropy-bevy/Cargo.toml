@@ -30,6 +30,8 @@ serde = { version = "1.0", features = ["derive"] }
 default = []
 debug-gizmos = ["bevy/bevy_gizmos", "bevy/bevy_gizmos_render"]
 rapier3d = ["dep:symtropy-rapier3d-bridge", "dep:rapier3d"]
+# Opt-in skinned glTF character playback; default robotics builds stay lean.
+human-animation = ["bevy/bevy_animation", "bevy/bevy_gltf", "bevy/bevy_pbr"]
 # `inspector` (bevy_inspector_egui in-engine tooling, per README.md/roadmap.md's
 # stated direction) was previously declared here as an empty, unbuildable
 # feature gating dead code in plugin.rs. Removed 2026-07-21 rather than left
