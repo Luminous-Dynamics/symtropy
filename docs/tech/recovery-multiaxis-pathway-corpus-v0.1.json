@@ -27793,6 +27793,14 @@
           "biosecurity_exposure": 1,
           "habitat_disturbance": 0
         }
+      },
+      {
+        "strategy_id": "constraint-violating-high-yield-shortcut",
+        "metric_values": {
+          "material_yield": 100,
+          "biosecurity_exposure": 0,
+          "habitat_disturbance": 99
+        }
       }
     ],
     "regimes": [
