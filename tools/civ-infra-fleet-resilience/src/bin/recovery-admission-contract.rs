@@ -1042,6 +1042,55 @@ fn build_scenarios(contract: &Contract) -> Result<Vec<Scenario>, String> {
         proposal: missing_predecessor,
     });
 
+    let safe_start = make_proposal(
+        contract,
+        "global-safe-start-survey",
+        "survey-segment-01",
+        TaskState::Ready,
+        Action::Start,
+        0,
+        Some("survey-rover-01".to_string()),
+    );
+    scenarios.push(Scenario {
+        scenario_id: "global-safe-start-survey".to_string(),
+        case_id: None,
+        expected_admitted: true,
+        proposal: safe_start,
+    });
+
+    let safe_resume = make_proposal(
+        contract,
+        "global-safe-resume-survey",
+        "survey-segment-01",
+        TaskState::Interrupted,
+        Action::Resume,
+        0,
+        Some("survey-rover-01".to_string()),
+    );
+    scenarios.push(Scenario {
+        scenario_id: "global-safe-resume-survey".to_string(),
+        case_id: None,
+        expected_admitted: true,
+        proposal: safe_resume,
+    });
+
+    let mut safe_reassign = make_proposal(
+        contract,
+        "global-safe-reassign-survey",
+        "survey-segment-01",
+        TaskState::Interrupted,
+        Action::Reassign,
+        0,
+        Some("survey-rover-01".to_string()),
+    );
+    safe_reassign.previous_resource_id = Some("oracle-robot-a".to_string());
+    scenarios.push(Scenario {
+        scenario_id: "global-safe-reassign-survey".to_string(),
+        case_id: None,
+        expected_admitted: true,
+        proposal: safe_reassign,
+    });
+
     let mut stale_capability = make_proposal(
         contract,
         "global-stale-capability",
