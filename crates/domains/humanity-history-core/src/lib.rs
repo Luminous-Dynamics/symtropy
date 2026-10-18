@@ -419,6 +419,14 @@ fn validate_rights(
     }
 }
 
+fn parse_finite_decimal(value: &str) -> Option<f64> {
+    value.parse::<f64>().ok().filter(|number| number.is_finite())
+}
+
+fn is_finite_decimal(value: &str) -> bool {
+    parse_finite_decimal(value).is_some()
+}
+
 fn validate_evidence_links(
     owner_id: &str,
     evidence: &[EvidenceLink],
@@ -647,6 +655,207 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
                 &asset.id,
                 ValidationCode::UndistributableRights,
                 "asset marked distributable has restricted, unknown, or community-protocol rights",
+            );
+        }
+    }
+
+    for estimate in &dataset.estimates {
+        register_id(&estimate.id, &mut all_ids, &estimate.id, &mut issues);
+        if !claim_ids.contains(&estimate.claim_id) {
+            issue(
+                &mut issues,
+                &estimate.id,
+                ValidationCode::MissingClaimReference,
+                format!("estimate refers to unknown claim ID '{}'", estimate.claim_id),
+            );
+        }
+        require_nonempty(&estimate.quantity, &estimate.id, "estimate quantity", &mut issues);
+        require_nonempty(&estimate.unit, &estimate.id, "estimate unit", &mut issues);
+        require_nonempty(&estimate.method, &estimate.id, "estimate method", &mut issues);
+        if estimate.assumptions.is_empty()
+            || estimate.assumptions.iter().any(|assumption| assumption.trim().is_empty())
+        {
+            issue(
+                &mut issues,
+                &estimate.id,
+                ValidationCode::InvalidNumericEstimate,
+                "estimates require explicit assumptions; state that no assumptions are supplied when appropriate",
+            );
+        }
+
+        if !is_finite_decimal(&estimate.value_decimal) {
+            issue(
+                &mut issues,
+                &estimate.id,
+                ValidationCode::InvalidNumericEstimate,
+                "value_decimal must be a finite decimal number encoded as a string",
+            );
+        }
+
+        if estimate.interval.is_none()
+            && estimate.kind == EstimateKind::ReportedIntervalEstimate
+        {
+            issue(
+                &mut issues,
+                &estimate.id,
+                ValidationCode::InvalidUncertaintyInterval,
+                "reported_interval_estimate requires a declared uncertainty interval",
+            );
+        }
+
+        if let Some(interval) = &estimate.interval {
+            let lower = parse_finite_decimal(&interval.lower_decimal);
+            let upper = parse_finite_decimal(&interval.upper_decimal);
+            if lower.is_none() || upper.is_none() || lower.unwrap() > upper.unwrap() {
+                issue(
+                    &mut issues,
+                    &estimate.id,
+                    ValidationCode::InvalidUncertaintyInterval,
+                    "uncertainty interval endpoints must be finite decimal strings with lower <= upper",
+                );
+            }
+            require_nonempty(
+                &interval.conditioning_note,
+                &estimate.id,
+                "interval conditioning note",
+                &mut issues,
+            );
+
+            match interval.coverage_percent.as_deref() {
+                Some(coverage) => match parse_finite_decimal(coverage) {
+                    Some(value) if value > 0.0 && value <= 100.0 => {}
+                    _ => issue(
+                        &mut issues,
+                        &estimate.id,
+                        ValidationCode::InvalidUncertaintyInterval,
+                        "coverage_percent must be greater than 0 and at most 100",
+                    ),
+                },
+                None if matches!(interval.kind, IntervalKind::Credible | IntervalKind::Confidence) => {
+                    issue(
+                        &mut issues,
+                        &estimate.id,
+                        ValidationCode::InvalidUncertaintyInterval,
+                        "credible and confidence intervals require an explicit coverage_percent",
+                    );
+                }
+                None => {}
+            }
+        }
+
+        if !estimate.evidence.iter().any(|link| link.relation == EvidenceRelation::Supports) {
+            issue(
+                &mut issues,
+                &estimate.id,
+                ValidationCode::MissingEstimateEvidence,
+                "reported estimates and reconstruction parameters require a source link marked supports",
+            );
+        }
+        validate_evidence_links(&estimate.id, &estimate.evidence, &source_ids, &mut issues);
+    }
+
+    let estimate_ids: BTreeSet<String> =
+        dataset.estimates.iter().map(|estimate| estimate.id.clone()).collect();
+
+    for model in &dataset.reconstruction_models {
+        register_id(&model.id, &mut all_ids, &model.id, &mut issues);
+        require_nonempty(&model.title, &model.id, "model title", &mut issues);
+        require_nonempty(&model.summary, &model.id, "model summary", &mut issues);
+        require_nonempty(&model.method, &model.id, "model method", &mut issues);
+        if model.target_claim_ids.is_empty() || model.estimate_ids.is_empty() {
+            issue(
+                &mut issues,
+                &model.id,
+                ValidationCode::MissingModelReference,
+                "a reconstruction model must reference at least one target claim and one quantitative estimate",
+            );
+        }
+        if model.assumptions.is_empty()
+            || model.assumptions.iter().any(|assumption| assumption.trim().is_empty())
+        {
+            issue(
+                &mut issues,
+                &model.id,
+                ValidationCode::InvalidModelComparison,
+                "reconstruction models require explicit assumptions; state what remains unspecified",
+            );
+        }
+        for claim_id in &model.target_claim_ids {
+            if !claim_ids.contains(claim_id) {
+                issue(
+                    &mut issues,
+                    &model.id,
+                    ValidationCode::MissingClaimReference,
+                    format!("model refers to unknown target claim ID '{claim_id}'"),
+                );
+            }
+        }
+        for estimate_id in &model.estimate_ids {
+            if !estimate_ids.contains(estimate_id) {
+                issue(
+                    &mut issues,
+                    &model.id,
+                    ValidationCode::MissingEstimateReference,
+                    format!("model refers to unknown estimate ID '{estimate_id}'"),
+                );
+            }
+        }
+        if !model.evidence.iter().any(|link| link.relation == EvidenceRelation::Supports) {
+            issue(
+                &mut issues,
+                &model.id,
+                ValidationCode::MissingEstimateEvidence,
+                "a published interpretation or candidate model requires source-linked supporting evidence",
+            );
+        }
+        validate_evidence_links(&model.id, &model.evidence, &source_ids, &mut issues);
+    }
+
+    let model_ids: BTreeSet<String> = dataset
+        .reconstruction_models
+        .iter()
+        .map(|model| model.id.clone())
+        .collect();
+
+    for comparison in &dataset.model_comparisons {
+        register_id(&comparison.id, &mut all_ids, &comparison.id, &mut issues);
+        require_nonempty(&comparison.question, &comparison.id, "comparison question", &mut issues);
+        require_nonempty(&comparison.decision_rule, &comparison.id, "comparison decision rule", &mut issues);
+        let unique_models: BTreeSet<&String> = comparison.model_ids.iter().collect();
+        if unique_models.len() < 2 || unique_models.len() != comparison.model_ids.len() {
+            issue(
+                &mut issues,
+                &comparison.id,
+                ValidationCode::InvalidModelComparison,
+                "a model comparison must reference at least two distinct models",
+            );
+        }
+        if comparison.evaluation_axes.is_empty()
+            || comparison.evaluation_axes.iter().any(|axis| axis.trim().is_empty())
+        {
+            issue(
+                &mut issues,
+                &comparison.id,
+                ValidationCode::InvalidModelComparison,
+                "a model comparison requires named evaluation axes",
+            );
+        }
+        for model_id in &comparison.model_ids {
+            if !model_ids.contains(model_id) {
+                issue(
+                    &mut issues,
+                    &comparison.id,
+                    ValidationCode::MissingModelReference,
+                    format!("comparison refers to unknown model ID '{model_id}'"),
+                );
+            }
+        }
+        if comparison.caveats.iter().any(|caveat| caveat.trim().is_empty()) {
+            issue(
+                &mut issues,
+                &comparison.id,
+                ValidationCode::InvalidModelComparison,
+                "comparison caveats must not contain empty strings",
             );
         }
     }
