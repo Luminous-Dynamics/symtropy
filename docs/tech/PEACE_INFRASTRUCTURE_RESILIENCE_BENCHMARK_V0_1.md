@@ -131,6 +131,8 @@ Every benchmark result must include:
 
 Use separate labels: NOT_RUN, PASS, FAIL, UNKNOWN, BLOCKED, and NOT_APPLICABLE. Queued, skipped, stale, or absent execution is not PASS. Synthetic correctness, forecast skill, operational reliability, institutional legitimacy, and real-world impact are different evidence classes; never promote one into another.
 
+For warning-to-response evaluations, report the declared response-time reserve separately from the response-latency estimate. A response is operationally feasible only when lead time is strictly greater than the latency bound plus that reserve, in addition to explicit authorized ownership and resource availability. A response may be marked verified only when its ordered lifecycle trace (issued, acknowledged, dispatched, arrived, action completed, outcome independently verified) has monotonic non-negative event offsets, unique event IDs, evidence references, and an explicit independent attestation for the final outcome. Reserve values are scenario inputs for synthetic conformance, not universal safety policy or empirically calibrated constants.
+
 ## 6. First reference corpus
 
 The shared fixture contract is specified in `../schemas/peace-infrastructure-resilience-v0.1.schema.json`. The initial synthetic corpus is intentionally small and adversarial. It covers:
@@ -143,7 +145,7 @@ The shared fixture contract is specified in `../schemas/peace-infrastructure-res
 7. a community declining participation, which must not be silently treated as consent;
 8. multiple service-recovery options evaluated over baseline, drought, and supplier-disruption scenarios, with hard gates and a separate cost/worst-case-gap Pareto frontier rather than invented scenario probabilities;
 9. a before/after case in which one area improves while a neighboring area worsens, so aggregate service gap does not improve and before/after-only data cannot establish causality;
-10. an essential-service warning with different combinations of authorized ownership, resources, response lead time, dispatch state, and independently verified response evidence, so an alert is not confused with an executed response or proven prevention.
+10. an essential-service warning with different combinations of authorized ownership, resources, response lead time, dispatch state, and independently verified response evidence, so an alert is not confused with an executed response or proven prevention. It now includes a hard boundary where nominal latency slack exactly equals the declared reserve, and a complete synthetic event trail with negative controls for event ordering, provenance, and independent outcome attestation.
 
 These fixtures test semantics and failure handling only. Numeric quantities are fictional and are not policy thresholds. Later versions may add multilingual materials, realistic public infrastructure topologies, historical replay sets with documented provenance, and independently governed field-evaluation protocols.
 
