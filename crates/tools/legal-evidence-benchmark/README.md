@@ -26,6 +26,10 @@ From the repository root:
 
 The CLI prints machine-readable JSON. Validation errors exit with code 2; a failed evaluation gate exits with code 1; a fixture-gate pass exits with code 0. The command is deterministic and performs no network access.
 
+## Reproducible receipts
+
+Validation output records the SHA-256 digest of the exact corpus file bytes. Evaluation output records SHA-256 digests of the exact corpus and submission file bytes plus the evaluator package version. Preserve this receipt alongside the source revision and CI run URL when comparing results. Input digests identify the evaluated files; they do not authenticate who published a source or prove that the source is authoritative. The unit-level convenience wrapper hashes deterministic serialization of its in-memory fixture objects; the CLI hashes raw input-file bytes.
+
 The CI workflow also evaluates `fixtures/reference-submission-v0.1.json`. This is a synthetic oracle/control submission intended to exercise the evaluator itself; it is **not a measurement of any Symthaea or other production model**.
 
 ## Submission contract
