@@ -45,7 +45,7 @@ The pinned trace was inspected independently before this adapter was authored. I
 | Timestamp order inversions | 0 |
 | Adjacent same-timestamp event pairs | 458 |
 | Unique timestamps | 11,261 |
-| Largest gap between observed event times | approximately 89.5 minutes |
+| Largest gap between observed event times | approximately 89.5 minutes (prior millisecond-resolution profiling) |
 
 Observed field counts from that exploration:
 
@@ -63,7 +63,7 @@ Observed field counts from that exploration:
 | `Program_Status` | 2 |
 | `Part_Count` | 1 |
 
-These numbers are prior source-inspection results, **not yet output from a run of this crate**. The exact max-gap nanosecond result is computed from source fractional-second precision by the adapter and should be recorded after running it.
+These numbers are prior source-inspection results, **not yet output from a run of this crate**. The exact max-gap nanosecond result is computed from source fractional-second precision by the adapter and should be recorded after running it. One-unique-timestamp inputs have no defined inter-event gap; the parser returns `None` instead of fabricating a zero-length gap at the Unix epoch.
 
 ## Safety and epistemic boundaries
 
@@ -72,13 +72,13 @@ These numbers are prior source-inspection results, **not yet output from a run o
 - Timestamps are converted to integer nanoseconds, avoiding floating-point ordering loss.
 - Input event order is preserved; inversions are counted rather than sorted away.
 - Same-time events are valid and preserved; same-time adjacent pairs are reported separately from row counts.
-- The maximum time gap is computed across sorted unique observed timestamps. It describes **sampling coverage only**.
+- The maximum time gap is computed across sorted unique observed timestamps. It describes **sampling coverage only**; it is `None` when fewer than two unique timestamps exist.
 - Missing events are not interpreted as idle, available, safe, productive, unavailable, or failed equipment.
 - Values remain strings. Unit and state-code semantics require an explicitly versioned mapping before using them in a planner.
 - The adapter is an ingestion/profiling layer, not an optimizer and not an operational technology interface.
 
 ## Qualification gates
 
-The eight authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling and blank values. They are authored but have **not been executed in this environment** because a Rust/Cargo toolchain is unavailable.
+The nine authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling, single-timestamp gaps and blank values. They are authored but have **not been executed in this environment** because a Rust/Cargo toolchain is unavailable.
 
 Next steps: execute the offline suite; run on the exact pinned source and compare all counts/first-last timestamps with the exploratory profile; record actual byte digest, exact maximum gap and runtime; then add a downstream schedule-admission test that fails closed when a requested interval crosses an unobserved gap.
