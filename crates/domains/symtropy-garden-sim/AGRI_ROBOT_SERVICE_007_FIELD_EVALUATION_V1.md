@@ -159,6 +159,21 @@ If comparing non-random channel use, state that self-selection, farmer need, tas
 ### Field-effect gates
 Do not set an arbitrary percentage improvement, adoption/retention target or affordability cutoff before local baseline, season, task, provider availability, sampling and cost basis are declared. Stage 2 should first establish denominator completeness, follow-up feasibility, outcome provenance, workload and harm guardrails. Only then preregister a comparative target that is justified by the local baseline and uncertainty/precision needs.
 
-## 10. Claim ceiling
+## 10. Machine-checkable report preflight
+
+The Rust report preflight in `src/field_eval_report.rs`, runnable as `verify-field-eval-report`, validates the screened cohort, fixed eligible denominator, preregistered exclusions and one outcome row per eligible request before outputting identification bounds. It is deliberately downstream of the canonical service evaluator: it does not generate, repair or infer service lifecycle events.
+
+Run from the repository root:
+
+```sh
+cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-eval-report -- crates/domains/symtropy-garden-sim/fixtures/field_eval_report.v1.json
+cargo test --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
+```
+
+The frozen example is synthetic. Its six eligible requests include one confirmed in-window acceptance, one late acceptance, a typed no-provider outcome, a provider-completion record awaiting a farmer decision while the useful window is open, unresolved dispute/rework, and an unknown outcome. Two screened candidates are explicitly excluded using preregistered rule references. The expected evidence-confirmed lower bound is (1/6), the missingness upper identification bound is (4/6), and ascertainment coverage is (3/6). These are worked fixture values, not service-performance measurements.
+
+The preflight blocks all computed rates if any screened candidate is unaccounted for, an eligible request is missing/duplicated in the outcome records, an outcome is assigned to an ineligible reference, an exclusion is duplicated/undocumented, or the useful-window/outcome classification is inconsistent. It emits exact integer numerator/denominator pairs rather than rounded floating-point percentages. Known late, typed non-acceptance, or resolved no-acceptance states do not inflate the upper bound; unresolved/missing evidence does so only through its explicit classification. A resolved rework acceptance inside the useful window contributes to the accepted outcome numerator while remaining counted in the dispute/rework breakdown.
+
+## 11. Claim ceiling
 
 Stage 0 supports only claims about synthetic model and fixture behavior. Stage 1 supports only formative comprehension/usability observations under the exact declared script, language, prototype and participants. Stage 2 supports descriptive feasibility and scoped service-outcome estimates for the declared cohort. Stage 3 supports causal claims only if its predeclared design and assumptions justify them. None alone proves broad South African adoption, causal yield/income/water benefits, universal channel superiority or agricultural safety.
