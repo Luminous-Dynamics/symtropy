@@ -1477,6 +1477,41 @@ mod tests {
     }
 
     #[test]
+    fn undeclared_state_in_partition_is_rejected_semantically() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["actions"][0]["outcomes"][0]["compatible_state_ids"] =
+            serde_json::json!(["undeclared-state"]);
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
+        let case = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-001")
+            .expect("decision case should still return diagnostic results");
+        let action = case
+            .actions
+            .iter()
+            .find(|item| item.action_id == "targeted-clearance-survey")
+            .expect("targeted survey result");
+        assert!(action.rejection_codes.contains(&"ACTION_STATE_UNDECLARED".to_owned()));
+        assert!(action.rejection_codes.contains(&"ACTION_PARTITION_INCOMPLETE".to_owned()));
+    }
+
+    #[test]
+    fn duplicate_state_inside_outcome_is_rejected_by_schema() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["actions"][0]["outcomes"][0]["compatible_state_ids"] =
+            serde_json::json!(["width-ok", "width-ok"]);
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
+        assert!(has_code(&summary, "DECISION_SCHEMA_VALIDATION_FAILED"));
+    }
+
+    #[test]
     fn unsupported_probability_fields_are_rejected_by_schema() {
         let mut corpus: Value =
             serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
