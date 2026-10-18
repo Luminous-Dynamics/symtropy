@@ -49,6 +49,14 @@ Build a synthetic, versioned two-facility network with a deliberately small exac
 
 Every fixture must declare units, time basis, scenario lineage, evidence class, model version, uncertainty, and digest. Synthetic values must remain visibly synthetic and must never be reported as observed industrial performance.
 
+## Executable v0.1 slice now present
+
+The branch also contains a first offline Rust reference package at [`crates/tools/industrial-coupling-benchmark/`](../tree/research/industrial-coupling-benchmark-v0-1-2026-10-18/crates/tools/industrial-coupling-benchmark). It implements exact enumeration over a bounded integer-kWh heat-transfer domain, a constant-temperature grade screen, heat-loss and cost ledgers, two-party surplus allocation, and a separate finite-domain optimality scan.
+
+It includes one synthetic positive case plus negative controls for incompatible temperature grade, uneconomic transfer, zero capacity, tampered accounting, invalid allocation shares, and an excessive search bound. Its ten unit tests are authored, but were **not executed in this editing environment** because a Rust toolchain was unavailable. GitHub Actions were queued at the latest exact-head inspection; no test pass is claimed.
+
+This is intentionally narrower than INDUSTRIAL-COUPLING-001: it does not model time-dependent storage, temperature profiles, a heat-exchanger network, production schedules, real tariffs, measured facilities, or actual savings. It validates one integration seam and makes the next expansion testable without pretending the whole platform has been implemented.
+
 ## Tournament: mandatory comparison arms
 
 All arms receive the same plant model, constraints, demand/price/failure information, and declared compute budget.
@@ -133,7 +141,7 @@ Start with versioned file contracts and adapters; do not require a distributed r
 ## Phased work
 
 1. **Contract:** freeze canonical schema, units, scenario IDs, score accounting, hard constraints, and negative controls.
-2. **Reference evaluator:** a small offline Rust package validates inputs and plans; hand-check all tiny fixture results; no external service or GPU requirement.
+2. **Reference evaluator (initial slice committed on this branch):** the standalone Rust heat-exchange screening crate validates input/output accounting and exactness for its bounded discrete model. Next, expand beyond this narrow slice only with hand-checkable fixtures; no external service or GPU requirement.
 3. **Baseline tournament:** implement rule/independent and exact tiny cases first; then add a strong scalable conventional optimizer.
 4. **Cross-project adapters:** ingest versioned evidence from owners above without copying their domain logic or confusing evidence classes.
 5. **Robust evaluation:** paired disturbances, held-out regimes, ablations, sensitivity and per-participant economics.
