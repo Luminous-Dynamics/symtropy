@@ -19,7 +19,7 @@ Every benchmark receipt should record:
 - exact repository and full commit SHA;
 - benchmark protocol version and case identifier;
 - integrator, step size or adaptive tolerances, step count and end time;
-- (G), all masses/initial positions/velocities and units;
+- G, all masses/initial positions/velocities and units;
 - softening length (zero for the unsoftened Newtonian fixtures);
 - input fixture digest and expected-claim/tolerance digest;
 - toolchain, target OS/architecture, CPU/GPU if used, build profile and command;
@@ -34,12 +34,12 @@ A benchmark without the actual run receipt is a **target**, not a result. Never 
 | Level | Question and fixture | Acceptance target |
 |---|---|---|
 | N0 — domain and failure boundaries | Duplicate IDs, invalid masses/time steps, non-finite state, singular zero-softening pairs, and numerical overflow | Invalid cases return declared errors; a rejected step leaves the whole state and step/time counters unchanged |
-| N1 — analytic two-body | Equal-mass circular binary, then an eccentric Kepler orbit with (e=0.6); compare one-period closure against the analytic period | Current code assertions: circular case (1,000 steps) relative position closure < (1.1\times10^{-4}), relative energy drift < (10^{-10}); eccentric case (1,024 → 2,048 steps) finer closure < 0.3× coarse and fine-run relative energy drift < (2\times10^{-9}) |
-| N2 — numerical convergence | Repeat fixed initial conditions with (Delta t, Delta t/2, Delta t/4); sweep orbital eccentricity, not just one circular case | Report empirical order from errors at all levels. Velocity-Verlet should show second-order convergence while temporal and floating-point errors remain dominant; do not hard-code a claimed order without measured ratios |
+| N1 — analytic two-body | Equal-mass circular binary, then an eccentric Kepler orbit with e = 0.6; compare one-period closure against the analytic period | Current code assertions: circular case (1,000 steps) relative position closure < 1.1e-4, relative energy drift < 1e-10; eccentric case (1,024 → 2,048 steps) finer closure < 0.3× coarse and fine-run relative energy drift < 2e-9 |
+| N2 — numerical convergence | Repeat fixed initial conditions with dt, dt/2, dt/4; sweep orbital eccentricity, not just one circular case | Report empirical order from errors at all levels. Velocity-Verlet should show second-order convergence while temporal and floating-point errors remain dominant; do not hard-code a claimed order without measured ratios |
 | N3 — long-run invariants | Long isolated integrations with zero softening, then separately with a fixed positive Plummer softening and its matching potential | Freeze initial values; report max and final energy error, momentum/angular-momentum drift, center-of-mass drift and step count. Treat softened and unsoftened runs as different force models |
 | N4 — independent solver oracle | Run the exact same Newtonian setup in an independently maintained integrator, first for two-body, then for non-chaotic small-N cases | Freeze versions, methods, tolerances, units and initial bytes. Agreement should be checked over a stated time horizon and against invariants—not inferred from matching a plot |
 | N5 — chaotic three-body | Frozen initial states and seeds with close approaches/encounters; compare trajectories only over a declared horizon | Beyond sensitive-dependence horizons, trajectory divergence alone is not a verdict. Compare energy/angular-momentum envelopes, encounter counts, escape/ejection outcomes, invariant distributions and sensitivity under timestep refinement |
-| N6 — scaling and cost | (N=2,4,8,16,32,64) or larger only after memory/runtime are safe; benchmark force evaluation separately from setup and reporting | Report median and spread across repeated runs, (N^2) force-work expectation, allocation strategy and error at each point. Publish no speed-up claim until measured on a named machine against a frozen baseline |
+| N6 — scaling and cost | N = 2, 4, 8, 16, 32, 64 or larger only after memory/runtime are safe; benchmark force evaluation separately from setup and reporting | Report median and spread across repeated runs, N² force-work expectation, allocation strategy and error at each point. Publish no speed-up claim until measured on a named machine against a frozen baseline |
 | N7 — domain extension | Planetary ephemeris, tides/collisions, relativistic corrections or cosmological structure formation | Each extension requires its own equations, fixtures, independent reference and validity domain. The current Newtonian point-mass crate does not qualify these uses |
 
 ### Current in-tree evidence versus future gates
