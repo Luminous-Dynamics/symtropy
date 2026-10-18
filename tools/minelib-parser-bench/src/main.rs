@@ -163,7 +163,10 @@ fn validate_manifest(manifest: &Manifest) -> Check<()> {
         || !nonempty(&manifest.claim_ceiling)
         || !nonempty(&manifest.format_version)
         || !(manifest.format_specification.starts_with("https://")
-            && !manifest.format_specification.chars().any(char::is_whitespace))
+            && !manifest
+                .format_specification
+                .chars()
+                .any(char::is_whitespace))
         || manifest.attribute_columns.is_empty()
         || manifest.expected.block_count != EXPECTED_FIXTURE_BLOCKS
         || manifest.expected.precedence_edges != EXPECTED_FIXTURE_EDGES
@@ -175,7 +178,11 @@ fn validate_manifest(manifest: &Manifest) -> Check<()> {
     {
         return Err("manifest identity, evidence class, source reference, or known-answer contract is invalid".to_owned());
     }
-    for file in [&manifest.block_file, &manifest.precedence_file, &manifest.model_file] {
+    for file in [
+        &manifest.block_file,
+        &manifest.precedence_file,
+        &manifest.model_file,
+    ] {
         if !validate_relative_path(file) {
             return Err("fixture paths must be relative paths without traversal".to_owned());
         }
@@ -189,12 +196,18 @@ fn validate_manifest(manifest: &Manifest) -> Check<()> {
         match column.kind {
             AttributeKind::FixedDecimal => {
                 if !column.scale.is_some_and(|scale| scale <= 9) {
-                    return Err(format!("{}: fixed-decimal scale must be between 0 and 9", column.name));
+                    return Err(format!(
+                        "{}: fixed-decimal scale must be between 0 and 9",
+                        column.name
+                    ));
                 }
             }
             AttributeKind::UnsignedInteger | AttributeKind::SignedInteger => {
                 if column.scale.is_some() {
-                    return Err(format!("{}: integer columns must not declare a decimal scale", column.name));
+                    return Err(format!(
+                        "{}: integer columns must not declare a decimal scale",
+                        column.name
+                    ));
                 }
             }
         }
@@ -256,7 +269,9 @@ fn parse_fixed_decimal(raw: &str, scale: u32) -> Check<i64> {
         || !fraction.bytes().all(|byte| byte.is_ascii_digit())
         || fraction.len() > scale as usize
     {
-        return Err(format!("invalid fixed-decimal literal at scale {scale}: {raw}"));
+        return Err(format!(
+            "invalid fixed-decimal literal at scale {scale}: {raw}"
+        ));
     }
 
     let factor = 10_i128
@@ -282,26 +297,34 @@ fn parse_fixed_decimal(raw: &str, scale: u32) -> Check<i64> {
         .and_then(|value| value.checked_add(fractional_value))
         .ok_or_else(|| format!("fixed-decimal literal out of range: {raw}"))?;
     let signed_value = if negative { -magnitude } else { magnitude };
-    i64::try_from(signed_value).map_err(|_| format!("fixed-decimal literal out of i64 range: {raw}"))
+    i64::try_from(signed_value)
+        .map_err(|_| format!("fixed-decimal literal out of i64 range: {raw}"))
 }
 
 fn parse_attribute(raw: &str, column: &AttributeColumn) -> Check<i64> {
     match column.kind {
         AttributeKind::UnsignedInteger => {
             if raw.starts_with('-') || raw.starts_with('+') {
-                return Err(format!("{} expects an unsigned integer, got {raw}", column.name));
+                return Err(format!(
+                    "{} expects an unsigned integer, got {raw}",
+                    column.name
+                ));
             }
             let value = raw
                 .parse::<u64>()
                 .map_err(|_| format!("{} expects an unsigned integer, got {raw}", column.name))?;
-            i64::try_from(value).map_err(|_| format!("{} value exceeds supported i64 range", column.name))
+            i64::try_from(value)
+                .map_err(|_| format!("{} value exceeds supported i64 range", column.name))
         }
         AttributeKind::SignedInteger => raw
             .parse::<i64>()
             .map_err(|_| format!("{} expects a signed integer, got {raw}", column.name)),
-        AttributeKind::FixedDecimal => {
-            parse_fixed_decimal(raw, column.scale.expect("manifest validates fixed-decimal scales"))
-        }
+        AttributeKind::FixedDecimal => parse_fixed_decimal(
+            raw,
+            column
+                .scale
+                .expect("manifest validates fixed-decimal scales"),
+        ),
     }
 }
 
@@ -325,7 +348,10 @@ fn parse_block_model(input: &str, schema: &[AttributeColumn]) -> Check<Vec<Parse
             .parse::<usize>()
             .map_err(|_| format!("block line {}: invalid block ID", line_index + 1))?;
         if !ids.insert(id) {
-            return Err(format!("block line {}: duplicate block ID {id}", line_index + 1));
+            return Err(format!(
+                "block line {}: duplicate block ID {id}",
+                line_index + 1
+            ));
         }
         let x = row[1]
             .parse::<i64>()
@@ -376,20 +402,32 @@ fn parse_precedence(
             continue;
         }
         if row.len() < 2 {
-            return Err(format!("precedence line {}: expected block ID and predecessor count", line_index + 1));
+            return Err(format!(
+                "precedence line {}: expected block ID and predecessor count",
+                line_index + 1
+            ));
         }
         let block_id = row[0]
             .parse::<usize>()
             .map_err(|_| format!("precedence line {}: invalid block ID", line_index + 1))?;
         if !block_ids.contains(&block_id) {
-            return Err(format!("precedence line {}: unknown block ID {block_id}", line_index + 1));
+            return Err(format!(
+                "precedence line {}: unknown block ID {block_id}",
+                line_index + 1
+            ));
         }
-        let predecessor_count = row[1]
-            .parse::<usize>()
-            .map_err(|_| format!("precedence line {}: invalid predecessor count", line_index + 1))?;
-        let declared_columns = predecessor_count
-            .checked_add(2)
-            .ok_or_else(|| format!("precedence line {}: predecessor count overflows", line_index + 1))?;
+        let predecessor_count = row[1].parse::<usize>().map_err(|_| {
+            format!(
+                "precedence line {}: invalid predecessor count",
+                line_index + 1
+            )
+        })?;
+        let declared_columns = predecessor_count.checked_add(2).ok_or_else(|| {
+            format!(
+                "precedence line {}: predecessor count overflows",
+                line_index + 1
+            )
+        })?;
         if row.len() != declared_columns {
             return Err(format!(
                 "precedence line {}: declares {predecessor_count} predecessors but provides {}",
@@ -400,9 +438,9 @@ fn parse_precedence(
         let mut predecessors = Vec::with_capacity(predecessor_count);
         let mut unique = BTreeSet::new();
         for raw in &row[2..] {
-            let predecessor = raw
-                .parse::<usize>()
-                .map_err(|_| format!("precedence line {}: invalid predecessor ID", line_index + 1))?;
+            let predecessor = raw.parse::<usize>().map_err(|_| {
+                format!("precedence line {}: invalid predecessor ID", line_index + 1)
+            })?;
             if !block_ids.contains(&predecessor) {
                 return Err(format!(
                     "precedence line {}: dangling predecessor ID {predecessor}",
@@ -410,7 +448,10 @@ fn parse_precedence(
                 ));
             }
             if predecessor == block_id {
-                return Err(format!("precedence line {}: block cannot precede itself", line_index + 1));
+                return Err(format!(
+                    "precedence line {}: block cannot precede itself",
+                    line_index + 1
+                ));
             }
             if !unique.insert(predecessor) {
                 return Err(format!(
@@ -421,7 +462,10 @@ fn parse_precedence(
             predecessors.push(predecessor);
         }
         if rows.insert(block_id, predecessors).is_some() {
-            return Err(format!("precedence line {}: duplicate row for block {block_id}", line_index + 1));
+            return Err(format!(
+                "precedence line {}: duplicate row for block {block_id}",
+                line_index + 1
+            ));
         }
         edge_count = edge_count
             .checked_add(predecessor_count)
@@ -431,8 +475,7 @@ fn parse_precedence(
         return Err("precedence rows must cover every block exactly once".to_owned());
     }
 
-    let mut indegree: BTreeMap<usize, usize> =
-        block_ids.iter().map(|id| (*id, 0_usize)).collect();
+    let mut indegree: BTreeMap<usize, usize> = block_ids.iter().map(|id| (*id, 0_usize)).collect();
     let mut successors: BTreeMap<usize, Vec<usize>> =
         block_ids.iter().map(|id| (*id, Vec::new())).collect();
     for (block, predecessors) in &rows {
@@ -451,8 +494,13 @@ fn parse_precedence(
     let mut visited = 0_usize;
     while let Some(id) = ready.pop_front() {
         visited += 1;
-        for successor in successors.get(&id).expect("all block IDs have a successor list") {
-            let degree = indegree.get_mut(successor).expect("successor IDs are known");
+        for successor in successors
+            .get(&id)
+            .expect("all block IDs have a successor list")
+        {
+            let degree = indegree
+                .get_mut(successor)
+                .expect("successor IDs are known");
             *degree -= 1;
             if *degree == 0 {
                 ready.push_back(*successor);
@@ -486,27 +534,42 @@ fn parse_upit_model(
         }
         if !objective_section {
             let (raw_key, raw_value) = trimmed.split_once(':').ok_or_else(|| {
-                format!("model line {}: expected a keyword/value field or OBJECTIVE FUNCTION section", line_index + 1)
+                format!(
+                    "model line {}: expected a keyword/value field or OBJECTIVE FUNCTION section",
+                    line_index + 1
+                )
             })?;
             let key = raw_key.trim().to_ascii_uppercase();
             let value = raw_value.trim();
             if key == "OBJECTIVE FUNCTION" {
                 if !value.is_empty() {
-                    return Err(format!("model line {}: objective section header must not have a value", line_index + 1));
+                    return Err(format!(
+                        "model line {}: objective section header must not have a value",
+                        line_index + 1
+                    ));
                 }
                 objective_section = true;
                 continue;
             }
             if !header_keys.insert(key.clone()) {
-                return Err(format!("model line {}: duplicate header field {key}", line_index + 1));
+                return Err(format!(
+                    "model line {}: duplicate header field {key}",
+                    line_index + 1
+                ));
             }
             if value.is_empty() {
-                return Err(format!("model line {}: header field {key} has no value", line_index + 1));
+                return Err(format!(
+                    "model line {}: header field {key} has no value",
+                    line_index + 1
+                ));
             }
             match key.as_str() {
                 "NAME" => {
                     if value.split_whitespace().count() != 1 {
-                        return Err("UPIT model NAME must be one token under this format profile".to_owned());
+                        return Err(
+                            "UPIT model NAME must be one token under this format profile"
+                                .to_owned(),
+                        );
                     }
                     name = Some(value.to_owned());
                 }
@@ -514,34 +577,58 @@ fn parse_upit_model(
                     problem_type = Some(value.to_ascii_uppercase());
                 }
                 "NBLOCKS" => {
-                    block_count = Some(
-                        value.parse::<usize>()
-                            .map_err(|_| format!("model line {}: NBLOCKS is not a non-negative integer", line_index + 1))?,
-                    );
+                    block_count = Some(value.parse::<usize>().map_err(|_| {
+                        format!(
+                            "model line {}: NBLOCKS is not a non-negative integer",
+                            line_index + 1
+                        )
+                    })?);
                 }
                 "DISCOUNT RATE" => {
                     discount_rate_scaled = Some(
-                        parse_fixed_decimal(value, discount_rate_scale)
-                            .map_err(|error| format!("model line {}: invalid discount rate: {error}", line_index + 1))?,
+                        parse_fixed_decimal(value, discount_rate_scale).map_err(|error| {
+                            format!(
+                                "model line {}: invalid discount rate: {error}",
+                                line_index + 1
+                            )
+                        })?,
                     );
                 }
-                _ => return Err(format!("model line {}: unsupported header field {key}", line_index + 1)),
+                _ => {
+                    return Err(format!(
+                        "model line {}: unsupported header field {key}",
+                        line_index + 1
+                    ))
+                }
             }
         } else {
             let row = tokens(trimmed);
             if row.len() != 2 {
-                return Err(format!("model line {}: UPIT objective row needs exactly block ID and value", line_index + 1));
+                return Err(format!(
+                    "model line {}: UPIT objective row needs exactly block ID and value",
+                    line_index + 1
+                ));
             }
-            let id = row[0]
-                .parse::<usize>()
-                .map_err(|_| format!("model line {}: invalid objective block ID", line_index + 1))?;
+            let id = row[0].parse::<usize>().map_err(|_| {
+                format!("model line {}: invalid objective block ID", line_index + 1)
+            })?;
             if !block_ids.contains(&id) {
-                return Err(format!("model line {}: objective references unknown block {id}", line_index + 1));
+                return Err(format!(
+                    "model line {}: objective references unknown block {id}",
+                    line_index + 1
+                ));
             }
-            let value = parse_fixed_decimal(&row[1], objective_scale)
-                .map_err(|error| format!("model line {}: invalid objective coefficient: {error}", line_index + 1))?;
+            let value = parse_fixed_decimal(&row[1], objective_scale).map_err(|error| {
+                format!(
+                    "model line {}: invalid objective coefficient: {error}",
+                    line_index + 1
+                )
+            })?;
             if objective_values.insert(id, value).is_some() {
-                return Err(format!("model line {}: duplicate objective row for block {id}", line_index + 1));
+                return Err(format!(
+                    "model line {}: duplicate objective row for block {id}",
+                    line_index + 1
+                ));
             }
         }
     }
@@ -552,7 +639,9 @@ fn parse_upit_model(
     let name = name.ok_or_else(|| "UPIT model is missing NAME".to_owned())?;
     let problem_type = problem_type.ok_or_else(|| "UPIT model is missing TYPE".to_owned())?;
     if problem_type != "UPIT" {
-        return Err(format!("this tiny oracle supports UPIT only, not {problem_type}"));
+        return Err(format!(
+            "this tiny oracle supports UPIT only, not {problem_type}"
+        ));
     }
     let block_count = block_count.ok_or_else(|| "UPIT model is missing NBLOCKS".to_owned())?;
     if block_count != block_ids.len() {
@@ -572,7 +661,10 @@ fn parse_upit_model(
     })
 }
 
-fn precedence_feasible(selected: &BTreeSet<usize>, precedence: &BTreeMap<usize, Vec<usize>>) -> bool {
+fn precedence_feasible(
+    selected: &BTreeSet<usize>,
+    precedence: &BTreeMap<usize, Vec<usize>>,
+) -> bool {
     selected.iter().all(|block_id| {
         precedence
             .get(block_id)
@@ -603,10 +695,9 @@ fn independently_verify_upit_plan(
 
     let mut recomputed = 0_i64;
     for block_id in &selected {
-        let value = model
-            .objective_values
-            .get(block_id)
-            .ok_or_else(|| format!("independent verifier: objective missing for block {block_id}"))?;
+        let value = model.objective_values.get(block_id).ok_or_else(|| {
+            format!("independent verifier: objective missing for block {block_id}")
+        })?;
         recomputed = recomputed
             .checked_add(*value)
             .ok_or_else(|| "independent verifier: objective sum overflow".to_owned())?;
@@ -658,7 +749,9 @@ fn solve_upit_exhaustive(
                 best_objective = Some(objective);
                 best_ids = selected_ids;
             }
-            Some(current) if objective > current || (objective == current && selected_ids < best_ids) => {
+            Some(current)
+                if objective > current || (objective == current && selected_ids < best_ids) =>
+            {
                 best_objective = Some(objective);
                 best_ids = selected_ids;
             }
@@ -668,12 +761,8 @@ fn solve_upit_exhaustive(
 
     let objective_sum_scaled =
         best_objective.ok_or_else(|| "UPIT model has no feasible subset".to_owned())?;
-    let independent_verifier_matches = independently_verify_upit_plan(
-        model,
-        precedence,
-        &best_ids,
-        objective_sum_scaled,
-    )?;
+    let independent_verifier_matches =
+        independently_verify_upit_plan(model, precedence, &best_ids, objective_sum_scaled)?;
     if !independent_verifier_matches {
         return Err("independent verifier rejected the exhaustive UPIT result".to_owned());
     }
@@ -712,7 +801,10 @@ fn analyze(
         || blocks.iter().map(|block| block.id).collect::<Vec<_>>()
             != manifest.expected.expected_block_ids
     {
-        return Err("parsed block/precedence values do not match frozen known-answer expectations".to_owned());
+        return Err(
+            "parsed block/precedence values do not match frozen known-answer expectations"
+                .to_owned(),
+        );
     }
 
     let model = parse_upit_model(
@@ -721,10 +813,14 @@ fn analyze(
         manifest.discount_rate_scale,
         &block_ids,
     )?;
-    let model_objective_sum_scaled = model.objective_values.values().try_fold(0_i64, |sum, value| {
-        sum.checked_add(*value)
-            .ok_or_else(|| "model objective coefficient sum overflows i64".to_owned())
-    })?;
+    let model_objective_sum_scaled =
+        model
+            .objective_values
+            .values()
+            .try_fold(0_i64, |sum, value| {
+                sum.checked_add(*value)
+                    .ok_or_else(|| "model objective coefficient sum overflows i64".to_owned())
+            })?;
     for block in &blocks {
         let attribute_value = block
             .attributes
@@ -802,8 +898,12 @@ fn run() -> Check<ExitCode> {
     let model_path = safe_join(base, &manifest.model_file)?;
     let block_bytes = fs::read(&block_path)
         .map_err(|error| format!("cannot read block file {}: {error}", block_path.display()))?;
-    let precedence_bytes = fs::read(&precedence_path)
-        .map_err(|error| format!("cannot read precedence file {}: {error}", precedence_path.display()))?;
+    let precedence_bytes = fs::read(&precedence_path).map_err(|error| {
+        format!(
+            "cannot read precedence file {}: {error}",
+            precedence_path.display()
+        )
+    })?;
     let model_bytes = fs::read(&model_path)
         .map_err(|error| format!("cannot read model file {}: {error}", model_path.display()))?;
     let block_input = std::str::from_utf8(&block_bytes)
@@ -867,8 +967,10 @@ mod tests {
     use super::*;
 
     fn manifest() -> Manifest {
-        serde_json::from_str(include_str!("../../../docs/tech/minelib-parser-fixtures-v0.1.synthetic.json"))
-            .expect("frozen synthetic manifest must deserialize")
+        serde_json::from_str(include_str!(
+            "../../../docs/tech/minelib-parser-fixtures-v0.1.synthetic.json"
+        ))
+        .expect("frozen synthetic manifest must deserialize")
     }
 
     fn block_fixture() -> &'static str {
@@ -885,12 +987,24 @@ mod tests {
 
     #[test]
     fn fixture_matches_parser_and_upit_oracle_known_answers() {
-        let summary = analyze(&manifest(), block_fixture(), precedence_fixture(), model_fixture())
-            .expect("known-answer fixture should parse and solve");
+        let summary = analyze(
+            &manifest(),
+            block_fixture(),
+            precedence_fixture(),
+            model_fixture(),
+        )
+        .expect("known-answer fixture should parse and solve");
         assert_eq!(EXPECTED_FIXTURE_BLOCKS, summary.blocks.len());
         assert_eq!(EXPECTED_FIXTURE_EDGES, summary.precedence_edges);
         assert_eq!(25_000_050, summary.audit_sum_scaled);
-        assert_eq!(vec![0, 1, 2, 3, 4], summary.blocks.iter().map(|block| block.id).collect::<Vec<_>>());
+        assert_eq!(
+            vec![0, 1, 2, 3, 4],
+            summary
+                .blocks
+                .iter()
+                .map(|block| block.id)
+                .collect::<Vec<_>>()
+        );
         assert_eq!(1_250, summary.blocks[0].attributes["grade_gpt"]);
         assert_eq!(15_000_000, summary.blocks[0].attributes["block_value_usd"]);
         assert_eq!(32, summary.oracle.enumerated_subsets);
@@ -902,10 +1016,8 @@ mod tests {
 
     #[test]
     fn duplicate_block_ids_fail_closed() {
-        let blocks = block_fixture().replace(
-            "4 1 0 1 500 0.800 20000.00",
-            "3 1 0 1 500 0.800 20000.00",
-        );
+        let blocks =
+            block_fixture().replace("4 1 0 1 500 0.800 20000.00", "3 1 0 1 500 0.800 20000.00");
         assert!(analyze(&manifest(), &blocks, precedence_fixture(), model_fixture()).is_err());
     }
 
@@ -927,10 +1039,7 @@ mod tests {
 
     #[test]
     fn wrong_column_count_fails_closed() {
-        let blocks = block_fixture().replace(
-            "0 0 0 0 1000 1.250 150000.00",
-            "0 0 0 0 1000 1.250",
-        );
+        let blocks = block_fixture().replace("0 0 0 0 1000 1.250 150000.00", "0 0 0 0 1000 1.250");
         assert!(analyze(&manifest(), &blocks, precedence_fixture(), model_fixture()).is_err());
     }
 
@@ -1036,9 +1145,8 @@ mod tests {
 
     #[test]
     fn exact_oracle_refuses_instances_above_limit() {
-        let objective_values: BTreeMap<usize, i64> = (0..=MAX_EXACT_UPIT_BLOCKS)
-            .map(|id| (id, 1_i64))
-            .collect();
+        let objective_values: BTreeMap<usize, i64> =
+            (0..=MAX_EXACT_UPIT_BLOCKS).map(|id| (id, 1_i64)).collect();
         let model = ParsedModel {
             name: "too_many_blocks".to_owned(),
             problem_type: "UPIT".to_owned(),
@@ -1046,8 +1154,9 @@ mod tests {
             discount_rate_scaled: 0,
             objective_values,
         };
-        let precedence: BTreeMap<usize, Vec<usize>> =
-            (0..=MAX_EXACT_UPIT_BLOCKS).map(|id| (id, Vec::new())).collect();
+        let precedence: BTreeMap<usize, Vec<usize>> = (0..=MAX_EXACT_UPIT_BLOCKS)
+            .map(|id| (id, Vec::new()))
+            .collect();
         assert!(solve_upit_exhaustive(&model, &precedence)
             .expect_err("oversized instance must be indeterminate")
             .contains("indeterminate_limit"));
