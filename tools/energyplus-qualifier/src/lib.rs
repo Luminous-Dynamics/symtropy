@@ -896,6 +896,100 @@ mod tests {
         assert!(relative_path_is_safe("inputs/model.epJSON"));
     }
 
+    fn write_hashed_artifact(root: &Path, relative: &str) -> String {
+        let path = root.join(relative);
+        fs::create_dir_all(path.parent().expect("artifact parent")).unwrap();
+        let bytes = format!("synthetic artifact fixture: {relative}");
+        fs::write(&path, bytes.as_bytes()).unwrap();
+        sha256_hex(bytes.as_bytes())
+    }
+
+    #[test]
+    fn artifact_verifier_checks_exact_bytes_and_rejects_path_escape() {
+        let root = std::env::temp_dir().join(format!(
+            "energyplus-qualifier-artifacts-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let digest = write_hashed_artifact(&root, "inputs/model.epJSON");
+        assert_eq!(
+            verify_artifact(&root, "inputs/model.epJSON", &digest, "model"),
+            None
+        );
+        assert_eq!(
+            verify_artifact(&root, "inputs/model.epJSON", &sha256_hex(b"wrong"), "model"),
+            Some("ARTIFACT_DIGEST_MISMATCH:MODEL".to_owned())
+        );
+        assert_eq!(
+            verify_artifact(&root, "../outside", &digest, "model"),
+            Some("ARTIFACT_PATH_UNSAFE:MODEL".to_owned())
+        );
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn external_receipt_is_eligible_only_when_all_referenced_artifacts_hash_match() {
+        let root = std::env::temp_dir().join(format!(
+            "energyplus-qualifier-valid-receipt-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+
+        let corpus: Value = serde_json::from_str(EMBEDDED_FIXTURE_CORPUS).unwrap();
+        let mut receipt = corpus["fixtures"][0]["receipt"].clone();
+        let input_paths = [
+            ("schema_artifact_path", "schema_sha256"),
+            ("model_artifact_path", "model_sha256"),
+            ("geometry_artifact_path", "geometry_sha256"),
+            ("weather_artifact_path", "weather_sha256"),
+            ("schedule_artifact_path", "schedule_sha256"),
+            ("configuration_artifact_path", "configuration_sha256"),
+        ];
+        for (path_field, digest_field) in input_paths {
+            let path = receipt["input"][path_field]
+                .as_str()
+                .expect("input artifact path");
+            let digest = write_hashed_artifact(&root, path);
+            receipt["input"][digest_field] = Value::String(digest);
+        }
+        let log_path = receipt["execution"]["run_log_artifact_path"]
+            .as_str()
+            .expect("run log path");
+        let log_digest = write_hashed_artifact(&root, log_path);
+        receipt["execution"]["run_log_sha256"] = Value::String(log_digest);
+        for output in receipt["outputs"].as_array_mut().unwrap() {
+            let path = output["artifact_path"].as_str().expect("output path");
+            let digest = write_hashed_artifact(&root, path);
+            output["artifact_sha256"] = Value::String(digest);
+        }
+
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        let eligible = validate_receipt_bytes(
+            &receipt_bytes,
+            EMBEDDED_SPEC.as_bytes(),
+            EMBEDDED_RECEIPT_SCHEMA.as_bytes(),
+            &root,
+        );
+        assert_eq!(eligible.disposition, "eligible_for_reference_comparison");
+        assert!(eligible.blocker_codes.is_empty());
+
+        let changed_output = root.join("outputs/zone-air-temperature.csv");
+        fs::write(&changed_output, b"tampered after hashing").unwrap();
+        let tampered = validate_receipt_bytes(
+            &receipt_bytes,
+            EMBEDDED_SPEC.as_bytes(),
+            EMBEDDED_RECEIPT_SCHEMA.as_bytes(),
+            &root,
+        );
+        assert_eq!(tampered.disposition, "unknown");
+        assert!(tampered
+            .blocker_codes
+            .contains(&"ARTIFACT_DIGEST_MISMATCH:ZONE_AIR_TEMPERATURE".to_owned()));
+        let _ = fs::remove_dir_all(&root);
+    }
+
     #[test]
     fn sha256_receipt_hash_is_deterministic() {
         assert_eq!(
