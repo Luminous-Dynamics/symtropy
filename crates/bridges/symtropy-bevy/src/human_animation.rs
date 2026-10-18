@@ -140,7 +140,6 @@ fn drive_human_animation_players(
     }
 }
 
-
 fn bounded_transition_duration(seconds: f32) -> Duration {
     let seconds = if seconds.is_finite() {
         seconds.clamp(0.0, 2.0)
