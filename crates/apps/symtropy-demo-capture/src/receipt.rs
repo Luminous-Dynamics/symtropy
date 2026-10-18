@@ -82,10 +82,10 @@ impl CaptureMetadata {
                 issues.push(format!("missing_{name}"));
             }
         }
-        if !self.width_px.is_some_and(|value| value > 0) {
+        if self.width_px.is_none_or(|value| value == 0) {
             issues.push("missing_or_invalid_width_px".to_owned());
         }
-        if !self.height_px.is_some_and(|value| value > 0) {
+        if self.height_px.is_none_or(|value| value == 0) {
             issues.push("missing_or_invalid_height_px".to_owned());
         }
         if self
