@@ -148,7 +148,10 @@ impl DisturbanceKind {
             "R-005" => ("material_arrives_late", Self::LateMaterial),
             "R-006" => ("wrong_material_delivered", Self::MaterialMismatch),
             "R-007" => ("inspection_rejects_installation", Self::InspectionRejected),
-            "R-008" => ("site_geometry_changed_after_schedule", Self::GeometryChanged),
+            "R-008" => (
+                "site_geometry_changed_after_schedule",
+                Self::GeometryChanged,
+            ),
             "R-009" => ("capacity_one_tool_conflict", Self::ResourceConflict),
             "R-010" => ("energy_return_reserve_infeasible", Self::EnergyReserve),
             "R-011" => ("unbounded_unknown_utility", Self::UnknownUtility),
@@ -283,7 +286,10 @@ impl EvaluatorEventQueue {
     }
 
     fn events_at(&self, tick: u32) -> Vec<String> {
-        self.injections_by_tick.get(&tick).cloned().unwrap_or_default()
+        self.injections_by_tick
+            .get(&tick)
+            .cloned()
+            .unwrap_or_default()
     }
 }
 
@@ -357,9 +363,7 @@ mod policy_observation_cursor {
         }
     }
 
-    fn normalize_observation_buckets(
-        queue: &mut BTreeMap<u32, Vec<PolicyObservation>>,
-    ) {
+    fn normalize_observation_buckets(queue: &mut BTreeMap<u32, Vec<PolicyObservation>>) {
         for observations in queue.values_mut() {
             observations.sort_by(|left, right| left.case_id.cmp(&right.case_id));
             observations.dedup_by(|left, right| left.case_id == right.case_id);
@@ -479,8 +483,7 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
     let event_cases = events
         .iter()
         .map(|event| {
-            let observation_delay_ticks =
-                u64::from(event.observable_tick - event.injection_tick);
+            let observation_delay_ticks = u64::from(event.observable_tick - event.injection_tick);
             EventCaseReport {
                 case_id: event.case_id.clone(),
                 disturbance_kind: event.kind.as_str().to_string(),
@@ -595,7 +598,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         &mut errors,
     );
     check_unique(
-        fixture.resources.iter().map(|item| item.resource_id.as_str()),
+        fixture
+            .resources
+            .iter()
+            .map(|item| item.resource_id.as_str()),
         "resource_id",
         &mut errors,
     );
@@ -605,12 +611,18 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         &mut errors,
     );
     check_unique(
-        fixture.disturbance_cases.iter().map(|item| item.case_id.as_str()),
+        fixture
+            .disturbance_cases
+            .iter()
+            .map(|item| item.case_id.as_str()),
         "case_id",
         &mut errors,
     );
     check_unique(
-        fixture.expected_evaluation_rules.iter().map(|item| item.rule_id.as_str()),
+        fixture
+            .expected_evaluation_rules
+            .iter()
+            .map(|item| item.rule_id.as_str()),
         "evaluation rule id",
         &mut errors,
     );
@@ -668,7 +680,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             errors.push("policy ID and name must not be empty".to_string());
         }
         if policy.access_to_unobserved_state {
-            errors.push(format!("policy {} must not access unobserved state", policy.policy_id));
+            errors.push(format!(
+                "policy {} must not access unobserved state",
+                policy.policy_id
+            ));
         }
     }
 
@@ -677,7 +692,11 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     }
     for number in 1..=13 {
         let required = format!("R-{number:03}");
-        if !fixture.disturbance_cases.iter().any(|case| case.case_id == required) {
+        if !fixture
+            .disturbance_cases
+            .iter()
+            .any(|case| case.case_id == required)
+        {
             errors.push(format!("required disturbance case {required} is absent"));
         }
     }
@@ -693,12 +712,18 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             errors.push(format!("case {} has an empty event name", case.case_id));
         }
         if case.observable_tick < case.injection_tick {
-            errors.push(format!("case {} is observable before injection", case.case_id));
+            errors.push(format!(
+                "case {} is observable before injection",
+                case.case_id
+            ));
         }
         if case.injection_tick > u64::from(MAX_AUDIT_TICK)
             || case.observable_tick > u64::from(MAX_AUDIT_TICK)
         {
-            errors.push(format!("case {} exceeds the bounded audit horizon", case.case_id));
+            errors.push(format!(
+                "case {} exceeds the bounded audit horizon",
+                case.case_id
+            ));
         }
         if case.recovery_evidence.is_empty() || case.required_invariants.is_empty() {
             errors.push(format!(
@@ -716,7 +741,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         }
         for task_id in &case.affected_tasks {
             if !task_ids.contains(task_id.as_str()) {
-                errors.push(format!("case {} references unknown task {}", case.case_id, task_id));
+                errors.push(format!(
+                    "case {} references unknown task {}",
+                    case.case_id, task_id
+                ));
             }
         }
         for evidence in &case.recovery_evidence {
@@ -730,9 +758,8 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     }
 
     if fixture.tiny_schedule_cases.len() != 3 {
-        errors.push(
-            "frozen v0.1 fixture must contain exactly three tiny schedule cases".to_string(),
-        );
+        errors
+            .push("frozen v0.1 fixture must contain exactly three tiny schedule cases".to_string());
     }
     for case in &fixture.tiny_schedule_cases {
         if case.case_id.trim().is_empty() || case.horizon_ticks == 0 || case.tasks.is_empty() {
@@ -822,8 +849,7 @@ fn validate_timeline_separation(
             events
                 .iter()
                 .filter(|event| {
-                    event.injection_tick <= evaluator.tick
-                        && event.observable_tick > evaluator.tick
+                    event.injection_tick <= evaluator.tick && event.observable_tick > evaluator.tick
                 })
                 .map(|event| event.case_id.clone())
                 .collect(),
@@ -870,7 +896,10 @@ fn validate_timeline_separation(
                 .collect(),
         );
         if evaluator.injected_event_ids != expected_injections {
-            errors.push(format!("world injection set is incorrect at tick {}", evaluator.tick));
+            errors.push(format!(
+                "world injection set is incorrect at tick {}",
+                evaluator.tick
+            ));
         }
 
         for newly_observed in &policy.newly_observed_event_ids {
@@ -892,11 +921,7 @@ fn validate_timeline_separation(
     }
 }
 
-fn check_unique<'a>(
-    values: impl Iterator<Item = &'a str>,
-    label: &str,
-    errors: &mut Vec<String>,
-) {
+fn check_unique<'a>(values: impl Iterator<Item = &'a str>, label: &str, errors: &mut Vec<String>) {
     let mut seen = BTreeSet::new();
     for value in values {
         if !seen.insert(value) {
@@ -931,8 +956,7 @@ mod tests {
             DisturbanceKind::ApprovalDeclined,
             DisturbanceKind::CapabilityStale,
         ];
-        let mut state = base_seed
-            ^ (scenario_index as u64).wrapping_mul(0x9E3779B97F4A7C15);
+        let mut state = base_seed ^ (scenario_index as u64).wrapping_mul(0x9E3779B97F4A7C15);
         let mut events = Vec::with_capacity(kinds.len());
 
         for (event_index, kind) in kinds.into_iter().enumerate() {
@@ -979,15 +1003,36 @@ mod tests {
     fn changed_geometry_stays_hidden_until_tick_four() {
         let report =
             audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
-        let tick_two = report.policy_timeline.iter().find(|tick| tick.tick == 2).unwrap();
-        let tick_three = report.policy_timeline.iter().find(|tick| tick.tick == 3).unwrap();
-        let tick_four = report.policy_timeline.iter().find(|tick| tick.tick == 4).unwrap();
+        let tick_two = report
+            .policy_timeline
+            .iter()
+            .find(|tick| tick.tick == 2)
+            .unwrap();
+        let tick_three = report
+            .policy_timeline
+            .iter()
+            .find(|tick| tick.tick == 3)
+            .unwrap();
+        let tick_four = report
+            .policy_timeline
+            .iter()
+            .find(|tick| tick.tick == 4)
+            .unwrap();
         assert!(!tick_two.visible_event_ids.iter().any(|id| id == "R-008"));
         assert!(!tick_three.visible_event_ids.iter().any(|id| id == "R-008"));
         assert!(tick_four.visible_event_ids.iter().any(|id| id == "R-008"));
 
-        let evaluator_two = report.evaluator_timeline.iter().find(|tick| tick.tick == 2).unwrap();
-        assert!(evaluator_two.injected_event_ids.iter().any(|id| id == "R-008"));
+        let evaluator_two = report
+            .evaluator_timeline
+            .iter()
+            .find(|tick| tick.tick == 2)
+            .unwrap();
+        assert!(
+            evaluator_two
+                .injected_event_ids
+                .iter()
+                .any(|id| id == "R-008")
+        );
         assert!(
             evaluator_two
                 .events_injected_but_not_yet_observable
@@ -1000,7 +1045,11 @@ mod tests {
     fn policy_observation_payload_omits_hidden_injection_time() {
         let report =
             audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
-        let tick_four = report.policy_timeline.iter().find(|tick| tick.tick == 4).unwrap();
+        let tick_four = report
+            .policy_timeline
+            .iter()
+            .find(|tick| tick.tick == 4)
+            .unwrap();
         let geometry = tick_four
             .newly_observed_events
             .iter()
@@ -1008,8 +1057,18 @@ mod tests {
             .expect("geometry revision observation should release at tick four");
         assert_eq!(geometry.observed_at_tick, 4);
         assert_eq!(geometry.event_name, "workface_geometry_revision_changed");
-        assert!(geometry.invalidates.iter().any(|item| item == "site-snapshot"));
-        assert!(geometry.affected_tasks.iter().any(|item| item == "trench-segment-01"));
+        assert!(
+            geometry
+                .invalidates
+                .iter()
+                .any(|item| item == "site-snapshot")
+        );
+        assert!(
+            geometry
+                .affected_tasks
+                .iter()
+                .any(|item| item == "trench-segment-01")
+        );
 
         let json = serde_json::to_value(&report).expect("report serializes");
         let observations = json["policy_timeline"][4]["newly_observed_events"]
@@ -1027,7 +1086,11 @@ mod tests {
     fn same_tick_events_are_ordered_deterministically() {
         let report =
             audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
-        let tick_two = report.evaluator_timeline.iter().find(|tick| tick.tick == 2).unwrap();
+        let tick_two = report
+            .evaluator_timeline
+            .iter()
+            .find(|tick| tick.tick == 2)
+            .unwrap();
         assert_eq!(
             tick_two.injected_event_ids,
             vec![
@@ -1061,12 +1124,21 @@ mod tests {
             .collect::<Vec<_>>();
         let mut cursor = PolicyObservationCursor::from_events(&events);
 
-        let tick_zero = cursor.advance_one_tick().expect("tick zero frame should exist");
+        let tick_zero = cursor
+            .advance_one_tick()
+            .expect("tick zero frame should exist");
         assert_eq!(tick_zero.tick, 0);
         assert!(tick_zero.visible_event_ids.iter().all(|id| id == "R-011"));
-        assert!(tick_zero.newly_observed_events.iter().all(|event| event.observed_at_tick == 0));
+        assert!(
+            tick_zero
+                .newly_observed_events
+                .iter()
+                .all(|event| event.observed_at_tick == 0)
+        );
 
-        let tick_one = cursor.advance_one_tick().expect("tick one frame should exist");
+        let tick_one = cursor
+            .advance_one_tick()
+            .expect("tick one frame should exist");
         assert_eq!(tick_one.tick, 1);
         assert!(!tick_one.visible_event_ids.iter().any(|id| id == "R-008"));
 
@@ -1081,8 +1153,17 @@ mod tests {
     fn zero_delay_events_are_visible_on_the_injection_tick() {
         let report =
             audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
-        let tick_two = report.policy_timeline.iter().find(|tick| tick.tick == 2).unwrap();
-        assert!(tick_two.newly_observed_event_ids.iter().any(|id| id == "R-001"));
+        let tick_two = report
+            .policy_timeline
+            .iter()
+            .find(|tick| tick.tick == 2)
+            .unwrap();
+        assert!(
+            tick_two
+                .newly_observed_event_ids
+                .iter()
+                .any(|id| id == "R-001")
+        );
         assert!(tick_two.visible_event_ids.iter().any(|id| id == "R-001"));
     }
 
@@ -1121,7 +1202,11 @@ mod tests {
         value["disturbance_cases"][2]["observable_tick"] = serde_json::json!(1);
         let mutated = serde_json::to_vec(&value).expect("mutated fixture serializes");
         let errors = audit_fixture_bytes(&mutated).expect_err("impossible timing must reject");
-        assert!(errors.iter().any(|error| error.contains("observable before injection")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("observable before injection"))
+        );
     }
 
     #[test]
@@ -1151,7 +1236,11 @@ mod tests {
         value["disturbance_cases"][12]["case_id"] = serde_json::json!("R-001");
         let mutated = serde_json::to_vec(&value).expect("mutated fixture serializes");
         let errors = audit_fixture_bytes(&mutated).expect_err("duplicate IDs must fail closed");
-        assert!(errors.iter().any(|error| error.contains("duplicate case_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate case_id"))
+        );
     }
 
     #[test]
@@ -1199,13 +1288,12 @@ mod tests {
                         event.case_id
                     );
 
-                    let expected_hidden = event.injection_tick <= tick
-                        && event.observable_tick > tick;
+                    let expected_hidden =
+                        event.injection_tick <= tick && event.observable_tick > tick;
                     let actual_hidden = injected_so_far.contains(&event.case_id)
                         && !visible_so_far.contains(&event.case_id);
                     assert_eq!(
-                        actual_hidden,
-                        expected_hidden,
+                        actual_hidden, expected_hidden,
                         "scenario {scenario_index}: {} hidden-event set differs at tick {tick}",
                         event.case_id
                     );
@@ -1227,7 +1315,10 @@ mod tests {
         whitespace_variant.push(b' ');
         let replay =
             audit_fixture_bytes(&whitespace_variant).expect("trailing JSON whitespace is valid");
-        assert_eq!(baseline.counts.disturbance_cases, replay.counts.disturbance_cases);
+        assert_eq!(
+            baseline.counts.disturbance_cases,
+            replay.counts.disturbance_cases
+        );
         assert_ne!(baseline.input_sha256, replay.input_sha256);
     }
 }
