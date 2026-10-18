@@ -9,8 +9,8 @@
 //! or schedule effects are performed here.
 
 use super::{
-    parse_rfc3339_timestamp, ParsedTimestamp, TimeMeaning, TimestampParseError,
-    ValidationPolicy, NANOS_PER_SECOND,
+    NANOS_PER_SECOND, ParsedTimestamp, TimeMeaning, TimestampParseError, ValidationPolicy,
+    parse_rfc3339_timestamp,
 };
 
 pub const DCSA_JIT_PROFILE: &str = "DCSA-JIT";
@@ -249,13 +249,12 @@ pub fn parse_timestamp_message(
         return Err(DcsaJitParseError::UnsupportedPhaseOrService);
     }
 
-    let location_name =
-        required_string(
-            &root,
-            &["eventLocation", "locationName"],
-            "eventLocation.locationName",
-        )?
-            .to_owned();
+    let location_name = required_string(
+        &root,
+        &["eventLocation", "locationName"],
+        "eventLocation.locationName",
+    )?
+    .to_owned();
     let un_location_code = resolve_string_alias(
         &root,
         &["eventLocation", "UNLocationCode"],
@@ -275,8 +274,7 @@ pub fn parse_timestamp_message(
         "eventLocation.facilityCodeListProvider",
     )?
     .map(str::to_owned);
-    let legacy_facility_code =
-        optional_string(&root, &["facilitySMDGCode"], "facilitySMDGCode")?;
+    let legacy_facility_code = optional_string(&root, &["facilitySMDGCode"], "facilitySMDGCode")?;
     if let (Some(modern), Some(legacy)) = (&facility_code, legacy_facility_code) {
         if modern.as_str() != legacy {
             return Err(DcsaJitParseError::ConflictingDuplicate {
@@ -317,29 +315,28 @@ pub fn parse_timestamp_message(
         "vesselIMONumber",
     )?
     .to_owned();
-    let event_datetime = parse_rfc3339_timestamp(required_string(
-        &root,
-        &["eventDateTime"],
-        "eventDateTime",
-    )?)
-    .map_err(DcsaJitParseError::InvalidTimestamp)?;
+    let event_datetime =
+        parse_rfc3339_timestamp(required_string(&root, &["eventDateTime"], "eventDateTime")?)
+            .map_err(DcsaJitParseError::InvalidTimestamp)?;
 
-    let publisher_name = optional_string(
+    let publisher_name =
+        optional_string(&root, &["publisher", "partyName"], "publisher.partyName")?
+            .map(str::to_owned);
+    let publisher_role =
+        optional_string(&root, &["publisherRole"], "publisherRole")?.map(str::to_owned);
+    let carrier_export_voyage_number = optional_string(
         &root,
-        &["publisher", "partyName"],
-        "publisher.partyName",
+        &["carrierExportVoyageNumber"],
+        "carrierExportVoyageNumber",
     )?
     .map(str::to_owned);
-    let publisher_role = optional_string(&root, &["publisherRole"], "publisherRole")?
-        .map(str::to_owned);
-    let carrier_export_voyage_number =
-        optional_string(&root, &["carrierExportVoyageNumber"], "carrierExportVoyageNumber")?
-            .map(str::to_owned);
-    let carrier_import_voyage_number =
-        optional_string(&root, &["carrierImportVoyageNumber"], "carrierImportVoyageNumber")?
-            .map(str::to_owned);
-    let transport_call_sequence_number =
-        match value_at(&root, &["transportCallSequenceNumber"]) {
+    let carrier_import_voyage_number = optional_string(
+        &root,
+        &["carrierImportVoyageNumber"],
+        "carrierImportVoyageNumber",
+    )?
+    .map(str::to_owned);
+    let transport_call_sequence_number = match value_at(&root, &["transportCallSequenceNumber"]) {
         None | Some(serde_json::Value::Null) => None,
         Some(value) => Some(
             value
@@ -388,9 +385,7 @@ pub fn validate_timestamp(
     if context.ingested_at_utc_nanos > latest_acceptable {
         return Err(DcsaJitParseError::IngestionTooFarInFuture);
     }
-    if context.source_event_time_utc_nanos
-        > context.ingested_at_utc_nanos.saturating_add(skew)
-    {
+    if context.source_event_time_utc_nanos > context.ingested_at_utc_nanos.saturating_add(skew) {
         return Err(DcsaJitParseError::SourceEventAfterIngestion);
     }
     let max_age = i128::from(policy.max_source_age_seconds.max(0)) * NANOS_PER_SECOND;
@@ -399,8 +394,10 @@ pub fn validate_timestamp(
     {
         return Err(DcsaJitParseError::SourceRecordTooOld);
     }
-    if matches!(&timestamp.event_classifier_code, EventClassifierCode::Actual)
-        && timestamp.event_datetime.utc_unix_nanos() > latest_acceptable
+    if matches!(
+        &timestamp.event_classifier_code,
+        EventClassifierCode::Actual
+    ) && timestamp.event_datetime.utc_unix_nanos() > latest_acceptable
     {
         return Err(DcsaJitParseError::EventTimeTooFarInFuture);
     }
@@ -442,8 +439,8 @@ pub fn pco_field_candidate(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::TimestampOffsetSemantics;
+    use super::*;
 
     fn context(id: &str) -> DcsaIngestContext {
         let now = super::parse_rfc3339_timestamp("2026-10-18T08:00:00Z")
