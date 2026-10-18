@@ -188,87 +188,104 @@
     {
       "record_id": "synthetic://classification-review/forest-known-family-complete-evidence",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/forest-mixed-known-and-held-out-contamination",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/forest-family-classification-incomplete",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/forest-criteria-regime-changed",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/forest-stale-evidence",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/forest-required-legal-evidence-missing",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/forest-habitat-hard-gate-block",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/forest-hard-gate-unknown",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/pv-known-family-complete-evidence",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/pv-held-out-corrosion-family",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/pv-stale-inspection",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/pv-insulation-safety-gate-block",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/infrastructure-known-family-complete-evidence",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/infrastructure-profile-version-mismatch",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/infrastructure-capacity-evidence-missing",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/unknown-profile-id",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     },
     {
       "record_id": "synthetic://classification-review/infrastructure-hazard-classification-unknown",
       "status": "ACTIVE",
-      "recorded_day": 19995
+      "recorded_day": 19995,
+      "policy_id": "synthetic-revocation-policy-v1"
     }
   ]
 }
