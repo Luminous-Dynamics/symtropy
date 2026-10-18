@@ -206,7 +206,6 @@ fn run() -> Result<ExitCode, String> {
             path,
             &baseline.pixels,
             &candidate.pixels,
-            options.pixel_threshold,
         )?),
         None => None,
     };
@@ -773,7 +772,6 @@ fn write_diff_heatmap(
     path: &Path,
     baseline: &RgbaImage,
     candidate: &RgbaImage,
-    pixel_threshold: u8,
 ) -> Result<DiffImageSummary, String> {
     let heatmap = build_diff_heatmap(baseline, candidate)?;
     let (width_px, height_px) = heatmap.dimensions();
@@ -791,11 +789,7 @@ fn write_diff_heatmap(
         width_px,
         height_px,
         encoding: "PNG",
-        legend: if pixel_threshold == 0 {
-            "black=no-change; blue/cyan/yellow/red=small-to-large raw RGBA channel delta; threshold=0"
-        } else {
-            "black=no-change; blue/cyan/yellow/red=small-to-large raw RGBA channel delta; threshold is recorded in JSON metrics"
-        },
+        legend: "black=no-change; blue/cyan/yellow/red=small-to-large raw RGBA channel delta; numeric pass/fail threshold is recorded separately in JSON metrics",
     })
 }
 
