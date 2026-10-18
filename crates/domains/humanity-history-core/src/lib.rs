@@ -37,6 +37,9 @@ pub struct Dataset {
     /// Explicit descriptive point-vs-interval sensitivity probes. These are not model probabilities.
     #[serde(default)]
     pub estimate_contrasts: Vec<EstimateContrast>,
+    /// Paired point estimates used to quantify change across an explicitly named data/method variant.
+    #[serde(default)]
+    pub estimate_deltas: Vec<EstimateDelta>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -294,6 +297,95 @@ pub enum IntervalPosition {
     Above,
 }
 
+/// A point-vs-point sensitivity comparison, normally between a baseline and a declared
+/// preprocessing/model variant. Differences are descriptive and do not imply independence.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EstimateDelta {
+    pub id: String,
+    pub baseline_estimate_id: String,
+    pub perturbed_estimate_id: String,
+    pub variant_description: String,
+    pub dependence_note: String,
+    pub interpretation_limit: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeltaDirection {
+    Increase,
+    Decrease,
+    Unchanged,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EstimateDeltaDiagnostic {
+    pub delta_id: String,
+    pub baseline_estimate_id: String,
+    pub perturbed_estimate_id: String,
+    pub quantity: String,
+    pub unit: String,
+    pub baseline_value: f64,
+    pub perturbed_value: f64,
+    /// Perturbed value minus baseline value, in the estimate's declared unit.
+    pub delta_value: f64,
+    pub absolute_delta: f64,
+    pub direction: DeltaDirection,
+    pub variant_description: String,
+    pub dependence_note: String,
+    pub interpretation_limit: String,
+}
+
+pub fn analyze_estimate_delta(
+    dataset: &Dataset,
+    delta: &EstimateDelta,
+) -> Result<EstimateDeltaDiagnostic, String> {
+    let baseline = dataset
+        .estimates
+        .iter()
+        .find(|estimate| estimate.id == delta.baseline_estimate_id)
+        .ok_or_else(|| format!("missing baseline estimate '{}'", delta.baseline_estimate_id))?;
+    let perturbed = dataset
+        .estimates
+        .iter()
+        .find(|estimate| estimate.id == delta.perturbed_estimate_id)
+        .ok_or_else(|| format!("missing perturbed estimate '{}'", delta.perturbed_estimate_id))?;
+
+    if baseline.quantity != perturbed.quantity || baseline.unit != perturbed.unit {
+        return Err("estimate delta requires identical quantity and unit".to_owned());
+    }
+    if baseline.interval.is_some() || perturbed.interval.is_some() {
+        return Err("estimate delta requires two point-valued estimates; use an interval contrast otherwise".to_owned());
+    }
+    let baseline_value = parse_finite_decimal(&baseline.value_decimal)
+        .ok_or_else(|| "baseline value is not a finite decimal".to_owned())?;
+    let perturbed_value = parse_finite_decimal(&perturbed.value_decimal)
+        .ok_or_else(|| "perturbed value is not a finite decimal".to_owned())?;
+    let delta_value = perturbed_value - baseline_value;
+    let direction = if delta_value > 0.0 {
+        DeltaDirection::Increase
+    } else if delta_value < 0.0 {
+        DeltaDirection::Decrease
+    } else {
+        DeltaDirection::Unchanged
+    };
+
+    Ok(EstimateDeltaDiagnostic {
+        delta_id: delta.id.clone(),
+        baseline_estimate_id: baseline.id.clone(),
+        perturbed_estimate_id: perturbed.id.clone(),
+        quantity: baseline.quantity.clone(),
+        unit: baseline.unit.clone(),
+        baseline_value,
+        perturbed_value,
+        delta_value,
+        absolute_delta: delta_value.abs(),
+        direction,
+        variant_description: delta.variant_description.clone(),
+        dependence_note: delta.dependence_note.clone(),
+        interpretation_limit: delta.interpretation_limit.clone(),
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PointIntervalDiagnostic {
     pub contrast_id: String,
@@ -441,6 +533,7 @@ pub enum ValidationCode {
     InvalidModelComparison,
     InvalidModelAssessment,
     InvalidEstimateContrast,
+    InvalidEstimateDelta,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -1321,6 +1414,7 @@ mod tests {
             reconstruction_models: vec![],
             model_comparisons: vec![],
             estimate_contrasts: vec![],
+            estimate_deltas: vec![],
         }
     }
 
