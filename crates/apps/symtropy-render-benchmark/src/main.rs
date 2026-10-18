@@ -180,7 +180,7 @@ fn main() {
     let sampler = FrameTimeSampler::from_env(&config);
     let window = Window {
         title: format!("{FIXTURE_ID} — {}", config.capture_profile()),
-        resolution: WindowResolution::new(config.width_px, config.height_px),
+        resolution: (config.width_px, config.height_px).into(),
         ..default()
     };
 
@@ -475,7 +475,7 @@ fn setup_scene(
             if config.shadows_enabled { "on" } else { "off" }
         )),
         TextFont {
-            font_size: 18.0,
+            font_size: FontSize::Px(18.0),
             ..default()
         },
         TextColor(Color::WHITE),
