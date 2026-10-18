@@ -1,0 +1,65 @@
+name: Habitat Calendar Disruption Micro-Oracle
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-calendar-oracle/**"
+      - "docs/research/HABITAT_CALENDAR_DISRUPTION_V0_1.md"
+      - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+      - ".github/workflows/habitat-calendar-oracle.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-calendar-oracle/**"
+      - "docs/research/HABITAT_CALENDAR_DISRUPTION_V0_1.md"
+      - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+      - ".github/workflows/habitat-calendar-oracle.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  calendar-micro-oracle:
+    name: Exact calendar and disruption reference cases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- --check
+
+      - name: Run exact oracle and validator tests
+        run: cargo test --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml
+
+      - name: Build and verify the frozen reference report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+          report="$RUNNER_TEMP/habitat-calendar-oracle.json"
+          cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_calendar_oracle_report.v0.1" and
+            .suite_id == "HABITAT-CALENDAR-DISRUPTION-V0.1" and
+            .case_count == 9 and
+            .scenario_count == 12 and
+            .all_searches_complete == true and
+            .all_returned_schedules_independently_validated == true and
+            .all_expected_outcomes_match == true and
+            ([.results[] | select(.status == "PROVEN_INFEASIBLE")] | length) == 2 and
+            ([.results[] | select(.status == "OPTIMAL_EXACT")] | length) == 10 and
+            ([.results[] | select(.independent_validator_status == "INDEPENDENT_VALIDATOR_PASSED")] | length) == 10
+          ' "$report"
