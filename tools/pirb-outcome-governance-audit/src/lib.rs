@@ -43,7 +43,10 @@ fn active_metric_requires_approved_authority_and_timestamp() {
     let mut value = example_contract();
     value["approval"]["state"] = json!("contested");
     let errors = validation_errors(&value);
-    assert!(!errors.is_empty(), "active metric cannot use contested approval");
+    assert!(
+        !errors.is_empty(),
+        "active metric cannot use contested approval"
+    );
 }
 
 #[test]
@@ -51,7 +54,10 @@ fn active_metric_requires_assessed_geographic_scope() {
     let mut value = example_contract();
     value["geographic_scope"]["coverage_complete"] = json!(false);
     let errors = validation_errors(&value);
-    assert!(!errors.is_empty(), "active metric cannot hide unassessed scope");
+    assert!(
+        !errors.is_empty(),
+        "active metric cannot hide unassessed scope"
+    );
 }
 
 #[test]
@@ -62,7 +68,10 @@ fn post_observation_amendment_requires_prior_version_and_reason() {
     value["version_control"]["predecessor_version"] = Value::Null;
     value["version_control"]["amendment_reason"] = Value::Null;
     let errors = validation_errors(&value);
-    assert!(!errors.is_empty(), "post-observation change must be versioned and explained");
+    assert!(
+        !errors.is_empty(),
+        "post-observation change must be versioned and explained"
+    );
 }
 
 #[test]
@@ -71,7 +80,10 @@ fn second_metric_version_requires_predecessor() {
     value["version"] = json!(2);
     value["version_control"]["predecessor_version"] = Value::Null;
     let errors = validation_errors(&value);
-    assert!(!errors.is_empty(), "version 2 cannot omit predecessor");
+    assert!(
+        !errors.is_empty(),
+        "version 2 cannot omit predecessor"
+    );
 }
 
 #[test]
@@ -79,7 +91,10 @@ fn person_level_sensitive_fields_are_rejected() {
     let mut value = example_contract();
     value["political_affiliation"] = json!("not allowed");
     let errors = validation_errors(&value);
-    assert!(!errors.is_empty(), "unknown identity-bearing fields must be rejected");
+    assert!(
+        !errors.is_empty(),
+        "unknown identity-bearing fields must be rejected"
+    );
 }
 
 #[test]
@@ -87,7 +102,10 @@ fn unknown_metric_status_is_rejected() {
     let mut value = example_contract();
     value["status"] = json!("success");
     let errors = validation_errors(&value);
-    assert!(!errors.is_empty(), "unregistered lifecycle states must be rejected");
+    assert!(
+        !errors.is_empty(),
+        "unregistered lifecycle states must be rejected"
+    );
 }
 
 #[test]
@@ -105,5 +123,8 @@ fn active_metric_requires_preregistration_reference() {
     let mut value = example_contract();
     value["version_control"]["preregistration_reference"] = Value::Null;
     let errors = validation_errors(&value);
-    assert!(!errors.is_empty(), "active metric must bind to preregistration");
+    assert!(
+        !errors.is_empty(),
+        "active metric must bind to preregistration"
+    );
 }
