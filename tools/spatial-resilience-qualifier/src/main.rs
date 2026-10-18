@@ -166,7 +166,7 @@ fn emit_decision_impact(summary: &DecisionImpactSummary, json_output: bool) {
         );
         for action in &case.actions {
             println!(
-                "  action={} status={} relevant={} blocker_change={} hard_change={} pareto_change={}",
+                "  action={} status={} relevant={} blocker={} hard={} pareto={}",
                 action.action_id,
                 action.status,
                 action.decision_relevant,
