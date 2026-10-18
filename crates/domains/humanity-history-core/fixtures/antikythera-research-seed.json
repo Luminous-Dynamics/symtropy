@@ -237,7 +237,7 @@
     {
       "id": "antikythera:estimate-ring-365",
       "claim_id": "antikythera:calendar-ring-365-model",
-      "quantity": "proposed calendar-ring hole count",
+      "quantity": "Antikythera front calendar-ring hole count",
       "value_decimal": "365",
       "unit": "holes",
       "kind": "reconstruction_parameter",
@@ -259,7 +259,7 @@
     {
       "id": "antikythera:estimate-ring-354-proposal",
       "claim_id": "antikythera:calendar-ring-354-proposal",
-      "quantity": "proposed calendar-ring hole count",
+      "quantity": "Antikythera front calendar-ring hole count",
       "value_decimal": "354",
       "unit": "holes",
       "kind": "reconstruction_parameter",
@@ -281,7 +281,7 @@
     {
       "id": "antikythera:estimate-woan-bayley-all-points",
       "claim_id": "antikythera:calendar-hole-count-statistics-2024",
-      "quantity": "estimated complete calendar-ring hole count",
+      "quantity": "Antikythera front calendar-ring hole count",
       "value_decimal": "355.24",
       "unit": "holes",
       "kind": "reported_interval_estimate",
@@ -310,7 +310,7 @@
     {
       "id": "antikythera:estimate-woan-bayley-exclude-fractures",
       "claim_id": "antikythera:calendar-hole-count-statistics-2024",
-      "quantity": "estimated complete calendar-ring hole count",
+      "quantity": "Antikythera front calendar-ring hole count",
       "value_decimal": "354.08",
       "unit": "holes",
       "kind": "reported_interval_estimate",
@@ -523,6 +523,40 @@
           "validation_artifact": null
         }
       ]
+    }
+  ],
+  "estimate_contrasts": [
+    {
+      "id": "antikythera:contrast-365-vs-all-data-interval",
+      "candidate_estimate_id": "antikythera:estimate-ring-365",
+      "reference_estimate_id": "antikythera:estimate-woan-bayley-all-points",
+      "purpose": "Descriptively locate the 365-hole parameter from the 2008 reconstruction relative to the 2024 68% credible interval computed from all measured data.",
+      "dependence_note": "Different published analyses of the same artifact; this is not an independent statistical replication or a combined posterior.",
+      "interpretation_limit": "Interval position is a descriptive diagnostic only. It is not a posterior probability, Bayes factor, calibrated model score, or standalone historical verdict."
+    },
+    {
+      "id": "antikythera:contrast-365-vs-excluded-fractures-interval",
+      "candidate_estimate_id": "antikythera:estimate-ring-365",
+      "reference_estimate_id": "antikythera:estimate-woan-bayley-exclude-fractures",
+      "purpose": "Check sensitivity of the 365-hole parameter against the source's alternative estimate after excluding holes adjacent to fractures.",
+      "dependence_note": "The reference estimate is a sensitivity variant from the same underlying measurement study, not independent data.",
+      "interpretation_limit": "Being outside a reported 68% credible interval is not equivalent to a 32% rejection probability or a formal model comparison."
+    },
+    {
+      "id": "antikythera:contrast-354-vs-all-data-interval",
+      "candidate_estimate_id": "antikythera:estimate-ring-354-proposal",
+      "reference_estimate_id": "antikythera:estimate-woan-bayley-all-points",
+      "purpose": "Descriptively locate the 354-hole parameter proposed by the lunar-calendar interpretation relative to the 2024 all-data estimate interval.",
+      "dependence_note": "The 354 proposal and the 2024 analysis are related through the same underlying measured hole-position data; do not treat them as independent confirmation.",
+      "interpretation_limit": "Being inside a 68% credible interval does not by itself establish the 354-hole model as historically correct or determine its discrete posterior probability."
+    },
+    {
+      "id": "antikythera:contrast-354-vs-excluded-fractures-interval",
+      "candidate_estimate_id": "antikythera:estimate-ring-354-proposal",
+      "reference_estimate_id": "antikythera:estimate-woan-bayley-exclude-fractures",
+      "purpose": "Check whether the 354-hole parameter lies inside the source's sensitivity interval after excluding holes adjacent to fractures.",
+      "dependence_note": "This is a sensitivity comparison using related measurements, not an independent replication.",
+      "interpretation_limit": "The interval result is descriptive; full model comparison requires declared likelihoods/priors or an explicit reconstruction-validation method."
     }
   ]
 }
