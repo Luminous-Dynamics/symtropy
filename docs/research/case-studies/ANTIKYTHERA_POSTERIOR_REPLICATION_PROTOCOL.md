@@ -106,11 +106,11 @@ The first gates are data and model correctness, not runtime speed.
 Targets must be preregistered in a run manifest before comparing computed output to the paper:
 - reproduce the full-data and trimmed-data continuous summaries;
 - compare 68% bounds to the published bounds with provisional absolute tolerance 0.15 holes, while also publishing posterior plots and convergence diagnostics;
-- compare the source-reported discrete probabilities for N=354/355/356 under each dataset with provisional absolute tolerance 0.02 per probability, or explain the discrepancy before relaxing this bound;
+- compare the source-reported discrete probabilities for every N=349–361 under each dataset with provisional absolute tolerance 0.02 per probability, or explain the discrepancy before relaxing this bound;
 - reproduce the qualitative direction of the sensitivity result: trimming raises the reported N=354 probability and lowers the N=355 and N=356 probabilities;
 - compare independent samplers or implementations. Do not claim model evidence reproducibility merely because two chains converge to similar medians.
 
-These tolerances are initial engineering targets, not published confidence bounds or already achieved outcomes. Refine them using simulation-based calibration and algorithmic diagnostics in a preregistered protocol, never retroactively to make a failed reproduction appear to pass.
+These tolerances are recorded as the comparison rule on the seed's planned analysis-run manifest. They are initial engineering targets, not published confidence bounds or already achieved outcomes. Refine them using simulation-based calibration and algorithmic diagnostics in a preregistered protocol, never retroactively to make a failed reproduction appear to pass.
 
 ### Gate E — diagnostics and criticism
 
