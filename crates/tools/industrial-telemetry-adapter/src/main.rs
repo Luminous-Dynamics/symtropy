@@ -41,9 +41,10 @@ fn main() -> ExitCode {
 
     println!("industrial-telemetry-adapter v0.1");
     println!("input_path={}", std::path::Path::new(&path).display());
-    println!("reference_nist_commit={NIST_SOURCE_COMMIT}");
-    println!("reference_nist_git_blob_sha1={NIST_SOURCE_BLOB}");
-    println!("note=reference identity is not independently checked by this parser; verify downloaded file with git hash-object");
+    println!("expected_nist_source_commit={NIST_SOURCE_COMMIT}");
+    println!("expected_nist_git_blob_sha1={NIST_SOURCE_BLOB}");
+    println!("input_blob_sha1_verified_by_cli=false");
+    println!("verify_identity_with=git hash-object <input-path> and compare against expected_nist_git_blob_sha1");
     println!("record_count={}", summary.record_count);
     println!("distinct_field_count={}", summary.distinct_field_count);
     println!("first_event_utc={}", summary.first_event_utc);
