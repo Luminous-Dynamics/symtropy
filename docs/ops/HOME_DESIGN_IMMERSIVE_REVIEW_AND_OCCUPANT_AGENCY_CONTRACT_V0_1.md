@@ -1,0 +1,96 @@
+# Home Design Immersive Review and Occupant Agency Contract v0.1
+
+**Status:** design contract plus a route-data prototype in symtropy-bevy-scene. This is not an implemented VR product, a validated building simulation, or a permit/compliance service.
+
+## Purpose
+
+Before committing to expensive or irreversible construction, people should be able to experience candidate homes at realistic scale, compare distinct alternatives, discover discomfort or spatial misunderstandings, and express what makes a place feel like home. This review should work on a normal monitor first; a floating camera and accessible teleport route should not require a headset. XR is an additional adapter and must never become the only way to inspect a design.
+
+The design system's goal is not to normalize architecture into one approved style. It is to help the occupant explore a wide range of lawful, feasible choices while making constraints, uncertainties, and trade-offs legible.
+
+## Review modes
+
+- **Static plan and section:** always available, keyboard navigable and exportable.
+- **Floating camera:** inspect room scale, sight lines, ceiling heights, circulation, and relationships between inside and outside without forcing a first-person path.
+- **Guided walkthrough:** a model-space route with explicit speed ceiling, named stops, dwell time, and gaze target. A separate geometry-aware adapter must handle collision and inaccessible/blocked routes.
+- **Orbit/object review:** examine a feature, assembly, room, or connection from multiple angles.
+- **Accessible teleport:** user selects and confirms each stop. A timer must never silently teleport the person.
+- **Head-tracked VR:** optional XR runtime applies headset pose to an explicit review origin. The route-data enum in this prototype does not implement OpenXR/WebXR, headset I/O, stereoscopic rendering, motion safety, or device support.
+
+The new architectural_review module provides validated route metadata, deterministic pose sampling, and waypoint pose extraction. It is a camera-path primitive, not an architectural authoring tool or end-to-end walkthrough. It does not import IFC or glTF, test collisions, simulate daylight/energy/acoustics, or certify clearance.
+
+## Occupant agency and comfort
+
+Every experience must leave the user in control:
+
+1. Pause, exit, recenter, return to a static view, and lower or disable camera motion at any point.
+2. Offer adjustable movement speeds and dwell times; a single global motion speed is not suitable for every user.
+3. Do not force continuous locomotion. Keep teleport as an explicit user action.
+4. Separate authored camera route from a tracked headset pose; never overwrite the user's head tracking with the authored gaze direction.
+5. Offer seated, standing, reduced-motion, large-text, high-contrast, captions/transcript, and non-VR alternatives as the product develops.
+6. Identify assumptions and unknowns: placeholder finishes, unknown furniture, unverified views/privacy, unsimulated sun and weather, and unvalidated acoustics must not be rendered as facts.
+7. Allow an owner to compare culturally, personally, and functionally different alternatives instead of scoring their taste as a defect.
+
+A design walkthrough can reveal a perceived issue; it cannot prove real dimensions, egress safety, structural integrity, thermal comfort, legal permissibility, or the physical performance of an assembly. Those claims require separate validators and qualified review.
+
+## Link to composable rules and homeowner freedom
+
+The viewer should overlay constraints rather than hide them. Each overlay distinguishes:
+- binding requirement verified for the selected jurisdiction and code edition;
+- required evidence or unresolved interpretation;
+- engineering assumption or simulation result with uncertainty;
+- non-binding guidance;
+- site-specific unknown;
+- homeowner preference.
+
+Aesthetic deviation from a catalog or typical style is not itself a compliance finding. When a concept conflicts with a genuine binding requirement, show the exact rule and a lawful alternative-design, variance/appeal, or evidence-backed reform path when the jurisdiction provides one. Do not imply that the render itself has authority to override the rule.
+
+## Version and provenance
+
+Each review route and capture should reference:
+- immutable design revision ID;
+- route ID and version, coordinate frame, units, and selected view mode;
+- renderer and asset versions;
+- which materials, furnishings, lighting, weather, and site conditions are measured, simulated, assumed, or placeholders;
+- optional user annotations tied to the exact revision, not rewritten into the model silently.
+
+A new design revision must make stale captures obvious. Historic captures remain associated with the revision the person actually reviewed.
+
+## Privacy and device posture
+
+Default to local rendering and no recording. Camera/microphone feeds, eye tracking, voice, body pose, and room scans are not required to inspect a synthetic architectural model and must not be collected by default. If a later product feature uses sensor data, request specific opt-in consent, state its purpose and retention, keep a non-sensor alternative, and make export/deletion available. Do not use gaze duration as a proxy for preference or infer sensitive traits from embodied behavior.
+
+## Validation plan and proposed benchmarks
+
+These are targets, not measured results.
+
+### Geometry and route correctness
+- 100% of route samples are finite and deterministic for a fixed model revision, route, and elapsed time.
+- 100% rejection of duplicate waypoint IDs, invalid coordinates, degenerate look vectors, timeline overlap, and violations of the route's explicit speed limit.
+- Zero automated teleport transitions: each accessible-teleport transition requires explicit user confirmation.
+- 100% of collision tests use the actual selected geometry and report detected penetrations; the current route module does not yet implement collision detection.
+- Static camera fallback remains available after route load or sampling failure.
+
+### Human experience
+- Test at least 20 diverse participants during a pilot; include seated/standing and users who choose non-VR review. This is a research target, not a representative universal sample.
+- Measure detection rate of pre-seeded issues involving room scale, door swing, circulation, sight line, storage reach, visual privacy, and threshold transitions.
+- Measure task completion, disorientation/motion discomfort reports, pauses/exits, and perceived agency. Do not maximize immersion at the expense of comfort.
+- Compare VR, flat monitor, floating camera, and teleport modes rather than presuming that VR performs best for every task.
+- Every experimental result publishes the task definition, participant context, limitations, uncertainty, and negative findings.
+
+### Architecture usefulness
+- The design must preserve 100% of the explicit hard constraints when a model revision is applied; otherwise it must identify conflicts rather than silently discard requirements.
+- A change to a door, wall, stair, opening, or room outline must invalidate affected route/collision/clearance evidence while preserving unrelated evidence.
+- A captured walkthrough must never show a ReadyForProfessionalReview or code-compliance status unless a separate versioned evidence pipeline supplies that status; the route itself can produce no such authority.
+
+## Work sequence
+
+1. Route metadata and deterministic sampling (this branch).
+2. A Bevy demo that loads a small synthetic room, shows static / floating / guided modes, and makes route stops/assumptions visible.
+3. Geometry collision and clearance adapter pinned to the same design revision.
+4. Accessible teleport input with explicit confirmation and safe fallback.
+5. One optional XR backend, kept separate from the permissive scene core.
+6. Benchmark usability and issue detection against static plans and non-VR modes.
+7. Connect the route review to Mycelix's immutable artifact/version evidence and to the global, jurisdiction-specific compliance pipeline.
+
+Until those stages are implemented and tested, this contract describes the target architecture, not delivered XR functionality.
