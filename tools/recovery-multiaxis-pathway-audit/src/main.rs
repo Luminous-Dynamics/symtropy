@@ -290,8 +290,12 @@ fn canonical_corpus_sha256(corpus: &Corpus) -> String {
         case.observed_failure_families.sort();
         case.observed_evidence_tags.sort();
     }
-    canonical.temporal_evidence_records.sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
-    canonical.temporal_policy_decisions.sort_by(|a, b| a.decision_id.cmp(&b.decision_id));
+    canonical
+        .temporal_evidence_records
+        .sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
+    canonical
+        .temporal_policy_decisions
+        .sort_by(|a, b| a.decision_id.cmp(&b.decision_id));
     for decision in &mut canonical.temporal_policy_decisions {
         decision.evidence_refs.sort();
     }
@@ -399,9 +403,15 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
     }
 
     if corpus.interaction_rules.capacity_sensitive_pair != "known_capacity_sensitive_pair"
-        || corpus.interaction_rules.if_capacity_degraded_with_sensitive_pair != "BLOCK"
+        || corpus
+            .interaction_rules
+            .if_capacity_degraded_with_sensitive_pair
+            != "BLOCK"
         || corpus.interaction_rules.if_capacity_degraded_otherwise != "UNKNOWN"
-        || corpus.interaction_rules.if_sensitive_pair_without_degradation != "UNKNOWN"
+        || corpus
+            .interaction_rules
+            .if_sensitive_pair_without_degradation
+            != "UNKNOWN"
         || corpus.interaction_rules.if_evidence_conflicting != "UNKNOWN"
         || corpus.interaction_rules.evidence_sufficient_only_when != "FRESH"
         || !corpus
@@ -443,7 +453,10 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
         if !corpus.family_set_registry.contains_key(&case.family_set_id) {
             errors.push(format!("FAMILY_SET_UNKNOWN:{}", case.case_id));
         }
-        if !corpus.commitment_profiles.contains_key(&case.commitment_mode) {
+        if !corpus
+            .commitment_profiles
+            .contains_key(&case.commitment_mode)
+        {
             errors.push(format!("COMMITMENT_MODE_UNKNOWN:{}", case.case_id));
         }
         if case.observed_failure_families.is_empty() {
@@ -458,28 +471,55 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
         if case.reversal_days == 0 {
             errors.push(format!("REVERSAL_TIME_MUST_BE_POSITIVE:{}", case.case_id));
         }
-        if !matches!(case.family_classification.as_str(), "COMPLETE" | "INCOMPLETE") {
+        if !matches!(
+            case.family_classification.as_str(),
+            "COMPLETE" | "INCOMPLETE"
+        ) {
             errors.push(format!("FAMILY_CLASSIFICATION_INVALID:{}", case.case_id));
         }
-        if !matches!(case.classification_review_status.as_str(), "REVIEWED" | "UNREVIEWED" | "UNKNOWN") {
-            errors.push(format!("CLASSIFICATION_REVIEW_STATUS_INVALID:{}", case.case_id));
+        if !matches!(
+            case.classification_review_status.as_str(),
+            "REVIEWED" | "UNREVIEWED" | "UNKNOWN"
+        ) {
+            errors.push(format!(
+                "CLASSIFICATION_REVIEW_STATUS_INVALID:{}",
+                case.case_id
+            ));
         }
-        if !matches!(case.evidence_state.as_str(), "FRESH" | "STALE" | "CONFLICTING") {
+        if !matches!(
+            case.evidence_state.as_str(),
+            "FRESH" | "STALE" | "CONFLICTING"
+        ) {
             errors.push(format!("EVIDENCE_STATE_INVALID:{}", case.case_id));
         }
         if !matches!(case.capacity_state.as_str(), "NORMAL" | "DEGRADED") {
             errors.push(format!("CAPACITY_STATE_INVALID:{}", case.case_id));
         }
-        if !matches!(case.expected_scope_status.as_str(), "IN_SCOPE" | "OUT_OF_SCOPE") {
+        if !matches!(
+            case.expected_scope_status.as_str(),
+            "IN_SCOPE" | "OUT_OF_SCOPE"
+        ) {
             errors.push(format!("EXPECTED_SCOPE_STATUS_INVALID:{}", case.case_id));
         }
-        if !matches!(case.expected_evidence_status.as_str(), "SUFFICIENT" | "INSUFFICIENT") {
+        if !matches!(
+            case.expected_evidence_status.as_str(),
+            "SUFFICIENT" | "INSUFFICIENT"
+        ) {
             errors.push(format!("EXPECTED_EVIDENCE_STATUS_INVALID:{}", case.case_id));
         }
-        if !matches!(case.expected_hard_gate_status.as_str(), "PASS" | "BLOCK" | "UNKNOWN") {
-            errors.push(format!("EXPECTED_HARD_GATE_STATUS_INVALID:{}", case.case_id));
+        if !matches!(
+            case.expected_hard_gate_status.as_str(),
+            "PASS" | "BLOCK" | "UNKNOWN"
+        ) {
+            errors.push(format!(
+                "EXPECTED_HARD_GATE_STATUS_INVALID:{}",
+                case.case_id
+            ));
         }
-        if !matches!(case.expected_timing_status.as_str(), "ADEQUATE" | "TOO_LATE") {
+        if !matches!(
+            case.expected_timing_status.as_str(),
+            "ADEQUATE" | "TOO_LATE"
+        ) {
             errors.push(format!("EXPECTED_TIMING_STATUS_INVALID:{}", case.case_id));
         }
         if !matches!(
@@ -499,14 +539,16 @@ fn evaluate_case(corpus: &Corpus, case: &PathwayCase) -> CaseResult {
     let family_definition = corpus.family_set_registry.get(&case.family_set_id);
     let commitment = corpus.commitment_profiles.get(&case.commitment_mode);
 
-    let family_record_matches = family_definition.map(|definition| {
-        sorted(&definition.families) == sorted(&case.observed_failure_families)
-    }).unwrap_or(false);
+    let family_record_matches = family_definition
+        .map(|definition| sorted(&definition.families) == sorted(&case.observed_failure_families))
+        .unwrap_or(false);
 
-    let all_families_covered = case
-        .observed_failure_families
-        .iter()
-        .all(|family| corpus.decision_profile.covered_failure_families.contains(family));
+    let all_families_covered = case.observed_failure_families.iter().all(|family| {
+        corpus
+            .decision_profile
+            .covered_failure_families
+            .contains(family)
+    });
 
     let scope_ok = family_definition
         .map(|definition| definition.classification == "KNOWN_IN_PROFILE")
@@ -530,7 +572,9 @@ fn evaluate_case(corpus: &Corpus, case: &PathwayCase) -> CaseResult {
     let hard_gate = if sensitive_pair && case.capacity_state == "DEGRADED" {
         "BLOCK"
     } else if case.capacity_state == "DEGRADED"
-        || (family_definition.map(|definition| definition.capacity_sensitive).unwrap_or(false))
+        || (family_definition
+            .map(|definition| definition.capacity_sensitive)
+            .unwrap_or(false))
         || case.evidence_state == "CONFLICTING"
     {
         "UNKNOWN"
@@ -538,12 +582,20 @@ fn evaluate_case(corpus: &Corpus, case: &PathwayCase) -> CaseResult {
         "PASS"
     };
 
-    let required_lead = commitment.map(|profile| profile.required_lead_days).unwrap_or(u64::MAX);
+    let required_lead = commitment
+        .map(|profile| profile.required_lead_days)
+        .unwrap_or(u64::MAX);
     let timing_ok = case.remaining_lead_days >= required_lead;
-    let lock_in_warning = commitment.map(|profile| profile.lock_in_warning).unwrap_or(true);
+    let lock_in_warning = commitment
+        .map(|profile| profile.lock_in_warning)
+        .unwrap_or(true);
 
     let scope_status = if scope_ok { "IN_SCOPE" } else { "OUT_OF_SCOPE" };
-    let evidence_status = if evidence_ok { "SUFFICIENT" } else { "INSUFFICIENT" };
+    let evidence_status = if evidence_ok {
+        "SUFFICIENT"
+    } else {
+        "INSUFFICIENT"
+    };
     let timing_status = if timing_ok { "ADEQUATE" } else { "TOO_LATE" };
 
     let disposition = if !scope_ok {
@@ -585,14 +637,26 @@ fn evaluate_temporal(corpus: &Corpus, errors: &mut Vec<String>) -> TemporalSumma
     for record in &corpus.temporal_evidence_records {
         if !is_nonempty(&record.evidence_id) {
             errors.push("TEMPORAL_EVIDENCE_ID_EMPTY".to_string());
-        } else if evidence_by_id.insert(record.evidence_id.clone(), record).is_some() {
-            errors.push(format!("TEMPORAL_EVIDENCE_ID_DUPLICATE:{}", record.evidence_id));
+        } else if evidence_by_id
+            .insert(record.evidence_id.clone(), record)
+            .is_some()
+        {
+            errors.push(format!(
+                "TEMPORAL_EVIDENCE_ID_DUPLICATE:{}",
+                record.evidence_id
+            ));
         }
         if record.available_day < record.observed_day {
-            errors.push(format!("TEMPORAL_EVIDENCE_AVAILABLE_BEFORE_OBSERVED:{}", record.evidence_id));
+            errors.push(format!(
+                "TEMPORAL_EVIDENCE_AVAILABLE_BEFORE_OBSERVED:{}",
+                record.evidence_id
+            ));
         }
         if record.source_authenticity_status != "UNVERIFIED_SYNTHETIC" {
-            errors.push(format!("TEMPORAL_EVIDENCE_AUTHENTICITY_CEILING_VIOLATION:{}", record.evidence_id));
+            errors.push(format!(
+                "TEMPORAL_EVIDENCE_AUTHENTICITY_CEILING_VIOLATION:{}",
+                record.evidence_id
+            ));
         }
     }
 
@@ -611,18 +675,30 @@ fn evaluate_temporal(corpus: &Corpus, errors: &mut Vec<String>) -> TemporalSumma
             || !is_nonempty(&decision.visible_history_id)
             || !is_nonempty(&decision.action_id)
         {
-            errors.push(format!("TEMPORAL_DECISION_IDENTITY_EMPTY:{}", decision.decision_id));
+            errors.push(format!(
+                "TEMPORAL_DECISION_IDENTITY_EMPTY:{}",
+                decision.decision_id
+            ));
         }
         if !decision_ids.insert(&decision.decision_id) {
-            errors.push(format!("TEMPORAL_DECISION_ID_DUPLICATE:{}", decision.decision_id));
+            errors.push(format!(
+                "TEMPORAL_DECISION_ID_DUPLICATE:{}",
+                decision.decision_id
+            ));
         }
         if decision.evidence_refs.is_empty() {
             missing_reference_decisions.insert(decision.decision_id.clone());
-            errors.push(format!("TEMPORAL_EVIDENCE_REFS_EMPTY:{}", decision.decision_id));
+            errors.push(format!(
+                "TEMPORAL_EVIDENCE_REFS_EMPTY:{}",
+                decision.decision_id
+            ));
         }
         if decision.expected_actuation {
             actuation_authorized_count += 1;
-            errors.push(format!("TEMPORAL_ACTUATION_AUTHORIZED:{}", decision.decision_id));
+            errors.push(format!(
+                "TEMPORAL_ACTUATION_AUTHORIZED:{}",
+                decision.decision_id
+            ));
         }
 
         let key = (
@@ -703,10 +779,16 @@ fn evaluate_criteria_sensitivity(
             errors.push("CRITERIA_STRATEGY_ID_EMPTY".to_string());
         }
         if !strategy_ids.insert(&strategy.strategy_id) {
-            errors.push(format!("CRITERIA_STRATEGY_ID_DUPLICATE:{}", strategy.strategy_id));
+            errors.push(format!(
+                "CRITERIA_STRATEGY_ID_DUPLICATE:{}",
+                strategy.strategy_id
+            ));
         }
         if strategy.metric_values.is_empty() {
-            errors.push(format!("CRITERIA_STRATEGY_METRICS_EMPTY:{}", strategy.strategy_id));
+            errors.push(format!(
+                "CRITERIA_STRATEGY_METRICS_EMPTY:{}",
+                strategy.strategy_id
+            ));
         }
     }
 
@@ -722,38 +804,62 @@ fn evaluate_criteria_sensitivity(
             errors.push(format!("CRITERIA_REGIME_ID_DUPLICATE:{}", regime.regime_id));
         }
         if !criteria_regime_ids.insert(&regime.criteria_regime) {
-            errors.push(format!("CRITERIA_REGIME_NAME_DUPLICATE:{}", regime.criteria_regime));
+            errors.push(format!(
+                "CRITERIA_REGIME_NAME_DUPLICATE:{}",
+                regime.criteria_regime
+            ));
         }
 
         let profile_binding_matches = regime.profile_version == corpus.decision_profile.profile_id
             && regime.criteria_regime == corpus.decision_profile.allowed_criteria_regime;
         if regime.adopted_by_current_profile && !profile_binding_matches {
-            errors.push(format!("CRITERIA_REGIME_CLAIMS_UNADOPTED_PROFILE:{}", regime.regime_id));
+            errors.push(format!(
+                "CRITERIA_REGIME_CLAIMS_UNADOPTED_PROFILE:{}",
+                regime.regime_id
+            ));
         }
         if !regime.adopted_by_current_profile && profile_binding_matches {
-            errors.push(format!("CRITERIA_REGIME_CURRENT_PROFILE_MARKED_UNADOPTED:{}", regime.regime_id));
+            errors.push(format!(
+                "CRITERIA_REGIME_CURRENT_PROFILE_MARKED_UNADOPTED:{}",
+                regime.regime_id
+            ));
         }
 
         if regime.priority_order.is_empty() {
-            errors.push(format!("CRITERIA_PRIORITY_ORDER_EMPTY:{}", regime.regime_id));
+            errors.push(format!(
+                "CRITERIA_PRIORITY_ORDER_EMPTY:{}",
+                regime.regime_id
+            ));
         }
         if regime.admissibility_constraints.is_empty() {
-            errors.push(format!("CRITERIA_ADMISSIBILITY_CONSTRAINTS_EMPTY:{}", regime.regime_id));
+            errors.push(format!(
+                "CRITERIA_ADMISSIBILITY_CONSTRAINTS_EMPTY:{}",
+                regime.regime_id
+            ));
         }
 
         let mut priority_metrics = BTreeSet::new();
         for priority in &regime.priority_order {
             if !matches!(priority.direction.as_str(), "MAXIMIZE" | "MINIMIZE") {
-                errors.push(format!("CRITERIA_PRIORITY_DIRECTION_INVALID:{}:{}", regime.regime_id, priority.metric));
+                errors.push(format!(
+                    "CRITERIA_PRIORITY_DIRECTION_INVALID:{}:{}",
+                    regime.regime_id, priority.metric
+                ));
             }
             if !priority_metrics.insert(&priority.metric) {
-                errors.push(format!("CRITERIA_PRIORITY_METRIC_DUPLICATE:{}:{}", regime.regime_id, priority.metric));
+                errors.push(format!(
+                    "CRITERIA_PRIORITY_METRIC_DUPLICATE:{}:{}",
+                    regime.regime_id, priority.metric
+                ));
             }
         }
 
         for constraint in &regime.admissibility_constraints {
             if !matches!(constraint.operator.as_str(), "LTE" | "GTE") {
-                errors.push(format!("CRITERIA_CONSTRAINT_OPERATOR_INVALID:{}:{}", regime.regime_id, constraint.metric));
+                errors.push(format!(
+                    "CRITERIA_CONSTRAINT_OPERATOR_INVALID:{}:{}",
+                    regime.regime_id, constraint.metric
+                ));
             }
         }
 
@@ -783,21 +889,31 @@ fn evaluate_criteria_sensitivity(
             .iter()
             .filter(|strategy| {
                 regime.admissibility_constraints.iter().all(|constraint| {
-                    strategy.metric_values.get(&constraint.metric).map(|value| {
-                        match constraint.operator.as_str() {
+                    strategy
+                        .metric_values
+                        .get(&constraint.metric)
+                        .map(|value| match constraint.operator.as_str() {
                             "LTE" => *value <= constraint.threshold,
                             "GTE" => *value >= constraint.threshold,
                             _ => false,
-                        }
-                    }).unwrap_or(false)
+                        })
+                        .unwrap_or(false)
                 })
             })
             .collect();
 
         eligible.sort_by(|left, right| {
             for priority in &regime.priority_order {
-                let left_value = left.metric_values.get(&priority.metric).copied().unwrap_or(0);
-                let right_value = right.metric_values.get(&priority.metric).copied().unwrap_or(0);
+                let left_value = left
+                    .metric_values
+                    .get(&priority.metric)
+                    .copied()
+                    .unwrap_or(0);
+                let right_value = right
+                    .metric_values
+                    .get(&priority.metric)
+                    .copied()
+                    .unwrap_or(0);
                 let ordering = match priority.direction.as_str() {
                     "MAXIMIZE" => right_value.cmp(&left_value),
                     "MINIMIZE" => left_value.cmp(&right_value),
@@ -810,8 +926,10 @@ fn evaluate_criteria_sensitivity(
             left.strategy_id.cmp(&right.strategy_id)
         });
 
-        let actual_ranked_ids: Vec<String> =
-            eligible.iter().map(|strategy| strategy.strategy_id.clone()).collect();
+        let actual_ranked_ids: Vec<String> = eligible
+            .iter()
+            .map(|strategy| strategy.strategy_id.clone())
+            .collect();
         if actual_ranked_ids != regime.expected_ranked_strategy_ids {
             errors.push(format!("CRITERIA_RANKING_MISMATCH:{}", regime.regime_id));
         }
@@ -846,25 +964,34 @@ fn evaluate_criteria_sensitivity(
 
 fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>) -> AuditReceipt {
     validate_corpus(corpus, source_commit.as_deref(), &mut errors);
-    let (criteria_regime_rankings, criteria_regime_top_strategy_reversal, criteria_sensitivity_control_matches) =
-        evaluate_criteria_sensitivity(corpus, &mut errors);
+    let (
+        criteria_regime_rankings,
+        criteria_regime_top_strategy_reversal,
+        criteria_sensitivity_control_matches,
+    ) = evaluate_criteria_sensitivity(corpus, &mut errors);
     if !criteria_sensitivity_control_matches {
         errors.push("CRITERIA_SENSITIVITY_CONTROL_MISMATCH".to_string());
     }
     let temporal = evaluate_temporal(corpus, &mut errors);
-    let expected_temporal_counts_match =
-        temporal.evidence_record_count == corpus.expected_temporal_counts.evidence_record_count
-            && temporal.decision_count == corpus.expected_temporal_counts.decision_count
-            && temporal.visible_history_group_count
-                == corpus.expected_temporal_counts.visible_history_group_count
-            && temporal.nonanticipativity_violation_count
-                == corpus.expected_temporal_counts.nonanticipativity_violation_count
-            && temporal.future_evidence_violation_count
-                == corpus.expected_temporal_counts.future_evidence_violation_count
-            && temporal.missing_evidence_reference_count
-                == corpus.expected_temporal_counts.missing_evidence_reference_count
-            && temporal.actuation_authorized_count
-                == corpus.expected_temporal_counts.actuation_authorized_count;
+    let expected_temporal_counts_match = temporal.evidence_record_count
+        == corpus.expected_temporal_counts.evidence_record_count
+        && temporal.decision_count == corpus.expected_temporal_counts.decision_count
+        && temporal.visible_history_group_count
+            == corpus.expected_temporal_counts.visible_history_group_count
+        && temporal.nonanticipativity_violation_count
+            == corpus
+                .expected_temporal_counts
+                .nonanticipativity_violation_count
+        && temporal.future_evidence_violation_count
+            == corpus
+                .expected_temporal_counts
+                .future_evidence_violation_count
+        && temporal.missing_evidence_reference_count
+            == corpus
+                .expected_temporal_counts
+                .missing_evidence_reference_count
+        && temporal.actuation_authorized_count
+            == corpus.expected_temporal_counts.actuation_authorized_count;
     if !expected_temporal_counts_match {
         errors.push("TEMPORAL_EXPECTED_COUNTS_MISMATCH".to_string());
     }
@@ -889,7 +1016,14 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
         inc(&mut hard_gate_counts, &result.hard_gate_status);
         inc(&mut timing_counts, &result.timing_status);
         inc(&mut disposition_counts, &result.disposition);
-        inc(&mut lock_in_warning_counts, if result.lock_in_warning { "true" } else { "false" });
+        inc(
+            &mut lock_in_warning_counts,
+            if result.lock_in_warning {
+                "true"
+            } else {
+                "false"
+            },
+        );
         if !result.expected_outcome_matches {
             errors.push(format!("EXPECTED_OUTCOME_MISMATCH:{}", result.case_id));
         }
@@ -908,7 +1042,9 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
         errors.push("AGGREGATE_COUNTS_MISMATCH".to_string());
     }
 
-    let expected_outcomes_match = case_results.iter().all(|result| result.expected_outcome_matches);
+    let expected_outcomes_match = case_results
+        .iter()
+        .all(|result| result.expected_outcome_matches);
     let all_synthetic = corpus.claim_ceiling.all_scenarios_synthetic
         && !corpus.claim_ceiling.real_world_measurements
         && !corpus.claim_ceiling.probability_weights_provided
@@ -917,7 +1053,9 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
             .iter()
             .all(|record| record.source_authenticity_status == "UNVERIFIED_SYNTHETIC");
     let all_actuation_disabled = !corpus.claim_ceiling.expected_actuation
-        && case_results.iter().all(|result| !result.actuation_authorized)
+        && case_results
+            .iter()
+            .all(|result| !result.actuation_authorized)
         && temporal.actuation_authorized_count == 0;
     if !all_synthetic {
         errors.push("SYNTHETIC_CLAIM_CEILING_VIOLATED".to_string());
@@ -1069,9 +1207,15 @@ mod tests {
         assert_eq!(receipt.hard_gate_counts.get("BLOCK"), Some(&108));
         assert_eq!(receipt.timing_counts.get("ADEQUATE"), Some(&436));
         assert_eq!(receipt.timing_counts.get("TOO_LATE"), Some(&432));
-        assert_eq!(receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"), Some(&8));
+        assert_eq!(
+            receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"),
+            Some(&8)
+        );
         assert_eq!(receipt.disposition_counts.get("REASSESS_SCOPE"), Some(&756));
-        assert_eq!(receipt.disposition_counts.get("BLOCKED_HARD_GATE"), Some(&18));
+        assert_eq!(
+            receipt.disposition_counts.get("BLOCKED_HARD_GATE"),
+            Some(&18)
+        );
         assert_eq!(receipt.disposition_counts.get("HOLD_EVIDENCE"), Some(&80));
         assert_eq!(receipt.disposition_counts.get("REPLAN_TOO_LATE"), Some(&6));
         assert_eq!(receipt.lock_in_warning_counts.get("true"), Some(&432));
@@ -1112,11 +1256,16 @@ mod tests {
     #[test]
     fn incorrect_expected_ranking_fails_even_when_case_matrix_passes() {
         let mut value = corpus();
-        value.criteria_sensitivity_control.regimes[0].expected_ranked_strategy_ids.reverse();
+        value.criteria_sensitivity_control.regimes[0]
+            .expected_ranked_strategy_ids
+            .reverse();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert!(!receipt.criteria_sensitivity_control_matches);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("CRITERIA_RANKING_MISMATCH")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("CRITERIA_RANKING_MISMATCH")));
     }
 
     #[test]
@@ -1125,7 +1274,10 @@ mod tests {
         value.criteria_sensitivity_control.regimes[1].adopted_by_current_profile = true;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("CRITERIA_REGIME_CLAIMS_UNADOPTED_PROFILE")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("CRITERIA_REGIME_CLAIMS_UNADOPTED_PROFILE")));
     }
 
     #[test]
@@ -1154,7 +1306,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.nonanticipativity_violation_count, 1);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("NONANTICIPATIVITY_VIOLATION")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("NONANTICIPATIVITY_VIOLATION")));
     }
 
     #[test]
@@ -1171,7 +1326,10 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.future_evidence_violation_count, 1);
-        assert!(receipt.errors.iter().any(|error| error.starts_with("FUTURE_INFORMATION_LEAKAGE")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("FUTURE_INFORMATION_LEAKAGE")));
     }
 
     #[test]
@@ -1182,11 +1340,16 @@ mod tests {
             .iter_mut()
             .find(|decision| decision.decision_id == "shared-prefix-baseline-stage-0")
             .expect("shared-prefix decision exists");
-        decision.evidence_refs.push("synthetic://missing-record".to_string());
+        decision
+            .evidence_refs
+            .push("synthetic://missing-record".to_string());
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.missing_evidence_reference_count, 1);
-        assert!(receipt.errors.iter().any(|error| error.contains("TEMPORAL_EVIDENCE_REFERENCE_MISSING")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("TEMPORAL_EVIDENCE_REFERENCE_MISSING")));
     }
 
     #[test]
@@ -1206,7 +1369,10 @@ mod tests {
         value.temporal_policy_decisions.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("TEMPORAL_DECISION_ID_DUPLICATE")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("TEMPORAL_DECISION_ID_DUPLICATE")));
     }
 
     #[test]
@@ -1361,7 +1527,10 @@ mod tests {
         case_mut(&mut value, id).expected_disposition = "REVIEW_ONLY_CANDIDATE".to_string();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error == &format!("EXPECTED_OUTCOME_MISMATCH:{id}")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error == &format!("EXPECTED_OUTCOME_MISMATCH:{id}")));
         assert!(!result_for(&receipt, id).expected_outcome_matches);
     }
 
@@ -1387,7 +1556,10 @@ mod tests {
         }
         let first = run(&original);
         let second = run(&permuted);
-        assert_eq!(first.canonical_corpus_sha256, second.canonical_corpus_sha256);
+        assert_eq!(
+            first.canonical_corpus_sha256,
+            second.canonical_corpus_sha256
+        );
         assert_eq!(
             serde_json::to_vec(&first).expect("receipt serializes"),
             serde_json::to_vec(&second).expect("receipt serializes")
@@ -1401,7 +1573,10 @@ mod tests {
         value.cases.push(duplicate);
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_CASE_ID")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("DUPLICATE_CASE_ID")));
     }
 
     #[test]
@@ -1410,7 +1585,10 @@ mod tests {
         value.expected_case_count += 1;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error == "DECLARED_CASE_COUNT_MISMATCH"));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error == "DECLARED_CASE_COUNT_MISMATCH"));
     }
 
     #[test]
@@ -1420,7 +1598,10 @@ mod tests {
         case_mut(&mut value, &case_id).family_set_id = "unregistered-family-set".to_string();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("FAMILY_SET_UNKNOWN")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("FAMILY_SET_UNKNOWN")));
     }
 
     #[test]
@@ -1429,17 +1610,24 @@ mod tests {
         value.cases[0].remaining_lead_days = 0;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("LEAD_TIME_MUST_BE_POSITIVE")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("LEAD_TIME_MUST_BE_POSITIVE")));
     }
 
     #[test]
     fn wrong_expected_gate_is_detected() {
         let mut value = corpus();
-        let id = "mx-known_capacity_sensitive_pair-baseline-complete-fresh-degraded-5-reversible_staged";
+        let id =
+            "mx-known_capacity_sensitive_pair-baseline-complete-fresh-degraded-5-reversible_staged";
         case_mut(&mut value, id).expected_hard_gate_status = "PASS".to_string();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error.starts_with("EXPECTED_OUTCOME_MISMATCH")));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("EXPECTED_OUTCOME_MISMATCH")));
     }
 
     #[test]
@@ -1455,7 +1643,10 @@ mod tests {
     fn source_commit_must_be_full_hex_sha() {
         let receipt = audit(&corpus(), Some("short".to_string()), Vec::new());
         assert_eq!(receipt.result, "fail");
-        assert!(receipt.errors.iter().any(|error| error == "SOURCE_COMMIT_INVALID"));
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error == "SOURCE_COMMIT_INVALID"));
     }
 
     #[test]
@@ -1464,12 +1655,19 @@ mod tests {
         for case in &value.cases {
             let actual = evaluate_case(&value, case);
             let definition = value.family_set_registry.get(&case.family_set_id).unwrap();
-            let commitment = value.commitment_profiles.get(&case.commitment_mode).unwrap();
+            let commitment = value
+                .commitment_profiles
+                .get(&case.commitment_mode)
+                .unwrap();
 
             let family_is_admissible = definition.classification == "KNOWN_IN_PROFILE"
                 && sorted(&definition.families) == sorted(&case.observed_failure_families)
-                && case.observed_failure_families.iter()
-                    .all(|family| value.decision_profile.covered_failure_families.contains(family));
+                && case.observed_failure_families.iter().all(|family| {
+                    value
+                        .decision_profile
+                        .covered_failure_families
+                        .contains(family)
+                });
             let scope_should_pass = family_is_admissible
                 && case.criteria_regime == value.decision_profile.allowed_criteria_regime
                 && case.taxonomy_version == value.decision_profile.allowed_taxonomy_version
@@ -1477,18 +1675,22 @@ mod tests {
                 && case.classification_review_status == "REVIEWED";
             let evidence_should_pass = case.evidence_state == "FRESH"
                 && case.evidence_age_days <= value.decision_profile.max_evidence_age_days
-                && value.decision_profile.required_evidence_tags.iter()
+                && value
+                    .decision_profile
+                    .required_evidence_tags
+                    .iter()
                     .all(|tag| case.observed_evidence_tags.contains(tag));
-            let gate_should_be = if definition.capacity_sensitive && case.capacity_state == "DEGRADED" {
-                "BLOCK"
-            } else if case.capacity_state == "DEGRADED"
-                || definition.capacity_sensitive
-                || case.evidence_state == "CONFLICTING"
-            {
-                "UNKNOWN"
-            } else {
-                "PASS"
-            };
+            let gate_should_be =
+                if definition.capacity_sensitive && case.capacity_state == "DEGRADED" {
+                    "BLOCK"
+                } else if case.capacity_state == "DEGRADED"
+                    || definition.capacity_sensitive
+                    || case.evidence_state == "CONFLICTING"
+                {
+                    "UNKNOWN"
+                } else {
+                    "PASS"
+                };
             let timing_should_pass = case.remaining_lead_days >= commitment.required_lead_days;
             let disposition_should_be = if !scope_should_pass {
                 "REASSESS_SCOPE"
@@ -1502,10 +1704,31 @@ mod tests {
                 "REVIEW_ONLY_CANDIDATE"
             };
 
-            assert_eq!(actual.scope_status, if scope_should_pass { "IN_SCOPE" } else { "OUT_OF_SCOPE" });
-            assert_eq!(actual.evidence_status, if evidence_should_pass { "SUFFICIENT" } else { "INSUFFICIENT" });
+            assert_eq!(
+                actual.scope_status,
+                if scope_should_pass {
+                    "IN_SCOPE"
+                } else {
+                    "OUT_OF_SCOPE"
+                }
+            );
+            assert_eq!(
+                actual.evidence_status,
+                if evidence_should_pass {
+                    "SUFFICIENT"
+                } else {
+                    "INSUFFICIENT"
+                }
+            );
             assert_eq!(actual.hard_gate_status, gate_should_be);
-            assert_eq!(actual.timing_status, if timing_should_pass { "ADEQUATE" } else { "TOO_LATE" });
+            assert_eq!(
+                actual.timing_status,
+                if timing_should_pass {
+                    "ADEQUATE"
+                } else {
+                    "TOO_LATE"
+                }
+            );
             assert_eq!(actual.disposition, disposition_should_be);
         }
     }
@@ -1514,6 +1737,9 @@ mod tests {
     fn no_output_authorizes_an_operation() {
         let receipt = run(&corpus());
         assert!(receipt.all_actuation_disabled);
-        assert!(receipt.case_results.iter().all(|result| !result.actuation_authorized));
+        assert!(receipt
+            .case_results
+            .iter()
+            .all(|result| !result.actuation_authorized));
     }
 }
