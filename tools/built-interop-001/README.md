@@ -35,7 +35,7 @@ Every requirement is compared against target observations using one of these out
 
 Hard requirements that are missing, changed, unsupported, not evaluated, unreferenced, duplicated or bound to the wrong object block the affected scenario. Advisory-only unknown/lost properties yield **Unresolved**; they are not silently promoted to preserved. A hard property cannot be made acceptable merely by labeling its observation differently.
 
-Exact value comparison is intentionally strict: non-numeric values are compared as declared canonical strings. v0.1 does not silently normalize textual values. Unit conversion only occurs through a named transform with source/target units, scale, offset and an explicit tolerance. That rule is still a declared fixture rule—not proof that the unit conversion is physically appropriate for a real artifact.
+Exact value comparison is intentionally strict: non-numeric values are compared as declared canonical strings. v0.1 does not silently normalize textual values. Unit conversion only occurs through a named transform with source/target units, scale, offset and an explicit tolerance. That rule is still a declared fixture rule—not proof that the unit conversion is physically appropriate for a real artifact. The approved v0.1 transform tuple (mm→m, scale 0.001, offset 0, absolute tolerance 1e-9) is pinned separately in Rust tests; zero/nonpositive scales are rejected so a conversion cannot erase the source quantity. This one tuple is a synthetic benchmark oracle, not a general engineering unit registry.
 
 ## Initial scenarios
 
