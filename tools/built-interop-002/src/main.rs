@@ -11,6 +11,7 @@ use openbim_core::Detected;
 use openbim_ids::{Facet, IdsVersion, IfcVersion, Occurrence, Value};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -38,6 +39,7 @@ enum PropertyOutcome {
 struct PropertyObservation {
     requirement_id: String,
     source_object_id: String,
+    source_step_id: String,
     source_entity_type: String,
     property_key: String,
     expected_value: String,
@@ -327,14 +329,35 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     let mut observations = Vec::new();
     let mut diagnostics = Vec::new();
     let mut decision = Decision::Conformant;
+    let mut seen_global_ids = BTreeSet::new();
     let requirement_id = format!("{}::attribute::{attribute_name}", specification.name);
 
     for (entity_id, wall) in &walls {
-        let stable_id = wall
+        let step_id = format!("{entity_id:?}");
+        let global_id = wall
             .text(0)
-            .map(str::to_string)
-            .unwrap_or_else(|| format!("STEP:{entity_id:?}"));
-        let (outcome, diagnostic_code, observed_value) = if wall.attributes.len() != 9 {
+            .filter(|value| !value.trim().is_empty())
+            .map(str::to_string);
+        let stable_id = global_id
+            .clone()
+            .unwrap_or_else(|| format!("STEP:{step_id}"));
+        let identity_diagnostic = match global_id.as_deref() {
+            None => Some("GLOBAL_ID_MISSING"),
+            Some(id) if !seen_global_ids.insert(id.to_string()) => Some("DUPLICATE_GLOBAL_ID"),
+            Some(_) => None,
+        };
+        let observed_name = wall
+            .text(IFC4_WALL_NAME_ATTRIBUTE_INDEX)
+            .map(str::to_string);
+        let (outcome, diagnostic_code, observed_value) = if let Some(code) = identity_diagnostic {
+            decision = Decision::Blocked;
+            diagnostics.push(format!("{code}:{requirement_id}:{step_id}:{stable_id}"));
+            (
+                PropertyOutcome::NotEvaluated,
+                Some(code.to_string()),
+                observed_name,
+            )
+        } else if wall.attributes.len() != 9 {
             decision = Decision::Blocked;
             diagnostics.push(format!(
                 "IFCWALL_ATTRIBUTE_ARITY_MISMATCH:{requirement_id}:{stable_id}"
@@ -377,6 +400,7 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
         observations.push(PropertyObservation {
             requirement_id: requirement_id.clone(),
             source_object_id: stable_id,
+            source_step_id: step_id,
             source_entity_type: wall.type_name.to_string(),
             property_key: attribute_name.to_string(),
             expected_value: expected_value.clone(),
@@ -386,7 +410,11 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
         });
     }
 
-    observations.sort_by(|a, b| a.source_object_id.cmp(&b.source_object_id));
+    observations.sort_by(|a, b| {
+        a.source_object_id
+            .cmp(&b.source_object_id)
+            .then_with(|| a.source_step_id.cmp(&b.source_step_id))
+    });
     diagnostics.sort();
     diagnostics.dedup();
 
@@ -563,6 +591,48 @@ mod tests {
             report.observations[0].outcome,
             PropertyOutcome::NotEvaluated
         );
+    }
+
+    #[test]
+    fn missing_global_id_blocks_even_when_name_matches() {
+        let (ifc, ids) = fixtures();
+        let missing_id = String::from_utf8(ifc)
+            .expect("fixture is UTF-8")
+            .replace("'0000000000000000000000'", "$")
+            .into_bytes();
+        let report = evaluate(&missing_id, &ids).expect("synthetic IFC still parses");
+        assert_eq!(report.decision, Decision::Blocked);
+        assert_eq!(report.observations[0].outcome, PropertyOutcome::NotEvaluated);
+        assert_eq!(
+            report.observations[0].diagnostic_code.as_deref(),
+            Some("GLOBAL_ID_MISSING")
+        );
+        assert!(report.diagnostics.iter().any(|d| d.starts_with("GLOBAL_ID_MISSING:")));
+    }
+
+    #[test]
+    fn duplicate_global_id_blocks_and_step_ids_remain_distinguishable() {
+        let (ifc, ids) = fixtures();
+        let second_wall =
+            "#2=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\\n";
+        let duplicate = String::from_utf8(ifc)
+            .expect("fixture is UTF-8")
+            .replace(
+                "ENDSEC;\\nEND-ISO-10303-21;",
+                &format!("{second_wall}ENDSEC;\\nEND-ISO-10303-21;"),
+            );
+        let report = evaluate(duplicate.as_bytes(), &ids).expect("duplicate-identity IFC parses");
+        assert_eq!(report.decision, Decision::Blocked);
+        assert_eq!(report.applicable_wall_count, Some(2));
+        assert!(report.diagnostics.iter().any(|d| d.starts_with("DUPLICATE_GLOBAL_ID:")));
+        assert_ne!(
+            report.observations[0].source_step_id,
+            report.observations[1].source_step_id
+        );
+        assert!(report.observations.iter().any(|o| {
+            o.diagnostic_code.as_deref() == Some("DUPLICATE_GLOBAL_ID")
+                && o.outcome == PropertyOutcome::NotEvaluated
+        }));
     }
 
     #[test]
