@@ -31,7 +31,7 @@ A content hash is not a signature. It detects a mismatch against the cited diges
 
 ## Data packet
 
-`docs/tech/recovery-classification-record-packet-v0.1.json` contains 17 records, 17 case-to-record bindings, and 17 synthetic revocation entries. Each record stores a canonical compact JSON payload as a UTF-8 string alongside its digest. The hash is computed over the exact bytes of that payload; the digest field is outside the payload to avoid self-reference.
+The packet envelope is described by `schemas/recovery/classification-record-packet-v0.1.schema.json`. That JSON Schema is shape validation only; the Rust audit remains responsible for payload canonicalization, hashes and semantic checks. `docs/tech/recovery-classification-record-packet-v0.1.json` contains 17 records, 17 case-to-record bindings, and 17 synthetic revocation entries. Each record stores a canonical compact JSON payload as a UTF-8 string alongside its digest. The hash is computed over the exact bytes of that payload; the digest field is outside the payload to avoid self-reference.
 
 Payload arrays used as sets are sorted before serialization. Payload fields are serialized in the frozen Rust struct order. A verifier rejects a payload whose serialized representation is not canonical, whose digest differs, or whose outer record ID does not match the embedded record ID.
 
