@@ -7,7 +7,7 @@ schema="$here/report-v1.schema.json"
 command -v jq >/dev/null 2>&1 || { echo "MISSING_TOOL: jq" >&2; exit 2; }
 jq empty "$schema" >/dev/null || { echo "REPORT_SCHEMA_JSON_INVALID" >&2; exit 1; }
 jq -e '
-  .."$schema" == "https://json-schema.org/draft/2020-12/schema" and
+  ."$schema" == "https://json-schema.org/draft/2020-12/schema" and
   .additionalProperties == false and
   .properties.schema_version.const == "1.0.0" and
   .properties.benchmark_id.const == "BUILT-INTEROP-004" and
