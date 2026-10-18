@@ -71,11 +71,11 @@
     },
     "mapping_version": {
       "type": "string",
-      "pattern": "^[a-z0-9-]+/[0-9]+\\\\.[0-9]+\\\\.[0-9]+$"
+      "pattern": "^[a-z0-9-]+/[0-9]+\\.[0-9]+\\.[0-9]+$"
     },
     "brand_normalization_version": {
       "type": "string",
-      "pattern": "^[a-z0-9-]+/[0-9]+\\\\.[0-9]+\\\\.[0-9]+$"
+      "pattern": "^[a-z0-9-]+/[0-9]+\\.[0-9]+\\.[0-9]+$"
     },
     "product_category_mappings": {
       "type": "array",
