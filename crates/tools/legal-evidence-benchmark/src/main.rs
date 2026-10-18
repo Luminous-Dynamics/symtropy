@@ -1022,9 +1022,11 @@ mod tests {
         }];
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
         assert!(!report.fixture_gate_passed);
-        assert!(report
-            .critical_failure_case_ids
-            .contains(&"SYN-CONFLICT-001".to_string()));
+        assert!(
+            report
+                .critical_failure_case_ids
+                .contains(&"SYN-CONFLICT-001".to_string())
+        );
     }
 
     #[test]
