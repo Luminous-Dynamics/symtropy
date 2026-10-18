@@ -61,6 +61,18 @@ Before recruitment, declare:
 
 Keep all eligible requests accounted for. No-provider, refusal, quote expiry, abandoned, cancellation, no-show, late, provider-reported-but-not-accepted, disputed/rework and unresolved outcomes remain distinct. If the preregistered cohort excludes a case, record a reason and counts; never quietly discard it or treat missing follow-up as success, failure or zero.
 
+### Outcome ascertainment and missingness
+
+The primary numerator is **confirmed** farmer acceptance inside the useful window, supported by the required decision evidence and timing. The fixed denominator includes all preregistered eligible requests. This produces an *evidence-confirmed attainment rate*, not an assertion that every unconfirmed request failed.
+
+At study close, classify every request as one of: accepted within window; accepted late; known not accepted (typed reason); disputed/rework; outcome unknown after possible remote effect; follow-up missing/inaccessible; or protocol-defined exclusion with reason. Do not collapse the last two into a known failure. Report the number in each category and outcome-ascertainment coverage.
+
+Alongside the fixed-denominator evidence-confirmed rate, report a transparent uncertainty range when unresolved/missing cases could plausibly contain an unobserved in-window acceptance:
+- lower evidence bound = confirmed in-window acceptances / all eligible requests;
+- upper evidence bound = (confirmed in-window acceptances + cases whose in-window outcome is genuinely unascertainable) / all eligible requests.
+
+Only include cases in the upper-bound addition when acceptance-within-window cannot be ruled in or out from the authorized evidence. Known late, no-provider, cancellation, no-show, unaccepted completion and documented disputes are not silently reclassified as unknown. Explain any contradiction between a reported “no provider”/cancellation event and later acceptance as a reconciliation case. A classified-case rate may be shown as secondary descriptive analysis, never as a replacement for the fixed denominator. These bounds are identification limits, not confidence intervals; show statistical uncertainty separately.
+
 ## 4. Endpoints
 
 ### Primary
