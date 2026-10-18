@@ -221,7 +221,6 @@ fn out_of_model_support_never_drops_unknown_design_states() {
     assert_eq!(failure.state_count, 5);
 }
 
-
 #[test]
 fn nested_support_failure_preserves_exactly_the_active_state_set() {
     let mut input = input_from(FIXTURE);
