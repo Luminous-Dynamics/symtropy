@@ -210,8 +210,9 @@ pub fn write_capture_receipt(
         file.sync_all()?;
         drop(file);
 
-        // Windows rename does not replace an existing destination. Removing an
-        // earlier receipt is safe here because it is never treated as the new run.
+        // Unix rename replaces atomically. Windows does not replace an
+        // existing destination, so remove an older receipt only on Windows.
+        #[cfg(windows)]
         if final_path.exists() {
             fs::remove_file(&final_path)?;
         }
