@@ -238,6 +238,9 @@ pub fn verify_schedule_report(
                 target
             }
             (PeriodAction::Discharge { request }, PeriodActionReport::Discharge(action)) => {
+                if request.heat_exchanger_effectiveness.value() <= 0.0 {
+                    return Err(ModelError::InvalidDischargeEfficiency);
+                }
                 let supply_cutoff = request.required_supply_temperature.value()
                     + request.minimum_approach.value();
                 let minimum_source = Kelvin::new(
