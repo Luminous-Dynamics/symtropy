@@ -86,14 +86,16 @@ jobs:
         source_commit="$(git rev-parse HEAD)"
         test "$source_commit" = "${{ github.sha }}"
         corpus="docs/fixtures/peace-infrastructure-resilience-v0.1.json"
+        schema="docs/schemas/peace-infrastructure-resilience-v0.1.schema.json"
         expected_corpus_sha="$(sha256sum "$corpus" | awk '{print $1}')"
+        expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
         cargo run --locked --quiet --manifest-path tools/pirb-audit/Cargo.toml -- --source-commit "$source_commit" > pirb-reference-receipt.json
         dependency_lock_sha="$(sha256sum tools/pirb-audit/Cargo.lock | awk '{print $1}')"
         rustc_version="$(rustc --version)"
         cargo_version="$(cargo --version)"
         jq --arg lock_sha "$dependency_lock_sha" --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" '. + {dependency_lock_sha256: $lock_sha, rustc_version: $rustc_version, cargo_version: $cargo_version}' pirb-reference-receipt.json > pirb-reference-receipt.tmp
         mv pirb-reference-receipt.tmp pirb-reference-receipt.json
-        jq -e --arg source_commit "$source_commit" --arg corpus_sha "$expected_corpus_sha" --arg lock_sha "$dependency_lock_sha" --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" '
+        jq -e --arg source_commit "$source_commit" --arg corpus_sha "$expected_corpus_sha" --arg schema_sha "$expected_schema_sha" --arg lock_sha "$dependency_lock_sha" --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" '
           .result == "pass"
           and .benchmark_version == "PIRB-0.1"
           and .execution_claim == "synthetic_conformance_only"
@@ -101,6 +103,8 @@ jobs:
           and (.source_commit | test("^[0-9a-f]{40}$"))
           and .corpus_sha256 == $corpus_sha
           and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+          and .schema_sha256 == $schema_sha
+          and (.schema_sha256 | test("^[0-9a-f]{64}$"))
           and .dependency_lock_sha256 == $lock_sha
           and (.dependency_lock_sha256 | test("^[0-9a-f]{64}$"))
           and .rustc_version == $rustc_version
@@ -119,6 +123,8 @@ jobs:
         path: |
           pirb-reference-receipt.json
           tools/pirb-audit/Cargo.lock
+          docs/fixtures/peace-infrastructure-resilience-v0.1.json
+          docs/schemas/peace-infrastructure-resilience-v0.1.schema.json
         if-no-files-found: error
         retention-days: 90
     - name: Run Clippy
