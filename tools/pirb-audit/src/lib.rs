@@ -175,8 +175,9 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r0-stale-capacity-01" | "pirb-r0-conflicting-reports-01" => "PIRB-0",
             "pirb-r4-personal-data-boundary-01" => "PIRB-4",
             "pirb-r3-no-lookahead-01" | "pirb-r3-worst-case-frontier-01" => "PIRB-3",
-            "pirb-r5-displacement-not-net-impact-01"
-            | "pirb-r5-warning-response-chain-01" => "PIRB-5",
+            "pirb-r5-displacement-not-net-impact-01" | "pirb-r5-warning-response-chain-01" => {
+                "PIRB-5"
+            }
             _ => "UNKNOWN",
         };
         if track != Some(expected_track) {
@@ -970,11 +971,7 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
     }
 }
 
-fn audit_warning_response_chain(
-    scenario: &Value,
-    path: &str,
-    findings: &mut Vec<Finding>,
-) {
+fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
     let Some(alerts) = scenario.get("alerts").and_then(Value::as_array) else {
         findings.push(finding(
             "PIRB_ALERTS_MISSING",
@@ -1023,9 +1020,7 @@ fn audit_warning_response_chain(
             .get("response_outcome_independently_verified")
             .and_then(Value::as_bool);
 
-        if !lead.is_some_and(|value| value >= 0)
-            || !latency.is_some_and(|value| value >= 0)
-        {
+        if !lead.is_some_and(|value| value >= 0) || !latency.is_some_and(|value| value >= 0) {
             findings.push(finding(
                 "PIRB_ALERT_TIMING_INVALID",
                 &alert_path,
@@ -1064,9 +1059,8 @@ fn audit_warning_response_chain(
             non_actionable_ids.push(id.to_owned());
         }
 
-        let independently_verified = state == Some("verified")
-            && actionable
-            && response_evidence == Some(true);
+        let independently_verified =
+            state == Some("verified") && actionable && response_evidence == Some(true);
         if independently_verified {
             verified_ids.push(id.to_owned());
         } else {
@@ -1094,12 +1088,10 @@ fn audit_warning_response_chain(
     verified_ids.sort();
     unverified_ids.sort();
 
-    let mut expected_actionable =
-        string_list(scenario.pointer("/expected/actionable_alert_ids"));
+    let mut expected_actionable = string_list(scenario.pointer("/expected/actionable_alert_ids"));
     let mut expected_non_actionable =
         string_list(scenario.pointer("/expected/non_actionable_alert_ids"));
-    let mut expected_verified =
-        string_list(scenario.pointer("/expected/verified_response_ids"));
+    let mut expected_verified = string_list(scenario.pointer("/expected/verified_response_ids"));
     let mut expected_unverified =
         string_list(scenario.pointer("/expected/unverified_response_ids"));
     expected_actionable.sort();
@@ -1107,9 +1099,7 @@ fn audit_warning_response_chain(
     expected_verified.sort();
     expected_unverified.sort();
 
-    if actionable_ids != expected_actionable
-        || non_actionable_ids != expected_non_actionable
-    {
+    if actionable_ids != expected_actionable || non_actionable_ids != expected_non_actionable {
         findings.push(finding(
             "PIRB_ACTIONABILITY_MISMATCH",
             &format!("{path}.expected"),
@@ -1123,7 +1113,9 @@ fn audit_warning_response_chain(
             "Response verification must agree with response state, timely feasibility, and independent outcome evidence.",
         ));
     }
-    if scenario.pointer("/expected/prevention_claim").and_then(Value::as_str)
+    if scenario
+        .pointer("/expected/prevention_claim")
+        .and_then(Value::as_str)
         != Some("not_established_without_impact_design")
     {
         findings.push(finding(
@@ -1217,8 +1209,7 @@ mod tests {
     #[test]
     fn actionable_warning_does_not_prove_prevention() {
         let mut value = corpus();
-        value["scenarios"][9]["expected"]["prevention_claim"] =
-            json!("prevention_proven");
+        value["scenarios"][9]["expected"]["prevention_claim"] = json!("prevention_proven");
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_PREVENTION_CLAIM_UNSUPPORTED"));
     }
