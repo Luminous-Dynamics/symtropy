@@ -28,6 +28,9 @@ pub struct CaptureMetadata {
     pub simulation_seed: Option<String>,
     pub simulation_tick: Option<String>,
     pub quality_profile: Option<String>,
+    pub camera_id: Option<String>,
+    pub renderer_version: Option<String>,
+    pub render_settings_sha256: Option<String>,
     pub gpu_adapter: Option<String>,
     pub gpu_driver: Option<String>,
     pub render_backend: Option<String>,
@@ -51,6 +54,10 @@ impl CaptureMetadata {
             simulation_seed: env_value("SYMTROPY_DEMO_CAPTURE_SIMULATION_SEED"),
             simulation_tick: env_value("SYMTROPY_DEMO_CAPTURE_SIMULATION_TICK"),
             quality_profile: env_value("SYMTROPY_DEMO_CAPTURE_QUALITY_PROFILE"),
+            camera_id: env_value("SYMTROPY_DEMO_CAPTURE_CAMERA_ID"),
+            renderer_version: env_value("SYMTROPY_DEMO_CAPTURE_RENDERER_VERSION"),
+            render_settings_sha256: env_value("SYMTROPY_DEMO_CAPTURE_RENDER_SETTINGS_SHA256")
+                .map(|value| value.to_ascii_lowercase()),
             gpu_adapter: env_value("SYMTROPY_DEMO_CAPTURE_GPU_ADAPTER"),
             gpu_driver: env_value("SYMTROPY_DEMO_CAPTURE_GPU_DRIVER"),
             render_backend: env_value("SYMTROPY_DEMO_CAPTURE_RENDER_BACKEND"),
@@ -71,6 +78,8 @@ impl CaptureMetadata {
             ("simulation_seed", self.simulation_seed.as_ref()),
             ("simulation_tick", self.simulation_tick.as_ref()),
             ("quality_profile", self.quality_profile.as_ref()),
+            ("camera_id", self.camera_id.as_ref()),
+            ("renderer_version", self.renderer_version.as_ref()),
             ("gpu_adapter", self.gpu_adapter.as_ref()),
             ("gpu_driver", self.gpu_driver.as_ref()),
             ("render_backend", self.render_backend.as_ref()),
@@ -98,6 +107,11 @@ impl CaptureMetadata {
             Some(value) if is_sha256(value) => {}
             Some(_) => issues.push("invalid_fixture_sha256".to_owned()),
             None => issues.push("missing_fixture_sha256".to_owned()),
+        }
+        match self.render_settings_sha256.as_deref() {
+            Some(value) if is_sha256(value) => {}
+            Some(_) => issues.push("invalid_render_settings_sha256".to_owned()),
+            None => issues.push("missing_render_settings_sha256".to_owned()),
         }
         issues
     }
@@ -407,6 +421,9 @@ mod tests {
             simulation_seed: Some("7".to_owned()),
             simulation_tick: Some("120".to_owned()),
             quality_profile: Some("balanced-1080p".to_owned()),
+            camera_id: Some("main-camera".to_owned()),
+            renderer_version: Some("bevy-0.19.0".to_owned()),
+            render_settings_sha256: Some("c".repeat(64)),
             gpu_adapter: Some("test-adapter".to_owned()),
             gpu_driver: Some("test-driver".to_owned()),
             render_backend: Some("vulkan".to_owned()),
