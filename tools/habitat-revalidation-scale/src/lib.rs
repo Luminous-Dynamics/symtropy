@@ -689,23 +689,37 @@ fn verify_workload(workload: &Workload) -> Result<(), String> {
         .iter()
         .filter_map(|(id, count)| (*count == 0).then_some(*id))
         .collect();
+    let mut depth: BTreeMap<&str, usize> =
+        remaining_dependencies.keys().map(|id| (*id, 0usize)).collect();
     let mut visited = 0usize;
     while let Some(id) = ready.pop_front() {
         visited += 1;
         if let Some(children) = dependents.get(id) {
             for child in children {
+                let next_depth = depth[id].saturating_add(1);
+                let child_depth = depth
+                    .get_mut(*child)
+                    .ok_or_else(|| format!("internal graph depth index missing {child}"))?;
+                *child_depth = (*child_depth).max(next_depth);
                 let count = remaining_dependencies
                     .get_mut(*child)
                     .ok_or_else(|| format!("internal graph index missing {child}"))?;
                 *count -= 1;
                 if *count == 0 {
-                    ready.push_back(child);
+                    ready.push_back(*child);
                 }
             }
         }
     }
     if visited != workload.artifact_count {
         return Err("generated artifact dependency graph contains a cycle".to_owned());
+    }
+    let maximum_depth = depth.values().copied().max().unwrap_or(0);
+    if maximum_depth > workload.generator_parameters.max_dependency_depth {
+        return Err(format!(
+            "generated dependency depth {maximum_depth} exceeds declared bound {}",
+            workload.generator_parameters.max_dependency_depth
+        ));
     }
 
     let mut task_ids = BTreeSet::new();
