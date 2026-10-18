@@ -23,7 +23,7 @@ jq -n '
     reported_at: "2026-10-18T00:00:00Z",
     evaluation_profile: {
       ifc_schema: "IFC4",
-      ids_version: "1.0.0",
+      ids_version: "1.0",
       supported_subset: "synthetic contract self-test; no building qualification"
     },
     evaluator: {
@@ -121,4 +121,7 @@ expect_reject "NOT_RUN with tool/evidence attached" "$tmp/not-run-with-evidence.
 jq '.unexpected_claim = true' "$tmp/qualified.json" > "$tmp/unknown-field.json"
 expect_reject "unknown top-level field" "$tmp/unknown-field.json"
 
-echo "BUILT_INTEROP_004_CONTRACT_TESTS_OK: accepted_valid=3 rejected_negative_controls=8"
+jq '.reported_at = "2026-99-99 not-a-timestamp"' "$tmp/qualified.json" > "$tmp/malformed-timestamp.json"
+expect_reject "malformed report timestamp" "$tmp/malformed-timestamp.json"
+
+echo "BUILT_INTEROP_004_CONTRACT_TESTS_OK: accepted_valid=3 rejected_negative_controls=9"
