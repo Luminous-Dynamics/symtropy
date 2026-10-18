@@ -1774,6 +1774,30 @@ mod tests {
     }
 
     #[test]
+    fn invalidated_claim_labels_are_not_synthesized_as_evidence() {
+        let contract = contract();
+        let proposal = make_proposal(
+            &contract,
+            "invalidation-labels-are-not-receipts",
+            "trench-segment-01",
+            TaskState::Ready,
+            Action::Start,
+            1,
+            Some("excavator-01".to_string()),
+        );
+        let evidence_kinds: BTreeSet<&str> = proposal
+            .evidence
+            .iter()
+            .map(|item| item.evidence_kind.as_str())
+            .collect();
+        assert!(evidence_kinds
+            .iter()
+            .all(|kind| contract.evidence_vocabulary.contains(*kind)));
+        assert!(!evidence_kinds.contains("assignment"));
+        assert!(!evidence_kinds.contains("positive-clearance-claim"));
+    }
+
+    #[test]
     fn failed_inspection_rework_can_begin_before_postwork_receipts_exist() {
         let contract = contract();
         let mut begin = make_proposal(
