@@ -39,6 +39,7 @@ struct FrameTimeContext {
     source_commit: Option<String>,
     fixture_sha256: Option<String>,
     render_settings_sha256: Option<String>,
+    renderer_version: Option<String>,
     gpu_adapter: Option<String>,
     gpu_driver: Option<String>,
     render_backend: Option<String>,
@@ -90,6 +91,7 @@ impl FrameTimeSampler {
             render_settings_sha256: env_nonempty(
                 "SYMTROPY_DEMO_CAPTURE_RENDER_SETTINGS_SHA256",
             ),
+            renderer_version: env_nonempty("SYMTROPY_DEMO_CAPTURE_RENDERER_VERSION"),
             gpu_adapter: env_nonempty("SYMTROPY_DEMO_CAPTURE_GPU_ADAPTER"),
             gpu_driver: env_nonempty("SYMTROPY_DEMO_CAPTURE_GPU_DRIVER"),
             render_backend: env_nonempty("SYMTROPY_DEMO_CAPTURE_RENDER_BACKEND"),
@@ -263,6 +265,7 @@ fn build_frame_time_report(
         }
     };
     let qualified = context.source_commit.as_deref().is_some_and(is_commit_id)
+        && context.renderer_version.as_deref().is_some_and(not_empty)
         && context.fixture_sha256.as_deref().is_some_and(is_sha256)
         && context
             .render_settings_sha256
@@ -276,8 +279,10 @@ fn build_frame_time_report(
     FrameTimeReport {
         schema_version: 1,
         fixture_id: FIXTURE_ID,
-        renderer: env::var("SYMTROPY_DEMO_CAPTURE_RENDERER_VERSION")
-            .unwrap_or_else(|_| "unknown".to_owned()),
+        renderer: context
+            .renderer_version
+            .clone()
+            .unwrap_or_else(|| "unknown".to_owned()),
         profile: config.profile.clone(),
         object_count: config.object_count,
         shadows_enabled: config.shadows_enabled,
