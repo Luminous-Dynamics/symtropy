@@ -11,13 +11,14 @@ and the [solar–thermal benchmark contract](https://github.com/Luminous-Dynamic
 - Sensible thermal exergy relative to a declared reference temperature, integrated from the same cp(T) curve; specific exergy (J/kg) and total exergy (J) have distinct types.
 - Power-bounded charge/discharge, explicit-Euler standing loss, and a minimum heat-exchanger approach-temperature gate.
 - A two-store sensible-heat cascade primitive that respects source temperature grade, exchanger approach, source discharge power, receiving-store capacity, and heat-exchanger effectiveness.
+- Static sensible-heat pinch targeting for non-isothermal streams with constant integrated heat capacity: shifted-temperature intervals, minimum hot/cold utility targets, maximum process-recovery target, pinch-side temperatures, and an independent target verifier.
 - Separate recomputation verifiers for collector, charging, standing loss, discharge, and cascade transfers.
 - A standalone, dependency-free receipt auditor that consumes the emitted JSON and independently recomputes the solar, charge, standing-loss, discharge, temperature, sensible-exergy, and hand-computable two-store cascade ledgers without calling the model verifier.
 - Hand-calculable cases and tampered-report negative controls for both the kernel and the artifact auditor.
 
 ## Model limitations
 
-The cp(T) curve is a supplied model input, not a materials database. Standing loss uses the interval-start temperature and intentionally omits ambient heat gain, wall transients, and stratification. The heat exchanger uses a single effectiveness parameter and a minimum-approach gate, not a distributed exchanger model. Incident solar input is already interval-integrated energy; GHI/DNI conversion and collector geometry are outside this kernel. These assumptions must not be mistaken for field validation.
+The pinch solver is static and currently supports sensible non-isothermal streams with constant integrated heat capacity; it does not synthesize a heat-exchanger network, model phase-change streams, or co-optimize multi-period storage. The cp(T) curve is a supplied model input, not a materials database. Standing loss uses the interval-start temperature and intentionally omits ambient heat gain, wall transients, and stratification. The heat exchanger uses a single effectiveness parameter and a minimum-approach gate, not a distributed exchanger model. Incident solar input is already interval-integrated energy; GHI/DNI conversion and collector geometry are outside this kernel. These assumptions must not be mistaken for field validation.
 
 All absolute temperatures are kelvin; energy is interval-integrated joules; power is watts; duration is seconds; specific heat is J/(kg K). Store internal energy is defined relative to the configured minimum temperature.
 
