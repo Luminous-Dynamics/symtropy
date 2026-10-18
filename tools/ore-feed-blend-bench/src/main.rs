@@ -40,6 +40,8 @@ struct Corpus {
 #[serde(deny_unknown_fields)]
 struct Scenario {
     scenario_id: String,
+    required_valuable_analyte_id: String,
+    required_contaminant_analyte_id: String,
     feed_capacity_tonnes: u32,
     minimum_feed_tonnes: u32,
     minimum_grade_ppm: u64,
@@ -58,6 +60,8 @@ struct Scenario {
 #[serde(deny_unknown_fields)]
 struct Lot {
     lot_id: String,
+    valuable_analyte_id: String,
+    contaminant_analyte_id: String,
     available_tonnes: u32,
     sample_lot_id: String,
     assay_state: AssayState,
@@ -155,6 +159,8 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
     unique_nonempty(&scenario_ids, "corpus.scenario_id")?;
     for scenario in &corpus.scenarios {
         if !nonempty(&scenario.scenario_id)
+            || !nonempty(&scenario.required_valuable_analyte_id)
+            || !nonempty(&scenario.required_contaminant_analyte_id)
             || scenario.feed_capacity_tonnes == 0
             || scenario.feed_capacity_tonnes > MAX_CAPACITY_TONNES
             || scenario.minimum_feed_tonnes == 0
@@ -233,9 +239,20 @@ fn lot_block_reasons(lot: &Lot) -> Vec<String> {
     reasons.into_iter().collect()
 }
 
+fn lot_block_reasons_for(scenario: &Scenario, lot: &Lot) -> Vec<String> {
+    let mut reasons: BTreeSet<String> = lot_block_reasons(lot).into_iter().collect();
+    if lot.valuable_analyte_id != scenario.required_valuable_analyte_id {
+        reasons.insert("VALUABLE_ANALYTE_MISMATCH".to_owned());
+    }
+    if lot.contaminant_analyte_id != scenario.required_contaminant_analyte_id {
+        reasons.insert("CONTAMINANT_ANALYTE_MISMATCH".to_owned());
+    }
+    reasons.into_iter().collect()
+}
+
 fn all_lot_block_reasons(scenario: &Scenario) -> BTreeMap<String, Vec<String>> {
     scenario.lots.iter().filter_map(|lot| {
-        let reasons = lot_block_reasons(lot);
+        let reasons = lot_block_reasons_for(scenario, lot);
         (!reasons.is_empty()).then(|| (lot.lot_id.clone(), reasons))
     }).collect()
 }
@@ -370,7 +387,7 @@ impl Search<'_> {
             return;
         }
         let lot = &self.scenario.lots[index];
-        let maximum = if lot_block_reasons(lot).is_empty() {
+        let maximum = if lot_block_reasons_for(self.scenario, lot).is_empty() {
             lot.available_tonnes.min(self.scenario.feed_capacity_tonnes)
         } else { 0 };
         for tonnes in 0..=maximum {
@@ -417,7 +434,7 @@ fn independently_recompute(s: &Scenario, selection: &[LotTake]) -> Check<ChoiceM
         let index = lot_index(s, &take.lot_id)
             .ok_or_else(|| format!("unknown selected lot {}", take.lot_id))?;
         let lot = &s.lots[index];
-        if take.tonnes > lot.available_tonnes || !lot_block_reasons(lot).is_empty() {
+        if take.tonnes > lot.available_tonnes || !lot_block_reasons_for(s, lot).is_empty() {
             return Err(format!("selected lot is unavailable or inadmissible: {}", lot.lot_id));
         }
         let mass = u64::from(take.tonnes);
@@ -561,7 +578,7 @@ mod tests {
         let results = c.scenarios.iter()
             .map(|s| analyze_scenario(s, c.search_node_limit))
             .collect::<Check<Vec<_>>>().expect("all scenarios must be analysable");
-        assert_eq!(11, results.len());
+        assert_eq!(12, results.len());
         assert!(results.iter().all(|r| r.expected_control_matched));
     }
 
