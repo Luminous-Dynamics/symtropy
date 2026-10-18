@@ -648,7 +648,6 @@ fn all_state_action_pairs() -> (usize, usize) {
     (states.len() * actions.len(), legal)
 }
 
-
 fn record_blocked_mutation(
     fixture: &Value,
     scenario_id: &str,
@@ -753,7 +752,11 @@ fn fail_closed_mutation_sweep(
             for id in &observation_ids {
                 if let Some(observation) = observation_by_id(fixture, id)? {
                     if field_u64(observation, "observable_tick", "disturbance")? <= tick {
-                        visible_case_ids.insert(field_string(observation, "case_id", "disturbance")?);
+                        visible_case_ids.insert(field_string(
+                            observation,
+                            "case_id",
+                            "disturbance",
+                        )?);
                     }
                 }
             }
@@ -827,13 +830,7 @@ fn fail_closed_mutation_sweep(
             ] {
                 let mut mutated = proposal.clone();
                 mutated["gates"]["authorization"] = Value::String(authorization.to_string());
-                record_blocked_mutation(
-                    fixture,
-                    &scenario_id,
-                    mutation_id,
-                    mutated,
-                    &mut summary,
-                )?;
+                record_blocked_mutation(fixture, &scenario_id, mutation_id, mutated, &mut summary)?;
             }
         }
 
@@ -906,8 +903,8 @@ fn fail_closed_mutation_sweep(
             let mut unknown_kind = proposal.clone();
             unknown_kind["evidence"]
                 .as_array_mut()
-                .ok_or_else(|| "proposal.evidence must be an array".to_string())?[0]
-                ["evidence_kind"] = Value::String("__undeclared-evidence-kind__".to_string());
+                .ok_or_else(|| "proposal.evidence must be an array".to_string())?[0]["evidence_kind"] =
+                Value::String("__undeclared-evidence-kind__".to_string());
             record_blocked_mutation(
                 fixture,
                 &scenario_id,
@@ -956,7 +953,9 @@ fn fail_closed_mutation_sweep(
             let task = task_by_id(fixture, &task_id)?
                 .ok_or_else(|| format!("fixture lacks task {task_id}"))?;
             let mut required_kinds: BTreeSet<String> =
-                string_array(task, "acceptance_evidence", "task")?.into_iter().collect();
+                string_array(task, "acceptance_evidence", "task")?
+                    .into_iter()
+                    .collect();
             for id in &observation_ids {
                 if let Some(observation) = observation_by_id(fixture, id)? {
                     if field_u64(observation, "observable_tick", "disturbance")? <= tick {
@@ -976,7 +975,8 @@ fn fail_closed_mutation_sweep(
                         .ok_or_else(|| "proposal.evidence must be an array".to_string())?;
                     let mut changed = false;
                     for item in items {
-                        if item.get("evidence_kind").and_then(Value::as_str) == Some(kind.as_str()) {
+                        if item.get("evidence_kind").and_then(Value::as_str) == Some(kind.as_str())
+                        {
                             item[property] = Value::Bool(false);
                             changed = true;
                         }
@@ -1022,8 +1022,9 @@ fn fail_closed_mutation_sweep(
                 let mut unaccepted = proposal.clone();
                 unaccepted["predecessor_receipts"]
                     .as_array_mut()
-                    .ok_or_else(|| "proposal.predecessor_receipts must be an array".to_string())?[index]
-                    ["state"] = Value::String("running".to_string());
+                    .ok_or_else(|| {
+                        "proposal.predecessor_receipts must be an array".to_string()
+                    })?[index]["state"] = Value::String("running".to_string());
                 record_blocked_mutation(
                     fixture,
                     &scenario_id,
@@ -1049,7 +1050,11 @@ fn fail_closed_mutation_sweep(
         }
 
         if action == "protective_stop" || action == "abort" {
-            let expected_state = if action == "protective_stop" { "interrupted" } else { "aborted" };
+            let expected_state = if action == "protective_stop" {
+                "interrupted"
+            } else {
+                "aborted"
+            };
             let mut unknown_observation = proposal.clone();
             unknown_observation["observation_ids"] =
                 serde_json::json!(["__unknown-stop-observation__"]);
@@ -1064,7 +1069,8 @@ fn fail_closed_mutation_sweep(
 
             let mut over_horizon = proposal.clone();
             over_horizon["tick"] = serde_json::json!(MAX_ORACLE_TICK + 1);
-            over_horizon["observation_ids"] = serde_json::json!(["__unknown-horizon-observation__"]);
+            over_horizon["observation_ids"] =
+                serde_json::json!(["__unknown-horizon-observation__"]);
             record_stop_override(
                 fixture,
                 &scenario_id,
