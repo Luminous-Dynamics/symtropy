@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Render one skinned human from a user-supplied glTF/GLB and switch its clips.
 //!
 //! Put a rigged character file under `assets/humans/person.glb`, or set
