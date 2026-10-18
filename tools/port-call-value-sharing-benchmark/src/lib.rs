@@ -82,6 +82,7 @@ pub enum ValueShareError {
     DuplicateParticipant(String),
     TransfersDoNotConserve { net_transfer_minor: i128 },
     EmptySensitivityEnsemble,
+    TooFewBaselines,
     DuplicateBaselineReceipt(String),
     InconsistentSensitivityBasis { field: &'static str },
     ArithmeticOverflow,
@@ -423,6 +424,9 @@ pub fn evaluate_counterfactual_sensitivity(
 ) -> Result<CounterfactualSensitivityReport, ValueShareError> {
     if inputs.is_empty() {
         return Err(ValueShareError::EmptySensitivityEnsemble);
+    }
+    if inputs.len() < 2 {
+        return Err(ValueShareError::TooFewBaselines);
     }
 
     let mut reports = Vec::with_capacity(inputs.len());
@@ -963,6 +967,10 @@ mod tests {
         assert_eq!(
             evaluate_counterfactual_sensitivity(&[]),
             Err(ValueShareError::EmptySensitivityEnsemble)
+        );
+        assert_eq!(
+            evaluate_counterfactual_sensitivity(&[input()]),
+            Err(ValueShareError::TooFewBaselines)
         );
 
         let baseline = input();
