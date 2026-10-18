@@ -8,7 +8,7 @@
 //! requires exchangeability of calibration and future evaluation examples;
 //! this module does not claim that maritime time series are exchangeable.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const BASIS_POINTS: u16 = 10_000;
 pub const NANOS_PER_SECOND: i128 = 1_000_000_000;
@@ -26,6 +26,8 @@ pub struct ArrivalResidualSample {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArrivalEvaluationCase {
     pub case_id: String,
+    /// Caller-defined group such as port, source, lead-time bin or time regime.
+    pub stratum: String,
     pub forecast_issued_at_utc_nanos: i128,
     pub predicted_arrival_utc_nanos: i128,
     pub actual_arrival_utc_nanos: i128,
@@ -45,6 +47,7 @@ pub enum CalibrationError {
     ActualObservedBeforeActualEvent,
     EmptyEvaluationSet,
     EmptyEvaluationId,
+    EmptyEvaluationStratum,
     DuplicateEvaluationId,
     EvaluationForecastNotAfterCutoff,
     EvaluationTruthNotAfterCutoff,
@@ -224,6 +227,9 @@ pub fn evaluate_coverage(
         if case.case_id.trim().is_empty() {
             return Err(CalibrationError::EmptyEvaluationId);
         }
+        if case.stratum.trim().is_empty() {
+            return Err(CalibrationError::EmptyEvaluationStratum);
+        }
         if !seen.insert(case.case_id.clone()) {
             return Err(CalibrationError::DuplicateEvaluationId);
         }
@@ -298,6 +304,39 @@ pub fn evaluate_coverage(
     })
 }
 
+/// Evaluate each caller-defined stratum independently with deterministic key order.
+pub fn evaluate_coverage_by_stratum(
+    envelope: &CalibratedArrivalEnvelope,
+    cases: &[ArrivalEvaluationCase],
+) -> Result<BTreeMap<String, CoverageMetrics>, CalibrationError> {
+    if cases.is_empty() {
+        return Err(CalibrationError::EmptyEvaluationSet);
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut grouped = BTreeMap::<String, Vec<ArrivalEvaluationCase>>::new();
+    for case in cases {
+        if case.case_id.trim().is_empty() {
+            return Err(CalibrationError::EmptyEvaluationId);
+        }
+        if case.stratum.trim().is_empty() {
+            return Err(CalibrationError::EmptyEvaluationStratum);
+        }
+        if !seen.insert(case.case_id.clone()) {
+            return Err(CalibrationError::DuplicateEvaluationId);
+        }
+        grouped
+            .entry(case.stratum.clone())
+            .or_default()
+            .push(case.clone());
+    }
+
+    grouped
+        .into_iter()
+        .map(|(stratum, group)| Ok((stratum, evaluate_coverage(envelope, &group)?)))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -329,6 +368,7 @@ mod tests {
                 let actual = predicted + i128::from(*error) * NANOS_PER_SECOND;
                 ArrivalEvaluationCase {
                     case_id: format!("EVAL-{index:03}"),
+                    stratum: "SYNTHETIC".to_owned(),
                     forecast_issued_at_utc_nanos: predicted - 600 * NANOS_PER_SECOND,
                     predicted_arrival_utc_nanos: predicted,
                     actual_arrival_utc_nanos: actual,
@@ -483,6 +523,32 @@ mod tests {
         assert_eq!(shifted.conditional_coverage_bps, Some(0));
         assert_eq!(shifted.interval_issuance_rate_bps, 10_000);
     }
+    #[test]
+    fn coverage_is_reported_per_stratum_without_pooling_away_shift() {
+        let samples = (1_i64..=20)
+            .map(|error| sample(usize::try_from(error).unwrap(), error))
+            .collect::<Vec<_>>();
+        let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
+
+        let mut baseline = cases(&(1_i64..=20).collect::<Vec<_>>());
+        for case in &mut baseline {
+            case.stratum = "BASELINE".to_owned();
+            case.case_id = format!("BASE-{}", case.case_id);
+        }
+        let mut shifted = cases(&(40_i64..=59).collect::<Vec<_>>());
+        for case in &mut shifted {
+            case.stratum = "SHIFTED".to_owned();
+            case.case_id = format!("SHIFT-{}", case.case_id);
+        }
+        baseline.extend(shifted);
+
+        let report = evaluate_coverage_by_stratum(&fitted, &baseline).unwrap();
+        assert_eq!(report["BASELINE"].conditional_coverage_bps, Some(9_500));
+        assert_eq!(report["SHIFTED"].conditional_coverage_bps, Some(0));
+        assert_eq!(report["BASELINE"].evaluation_count, 20);
+        assert_eq!(report["SHIFTED"].evaluation_count, 20);
+    }
+
     #[test]
     fn calibration_is_permutation_invariant_and_preserves_cutoff() {
         let first = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
