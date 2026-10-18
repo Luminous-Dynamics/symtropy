@@ -51,6 +51,7 @@ The crate also exposes a deterministic route model for pre-construction design r
 - `HeadTrackedVrReference` for a future XR adapter to consume route reference poses; this enum does **not** mean an OpenXR/WebXR session or headset input path is implemented.
 - `validate_review_route` checks stable waypoint IDs, finite poses, view direction, dwell/timeline constraints, and the route's explicit translation-speed ceiling.
 - `sample_review_route` returns a deterministic Bevy `Transform` at a given elapsed time. Invalid routes return `None`, allowing the application to preserve a static camera.
+- `ReviewRoutePlayback::new(route)` validates a route once, then the scene plugin advances its Transform during Update; playback can be paused/resumed. Accessible-teleport routes do not auto-play and require user-selected waypoint poses.
 
 Coordinates are metres in the model's declared frame, not georeferencing. The route sampler does not perform wall collision, visibility, accessibility-code, daylight, energy, or building-code checks. A production reviewer should pair it with geometry collision tests, a real model-revision ID, user-controlled speed/pause/comfort settings, a desktop fallback, and an independently implemented XR adapter. A pleasant walkthrough is design feedback, not proof that the proposed building is buildable.
 
