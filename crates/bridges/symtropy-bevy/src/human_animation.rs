@@ -400,10 +400,8 @@ mod tests {
         });
         let intent = semantic_intent_for_test(MotionIntentKind::Reach, None, target);
         assert_eq!(
-            adapt_semantic_intent_to_locomotion(&intent),
-            Err(SemanticIntentAdapterError::UnsupportedIntentKind(
-                MotionIntentKind::Reach
-            ))
+            adapt_semantic_intent_to_locomotion(&intent).unwrap_err(),
+            SemanticIntentAdapterError::UnsupportedIntentKind(MotionIntentKind::Reach)
         );
     }
 
