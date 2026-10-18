@@ -26,7 +26,15 @@ scripts/run-render-benchmark.sh
 
 The runner requires a clean Git worktree, reads the exact source commit and Bevy version, hashes the frozen fixture JSON, creates a canonical render-settings JSON sidecar and digest, binds output resolution/profile/object count/shadow mode into capture metadata, then launches the app in release mode. It sets the default capture schedule to 1.5, 4.0, and 7.0 seconds. Use the final settled frame for a reference comparison; the scene itself is static after startup.
 
-The capture plugin writes PNGs to `target/render-captures/<profile>`. Once the companion capture-receipt change is integrated, the same run also writes a versioned JSON receipt. A missing or unqualified capture must not be promoted into a baseline.
+The capture plugin writes PNGs to `target/render-captures/<profile>`. Once the companion capture-receipt change is integrated, the same run also writes a versioned JSON receipt. The runner additionally requires a fresh `frame-time.json` report before it exits successfully.
+
+## Frame-time report
+
+The runner collects Bevy `Time<Real>::delta_secs()` in milliseconds from 1.0 to 8.0 seconds after app startup and writes `frame-time.json` in the capture directory. It includes sample count, mean, p50/p95/p99, the observed fraction of frame intervals above 16.67 ms and 33.3 ms, profile/workload, and the caller-declared adapter, driver, backend, OS, toolchain, renderer, fixture and render-settings identities.
+
+**Important measurement boundary:** these are observed Bevy real-frame intervals, not GPU timestamp-query durations and not isolated CPU system costs. They include effects such as scheduling and display synchronization. The report explicitly labels the method and claim ceiling. Compare runs on the same adapter/backend with the same capture settings. For true GPU time or CPU/GPU overlap, add backend timestamp-query instrumentation as a separate measurement lane.
+
+The runner removes an old frame-time report before launching the app and fails if a fresh, non-empty report is not produced. Empty samples are reported as `insufficient_samples`; metadata omissions downgrade the report to `measured_metadata_incomplete` rather than hiding the measurement.
 
 ## Profiles and scaling
 
