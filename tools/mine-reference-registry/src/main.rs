@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeSet,
-    env, fs,
-    process::ExitCode,
-};
+use std::{collections::BTreeSet, env, fs, process::ExitCode};
 
 const VERSION: &str = "0.1.0";
 const EXPECTED_ENTRIES: usize = 6;
@@ -149,7 +145,9 @@ fn validate_registry(registry: &Registry) -> Check<()> {
         || !is_iso_date(&registry.registry_date)
         || !nonempty(&registry.claim_ceiling)
     {
-        return Err("invalid registry identity, version, date, evidence class, or entry count".to_owned());
+        return Err(
+            "invalid registry identity, version, date, evidence class, or entry count".to_owned(),
+        );
     }
 
     let mut ids = BTreeSet::new();
@@ -162,12 +160,19 @@ fn validate_registry(registry: &Registry) -> Check<()> {
             || !nonempty(&entry.upstream_version)
             || !nonempty(&entry.review_note)
         {
-            return Err("source identity, URL, citation, version, note, or uniqueness check failed".to_owned());
+            return Err(
+                "source identity, URL, citation, version, note, or uniqueness check failed"
+                    .to_owned(),
+            );
         }
 
         match entry.license_state {
             LicenseState::VerifiedOpen => {
-                if !entry.license_name.as_ref().is_some_and(|name| nonempty(name)) {
+                if !entry
+                    .license_name
+                    .as_ref()
+                    .is_some_and(|name| nonempty(name))
+                {
                     return Err(format!(
                         "{}: verified-open record requires a specific license name",
                         entry.source_id
@@ -194,17 +199,21 @@ fn validate_registry(registry: &Registry) -> Check<()> {
                 }
             }
             AccessState::Downloaded => {
-                let hash = entry
-                    .source_sha256
-                    .as_deref()
-                    .ok_or_else(|| format!("{}: downloaded record must bind a source hash", entry.source_id))?;
+                let hash = entry.source_sha256.as_deref().ok_or_else(|| {
+                    format!(
+                        "{}: downloaded record must bind a source hash",
+                        entry.source_id
+                    )
+                })?;
                 if !is_lower_hex(hash, 64) {
                     return Err(format!(
                         "{}: source SHA-256 must be 64 lowercase hexadecimal characters",
                         entry.source_id
                     ));
                 }
-                if !entry.redistribution_allowed || entry.license_state != LicenseState::VerifiedOpen {
+                if !entry.redistribution_allowed
+                    || entry.license_state != LicenseState::VerifiedOpen
+                {
                     return Err(format!(
                         "{}: downloaded source cannot be admitted to the repository without verified redistribution rights",
                         entry.source_id
@@ -219,7 +228,8 @@ fn validate_registry(registry: &Registry) -> Check<()> {
 fn source_commit_from_args(args: &[String]) -> Check<String> {
     if args.len() != 4 || args[2] != "--source-commit" {
         return Err(
-            "usage: mine-reference-registry <registry.json> --source-commit <40-hex-sha>".to_owned(),
+            "usage: mine-reference-registry <registry.json> --source-commit <40-hex-sha>"
+                .to_owned(),
         );
     }
     let commit = args[3].to_ascii_lowercase();
@@ -257,9 +267,15 @@ fn evaluate(registry: &Registry, source_commit: String, registry_bytes: &[u8]) -
             .iter()
             .filter(|entry| entry.access_state == AccessState::MetadataOnly)
             .count(),
-        redistribution_allowed_count: entries.iter().filter(|entry| entry.redistribution_allowed).count(),
+        redistribution_allowed_count: entries
+            .iter()
+            .filter(|entry| entry.redistribution_allowed)
+            .count(),
         license_review_required_count: entries.iter().filter(|entry| entry.review_required).count(),
-        source_data_hashes_present: entries.iter().filter(|entry| entry.source_hash_present).count(),
+        source_data_hashes_present: entries
+            .iter()
+            .filter(|entry| entry.source_hash_present)
+            .count(),
         entries,
     }
 }
@@ -268,8 +284,8 @@ fn run() -> Check<ExitCode> {
     let args: Vec<String> = env::args().collect();
     let source_commit = source_commit_from_args(&args)?;
     let bytes = fs::read(&args[1]).map_err(|error| format!("cannot read registry: {error}"))?;
-    let registry: Registry =
-        serde_json::from_slice(&bytes).map_err(|error| format!("invalid registry JSON: {error}"))?;
+    let registry: Registry = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("invalid registry JSON: {error}"))?;
     validate_registry(&registry)?;
     let receipt = evaluate(&registry, source_commit, &bytes);
     println!(
@@ -295,8 +311,10 @@ mod tests {
     use super::*;
 
     fn registry() -> Registry {
-        serde_json::from_str(include_str!("../../../docs/tech/mine-reference-registry-v0.1.json"))
-            .expect("frozen reference registry should deserialize")
+        serde_json::from_str(include_str!(
+            "../../../docs/tech/mine-reference-registry-v0.1.json"
+        ))
+        .expect("frozen reference registry should deserialize")
     }
 
     #[test]
@@ -304,8 +322,14 @@ mod tests {
         let registry = registry();
         validate_registry(&registry).expect("reference registry must validate");
         assert_eq!(EXPECTED_ENTRIES, registry.entries.len());
-        assert!(registry.entries.iter().all(|entry| entry.access_state == AccessState::MetadataOnly));
-        assert!(registry.entries.iter().all(|entry| entry.source_sha256.is_none()));
+        assert!(registry
+            .entries
+            .iter()
+            .all(|entry| entry.access_state == AccessState::MetadataOnly));
+        assert!(registry
+            .entries
+            .iter()
+            .all(|entry| entry.source_sha256.is_none()));
     }
 
     #[test]
