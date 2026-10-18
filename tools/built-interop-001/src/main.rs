@@ -97,12 +97,38 @@ enum Decision {
     Unresolved,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+enum RequirementOutcome {
+    Preserved,
+    Transformed,
+    Blocked,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct RequirementResult {
+    requirement_id: String,
+    source_object_id: String,
+    property_key: String,
+    criticality: Criticality,
+    expected_value: String,
+    expected_unit: Option<String>,
+    observed_object_id: Option<String>,
+    observed_value: Option<String>,
+    observed_unit: Option<String>,
+    disposition: Option<LossDisposition>,
+    transform_id: Option<String>,
+    outcome: RequirementOutcome,
+    diagnostic_codes: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct ScenarioResult {
     case_id: String,
     computed_decision: Decision,
     expected_decision: Decision,
     oracle_match: bool,
+    requirement_results: Vec<RequirementResult>,
     issues: Vec<String>,
 }
 
@@ -222,19 +248,163 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), Vec<String>> {
     }
 }
 
+fn nonconformity_outcome(criticality: Criticality) -> RequirementOutcome {
+    match criticality {
+        Criticality::Hard => RequirementOutcome::Blocked,
+        Criticality::Advisory => RequirementOutcome::Unresolved,
+    }
+}
+
+fn evaluate_requirement(
+    requirement: &Requirement,
+    observations: &[Observation],
+    transforms: &[TransformRule],
+) -> RequirementResult {
+    let matches: Vec<&Observation> = observations
+        .iter()
+        .filter(|observation| observation.requirement_id == requirement.requirement_id)
+        .collect();
+    let observation = match matches.as_slice() {
+        [single] => Some(*single),
+        _ => None,
+    };
+    let mut result = RequirementResult {
+        requirement_id: requirement.requirement_id.clone(),
+        source_object_id: requirement.object_id.clone(),
+        property_key: requirement.property_key.clone(),
+        criticality: requirement.criticality,
+        expected_value: requirement.expected_value.clone(),
+        expected_unit: requirement.unit.clone(),
+        observed_object_id: observation.map(|value| value.object_id.clone()),
+        observed_value: observation.and_then(|value| value.observed_value.clone()),
+        observed_unit: observation.and_then(|value| value.unit.clone()),
+        disposition: observation.map(|value| value.disposition),
+        transform_id: observation.and_then(|value| value.transform_id.clone()),
+        outcome: RequirementOutcome::Unresolved,
+        diagnostic_codes: Vec::new(),
+    };
+
+    if matches.is_empty() {
+        result.outcome = nonconformity_outcome(requirement.criticality);
+        result.diagnostic_codes.push("NO_TARGET_OBSERVATION".to_string());
+        return result;
+    }
+    if matches.len() > 1 {
+        result.outcome = RequirementOutcome::Blocked;
+        result.diagnostic_codes
+            .push("DUPLICATE_TARGET_OBSERVATION".to_string());
+        return result;
+    }
+    let observation = matches[0];
+    if observation.object_id != requirement.object_id {
+        result.outcome = RequirementOutcome::Blocked;
+        result.diagnostic_codes
+            .push("OBJECT_IDENTITY_MISMATCH".to_string());
+        return result;
+    }
+
+    match observation.disposition {
+        LossDisposition::Preserved => {
+            if observation.transform_id.is_some() {
+                result.outcome = RequirementOutcome::Blocked;
+                result.diagnostic_codes
+                    .push("PRESERVED_CARRIES_TRANSFORM".to_string());
+                return result;
+            }
+            if observation.observed_value.as_deref()
+                != Some(requirement.expected_value.as_str())
+                || observation.unit != requirement.unit
+            {
+                result.outcome = nonconformity_outcome(requirement.criticality);
+                result.diagnostic_codes
+                    .push("PRESERVED_VALUE_OR_UNIT_MISMATCH".to_string());
+                return result;
+            }
+            result.outcome = RequirementOutcome::Preserved;
+        }
+        LossDisposition::TransformedWithDeclaredRule => {
+            let matching_rules: Vec<&TransformRule> = match observation.transform_id.as_deref() {
+                Some(id) => transforms.iter().filter(|rule| rule.transform_id == id).collect(),
+                None => Vec::new(),
+            };
+            let rule = match matching_rules.as_slice() {
+                [rule] => *rule,
+                _ => {
+                    result.outcome = nonconformity_outcome(requirement.criticality);
+                    result.diagnostic_codes
+                        .push("MISSING_OR_DUPLICATE_TRANSFORM_RULE".to_string());
+                    return result;
+                }
+            };
+            let expected_number = requirement.expected_value.parse::<f64>();
+            let observed_number = observation
+                .observed_value
+                .as_deref()
+                .unwrap_or("")
+                .parse::<f64>();
+            let valid_units = requirement.unit.as_deref() == Some(rule.from_unit.as_str())
+                && observation.unit.as_deref() == Some(rule.to_unit.as_str());
+            match (expected_number, observed_number) {
+                (Ok(expected), Ok(observed))
+                    if valid_units
+                        && expected.is_finite()
+                        && observed.is_finite()
+                        && rule.scale.is_finite()
+                        && rule.scale > 0.0
+                        && rule.offset.is_finite()
+                        && rule.absolute_tolerance.is_finite()
+                        && rule.absolute_tolerance >= 0.0 =>
+                {
+                    let transformed = expected * rule.scale + rule.offset;
+                    if !transformed.is_finite()
+                        || (observed - transformed).abs() > rule.absolute_tolerance
+                    {
+                        result.outcome = nonconformity_outcome(requirement.criticality);
+                        result.diagnostic_codes
+                            .push("DECLARED_TRANSFORM_RESULT_MISMATCH".to_string());
+                        return result;
+                    }
+                    result.outcome = RequirementOutcome::Transformed;
+                }
+                _ => {
+                    result.outcome = nonconformity_outcome(requirement.criticality);
+                    result.diagnostic_codes
+                        .push("DECLARED_TRANSFORM_SCOPE_OR_NUMERIC_VALUE_INVALID".to_string());
+                }
+            }
+        }
+        LossDisposition::Unsupported => {
+            result.outcome = nonconformity_outcome(requirement.criticality);
+            result.diagnostic_codes
+                .push("UNSUPPORTED_TARGET_PROPERTY".to_string());
+        }
+        LossDisposition::Missing => {
+            result.outcome = nonconformity_outcome(requirement.criticality);
+            result.diagnostic_codes
+                .push("MISSING_TARGET_PROPERTY".to_string());
+        }
+        LossDisposition::Changed => {
+            result.outcome = nonconformity_outcome(requirement.criticality);
+            result.diagnostic_codes
+                .push("CHANGED_TARGET_PROPERTY".to_string());
+        }
+        LossDisposition::NotEvaluated => {
+            result.outcome = nonconformity_outcome(requirement.criticality);
+            result.diagnostic_codes
+                .push("TARGET_PROPERTY_NOT_EVALUATED".to_string());
+        }
+    }
+    result
+}
+
 fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
-    let mut issues = Vec::new();
     let mut blocked = false;
     let mut unresolved = false;
+    let mut global_issues = Vec::new();
 
     if case.requirements.is_empty() {
-        add_issue(
-            &mut issues,
-            &mut blocked,
-            &mut unresolved,
-            Severity::Unresolved,
-            "no_source_requirements_declared".to_string(),
-        );
+        unresolved = true;
+        global_issues.push("NO_SOURCE_REQUIREMENTS_DECLARED".to_string());
     }
 
     let mut requirement_ids = BTreeSet::new();
@@ -243,38 +413,26 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
             || requirement.object_id.trim().is_empty()
             || requirement.property_key.trim().is_empty()
         {
-            add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                Severity::Blocked,
-                format!("empty_source_identity_field:{}", requirement.requirement_id),
-            );
+            blocked = true;
+            global_issues.push(format!(
+                "EMPTY_SOURCE_IDENTITY_FIELD:{}",
+                requirement.requirement_id
+            ));
         }
         if !requirement_ids.insert(requirement.requirement_id.clone()) {
-            add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                Severity::Blocked,
-                format!(
-                    "duplicate_source_requirement_id:{}",
-                    requirement.requirement_id
-                ),
-            );
+            blocked = true;
+            global_issues.push(format!(
+                "DUPLICATE_SOURCE_REQUIREMENT_ID:{}",
+                requirement.requirement_id
+            ));
         }
     }
 
     let mut transform_ids = BTreeSet::new();
     for rule in &case.transforms {
         if rule.transform_id.trim().is_empty() || !transform_ids.insert(rule.transform_id.clone()) {
-            add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                Severity::Blocked,
-                format!("empty_or_duplicate_transform_id:{}", rule.transform_id),
-            );
+            blocked = true;
+            global_issues.push(format!("EMPTY_OR_DUPLICATE_TRANSFORM_ID:{}", rule.transform_id));
         }
         if !rule.scale.is_finite()
             || rule.scale <= 0.0
@@ -284,232 +442,68 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
             || rule.from_unit.trim().is_empty()
             || rule.to_unit.trim().is_empty()
         {
-            add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                Severity::Blocked,
-                format!("invalid_transform_rule:{}", rule.transform_id),
-            );
+            blocked = true;
+            global_issues.push(format!("INVALID_TRANSFORM_RULE:{}", rule.transform_id));
         }
     }
 
     for observation in &case.observations {
         if !requirement_ids.contains(&observation.requirement_id) {
-            add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                Severity::Blocked,
-                format!(
-                    "observation_without_source_requirement:{}",
-                    observation.requirement_id
-                ),
-            );
+            blocked = true;
+            global_issues.push(format!(
+                "OBSERVATION_WITHOUT_SOURCE_REQUIREMENT:{}",
+                observation.requirement_id
+            ));
         }
         if observation.requirement_id.trim().is_empty() || observation.object_id.trim().is_empty() {
-            add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                Severity::Blocked,
-                "empty_target_identity_field".to_string(),
-            );
+            blocked = true;
+            global_issues.push("EMPTY_TARGET_IDENTITY_FIELD".to_string());
         }
     }
+
+    let mut requirement_results: Vec<RequirementResult> = case
+        .requirements
+        .iter()
+        .map(|requirement| {
+            evaluate_requirement(requirement, &case.observations, &case.transforms)
+        })
+        .collect();
 
     for requirement in &case.requirements {
-        let matches: Vec<&Observation> = case
-            .observations
+        if case
+            .requirements
             .iter()
-            .filter(|observation| observation.requirement_id == requirement.requirement_id)
-            .collect();
-
-        let observation = match matches.as_slice() {
-            [] => {
-                let severity = match requirement.criticality {
-                    Criticality::Hard => Severity::Blocked,
-                    Criticality::Advisory => Severity::Unresolved,
-                };
-                add_issue(
-                    &mut issues,
-                    &mut blocked,
-                    &mut unresolved,
-                    severity,
-                    format!("no_target_observation:{}", requirement.requirement_id),
-                );
-                continue;
+            .filter(|candidate| candidate.requirement_id == requirement.requirement_id)
+            .count()
+            > 1
+        {
+            for result in requirement_results
+                .iter_mut()
+                .filter(|result| result.requirement_id == requirement.requirement_id)
+            {
+                result.outcome = RequirementOutcome::Blocked;
+                result.diagnostic_codes
+                    .push("DUPLICATE_SOURCE_REQUIREMENT_ID".to_string());
             }
-            [single] => *single,
-            _ => {
-                add_issue(
-                    &mut issues,
-                    &mut blocked,
-                    &mut unresolved,
-                    Severity::Blocked,
-                    format!(
-                        "duplicate_target_observation:{}",
-                        requirement.requirement_id
-                    ),
-                );
-                continue;
-            }
-        };
-
-        if observation.object_id != requirement.object_id {
-            add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                Severity::Blocked,
-                format!(
-                    "object_identity_mismatch:{}:expected={}:actual={}",
-                    requirement.requirement_id, requirement.object_id, observation.object_id
-                ),
-            );
-            continue;
-        }
-
-        let nonconformity_severity = match requirement.criticality {
-            Criticality::Hard => Severity::Blocked,
-            Criticality::Advisory => Severity::Unresolved,
-        };
-
-        match observation.disposition {
-            LossDisposition::Preserved => {
-                if observation.transform_id.is_some() {
-                    add_issue(
-                        &mut issues,
-                        &mut blocked,
-                        &mut unresolved,
-                        Severity::Blocked,
-                        format!(
-                            "preserved_property_carries_transform:{}",
-                            requirement.requirement_id
-                        ),
-                    );
-                }
-                if observation.observed_value.as_deref()
-                    != Some(requirement.expected_value.as_str())
-                    || observation.unit != requirement.unit
-                {
-                    add_issue(
-                        &mut issues,
-                        &mut blocked,
-                        &mut unresolved,
-                        nonconformity_severity,
-                        format!(
-                            "preserved_value_or_unit_mismatch:{}",
-                            requirement.requirement_id
-                        ),
-                    );
-                }
-            }
-            LossDisposition::TransformedWithDeclaredRule => {
-                let matching_rules: Vec<&TransformRule> = match observation.transform_id.as_deref()
-                {
-                    Some(id) => case
-                        .transforms
-                        .iter()
-                        .filter(|rule| rule.transform_id == id)
-                        .collect(),
-                    None => Vec::new(),
-                };
-                match matching_rules.as_slice() {
-                    [rule] => {
-                        let expected_number = requirement.expected_value.parse::<f64>();
-                        let observed_number = observation
-                            .observed_value
-                            .as_deref()
-                            .unwrap_or("")
-                            .parse::<f64>();
-                        let valid_units = requirement.unit.as_deref()
-                            == Some(rule.from_unit.as_str())
-                            && observation.unit.as_deref() == Some(rule.to_unit.as_str());
-                        match (expected_number, observed_number) {
-                            (Ok(expected), Ok(observed))
-                                if valid_units
-                                    && expected.is_finite()
-                                    && observed.is_finite()
-                                    && rule.scale.is_finite()
-                                    && rule.offset.is_finite()
-                                    && rule.absolute_tolerance.is_finite()
-                                    && rule.absolute_tolerance >= 0.0 =>
-                            {
-                                let transformed = expected * rule.scale + rule.offset;
-                                if !transformed.is_finite()
-                                    || (observed - transformed).abs() > rule.absolute_tolerance
-                                {
-                                    add_issue(
-                                        &mut issues,
-                                        &mut blocked,
-                                        &mut unresolved,
-                                        nonconformity_severity,
-                                        format!(
-                                            "declared_transform_result_mismatch:{}",
-                                            requirement.requirement_id
-                                        ),
-                                    );
-                                }
-                            }
-                            _ => add_issue(
-                                &mut issues,
-                                &mut blocked,
-                                &mut unresolved,
-                                nonconformity_severity,
-                                format!(
-                                    "declared_transform_scope_or_numeric_value_invalid:{}",
-                                    requirement.requirement_id
-                                ),
-                            ),
-                        }
-                    }
-                    _ => add_issue(
-                        &mut issues,
-                        &mut blocked,
-                        &mut unresolved,
-                        nonconformity_severity,
-                        format!(
-                            "missing_or_duplicate_transform_rule:{}",
-                            requirement.requirement_id
-                        ),
-                    ),
-                }
-            }
-            LossDisposition::Unsupported => add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                nonconformity_severity,
-                format!("unsupported_target_property:{}", requirement.requirement_id),
-            ),
-            LossDisposition::Missing => add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                nonconformity_severity,
-                format!("missing_target_property:{}", requirement.requirement_id),
-            ),
-            LossDisposition::Changed => add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                nonconformity_severity,
-                format!("changed_target_property:{}", requirement.requirement_id),
-            ),
-            LossDisposition::NotEvaluated => add_issue(
-                &mut issues,
-                &mut blocked,
-                &mut unresolved,
-                nonconformity_severity,
-                format!(
-                    "target_property_not_evaluated:{}",
-                    requirement.requirement_id
-                ),
-            ),
         }
     }
 
+    for result in &mut requirement_results {
+        result.diagnostic_codes.sort();
+        result.diagnostic_codes.dedup();
+        match result.outcome {
+            RequirementOutcome::Blocked => blocked = true,
+            RequirementOutcome::Unresolved => unresolved = true,
+            RequirementOutcome::Preserved | RequirementOutcome::Transformed => {}
+        }
+    }
+
+    let mut issues = global_issues;
+    for result in &requirement_results {
+        for code in &result.diagnostic_codes {
+            issues.push(format!("{}:{}", code, result.requirement_id));
+        }
+    }
     issues.sort();
     issues.dedup();
 
@@ -525,6 +519,7 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
         computed_decision,
         expected_decision: case.expected_decision,
         oracle_match: computed_decision == case.expected_decision,
+        requirement_results,
         issues,
     }
 }
@@ -727,6 +722,47 @@ mod tests {
             evaluate_scenario(&case).computed_decision,
             Decision::Blocked
         );
+    }
+
+    #[test]
+    fn structured_requirement_result_retains_source_and_target_values() {
+        let (manifest, _) = fixture();
+        let mut case = manifest
+            .cases
+            .iter()
+            .find(|case| case.case_id == "01-exact-property-preservation")
+            .expect("preservation fixture exists")
+            .clone();
+        case.requirements.retain(|requirement| requirement.requirement_id == "req-thickness");
+        case.observations.retain(|observation| observation.requirement_id == "req-thickness");
+        let result = evaluate_scenario(&case);
+        let property = result.requirement_results.first().expect("property result exists");
+        assert_eq!(property.source_object_id, "panel-001");
+        assert_eq!(property.property_key, "PanelThickness");
+        assert_eq!(property.expected_value, "18.0");
+        assert_eq!(property.expected_unit.as_deref(), Some("mm"));
+        assert_eq!(property.observed_object_id.as_deref(), Some("panel-001"));
+        assert_eq!(property.observed_value.as_deref(), Some("18.0"));
+        assert_eq!(property.observed_unit.as_deref(), Some("mm"));
+        assert_eq!(property.outcome, RequirementOutcome::Preserved);
+        assert!(property.diagnostic_codes.is_empty());
+    }
+
+    #[test]
+    fn structured_loss_result_has_machine_readable_diagnostic_code() {
+        let (manifest, _) = fixture();
+        let case = manifest
+            .cases
+            .iter()
+            .find(|case| case.case_id == "02-hard-property-explicitly-missing")
+            .expect("missing-property fixture exists");
+        let result = evaluate_scenario(case);
+        let property = result.requirement_results.first().expect("property result exists");
+        assert_eq!(property.outcome, RequirementOutcome::Blocked);
+        assert_eq!(property.diagnostic_codes, vec!["NO_TARGET_OBSERVATION"]);
+        assert_eq!(property.source_object_id, "panel-001");
+        assert_eq!(property.property_key, "RequiredFireClass");
+        assert!(property.observed_value.is_none());
     }
 
     #[test]
