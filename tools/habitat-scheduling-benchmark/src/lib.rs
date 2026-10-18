@@ -19,6 +19,12 @@ pub struct ScorecardRow {
     pub case_id: String,
     pub oracle_feasible: bool,
     pub oracle_optimal_makespan: Option<u32>,
+    pub priority_only_status: String,
+    pub priority_only_makespan: Option<u32>,
+    pub priority_only_missed_feasible_candidate: bool,
+    pub fallback_status: String,
+    pub fallback_states_expanded: usize,
+    pub fallback_orders_evaluated: usize,
     pub heuristic_status: String,
     pub heuristic_makespan: Option<u32>,
     pub candidate_independently_validated: bool,
@@ -40,6 +46,11 @@ pub struct BenchmarkReport {
     pub heuristic_report_sha256: String,
     pub total_case_count: usize,
     pub oracle_feasible_case_count: usize,
+    pub priority_only_candidate_count: usize,
+    pub priority_only_feasible_case_coverage_ppm: u64,
+    pub priority_only_missed_feasible_candidate_count: usize,
+    pub bounded_fallback_candidate_count: usize,
+    pub bounded_fallback_states_expanded_total: usize,
     pub heuristic_candidate_count: usize,
     pub heuristic_feasible_case_coverage_ppm: u64,
     pub heuristic_missed_feasible_candidate_count: usize,
@@ -118,6 +129,11 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
 
     let mut rows = Vec::with_capacity(oracle.case_count);
     let mut reference_feasible = 0usize;
+    let mut priority_only_candidates = 0usize;
+    let mut priority_only_feasible_candidates = 0usize;
+    let mut priority_only_misses = 0usize;
+    let mut fallback_candidates = 0usize;
+    let mut fallback_states_total = 0usize;
     let mut candidates = 0usize;
     let mut feasible_candidates = 0usize;
     let mut misses = 0usize;
@@ -137,6 +153,23 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
         let has_candidate = candidate.nominal.makespan.is_some();
         let candidate_validated = has_candidate
             && candidate.nominal.validation_status == "INDEPENDENT_VALIDATOR_PASSED";
+        let priority_only_has_candidate = candidate.nominal.priority_only_makespan.is_some();
+        if priority_only_has_candidate {
+            priority_only_candidates += 1;
+        }
+        if reference.feasible && priority_only_has_candidate {
+            priority_only_feasible_candidates += 1;
+        }
+        let priority_only_missed = reference.feasible && !priority_only_has_candidate;
+        if priority_only_missed {
+            priority_only_misses += 1;
+        }
+        let fallback_recovered =
+            candidate.nominal.fallback_status.starts_with("CANDIDATE_FOUND");
+        if fallback_recovered {
+            fallback_candidates += 1;
+            fallback_states_total += candidate.nominal.fallback_states_expanded;
+        }
         if candidate_validated {
             validated_candidates += 1;
         }
@@ -199,6 +232,12 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
             case_id: reference.case_id.clone(),
             oracle_feasible: reference.feasible,
             oracle_optimal_makespan: reference.nominal_optimal_makespan,
+            priority_only_status: candidate.nominal.priority_only_status.clone(),
+            priority_only_makespan: candidate.nominal.priority_only_makespan,
+            priority_only_missed_feasible_candidate: priority_only_missed,
+            fallback_status: candidate.nominal.fallback_status.clone(),
+            fallback_states_expanded: candidate.nominal.fallback_states_expanded,
+            fallback_orders_evaluated: candidate.nominal.fallback_orders_evaluated,
             heuristic_status: candidate.nominal.status.clone(),
             heuristic_makespan: candidate.nominal.makespan,
             candidate_independently_validated: candidate_validated,
@@ -222,6 +261,12 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
     } else {
         ((feasible_candidates as u128 * 1_000_000u128) / reference_feasible as u128) as u64
     };
+    let priority_only_coverage = if reference_feasible == 0 {
+        1_000_000
+    } else {
+        ((priority_only_feasible_candidates as u128 * 1_000_000u128)
+            / reference_feasible as u128) as u64
+    };
     let mean_gap = if relative_gap_count == 0 {
         None
     } else {
@@ -241,6 +286,11 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
         ),
         total_case_count: oracle.case_count,
         oracle_feasible_case_count: reference_feasible,
+        priority_only_candidate_count: priority_only_candidates,
+        priority_only_feasible_case_coverage_ppm: priority_only_coverage,
+        priority_only_missed_feasible_candidate_count: priority_only_misses,
+        bounded_fallback_candidate_count: fallback_candidates,
+        bounded_fallback_states_expanded_total: fallback_states_total,
         heuristic_candidate_count: candidates,
         heuristic_feasible_case_coverage_ppm: coverage,
         heuristic_missed_feasible_candidate_count: misses,
