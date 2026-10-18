@@ -54,8 +54,11 @@ impl AuditReport {
 pub fn validate_corpus_schema(schema_input: &str, corpus_input: &str) -> Result<(), Vec<String>> {
     let schema: Value = serde_json::from_str(schema_input)
         .map_err(|error| vec![format!("schema JSON is invalid: {error}")])?;
-    jsonschema::draft202012::meta::validate(&schema)
-        .map_err(|error| vec![format!("Draft 2020-12 schema meta-validation failed: {error}")])?;
+    jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
+    })?;
 
     let corpus: Value = serde_json::from_str(corpus_input)
         .map_err(|error| vec![format!("corpus JSON is invalid: {error}")])?;
