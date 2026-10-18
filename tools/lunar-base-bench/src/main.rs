@@ -1047,6 +1047,11 @@ fn make_receipt(
     input_sha256: String,
     source_commit: Option<String>,
 ) -> Check<BenchmarkReceipt> {
+    if let Some(commit) = &source_commit {
+        if commit.len() != 40 || !commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err("--source-commit must be a full 40-character hexadecimal commit SHA".to_owned());
+        }
+    }
     let design_basis_sha256 = sha256_hex(DESIGN_BASIS.as_bytes());
     validate_scenario(scenario, &design_basis_sha256)?;
     let greedy = run_controller(scenario, Controller::GreedyImmediate)?;
@@ -1183,8 +1188,17 @@ mod tests {
         let report = run_controller(&scenario, Controller::ForecastReserve).expect("faulted run");
         verify_run(&scenario, &report).expect("faulted accounting remains auditable");
         assert!(report.total_critical_unserved_wh > 0);
-        assert!(!report.all_accounting_balanced || report.total_energy_balance_residual_wh == 0);
+        assert!(report.all_accounting_balanced);
+        assert_eq!(report.total_energy_balance_residual_wh, 0);
+        assert_eq!(report.total_mass_balance_residual_g, 0);
         assert!(report.steps.iter().any(|step| step.critical_unserved_wh > 0));
+    }
+
+    #[test]
+    fn receipt_rejects_non_exact_source_commit_identity() {
+        let scenario = fixture_scenario();
+        assert!(make_receipt(&scenario, "a".repeat(64), Some("deadbeef".to_owned())).is_err());
+        assert!(make_receipt(&scenario, "a".repeat(64), Some("g".repeat(40))).is_err());
     }
 
     #[test]
