@@ -1313,7 +1313,12 @@ mod tests {
                             );
                             assert!(
                                 truthful_utility >= deviated_utility,
-                                "profitable unilateral report: true={true_costs:?}, participant={}, report={reported_cost}, truthful_utility={truthful_utility}, deviated_utility={deviated_utility}",
+                                concat!(
+                                    "profitable unilateral report: true={true_costs:?}, ",
+                                    "participant={}, report={reported_cost}, ",
+                                    "truthful_utility={truthful_utility}, ",
+                                    "deviated_utility={deviated_utility}"
+                                ),
                                 offer_ids[participant_index]
                             );
                         }
