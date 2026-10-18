@@ -1,0 +1,112 @@
+# Human Motion Benchmark Protocol v0.1
+
+**Status:** proposed protocol; targets below are not achieved results.  
+**Date:** 2026-10-18  
+**Scope:** Symtropy animation, locomotion and Symthaea motion-intent research.
+
+## Purpose
+
+Stop using "looks realistic" as a single subjective score. Report separate outcomes for motion fidelity, contact/physics, constraint following, behavioral utility, visual perception, latency, compute, and provenance. A system can do well on one axis and fail another.
+
+This benchmark is designed to compare:
+1. authored clip selection/blending (baseline available in the engine);
+2. procedural or controller-based motion;
+3. an external interactive generator such as ARDY, where its released code, weights, dataset, license, and hardware requirements permit a reproducible run;
+4. a modular-skills/generative baseline inspired by MotionBricks, where a usable release and permitted assets are available;
+5. the Symthaea intent + Symtropy constraint/physics stack;
+6. hybrids in which a proven generator proposes motion while Symthaea plans and Symtropy checks/corrects it.
+
+Do not claim that Symthaea itself synthesizes superior body motion unless the experiment isolates and measures its contribution.
+
+## Dataset and asset governance
+
+- Do not bundle third-party human body meshes, motion clips, weights, or training datasets until the applicable license and redistribution terms have been reviewed and recorded.
+- AMASS is explicitly licensed for non-commercial research/education/artistic use and prohibits training methods or neural networks for commercial use under its published license. It is not an acceptable default for training a commercial product without a separate written license.
+- Prefer (a) original motion capture with documented participant consent and rights, (b) assets explicitly licensed for the exact research and intended commercial use, or (c) synthetic scripted fixtures for the unit tests. A demo license is not automatically a training license.
+- Keep source video, face identity, names, and sensitive metadata out of the public artifact by default. Publish derived traces only where consent, rights and re-identification risk are addressed.
+- Every run must pin the rig/retarget map, animation clips, model/checkpoint, dataset version, split manifest, preprocessing, random seed, engine commit and configuration digest.
+- Split by actor and recording session, not merely by adjacent frames. Avoid leakage of the same motion sequence into training and evaluation.
+
+## Task suite
+
+Every scenario is executed against the same avatar, coordinate system, frame rate, physics settings and saved input trace where technically applicable.
+
+| ID | Task | Primary measurements | Failure conditions |
+|---|---|---|---|
+| HM-01 | Idle, start, stop, walk/run transitions | transition latency, clip discontinuity, root speed error | NaN pose, controller state chatter, missing clip silently treated as success |
+| HM-02 | Straight and curved locomotion | root ADE/FDE/max error, heading error, foot drift, cadence | major trajectory deviation or sustained stance sliding |
+| HM-03 | Waypoints and path changes | endpoint error, path deviation, replanning delay | missed waypoint or uncontrolled discontinuity |
+| HM-04 | Reach and object interaction | hand/end-effector position and orientation error, contact timing | interpenetration beyond configured tolerance, impossible reach |
+| HM-05 | Sit/stand and level changes | support/contact sequence, balance proxy, joint limits | unsupported floating, severe collision or joint-limit violations |
+| HM-06 | Conversation and gestures | gesture relevance annotation, overlap/interruption timing, gaze/pose measures where available | all agents use same canned response regardless of input |
+| HM-07 | Two-person interaction | personal-space violations, path conflicts, response delay | repeated collision or non-responsive interaction |
+| HM-08 | Crowd/LOD | collision rate, route/flow distributions, latency and memory by visible/logical count | unbounded resource growth, silent desynchronization |
+| HM-09 | Asset robustness | load failures, missing bones/clips, material errors, scale/range warnings | broken skeleton, unreported fallback or crash |
+| HM-10 | Accessibility and mobility | user-defined speed/stride/mobility adherence, transfer/turn success | system assumes a single able-bodied gait or overrides an explicit mobility profile |
+
+## Metrics and definitions
+
+- **Mean displacement error (ADE):** mean of the Euclidean root-position error over aligned samples.
+- **Final displacement error (FDE):** Euclidean root-position error at the final aligned sample.
+- **Maximum displacement error:** largest aligned root-position error; report as an outlier measure, not a substitute for ADE.
+- **Stance-foot drift:** RMS and maximum world-space foot displacement from the beginning of each detected contact interval. Publish the contact detector and threshold. Contact labels inferred from generated output and evaluation labels must be independently specified.
+- **Mean-squared jerk:** discrete trajectory jerk estimate, reported with sample rate, filtering and units (m²/s⁶). It is noise-sensitive and must not be optimized in isolation; an immobile character would look artificially smooth.
+- **Constraint adherence:** position/orientation error for each root, waypoint, hand, foot or joint constraint; report distributions and failure rates, not only averages.
+- **Diversity/repetition:** unique motion-cluster coverage and duplicate/repetition rates, normalized by task and sequence length.
+- **Perceptual quality:** blinded randomized A/B judgments from at least 30 independent raters for early screening; use a larger, pre-registered panel for strong claims. Show confidence intervals and inter-rater agreement. Do not tell raters which model made each clip.
+- **Behavioral realism:** compare distributions and conditional responses to held-out, rights-cleared human reference traces; use task outcome, response timing and group flow, not just appearance.
+- **Performance:** warm/cold latency, median/P95/P99 frame time, generation-to-first-pose latency, peak VRAM/RAM, CPU utilization, dropped frames, number of visible full-rig characters, number of logical agents, power if measurable. State hardware, driver, resolution, quality and LOD.
+- **Robustness:** invalid numeric output, missing asset, malformed trace, extreme timestep, model unload, and loss of a sensor or input channel.
+
+Never combine these into one overall score until component weights are public and sensitivity to those weights has been analyzed.
+
+## Proposed targets (not achieved results)
+
+Use the targets as initial engineering gates, not as a statement of present capabilities.
+
+| Gate | Proposed target | Interpretation |
+|---|---|---|
+| Numeric / asset safety | zero NaN/Inf poses, zero unreported missing-clip fallbacks, deterministic error report for bad input | basic correctness |
+| Interactive rendering | 60 FPS at 1080p for one close-view full-rig avatar on a stated reference machine; report P95 frame time and thermal state | rendering, not generative-model throughput |
+| Crowd performance | first profile: 32 visible rigged people plus 500 logical residents with measured LOD; scale upward only after maintaining trace correctness | explicit LOD accounting |
+| Contact quality | stance-foot drift RMS ≤ 2 cm and P95 max drift ≤ 5 cm on a fixed held-out locomotion suite | plausible first gate, not universal biomechanical validity |
+| Path following | P95 final root error ≤ 5 cm for a fixed, reachable waypoint suite; report constraint feasibility separately | controllability |
+| Perceived quality | blinded preference above the authored/blended baseline, with 95% CI above chance across multiple task families | actual user evidence |
+| Stability | no regression in task success or collision safety when frame rate, LOD, or cognition tick rate changes | decoupled-rate validity |
+| Reproducibility | exact commit, model/hash, asset/license manifest, seed, config and raw aggregate results accompany every report | auditability |
+
+Before promoting any target to a release gate, record baseline performance and perform a power/sensitivity analysis. If a target is too strict for the first avatar, report the gap instead of silently moving the threshold.
+
+## Experimental protocol
+
+1. Pin one rig and at least four motion conditions: stationary, steady walk, speed transition, and curved path. Add interaction scenes after the pipeline is reliable.
+2. Compare the same reachable constraints across baselines. Separate constraints that a reference trajectory satisfies by construction from constraints that the method must infer.
+3. Use the same post-processing budget, hardware and timed horizon when comparing latency or quality. Record any model setup or compilation delay separately from steady-state inference.
+4. Run fixed seeds first, then multiple seeds. Use actor/session-held-out sets and report per-task means, medians, P95, failure counts and 95% confidence intervals.
+5. Ablate Symthaea intent, motion selection, physics correction, contact labels, and LOD independently. A full-system win without an ablation does not identify the cause.
+6. Preserve raw metrics and render pairs with stable camera/lighting. Do not hand-select only successful clips for the headline.
+7. Keep visual quality, physics validity and behavioral response as separate scorecards.
+
+## External research baselines
+
+- **ARDY (SIGGRAPH 2026):** interactive autoregressive diffusion with text prompts and long-horizon kinematic constraints. Its released implementation uses Python/PyTorch; treat it as an external benchmark, not a production Rust dependency. Read its evaluation notes carefully: some root error tasks use ground-truth hip paths as constraints, making the ground-truth root error zero by construction. Do not compare non-identical suites as if they measure the same thing.
+- **MotionBricks (ACM TOG / SIGGRAPH 2026):** modular latent generation and smart primitives aimed at real-time interactive motion skills. It is a promising baseline for skill composition and detailed control, not proof that our implementation matches the reported results.
+- **Authored Bevy clips:** mandatory cheap baseline for visual transitions and locomotion before introducing a learned generator.
+- **Scripted deterministic controller:** mandatory task-success/robustness baseline. The Symthaea component must beat or complement it on predeclared metrics, not merely produce a more complicated trace.
+
+## Next implementation slices
+
+- P0: land the semantic motion enum, velocity-intent adapter, and stand-alone metric tests once CI validates the pinned Bevy API.
+- P1: validate a licensed rigged GLB in the demo scene and record the asset SHA-256, discovered clip names and screenshot.
+- P2: add a contact-label trace format and a command-line benchmark reader that emits machine-readable JSON summaries.
+- P3: implement foot/hand contact correction as a separate opt-in system; do not conceal its compute cost.
+- P4: add a Rust-facing external-model adapter contract (time-stamped root/joint constraints and pose output); any Python implementation remains an external research baseline rather than production infrastructure.
+- P5: run ablations against authored, procedural and eligible generative baselines; publish a report with raw aggregates and explicit non-commercial/commercial data-rights boundaries.
+
+## References
+
+- Bevy 0.19 animated glTF example: https://github.com/bevyengine/bevy/blob/v0.19.0/examples/animation/animated_mesh_control.rs
+- ARDY paper: https://arxiv.org/abs/2607.08741
+- ARDY implementation and evaluation notes: https://github.com/nv-tlabs/ardy
+- MotionBricks paper and project: https://nvlabs.github.io/motionbricks/
+- AMASS license: https://github.com/nghorbani/amass/blob/master/LICENSE.txt
