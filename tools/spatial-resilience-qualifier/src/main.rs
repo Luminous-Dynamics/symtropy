@@ -1,9 +1,11 @@
 use spatial_resilience_qualifier::{
-    DecisionImpactSummary, EMBEDDED_DECISION_IMPACT_CORPUS, EMBEDDED_DECISION_IMPACT_SCHEMA,
-    EMBEDDED_MANIFEST, EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
-    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA, OutcomeSummary, TimelineFixtureSummary,
-    ValidationSummary, validate_decision_impact_bytes, validate_manifest_bytes,
-    validate_outcome_fixtures_bytes, validate_timeline_fixtures_bytes,
+    AdaptivePolicySummary, DecisionImpactSummary, EMBEDDED_ADAPTIVE_POLICY_CORPUS,
+    EMBEDDED_ADAPTIVE_POLICY_SCHEMA, EMBEDDED_DECISION_IMPACT_CORPUS,
+    EMBEDDED_DECISION_IMPACT_SCHEMA, EMBEDDED_MANIFEST, EMBEDDED_ORACLE_CORPUS,
+    EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS, EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA,
+    OutcomeSummary, TimelineFixtureSummary, ValidationSummary, validate_adaptive_policy_bytes,
+    validate_decision_impact_bytes, validate_manifest_bytes, validate_outcome_fixtures_bytes,
+    validate_timeline_fixtures_bytes,
 };
 use std::env;
 use std::fs;
@@ -16,7 +18,9 @@ fn usage() -> &'static str {
         "--oracle-validate CORPUS.json SCHEMA.json [--json] | ",
         "--outcome-check [--json] | --outcome-validate CORPUS.json SCHEMA.json [--json] | ",
         "--decision-impact-check [--json] | ",
-        "--decision-impact-validate CORPUS.json SCHEMA.json [--json]"
+        "--decision-impact-validate CORPUS.json SCHEMA.json [--json] | ",
+        "--adaptive-policy-check [--json] | ",
+        "--adaptive-policy-validate CORPUS.json SCHEMA.json [--json]"
     )
 }
 
@@ -201,6 +205,59 @@ fn emit_decision_impact(summary: &DecisionImpactSummary, json_output: bool) {
     }
 }
 
+fn emit_adaptive_policies(summary: &AdaptivePolicySummary, json_output: bool) {
+    if json_output {
+        match serde_json::to_string_pretty(summary) {
+            Ok(serialized) => println!("{serialized}"),
+            Err(error) => {
+                eprintln!("REPORT_SERIALIZATION_FAILED: {error}");
+                process::exit(2);
+            }
+        }
+        return;
+    }
+
+    let state = if summary.passed { "PASS" } else { "FAIL" };
+    println!("{state}: spatial-resilience adaptive policy evaluator");
+    println!(
+        "benchmark_id={} version={} cases={}/{} policies={}/{}",
+        summary.benchmark_id.as_deref().unwrap_or("unknown"),
+        summary.version.as_deref().unwrap_or("unknown"),
+        summary.cases_passed,
+        summary.cases_seen,
+        summary.policies_matched,
+        summary.policies_seen
+    );
+    println!("corpus_sha256={}", summary.corpus_sha256);
+    println!("schema_sha256={}", summary.schema_sha256);
+    for result in &summary.results {
+        let policy = &result["policy"];
+        println!(
+            "case={} policy={} status={}",
+            result["case_id"].as_str().unwrap_or("unknown"),
+            policy["policy_id"].as_str().unwrap_or("unknown"),
+            policy["status"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "  worst_cost={:?} worst_duration={:?} leaves={:?}",
+            policy["worst_case_cost_units"],
+            policy["worst_case_duration_ticks"],
+            policy["leaf_count"]
+        );
+        if let Some(codes) = policy["rejection_codes"].as_array() {
+            if !codes.is_empty() {
+                println!("  rejection_codes={codes:?}");
+            }
+        }
+    }
+    for failure in &summary.failures {
+        println!(
+            "{} path={} detail={}",
+            failure.code, failure.path, failure.detail
+        );
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
@@ -354,6 +411,46 @@ fn main() {
             let schema = read_file(schema_path);
             let summary = validate_decision_impact_bytes(&corpus, &schema);
             emit_decision_impact(&summary, true);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode] if mode == "--adaptive-policy-check" => {
+            let summary = validate_adaptive_policy_bytes(
+                EMBEDDED_ADAPTIVE_POLICY_CORPUS.as_bytes(),
+                EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes(),
+            );
+            emit_adaptive_policies(&summary, false);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, flag] if mode == "--adaptive-policy-check" && flag == "--json" => {
+            let summary = validate_adaptive_policy_bytes(
+                EMBEDDED_ADAPTIVE_POLICY_CORPUS.as_bytes(),
+                EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes(),
+            );
+            emit_adaptive_policies(&summary, true);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, corpus_path, schema_path] if mode == "--adaptive-policy-validate" => {
+            let corpus = read_file(corpus_path);
+            let schema = read_file(schema_path);
+            let summary = validate_adaptive_policy_bytes(&corpus, &schema);
+            emit_adaptive_policies(&summary, false);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, corpus_path, schema_path, flag]
+            if mode == "--adaptive-policy-validate" && flag == "--json" =>
+        {
+            let corpus = read_file(corpus_path);
+            let schema = read_file(schema_path);
+            let summary = validate_adaptive_policy_bytes(&corpus, &schema);
+            emit_adaptive_policies(&summary, true);
             if !summary.passed {
                 process::exit(1);
             }
