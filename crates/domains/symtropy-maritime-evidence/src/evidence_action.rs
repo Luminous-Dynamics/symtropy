@@ -347,7 +347,7 @@ fn ceil_minutes(nanos: u128) -> u64 {
     }
     let minute = NANOS_PER_MINUTE_U128;
     let whole = nanos / minute;
-    let extra = u128::from(nanos % minute != 0);
+    let extra = u128::from(!nanos.is_multiple_of(minute));
     u64::try_from(whole.saturating_add(extra)).unwrap_or(u64::MAX)
 }
 
