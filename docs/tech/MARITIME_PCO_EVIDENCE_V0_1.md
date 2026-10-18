@@ -17,8 +17,10 @@ The IAPH–IHMA PCO Guide takes a basics-first approach: identify terminal and b
 |---|---|---|---|
 | Terminal identifier | TerminalIdentifier | Identifier | Must match an explicitly configured terminal registry entry. |
 | Berth identifier | BerthIdentifier | Identifier | Must match an explicitly configured berth registry entry. |
-| Planned time of arrival at Pilot Boarding Place (PTA-PBP) | ArrivalAtPilotBoardingPlace | Timestamp with Planned meaning | Preserve the source's exact field code and text; do not recast it as ETA or actual arrival. |
-| Planned time of departure from berth (PTD) | DepartureFromBerth | Timestamp with Planned meaning | Preserve the source's exact field code and text; do not recast it as forecast or actual departure. |
+| Planned time of arrival at Pilot Boarding Place (PTA-PBP) | ArrivalAtPilotBoardingPlace | Timestamp with Planned meaning | PCO Guide API example: dateTimeArrivalPlanned.plannedTimeOfArrival; preserve the source text; do not recast it as ETA or actual arrival. |
+| Planned time of departure from berth (PTD) | DepartureFromBerth | Timestamp with Planned meaning | PCO Guide API example: dateTimeDeparturePlanned.plannedTimeOfDeparture; preserve the source text; do not recast it as forecast or actual departure. |
+
+The Guide's sample API payload also carries pilotBoardingPlaceName alongside the planned arrival timestamp and berthName alongside the planned departure timestamp. A real adapter must map those location values to validated stable identifiers; names alone must not be treated as globally unique identifiers.
 
 The enum separates event location (arrival or departure) from time meaning (planned, requested, estimated, forecast or actual). A production adapter must map a source field only after checking the source's published definition; the generic enum does not itself establish that a particular provider field means the same thing as the PCO field. The table deliberately does not invent numeric source-field codes.
 
