@@ -59,7 +59,7 @@ if command -v cargo >/dev/null 2>&1; then
     if cargo fmt --manifest-path "$CRATE_MANIFEST" -- --check; then
       FMT_RESULT="pass"; FMT_EXIT=0
     else
-      FMT_RESULT="fail"; FMT_EXIT=$?
+      FMT_EXIT=$?; FMT_RESULT="fail"
     fi
   else
     FMT_RESULT="blocked"
@@ -68,7 +68,7 @@ if command -v cargo >/dev/null 2>&1; then
   if cargo test --manifest-path "$CRATE_MANIFEST"; then
     TEST_RESULT="pass"; TEST_EXIT=0
   else
-    TEST_RESULT="fail"; TEST_EXIT=$?
+    TEST_EXIT=$?; TEST_RESULT="fail"
   fi
 
   if [[ "$TEST_RESULT" == "fail" || "$FMT_RESULT" == "fail" ]]; then
