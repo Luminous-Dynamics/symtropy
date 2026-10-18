@@ -28,6 +28,21 @@ The runner requires a clean Git worktree, reads the exact source commit and Bevy
 
 The capture plugin writes PNGs to `target/render-captures/<profile>`. Once the companion capture-receipt change is integrated, the same run also writes a versioned JSON receipt. The runner additionally requires a fresh `frame-time.json` report before it exits successfully.
 
+## Automated scaling sweep
+
+Once the individual scene and frame-time tests are passing, run a complete same-context workload sweep:
+
+```sh
+export SYMTROPY_DEMO_CAPTURE_GPU_ADAPTER="exact adapter name"
+export SYMTROPY_DEMO_CAPTURE_GPU_DRIVER="exact driver/version"
+export SYMTROPY_DEMO_CAPTURE_RENDER_BACKEND="Vulkan"
+bash scripts/run-render-benchmark-sweep.sh
+```
+
+The sweep runs object counts 64, 144, 256, 512, 1,024, 2,048, 4,096, 8,192 and 10,000 using one chosen resolution profile and shadow setting. Each run has its own capture/report directory; `summary.json` is written only if all reports are metadata-qualified, have at least 30 samples, and match on fixture digest, source revision, camera, renderer, profile, resolution, shadows, adapter, driver/backend, OS, toolchain, and sampling window. Render-settings digests are allowed to differ because the object count is intentionally changing.
+
+The summary is sorted by object count and reports p50/p95/p99, frame intervals over 16.67 ms and 33.3 ms, ratio of p95 to the smallest workload, and whether each p95 meets the candidate 60 FPS / 30 FPS budgets. It does not mark a scaling curve as good or bad by itself, and it does not claim GPU timestamp timings.
+
 ## Frame-time report
 
 The runner collects Bevy `Time<Real>::delta_secs()` in milliseconds from 1.0 to 8.0 seconds after app startup and writes `frame-time.json` in the capture directory. It includes sample count, mean, p50/p95/p99, the observed fraction of frame intervals above 16.67 ms and 33.3 ms, profile/workload, and the caller-declared adapter, driver, backend, OS, toolchain, renderer, fixture and render-settings identities.
