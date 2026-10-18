@@ -18,11 +18,11 @@ pub const PCO_GUIDE_VERSION: &str = "IAPH-IHMA-PCO-Guide-1.0";
 pub mod dcsa_jit;
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimestampOffsetSemantics {
-    /// Timestamp used Z/z to declare UTC.
-    UtcDesignator,
-    /// Timestamp gave an explicit numerical local offset, including +00:00.
+    /// Timestamp provides an explicit numeric offset. A +00:00 offset expresses
+    /// UTC as the preferred reference point.
     ExplicitOffset,
-    /// RFC 3339 -00:00: UTC time is usable, but the source's local offset is unknown.
+    /// RFC 9557 treats Z as an unknown local offset; -00:00 carries the same
+    /// semantics. The original lexeme remains preserved separately.
     UnknownLocalOffset,
 }
 
@@ -51,8 +51,8 @@ pub struct ParsedTimestamp {
     utc_unix_nanos: i128,
     /// Numerical offset used to normalize the instant, in minutes east of UTC.
     source_offset_minutes: i16,
-    /// Preserve RFC 3339's distinction between UTC designator, explicit offset,
-    /// and -00:00 where the local offset is unknown.
+    /// Preserve offset knowledge semantics per RFC 9557. The original source
+    /// text preserves the exact notation, including Z versus -00:00.
     offset_semantics: TimestampOffsetSemantics,
     /// Number of fractional-second digits present in the source (0..=9).
     fractional_digits: u8,
@@ -418,7 +418,9 @@ impl ObservationReport {
 ///
 /// This parser avoids a runtime timezone database. Leap-second notation and
 /// sub-nanosecond precision are rejected, not rounded. The original text and
-/// offset are preserved for audit.
+/// offset are preserved for audit. Offset semantics follow RFC 9557: Z and
+/// -00:00 indicate a known UTC instant with unknown local offset; +00:00
+/// declares UTC as the preferred reference point.
 pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, TimestampParseError> {
     if !input.is_ascii() {
         return Err(TimestampParseError::NonAscii);
@@ -485,9 +487,11 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
     }
 
     let (offset_minutes, offset_semantics, consumed) = match bytes.get(index).copied() {
-        Some(b'Z' | b'z') if index + 1 == bytes.len() => {
-            (0i16, TimestampOffsetSemantics::UtcDesignator, index + 1)
-        }
+        Some(b'Z' | b'z') if index + 1 == bytes.len() => (
+            0i16,
+            TimestampOffsetSemantics::UnknownLocalOffset,
+            index + 1,
+        ),
         Some(b'+' | b'-') => {
             if bytes.len() != index + 6 || bytes[index + 3] != b':' {
                 return Err(TimestampParseError::InvalidTimezone);
@@ -948,7 +952,7 @@ mod tests {
     }
 
     #[test]
-    fn rfc3339_minus_zero_preserves_unknown_local_offset_semantics() {
+    fn rfc9557_z_and_negative_zero_preserve_unknown_local_offset_semantics() {
         let unknown = utc("2026-10-18T10:00:00-00:00");
         let utc_designator = utc("2026-10-18T10:00:00Z");
         let explicit_zero = utc("2026-10-18T10:00:00+00:00");
@@ -961,7 +965,7 @@ mod tests {
         );
         assert_eq!(
             utc_designator.offset_semantics(),
-            &TimestampOffsetSemantics::UtcDesignator
+            &TimestampOffsetSemantics::UnknownLocalOffset
         );
         assert_eq!(
             explicit_zero.offset_semantics(),
