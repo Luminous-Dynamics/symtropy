@@ -14,6 +14,7 @@ on:
     paths:
       - "docs/tech/recovery-classification-record-packet-v0.1.json"
       - "docs/tech/recovery-scenario-envelope-corpus-v0.1.json"
+      - "schemas/recovery/classification-record-packet-v0.1.schema.json"
       - "tools/recovery-classification-record-audit/**"
       - ".github/workflows/recovery-classification-record-audit.yml"
   workflow_dispatch:
@@ -53,7 +54,7 @@ jobs:
             --source-commit "$source_commit" > recovery-classification-record-receipt.json
           jq -e '
             ."$schema" == "https://json-schema.org/draft/2020-12/schema"
-            and .schema_version.const == "recovery-classification-record-packet-v0.1"
+            and .properties.schema_version.const == "recovery-classification-record-packet-v0.1"
             and .properties.claim_ceiling.properties.authenticity_verified.const == false
             and .properties.claim_ceiling.properties.expected_actuation.const == false
             and (.properties.records.items.properties.sha256."$ref" == "#/$defs/sha256")
