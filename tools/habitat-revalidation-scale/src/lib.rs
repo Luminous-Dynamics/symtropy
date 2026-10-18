@@ -524,7 +524,7 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
 
     let mut artifacts: Vec<Artifact> = Vec::with_capacity(n);
     for index in 0..support_count {
-        let group_start = (index / profile.max_dependency_depth) * profile.max_dependency_depth;
+        let group_start = (index / support_chunk_depth) * support_chunk_depth;
         let mut depends_on = if index > group_start {
             vec![support_id(index - 1)]
         } else {
@@ -567,7 +567,7 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
     }
 
     for index in 0..extra_unrelated_count {
-        let group_start = (index / profile.max_dependency_depth) * profile.max_dependency_depth;
+        let group_start = (index / unrelated_chunk_depth) * unrelated_chunk_depth;
         let depends_on = if index > group_start {
             vec![unrelated_id(index - 1)]
         } else {
