@@ -897,7 +897,7 @@ fn schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConflict> {
                 .map(|usage| u64::from(usage.units))
                 .sum();
             let capacity_units = capacities[resource.id.as_str()];
-            if observed_demand_units > capacity_units {
+            if observed_demand_units > u64::from(capacity_units) {
                 conflicts.push(ScheduleConflict {
                     resource_id: resource.id.clone(),
                     start_tick,
@@ -1026,7 +1026,7 @@ fn reference_utility_status(
 }
 
 fn reference_minimum_drainage_reserve_lps(scenarios: &[DrainageCase]) -> Option<f64> {
-    scenarios.iter().try_fold(None, |minimum, scenario| {
+    scenarios.iter().try_fold(None::<f64>, |minimum, scenario| {
         let reserve = scenario.capacity_lps - scenario.required_flow_lps;
         if !reserve.is_finite() {
             return None;
@@ -1217,7 +1217,7 @@ fn reference_schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConfli
                 .fold(0_u64, |sum, usage| {
                     sum.saturating_add(u64::from(usage.units))
                 });
-            if demand > resource.capacity_units {
+            if demand > u64::from(resource.capacity_units) {
                 expected.push(ScheduleConflict {
                     resource_id: resource.id.clone(),
                     start_tick: start,
