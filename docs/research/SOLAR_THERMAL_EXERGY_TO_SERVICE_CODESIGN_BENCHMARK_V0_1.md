@@ -149,6 +149,8 @@ Keep global horizontal irradiance (GHI) and direct normal irradiance (DNI) disti
 
 Use versioned weather files and immutable source hashes. Distinguish measured weather, typical meteorological year inputs, forecasts provided to the controller, and hidden realized weather used by the evaluator.
 
+The kernel now includes a narrowly scoped, typed direct-beam adapter: declared direct-normal irradiance (DNI), aperture area, incidence cosine, unshaded fraction, and interval duration produce aperture-plane incident power and interval energy, with an independent recomputation check. A hand case (800 W/m² DNI, 10 m² aperture, 0.5 incidence cosine, 0.8 unshaded fraction, 3600 s) yields 3.2 kW and 11.52 MJ. This is a dimensional/accounting bridge only: it does not estimate DNI from GHI, compute solar position or shadows, add diffuse/albedo irradiance, or model optical/receiver losses. DNI input must remain source- and timestamp-bound before it can support a site-level benchmark.
+
 ### 5.2 Useful thermal delivery
 
 For each interval, enforce:
@@ -373,6 +375,9 @@ Use only sources appropriate to the modeled technology and version. Initial refe
 - A 2026 open-access study, **Dynamic modeling of heat pipe integrated thermal battery latent heat storage system experiment validation**, *Journal of Energy Storage* 160, article 121875, DOI: https://doi.org/10.1016/j.est.2026.121875. Use its published model/experiment comparison as a temporal validation case; inspect output-specific errors and applicability before reuse.
 - Deeper 2026 case study on multi-temperature R718 heat pumps, thermal storage and PV in grid-connected industrial multi-energy systems: DOI https://doi.org/10.1016/j.energy.2026.141996. Reproduce applicable model assumptions first; its reported advantages versus rule-based operation are not transferable without matching loads, hardware envelopes and cost boundaries.
 - DOE, **Thermal Storage R&D for CSP Systems**: historical research targets and technology directions; do not silently treat old program targets as current universal acceptance standards: https://www.energy.gov/cmei/systems/thermal-storage-rd-csp-systems
+
+**Recent dynamic-storage reference with an important evidence caveat.** Mikkelson et al. (2026), [dynamic validation of a heat-pipe-integrated latent thermal battery](https://doi.org/10.1016/j.est.2026.121875), report temperature errors ranging from 2.5 °C to 39.7 °C across 10–47 hour runs and identify the model implementation in the HYBRID repository; the article's data availability statement says experimental data are available on request. Treat it as a distinct high-temperature Al–Mg–Zn latent-store validation candidate, not as a public time-series fixture today. Do not set a generic tolerance from its error range, which depends on the output, calibration/holdout split, and operating period.
+
 - Walmsley (2026), **OpenPinch: An Open-Source Python Library for Advanced Pinch Analysis and Total Site Integration**, *Process Integration and Optimization for Sustainability* 10, 3947–3963, DOI: https://doi.org/10.1007/s41660-026-00729-6. Use as a reference for method semantics and test cases; Symtropy’s Rust implementation must be independently compared, not assumed equivalent.
 - Falch, Espen, and Anantharaman (2026), **Optimizing Heat Storage Integration for Solar Thermal Systems in Industrial Process Heat Networks**, *Systems and Control Transactions* 5, 419–423, DOI: https://doi.org/10.69997/sct.176470. The lubricant-plant utilization/storage numbers are an external reproduction target only after exact data, assumptions, and measurement boundaries are pinned.
 
