@@ -536,7 +536,9 @@ fn build_observed_update(
         };
         if compatible {
             compatible_states.push(state.state_id.clone());
-            *compatible_signature_counts.entry(state.signature_id.clone()).or_insert(0) += 1;
+            *compatible_signature_counts
+                .entry(state.signature_id.clone())
+                .or_insert(0) += 1;
         }
     }
     compatible_states.sort();
