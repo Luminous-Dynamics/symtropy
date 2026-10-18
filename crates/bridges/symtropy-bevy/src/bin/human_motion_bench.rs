@@ -93,6 +93,10 @@ struct CoordinateFrame {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+struct NullableDigest(Option<String>);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ConstraintTarget {
     time_sec: f64,
@@ -108,8 +112,8 @@ struct Trace {
     run: RunMetadata,
     coordinate_frame: CoordinateFrame,
     skeleton_signature_sha256: String,
-    #[serde(default)]
-    retarget_map_sha256: Option<String>,
+    // Wrapper type makes this JSON key mandatory while permitting null for synthetic fixtures.
+    retarget_map_sha256: NullableDigest,
     timestamps_sec: Vec<f64>,
     root_world_m: Vec<[f64; 3]>,
     left_foot_world_m: Vec<[f64; 3]>,
@@ -158,7 +162,7 @@ impl Trace {
                 "{source}: skeleton_signature_sha256 must be 64 hexadecimal characters"
             ));
         }
-        if let Some(hash) = &self.retarget_map_sha256 {
+        if let Some(hash) = &self.retarget_map_sha256.0 {
             if !is_hex_digest(hash, 64) {
                 return fail(format!(
                     "{source}: retarget_map_sha256 must be null or 64 hexadecimal characters"
@@ -212,7 +216,7 @@ impl Trace {
                     "{source}: non-synthetic traces require run.asset_license"
                 ));
             }
-            if self.retarget_map_sha256.is_none() {
+            if self.retarget_map_sha256.0.is_none() {
                 return fail(format!(
                     "{source}: non-synthetic traces require retarget_map_sha256; use a canonical identity-map digest if no retargeting was applied"
                 ));
@@ -538,7 +542,7 @@ impl From<&Trace> for TraceIdentityReport {
             trace_id: trace.trace_id.clone(),
             run: trace.run.clone(),
             skeleton_signature_sha256: trace.skeleton_signature_sha256.clone(),
-            retarget_map_sha256: trace.retarget_map_sha256.clone(),
+            retarget_map_sha256: trace.retarget_map_sha256.0.clone(),
         }
     }
 }
@@ -576,7 +580,7 @@ fn evaluate(
     if reference.skeleton_signature_sha256 != prediction.skeleton_signature_sha256 {
         return fail("skeleton signature hashes differ; retarget both traces to the same canonical rig");
     }
-    if reference.retarget_map_sha256 != prediction.retarget_map_sha256 {
+    if reference.retarget_map_sha256.0 != prediction.retarget_map_sha256.0 {
         return fail("retarget-map hashes differ; do not compare traces built with incompatible retargeting");
     }
 
@@ -815,6 +819,22 @@ mod tests {
     }
 
     #[test]
+    fn rejects_non_synthetic_trace_without_rights_or_provenance() {
+        let mut trace = fixture();
+        trace.run.source_kind = SourceKind::LicensedAsset;
+        assert!(trace
+            .validate(Path::new("missing-provenance.json"))
+            .unwrap_err()
+            .to_string()
+            .contains("40-character hexadecimal git commit"));
+    }
+
+    #[test]
+    fn rejects_malformed_json_instead_of_skipping_it() {
+        assert!(serde_json::from_str::<Trace>("{not-json").is_err());
+    }
+
+    #[test]
     fn rejects_non_monotonic_time() {
         let mut trace = fixture();
         trace.timestamps_sec[2] = trace.timestamps_sec[1];
@@ -828,7 +848,7 @@ mod tests {
         prediction.skeleton_signature_sha256 = "1".repeat(64);
         assert!(evaluate(&reference, &prediction, None).unwrap_err().to_string().contains("skeleton signature"));
         let mut prediction = fixture();
-        prediction.retarget_map_sha256 = Some("1".repeat(64));
+        prediction.retarget_map_sha256 = NullableDigest(Some("1".repeat(64)));
         assert!(evaluate(&reference, &prediction, None).unwrap_err().to_string().contains("retarget-map hashes"));
     }
 
