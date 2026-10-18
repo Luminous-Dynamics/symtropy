@@ -353,7 +353,6 @@ fn exponential_policy_expansion_fails_closed_at_the_work_budget() {
     );
 }
 
-
 #[test]
 fn excessive_leaf_state_memberships_fail_closed() {
     let mut input = input_from(FIXTURE);
