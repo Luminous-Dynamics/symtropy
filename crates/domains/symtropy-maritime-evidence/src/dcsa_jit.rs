@@ -9,8 +9,8 @@
 //! or schedule effects are performed here.
 
 use super::{
-    parse_rfc3339_timestamp, ParsedTimestamp, TimeMeaning, TimestampOffsetSemantics,
-    TimestampParseError, ValidationPolicy, NANOS_PER_SECOND,
+    parse_rfc3339_timestamp, ParsedTimestamp, TimeMeaning, TimestampParseError,
+    ValidationPolicy, NANOS_PER_SECOND,
 };
 
 pub const DCSA_JIT_PROFILE: &str = "DCSA-JIT";
@@ -211,7 +211,7 @@ fn required_optional_code(
 /// EST/REQ/PLN/ACT × (ARRI/DEPA) × (BRTH/PBPL), with event-specific location
 /// constraints and null/absent phase/service codes. Combinations outside this
 /// subset are explicitly rejected pending a separate standards review.
-pub fn parse_timestamp(
+pub fn parse_timestamp_message(
     payload: &str,
     context: DcsaIngestContext,
 ) -> Result<DcsaJitTimestamp, DcsaJitParseError> {
@@ -379,8 +379,7 @@ pub fn validate_timestamp(
     policy: &ValidationPolicy,
 ) -> Result<(), DcsaJitParseError> {
     let context = &timestamp.context;
-    let skew =
-        i128::from(policy.allowed_future_clock_skew_seconds.max(0)) * NANOS_PER_SECOND;
+    let skew = i128::from(policy.allowed_future_clock_skew_seconds.max(0)) * NANOS_PER_SECOND;
     let latest_acceptable = policy.now_utc_nanos.saturating_add(skew);
 
     if context.source_event_time_utc_nanos > latest_acceptable {
@@ -400,9 +399,8 @@ pub fn validate_timestamp(
     {
         return Err(DcsaJitParseError::SourceRecordTooOld);
     }
-    if timestamp.event_classifier_code == EventClassifierCode::Actual
-        && timestamp.event_datetime.utc_unix_nanos()
-            > latest_acceptable
+    if matches!(&timestamp.event_classifier_code, EventClassifierCode::Actual)
+        && timestamp.event_datetime.utc_unix_nanos() > latest_acceptable
     {
         return Err(DcsaJitParseError::EventTimeTooFarInFuture);
     }
@@ -445,6 +443,7 @@ pub fn pco_field_candidate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::TimestampOffsetSemantics;
 
     fn context(id: &str) -> DcsaIngestContext {
         let now = super::parse_rfc3339_timestamp("2026-10-18T08:00:00Z")
@@ -470,7 +469,7 @@ mod tests {
     #[test]
     fn preserves_eta_berth_without_calling_it_pco_pilot_boarding_place_arrival() {
         let payload = include_str!("../fixtures/dcsa-jit-eta-berth.json");
-        let parsed = parse_timestamp(payload, context("DCSA-ETA-01")).unwrap();
+        let parsed = parse_timestamp_message(payload, context("DCSA-ETA-01")).unwrap();
         assert_eq!(parsed.time_meaning(), TimeMeaning::Estimated);
         assert_eq!(parsed.facility_type_code, FacilityTypeCode::Berth);
         assert_eq!(parsed.location_name, "SYNTHETIC BERTH A");
@@ -486,14 +485,14 @@ mod tests {
     #[test]
     fn maps_only_planned_pilot_boarding_arrival_and_planned_berth_departure() {
         let pbp = include_str!("../fixtures/dcsa-jit-pta-pbp.json");
-        let arrival = parse_timestamp(pbp, context("DCSA-PTA-PBP")).unwrap();
+        let arrival = parse_timestamp_message(pbp, context("DCSA-PTA-PBP")).unwrap();
         assert_eq!(
             pco_field_candidate(&arrival),
             Ok(super::super::PcoField::ArrivalAtPilotBoardingPlace)
         );
 
         let departure = include_str!("../fixtures/dcsa-jit-ptd-berth.json");
-        let departure = parse_timestamp(departure, context("DCSA-PTD-BERTH")).unwrap();
+        let departure = parse_timestamp_message(departure, context("DCSA-PTD-BERTH")).unwrap();
         assert_eq!(
             pco_field_candidate(&departure),
             Ok(super::super::PcoField::DepartureFromBerth)
@@ -504,7 +503,7 @@ mod tests {
     fn rejects_pbp_departure_and_terminal_fields_on_pbpl() {
         let payload = include_str!("../fixtures/dcsa-jit-invalid-pbpl-terminal.json");
         assert_eq!(
-            parse_timestamp(payload, context("DCSA-UNSUPPORTED")),
+            parse_timestamp_message(payload, context("DCSA-UNSUPPORTED")),
             Err(DcsaJitParseError::UnsupportedCombination(
                 "PBPL must not carry terminal facility-code fields"
             ))
@@ -530,7 +529,7 @@ mod tests {
             "vesselIMONumber": "9990002"
         }"#;
         assert_eq!(
-            parse_timestamp(vessel_conflict, context("DCSA-DUP-VESSEL")),
+            parse_timestamp_message(vessel_conflict, context("DCSA-DUP-VESSEL")),
             Err(DcsaJitParseError::ConflictingDuplicate {
                 field: "vesselIMONumber"
             })
@@ -546,7 +545,7 @@ mod tests {
                 "\"UNLocationCode\": \"ZZOTHER\"",
             );
         assert!(matches!(
-            parse_timestamp(&port_conflict, context("DCSA-DUP-PORT")),
+            parse_timestamp_message(&port_conflict, context("DCSA-DUP-PORT")),
             Err(DcsaJitParseError::ConflictingDuplicate {
                 field: "UNLocationCode"
             })
@@ -569,7 +568,7 @@ mod tests {
             "vesselIMONumber": "9990001"
         }"#;
         assert!(matches!(
-            parse_timestamp(payload, context("DCSA-CODE")),
+            parse_timestamp_message(payload, context("DCSA-CODE")),
             Err(DcsaJitParseError::UnsupportedCode {
                 field: "eventClassifierCode",
                 ..
@@ -581,7 +580,7 @@ mod tests {
             "\"eventClassifierCode\": \"PLN\", \"portCallPhaseTypeCode\": \"INBD\"",
         );
         assert_eq!(
-            parse_timestamp(&non_null_phase, context("DCSA-PHASE")),
+            parse_timestamp_message(&non_null_phase, context("DCSA-PHASE")),
             Err(DcsaJitParseError::UnsupportedPhaseOrService)
         );
     }
@@ -596,14 +595,14 @@ mod tests {
             "eventLocation": {"locationName": "SYNTHETIC PBP", "UNLocationCode": "ZZSYN"},
             "vesselIMONumber": "9990001"
         }"#;
-        let parsed = parse_timestamp(payload, context("DCSA-UNKNOWN-OFFSET")).unwrap();
+        let parsed = parse_timestamp_message(payload, context("DCSA-UNKNOWN-OFFSET")).unwrap();
         assert_eq!(
             parsed.event_datetime.offset_semantics(),
             &TimestampOffsetSemantics::UnknownLocalOffset
         );
         let invalid = payload.replace("2026-10-18T12:10:00-00:00", "2026-10-18T12:10:00");
         assert!(matches!(
-            parse_timestamp(&invalid, context("DCSA-NO-ZONE")),
+            parse_timestamp_message(&invalid, context("DCSA-NO-ZONE")),
             Err(DcsaJitParseError::InvalidTimestamp(
                 TimestampParseError::TooShort
             ))
@@ -620,11 +619,11 @@ mod tests {
             "eventLocation": {"locationName": "SYNTHETIC PBP", "UNLocationCode": "ZZSYN"},
             "vesselIMONumber": "9990001"
         }"#;
-        let estimated = parse_timestamp(base, context("DCSA-EST")).unwrap();
+        let estimated = parse_timestamp_message(base, context("DCSA-EST")).unwrap();
         let requested_payload = base.replace("\"EST\"", "\"REQ\"");
-        let requested = parse_timestamp(&requested_payload, context("DCSA-REQ")).unwrap();
+        let requested = parse_timestamp_message(&requested_payload, context("DCSA-REQ")).unwrap();
         let planned_payload = base.replace("\"EST\"", "\"PLN\"");
-        let planned = parse_timestamp(&planned_payload, context("DCSA-PLN")).unwrap();
+        let planned = parse_timestamp_message(&planned_payload, context("DCSA-PLN")).unwrap();
         assert_eq!(estimated.facility_type_code, requested.facility_type_code);
         assert_eq!(requested.facility_type_code, planned.facility_type_code);
         assert_eq!(estimated.time_meaning(), TimeMeaning::Estimated);
