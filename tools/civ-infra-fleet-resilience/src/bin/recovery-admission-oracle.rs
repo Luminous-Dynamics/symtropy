@@ -643,8 +643,20 @@ fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleR
             "candidate report fixture digest does not match exact fixture bytes".to_string(),
         );
     }
+    if field_string(&candidate_report, "schema_version", "candidate_report")?
+        != "luminous.civ_infra.recovery_admission_contract.v0.1"
+    {
+        return Err("candidate report schema is unexpected".to_string());
+    }
     if field_string(&candidate_report, "classification", "candidate_report")? != "synthetic_only" {
         return Err("candidate report exceeds synthetic-only scope".to_string());
+    }
+    if field_bool(&candidate_report, "policy_simulation_executed", "candidate_report")?
+        || field_u64(&candidate_report, "policy_runs_performed", "candidate_report")? != 0
+        || field_bool(&candidate_report, "immutable_history_store_executed", "candidate_report")?
+        || !field_bool(&candidate_report, "gate_inputs_are_synthetic_assertions", "candidate_report")?
+    {
+        return Err("candidate report contradicts the synthetic-only claim ceiling".to_string());
     }
     if field_bool(
         &candidate_report,
