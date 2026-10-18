@@ -24,10 +24,6 @@ jobs:
           components: rustfmt, clippy
       - name: Check Rust formatting
         run: cargo fmt --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all -- --check
-      - name: Temporary lockfile diagnostics (remove after pinning)
-        run: |
-          cargo generate-lockfile --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml
-          cat crates/domains/symtropy-garden-sim/Cargo.lock
       - name: Independently verify frozen cost-case manifest
         run: cargo run --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-robot-cost-manifest
       - name: Independently verify frozen provider-coverage manifest
