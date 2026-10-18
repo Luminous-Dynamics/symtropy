@@ -305,6 +305,15 @@ impl ReviewRoutePlayback {
     pub fn set_playing(&mut self, playing: bool) {
         self.playing = playing && self.route.rig != ReviewRig::AccessibleTeleport;
     }
+
+    /// Restart a clock-driven route from its first stop. Teleport routes remain
+    /// stopped because route advancement must be driven by explicit user input.
+    pub fn restart(&mut self) {
+        if self.route.rig != ReviewRig::AccessibleTeleport {
+            self.elapsed_seconds = 0.0;
+            self.playing = true;
+        }
+    }
 }
 
 /// Advance camera-route players. On invalid runtime poses, playback pauses and
@@ -454,6 +463,9 @@ mod tests {
         assert!(!playback.is_playing());
         playback.set_playing(true);
         assert!(playback.is_playing());
+        playback.restart();
+        assert!(playback.is_playing());
+        assert_eq!(playback.elapsed_seconds(), 0.0);
 
         let mut invalid = sample_route_fixture();
         invalid.max_translation_speed_mps = 0.0;
