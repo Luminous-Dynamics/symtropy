@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/recovery/classification-record-packet-v0.1.schema.json",
+  "title": "Recovery Classification Record Packet v0.1",
+  "description": "Outer packet shape only. The Rust auditor verifies payload canonicalization, SHA-256 digests, record-to-case semantics, profile scope, validity and revocation; JSON Schema alone cannot establish those properties.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "algorithm_id",
+    "status",
+    "decision_day",
+    "claim_ceiling",
+    "records",
+    "case_bindings",
+    "revocation_entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "recovery-classification-record-packet-v0.1"
+    },
+    "algorithm_id": {
+      "const": "content-bound-classification-record-audit-v0.1"
+    },
+    "status": {
+      "const": "synthetic-integrity-and-binding-fixtures"
+    },
+    "decision_day": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "claim_ceiling": {
+      "$ref": "#/$defs/claimCeiling"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/storedRecord"
+      }
+    },
+    "case_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/caseBinding"
+      }
+    },
+    "revocation_entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/revocationEntry"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "claimCeiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all_records_synthetic",
+        "authenticity_verified",
+        "professional_authority_verified",
+        "expected_actuation",
+        "execution_authority"
+      ],
+      "properties": {
+        "all_records_synthetic": { "const": true },
+        "authenticity_verified": { "const": false },
+        "professional_authority_verified": { "const": false },
+        "expected_actuation": { "const": false },
+        "execution_authority": { "const": "NO_ACTUATION_AUTHORIZED" }
+      }
+    },
+    "storedRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_id", "canonical_payload_json", "sha256"],
+      "properties": {
+        "record_id": { "type": "string", "minLength": 1 },
+        "canonical_payload_json": {
+          "type": "string",
+          "minLength": 2,
+          "description": "Compact canonical JSON for ClassificationRecordPayload, serialized in the versioned Rust struct's field order."
+        },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "caseBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "record_id", "sha256"],
+      "properties": {
+        "case_id": { "type": "string", "minLength": 1 },
+        "record_id": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "revocationEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_id", "status", "recorded_day"],
+      "properties": {
+        "record_id": { "type": "string", "minLength": 1 },
+        "status": {
+          "enum": ["ACTIVE", "REVOKED", "UNKNOWN"]
+        },
+        "recorded_day": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
