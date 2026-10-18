@@ -115,9 +115,9 @@ The CLI rejects malformed JSON, incomplete required fields, wrong sample counts,
 
 ## Next implementation slices
 
-- P0: land the semantic motion enum, velocity-intent adapter, and stand-alone metric tests once CI validates the pinned Bevy API.
-- P1: validate a licensed rigged GLB in the demo scene and record the asset SHA-256, discovered clip names and screenshot.
-- P2: add a contact-label trace format and a command-line benchmark reader that emits machine-readable JSON summaries.
+- P0: semantic motion enum, velocity-intent adapter, asset-backed avatar example, trace schema and standalone metric/CLI scaffolds are committed on the branch; compile/test and render evidence are still required.
+- P1: download the documented optional CC0 GLB after re-checking terms, validate its rig/clips/materials in the demo, and record asset SHA-256, discovered clip names, screenshot and P50/P95 frame time.
+- P2: benchmark CLI and v0.1 contact-labelled trace contract are implemented in source; next validate the CLI on fixture and licensed/avatar traces, then add actual Bevy trace recording and reproducible run capture.
 - P3: implement foot/hand contact correction as a separate opt-in system; do not conceal its compute cost.
 - P4: add a Rust-facing external-model adapter contract (time-stamped root/joint constraints and pose output); any Python implementation remains an external research baseline rather than production infrastructure.
 - P5: run ablations against authored, procedural and eligible generative baselines; publish a report with raw aggregates and explicit non-commercial/commercial data-rights boundaries.
