@@ -24,7 +24,7 @@ A scheduler must produce a timeline that can be independently validated against 
 
 The fixture covers parallel work with distinct crews, parallel work competing for one exclusive crew, a precedence chain, a feasible inspection window, an impossible inspection window, a missing hard approval gate, over-capacity demand, upper-duration uncertainty against a deadline, and a precedence cycle.
 
-The following hand-calculated witnesses provide the first independent oracle for a future Rust scheduler:
+The executable Rust reference uses exhaustive integer start-time enumeration, bounded to 12 tasks and a Cartesian candidate-start space no larger than 2,000,000 assignments. Larger instances fail with an explicit oracle-budget rejection rather than an unbounded search. This is intentionally a micro-oracle, not the large-instance solver. The following hand-calculated witnesses provide the first independent oracle for a future Rust scheduler:
 
 | Case | Expected result | Purpose |
 |---|---|---|
