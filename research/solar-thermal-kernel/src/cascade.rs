@@ -46,7 +46,6 @@ fn expected_transfer(
 
     let high_before = stored_energy_at(high_config, high_state.temperature)?.value();
     let low_before = stored_energy_at(low_config, low_state.temperature)?.value();
-    let high_capacity = stored_energy_at(high_config, high_config.max_temperature)?.value();
     let low_capacity = stored_energy_at(low_config, low_config.max_temperature)?.value();
     let approach = request.minimum_approach.value();
     let source_cutoff = Kelvin::new(
