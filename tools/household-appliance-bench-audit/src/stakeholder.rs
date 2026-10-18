@@ -156,7 +156,7 @@ fn candidate_meets_profile_requirements(
         let Some(criterion_id) = text_at(requirement, "criterion_id") else {
             return "requirements_not_frozen";
         };
-        let Some(criterion) =
+        let Some(_criterion) =
             decision
                 .get("criteria")
                 .and_then(Value::as_array)
@@ -353,7 +353,7 @@ fn audit_values(
                 all_frozen = false;
                 continue;
             };
-            let Some(criterion) = criterion_by_id(criterion_id) else {
+            let Some(criterion) = criterion_by_id(criteria, criterion_id) else {
                 errors.push(format!(
                     "{profile_id}.{req_id}: unknown criterion {criterion_id}"
                 ));

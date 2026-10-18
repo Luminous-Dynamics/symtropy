@@ -277,7 +277,10 @@ fn audit_values(
             .any(|rule| rule.to_ascii_lowercase().contains("unknown equals zero"))
             || !rules
                 .iter()
-                .any(|rule| rule.contains("Three different brands cannot be pooled"))
+                .any(|rule| {
+                    rule.as_str()
+                        .is_some_and(|text| text.contains("Three different brands cannot be pooled"))
+                })
     }) {
         errors.push(
             "evidence rules must preserve unknown-not-zero and the same-design control interpretation"

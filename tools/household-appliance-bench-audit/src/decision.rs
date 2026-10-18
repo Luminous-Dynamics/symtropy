@@ -684,7 +684,7 @@ mod tests {
 
     #[test]
     fn interval_robust_dominance_requires_separation_on_every_criterion() {
-        let mut decision = synthetic_scored_decision();
+        let decision = synthetic_scored_decision();
         assert!(robustly_dominates(
             &decision,
             &decision["candidates"][0],
@@ -717,7 +717,7 @@ mod tests {
 
     #[test]
     fn audit_rejects_synthetic_ids_promoted_to_real_evidence() {
-        let mut decision = synthetic_scored_decision();
+        let decision = synthetic_scored_decision();
         let raw = serde_json::to_string(&decision).unwrap();
         let schema: Value = serde_json::from_str(SCHEMA).unwrap();
         let schema_raw = serde_json::to_string(&schema).unwrap();

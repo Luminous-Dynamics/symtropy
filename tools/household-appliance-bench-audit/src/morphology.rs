@@ -1,5 +1,5 @@
 use jsonschema::Validator;
-use serde_json::{Value, json};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
