@@ -22,7 +22,7 @@ The score is intentionally small and explicit: waiting costs round up to minutes
 
 ## Frozen synthetic controls
 
-Eight Rust unit tests currently cover:
+Nine Rust unit tests currently cover:
 1. Conflicting 12:00 and 13:00 planned arrivals with hidden actual arrival at 12:50.
 2. A clean two-source agreement where fail-closed must still choose a window.
 3. Stale-only data where freshness-based and robust policies abstain but the naive baseline still acts.
@@ -31,6 +31,7 @@ Eight Rust unit tests currently cover:
 6. Input-row permutation invariance across all four policies.
 7. Separate oracle/regret evaluation, no-window abstention, and a nonzero abstention cost.
 8. Robust abstention when every candidate's worst-case cost is at least the declared abstention cost.
+9. An independent oracle sweep over 1,944 tiny configurations spanning pairs of 30-minute arrival estimates, three grace values, two missed-window penalties, and four abstention-cost values.
 
 The main illustrative scenario uses 12:00 and 13:00 candidate windows, 15-minute grace, a 100-minute missed-window penalty and a 130-minute abstention cost. In its synthetic conflict case, the latest-ingested point estimate picks the 12:00 window and incurs 150 cost-minutes against hidden truth at 12:50, while the robust envelope policy chooses 13:00 and incurs 10. This is an authored scenario calculation, not a measured port outcome or a Rust test result until CI confirms it.
 
