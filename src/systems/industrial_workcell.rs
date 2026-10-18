@@ -1275,6 +1275,37 @@ mod tests {
     }
 
     #[test]
+    fn wide_precedence_set_deduplicates_linearly_by_membership() {
+        // Wide fan-in exercises duplicate tracking over thousands of distinct
+        // predecessors without requiring a wall-clock assertion.
+        let predecessor_count = 2_048usize;
+        let mut operations: Vec<ScheduledOperation> = (0..predecessor_count)
+            .map(|index| {
+                operation(
+                    &format!("prep-{index}"),
+                    &format!("resource-{index}"),
+                    0.0,
+                    1.0,
+                    &[],
+                )
+            })
+            .collect();
+        let predecessor_ids: Vec<String> =
+            (0..predecessor_count).map(|index| format!("prep-{index}")).collect();
+        operations.push(ScheduledOperation {
+            id: "join".into(),
+            job_id: "job-join".into(),
+            resource_id: "join-resource".into(),
+            start_seconds: 1.0,
+            duration_seconds: 1.0,
+            predecessors: predecessor_ids,
+        });
+
+        let report = validate_schedule(&operations);
+        assert!(report.is_feasible(), "{:?}", report.violations);
+    }
+
+    #[test]
     fn violation_order_is_stable_for_same_input() {
         let operations = vec![
             operation("b", "crane-1", 0.0, 10.0, &[]),
