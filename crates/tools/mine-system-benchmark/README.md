@@ -44,6 +44,8 @@ The [VENT-FLEET-001 workstream](https://github.com/Luminous-Dynamics/symtropy/is
 
 The MINE-SYSTEM-001 spec now includes [MS-014 Communications degradation](../../../docs/research/MINE_SYSTEM_BENCHMARK_V0_1.md), composed with [Symthaea MINE-COMMS-001 #8010](https://github.com/Luminous-Dynamics/symthaea/issues/8010) and [FLOOD-EGRESS-001 #1963](https://github.com/Luminous-Dynamics/symtropy/issues/1963). This is a synthetic systems benchmark; it makes no mine-radio or safety certification claim.
 
+Symthaea's [snapshot fault campaign](https://github.com/Luminous-Dynamics/symthaea/pull/8011) and the proposed [deterministic multi-hop trace replay](https://github.com/Luminous-Dynamics/symthaea/issues/8066) should share fault/message manifest identities. Snapshot outcomes remain distinct from time-varying event replay; physical channel calibration remains gated by [MINE-TTE-CHAR-001 #8047](https://github.com/Luminous-Dynamics/symthaea/issues/8047).
+
 ## Rock-breakage research
 
 The specialized [ROCK-BREAKAGE-TOURNAMENT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1952) work compares mechanical, hybrid and non-mechanical approaches using explicit evidence tiers and full-cycle output boundaries.

@@ -276,6 +276,12 @@ Report per-message-class delivery outcome, event timestamps, time to first recei
 
 The physical measurement programme is [Symthaea MINE-TTE-CHAR-001 #8047](https://github.com/Luminous-Dynamics/symthaea/issues/8047). It defines calibrated bench and test-corridor observations and held-out validation; synthetic service profiles are not a substitute.
 
+### Deterministic fault replay and shared scenario contract
+
+Symthaea [MINE-COMMS-001 PR #8011](https://github.com/Luminous-Dynamics/symthaea/pull/8011) now contains a deterministic **snapshot** fault campaign: nominal state, each single-link outage, and each declared shared-domain outage, with separate on-time, deadline-missed, no-route and expired outcomes. It requires complete dependency inventories for domain-outage cases and refuses partial suite generation when the case cap is exceeded. At its current exact head, 39 Rust tests are authored but remain uncompiled/unexecuted in this editing environment; no pass or physical communications performance is claimed.
+
+The snapshot model does not represent a fault occurring mid-flight, per-hop queues, channel contention or acknowledgement airtime. Those are specified as the next implementation stage in [MINE-COMMS-TRACE-001 #8066](https://github.com/Luminous-Dynamics/symthaea/issues/8066). For cross-subsystem evaluation, reuse a common versioned fault manifest (stable link/node/domain IDs, scheduled fault times, message class, deadline and expiry) while keeping the mine layout/engineering dependency inventory authoritative here. Do not treat the current static snapshot results as time-varying or end-to-end radio reliability evidence.
+
 ## 11. Implementation sequence
 
 1. Freeze this contract and small synthetic manifest.
