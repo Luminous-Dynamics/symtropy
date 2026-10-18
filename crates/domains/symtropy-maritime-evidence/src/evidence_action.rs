@@ -96,7 +96,7 @@ fn planned_arrival_observations(input: &EvidenceDecisionInput) -> Vec<PcoObserva
         .filter(|observation| {
             observation.field == PcoField::ArrivalAtPilotBoardingPlace
                 && matches!(
-                    observation.value,
+                    &observation.value,
                     ObservedValue::Timestamp {
                         meaning: TimeMeaning::Planned,
                         ..
