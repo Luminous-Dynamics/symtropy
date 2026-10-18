@@ -1026,16 +1026,18 @@ fn reference_utility_status(
 }
 
 fn reference_minimum_drainage_reserve_lps(scenarios: &[DrainageCase]) -> Option<f64> {
-    scenarios.iter().try_fold(None::<f64>, |minimum, scenario| {
-        let reserve = scenario.capacity_lps - scenario.required_flow_lps;
-        if !reserve.is_finite() {
-            return None;
-        }
-        Some(Some(match minimum {
-            Some(previous) => previous.min(reserve),
-            None => reserve,
-        }))
-    })?
+    scenarios
+        .iter()
+        .try_fold(None::<f64>, |minimum, scenario| {
+            let reserve = scenario.capacity_lps - scenario.required_flow_lps;
+            if !reserve.is_finite() {
+                return None;
+            }
+            Some(Some(match minimum {
+                Some(previous) => previous.min(reserve),
+                None => reserve,
+            }))
+        })?
 }
 
 fn reference_maximum_grade_percent(points: &[ProfilePoint]) -> Option<f64> {
