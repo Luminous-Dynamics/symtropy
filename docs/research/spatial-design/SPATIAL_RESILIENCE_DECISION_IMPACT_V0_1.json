@@ -166,7 +166,10 @@
               "pareto_candidate_ids": [
                 "adaptable-layout"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-fail"
+              ]
             },
             {
               "outcome_id": "clearance-pass",
@@ -179,13 +182,19 @@
                 "adaptable-layout",
                 "standard-layout"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-ok"
+              ]
             }
           ],
           "estimated_cost_units": 2,
           "estimated_duration_ticks": 1,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "access-survey-v1"
         },
         {
           "action_id": "full-3d-scan",
@@ -207,7 +216,10 @@
               "pareto_candidate_ids": [
                 "adaptable-layout"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-fail"
+              ]
             },
             {
               "outcome_id": "clearance-pass",
@@ -220,13 +232,19 @@
                 "adaptable-layout",
                 "standard-layout"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-ok"
+              ]
             }
           ],
           "estimated_cost_units": 10,
           "estimated_duration_ticks": 4,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "access-survey-v1"
         }
       ],
       "expected_recommended_action_order": [
@@ -383,7 +401,10 @@
                 "design-a",
                 "design-b"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
             },
             {
               "outcome_id": "mild-readout",
@@ -396,13 +417,19 @@
                 "design-a",
                 "design-b"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
             }
           ],
           "estimated_cost_units": 7,
           "estimated_duration_ticks": 2,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "load-profile-v1"
         },
         {
           "action_id": "mean-load-probe",
@@ -424,7 +451,10 @@
                 "design-a",
                 "design-b"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
             },
             {
               "outcome_id": "mild-readout",
@@ -437,13 +467,19 @@
                 "design-a",
                 "design-b"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
             }
           ],
           "estimated_cost_units": 2,
           "estimated_duration_ticks": 1,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "load-profile-v1"
         }
       ],
       "expected_recommended_action_order": []
@@ -549,7 +585,10 @@
           "estimated_cost_units": 3,
           "estimated_duration_ticks": 2,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "utility-survey-v1"
         }
       ],
       "expected_recommended_action_order": []
@@ -644,7 +683,10 @@
           "estimated_cost_units": 2,
           "estimated_duration_ticks": 1,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "repair-access-v1"
         }
       ],
       "expected_recommended_action_order": []
@@ -794,7 +836,10 @@
               ],
               "robust_feasible_candidate_ids": [],
               "pareto_candidate_ids": [],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-clear"
+              ]
             },
             {
               "outcome_id": "obstructed",
@@ -803,13 +848,19 @@
               ],
               "robust_feasible_candidate_ids": [],
               "pareto_candidate_ids": [],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-obstructed"
+              ]
             }
           ],
           "estimated_cost_units": 1,
           "estimated_duration_ticks": 1,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "wall-fire-review-v1"
         },
         {
           "action_id": "wall-survey-plus-qualified-fire-review",
@@ -834,7 +885,10 @@
                 "adaptable-wall-layout",
                 "standard-wall-layout"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-clear"
+              ]
             },
             {
               "outcome_id": "obstructed",
@@ -845,13 +899,19 @@
               "pareto_candidate_ids": [
                 "adaptable-wall-layout"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-obstructed"
+              ]
             }
           ],
           "estimated_cost_units": 4,
           "estimated_duration_ticks": 3,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "wall-fire-review-v1"
         }
       ],
       "expected_recommended_action_order": [
@@ -947,7 +1007,10 @@
           "estimated_cost_units": 1,
           "estimated_duration_ticks": 1,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "stale",
+          "source_revision": "weather-profile-v1"
         }
       ],
       "expected_recommended_action_order": []
@@ -1074,7 +1137,10 @@
               "pareto_candidate_ids": [
                 "design-b"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
             },
             {
               "outcome_id": "mild",
@@ -1087,13 +1153,19 @@
                 "design-a",
                 "design-b"
               ],
-              "compatible_state_count": 1
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
             }
           ],
           "estimated_cost_units": 3,
           "estimated_duration_ticks": 2,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "thermal-profile-v1"
         }
       ],
       "expected_recommended_action_order": [
@@ -1191,7 +1263,10 @@
           "estimated_cost_units": 2,
           "estimated_duration_ticks": 1,
           "cost_basis_id": "synthetic-cost-basis-v1",
-          "duration_basis_id": "synthetic-duration-basis-v1"
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "ceiling-inspection-v1"
         }
       ],
       "expected_recommended_action_order": []
