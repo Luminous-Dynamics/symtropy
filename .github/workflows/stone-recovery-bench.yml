@@ -1,0 +1,67 @@
+name: Stone Recovery Benchmark
+
+on:
+  push:
+    branches: ["feat/stone-recovery-bench-v0-1"]
+    paths:
+      - "docs/tech/STONE_RECOVERY_BENCHMARK_CONTRACT_V0_1.md"
+      - "docs/tech/stone-recovery-benchmark-corpus-v0.1.json"
+      - "tools/stone-recovery-bench/**"
+      - ".github/workflows/stone-recovery-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/STONE_RECOVERY_BENCHMARK_CONTRACT_V0_1.md"
+      - "docs/tech/stone-recovery-benchmark-corpus-v0.1.json"
+      - "tools/stone-recovery-bench/**"
+      - ".github/workflows/stone-recovery-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stone-recovery-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/stone-recovery-bench/Cargo.toml -- --check
+      - name: Run contract and adversarial tests
+        run: cargo test --manifest-path tools/stone-recovery-bench/Cargo.toml
+      - name: Validate corpus at the exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/stone-recovery-bench/Cargo.toml -- \
+            docs/tech/stone-recovery-benchmark-corpus-v0.1.json \
+            --source-commit "$source_commit" > stone-recovery-benchmark-receipt.json
+          jq -e '
+            .result == "validated"
+            and .scenario_count == 4
+            and .expected_controls_matched == 4
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.scenarios[].scenario_id] == [
+              "SYNTHETIC_TWO_BLOCK_CLEAN_FACE",
+              "SYNTHETIC_PROHIBITED_JOINT_CROSSED",
+              "SYNTHETIC_OVERLAPPING_BLOCKS",
+              "SYNTHETIC_LOAD_BEARING_QUALITY_UNKNOWN"
+            ])
+            and ([.scenarios[].actual_disposition] == ["pass", "reject", "reject", "reject"])
+          ' stone-recovery-benchmark-receipt.json
