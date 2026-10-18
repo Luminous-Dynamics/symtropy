@@ -394,6 +394,61 @@ mod tests {
         (NBodySystem::new(bodies, 0.0).unwrap(), period, speed)
     }
 
+    fn eccentric_binary() -> (NBodySystem, f64) {
+        let eccentricity = 0.6;
+        let semi_major_axis_m = 1.0e7;
+        let total_mass_kg = 2.0 * BODY_MASS_KG;
+        let gravitational_parameter =
+            GRAVITATIONAL_CONSTANT_M3_KG_S2 * total_mass_kg;
+        let periapsis_m = semi_major_axis_m * (1.0 - eccentricity);
+        let relative_speed_m_s = (gravitational_parameter * (1.0 + eccentricity)
+            / (semi_major_axis_m * (1.0 - eccentricity)))
+        .sqrt();
+        let bodies = vec![
+            CelestialBody::new(
+                1,
+                BODY_MASS_KG,
+                [-periapsis_m / 2.0, 0.0, 0.0],
+                [0.0, -relative_speed_m_s / 2.0, 0.0],
+            ),
+            CelestialBody::new(
+                2,
+                BODY_MASS_KG,
+                [periapsis_m / 2.0, 0.0, 0.0],
+                [0.0, relative_speed_m_s / 2.0, 0.0],
+            ),
+        ];
+        let period_s = 2.0 * std::f64::consts::PI
+            * (semi_major_axis_m.powi(3) / gravitational_parameter).sqrt();
+        (NBodySystem::new(bodies, 0.0).unwrap(), period_s)
+    }
+
+    fn eccentric_orbit_closure_error(steps: usize) -> (f64, f64) {
+        let (mut system, period) = eccentric_binary();
+        let start_positions: Vec<[f64; 3]> =
+            system.bodies().iter().map(|body| body.position_m).collect();
+        let start_energy = system.total_energy_j().unwrap();
+        let dt = period / steps as f64;
+        for _ in 0..steps {
+            system.step(dt).unwrap();
+        }
+        let position_error_squared: f64 = system
+            .bodies()
+            .iter()
+            .zip(start_positions.iter())
+            .map(|(body, initial)| {
+                let delta = sub(body.position_m, *initial);
+                dot(delta, delta)
+            })
+            .sum();
+        let initial_scale_squared: f64 =
+            start_positions.iter().map(|position| dot(*position, *position)).sum();
+        let position_error = (position_error_squared / initial_scale_squared).sqrt();
+        let relative_energy_drift =
+            (system.total_energy_j().unwrap() - start_energy).abs() / start_energy.abs();
+        (position_error, relative_energy_drift)
+    }
+
     fn orbit_closure_error(steps: usize) -> (f64, f64) {
         let (mut system, period, _) = circular_binary();
         let start_positions: Vec<[f64; 3]> =
@@ -439,6 +494,23 @@ mod tests {
         assert!(
             fine_error < coarse_error * 0.3,
             "coarse={coarse_error}, fine={fine_error}"
+        );
+    }
+
+    #[test]
+    fn eccentric_two_body_orbit_shows_second_order_refinement() {
+        // The two-body period is analytic even though the numerical trajectory
+        // is integrated. This prevents circular-only fixtures from hiding
+        // error growth near periapsis.
+        let (coarse_error, _) = eccentric_orbit_closure_error(1_024);
+        let (fine_error, fine_energy_drift) = eccentric_orbit_closure_error(2_048);
+        assert!(
+            fine_error < coarse_error * 0.3,
+            "eccentric orbit did not converge under timestep halving: coarse={coarse_error}, fine={fine_error}"
+        );
+        assert!(
+            fine_energy_drift < 2e-9,
+            "eccentric relative energy drift was {fine_energy_drift}"
         );
     }
 
