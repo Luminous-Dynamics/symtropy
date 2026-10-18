@@ -610,6 +610,123 @@ mod tests {
     }
 
     #[test]
+    fn exhaustively_classifies_v0_1_classifier_operation_facility_matrix() {
+        let classifiers = ["EST", "REQ", "PLN", "ACT"];
+        let berth_fixture = include_str!("../fixtures/dcsa-jit-eta-berth.json");
+        let pbp_fixture = include_str!("../fixtures/dcsa-jit-pta-pbp.json");
+        let mut accepted = 0usize;
+        let mut rejected = 0usize;
+
+        for classifier in classifiers {
+            let berth_base = berth_fixture.replace(
+                "\"eventClassifierCode\": \"EST\"",
+                &format!("\"eventClassifierCode\": \"{classifier}\""),
+            );
+            for operation in ["ARRI", "DEPA"] {
+                let payload = berth_base.replace(
+                    "\"operationsEventTypeCode\": \"ARRI\"",
+                    &format!("\"operationsEventTypeCode\": \"{operation}\""),
+                );
+                let parsed = parse_timestamp_message(
+                    &payload,
+                    context(&format!("DCSA-MATRIX-{classifier}-{operation}-BRTH")),
+                )
+                .unwrap();
+                assert_eq!(parsed.facility_type_code, FacilityTypeCode::Berth);
+                assert_eq!(
+                    parsed.event_classifier_code.time_meaning(),
+                    match classifier {
+                        "EST" => TimeMeaning::Estimated,
+                        "REQ" => TimeMeaning::Requested,
+                        "PLN" => TimeMeaning::Planned,
+                        "ACT" => TimeMeaning::Actual,
+                        _ => unreachable!("classifier fixture is frozen"),
+                    }
+                );
+
+                let candidate = pco_field_candidate(&parsed);
+                if classifier == "PLN" && operation == "DEPA" {
+                    assert_eq!(candidate, Ok(super::super::PcoField::DepartureFromBerth));
+                } else {
+                    assert_eq!(
+                        candidate,
+                        Err(DcsaJitParseError::UnsupportedPcoProjection)
+                    );
+                }
+                accepted += 1;
+            }
+
+            let pbp_payload = pbp_fixture.replace(
+                "\"eventClassifierCode\": \"PLN\"",
+                &format!("\"eventClassifierCode\": \"{classifier}\""),
+            );
+            let pbp = parse_timestamp_message(
+                &pbp_payload,
+                context(&format!("DCSA-MATRIX-{classifier}-ARRI-PBPL")),
+            )
+            .unwrap();
+            assert_eq!(
+                pbp.facility_type_code,
+                FacilityTypeCode::PilotBoardingPlace
+            );
+            assert_eq!(
+                pbp.operations_event_type_code,
+                OperationsEventTypeCode::Arrival
+            );
+            let candidate = pco_field_candidate(&pbp);
+            if classifier == "PLN" {
+                assert_eq!(
+                    candidate,
+                    Ok(super::super::PcoField::ArrivalAtPilotBoardingPlace)
+                );
+            } else {
+                assert_eq!(
+                    candidate,
+                    Err(DcsaJitParseError::UnsupportedPcoProjection)
+                );
+            }
+            accepted += 1;
+
+            let pbp_departure = pbp_payload.replace(
+                "\"operationsEventTypeCode\": \"ARRI\"",
+                "\"operationsEventTypeCode\": \"DEPA\"",
+            );
+            assert_eq!(
+                parse_timestamp_message(
+                    &pbp_departure,
+                    context(&format!("DCSA-MATRIX-{classifier}-DEPA-PBPL")),
+                ),
+                Err(DcsaJitParseError::UnsupportedCombination(
+                    "PBPL departure is outside the v0.1 profile"
+                ))
+            );
+            rejected += 1;
+        }
+
+        assert_eq!(accepted, 12);
+        assert_eq!(rejected, 4);
+    }
+
+    #[test]
+    fn future_planned_timestamp_is_allowed_but_future_actual_is_not() {
+        let planned_payload = include_str!("../fixtures/dcsa-jit-pta-pbp.json");
+        let planned = parse_timestamp_message(planned_payload, context("DCSA-FUTURE-PLN"))
+            .unwrap();
+        assert!(validate_timestamp(&planned, &policy()).is_ok());
+
+        let actual_payload = planned_payload.replace(
+            "\"eventClassifierCode\": \"PLN\"",
+            "\"eventClassifierCode\": \"ACT\"",
+        );
+        let actual = parse_timestamp_message(&actual_payload, context("DCSA-FUTURE-ACT"))
+            .unwrap();
+        assert_eq!(
+            validate_timestamp(&actual, &policy()),
+            Err(DcsaJitParseError::EventTimeTooFarInFuture)
+        );
+    }
+
+    #[test]
     fn classifier_changes_meaning_without_changing_location_semantics() {
         let base = r#"{
             "eventClassifierCode": "EST",
