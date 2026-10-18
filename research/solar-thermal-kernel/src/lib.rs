@@ -870,7 +870,7 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
 
     let temporal_charge = match temporal_report.periods[0].action {
         temporal::PeriodActionReport::Charge(report) => report,
-        temporal::PeriodActionReport::Discharge(_) => return Err(ModelError::ReportMismatch("temporal.fixture_action_0")),
+        temporal::PeriodActionReport::Discharge(_) | temporal::PeriodActionReport::Idle => return Err(ModelError::ReportMismatch("temporal.fixture_action_0")),
     };
     number(&mut json, "temporal_period_0_temperature_before_k", temporal_report.periods[0].state_before.temperature.value());
     number(&mut json, "temporal_period_0_temperature_after_loss_k", temporal_report.periods[0].state_after_standing_loss.temperature.value());
@@ -882,7 +882,7 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
 
     let temporal_discharge = match temporal_report.periods[1].action {
         temporal::PeriodActionReport::Discharge(report) => report,
-        temporal::PeriodActionReport::Charge(_) => return Err(ModelError::ReportMismatch("temporal.fixture_action_1")),
+        temporal::PeriodActionReport::Charge(_) | temporal::PeriodActionReport::Idle => return Err(ModelError::ReportMismatch("temporal.fixture_action_1")),
     };
     number(&mut json, "temporal_period_1_temperature_before_k", temporal_report.periods[1].state_before.temperature.value());
     number(&mut json, "temporal_period_1_temperature_after_loss_k", temporal_report.periods[1].state_after_standing_loss.temperature.value());
