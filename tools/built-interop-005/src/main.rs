@@ -272,10 +272,7 @@ mod tests {
         assert_eq!(output["evidence_payload"]["declared_schema_token"], "IFC4");
         assert_eq!(output["gate"]["gate_id"], "ifc_schema_conformance");
         assert_eq!(output["gate"]["mandatory"], true);
-        assert_eq!(
-            output["gate"]["evidence"][0]["kind"],
-            "validator_report"
-        );
+        assert_eq!(output["gate"]["evidence"][0]["kind"], "validator_report");
         assert_eq!(
             output["gate"]["evidence"][0]["sha256"],
             sha256_hex(&serde_json::to_vec(&output["evidence_payload"]).unwrap())
@@ -285,11 +282,13 @@ mod tests {
                 || output["gate"]["status"] == "FAIL"
                 || output["gate"]["status"] == "UNRESOLVED"
         );
-        assert!(output["gate"]["tool"]["config_sha256"]
-            .as_str()
-            .unwrap()
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
+        assert!(
+            output["gate"]["tool"]["config_sha256"]
+                .as_str()
+                .unwrap()
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        );
         assert!(
             output["gate"]["tool"]["config_sha256"]
                 .as_str()
