@@ -45,6 +45,13 @@ struct OracleReport {
     legal_state_action_pairs: usize,
     all_candidate_decisions_match: bool,
     all_candidate_admissions_are_oracle_admissible: bool,
+    fail_closed_mutations_checked: usize,
+    fail_closed_mutation_violation_count: usize,
+    fail_closed_mutation_digest_sha256: String,
+    all_fail_closed_mutations_rejected: bool,
+    fail_closed_mutation_violation_examples: Vec<String>,
+    protective_stop_override_checks: usize,
+    protective_stop_override_violations: usize,
     claim_ceiling: String,
     scenarios: Vec<ScenarioCheck>,
 }
@@ -75,7 +82,9 @@ fn main() {
     let result = evaluate_reports(&fixture_bytes, &report_bytes);
     match result {
         Ok(report) => {
-            let failed = !report.all_candidate_decisions_match;
+            let failed = !report.all_candidate_decisions_match
+                || !report.all_fail_closed_mutations_rejected
+                || report.protective_stop_override_violations != 0;
             match serde_json::to_string_pretty(&report) {
                 Ok(json) => println!("{json}"),
                 Err(error) => {
