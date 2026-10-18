@@ -200,6 +200,7 @@ pub enum ValidationCode {
     UndistributableRights,
     InvalidSha256,
     SelfRelation,
+    TemporalContradiction,
     UnsupportedSchemaVersion,
 }
 
@@ -436,6 +437,40 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
                 "a relation must not connect a claim to itself",
             );
         }
+
+        // Detect only contradictions that are decidable from intervals in the same calendar.
+        // Overlapping/uncertain intervals are not treated as proof that an edge is false.
+        let time_directed = matches!(
+            relation.kind,
+            RelationKind::Precedes
+                | RelationKind::Influenced
+                | RelationKind::TransmittedVia
+                | RelationKind::DerivedFrom
+                | RelationKind::Enabled
+        );
+        if time_directed {
+            let from_time = dataset
+                .claims
+                .iter()
+                .find(|claim| claim.id == relation.from_claim_id)
+                .and_then(|claim| claim.valid_time.as_ref());
+            let to_time = dataset
+                .claims
+                .iter()
+                .find(|claim| claim.id == relation.to_claim_id)
+                .and_then(|claim| claim.valid_time.as_ref());
+            if let (Some(from), Some(to)) = (from_time, to_time) {
+                if from.calendar == to.calendar && from.start_year > to.end_year {
+                    issue(
+                        &mut issues,
+                        &relation.id,
+                        ValidationCode::TemporalContradiction,
+                        "directed temporal/influence relation conflicts with the non-overlapping intervals in the same calendar",
+                    );
+                }
+            }
+        }
+
         if relation.status == RelationStatus::Documented && relation.evidence.is_empty() {
             issue(
                 &mut issues,
