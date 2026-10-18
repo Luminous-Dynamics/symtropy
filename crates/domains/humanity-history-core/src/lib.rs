@@ -959,6 +959,68 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
         }
     }
 
+    for contrast in &dataset.estimate_contrasts {
+        register_id(&contrast.id, &mut all_ids, &contrast.id, &mut issues);
+        require_nonempty(&contrast.purpose, &contrast.id, "contrast purpose", &mut issues);
+        require_nonempty(&contrast.dependence_note, &contrast.id, "contrast dependence note", &mut issues);
+        require_nonempty(
+            &contrast.interpretation_limit,
+            &contrast.id,
+            "contrast interpretation limit",
+            &mut issues,
+        );
+        let candidate = dataset.estimates.iter().find(|e| e.id == contrast.candidate_estimate_id);
+        let reference = dataset.estimates.iter().find(|e| e.id == contrast.reference_estimate_id);
+        match (candidate, reference) {
+            (None, _) => issue(
+                &mut issues,
+                &contrast.id,
+                ValidationCode::InvalidEstimateContrast,
+                format!("contrast refers to unknown candidate estimate '{}'", contrast.candidate_estimate_id),
+            ),
+            (_, None) => issue(
+                &mut issues,
+                &contrast.id,
+                ValidationCode::InvalidEstimateContrast,
+                format!("contrast refers to unknown reference estimate '{}'", contrast.reference_estimate_id),
+            ),
+            (Some(candidate), Some(reference)) => {
+                if candidate.id == reference.id {
+                    issue(
+                        &mut issues,
+                        &contrast.id,
+                        ValidationCode::InvalidEstimateContrast,
+                        "candidate and reference estimates must be different records",
+                    );
+                }
+                if candidate.quantity != reference.quantity || candidate.unit != reference.unit {
+                    issue(
+                        &mut issues,
+                        &contrast.id,
+                        ValidationCode::InvalidEstimateContrast,
+                        "candidate and reference must describe the same quantity and unit",
+                    );
+                }
+                if candidate.interval.is_some() {
+                    issue(
+                        &mut issues,
+                        &contrast.id,
+                        ValidationCode::InvalidEstimateContrast,
+                        "candidate estimate must be point-valued",
+                    );
+                }
+                if reference.interval.is_none() {
+                    issue(
+                        &mut issues,
+                        &contrast.id,
+                        ValidationCode::InvalidEstimateContrast,
+                        "reference estimate must have a reported uncertainty interval",
+                    );
+                }
+            }
+        }
+    }
+
     for model in &dataset.reconstruction_models {
         register_id(&model.id, &mut all_ids, &model.id, &mut issues);
         require_nonempty(&model.title, &model.id, "model title", &mut issues);
@@ -1486,6 +1548,85 @@ mod tests {
         assert_eq!(data.model_comparisons[0].assessments.len(), 4);
         assert!(data.model_comparisons[0].assessments.iter().any(|assessment| {
             assessment.status == AssessmentStatus::NotEvaluated
+        }));
+    }
+
+    #[test]
+    fn antikythera_point_interval_diagnostics_are_descriptive_and_reproducible() {
+        let raw = include_str!("../fixtures/antikythera-research-seed.json");
+        let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+        assert_eq!(data.estimate_contrasts.len(), 4);
+
+        let contrast_365 = data
+            .estimate_contrasts
+            .iter()
+            .find(|c| c.id == "antikythera:contrast-365-vs-all-data-interval")
+            .unwrap();
+        let diagnostic = analyze_estimate_contrast(&data, contrast_365).unwrap();
+        assert_eq!(diagnostic.position, IntervalPosition::Above);
+        assert!((diagnostic.distance_to_interval - 8.37).abs() < 1e-9);
+        assert_eq!(diagnostic.coverage_percent.as_deref(), Some("68"));
+
+        let contrast_354 = data
+            .estimate_contrasts
+            .iter()
+            .find(|c| c.id == "antikythera:contrast-354-vs-all-data-interval")
+            .unwrap();
+        let diagnostic = analyze_estimate_contrast(&data, contrast_354).unwrap();
+        assert_eq!(diagnostic.position, IntervalPosition::Within);
+        assert_eq!(diagnostic.distance_to_interval, 0.0);
+        assert!(diagnostic.interpretation_limit.contains("does not by itself establish"));
+    }
+
+    #[test]
+    fn contrast_with_incompatible_units_fails_validation_and_analysis() {
+        let mut data = fixture();
+        data.estimates = vec![
+            estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
+            estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
+        ];
+        data.estimates[1].unit = "seconds".to_owned();
+        data.estimate_contrasts.push(EstimateContrast {
+            id: "fixture:contrast".to_owned(),
+            candidate_estimate_id: "fixture:estimate-a".to_owned(),
+            reference_estimate_id: "fixture:estimate-b".to_owned(),
+            purpose: "Synthetic unit mismatch negative control".to_owned(),
+            dependence_note: "Synthetic".to_owned(),
+            interpretation_limit: "Not an inference".to_owned(),
+        });
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:contrast"
+                && item.code == ValidationCode::InvalidEstimateContrast
+                && item.message.contains("same quantity and unit")
+        }));
+        assert!(analyze_estimate_contrast(&data, &data.estimate_contrasts[0]).is_err());
+    }
+
+    #[test]
+    fn contrast_requires_a_reference_interval() {
+        let mut data = fixture();
+        data.estimates = vec![
+            estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
+            estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
+        ];
+        data.estimates[1].interval = None;
+        data.estimates[1].kind = EstimateKind::ReportedPoint;
+        data.estimate_contrasts.push(EstimateContrast {
+            id: "fixture:contrast".to_owned(),
+            candidate_estimate_id: "fixture:estimate-a".to_owned(),
+            reference_estimate_id: "fixture:estimate-b".to_owned(),
+            purpose: "Synthetic missing interval negative control".to_owned(),
+            dependence_note: "Synthetic".to_owned(),
+            interpretation_limit: "Not an inference".to_owned(),
+        });
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:contrast"
+                && item.code == ValidationCode::InvalidEstimateContrast
+                && item.message.contains("reported uncertainty interval")
         }));
     }
 
