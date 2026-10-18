@@ -839,6 +839,17 @@ fn validate_dispatch_input(
             ));
         }
 
+        if matches!(
+            leg.state,
+            DispatchTravelStateV1::NoRoute | DispatchTravelStateV1::OutsideCoverage
+        ) && leg.metric != DispatchTravelMetricV1::ModeledRouteTime
+        {
+            blockers.push(blocker(
+                SharedFleetDispatchBlockerCodeV1::InvalidTravelStateValue,
+                &leg.robot_id,
+            ));
+        }
+
         if (leg.state == DispatchTravelStateV1::OutsideCoverage)
             != (leg.coverage == DispatchTravelCoverageV1::OutsideCoverage)
         {
