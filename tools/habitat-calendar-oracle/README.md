@@ -6,7 +6,7 @@ The oracle enumerates feasible active time-slot assignments and minimizes makesp
 
 ## Frozen reference corpus
 
-`docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json` contains nine cases and twelve scenario outcomes. The expected behaviors include:
+`docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json` contains nine cases and twelve scenario outcomes. The exact fixture bytes are pinned at SHA-256 `934ff338850ddd2a5e161b5fab10ce824e7f08d56ca8308b950a395280d3762c`. The expected behaviors include:
 - pause/resume across a lunch closure: 3 work units released at 2 finish at 7, with segments [2,4) and [6,7);
 - uninterrupted work on the same resource windows: earliest finish is 9, with one segment [6,9);
 - a machine outage moves a two-task chain from makespan 5 to 10;
