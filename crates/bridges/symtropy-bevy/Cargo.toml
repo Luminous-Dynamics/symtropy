@@ -25,6 +25,7 @@ bevy = { version = "0.19", default-features = false, features = [
 nalgebra = "0.34"
 rhai = { version = "1.19", features = ["sync"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [features]
 default = []
@@ -48,3 +49,7 @@ symtropy-render-bridge = { path = "../symtropy-render-bridge" }
 [[example]]
 name = "human_avatar"
 required-features = ["human-animation"]
+
+[[bin]]
+name = "human-motion-bench"
+path = "src/bin/human_motion_bench.rs"
