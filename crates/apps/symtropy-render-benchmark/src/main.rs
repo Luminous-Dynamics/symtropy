@@ -29,16 +29,8 @@ impl BenchConfig {
     fn from_env() -> Result<Self, String> {
         let profile = env::var("SYMTROPY_RENDER_BENCH_PROFILE")
             .unwrap_or_else(|_| "balanced-1080p".to_owned());
-        let (width_px, height_px, default_count, default_shadows) = match profile.as_str() {
-            "quality-1080p" => (1920, 1080, 256, true),
-            "balanced-1080p" => (1920, 1080, 144, true),
-            "low-power-720p" => (1280, 720, 64, false),
-            _ => {
-                return Err(format!(
-                    "unsupported profile {profile:?}; choose quality-1080p, balanced-1080p, or low-power-720p"
-                ));
-            }
-        };
+        let (width_px, height_px, default_count, default_shadows) =
+            profile_defaults(&profile)?;
 
         let object_count = match env::var("SYMTROPY_RENDER_BENCH_OBJECTS") {
             Ok(raw) => raw
@@ -123,8 +115,7 @@ fn setup_scene(
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<BenchConfig>,
 ) {
-    let columns = (config.object_count as f64).sqrt().ceil() as usize;
-    let rows = config.object_count.div_ceil(columns);
+    let (columns, rows) = grid_dimensions(config.object_count);
     let grid_width = (columns.saturating_sub(1) as f32 * GRID_SPACING) + CUBE_SIZE;
     let grid_depth = (rows.saturating_sub(1) as f32 * GRID_SPACING) + CUBE_SIZE;
     let grid_span = grid_width.max(grid_depth);
@@ -227,6 +218,23 @@ fn setup_scene(
     ));
 }
 
+fn profile_defaults(profile: &str) -> Result<(u32, u32, usize, bool), String> {
+    match profile {
+        "quality-1080p" => Ok((1920, 1080, 256, true)),
+        "balanced-1080p" => Ok((1920, 1080, 144, true)),
+        "low-power-720p" => Ok((1280, 720, 64, false)),
+        _ => Err(format!(
+            "unsupported profile {profile:?}; choose quality-1080p, balanced-1080p, or low-power-720p"
+        )),
+    }
+}
+
+fn grid_dimensions(object_count: usize) -> (usize, usize) {
+    let columns = (object_count as f64).sqrt().ceil() as usize;
+    let rows = object_count.div_ceil(columns);
+    (columns, rows)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,18 +258,5 @@ mod tests {
         assert_eq!(grid_dimensions(144), (12, 12));
     }
 
-    fn profile_defaults(profile: &str) -> Result<(u32, u32, usize, bool), String> {
-        match profile {
-            "quality-1080p" => Ok((1920, 1080, 256, true)),
-            "balanced-1080p" => Ok((1920, 1080, 144, true)),
-            "low-power-720p" => Ok((1280, 720, 64, false)),
-            _ => Err(format!("unknown profile: {profile}")),
-        }
-    }
 
-    fn grid_dimensions(object_count: usize) -> (usize, usize) {
-        let columns = (object_count as f64).sqrt().ceil() as usize;
-        let rows = object_count.div_ceil(columns);
-        (columns, rows)
-    }
 }
