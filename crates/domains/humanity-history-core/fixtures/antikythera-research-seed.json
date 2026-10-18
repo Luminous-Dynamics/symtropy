@@ -535,6 +535,516 @@
           "note": "The trimmed-data column reports 0.1173 for N=356."
         }
       ]
+    },
+    {
+      "id": "antikythera:posterior-all-349",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0000",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=349, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=349, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0000 for N=349 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-349",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0006",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=349, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=349, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0006 for N=349 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-350",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0002",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=350, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=350, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0002 for N=350 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-350",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0055",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=350, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=350, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0055 for N=350 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-351",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0027",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=351, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=351, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0027 for N=351 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-351",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0293",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=351, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=351, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0293 for N=351 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-352",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0187",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=352, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=352, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0187 for N=352 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-352",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0978",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=352, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=352, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0978 for N=352 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-353",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0776",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=353, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=353, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0776 for N=353 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-353",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.2056",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=353, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=353, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.2056 for N=353 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-357",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.1298",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=357, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=357, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.1298 for N=357 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-357",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0384",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=357, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=357, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0384 for N=357 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-358",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0405",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=358, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=358, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0405 for N=358 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-358",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0079",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=358, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=358, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0079 for N=358 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-359",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0075",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=359, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=359, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0075 for N=359 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-359",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0010",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=359, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=359, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0010 for N=359 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-360",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0008",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=360, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=360, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0008 for N=360 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-360",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0001",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=360, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=360, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0001 for N=360 under the trimmed dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-361",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0001",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=361, all measured data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, priors, and discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed; not recalculated in this project.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=361, Prob(N | all)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0001 for N=361 under the full dataset."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-361",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.0000",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=361, trimmed data",
+      "assumptions": [
+        "Probability transcribed from Table 2 for the paper's trimmed dataset.",
+        "The source excludes short segments S5/S6 and endpoint holes 2, 23, 24, 32, 33, 69, 76 and 81.",
+        "Conditional on the source's Bayesian model and priors; not recalculated in this project.",
+        "Rounded to four decimal places as displayed.",
+        "The paper reports a Gaussian fit to the continuous marginal posterior and a nested-sampling discrete-model comparison as a cross-check.",
+        "The raw measurement dataset has not been independently ingested or analyzed by this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=361, Prob(N | trim)",
+          "relation": "supports",
+          "note": "Table 2 reports 0.0000 for N=361 under the trimmed dataset."
+        }
+      ]
     }
   ],
   "reconstruction_models": [
@@ -783,6 +1293,86 @@
       "variant_description": "Trimmed dataset variant for N=356",
       "dependence_note": "All vs trimmed data are sensitivity variants of the same source analysis, not independent samples.",
       "interpretation_limit": "The delta is a difference between rounded source-reported posterior probabilities, not a recalculation or an independent replication."
+    },
+    {
+      "id": "antikythera:delta-posterior-n349-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-349",
+      "perturbed_estimate_id": "antikythera:posterior-trim-349",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=349",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n350-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-350",
+      "perturbed_estimate_id": "antikythera:posterior-trim-350",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=350",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n351-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-351",
+      "perturbed_estimate_id": "antikythera:posterior-trim-351",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=351",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n352-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-352",
+      "perturbed_estimate_id": "antikythera:posterior-trim-352",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=352",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n353-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-353",
+      "perturbed_estimate_id": "antikythera:posterior-trim-353",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=353",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n357-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-357",
+      "perturbed_estimate_id": "antikythera:posterior-trim-357",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=357",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n358-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-358",
+      "perturbed_estimate_id": "antikythera:posterior-trim-358",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=358",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n359-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-359",
+      "perturbed_estimate_id": "antikythera:posterior-trim-359",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=359",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n360-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-360",
+      "perturbed_estimate_id": "antikythera:posterior-trim-360",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=360",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
+    },
+    {
+      "id": "antikythera:delta-posterior-n361-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-361",
+      "perturbed_estimate_id": "antikythera:posterior-trim-361",
+      "variant_description": "Trimmed-versus-full posterior sensitivity for integer N=361",
+      "dependence_note": "Full and trimmed columns are analyses of related measurements from the same source study, not independent samples.",
+      "interpretation_limit": "Exact subtraction of the two table values rounded to four decimals; not a recalculated posterior, a model probability comparison, or independent confirmation."
     }
   ],
   "analysis_runs": [
