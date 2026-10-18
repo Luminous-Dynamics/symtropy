@@ -1,0 +1,556 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:repair-restoration-evidence:0.1.0",
+  "title": "Repair Restoration Evidence Ledger v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_id",
+    "status",
+    "claim_ceiling",
+    "episodes",
+    "proposed_benchmarks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "ledger_id": {
+      "const": "REPAIR-RESTORE-001"
+    },
+    "status": {
+      "enum": [
+        "synthetic_contract_examples_only",
+        "evidence_ledger_draft"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "synthetic_examples_are_not_empirical_or_product_safety_evidence"
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    },
+    "proposed_benchmarks": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "$ref": "#/$defs/benchmark"
+      }
+    }
+  },
+  "$defs": {
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "evidence_class",
+        "empirical_eligible",
+        "appliance",
+        "fault",
+        "diagnosis",
+        "intervention",
+        "outcome",
+        "verification",
+        "follow_up",
+        "costs",
+        "preregistration",
+        "evidence_receipt_ids"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "pattern": "^SYN-REST-[0-9]{3}$"
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic_fixture",
+            "bench_observation",
+            "field_observation",
+            "simulation_only",
+            "legacy_record"
+          ]
+        },
+        "empirical_eligible": {
+          "type": "boolean"
+        },
+        "appliance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family_id",
+            "model_token",
+            "revision_token",
+            "unit_token",
+            "architecture_arm"
+          ],
+          "properties": {
+            "family_id": {
+              "enum": [
+                "F1-WASHER",
+                "F2-DISHWASHER",
+                "F3-REFRIGERATOR-FREEZER",
+                "F4-HEAT-PUMP-DRYER",
+                "F5-WASHER-DRYER-COMBO",
+                "F6-HEAT-PUMP-WATER-HEATER",
+                "F7-RESIDENTIAL-HVAC",
+                "F8-COOKING-APPLIANCES",
+                "F9-VENTILATION-HRV"
+              ]
+            },
+            "model_token": {
+              "type": "string",
+              "pattern": "^SYN-[A-Z0-9-]+$"
+            },
+            "revision_token": {
+              "type": "string",
+              "minLength": 1
+            },
+            "unit_token": {
+              "type": "string",
+              "pattern": "^SYN-UNIT-[A-Z0-9-]+$"
+            },
+            "architecture_arm": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "fault": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fault_case_id",
+            "symptom_code"
+          ],
+          "properties": {
+            "fault_case_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "symptom_code": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "diagnosis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "hypotheses_considered",
+            "hazard_screen",
+            "diagnostic_receipt_ids"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "verified",
+                "probable",
+                "unresolved",
+                "safety_stop"
+              ]
+            },
+            "hypotheses_considered": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "hazard_screen": {
+              "enum": [
+                "clear_within_scope",
+                "refer_to_qualified_role",
+                "stop_now",
+                "unknown"
+              ]
+            },
+            "diagnostic_receipt_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "intervention": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "repair_attempt_started",
+            "technician_tier",
+            "action_code",
+            "part_ids",
+            "active_labor_minutes",
+            "queue_wait_hours",
+            "parts_wait_hours",
+            "travel_hours"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "not_started",
+                "in_progress",
+                "completed",
+                "aborted"
+              ]
+            },
+            "repair_attempt_started": {
+              "type": "boolean"
+            },
+            "technician_tier": {
+              "enum": [
+                "owner_user",
+                "independent_technician",
+                "authorized_specialist",
+                "engineer",
+                "unassigned"
+              ]
+            },
+            "action_code": {
+              "type": "string",
+              "minLength": 1
+            },
+            "part_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "active_labor_minutes": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "queue_wait_hours": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "parts_wait_hours": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "travel_hours": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "outcome": {
+          "enum": [
+            "verified_restoration",
+            "failed_repair",
+            "safety_stop",
+            "diagnosis_only",
+            "abandoned",
+            "awaiting_part",
+            "lost_tracking"
+          ]
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "core_function_gate",
+            "safety_gate",
+            "required_test_count",
+            "passed_test_count",
+            "useful_output_metric_id",
+            "energy_water_improvement_claimed",
+            "measurement_receipt_ids"
+          ],
+          "properties": {
+            "core_function_gate": {
+              "enum": [
+                "passed",
+                "failed",
+                "not_run",
+                "unknown"
+              ]
+            },
+            "safety_gate": {
+              "enum": [
+                "passed",
+                "failed",
+                "not_run",
+                "unknown"
+              ]
+            },
+            "required_test_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "passed_test_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "useful_output_metric_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "energy_water_improvement_claimed": {
+              "type": "boolean"
+            },
+            "measurement_receipt_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "follow_up": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "follow_up_days",
+            "exposure_value",
+            "exposure_unit",
+            "same_fault_recurred"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "complete",
+                "right_censored",
+                "lost_to_follow_up",
+                "pending",
+                "not_applicable"
+              ]
+            },
+            "follow_up_days": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "exposure_value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "exposure_unit": {
+              "enum": [
+                "calendar_days",
+                "operating_hours",
+                "cycles",
+                "heating_cycles",
+                "compressor_hours",
+                "not_applicable",
+                "unknown"
+              ]
+            },
+            "same_fault_recurred": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        },
+        "costs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "currency",
+            "observation_status",
+            "parts_minor",
+            "labour_minor",
+            "travel_minor",
+            "freight_minor",
+            "failed_attempts_minor",
+            "downtime_minor",
+            "rework_minor",
+            "waste_handling_minor",
+            "discarded_material_grams"
+          ],
+          "properties": {
+            "currency": {
+              "enum": [
+                "ZAR",
+                "USD",
+                "EUR",
+                "GBP",
+                "unknown"
+              ]
+            },
+            "observation_status": {
+              "enum": [
+                "complete",
+                "partial",
+                "unknown"
+              ]
+            },
+            "parts_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "labour_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "travel_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "freight_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "failed_attempts_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "downtime_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "rework_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "waste_handling_minor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "discarded_material_grams": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "preregistration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_id",
+            "protocol_sha256",
+            "frozen_before_outcome"
+          ],
+          "properties": {
+            "protocol_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "frozen_before_outcome": {
+              "type": "boolean"
+            }
+          }
+        },
+        "evidence_receipt_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "metric_id",
+        "target_statement",
+        "status",
+        "comparison_scope"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^RB-[0-9]{3}$"
+        },
+        "metric_id": {
+          "enum": [
+            "median_restoration_time",
+            "p90_restoration_time",
+            "same_fault_recurrence",
+            "false_safe_diagnostic",
+            "restoration_receipt_coverage",
+            "safe_user_task_completion",
+            "whole_episode_cost_per_useful_output"
+          ]
+        },
+        "target_statement": {
+          "type": "string",
+          "minLength": 8
+        },
+        "status": {
+          "enum": [
+            "proposal_not_frozen",
+            "guardrail_contract_only"
+          ]
+        },
+        "comparison_scope": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
+    }
+  }
+}

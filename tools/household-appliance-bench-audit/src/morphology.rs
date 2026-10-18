@@ -47,7 +47,9 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
         return Err(format!("morphology schema $id must be {SCHEMA_ID}"));
     }
     if !jsonschema::draft202012::meta::is_valid(schema) {
-        return Err("morphology schema does not validate against the Draft 2020-12 meta-schema".to_owned());
+        return Err(
+            "morphology schema does not validate against the Draft 2020-12 meta-schema".to_owned(),
+        );
     }
     jsonschema::draft202012::options()
         .should_validate_formats(true)
@@ -87,7 +89,10 @@ fn audit_values(
         return Err(vec!["families must be an array".to_owned()]);
     };
     if families.len() != EXPECTED_FAMILIES.len() {
-        errors.push(format!("morphology must retain {} product families", EXPECTED_FAMILIES.len()));
+        errors.push(format!(
+            "morphology must retain {} product families",
+            EXPECTED_FAMILIES.len()
+        ));
     }
     let mut family_ids = BTreeSet::new();
     let mut variant_ids = BTreeSet::new();
@@ -102,15 +107,25 @@ fn audit_values(
             errors.push(format!("duplicate family ID {family_id}"));
         }
         if EXPECTED_FAMILIES.get(index).copied() != Some(family_id) {
-            errors.push(format!("family order/identity changed at index {index}: {family_id}"));
+            errors.push(format!(
+                "family order/identity changed at index {index}: {family_id}"
+            ));
         }
         if text_at(family, "status") != Some("family_profile_not_physically_validated") {
             errors.push(format!("{family_id}: family must remain unvalidated"));
         }
-        if family.get("critical_constraints").and_then(Value::as_array).is_none_or(|items| items.len() < 3)
-            || family.get("useful_output_metrics").and_then(Value::as_array).is_none_or(|items| items.len() < 3)
+        if family
+            .get("critical_constraints")
+            .and_then(Value::as_array)
+            .is_none_or(|items| items.len() < 3)
+            || family
+                .get("useful_output_metrics")
+                .and_then(Value::as_array)
+                .is_none_or(|items| items.len() < 3)
         {
-            errors.push(format!("{family_id}: critical constraints and useful-output metrics are mandatory"));
+            errors.push(format!(
+                "{family_id}: critical constraints and useful-output metrics are mandatory"
+            ));
         }
 
         let Some(variants) = family.get("variants").and_then(Value::as_array) else {
@@ -118,7 +133,9 @@ fn audit_values(
             continue;
         };
         if variants.len() != 3 {
-            errors.push(format!("{family_id}: exactly three initial variants are required"));
+            errors.push(format!(
+                "{family_id}: exactly three initial variants are required"
+            ));
         }
         for variant in variants {
             variant_count += 1;
@@ -132,10 +149,18 @@ fn audit_values(
             if text_at(variant, "status") != Some("hypothesis_not_validated") {
                 errors.push(format!("{variant_id}: variant cannot claim validation"));
             }
-            if variant.get("tradeoffs").and_then(Value::as_array).is_none_or(|items| items.len() < 2)
-                || variant.get("required_tests").and_then(Value::as_array).is_none_or(|items| items.len() < 2)
+            if variant
+                .get("tradeoffs")
+                .and_then(Value::as_array)
+                .is_none_or(|items| items.len() < 2)
+                || variant
+                    .get("required_tests")
+                    .and_then(Value::as_array)
+                    .is_none_or(|items| items.len() < 2)
             {
-                errors.push(format!("{variant_id}: at least two trade-offs and validation tests are required"));
+                errors.push(format!(
+                    "{variant_id}: at least two trade-offs and validation tests are required"
+                ));
             }
         }
     }
@@ -145,14 +170,19 @@ fn audit_values(
         }
     }
     if variant_count != 27 {
-        errors.push(format!("initial morphology variant census must remain 27; got {variant_count}"));
+        errors.push(format!(
+            "initial morphology variant census must remain 27; got {variant_count}"
+        ));
     }
 
     let Some(patterns) = portfolio.get("design_patterns").and_then(Value::as_array) else {
         return Err(vec!["design_patterns must be an array".to_owned()]);
     };
     if patterns.len() != EXPECTED_PATTERNS.len() {
-        errors.push(format!("morphology must retain {} design patterns", EXPECTED_PATTERNS.len()));
+        errors.push(format!(
+            "morphology must retain {} design patterns",
+            EXPECTED_PATTERNS.len()
+        ));
     }
     let mut pattern_ids = BTreeSet::new();
     for (index, pattern) in patterns.iter().enumerate() {
@@ -164,18 +194,24 @@ fn audit_values(
             errors.push(format!("duplicate design pattern ID {pattern_id}"));
         }
         if EXPECTED_PATTERNS.get(index).copied() != Some(pattern_id) {
-            errors.push(format!("design pattern order/identity changed at index {index}"));
+            errors.push(format!(
+                "design pattern order/identity changed at index {index}"
+            ));
         }
         if text_at(pattern, "status") != Some("hypothesis_not_validated") {
             errors.push(format!("{pattern_id}: pattern must remain a hypothesis"));
         }
         let Some(applicable) = pattern.get("applicable_families").and_then(Value::as_array) else {
-            errors.push(format!("{pattern_id}: applicable_families must be an array"));
+            errors.push(format!(
+                "{pattern_id}: applicable_families must be an array"
+            ));
             continue;
         };
         for family_ref in applicable.iter().filter_map(Value::as_str) {
             if !family_ids.contains(family_ref) {
-                errors.push(format!("{pattern_id}: unknown family reference {family_ref}"));
+                errors.push(format!(
+                    "{pattern_id}: unknown family reference {family_ref}"
+                ));
             }
         }
     }
@@ -189,7 +225,10 @@ fn audit_values(
         return Err(vec!["hybrid_candidates must be an array".to_owned()]);
     };
     if hybrids.len() != EXPECTED_HYBRIDS.len() {
-        errors.push(format!("morphology must retain {} hybrid candidates", EXPECTED_HYBRIDS.len()));
+        errors.push(format!(
+            "morphology must retain {} hybrid candidates",
+            EXPECTED_HYBRIDS.len()
+        ));
     }
     let mut hybrid_ids = BTreeSet::new();
     for (index, hybrid) in hybrids.iter().enumerate() {
@@ -204,21 +243,29 @@ fn audit_values(
             errors.push(format!("hybrid order/identity changed at index {index}"));
         }
         if text_at(hybrid, "status") != Some("hypothesis_not_validated") {
-            errors.push(format!("{hybrid_id}: hybrid must remain an unvalidated hypothesis"));
+            errors.push(format!(
+                "{hybrid_id}: hybrid must remain an unvalidated hypothesis"
+            ));
         }
         if text_at(hybrid, "physical_interchangeability") != Some("none_claimed") {
-            errors.push(format!("{hybrid_id}: shared service concepts cannot imply physical interchangeability"));
+            errors.push(format!(
+                "{hybrid_id}: shared service concepts cannot imply physical interchangeability"
+            ));
         }
         let Some(family_refs) = hybrid.get("family_ids").and_then(Value::as_array) else {
             errors.push(format!("{hybrid_id}: family_ids must be an array"));
             continue;
         };
         if family_refs.is_empty() {
-            errors.push(format!("{hybrid_id}: at least one family reference is required"));
+            errors.push(format!(
+                "{hybrid_id}: at least one family reference is required"
+            ));
         }
         for family_ref in family_refs.iter().filter_map(Value::as_str) {
             if !family_ids.contains(family_ref) {
-                errors.push(format!("{hybrid_id}: unknown family reference {family_ref}"));
+                errors.push(format!(
+                    "{hybrid_id}: unknown family reference {family_ref}"
+                ));
             }
         }
         let Some(pattern_refs) = hybrid.get("pattern_ids").and_then(Value::as_array) else {
@@ -227,7 +274,9 @@ fn audit_values(
         };
         for pattern_ref in pattern_refs.iter().filter_map(Value::as_str) {
             if !pattern_ids.contains(pattern_ref) {
-                errors.push(format!("{hybrid_id}: unknown pattern reference {pattern_ref}"));
+                errors.push(format!(
+                    "{hybrid_id}: unknown pattern reference {pattern_ref}"
+                ));
             }
         }
         for (field, minimum) in [
@@ -235,7 +284,11 @@ fn audit_values(
             ("key_trades", 2usize),
             ("discriminating_tests", 2usize),
         ] {
-            if hybrid.get(field).and_then(Value::as_array).is_none_or(|items| items.len() < minimum) {
+            if hybrid
+                .get(field)
+                .and_then(Value::as_array)
+                .is_none_or(|items| items.len() < minimum)
+            {
                 errors.push(format!("{hybrid_id}: {field} is incomplete"));
             }
         }
@@ -253,7 +306,8 @@ fn audit_values(
             != Some("shared_service_contracts_do_not_imply_shared_physical_components")
         || text_at(policy, "prioritization_policy")
             != Some("value_of_information_cost_and_risk_before_breadth")
-        || text_at(policy, "market_rule") != Some("verify_jurisdiction_specific_rules_before_design_freeze")
+        || text_at(policy, "market_rule")
+            != Some("verify_jurisdiction_specific_rules_before_design_freeze")
         || policy.get("no_winner_claim").and_then(Value::as_bool) != Some(true)
     {
         errors.push("portfolio policy must preserve unknown-not-zero, non-compensatory safety, no hardware-interchangeability inference and no winner claim".to_owned());
@@ -266,7 +320,10 @@ fn audit_values(
         .filter_map(Value::as_str)
         .collect();
     if pilots != BTreeSet::from(["washer_service_spine", "heat_pump_dryer_air_side_service"]) {
-        errors.push("initial pilot selection must retain the washer and heat-pump dryer learning pair".to_owned());
+        errors.push(
+            "initial pilot selection must retain the washer and heat-pump dryer learning pair"
+                .to_owned(),
+        );
     }
 
     if !errors.is_empty() {

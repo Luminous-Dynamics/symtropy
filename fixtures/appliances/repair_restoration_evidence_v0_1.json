@@ -1,0 +1,458 @@
+{
+  "schema_version": "0.1.0",
+  "ledger_id": "REPAIR-RESTORE-001",
+  "status": "synthetic_contract_examples_only",
+  "claim_ceiling": "synthetic_examples_are_not_empirical_or_product_safety_evidence",
+  "episodes": [
+    {
+      "episode_id": "SYN-REST-001",
+      "evidence_class": "synthetic_fixture",
+      "empirical_eligible": false,
+      "appliance": {
+        "family_id": "F1-WASHER",
+        "model_token": "SYN-WASHER-A",
+        "revision_token": "SYN-REV-A",
+        "unit_token": "SYN-UNIT-A",
+        "architecture_arm": "W0_CONTROL"
+      },
+      "fault": {
+        "fault_case_id": "WASHER-DRAIN-01",
+        "symptom_code": "DRAIN_FLOW_LOW"
+      },
+      "diagnosis": {
+        "status": "verified",
+        "hypotheses_considered": [
+          "blocked_filter",
+          "pump_fault"
+        ],
+        "hazard_screen": "clear_within_scope",
+        "diagnostic_receipt_ids": [
+          "SYN-DIAG-001"
+        ]
+      },
+      "intervention": {
+        "status": "completed",
+        "repair_attempt_started": true,
+        "technician_tier": "independent_technician",
+        "action_code": "CLEAN_FILTER_AND_VERIFY",
+        "part_ids": [
+          "FILTER-CLASS-A"
+        ],
+        "active_labor_minutes": 50,
+        "queue_wait_hours": 2,
+        "parts_wait_hours": 0,
+        "travel_hours": 0
+      },
+      "outcome": "verified_restoration",
+      "verification": {
+        "core_function_gate": "passed",
+        "safety_gate": "passed",
+        "required_test_count": 4,
+        "passed_test_count": 4,
+        "useful_output_metric_id": "washer_successful_load_v1",
+        "energy_water_improvement_claimed": false,
+        "measurement_receipt_ids": [
+          "SYN-MEAS-001",
+          "SYN-MEAS-002"
+        ]
+      },
+      "follow_up": {
+        "status": "complete",
+        "follow_up_days": 90,
+        "exposure_value": 40,
+        "exposure_unit": "cycles",
+        "same_fault_recurred": false
+      },
+      "costs": {
+        "currency": "ZAR",
+        "observation_status": "complete",
+        "parts_minor": 2500,
+        "labour_minor": 18000,
+        "travel_minor": 0,
+        "freight_minor": 0,
+        "failed_attempts_minor": 0,
+        "downtime_minor": 3000,
+        "rework_minor": 0,
+        "waste_handling_minor": 200,
+        "discarded_material_grams": 20
+      },
+      "preregistration": {
+        "protocol_id": "RESTORE-PILOT-0.1",
+        "protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "frozen_before_outcome": true
+      },
+      "evidence_receipt_ids": [
+        "SYN-RECEIPT-001",
+        "SYN-RECEIPT-002"
+      ]
+    },
+    {
+      "episode_id": "SYN-REST-002",
+      "evidence_class": "synthetic_fixture",
+      "empirical_eligible": false,
+      "appliance": {
+        "family_id": "F1-WASHER",
+        "model_token": "SYN-WASHER-A",
+        "revision_token": "SYN-REV-A",
+        "unit_token": "SYN-UNIT-B",
+        "architecture_arm": "W2_SERVICE_SPINE"
+      },
+      "fault": {
+        "fault_case_id": "WASHER-BEARING-02",
+        "symptom_code": "DRUM_NOISE"
+      },
+      "diagnosis": {
+        "status": "probable",
+        "hypotheses_considered": [
+          "bearing_wear",
+          "foreign_object"
+        ],
+        "hazard_screen": "refer_to_qualified_role",
+        "diagnostic_receipt_ids": [
+          "SYN-DIAG-002"
+        ]
+      },
+      "intervention": {
+        "status": "completed",
+        "repair_attempt_started": true,
+        "technician_tier": "independent_technician",
+        "action_code": "REPLACE_BEARING_MODULE",
+        "part_ids": [
+          "BEARING-CLASS-B"
+        ],
+        "active_labor_minutes": 110,
+        "queue_wait_hours": 5,
+        "parts_wait_hours": 24,
+        "travel_hours": 1
+      },
+      "outcome": "failed_repair",
+      "verification": {
+        "core_function_gate": "failed",
+        "safety_gate": "passed",
+        "required_test_count": 3,
+        "passed_test_count": 1,
+        "useful_output_metric_id": "washer_successful_load_v1",
+        "energy_water_improvement_claimed": false,
+        "measurement_receipt_ids": [
+          "SYN-MEAS-003"
+        ]
+      },
+      "follow_up": {
+        "status": "not_applicable",
+        "follow_up_days": null,
+        "exposure_value": null,
+        "exposure_unit": "not_applicable",
+        "same_fault_recurred": null
+      },
+      "costs": {
+        "currency": "ZAR",
+        "observation_status": "complete",
+        "parts_minor": 18000,
+        "labour_minor": 42000,
+        "travel_minor": 6000,
+        "freight_minor": 3500,
+        "failed_attempts_minor": 0,
+        "downtime_minor": 9000,
+        "rework_minor": 10000,
+        "waste_handling_minor": 1200,
+        "discarded_material_grams": 320
+      },
+      "preregistration": {
+        "protocol_id": "RESTORE-PILOT-0.1",
+        "protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "frozen_before_outcome": true
+      },
+      "evidence_receipt_ids": [
+        "SYN-RECEIPT-003"
+      ]
+    },
+    {
+      "episode_id": "SYN-REST-003",
+      "evidence_class": "synthetic_fixture",
+      "empirical_eligible": false,
+      "appliance": {
+        "family_id": "F7-RESIDENTIAL-HVAC",
+        "model_token": "SYN-HVAC-A",
+        "revision_token": "SYN-REV-A",
+        "unit_token": "SYN-UNIT-C",
+        "architecture_arm": "HVAC-SERVICE-BOUNDARY"
+      },
+      "fault": {
+        "fault_case_id": "HVAC-ENERGY-01",
+        "symptom_code": "UNKNOWN_HIGH_ENERGY"
+      },
+      "diagnosis": {
+        "status": "safety_stop",
+        "hypotheses_considered": [
+          "electrical_fault",
+          "refrigerant_side_fault"
+        ],
+        "hazard_screen": "stop_now",
+        "diagnostic_receipt_ids": [
+          "SYN-DIAG-003"
+        ]
+      },
+      "intervention": {
+        "status": "not_started",
+        "repair_attempt_started": false,
+        "technician_tier": "owner_user",
+        "action_code": "STOP_AND_REFER",
+        "part_ids": [],
+        "active_labor_minutes": null,
+        "queue_wait_hours": null,
+        "parts_wait_hours": null,
+        "travel_hours": null
+      },
+      "outcome": "safety_stop",
+      "verification": {
+        "core_function_gate": "not_run",
+        "safety_gate": "not_run",
+        "required_test_count": 1,
+        "passed_test_count": 0,
+        "useful_output_metric_id": null,
+        "energy_water_improvement_claimed": false,
+        "measurement_receipt_ids": []
+      },
+      "follow_up": {
+        "status": "not_applicable",
+        "follow_up_days": null,
+        "exposure_value": null,
+        "exposure_unit": "not_applicable",
+        "same_fault_recurred": null
+      },
+      "costs": {
+        "currency": "unknown",
+        "observation_status": "unknown",
+        "parts_minor": null,
+        "labour_minor": null,
+        "travel_minor": null,
+        "freight_minor": null,
+        "failed_attempts_minor": null,
+        "downtime_minor": null,
+        "rework_minor": null,
+        "waste_handling_minor": null,
+        "discarded_material_grams": null
+      },
+      "preregistration": {
+        "protocol_id": "RESTORE-PILOT-0.1",
+        "protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "frozen_before_outcome": true
+      },
+      "evidence_receipt_ids": [
+        "SYN-RECEIPT-004"
+      ]
+    },
+    {
+      "episode_id": "SYN-REST-004",
+      "evidence_class": "synthetic_fixture",
+      "empirical_eligible": false,
+      "appliance": {
+        "family_id": "F5-WASHER-DRYER-COMBO",
+        "model_token": "SYN-COMBO-A",
+        "revision_token": "SYN-REV-A",
+        "unit_token": "SYN-UNIT-D",
+        "architecture_arm": "COMBO-SERVICE-CASSETTE"
+      },
+      "fault": {
+        "fault_case_id": "COMBO-DRYING-05",
+        "symptom_code": "DRYING_OUTPUT_LOW"
+      },
+      "diagnosis": {
+        "status": "verified",
+        "hypotheses_considered": [
+          "airflow_restriction",
+          "sensor_drift"
+        ],
+        "hazard_screen": "clear_within_scope",
+        "diagnostic_receipt_ids": [
+          "SYN-DIAG-004"
+        ]
+      },
+      "intervention": {
+        "status": "completed",
+        "repair_attempt_started": true,
+        "technician_tier": "authorized_specialist",
+        "action_code": "CLEAN_AIR_SIDE_AND_VERIFY",
+        "part_ids": [
+          "AIR_FILTER-CLASS-A"
+        ],
+        "active_labor_minutes": 65,
+        "queue_wait_hours": 8,
+        "parts_wait_hours": 0,
+        "travel_hours": 1
+      },
+      "outcome": "verified_restoration",
+      "verification": {
+        "core_function_gate": "passed",
+        "safety_gate": "passed",
+        "required_test_count": 3,
+        "passed_test_count": 3,
+        "useful_output_metric_id": "combo_dry_output_v1",
+        "energy_water_improvement_claimed": false,
+        "measurement_receipt_ids": [
+          "SYN-MEAS-004"
+        ]
+      },
+      "follow_up": {
+        "status": "lost_to_follow_up",
+        "follow_up_days": 21,
+        "exposure_value": 8,
+        "exposure_unit": "cycles",
+        "same_fault_recurred": null
+      },
+      "costs": {
+        "currency": "ZAR",
+        "observation_status": "partial",
+        "parts_minor": 1500,
+        "labour_minor": null,
+        "travel_minor": 7000,
+        "freight_minor": null,
+        "failed_attempts_minor": 0,
+        "downtime_minor": null,
+        "rework_minor": null,
+        "waste_handling_minor": 150,
+        "discarded_material_grams": null
+      },
+      "preregistration": {
+        "protocol_id": "RESTORE-PILOT-0.1",
+        "protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "frozen_before_outcome": true
+      },
+      "evidence_receipt_ids": [
+        "SYN-RECEIPT-005"
+      ]
+    },
+    {
+      "episode_id": "SYN-REST-005",
+      "evidence_class": "synthetic_fixture",
+      "empirical_eligible": false,
+      "appliance": {
+        "family_id": "F4-HEAT-PUMP-DRYER",
+        "model_token": "SYN-DRYER-A",
+        "revision_token": "SYN-REV-A",
+        "unit_token": "SYN-UNIT-E",
+        "architecture_arm": "AIR_SIDE_SERVICE_CASSETTE"
+      },
+      "fault": {
+        "fault_case_id": "DRYER-AIRFLOW-02",
+        "symptom_code": "DRYING_TIME_HIGH"
+      },
+      "diagnosis": {
+        "status": "verified",
+        "hypotheses_considered": [
+          "blocked_air_path",
+          "humidity_sensor"
+        ],
+        "hazard_screen": "clear_within_scope",
+        "diagnostic_receipt_ids": [
+          "SYN-DIAG-005"
+        ]
+      },
+      "intervention": {
+        "status": "completed",
+        "repair_attempt_started": true,
+        "technician_tier": "authorized_specialist",
+        "action_code": "CLEAN_AIR_PATH_AND_VERIFY",
+        "part_ids": [
+          "AIR_DUCT-CLASS-A"
+        ],
+        "active_labor_minutes": 55,
+        "queue_wait_hours": 3,
+        "parts_wait_hours": 0,
+        "travel_hours": 0
+      },
+      "outcome": "verified_restoration",
+      "verification": {
+        "core_function_gate": "passed",
+        "safety_gate": "passed",
+        "required_test_count": 3,
+        "passed_test_count": 3,
+        "useful_output_metric_id": "dryer_kg_water_removed_v1",
+        "energy_water_improvement_claimed": false,
+        "measurement_receipt_ids": [
+          "SYN-MEAS-005",
+          "SYN-MEAS-006"
+        ]
+      },
+      "follow_up": {
+        "status": "complete",
+        "follow_up_days": 14,
+        "exposure_value": 8,
+        "exposure_unit": "cycles",
+        "same_fault_recurred": true
+      },
+      "costs": {
+        "currency": "ZAR",
+        "observation_status": "complete",
+        "parts_minor": 800,
+        "labour_minor": 21000,
+        "travel_minor": 0,
+        "freight_minor": 0,
+        "failed_attempts_minor": 0,
+        "downtime_minor": 2200,
+        "rework_minor": 0,
+        "waste_handling_minor": 100,
+        "discarded_material_grams": 30
+      },
+      "preregistration": {
+        "protocol_id": "RESTORE-PILOT-0.1",
+        "protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "frozen_before_outcome": true
+      },
+      "evidence_receipt_ids": [
+        "SYN-RECEIPT-006"
+      ]
+    }
+  ],
+  "proposed_benchmarks": [
+    {
+      "id": "RB-001",
+      "metric_id": "median_restoration_time",
+      "target_statement": "At least 25% lower median time to verified restoration than a frozen matched control; hypothesis, not a result.",
+      "status": "proposal_not_frozen",
+      "comparison_scope": "Same fault/task, model revision, workload, starting state and skill tier; report queue, parts wait and active labour separately."
+    },
+    {
+      "id": "RB-002",
+      "metric_id": "p90_restoration_time",
+      "target_statement": "At least 20% lower P90 time to verified restoration than the frozen matched control; hypothesis, not a result.",
+      "status": "proposal_not_frozen",
+      "comparison_scope": "Report sample size, bootstrap interval and all failed/abandoned attempts; do not omit the slow tail."
+    },
+    {
+      "id": "RB-003",
+      "metric_id": "same_fault_recurrence",
+      "target_statement": "Target at least 20% relative reduction in same-fault recurrence after preregistered time and use-exposure windows; hypothesis, not a result.",
+      "status": "proposal_not_frozen",
+      "comparison_scope": "Use a product-appropriate exposure metric plus calendar follow-up; preserve right-censoring and loss-to-follow-up."
+    },
+    {
+      "id": "RB-004",
+      "metric_id": "false_safe_diagnostic",
+      "target_statement": "Zero false-safe recommendations on the frozen finite hazard and contradictory-control corpus; software guardrail only, not a product-safety claim.",
+      "status": "guardrail_contract_only",
+      "comparison_scope": "Publish corpus digest, case census, negative controls and independent reviewer disposition."
+    },
+    {
+      "id": "RB-005",
+      "metric_id": "restoration_receipt_coverage",
+      "target_statement": "100% of positive restoration claims carry both useful-function and safety-verification receipts.",
+      "status": "guardrail_contract_only",
+      "comparison_scope": "Every episode; missing receipts invalidate the positive claim rather than being imputed."
+    },
+    {
+      "id": "RB-006",
+      "metric_id": "safe_user_task_completion",
+      "target_statement": "At least 90% completion of approved low-risk user tasks, counting correct safe referral as a valid outcome when the task crosses a hazard boundary; hypothesis.",
+      "status": "proposal_not_frozen",
+      "comparison_scope": "Representative participants, task definitions frozen in advance, and unsafe attempts recorded separately."
+    },
+    {
+      "id": "RB-007",
+      "metric_id": "whole_episode_cost_per_useful_output",
+      "target_statement": "Lower full-episode cost per verified useful-output unit than control without violating any safety, quality or durability gate; numeric threshold to be frozen after baseline.",
+      "status": "proposal_not_frozen",
+      "comparison_scope": "Include parts, labour, queue and parts delays, travel, freight, failed attempts, rework, downtime, waste and recurring service."
+    }
+  ]
+}

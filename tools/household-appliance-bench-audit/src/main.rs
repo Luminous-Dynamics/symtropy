@@ -11,6 +11,7 @@ mod decision;
 mod faults;
 mod morphology;
 mod portfolio;
+mod restoration;
 mod sourcing;
 mod stakeholder;
 
@@ -505,15 +506,20 @@ fn run() -> Result<(), String> {
     let faults_schema_path = read_arg_path("--faults-schema");
     let faults_curriculum_path = read_arg_path("--faults-curriculum");
     if faults_schema_path.is_some() != faults_curriculum_path.is_some() {
-        return Err(
-            "--faults-schema and --faults-curriculum must be supplied together".to_owned(),
-        );
+        return Err("--faults-schema and --faults-curriculum must be supplied together".to_owned());
     }
     let morphology_schema_path = read_arg_path("--morphology-schema");
     let morphology_portfolio_path = read_arg_path("--morphology-portfolio");
     if morphology_schema_path.is_some() != morphology_portfolio_path.is_some() {
         return Err(
             "--morphology-schema and --morphology-portfolio must be supplied together".to_owned(),
+        );
+    }
+    let restoration_schema_path = read_arg_path("--restoration-schema");
+    let restoration_ledger_path = read_arg_path("--restoration-ledger");
+    if restoration_schema_path.is_some() != restoration_ledger_path.is_some() {
+        return Err(
+            "--restoration-schema and --restoration-ledger must be supplied together".to_owned(),
         );
     }
 
@@ -645,13 +651,13 @@ fn run() -> Result<(), String> {
     {
         let faults_schema_raw = fs::read_to_string(&faults_schema_path)
             .map_err(|error| format!("cannot read {}: {error}", faults_schema_path.display()))?;
-        let faults_curriculum_raw = fs::read_to_string(&faults_curriculum_path)
-            .map_err(|error| format!("cannot read {}: {error}", faults_curriculum_path.display()))?;
-        let faults_summary = faults::audit_fault_curriculum_texts(
-            &faults_schema_raw,
-            &faults_curriculum_raw,
-        )
-        .map_err(|errors| errors.join("\n"))?;
+        let faults_curriculum_raw =
+            fs::read_to_string(&faults_curriculum_path).map_err(|error| {
+                format!("cannot read {}: {error}", faults_curriculum_path.display())
+            })?;
+        let faults_summary =
+            faults::audit_fault_curriculum_texts(&faults_schema_raw, &faults_curriculum_raw)
+                .map_err(|errors| errors.join("\n"))?;
 
         report["washer_fault_to_repair_curriculum"] = json!({
             "status": "PASS_FAULT_CURRICULUM_CONTRACT_ONLY",
@@ -672,15 +678,20 @@ fn run() -> Result<(), String> {
     if let (Some(morphology_schema_path), Some(morphology_portfolio_path)) =
         (morphology_schema_path, morphology_portfolio_path)
     {
-        let morphology_schema_raw = fs::read_to_string(&morphology_schema_path)
-            .map_err(|error| format!("cannot read {}: {error}", morphology_schema_path.display()))?;
-        let morphology_portfolio_raw = fs::read_to_string(&morphology_portfolio_path)
-            .map_err(|error| format!("cannot read {}: {error}", morphology_portfolio_path.display()))?;
-        let morphology_summary = morphology::audit_morphology_texts(
-            &morphology_schema_raw,
-            &morphology_portfolio_raw,
-        )
-        .map_err(|errors| errors.join("\n"))?;
+        let morphology_schema_raw =
+            fs::read_to_string(&morphology_schema_path).map_err(|error| {
+                format!("cannot read {}: {error}", morphology_schema_path.display())
+            })?;
+        let morphology_portfolio_raw =
+            fs::read_to_string(&morphology_portfolio_path).map_err(|error| {
+                format!(
+                    "cannot read {}: {error}",
+                    morphology_portfolio_path.display()
+                )
+            })?;
+        let morphology_summary =
+            morphology::audit_morphology_texts(&morphology_schema_raw, &morphology_portfolio_raw)
+                .map_err(|errors| errors.join("\n"))?;
 
         report["cross_appliance_morphology"] = json!({
             "status": "PASS_MORPHOLOGY_CONTRACT_ONLY",
@@ -694,6 +705,40 @@ fn run() -> Result<(), String> {
             "portfolio_path": morphology_portfolio_path.display().to_string(),
             "physical_interchangeability_established": false,
             "winner_declared": false
+        });
+    }
+
+    if let (Some(restoration_schema_path), Some(restoration_ledger_path)) =
+        (restoration_schema_path, restoration_ledger_path)
+    {
+        let restoration_schema_raw = fs::read_to_string(&restoration_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", restoration_schema_path.display()))?;
+        let restoration_ledger_raw = fs::read_to_string(&restoration_ledger_path)
+            .map_err(|error| format!("cannot read {}: {error}", restoration_ledger_path.display()))?;
+        let restoration_summary = restoration::audit_restoration_texts(
+            &restoration_schema_raw,
+            &restoration_ledger_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["repair_restoration_evidence"] = json!({
+            "status": "PASS_SYNTHETIC_RESTORATION_CONTRACT_ONLY",
+            "episode_count": restoration_summary.episode_count,
+            "synthetic_episode_count": restoration_summary.synthetic_episode_count,
+            "empirical_episode_count": restoration_summary.empirical_episode_count,
+            "started_attempt_count_in_synthetic_fixture": restoration_summary.started_attempt_count,
+            "verified_restoration_examples_in_synthetic_fixture": restoration_summary.verified_restoration_example_count,
+            "completed_followup_examples_in_synthetic_fixture": restoration_summary.completed_followup_example_count,
+            "recurrence_examples_in_synthetic_fixture": restoration_summary.recurrence_example_count,
+            "durable_success_examples_in_synthetic_fixture": restoration_summary.durable_success_example_count,
+            "benchmark_count": restoration_summary.benchmark_count,
+            "schema_sha256": restoration_summary.schema_sha256,
+            "ledger_sha256": restoration_summary.ledger_sha256,
+            "schema_path": restoration_schema_path.display().to_string(),
+            "ledger_path": restoration_ledger_path.display().to_string(),
+            "physical_repair_outcomes_established": false,
+            "product_safety_assessed": false,
+            "architecture_winner_declared": false
         });
     }
 

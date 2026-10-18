@@ -40,7 +40,10 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
         return Err(format!("fault curriculum schema $id must be {SCHEMA_ID}"));
     }
     if !jsonschema::draft202012::meta::is_valid(schema) {
-        return Err("fault curriculum schema does not validate against the Draft 2020-12 meta-schema".to_owned());
+        return Err(
+            "fault curriculum schema does not validate against the Draft 2020-12 meta-schema"
+                .to_owned(),
+        );
     }
     jsonschema::draft202012::options()
         .should_validate_formats(true)
@@ -73,16 +76,21 @@ fn audit_values(
         || text_at(curriculum, "claim_ceiling")
             != Some("no_local_prevalence_no_physical_repair_or_superiority_claim")
     {
-        errors.push("fault curriculum cannot claim prevalence, physical repair results or superiority".to_owned());
+        errors.push(
+            "fault curriculum cannot claim prevalence, physical repair results or superiority"
+                .to_owned(),
+        );
     }
-    if text_at(curriculum, "selection_basis")
-        != Some("coverage_balanced_not_prevalence_weighted")
-    {
-        errors.push("fault curriculum must remain coverage-balanced, not prevalence-weighted".to_owned());
+    if text_at(curriculum, "selection_basis") != Some("coverage_balanced_not_prevalence_weighted") {
+        errors.push(
+            "fault curriculum must remain coverage-balanced, not prevalence-weighted".to_owned(),
+        );
     }
 
     let Some(references) = curriculum.get("references").and_then(Value::as_array) else {
-        return Err(vec!["fault curriculum references must be an array".to_owned()]);
+        return Err(vec![
+            "fault curriculum references must be an array".to_owned(),
+        ]);
     };
     let mut reference_ids = BTreeSet::new();
     for reference in references {
@@ -92,23 +100,30 @@ fn audit_values(
             }
         }
     }
-    let study_scope = references.iter().find(|reference| {
-        text_at(reference, "id") == Some("REPAIR-DIAG-11K")
-    });
-    let scope_note = study_scope.and_then(|reference| text_at(reference, "scope_note"))
+    let study_scope = references
+        .iter()
+        .find(|reference| text_at(reference, "id") == Some("REPAIR-DIAG-11K"));
+    let scope_note = study_scope
+        .and_then(|reference| text_at(reference, "scope_note"))
         .unwrap_or("")
         .to_ascii_lowercase();
     if !scope_note.contains("not a target-market prevalence")
         || !scope_note.contains("calibrated washer prior")
     {
-        errors.push("11k diagnosis source must retain target-market prevalence/calibration caveat".to_owned());
+        errors.push(
+            "11k diagnosis source must retain target-market prevalence/calibration caveat"
+                .to_owned(),
+        );
     }
 
     let Some(tasks) = curriculum.get("tasks").and_then(Value::as_array) else {
         return Err(vec!["fault curriculum tasks must be an array".to_owned()]);
     };
     if tasks.len() != EXPECTED_TASKS.len() {
-        errors.push(format!("fault curriculum must contain {} task families", EXPECTED_TASKS.len()));
+        errors.push(format!(
+            "fault curriculum must contain {} task families",
+            EXPECTED_TASKS.len()
+        ));
     }
     let mut task_ids = BTreeSet::new();
     let mut user_tier_count = 0usize;
@@ -144,8 +159,14 @@ fn audit_values(
             .flatten()
             .filter_map(Value::as_str)
             .collect();
-        if task_refs.is_empty() || task_refs.iter().any(|reference| !reference_ids.contains(*reference)) {
-            errors.push(format!("{id}: source_ids must reference known curriculum sources"));
+        if task_refs.is_empty()
+            || task_refs
+                .iter()
+                .any(|reference| !reference_ids.contains(*reference))
+        {
+            errors.push(format!(
+                "{id}: source_ids must reference known curriculum sources"
+            ));
         }
         for (field, minimum) in [
             ("competing_hypotheses", 2usize),
@@ -153,22 +174,37 @@ fn audit_values(
             ("repair_scope_options", 2usize),
             ("post_repair_verification", 2usize),
         ] {
-            if task.get(field).and_then(Value::as_array).is_none_or(|items| items.len() < minimum) {
-                errors.push(format!("{id}: {field} must retain at least {minimum} entries"));
+            if task
+                .get(field)
+                .and_then(Value::as_array)
+                .is_none_or(|items| items.len() < minimum)
+            {
+                errors.push(format!(
+                    "{id}: {field} must retain at least {minimum} entries"
+                ));
             }
         }
-        let boundary = text_at(task, "hazard_boundary").unwrap_or("").to_ascii_lowercase();
+        let boundary = text_at(task, "hazard_boundary")
+            .unwrap_or("")
+            .to_ascii_lowercase();
         if !boundary.contains("qualified")
-            && (boundary.contains("mains") || boundary.contains("heater") || boundary.contains("rotating"))
+            && (boundary.contains("mains")
+                || boundary.contains("heater")
+                || boundary.contains("rotating"))
         {
-            errors.push(format!("{id}: hazardous task boundary must identify qualified-service controls"));
+            errors.push(format!(
+                "{id}: hazardous task boundary must identify qualified-service controls"
+            ));
         }
         if text_at(task, "service_tier") == Some("U0") {
             if !boundary.contains("user")
                 || boundary.contains("may open internal mains")
                 || boundary.contains("may perform refrigerant charging")
             {
-                errors.push("U0 task boundary must remain limited to intended safe user maintenance".to_owned());
+                errors.push(
+                    "U0 task boundary must remain limited to intended safe user maintenance"
+                        .to_owned(),
+                );
             }
         }
     }
@@ -190,7 +226,10 @@ fn audit_values(
             != Some("no_prevalence_weights_without_validated_target_market_denominator")
         || text_at(policy, "unknown_policy") != Some("unknown_not_zero")
         || text_at(policy, "safety_gate") != Some("non_compensatory")
-        || policy.get("success_receipt_required").and_then(Value::as_bool) != Some(true)
+        || policy
+            .get("success_receipt_required")
+            .and_then(Value::as_bool)
+            != Some(true)
     {
         errors.push("fault measurement policy must preserve class coverage, unknown-not-zero, hard safety gates and repair receipts".to_owned());
     }
@@ -227,9 +266,8 @@ mod tests {
     const SCHEMA: &str = include_str!(
         "../../../schemas/appliances/washer_fault_to_repair_curriculum_v0_1.schema.json"
     );
-    const CURRICULUM: &str = include_str!(
-        "../../../fixtures/appliances/washer_fault_to_repair_curriculum_v0_1.json"
-    );
+    const CURRICULUM: &str =
+        include_str!("../../../fixtures/appliances/washer_fault_to_repair_curriculum_v0_1.json");
 
     fn canonical_curriculum() -> Value {
         serde_json::from_str(CURRICULUM).expect("fault curriculum must parse")
@@ -283,7 +321,8 @@ mod tests {
     fn a_qualified_internal_task_cannot_be_downgraded_to_user_maintenance() {
         let mut curriculum = canonical_curriculum();
         curriculum["tasks"][6]["service_tier"] = json!("U0");
-        let errors = audit_mutation(&curriculum).expect_err("drive internals must remain qualified");
+        let errors =
+            audit_mutation(&curriculum).expect_err("drive internals must remain qualified");
         assert!(!errors.is_empty());
     }
 
@@ -299,7 +338,8 @@ mod tests {
     fn missing_competing_diagnostic_hypothesis_is_rejected() {
         let mut curriculum = canonical_curriculum();
         curriculum["tasks"][7]["competing_hypotheses"] = json!(["bearing wear"]);
-        let errors = audit_mutation(&curriculum).expect_err("single hypothesis is not a diagnostic task");
+        let errors =
+            audit_mutation(&curriculum).expect_err("single hypothesis is not a diagnostic task");
         assert!(!errors.is_empty());
     }
 
