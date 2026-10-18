@@ -8,9 +8,7 @@
 //! Bevy version.
 
 use bevy::{
-    camera_controller::pan_orbit_camera::{
-        DefaultPanOrbitCameraPlugins, prelude::PanOrbitCamera,
-    },
+    camera_controller::pan_orbit_camera::{DefaultPanOrbitCameraPlugins, prelude::PanOrbitCamera},
     prelude::*,
 };
 use std::env;
@@ -144,18 +142,16 @@ fn setup_probe(
     for index in 0..config.object_count {
         let column = index % columns;
         let row = index / columns;
-        let x = column as f32 * GRID_SPACING
-            - (columns.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
-        let z = row as f32 * GRID_SPACING
-            - (rows.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
+        let x =
+            column as f32 * GRID_SPACING - (columns.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
+        let z = row as f32 * GRID_SPACING - (rows.saturating_sub(1) as f32 * GRID_SPACING * 0.5);
         let material = material_handles[index % material_handles.len()].clone();
         let scale_y = if index % 11 == 0 { 1.45 } else { 1.0 };
 
         commands.spawn((
             Mesh3d(cube_mesh.clone()),
             MeshMaterial3d(material),
-            Transform::from_xyz(x, 0.4 * scale_y, z)
-                .with_scale(Vec3::new(1.0, scale_y, 1.0)),
+            Transform::from_xyz(x, 0.4 * scale_y, z).with_scale(Vec3::new(1.0, scale_y, 1.0)),
         ));
     }
 
@@ -163,7 +159,11 @@ fn setup_probe(
         Text::new(format!(
             "BEVY-020-PROBE | {} objects | shadows {} | drag to orbit / pan / zoom",
             config.object_count,
-            if config.shadow_maps_enabled { "on" } else { "off" }
+            if config.shadow_maps_enabled {
+                "on"
+            } else {
+                "off"
+            }
         )),
         TextFont {
             font_size: FontSize::Px(18.0),
