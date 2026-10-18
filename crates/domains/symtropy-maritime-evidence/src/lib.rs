@@ -809,7 +809,7 @@ fn same_semantic_value(left: &PcoObservation, right: &PcoObservation) -> bool {
             a_meaning == b_meaning
                 && a.utc_unix_nanos == b.utc_unix_nanos
                 && left.location_context == right.location_context
-        
+        }
         _ => false,
     }
 }
