@@ -15,15 +15,25 @@ type Check<T> = Result<T, String>;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum AssayState { Quantified, BelowDetection }
+enum AssayState {
+    Quantified,
+    BelowDetection,
+}
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum PlanStatus { Feasible, NoFeasibleBlend }
+enum PlanStatus {
+    Feasible,
+    NoFeasibleBlend,
+}
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum OracleStatus { Optimal, NoFeasibleBlend, IndeterminateSearchLimit }
+enum OracleStatus {
+    Optimal,
+    NoFeasibleBlend,
+    IndeterminateSearchLimit,
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -83,7 +93,10 @@ struct Lot {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-struct LotTake { lot_id: String, tonnes: u32 }
+struct LotTake {
+    lot_id: String,
+    tonnes: u32,
+}
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -98,7 +111,10 @@ struct ChoiceMetrics {
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-struct Choice { selection: Vec<LotTake>, metrics: ChoiceMetrics }
+struct Choice {
+    selection: Vec<LotTake>,
+    metrics: ChoiceMetrics,
+}
 
 #[derive(Debug, Clone, Serialize)]
 struct ScenarioResult {
@@ -130,7 +146,9 @@ struct Receipt {
     scenarios: Vec<ScenarioResult>,
 }
 
-fn nonempty(value: &str) -> bool { !value.trim().is_empty() }
+fn nonempty(value: &str) -> bool {
+    !value.trim().is_empty()
+}
 fn option_nonempty(value: &Option<String>) -> bool {
     value.as_ref().is_some_and(|value| nonempty(value))
 }
@@ -153,9 +171,15 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         || corpus.scenarios.is_empty()
         || corpus.search_node_limit == 0
         || corpus.search_node_limit > SEARCH_NODE_LIMIT
-    { return Err("invalid corpus metadata or search limit".to_owned()); }
+    {
+        return Err("invalid corpus metadata or search limit".to_owned());
+    }
 
-    let scenario_ids: Vec<_> = corpus.scenarios.iter().map(|s| s.scenario_id.clone()).collect();
+    let scenario_ids: Vec<_> = corpus
+        .scenarios
+        .iter()
+        .map(|s| s.scenario_id.clone())
+        .collect();
     unique_nonempty(&scenario_ids, "corpus.scenario_id")?;
     for scenario in &corpus.scenarios {
         if !nonempty(&scenario.scenario_id)
@@ -169,35 +193,73 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             || scenario.maximum_contaminant_ppm > PPM
             || scenario.lots.is_empty()
             || scenario.lots.len() > 64
-        { return Err(format!("{}: invalid scenario envelope", scenario.scenario_id)); }
+        {
+            return Err(format!(
+                "{}: invalid scenario envelope",
+                scenario.scenario_id
+            ));
+        }
 
         let lot_ids: Vec<_> = scenario.lots.iter().map(|lot| lot.lot_id.clone()).collect();
         unique_nonempty(&lot_ids, &format!("{}.lot_id", scenario.scenario_id))?;
         for lot in &scenario.lots {
-            if !nonempty(&lot.lot_id) || !nonempty(&lot.sample_lot_id)
+            if !nonempty(&lot.lot_id)
+                || !nonempty(&lot.sample_lot_id)
                 || lot.available_tonnes > MAX_CAPACITY_TONNES
-            { return Err(format!("{}: invalid lot identity or availability", scenario.scenario_id)); }
+            {
+                return Err(format!(
+                    "{}: invalid lot identity or availability",
+                    scenario.scenario_id
+                ));
+            }
         }
-        validate_expected_selection(scenario, &scenario.expected_baseline_selection, "expected_baseline_selection")?;
-        validate_expected_selection(scenario, &scenario.expected_oracle_selection, "expected_oracle_selection")?;
+        validate_expected_selection(
+            scenario,
+            &scenario.expected_baseline_selection,
+            "expected_baseline_selection",
+        )?;
+        validate_expected_selection(
+            scenario,
+            &scenario.expected_oracle_selection,
+            "expected_oracle_selection",
+        )?;
         for (lot_id, reasons) in &scenario.expected_lot_block_reasons {
             if !lot_ids.contains(lot_id) || reasons.is_empty() {
-                return Err(format!("{}: invalid expected lot-block record", scenario.scenario_id));
+                return Err(format!(
+                    "{}: invalid expected lot-block record",
+                    scenario.scenario_id
+                ));
             }
-            unique_nonempty(reasons, &format!("{}.expected_lot_block_reasons.{lot_id}", scenario.scenario_id))?;
+            unique_nonempty(
+                reasons,
+                &format!(
+                    "{}.expected_lot_block_reasons.{lot_id}",
+                    scenario.scenario_id
+                ),
+            )?;
         }
     }
     Ok(())
 }
 
-fn validate_expected_selection(scenario: &Scenario, selection: &[LotTake], field: &str) -> Check<()> {
+fn validate_expected_selection(
+    scenario: &Scenario,
+    selection: &[LotTake],
+    field: &str,
+) -> Check<()> {
     let mut previous: Option<&str> = None;
     for take in selection {
         if take.tonnes == 0 || !scenario.lots.iter().any(|lot| lot.lot_id == take.lot_id) {
-            return Err(format!("{}.{}: invalid expected lot take", scenario.scenario_id, field));
+            return Err(format!(
+                "{}.{}: invalid expected lot take",
+                scenario.scenario_id, field
+            ));
         }
         if previous.is_some_and(|id| id >= take.lot_id.as_str()) {
-            return Err(format!("{}.{}: IDs must be unique and sorted", scenario.scenario_id, field));
+            return Err(format!(
+                "{}.{}: IDs must be unique and sorted",
+                scenario.scenario_id, field
+            ));
         }
         previous = Some(&take.lot_id);
     }
@@ -206,10 +268,18 @@ fn validate_expected_selection(scenario: &Scenario, selection: &[LotTake], field
 
 fn lot_block_reasons(lot: &Lot) -> Vec<String> {
     let mut reasons = BTreeSet::new();
-    if !lot.analytical_qc_pass { reasons.insert("ASSAY_QC_UNRESOLVED".to_owned()); }
-    if lot.sample_lot_id != lot.lot_id { reasons.insert("SAMPLE_LOT_MISMATCH".to_owned()); }
-    if !lot.dry_basis { reasons.insert("ASSAY_BASIS_NOT_DRY".to_owned()); }
-    if !option_nonempty(&lot.source_record_ref) { reasons.insert("ASSAY_SOURCE_MISSING".to_owned()); }
+    if !lot.analytical_qc_pass {
+        reasons.insert("ASSAY_QC_UNRESOLVED".to_owned());
+    }
+    if lot.sample_lot_id != lot.lot_id {
+        reasons.insert("SAMPLE_LOT_MISMATCH".to_owned());
+    }
+    if !lot.dry_basis {
+        reasons.insert("ASSAY_BASIS_NOT_DRY".to_owned());
+    }
+    if !option_nonempty(&lot.source_record_ref) {
+        reasons.insert("ASSAY_SOURCE_MISSING".to_owned());
+    }
     if lot.grade_lower_ppm > lot.grade_upper_ppm || lot.grade_upper_ppm > PPM {
         reasons.insert("GRADE_INTERVAL_INVALID".to_owned());
     }
@@ -221,10 +291,14 @@ fn lot_block_reasons(lot: &Lot) -> Vec<String> {
             reasons.insert("DETECTION_STATE_INVALID".to_owned());
         }
         AssayState::Quantified => {}
-        AssayState::BelowDetection if lot.detection_limit_ppm == 0
-            || lot.grade_lower_ppm != 0 || lot.grade_upper_ppm == 0
-            || lot.grade_upper_ppm > lot.detection_limit_ppm =>
-        { reasons.insert("DETECTION_LIMIT_BOUNDS_INVALID".to_owned()); }
+        AssayState::BelowDetection
+            if lot.detection_limit_ppm == 0
+                || lot.grade_lower_ppm != 0
+                || lot.grade_upper_ppm == 0
+                || lot.grade_upper_ppm > lot.detection_limit_ppm =>
+        {
+            reasons.insert("DETECTION_LIMIT_BOUNDS_INVALID".to_owned());
+        }
         AssayState::BelowDetection => {}
     }
     if lot.recovery_lower_ppm > lot.recovery_upper_ppm || lot.recovery_upper_ppm > PPM {
@@ -251,10 +325,14 @@ fn lot_block_reasons_for(scenario: &Scenario, lot: &Lot) -> Vec<String> {
 }
 
 fn all_lot_block_reasons(scenario: &Scenario) -> BTreeMap<String, Vec<String>> {
-    scenario.lots.iter().filter_map(|lot| {
-        let reasons = lot_block_reasons_for(scenario, lot);
-        (!reasons.is_empty()).then(|| (lot.lot_id.clone(), reasons))
-    }).collect()
+    scenario
+        .lots
+        .iter()
+        .filter_map(|lot| {
+            let reasons = lot_block_reasons_for(scenario, lot);
+            (!reasons.is_empty()).then(|| (lot.lot_id.clone(), reasons))
+        })
+        .collect()
 }
 
 fn lot_index(scenario: &Scenario, lot_id: &str) -> Option<usize> {
@@ -262,16 +340,29 @@ fn lot_index(scenario: &Scenario, lot_id: &str) -> Option<usize> {
 }
 
 fn selection_from_quantities(scenario: &Scenario, quantities: &[u32]) -> Vec<LotTake> {
-    let mut selection: Vec<_> = scenario.lots.iter().zip(quantities)
-        .filter_map(|(lot, tonnes)| (*tonnes > 0).then(|| LotTake {
-            lot_id: lot.lot_id.clone(), tonnes: *tonnes,
-        })).collect();
+    let mut selection: Vec<_> = scenario
+        .lots
+        .iter()
+        .zip(quantities)
+        .filter_map(|(lot, tonnes)| {
+            (*tonnes > 0).then(|| LotTake {
+                lot_id: lot.lot_id.clone(),
+                tonnes: *tonnes,
+            })
+        })
+        .collect();
     selection.sort_by(|a, b| a.lot_id.cmp(&b.lot_id));
     selection
 }
 
-fn metrics_for_quantities(s: &Scenario, quantities: &[u32], enforce_minimum: bool) -> Option<ChoiceMetrics> {
-    if quantities.len() != s.lots.len() { return None; }
+fn metrics_for_quantities(
+    s: &Scenario,
+    quantities: &[u32],
+    enforce_minimum: bool,
+) -> Option<ChoiceMetrics> {
+    if quantities.len() != s.lots.len() {
+        return None;
+    }
     let blocked = all_lot_block_reasons(s);
     let mut total = 0_u64;
     let mut grade_sum = 0_u64;
@@ -281,25 +372,34 @@ fn metrics_for_quantities(s: &Scenario, quantities: &[u32], enforce_minimum: boo
     let mut water = 0_u64;
 
     for (lot, quantity) in s.lots.iter().zip(quantities) {
-        if *quantity == 0 { continue; }
-        if *quantity > lot.available_tonnes || blocked.contains_key(&lot.lot_id) { return None; }
+        if *quantity == 0 {
+            continue;
+        }
+        if *quantity > lot.available_tonnes || blocked.contains_key(&lot.lot_id) {
+            return None;
+        }
         let q = u64::from(*quantity);
         total = total.checked_add(q)?;
         grade_sum = grade_sum.checked_add(q.checked_mul(lot.grade_lower_ppm)?)?;
         contaminant_sum = contaminant_sum.checked_add(q.checked_mul(lot.contaminant_upper_ppm)?)?;
         recovery_score = recovery_score.checked_add(
-            q.checked_mul(lot.grade_lower_ppm)?.checked_mul(lot.recovery_lower_ppm)?,
+            q.checked_mul(lot.grade_lower_ppm)?
+                .checked_mul(lot.recovery_lower_ppm)?,
         )?;
         energy = energy.checked_add(q.checked_mul(u64::from(lot.specific_energy_upper))?)?;
         water = water.checked_add(q.checked_mul(u64::from(lot.specific_water_upper))?)?;
     }
 
-    if total == 0 || total > u64::from(s.feed_capacity_tonnes)
+    if total == 0
+        || total > u64::from(s.feed_capacity_tonnes)
         || (enforce_minimum && total < u64::from(s.minimum_feed_tonnes))
         || grade_sum < total.checked_mul(s.minimum_grade_ppm)?
         || contaminant_sum > total.checked_mul(s.maximum_contaminant_ppm)?
-        || energy > s.maximum_energy_units || water > s.maximum_water_units
-    { return None; }
+        || energy > s.maximum_energy_units
+        || water > s.maximum_water_units
+    {
+        return None;
+    }
 
     Some(ChoiceMetrics {
         total_feed_tonnes: total,
@@ -325,7 +425,8 @@ fn partial_admissible(s: &Scenario, quantities: &[u32]) -> bool {
 fn greedy_high_grade_baseline(s: &Scenario) -> Choice {
     let blocked = all_lot_block_reasons(s);
     let mut order: Vec<usize> = (0..s.lots.len())
-        .filter(|i| !blocked.contains_key(&s.lots[*i].lot_id)).collect();
+        .filter(|i| !blocked.contains_key(&s.lots[*i].lot_id))
+        .collect();
     order.sort_by(|a, b| {
         let x = &s.lots[*a];
         let y = &s.lots[*b];
@@ -338,7 +439,9 @@ fn greedy_high_grade_baseline(s: &Scenario) -> Choice {
         let lot = &s.lots[index];
         loop {
             let total: u64 = quantities.iter().map(|q| u64::from(*q)).sum();
-            if quantities[index] >= lot.available_tonnes || total >= u64::from(s.feed_capacity_tonnes) {
+            if quantities[index] >= lot.available_tonnes
+                || total >= u64::from(s.feed_capacity_tonnes)
+            {
                 break;
             }
             quantities[index] += 1;
@@ -352,15 +455,33 @@ fn greedy_high_grade_baseline(s: &Scenario) -> Choice {
 }
 
 fn signature(choice: &Choice) -> String {
-    choice.selection.iter().map(|take| format!("{}:{}", take.lot_id, take.tonnes))
-        .collect::<Vec<_>>().join("|")
+    choice
+        .selection
+        .iter()
+        .map(|take| format!("{}:{}", take.lot_id, take.tonnes))
+        .collect::<Vec<_>>()
+        .join("|")
 }
 
 fn compare_choices(a: &Choice, b: &Choice) -> Ordering {
-    b.metrics.recovered_lower_score.cmp(&a.metrics.recovered_lower_score)
-        .then_with(|| a.metrics.worst_case_energy_units.cmp(&b.metrics.worst_case_energy_units))
-        .then_with(|| a.metrics.worst_case_water_units.cmp(&b.metrics.worst_case_water_units))
-        .then_with(|| a.metrics.total_feed_tonnes.cmp(&b.metrics.total_feed_tonnes))
+    b.metrics
+        .recovered_lower_score
+        .cmp(&a.metrics.recovered_lower_score)
+        .then_with(|| {
+            a.metrics
+                .worst_case_energy_units
+                .cmp(&b.metrics.worst_case_energy_units)
+        })
+        .then_with(|| {
+            a.metrics
+                .worst_case_water_units
+                .cmp(&b.metrics.worst_case_water_units)
+        })
+        .then_with(|| {
+            a.metrics
+                .total_feed_tonnes
+                .cmp(&b.metrics.total_feed_tonnes)
+        })
         .then_with(|| signature(a).cmp(&signature(b)))
 }
 
@@ -375,12 +496,21 @@ struct Search<'a> {
 
 impl Search<'_> {
     fn visit(&mut self, index: usize) {
-        if self.exhausted { return; }
+        if self.exhausted {
+            return;
+        }
         if index == self.scenario.lots.len() {
-            if self.nodes >= self.limit { self.exhausted = true; return; }
+            if self.nodes >= self.limit {
+                self.exhausted = true;
+                return;
+            }
             self.nodes += 1;
             if let Some(candidate) = choice_from_quantities(self.scenario, &self.quantities) {
-                if self.best.as_ref().is_none_or(|best| compare_choices(&candidate, best) == Ordering::Less) {
+                if self
+                    .best
+                    .as_ref()
+                    .is_none_or(|best| compare_choices(&candidate, best) == Ordering::Less)
+                {
                     self.best = Some(candidate);
                 }
             }
@@ -389,11 +519,15 @@ impl Search<'_> {
         let lot = &self.scenario.lots[index];
         let maximum = if lot_block_reasons_for(self.scenario, lot).is_empty() {
             lot.available_tonnes.min(self.scenario.feed_capacity_tonnes)
-        } else { 0 };
+        } else {
+            0
+        };
         for tonnes in 0..=maximum {
             self.quantities[index] = tonnes;
             self.visit(index + 1);
-            if self.exhausted { return; }
+            if self.exhausted {
+                return;
+            }
         }
         self.quantities[index] = 0;
     }
@@ -401,21 +535,33 @@ impl Search<'_> {
 
 fn exhaustive_oracle(s: &Scenario, limit: u64) -> (Option<Choice>, u64, bool) {
     let mut search = Search {
-        scenario: s, quantities: vec![0; s.lots.len()], nodes: 0, limit,
-        exhausted: false, best: None,
+        scenario: s,
+        quantities: vec![0; s.lots.len()],
+        nodes: 0,
+        limit,
+        exhausted: false,
+        best: None,
     };
     search.visit(0);
     (search.best, search.nodes, search.exhausted)
 }
 
 fn actual_oracle_status(best: &Option<Choice>, exhausted: bool) -> OracleStatus {
-    if exhausted { OracleStatus::IndeterminateSearchLimit }
-    else if best.is_some() { OracleStatus::Optimal }
-    else { OracleStatus::NoFeasibleBlend }
+    if exhausted {
+        OracleStatus::IndeterminateSearchLimit
+    } else if best.is_some() {
+        OracleStatus::Optimal
+    } else {
+        OracleStatus::NoFeasibleBlend
+    }
 }
 
 fn baseline_status(choice: &Choice) -> PlanStatus {
-    if choice.selection.is_empty() { PlanStatus::NoFeasibleBlend } else { PlanStatus::Feasible }
+    if choice.selection.is_empty() {
+        PlanStatus::NoFeasibleBlend
+    } else {
+        PlanStatus::Feasible
+    }
 }
 
 fn independently_recompute(s: &Scenario, selection: &[LotTake]) -> Check<ChoiceMetrics> {
@@ -435,31 +581,51 @@ fn independently_recompute(s: &Scenario, selection: &[LotTake]) -> Check<ChoiceM
             .ok_or_else(|| format!("unknown selected lot {}", take.lot_id))?;
         let lot = &s.lots[index];
         if take.tonnes > lot.available_tonnes || !lot_block_reasons_for(s, lot).is_empty() {
-            return Err(format!("selected lot is unavailable or inadmissible: {}", lot.lot_id));
+            return Err(format!(
+                "selected lot is unavailable or inadmissible: {}",
+                lot.lot_id
+            ));
         }
         let mass = u64::from(take.tonnes);
-        total = total.checked_add(mass).ok_or_else(|| "mass sum overflow".to_owned())?;
-        grade_sum = grade_sum.checked_add(mass.checked_mul(lot.grade_lower_ppm)
-            .ok_or_else(|| "grade numerator overflow".to_owned())?)
+        total = total
+            .checked_add(mass)
+            .ok_or_else(|| "mass sum overflow".to_owned())?;
+        grade_sum = grade_sum
+            .checked_add(
+                mass.checked_mul(lot.grade_lower_ppm)
+                    .ok_or_else(|| "grade numerator overflow".to_owned())?,
+            )
             .ok_or_else(|| "grade sum overflow".to_owned())?;
-        contaminant_sum = contaminant_sum.checked_add(mass.checked_mul(lot.contaminant_upper_ppm)
-            .ok_or_else(|| "contaminant numerator overflow".to_owned())?)
+        contaminant_sum = contaminant_sum
+            .checked_add(
+                mass.checked_mul(lot.contaminant_upper_ppm)
+                    .ok_or_else(|| "contaminant numerator overflow".to_owned())?,
+            )
             .ok_or_else(|| "contaminant sum overflow".to_owned())?;
-        recovery_score = recovery_score.checked_add(mass.checked_mul(lot.grade_lower_ppm)
-            .and_then(|x| x.checked_mul(lot.recovery_lower_ppm))
-            .ok_or_else(|| "recovery score overflow".to_owned())?)
+        recovery_score = recovery_score
+            .checked_add(
+                mass.checked_mul(lot.grade_lower_ppm)
+                    .and_then(|x| x.checked_mul(lot.recovery_lower_ppm))
+                    .ok_or_else(|| "recovery score overflow".to_owned())?,
+            )
             .ok_or_else(|| "recovery sum overflow".to_owned())?;
-        energy = energy.checked_add(mass * u64::from(lot.specific_energy_upper))
+        energy = energy
+            .checked_add(mass * u64::from(lot.specific_energy_upper))
             .ok_or_else(|| "energy sum overflow".to_owned())?;
-        water = water.checked_add(mass * u64::from(lot.specific_water_upper))
+        water = water
+            .checked_add(mass * u64::from(lot.specific_water_upper))
             .ok_or_else(|| "water sum overflow".to_owned())?;
     }
 
-    if total < u64::from(s.minimum_feed_tonnes) || total > u64::from(s.feed_capacity_tonnes)
+    if total < u64::from(s.minimum_feed_tonnes)
+        || total > u64::from(s.feed_capacity_tonnes)
         || grade_sum < total * s.minimum_grade_ppm
         || contaminant_sum > total * s.maximum_contaminant_ppm
-        || energy > s.maximum_energy_units || water > s.maximum_water_units
-    { return Err("independent reconstruction found a hard-constraint violation".to_owned()); }
+        || energy > s.maximum_energy_units
+        || water > s.maximum_water_units
+    {
+        return Err("independent reconstruction found a hard-constraint violation".to_owned());
+    }
 
     Ok(ChoiceMetrics {
         total_feed_tonnes: total,
@@ -473,8 +639,11 @@ fn independently_recompute(s: &Scenario, selection: &[LotTake]) -> Check<ChoiceM
 
 fn independently_validate_choice(s: &Scenario, choice: &Choice) -> Check<()> {
     if choice.selection.is_empty() {
-        return if choice.metrics == ChoiceMetrics::default() { Ok(()) }
-            else { Err("empty selection claims non-zero metrics".to_owned()) };
+        return if choice.metrics == ChoiceMetrics::default() {
+            Ok(())
+        } else {
+            Err("empty selection claims non-zero metrics".to_owned())
+        };
     }
     let recomputed = independently_recompute(s, &choice.selection)?;
     if recomputed != choice.metrics {
@@ -513,7 +682,9 @@ fn analyze_scenario(s: &Scenario, search_limit: u64) -> Check<ScenarioResult> {
 
 fn source_commit_from_args(args: &[String]) -> Check<String> {
     if args.len() != 4 || args[2] != "--source-commit" {
-        return Err("usage: ore-feed-blend-bench <corpus.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: ore-feed-blend-bench <corpus.json> --source-commit <40-hex-sha>".to_owned(),
+        );
     }
     let value = args[3].to_ascii_lowercase();
     if value.len() != 40 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -525,21 +696,32 @@ fn source_commit_from_args(args: &[String]) -> Check<String> {
 fn run() -> Check<ExitCode> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
-        return Err("usage: ore-feed-blend-bench <corpus.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: ore-feed-blend-bench <corpus.json> --source-commit <40-hex-sha>".to_owned(),
+        );
     }
     let source_commit = source_commit_from_args(&args)?;
     let bytes = fs::read(&args[1]).map_err(|e| format!("cannot read corpus: {e}"))?;
-    let corpus: Corpus = serde_json::from_slice(&bytes)
-        .map_err(|e| format!("invalid corpus JSON: {e}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(&bytes).map_err(|e| format!("invalid corpus JSON: {e}"))?;
     validate_corpus(&corpus)?;
     let corpus_sha256 = format!("{:x}", Sha256::digest(&bytes));
-    let scenarios = corpus.scenarios.iter()
+    let scenarios = corpus
+        .scenarios
+        .iter()
         .map(|scenario| analyze_scenario(scenario, corpus.search_node_limit))
         .collect::<Check<Vec<_>>>()?;
-    let matched = scenarios.iter().filter(|s| s.expected_control_matched).count();
+    let matched = scenarios
+        .iter()
+        .filter(|s| s.expected_control_matched)
+        .count();
     let passed = matched == scenarios.len();
     let receipt = Receipt {
-        result: if passed { "pass".to_owned() } else { "fail".to_owned() },
+        result: if passed {
+            "pass".to_owned()
+        } else {
+            "fail".to_owned()
+        },
         validator_version: VERSION.to_owned(),
         suite_id: corpus.suite_id,
         suite_version: corpus.suite_version,
@@ -551,15 +733,25 @@ fn run() -> Check<ExitCode> {
         search_node_limit: corpus.search_node_limit,
         scenarios,
     };
-    println!("{}", serde_json::to_string_pretty(&receipt)
-        .map_err(|e| format!("cannot serialize receipt: {e}"))?);
-    Ok(if passed { ExitCode::SUCCESS } else { ExitCode::from(2) })
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|e| format!("cannot serialize receipt: {e}"))?
+    );
+    Ok(if passed {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(2)
+    })
 }
 
 fn main() -> ExitCode {
     match run() {
         Ok(code) => code,
-        Err(error) => { eprintln!("{error}"); ExitCode::FAILURE }
+        Err(error) => {
+            eprintln!("{error}");
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -567,17 +759,22 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
     fn corpus() -> Corpus {
-        serde_json::from_str(include_str!("../../../docs/tech/ore-feed-blend-corpus-v0.1.json"))
-            .expect("frozen synthetic corpus must deserialize")
+        serde_json::from_str(include_str!(
+            "../../../docs/tech/ore-feed-blend-corpus-v0.1.json"
+        ))
+        .expect("frozen synthetic corpus must deserialize")
     }
 
     #[test]
     fn frozen_corpus_matches_all_known_answers() {
         let c = corpus();
         validate_corpus(&c).expect("corpus metadata must be valid");
-        let results = c.scenarios.iter()
+        let results = c
+            .scenarios
+            .iter()
             .map(|s| analyze_scenario(s, c.search_node_limit))
-            .collect::<Check<Vec<_>>>().expect("all scenarios must be analysable");
+            .collect::<Check<Vec<_>>>()
+            .expect("all scenarios must be analysable");
         assert_eq!(12, results.len());
         assert!(results.iter().all(|r| r.expected_control_matched));
     }
@@ -585,7 +782,10 @@ mod tests {
     #[test]
     fn high_grade_first_can_miss_a_feasible_higher_recovery_blend() {
         let c = corpus();
-        let s = c.scenarios.iter().find(|s| s.scenario_id == "GRADE_FIRST_REGRESSION")
+        let s = c
+            .scenarios
+            .iter()
+            .find(|s| s.scenario_id == "GRADE_FIRST_REGRESSION")
             .expect("regression fixture exists");
         let r = analyze_scenario(s, c.search_node_limit).expect("scenario must be analysable");
         assert_eq!(PlanStatus::NoFeasibleBlend, r.baseline_status);
@@ -596,9 +796,15 @@ mod tests {
     #[test]
     fn below_detection_is_an_interval_not_a_zero_measurement() {
         let c = corpus();
-        let s = c.scenarios.iter().find(|s| s.scenario_id == "BELOW_DETECTION_REMAINS_INTERVAL")
+        let s = c
+            .scenarios
+            .iter()
+            .find(|s| s.scenario_id == "BELOW_DETECTION_REMAINS_INTERVAL")
             .expect("below-detection fixture exists");
-        let lot = s.lots.iter().find(|lot| lot.lot_id == "B_BELOW_DETECTION_INTERVAL")
+        let lot = s
+            .lots
+            .iter()
+            .find(|lot| lot.lot_id == "B_BELOW_DETECTION_INTERVAL")
             .expect("below-detection lot exists");
         assert_eq!(AssayState::BelowDetection, lot.assay_state);
         assert_eq!(0, lot.grade_lower_ppm);
@@ -609,30 +815,47 @@ mod tests {
     #[test]
     fn search_limit_never_mints_an_optimality_claim() {
         let c = corpus();
-        let s = c.scenarios.iter().find(|s| s.scenario_id == "GRADE_FIRST_REGRESSION")
+        let s = c
+            .scenarios
+            .iter()
+            .find(|s| s.scenario_id == "GRADE_FIRST_REGRESSION")
             .expect("regression fixture exists");
         let (best, nodes, exhausted) = exhaustive_oracle(s, 1);
         assert_eq!(1, nodes);
         assert!(exhausted);
-        assert_eq!(OracleStatus::IndeterminateSearchLimit, actual_oracle_status(&best, exhausted));
+        assert_eq!(
+            OracleStatus::IndeterminateSearchLimit,
+            actual_oracle_status(&best, exhausted)
+        );
     }
 
     #[test]
     fn independent_checker_rejects_double_counted_lots() {
         let c = corpus();
-        let s = c.scenarios.iter().find(|s| s.scenario_id == "SAMPLE_LOT_MISMATCH_EXCLUDED")
+        let s = c
+            .scenarios
+            .iter()
+            .find(|s| s.scenario_id == "SAMPLE_LOT_MISMATCH_EXCLUDED")
             .expect("lineage fixture exists");
         let duplicate = vec![
-            LotTake { lot_id: "A_VALID".to_owned(), tonnes: 1 },
-            LotTake { lot_id: "A_VALID".to_owned(), tonnes: 1 },
+            LotTake {
+                lot_id: "A_VALID".to_owned(),
+                tonnes: 1,
+            },
+            LotTake {
+                lot_id: "A_VALID".to_owned(),
+                tonnes: 1,
+            },
         ];
         assert!(independently_recompute(s, &duplicate).is_err());
     }
 
     #[test]
     fn unknown_json_fields_fail_closed() {
-        let raw = include_str!("../../../docs/tech/ore-feed-blend-corpus-v0.1.json")
-            .replace(r#""suite_id":"#, r#""unexpected_authority":true,"suite_id":"#);
+        let raw = include_str!("../../../docs/tech/ore-feed-blend-corpus-v0.1.json").replace(
+            r#""suite_id":"#,
+            r#""unexpected_authority":true,"suite_id":"#,
+        );
         assert!(serde_json::from_str::<Corpus>(&raw).is_err());
     }
 }
