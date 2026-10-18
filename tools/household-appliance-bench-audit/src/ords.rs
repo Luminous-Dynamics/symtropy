@@ -390,11 +390,12 @@ fn source_identity(
 ) -> Option<String> {
     let id = raw_field(record, indexes, "id").trim();
     let provider = raw_field(record, indexes, "data_provider").trim();
-    let group = raw_field(record, indexes, "group_identifier").trim();
     if id.is_empty() || provider.is_empty() {
         return None;
     }
-    Some(format!("{provider}\0{group}\0{id}"))
+    // ORDS IDs are unique within a provider; group_identifier is optional metadata,
+    // not an identity component. Including it would let a changed/missing group hide a duplicate.
+    Some(format!("{provider}\0{id}"))
 }
 
 fn status_mapping<'a>(statuses: &'a [Value], raw: &str) -> Option<&'a str> {
@@ -618,7 +619,7 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
             .iter()
             .any(|reason| reason == "duplicate_source_record_identity")
         {
-            Some("duplicate_provider_group_record_id")
+            Some("duplicate_provider_record_id")
         } else {
             None
         };
@@ -830,6 +831,30 @@ mod tests {
                 .iter()
                 .all(|record| record["quarantine"]["disposition"] == "quarantined")
         );
+    }
+
+    #[test]
+    fn changed_optional_group_does_not_hide_duplicate_provider_record_id() {
+        let source = String::from_utf8(CSV.to_vec()).unwrap();
+        let changed = source.replace(
+            "\"Later duplicated source identity\",G-01",
+            "\"Later duplicated source identity\",G-99",
+        );
+        assert_ne!(source, changed, "mutation must alter optional group metadata");
+        let (summary, output) = run_fixture(SCHEMA, PROFILE, changed.as_bytes());
+        assert_eq!(summary.duplicate_identity_row_count, 2);
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let duplicates: Vec<&Value> = records
+            .iter()
+            .filter(|record| record["source_provenance"]["source_record_id_raw"] == "r-001")
+            .collect();
+        assert_eq!(duplicates.len(), 2);
+        assert!(duplicates
+            .iter()
+            .all(|record| record["quarantine"]["disposition"] == "quarantined"));
     }
 
     #[test]

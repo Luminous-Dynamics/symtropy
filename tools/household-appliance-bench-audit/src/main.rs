@@ -3,9 +3,10 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::env;
-use std::fs;
+use std::fs::{self, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::process::ExitCode;
 
 mod compatibility;
@@ -485,6 +486,55 @@ fn read_arg_path(flag: &str) -> Option<PathBuf> {
     None
 }
 
+static TEMP_OUTPUT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+fn write_ords_output_atomically(
+    schema_raw: &str,
+    mapping_raw: &str,
+    csv_raw: &[u8],
+    output_path: &PathBuf,
+) -> Result<ords::OrdsAuditSummary, String> {
+    let sequence = TEMP_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let mut temporary_os = output_path.as_os_str().to_os_string();
+    temporary_os.push(format!(".partial.{}.{}", std::process::id(), sequence));
+    let temporary_path = PathBuf::from(temporary_os);
+
+    let result = (|| {
+        let output_file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary_path)
+            .map_err(|error| {
+                format!(
+                    "cannot create temporary ORDS output {}: {error}",
+                    temporary_path.display()
+                )
+            })?;
+        let mut output = BufWriter::new(output_file);
+        let summary = ords::audit_csv_to_writer(schema_raw, mapping_raw, csv_raw, &mut output)
+            .map_err(|errors| errors.join("\n"))?;
+        output.flush().map_err(|error| {
+            format!(
+                "cannot flush temporary ORDS output {}: {error}",
+                temporary_path.display()
+            )
+        })?;
+        drop(output);
+        fs::rename(&temporary_path, output_path).map_err(|error| {
+            format!(
+                "cannot atomically publish ORDS output {}: {error}",
+                output_path.display()
+            )
+        })?;
+        Ok(summary)
+    })();
+
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary_path);
+    }
+    result
+}
+
 fn run() -> Result<(), String> {
     let schema_path = read_arg_path("--schema").unwrap_or_else(default_schema_path);
     let corpus_path = read_arg_path("--corpus").unwrap_or_else(default_corpus_path);
@@ -873,19 +923,12 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("cannot read {}: {error}", ords_mapping_path.display()))?;
         let ords_csv_raw = fs::read(&ords_csv_path)
             .map_err(|error| format!("cannot read {}: {error}", ords_csv_path.display()))?;
-        let output_file = fs::File::create(&ords_output_path)
-            .map_err(|error| format!("cannot create {}: {error}", ords_output_path.display()))?;
-        let mut ords_output = BufWriter::new(output_file);
-        let ords_summary = ords::audit_csv_to_writer(
+        let ords_summary = write_ords_output_atomically(
             &ords_schema_raw,
             &ords_mapping_raw,
             &ords_csv_raw,
-            &mut ords_output,
-        )
-        .map_err(|errors| errors.join("\n"))?;
-        ords_output
-            .flush()
-            .map_err(|error| format!("cannot flush {}: {error}", ords_output_path.display()))?;
+            &ords_output_path,
+        )?;
 
         report["ords_repair_data_interop"] = json!({
             "status": if ords_summary.quarantined_row_count == 0 {
@@ -967,6 +1010,37 @@ mod tests {
         let schema_raw = serde_json::to_string(&schema).expect("schema serialize");
         let corpus_raw = serde_json::to_string(corpus).expect("corpus serialize");
         audit_values(&schema, corpus, &schema_raw, &corpus_raw)
+    }
+
+    #[test]
+    fn failed_ords_import_preserves_existing_output_file() {
+        let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+            "../../schemas/appliances/ords_adapter_mapping_v0_1.schema.json",
+        );
+        let mapping_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+            "../../fixtures/appliances/ords_adapter_mapping_v0_1.json",
+        );
+        let csv_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/appliances/ords_v0_3_synthetic.csv");
+        let schema = fs::read_to_string(schema_path).unwrap();
+        let mut mapping: Value =
+            serde_json::from_str(&fs::read_to_string(mapping_path).unwrap()).unwrap();
+        mapping["policy"]["population_prevalence_claim_allowed"] = json!(true);
+        let mapping = serde_json::to_string(&mapping).unwrap();
+        let csv = fs::read(csv_path).unwrap();
+        let output_path = std::env::temp_dir().join(format!(
+            "symtropy-ords-atomic-output-{}.jsonl",
+            std::process::id()
+        ));
+        fs::write(&output_path, b"preserve-existing-output").unwrap();
+
+        let result = write_ords_output_atomically(&schema, &mapping, &csv, &output_path);
+        assert!(result.is_err(), "weakened evidence policy must fail closed");
+        assert_eq!(
+            fs::read(&output_path).unwrap(),
+            b"preserve-existing-output"
+        );
+        fs::remove_file(output_path).unwrap();
     }
 
     #[test]
