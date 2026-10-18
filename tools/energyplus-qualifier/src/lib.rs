@@ -146,7 +146,11 @@ fn string_field<'a>(object: &'a Map<String, Value>, key: &str) -> Option<&'a str
 }
 
 fn nested_string<'a>(root: &'a Value, parent: &str, child: &str) -> Option<&'a str> {
-    root.get(parent)?.as_object()?.get(child)?.as_str()
+    let mut current = root;
+    for segment in parent.split('.') {
+        current = current.get(segment)?;
+    }
+    current.get(child)?.as_str()
 }
 
 fn add_schema_findings(
@@ -438,10 +442,6 @@ fn evaluate_receipt_metadata(receipt: &Value, spec: &Value, extra_blockers: &[St
         .get("claimed_gate")
         .and_then(Value::as_str)
         .unwrap_or("unknown");
-    if claimed_gate != base_gate {
-        codes_or_insert_placeholder();
-    }
-
     let claimed_codes = receipt
         .get("claimed_blocker_codes")
         .and_then(Value::as_array)
@@ -453,69 +453,24 @@ fn evaluate_receipt_metadata(receipt: &Value, spec: &Value, extra_blockers: &[St
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
-    if normalized_codes(claimed_codes) != base_codes {
-        // A receipt may not self-assert a cleaner (or a different) blocker set.
-        codes_placeholder_for_claim_mismatch();
-    }
+    let claim_gate_mismatch = claimed_gate != base_gate;
+    let claim_codes_mismatch = normalized_codes(claimed_codes) != base_codes;
 
     let mut final_codes = base_codes;
-    if claimed_gate != base_gate {
-        final_codes.push("CLAIMED_GATE_MISMATCH".to_owned());
-    }
-    if {
-        let claimed = receipt
-            .get("claimed_blocker_codes")
-            .and_then(Value::as_array)
-            .map(|values| {
-                values
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .map(ToOwned::to_owned)
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        normalized_codes(claimed) != final_codes
-            && normalized_codes(
-                receipt
-                    .get("claimed_blocker_codes")
-                    .and_then(Value::as_array)
-                    .map(|values| values.iter().filter_map(Value::as_str).map(ToOwned::to_owned).collect::<Vec<_>>())
-                    .unwrap_or_default(),
-            ) != normalized_codes(
-                receipt
-                    .get("claimed_blocker_codes")
-                    .and_then(Value::as_array)
-                    .map(|values| values.iter().filter_map(Value::as_str).map(ToOwned::to_owned).collect::<Vec<_>>())
-                    .unwrap_or_default(),
-            )
-    } {
-        // Placeholder branch replaced below when the final claim comparison is assembled.
+    if claim_codes_mismatch {
         final_codes.push("CLAIMED_BLOCKER_CODES_MISMATCH".to_owned());
     }
-    final_codes = normalized_codes(final_codes);
-    let disposition = if final_codes.contains(&"SOLVER_NOT_CONVERGED".to_owned())
-        || final_codes.contains(&"SOLVER_SEVERE_ERRORS".to_owned())
-        || final_codes.contains(&"SOLVER_FATAL_ERRORS".to_owned())
-        || final_codes.contains(&"PROCESS_EXIT_NONZERO".to_owned())
-        || final_codes.contains(&"RUN_NOT_COMPLETED".to_owned())
-        || final_codes.contains(&"PARTIAL_OUTPUTS".to_owned())
-    {
-        "blocked"
-    } else if !final_codes.is_empty() {
-        "unknown"
-    } else {
-        "eligible_for_reference_comparison"
-    };
+    if claim_gate_mismatch {
+        final_codes.push("CLAIMED_GATE_MISMATCH".to_owned());
+    }
+    let final_codes = normalized_codes(final_codes);
+    let disposition = gate_for_codes(&final_codes);
     GateResult {
         receipt_id,
         disposition: disposition.to_owned(),
         blocker_codes: final_codes,
         schema_valid: true,
     }
-}
-
-fn codes_or_insert_placeholder() {}
-fn codes_placeholder_for_claim_mismatch() {}
 
 fn relative_path_is_safe(path: &str) -> bool {
     let parsed = Path::new(path);
@@ -818,19 +773,6 @@ pub fn validate_fixture_corpus_bytes(
     summary
 }
 
-fn relative_path_is_safe(path: &str) -> bool {
-    let parsed = Path::new(path);
-    !path.is_empty()
-        && !parsed.is_absolute()
-        && !path.contains('\\')
-        && !parsed.components().any(|component| {
-            matches!(
-                component,
-                Component::ParentDir | Component::RootDir | Component::Prefix(_)
-            )
-        })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -873,9 +815,8 @@ mod tests {
 
     #[test]
     fn non_convergence_is_blocked_and_not_reported_as_zero() {
-        let mut receipt: Value = serde_json::from_str(
-            &serde_json::to_string(&serde_json::from_str::<Value>(EMBEDDED_FIXTURE_CORPUS).unwrap()["fixtures"][0]["receipt"]).unwrap()
-        ).unwrap();
+        let corpus: Value = serde_json::from_str(EMBEDDED_FIXTURE_CORPUS).unwrap();
+        let mut receipt = corpus["fixtures"][0]["receipt"].clone();
         receipt["execution"]["converged"] = Value::Bool(false);
         receipt["claimed_gate"] = Value::String("blocked".to_owned());
         receipt["claimed_blocker_codes"] = serde_json::json!(["SOLVER_NOT_CONVERGED"]);
