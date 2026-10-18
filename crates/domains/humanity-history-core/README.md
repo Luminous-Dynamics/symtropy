@@ -61,6 +61,19 @@ cargo run -p humanity-history-core --bin humanity-history-validate -- crates/dom
 
 The authored unit suite also parses and validates the seed via `include_str!`. This check has **not been executed in the current environment**; do not treat its expected clean result as a passing test until a Rust toolchain runs the suite.
 
+## Auditable analysis-run manifests
+
+The `analysis_runs` field records experiment lifecycle rather than treating a citation as a run. Statuses are:
+- `planned`: protocol only; no execution claim.
+- `inputs_verified`: input artifacts and a content-addressed input manifest have been recorded.
+- `executed`: command, code revision, environment fingerprint, inputs, and output digests are recorded.
+- `reproduced`: the executed record also references the source record and target estimates being reproduced.
+- `failed`: the command/environment/input context and failure summary remain auditable.
+
+Executed/reproduced runs require SHA-256 strings for the input manifest and each named artifact. This crate validates digest shape but does not itself read the files and calculate the hashes; the ingest/runner must hash actual bytes. A run's limitations are mandatory. A `reproduced` status is still a recorded assertion, not a proof of scientific equivalence; acceptance requires reviewing the output artifacts and the declared tolerance protocol.
+
+The Antikythera seed now contains one `planned` reproduction run with no inputs or outputs. That is intentionally **not** labeled executed: the source measurement files and their exact license are not yet verified.
+
 ## Descriptive sensitivity diagnostic
 
 `analyze-sensitivity` evaluates the declared `estimate_contrasts` and `estimate_deltas`. It reports point-vs-interval position/distance and paired baseline-versus-variant numeric deltas. The latter makes the effect of the source's full-versus-trimmed preprocessing explicit.
