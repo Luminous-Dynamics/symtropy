@@ -711,9 +711,12 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         || fixture.conventions.tasks != "nonpreemptive"
         || fixture.conventions.precedence != "finish(before) <= start(after)"
         || fixture.conventions.objective != "minimize makespan = maximum task finish"
-        || fixture.conventions.resources.trim().is_empty()
-        || fixture.conventions.uncertainty.trim().is_empty()
-        || fixture.conventions.gates.trim().is_empty()
+        || fixture.conventions.resources
+            != "renewable capacity; a task's demand must not exceed capacity at any occupied time"
+        || fixture.conventions.uncertainty
+            != "nominal and upper_duration are disclosed scenarios; robust feasibility checks the upper scenario against the same hard constraints"
+        || fixture.conventions.gates
+            != "required gates are hard feasibility constraints, not soft penalties"
         || fixture.conventions.schedule_is_executed_work
         || fixture.cases.is_empty()
         || fixture.cases.len() > MAX_CASES
