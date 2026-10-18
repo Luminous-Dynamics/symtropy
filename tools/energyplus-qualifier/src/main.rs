@@ -171,12 +171,20 @@ fn main() {
             }
         }
         [mode, receipt_path, evidence_root] if mode == "--validate-receipt" => {
+            let spec_summary = validate_spec_bytes(
+                EMBEDDED_SPEC.as_bytes(),
+                EMBEDDED_SPEC_SCHEMA.as_bytes(),
+            );
+            emit_spec(&spec_summary, false);
+            if !spec_summary.passed {
+                process::exit(1);
+            }
             let receipt_bytes = read_file(receipt_path);
             let result = validate_receipt_bytes(
                 &receipt_bytes,
                 EMBEDDED_SPEC.as_bytes(),
                 EMBEDDED_RECEIPT_SCHEMA.as_bytes(),
-                Some(Path::new(evidence_root)),
+                Path::new(evidence_root),
             );
             emit_gate(&result, false);
             if result.disposition != "eligible_for_reference_comparison" {
@@ -186,6 +194,14 @@ fn main() {
         [mode, receipt_path, evidence_root, flag]
             if mode == "--validate-receipt" && flag == "--json" =>
         {
+            let spec_summary = validate_spec_bytes(
+                EMBEDDED_SPEC.as_bytes(),
+                EMBEDDED_SPEC_SCHEMA.as_bytes(),
+            );
+            emit_spec(&spec_summary, false);
+            if !spec_summary.passed {
+                process::exit(1);
+            }
             let receipt_bytes = read_file(receipt_path);
             let result = validate_receipt_bytes(
                 &receipt_bytes,
