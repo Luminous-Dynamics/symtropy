@@ -26,8 +26,6 @@
 
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
-use std::num::NonZeroU8;
-
 pub mod receipt;
 pub use receipt::{CaptureMetadata, CaptureReceipt, ImageReceipt, write_capture_receipt};
 
@@ -185,9 +183,7 @@ fn headless_capture(
             exit.write(AppExit::Success);
         } else {
             error!("symtropy-demo-capture: incomplete capture; exiting with failure");
-            exit.write(AppExit::Error(
-                NonZeroU8::new(1).expect("one is a non-zero process exit code"),
-            ));
+            exit.write(AppExit::error());
         }
     }
 }
