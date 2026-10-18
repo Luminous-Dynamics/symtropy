@@ -569,13 +569,22 @@ fn contact_agreement(
 
     let predicted_contact = true_positive + false_positive;
     let reference_contact = true_positive + false_negative;
-    let precision = (predicted_contact > 0)
-        .then_some(true_positive as f64 / predicted_contact as f64);
-    let recall =
-        (reference_contact > 0).then_some(true_positive as f64 / reference_contact as f64);
+    let precision = if predicted_contact > 0 {
+        Some(true_positive as f64 / predicted_contact as f64)
+    } else {
+        None
+    };
+    let recall = if reference_contact > 0 {
+        Some(true_positive as f64 / reference_contact as f64)
+    } else {
+        None
+    };
     let f1_denominator = 2 * true_positive + false_positive + false_negative;
-    let f1 = (f1_denominator > 0)
-        .then_some((2 * true_positive) as f64 / f1_denominator as f64);
+    let f1 = if f1_denominator > 0 {
+        Some((2 * true_positive) as f64 / f1_denominator as f64)
+    } else {
+        None
+    };
 
     Ok(ContactAgreementReport {
         samples: reference.len(),
@@ -1010,9 +1019,13 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         joint_ade,
         joint_fde,
         report.left_stance_foot_drift.rms_drift_m,
-        report.left_foot_contact_agreement.f1.map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
+        report.left_foot_contact_agreement
+            .f1
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
         report.right_stance_foot_drift.rms_drift_m,
-        report.right_foot_contact_agreement.f1.map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
+        report.right_foot_contact_agreement
+            .f1
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
         report.prediction_root_mean_squared_jerk_m2_s6
     );
 
@@ -1080,6 +1093,8 @@ mod tests {
         assert_eq!(contact.false_positive, 2);
         assert_eq!(contact.false_negative, 2);
         assert_eq!(contact.accuracy, 0.0);
+        assert_eq!(contact.precision, Some(0.0));
+        assert_eq!(contact.recall, Some(0.0));
         assert_eq!(contact.f1, Some(0.0));
         assert_eq!(report.left_stance_foot_drift.rms_drift_m, 0.0);
     }
