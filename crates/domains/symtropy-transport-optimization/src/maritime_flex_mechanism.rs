@@ -55,6 +55,9 @@ pub struct FlexMechanismOffer {
     pub demand_id: String,
     pub target_slot_id: String,
     pub state: FlexOfferState,
+    /// Time the participant-authorized conditional acceptance became known.
+    /// Required for AcceptedConditional offers and must not exceed decision time.
+    pub accepted_at_minute: Option<u64>,
     pub expires_at_minute: u64,
     pub max_deviation_minutes: u64,
     pub reported_cost_minor_units: u64,
@@ -98,6 +101,8 @@ pub struct FlexMechanismInput {
 pub enum FlexOfferExclusionReason {
     NotAcceptedConditional,
     Revoked,
+    AcceptanceReceiptMissing,
+    AcceptanceAfterDecision,
     ExpiredAtDecision,
     SameSlotAsBaseline,
     ShiftExceedsDeclaredLimit,
@@ -276,7 +281,6 @@ impl std::error::Error for FlexMechanismError {}
 struct PreparedInput {
     time_profile_id: String,
     currency_id: String,
-    decision_time_minute: u64,
     slots: BTreeMap<String, FlexMechanismSlot>,
     demands: BTreeMap<String, FlexMechanismDemand>,
     eligible_offers: Vec<FlexMechanismOffer>,
@@ -551,6 +555,14 @@ fn prepare_input(input: &FlexMechanismInput) -> Result<PreparedInput, FlexMechan
         let exclusion = match offer.state {
             FlexOfferState::Revoked => Some(FlexOfferExclusionReason::Revoked),
             FlexOfferState::Offered => Some(FlexOfferExclusionReason::NotAcceptedConditional),
+            FlexOfferState::AcceptedConditional if offer.accepted_at_minute.is_none() => {
+                Some(FlexOfferExclusionReason::AcceptanceReceiptMissing)
+            }
+            FlexOfferState::AcceptedConditional
+                if offer.accepted_at_minute.is_some_and(|accepted_at| accepted_at > input.decision_time_minute) =>
+            {
+                Some(FlexOfferExclusionReason::AcceptanceAfterDecision)
+            }
             FlexOfferState::AcceptedConditional
                 if offer.expires_at_minute <= input.decision_time_minute =>
             {
@@ -592,7 +604,6 @@ fn prepare_input(input: &FlexMechanismInput) -> Result<PreparedInput, FlexMechan
     Ok(PreparedInput {
         time_profile_id: input.time_profile_id.clone(),
         currency_id: input.currency_id.clone(),
-        decision_time_minute: input.decision_time_minute,
         slots,
         demands,
         eligible_offers,
@@ -837,6 +848,7 @@ mod tests {
                     demand_id: "CALL-A".to_owned(),
                     target_slot_id: "LATE".to_owned(),
                     state: FlexOfferState::AcceptedConditional,
+                    accepted_at_minute: Some(70),
                     expires_at_minute: 100,
                     max_deviation_minutes: 60,
                     reported_cost_minor_units: 2,
@@ -883,6 +895,7 @@ mod tests {
             .filter(|offer| {
                 Some(offer.id.as_str()) != excluded_offer_id
                     && offer.state == FlexOfferState::AcceptedConditional
+                    && offer.accepted_at_minute.is_some_and(|accepted_at| accepted_at <= input.decision_time_minute)
                     && offer.expires_at_minute > input.decision_time_minute
                     && !offer.benefit_evidence_id.trim().is_empty()
                     && offers_match_oracle(input, offer, &slots, &demands)
@@ -981,6 +994,7 @@ mod tests {
                 .abs_diff(target.start_minute)
                 <= offer.max_deviation_minutes
             && target.start_minute <= demand.hard_latest_start_minute
+            && offer.accepted_at_minute.is_some_and(|accepted_at| accepted_at <= input.decision_time_minute)
             && input.decision_time_minute < offer.expires_at_minute
     }
 
@@ -1053,6 +1067,26 @@ mod tests {
         assert!(report.excluded_offers.iter().any(|offer| {
             offer.offer_id == "OFFER-A"
                 && offer.reason == FlexOfferExclusionReason::ExpiredAtDecision
+        }));
+    }
+
+    #[test]
+    fn future_or_missing_acceptance_receipts_are_not_admissible_at_decision_time() {
+        let mut input = base_input();
+        input.offers[0].accepted_at_minute = Some(input.decision_time_minute + 1);
+        let report = select_consent_based_flexibility(&input).unwrap();
+        assert!(!report.selected_offer_ids.contains(&"OFFER-A".to_owned()));
+        assert!(report.excluded_offers.iter().any(|offer| {
+            offer.offer_id == "OFFER-A"
+                && offer.reason == FlexOfferExclusionReason::AcceptanceAfterDecision
+        }));
+
+        input.offers[0].accepted_at_minute = None;
+        let report = select_consent_based_flexibility(&input).unwrap();
+        assert!(!report.selected_offer_ids.contains(&"OFFER-A".to_owned()));
+        assert!(report.excluded_offers.iter().any(|offer| {
+            offer.offer_id == "OFFER-A"
+                && offer.reason == FlexOfferExclusionReason::AcceptanceReceiptMissing
         }));
     }
 
