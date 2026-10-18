@@ -714,7 +714,10 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         || fixture.conventions.resources
             != "renewable capacity; a task's demand must not exceed capacity at any occupied time"
         || fixture.conventions.uncertainty
-            != "nominal and upper_duration are disclosed scenarios; robust feasibility checks the upper scenario against the same hard constraints"
+            != concat!(
+                "nominal and upper_duration are disclosed scenarios; robust feasibility checks ",
+                "the upper scenario against the same hard constraints"
+            )
         || fixture.conventions.gates
             != "required gates are hard feasibility constraints, not soft penalties"
         || fixture.conventions.schedule_is_executed_work
