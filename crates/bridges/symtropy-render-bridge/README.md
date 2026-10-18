@@ -82,7 +82,7 @@ The typed layer model supports these standard quantities and unit pairings:
 | Spectral radiance | Scalar | W/(m²·sr·nm) or W/(m²·sr·m) |
 | Domain-specific value | Scalar/vector | Explicit custom unit string |
 
-A metadata record names the layer, quantity, unit, source, calibration status, coordinate frame and spatial unit, timestamp, fixed display range, color map, and optional wavelength band/frequency. A *calibrated sensor* declaration requires a calibration reference. Spectral-radiance layers require a wavelength band. Invalid quantity/unit pairs, invalid ranges, non-finite samples, and malformed spectra fail validation rather than becoming plausible-looking colors.
+A metadata record names the layer, quantity, unit, source, calibration status, coordinate frame and spatial unit, timestamp, fixed display range, color map, and optional wavelength band/frequency. Positions in metres/centimetres/millimetres are converted using `world_units_per_meter`; `WorldUnit` positions are already in scene coordinates. A *calibrated sensor* declaration requires a calibration reference. Spectral-radiance layers require a wavelength band. Invalid quantity/unit pairs, invalid ranges, non-finite samples, and malformed spectra fail validation rather than becoming plausible-looking colors.
 
 ### Example: temperature samples and an electric-field vector
 
@@ -105,6 +105,7 @@ let temperature = ScalarFieldLayer {
         calibration_reference: None,
         coordinate_frame: "world".to_owned(),
         spatial_unit: SpatialUnit::Meter,
+        world_units_per_meter: 1.0,
         timestamp_unix_ns: Some(1_800_000_000_000_000_000),
         wavelength_band: None,
         frequency_hz: None,
