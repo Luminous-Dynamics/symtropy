@@ -473,6 +473,60 @@ mod tests {
     }
 
     #[test]
+    fn multi_period_schedule_closes_ledger_across_capacity_grade_and_power_limits() {
+        let config = fixture_config();
+        let schedule = [
+            TemporalPeriod {
+                duration: seconds(3_600.0),
+                ambient_temperature: k(300.0),
+                action: PeriodAction::Charge { available_heat: e(900_000.0) },
+            },
+            TemporalPeriod {
+                duration: seconds(3_600.0),
+                ambient_temperature: k(300.0),
+                action: PeriodAction::Discharge { request: DischargeRequest {
+                    requested_useful_heat: e(100_000.0),
+                    required_supply_temperature: k(320.0),
+                    minimum_approach: TemperatureDifferenceK::new(10.0).unwrap(),
+                    heat_exchanger_effectiveness: Fraction::new(0.8).unwrap(),
+                    duration: seconds(3_600.0),
+                }},
+            },
+            TemporalPeriod {
+                duration: seconds(300.0),
+                ambient_temperature: k(300.0),
+                action: PeriodAction::Charge { available_heat: e(500_000.0) },
+            },
+            TemporalPeriod {
+                duration: seconds(7_200.0),
+                ambient_temperature: k(290.0),
+                action: PeriodAction::Discharge { request: DischargeRequest {
+                    requested_useful_heat: e(500_000.0),
+                    required_supply_temperature: k(360.0),
+                    minimum_approach: TemperatureDifferenceK::new(10.0).unwrap(),
+                    heat_exchanger_effectiveness: Fraction::new(1.0).unwrap(),
+                    duration: seconds(7_200.0),
+                }},
+            },
+        ];
+        let report = simulate_schedule(&config, &schedule).unwrap();
+        assert_eq!(report.periods.len(), 4);
+        assert!((report.accepted_charge_heat.value() - 1_159_627.8).abs() < 1.0e-6);
+        assert!((report.rejected_charge_heat.value() - 240_372.2).abs() < 1.0e-6);
+        assert!((report.standing_heat_loss.value() - 113_827.8).abs() < 1.0e-6);
+        assert!((report.source_heat_withdrawn.value() - 345_800.0).abs() < 1.0e-6);
+        assert!((report.useful_heat_delivered.value() - 320_800.0).abs() < 1.0e-6);
+        assert!((report.unmet_useful_heat.value() - 279_200.0).abs() < 1.0e-6);
+        assert!((report.final_stored_energy.value() - 700_000.0).abs() < 1.0e-6);
+        assert!((report.periods[3].state_after.temperature.value() - 370.0).abs() < 1.0e-8);
+        assert!(report.energy_balance_residual_j.abs() < 1.0e-6);
+        for pair in report.periods.windows(2) {
+            assert_eq!(pair[0].state_after, pair[1].state_before);
+        }
+        verify_schedule_report(&config, &schedule, &report).unwrap();
+    }
+
+    #[test]
     fn rejects_empty_schedule() {
         assert_eq!(
             simulate_schedule(&fixture_config(), &[]),
