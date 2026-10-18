@@ -143,7 +143,6 @@ pub fn validate_review_route(
         if !from.arrival_seconds.is_finite()
             || !from.dwell_seconds.is_finite()
             || !to.arrival_seconds.is_finite()
-            || !from.dwell_seconds.is_sign_positive() && from.dwell_seconds != 0.0
         {
             continue;
         }
