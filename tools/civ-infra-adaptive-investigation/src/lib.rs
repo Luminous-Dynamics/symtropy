@@ -12,6 +12,8 @@ pub const MAX_CANDIDATES: usize = 1_000;
 pub const MAX_ACTIONS: usize = 1_000;
 pub const MAX_OUTCOMES_PER_ACTION: usize = 1_000;
 pub const MAX_POLICY_DEPTH: usize = 16;
+pub const MAX_POLICY_EVALUATION_OPERATIONS: usize = 100_000;
+pub const MAX_POLICY_LEAVES: usize = 10_000;
 const CLAIM_CEILING: &str =
     "synthetic_compatibility_graph_only_no_physical_measurement_or_engineering_validity_claim";
 
@@ -197,6 +199,7 @@ fn evaluate(input: &PolicyInput, input_sha256: &str) -> Result<PolicyReport, Str
 
     let initial_states = states.keys().cloned().collect::<BTreeSet<_>>();
     let mut leaves = Vec::new();
+    let mut policy_operations = 0usize;
     visit_policy(
         &input.candidate_policy.root_action_id,
         &initial_states,
@@ -207,6 +210,7 @@ fn evaluate(input: &PolicyInput, input_sha256: &str) -> Result<PolicyReport, Str
         &states,
         &mut Vec::new(),
         &mut BTreeSet::new(),
+        &mut policy_operations,
         &mut leaves,
     )?;
 
@@ -263,8 +267,10 @@ fn visit_policy(
     states: &BTreeMap<String, NormalizedState>,
     path: &mut Vec<PolicyStep>,
     ancestors: &mut BTreeSet<String>,
+    policy_operations: &mut usize,
     leaves: &mut Vec<PolicyLeaf>,
 ) -> Result<(), String> {
+    consume_policy_operation(policy_operations)?;
     if depth > policy.max_supported_action_depth {
         return Err("candidate policy exceeds max_supported_action_depth".to_owned());
     }
@@ -281,16 +287,20 @@ fn visit_policy(
             action_id: action_id.to_owned(),
             outcome_id: "out_of_model_support".to_owned(),
         });
-        leaves.push(make_leaf(
-            path.clone(),
-            LeafTerminal::ReviewRequired,
-            active_state_ids,
-            states,
-        )?);
+        record_leaf(
+            leaves,
+            make_leaf(
+                path.clone(),
+                LeafTerminal::ReviewRequired,
+                active_state_ids,
+                states,
+            )?,
+        )?;
         path.pop();
     }
 
     for outcome in &action.outcomes {
+        consume_policy_operation(policy_operations)?;
         let outcome_states = outcome
             .compatible_state_ids
             .iter()
@@ -325,15 +335,19 @@ fn visit_policy(
                 states,
                 path,
                 ancestors,
+                policy_operations,
                 leaves,
             )?;
         } else {
-            leaves.push(make_leaf(
-                path.clone(),
-                LeafTerminal::DecisionLeaf,
-                &outcome_states,
-                states,
-            )?);
+            record_leaf(
+                leaves,
+                make_leaf(
+                    path.clone(),
+                    LeafTerminal::DecisionLeaf,
+                    &outcome_states,
+                    states,
+                )?,
+            )?;
         }
 
         path.pop();
@@ -378,6 +392,28 @@ fn make_leaf(
         decision_signature_class_count: class_counts.len(),
         decision_discordant_pairs: discordant_pairs,
     })
+}
+
+fn consume_policy_operation(operations: &mut usize) -> Result<(), String> {
+    *operations = operations
+        .checked_add(1)
+        .ok_or_else(|| "policy evaluation operation counter overflow".to_owned())?;
+    if *operations > MAX_POLICY_EVALUATION_OPERATIONS {
+        return Err(format!(
+            "policy evaluation exceeds operation budget {MAX_POLICY_EVALUATION_OPERATIONS}"
+        ));
+    }
+    Ok(())
+}
+
+fn record_leaf(leaves: &mut Vec<PolicyLeaf>, leaf: PolicyLeaf) -> Result<(), String> {
+    if leaves.len() >= MAX_POLICY_LEAVES {
+        return Err(format!(
+            "policy expansion exceeds leaf budget {MAX_POLICY_LEAVES}"
+        ));
+    }
+    leaves.push(leaf);
+    Ok(())
 }
 
 fn choose_two(value: u64) -> Result<u64, String> {
@@ -562,30 +598,42 @@ fn validate_policy_graph(
     max_depth: usize,
     adjacency: &BTreeMap<String, BTreeSet<String>>,
 ) -> Result<(), String> {
-    fn walk(
+    fn longest_path(
         current: &str,
-        depth: usize,
-        max_depth: usize,
         adjacency: &BTreeMap<String, BTreeSet<String>>,
         visiting: &mut BTreeSet<String>,
-    ) -> Result<(), String> {
+        memo: &mut BTreeMap<String, usize>,
+    ) -> Result<usize, String> {
+        if let Some(longest) = memo.get(current) {
+            return Ok(*longest);
+        }
         if !visiting.insert(current.to_owned()) {
             return Err(format!("policy transition cycle detected at {current:?}"));
         }
+
+        let mut longest = 1usize;
         if let Some(next_actions) = adjacency.get(current) {
             for next in next_actions {
-                if depth >= max_depth {
-                    return Err(format!(
-                        "policy transition from {current:?} to {next:?} exceeds max depth"
-                    ));
-                }
-                walk(next, depth + 1, max_depth, adjacency, visiting)?;
+                let suffix = longest_path(next, adjacency, visiting, memo)?;
+                let candidate = suffix
+                    .checked_add(1)
+                    .ok_or_else(|| "policy path depth overflow".to_owned())?;
+                longest = longest.max(candidate);
             }
         }
+
         visiting.remove(current);
-        Ok(())
+        memo.insert(current.to_owned(), longest);
+        Ok(longest)
     }
-    walk(root, 1, max_depth, adjacency, &mut BTreeSet::new())
+
+    let longest = longest_path(root, adjacency, &mut BTreeSet::new(), &mut BTreeMap::new())?;
+    if longest > max_depth {
+        return Err(format!(
+            "policy transition longest path {longest} exceeds max depth {max_depth}"
+        ));
+    }
+    Ok(())
 }
 
 fn validate_signature(
