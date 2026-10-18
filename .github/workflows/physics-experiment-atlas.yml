@@ -31,7 +31,7 @@ jobs:
           toolchain: "1.96.0"
           components: clippy, rustfmt
       - name: Verify shared Galileo handoff fixture fingerprint
-        run: test "$(git hash-object tools/physics-experiment-atlas/fixtures/galileo-discrimination-v0.1.json)" = "1b2a9862498722619c2259688d4557eb2dac9cef"
+        run: test "$(git hash-object tools/physics-experiment-atlas/fixtures/galileo-discrimination-v0.1.json)" = "0548cf58562517e69c93e5f810bfee822acee1a2"
       - name: Check formatting
         run: cargo fmt --manifest-path tools/physics-experiment-atlas/Cargo.toml -- --check
       - name: Run locked unit tests
