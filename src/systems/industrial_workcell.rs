@@ -222,37 +222,36 @@ fn validate_schedule_internal(
     }
 
     if check_exclusive_overlaps {
-    for left_index in 0..operations.len() {
-        let left = &operations[left_index];
-        let Some(left_start) = valid_start(left) else {
-            continue;
-        };
-        let Some(left_end) = left.end_seconds() else {
-            continue;
-        };
-        for right in operations.iter().skip(left_index + 1) {
-            if left.resource_id != right.resource_id {
-                continue;
-            }
-            let Some(right_start) = valid_start(right) else {
+        for left_index in 0..operations.len() {
+            let left = &operations[left_index];
+            let Some(left_start) = valid_start(left) else {
                 continue;
             };
-            let Some(right_end) = right.end_seconds() else {
+            let Some(left_end) = left.end_seconds() else {
                 continue;
             };
-            if left_start < right_end && right_start < left_end {
-                let mut ids = vec![left.id.clone(), right.id.clone()];
-                ids.sort();
-                push_violation(
-                    &mut violations,
-                    ScheduleViolationCode::ExclusiveResourceOverlap,
-                    ids,
-                    "two operations overlap on one exclusive resource",
-                );
+            for right in operations.iter().skip(left_index + 1) {
+                if left.resource_id != right.resource_id {
+                    continue;
+                }
+                let Some(right_start) = valid_start(right) else {
+                    continue;
+                };
+                let Some(right_end) = right.end_seconds() else {
+                    continue;
+                };
+                if left_start < right_end && right_start < left_end {
+                    let mut ids = vec![left.id.clone(), right.id.clone()];
+                    ids.sort();
+                    push_violation(
+                        &mut violations,
+                        ScheduleViolationCode::ExclusiveResourceOverlap,
+                        ids,
+                        "two operations overlap on one exclusive resource",
+                    );
+                }
             }
         }
-    }
-
     }
 
     for violation in &mut violations {
@@ -293,7 +292,7 @@ pub struct ResourceCapacity {
 ///
 /// The ordinary single-capacity conflict findings are replaced by pool-capacity
 /// findings for this validation path; other structural and precedence checks from
-/// \`validate_schedule\` are retained.
+/// `validate_schedule` are retained.
 pub fn validate_schedule_with_resource_capacities(
     operations: &[ScheduledOperation],
     resource_capacities: &[ResourceCapacity],
