@@ -783,6 +783,11 @@ mod tests {
             .expect("property result exists");
         assert_eq!(property.outcome, RequirementOutcome::Blocked);
         assert_eq!(property.diagnostic_codes, vec![DiagnosticCode::MissingTargetProperty]);
+        let value = serde_json::to_value(&result).expect("scenario result serializes");
+        assert_eq!(
+            value["requirement_results"][0]["diagnostic_codes"][0],
+            "MISSING_TARGET_PROPERTY"
+        );
         assert_eq!(property.source_object_id, "panel-001");
         assert_eq!(property.property_key, "RequiredFireClass");
         assert_eq!(property.disposition, Some(LossDisposition::Missing));
