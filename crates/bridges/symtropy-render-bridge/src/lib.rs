@@ -12,17 +12,15 @@
 //! - **4D** (D=4): Cross-section slicing — slice 4D world with 3D hyperplane,
 //!   render the intersection
 
-#[cfg(feature = "inspector")]
-pub mod inspector;
 #[cfg(feature = "field-visualization")]
 pub mod field_visualization;
+#[cfg(feature = "inspector")]
+pub mod inspector;
 pub mod material;
 pub mod projection;
 pub mod sync;
 pub mod telemetry_ssbo;
 
-#[cfg(feature = "inspector")]
-pub use inspector::SymtropyInspectorPlugin;
 #[cfg(feature = "field-visualization")]
 pub use field_visualization::{
     CalibrationStatus, DisplayRange, FieldColorMap, FieldDataOrigin, FieldLayerMetadata,
@@ -30,6 +28,8 @@ pub use field_visualization::{
     ScalarFieldLayer, ScalarFieldSample, SpatialUnit, VectorFieldGlyph, VectorFieldLayer,
     VectorFieldSample, WavelengthBand, extract_scalar_glyphs, extract_vector_glyphs,
 };
+#[cfg(feature = "inspector")]
+pub use inspector::SymtropyInspectorPlugin;
 pub use material::{
     NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
     TelemetryMaterialPlugin, TelemetrySettings,
