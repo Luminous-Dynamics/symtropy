@@ -271,6 +271,20 @@ Use versioned cases with an explicit validity scope.
 
 A larger seed count inside one weather family does not replace diversity in sites, seasons, component types or physical regimes.
 
+### 8.1 Pinned multi-period process-integration cross-check
+
+Use the public OpenPinch multi-period crude-preheat dataset as an independent reference-model input, not as an assumed numeric result:
+
+- Reference repository: [OpenPinch](https://github.com/waikato-ahuora-smart-energy-systems/OpenPinch), MIT license.
+- Reference release commit: `0f38afbf8565c295a619bb0baed1d77ee5884565` (v0.7.0).
+- Fixture: `OpenPinch/tutorials/sample_cases/crude_preheat_train_multiperiod.json`; pinned Git blob object `d9f9b471b2a879a794bf057e6b4b677e2b9ca236` (this is a Git blob ID, not a SHA-256 digest).
+- Period IDs and weights: `turndown`, `base`, `peak`; weights `0.2, 0.6, 0.2`. Inputs include period-varying stream target temperatures and heat flows; temperatures are in °C and duties in kW. Convert explicitly before giving values to the Rust Kelvin/J model.
+- Reference execution sequence at that commit: `PinchProblem("crude_preheat_train_multiperiod.json")`, `validate()`, `target.all_periods.all_heat_integration()`, then `summary_frame(include_periods=True, include_weighted_average=True)`. Pin exact OpenPinch package/environment/solver versions with the generated baseline receipt.
+
+The acceptance artifact is not just an aggregate weighted utility. Preserve each ordered period's stream inputs and hot/cold utility targets, then independently verify units, all period IDs and weights, per-period first-law consistency and weighted aggregation. Add a Rust cross-check for the subset the Rust static pinch model actually supports. The full OpenPinch case includes multiple streams and other features beyond the current narrow Rust model; **do not claim whole-case parity until the supported subset and its mapping are explicitly scoped**. Numeric OpenPinch outputs are not yet checked into this benchmark contract, so this is a pinned input candidate—not a passing reproduction. Generate its reference outputs in the pinned upstream runtime, review and commit the expected ledger, then implement the independent Rust comparison.
+
+This gives us a public multi-period input corpus while the industrial solar-storage paper's complete plant time series remain unavailable. The two references answer different questions: OpenPinch qualifies period-specific process integration; Falch et al. is a storage-utilization study with its own idealized storage assumptions.
+
 ## 9. Outcomes and benchmark targets
 
 Report a Pareto table instead of one opaque score. Primary metrics must be predeclared for each end use.
