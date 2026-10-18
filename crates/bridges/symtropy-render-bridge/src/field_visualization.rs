@@ -333,6 +333,93 @@ impl FieldLayerMetadata {
     }
 }
 
+/// One wavelength-resolved radiance observation. Wavelengths are vacuum
+/// metres; radiance values use the single declared unit for the whole profile.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SpectrumBin {
+    pub wavelength_m: f64,
+    pub spectral_radiance: f64,
+    /// Standard uncertainty expressed in the profile's spectral-radiance unit.
+    pub uncertainty: Option<f64>,
+}
+
+/// Wavelength-resolved spectrum at one 3D scene position.
+///
+/// This is measured/imported/solver-produced data, not a radiative-transfer
+/// solver. Bins must be strictly ordered by wavelength and use one spectral
+/// radiance unit throughout the profile.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SpectrumProfile {
+    pub id: String,
+    pub unit: FieldUnit,
+    pub origin: FieldDataOrigin,
+    pub calibration: CalibrationStatus,
+    pub source_label: String,
+    pub calibration_reference: Option<String>,
+    pub coordinate_frame: String,
+    pub spatial_unit: SpatialUnit,
+    pub timestamp_unix_ns: Option<u64>,
+    pub position: [f64; 3],
+    pub bins: Vec<SpectrumBin>,
+}
+
+pub fn validate_spectrum_profile(profile: &SpectrumProfile) -> Result<(), String> {
+    if profile.id.trim().is_empty()
+        || profile.source_label.trim().is_empty()
+        || profile.coordinate_frame.trim().is_empty()
+    {
+        return Err("spectrum profile requires an id, source label, and coordinate frame".to_owned());
+    }
+    if !matches!(
+        profile.unit,
+        FieldUnit::WattPerSquareMeterSteradianPerNanometer
+            | FieldUnit::WattPerSquareMeterSteradianPerMeter
+    ) {
+        return Err("spectrum profile requires a spectral-radiance unit".to_owned());
+    }
+    if profile.calibration == CalibrationStatus::Calibrated
+        && profile.origin == FieldDataOrigin::MeasuredSensor
+        && profile
+            .calibration_reference
+            .as_deref()
+            .is_none_or(|reference| reference.trim().is_empty())
+    {
+        return Err("a calibrated measured spectrum requires a calibration reference".to_owned());
+    }
+    project_position(profile.position)?;
+    if profile.bins.len() < 2 || profile.bins.len() > 4_096 {
+        return Err("spectrum profile must contain 2..=4096 wavelength bins".to_owned());
+    }
+    let mut previous_wavelength = 0.0;
+    for bin in &profile.bins {
+        if !bin.wavelength_m.is_finite() || bin.wavelength_m <= previous_wavelength {
+            return Err("spectrum wavelengths must be finite, positive, and strictly increasing".to_owned());
+        }
+        if !bin.spectral_radiance.is_finite() || bin.spectral_radiance < 0.0 {
+            return Err("spectral radiance must be finite and non-negative".to_owned());
+        }
+        if bin.uncertainty.is_some_and(|value| !value.is_finite() || value < 0.0) {
+            return Err("spectrum uncertainty must be finite and non-negative".to_owned());
+        }
+        previous_wavelength = bin.wavelength_m;
+    }
+    Ok(())
+}
+
+impl SpectrumProfile {
+    pub fn wavelength_band(&self) -> Result<WavelengthBand, String> {
+        validate_spectrum_profile(self)?;
+        Ok(WavelengthBand {
+            min_wavelength_m: self.bins[0].wavelength_m,
+            max_wavelength_m: self
+                .bins
+                .last()
+                .expect("validated profile has wavelength bins")
+                .wavelength_m,
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ScalarFieldSample {
     pub position: [f64; 3],
@@ -766,6 +853,69 @@ mod tests {
             .frequency_range_hz()
             .expect("valid band");
         assert!(low < high);
+    }
+
+    fn spectrum_profile() -> SpectrumProfile {
+        SpectrumProfile {
+            id: "spectral-probe-1".to_owned(),
+            unit: FieldUnit::WattPerSquareMeterSteradianPerNanometer,
+            origin: FieldDataOrigin::MeasuredSensor,
+            calibration: CalibrationStatus::Calibrated,
+            source_label: "calibrated hyperspectral sensor".to_owned(),
+            calibration_reference: Some("traceable radiance standard CERT-123".to_owned()),
+            coordinate_frame: "sensor-world".to_owned(),
+            spatial_unit: SpatialUnit::Meter,
+            timestamp_unix_ns: Some(1_800_000_000_000_000_000),
+            position: [0.0, 0.0, 0.0],
+            bins: vec![
+                SpectrumBin {
+                    wavelength_m: 400.0e-9,
+                    spectral_radiance: 1.2,
+                    uncertainty: Some(0.1),
+                },
+                SpectrumBin {
+                    wavelength_m: 550.0e-9,
+                    spectral_radiance: 2.4,
+                    uncertainty: Some(0.1),
+                },
+                SpectrumBin {
+                    wavelength_m: 700.0e-9,
+                    spectral_radiance: 1.7,
+                    uncertainty: Some(0.12),
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn spectrum_profile_preserves_ordered_wavelength_data() {
+        let profile = spectrum_profile();
+        assert!(validate_spectrum_profile(&profile).is_ok());
+        let band = profile.wavelength_band().expect("valid profile has a band");
+        assert_eq!(band.min_wavelength_m, 400.0e-9);
+        assert_eq!(band.max_wavelength_m, 700.0e-9);
+    }
+
+    #[test]
+    fn spectrum_rejects_duplicate_wavelength_and_wrong_unit() {
+        let mut profile = spectrum_profile();
+        profile.bins[1].wavelength_m = profile.bins[0].wavelength_m;
+        assert!(validate_spectrum_profile(&profile).is_err());
+
+        let mut profile = spectrum_profile();
+        profile.unit = FieldUnit::VoltPerMeter;
+        assert!(validate_spectrum_profile(&profile).is_err());
+    }
+
+    #[test]
+    fn calibrated_spectrum_requires_reference_and_rejects_non_finite_radiance() {
+        let mut profile = spectrum_profile();
+        profile.calibration_reference = None;
+        assert!(validate_spectrum_profile(&profile).is_err());
+
+        let mut profile = spectrum_profile();
+        profile.bins[1].spectral_radiance = f64::NAN;
+        assert!(validate_spectrum_profile(&profile).is_err());
     }
 
     #[test]
