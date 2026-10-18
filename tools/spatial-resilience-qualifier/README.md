@@ -35,6 +35,8 @@ The paired-outcome corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_PA
 
 The decision-impact corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.json` contains eight finite-state worlds and eleven measurement actions. Each action carries a current source revision, evidence state, explicit cost/duration basis IDs, synthetic cost/time units, unknowns resolved and a mutually exclusive/exhaustive outcome partition. The evaluator recomputes robust-feasible and Pareto sets for each outcome. It reports a decision-impact vector and applies a declared lexicographic ordering (critical-unknown resolution, hard-feasibility change, Pareto change, worst-case residual-state count, cost, duration and action ID) **only to actions that can change the robust-feasible or Pareto set**. Valid but non-decision-relevant actions remain visible but are not recommended; no probability or expected-VoI estimate is emitted. The corpus tests when a targeted survey should outrank a costly scan and when high-volume measurement has no decision impact.
 
+The Rust differential test also generates 100 deterministic finite decision worlds with 100 candidates each and checks the robust-feasible/Pareto outputs against a separate brute-force reference across full and reduced state sets (at least 10,000 candidate-state evaluations; the current generator covers 35,000). This is correctness stress coverage, not a runtime-performance claim.
+
 ## Negative controls in the authored test suite
 
 - duplicate case ID and duplicate scenario dimension;
@@ -48,7 +50,7 @@ The decision-impact corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_D
 - a recovery window that extends past the horizon;
 - zero-length stability window and event beyond the declared horizon.
 
-40 unit and negative-control tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
+41 unit and negative-control tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
 
 ## Versioning and trust boundaries
 
