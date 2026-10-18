@@ -407,31 +407,601 @@
           ],
           "properties": {
             "bom_cost": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction",
+                    "currency_code"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "currency_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    },
+                    "currency_code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^[A-Z]{3}$"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "const": "unresolved"
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "currency_code": {
+                            "type": "null"
+                          }
+                        },
+                        "required": [
+                          "currency_code"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "currency_code": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          }
+                        },
+                        "required": [
+                          "currency_code"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "assembly_time": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "calibration_time": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "first_pass_yield": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "fraction_0_to_1"
+                    },
+                    "direction": {
+                      "const": "maximize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "material_waste": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "gram_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "energy_use": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "watt_hour_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "median_repair_time": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_repair"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "p90_repair_time": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_repair"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "critical_part_lead_time": {
-              "$ref": "#/$defs/metric"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "calendar_day"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           }
         },
