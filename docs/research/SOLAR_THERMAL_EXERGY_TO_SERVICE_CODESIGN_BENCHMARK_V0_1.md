@@ -108,6 +108,16 @@ Next, extend from static targeting to a time-expanded heat network where each pe
 
 A useful external reference is Falch, Espen, and Anantharaman (June 2026), who describe pinch-informed storage integration in multiperiod heat-exchanger-network synthesis and report 90% solar-thermal utilization at 250 kWh of storage versus 70% without storage in one lubricant-plant case. Those values are specific to that plant and paper boundary; capture and reproduce its actual data and assumptions before comparison: https://doi.org/10.69997/sct.176470. OpenPinch (March 2026) provides a broader open implementation of static advanced pinch analysis and total-site integration, and identifies dynamic/multi-period analysis as an extension direction: https://doi.org/10.1007/s41660-026-00729-6.
 
+The reference-access boundary matters: the public five-page article reports the operating pattern (16 hours/day, five days/week), a month-long measurement campaign, three solar-production periods per day, no weekend charging, and 18.9 MWh modeled production. It states an ideal, lossless, constant-temperature, cyclic store. The public article text does not include the full interval trace and stream-level input table needed to reconstruct the exact case. Until an author-published supplement or repository is pinned, classify this as **aggregate-anchor / exact-reproduction-blocked**, not reproduced. First implement a reference-compatibility experiment for the ideal model; then separately study losses, finite temperature range, transfer power, and economics. Never grade the realistic model against the ideal paper results as though the boundaries match.
+
+### 3.7E Start with auditable time-expanded state, not a prematurely clever controller
+
+The first temporal implementation is available in `research/solar-thermal-kernel/src/temporal.rs` on [PR #1853](https://github.com/Luminous-Dynamics/symtropy/pull/1853). It executes an ordered list of periods, applies the declared standing-loss model before each action, allows one charge or discharge action per period, and independently recomputes state transitions plus the whole-schedule energy ledger. It is a mechanics slice, not an optimizer and not yet connected to the independent flat-JSON receipt auditor.
+
+The canonical analytic day/night fixture has a 10 kg store with constant 1,000 J/(kg K) heat capacity, 300–400 K range, 900 kJ offered daytime charge, 0.1 W/K standing-loss conductance, a 3,600 s interval at 300 K ambient, and a 300 kJ useful nighttime request at 340 K with 10 K approach and 90% exchanger effectiveness. Under these explicit synthetic assumptions, it accepts 900 kJ, loses 32.4 kJ during the next interval, delivers 300 kJ useful heat, reports no unmet service, and closes the store-energy ledger to numerical tolerance. Those figures are fixture expectations only—not field-performance estimates.
+
+Next, extend this state layer without skipping falsification: include temporal schedule fields in the separate JSON auditor; seed negative controls for duration/power mismatch, capacity overflow, incorrect temperature-grade transfer, tampered or reordered periods, duplicated energy, and inconsistent state; then connect per-period pinch targets to storage state and utilities. The time-expanded graph must preserve energy grade, source provenance, interval duration, rate constraints, and service timing. A controller is not allowed to certify its own result.
+
 ### 3.8 Turn the model into an active scientist
 
 Symthaea can propose the next simulation or measurement that most reduces decision-relevant uncertainty, not merely search a fixed design space. Test expected value of information per unit time and cost using a held-out evaluator.
@@ -238,8 +248,9 @@ Use versioned cases with an explicit validity scope.
 - one single-node store with closed-form energy balances and standing loss;
 - one two-temperature cascade where energy conservation and the minimum approach constraint can be checked by hand;
 - one static pinch problem with hand-checkable minimum hot/cold utility targets, maximum internal heat recovery, and shifted/hot-side/cold-side pinch temperatures;
+- one ordered day/night storage schedule with closed-form standing loss, temperature-grade-gated delivery, an independently recomputed first-law ledger, and a tampered-report negative control;
 - one heat pump using a small declared COP map and a test outside the map that must block;
-- negative controls for GHI/DNI swaps, Celsius/Kelvin confusion, double-counted charge/discharge heat, over-unity efficiency, negative inventory, and impossible heat-exchanger approaches.
+- negative controls for GHI/DNI swaps, Celsius/Kelvin confusion, double-counted charge/discharge heat, over-unity efficiency, negative inventory, impossible heat-exchanger approaches, inconsistent period duration/power, invalid dispatch ordering, and tampered temporal reports.
 
 **Tier 1 — reference-model reproduction**
 - Reproduce selected published NREL SAM / SolarPILOT cases in their supported domains with pinned versions, inputs and outputs.
