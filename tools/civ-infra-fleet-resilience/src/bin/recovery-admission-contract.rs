@@ -748,6 +748,14 @@ fn assess(contract: &Contract, proposal: &Proposal) -> Decision {
     {
         reasons.insert("visible_approval_gate_requires_granted_authorization:R-012".to_string());
     }
+    if approval_gated_progress
+        && visible_refs
+            .iter()
+            .any(|observation| observation.case_id == "R-011")
+        && proposal.gates.utility_envelope == UtilityEnvelope::UnknownOrUnsafe
+    {
+        reasons.insert("visible_utility_gate_must_be_resolved:R-011".to_string());
+    }
 
     if matches!(proposal.action, Action::SubmitForAcceptance) && !proposal.gates.work_complete {
         reasons.insert("cannot_submit_incomplete_work_for_acceptance".to_string());
@@ -1077,6 +1085,23 @@ fn build_scenarios(contract: &Contract) -> Result<Vec<Scenario>, String> {
         case_id: None,
         expected_admitted: false,
         proposal: unknown_utility,
+    });
+
+    let mut unknown_utility_at_acceptance = make_proposal(
+        contract,
+        "global-unknown-utility-at-acceptance",
+        "trench-segment-01",
+        TaskState::AwaitingEvidence,
+        Action::Accept,
+        0,
+        None,
+    );
+    unknown_utility_at_acceptance.gates.utility_envelope = UtilityEnvelope::UnknownOrUnsafe;
+    scenarios.push(Scenario {
+        scenario_id: "global-unknown-utility-at-acceptance".to_string(),
+        case_id: None,
+        expected_admitted: false,
+        proposal: unknown_utility_at_acceptance,
     });
 
     let mut declined_approval = make_proposal(
