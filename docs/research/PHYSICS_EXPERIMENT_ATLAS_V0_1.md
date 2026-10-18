@@ -20,9 +20,9 @@ Symtropy should become a deterministic, inspectable laboratory for landmark phys
 
 The initial Rust tool is a small independent reference layer. It does not depend on Bevy or the live scene engine. That makes visual integration unable to silently define the expected physics.
 
-## First release: eight experiment families
+## First release: ten experiment families
 
-The CLI emits **14 checks** in a stable order. All are analytic or synthetic tests; none are re-digitized historical measurements.
+The CLI emits **19 checks** in a stable order. All are analytic or synthetic tests; none are re-digitized historical measurements.
 
 | Experiment family | Model / observable | Initial qualification target | Explicit limit |
 |---|---|---|---|
@@ -30,6 +30,8 @@ The CLI emits **14 checks** in a stable order. All are analytic or synthetic tes
 | Newton / Cavendish | point-mass inverse-square force ratio | \(F(r)/F(2r)=4\) within \(10^{-12}\) | does not calculate torsion-fiber response or infer \(G\) from real measurements |
 | Kepler orbital dynamics | velocity-Verlet two-body orbit | maximum relative specific-energy drift below \(10^{-8}\); angular-momentum drift below \(10^{-12}\) on the frozen circular-orbit fixture | no third bodies, oblateness, relativistic corrections, atmospheric drag, or ephemeris fitting |
 | Photoelectric effect | stopping potential vs frequency; least-squares slope | recover the fixture's declared \(h/e\) slope within \(10^{-27}\,\mathrm{eV\,s}\) | noiseless generated points; not a new measurement of Planck's constant |
+| Millikan oil drop | infer the elementary-charge lattice from noisy charge observations | recover the synthetic charge unit within \(10^{-4}\times 10^{-19}\,\mathrm C\); RMS lattice residual below \(1.5\times10^{-3}\times10^{-19}\,\mathrm C\) | synthetic values, grid-search prior \([1.50,1.70]\times10^{-19}\,\mathrm C\); no drop-dynamics, viscosity or apparatus inference |
+| Foucault pendulum | signed precession rate from latitude and Earth rotation | zero at equator, about \(-15.0411^\circ/\mathrm h\) at the north pole, and equal-and-opposite rates at \(\pm45^\circ\) | ideal small-angle limit and explicit sign convention (clockwise viewed from above is negative); no damping, ellipticity or drive mechanism |
 | Michelson–Morley | classical-aether counterfactual vs Lorentz-invariant null model | reproduce the declared classical shift (about 0.4406 fringe for fixture parameters) and exact zero invariant-model shift | no historical fringe digitization, arm dynamics, thermal drift, vibration, or real instrument noise |
 | Double slit | two-path interference law with visibility control | unit visibility for ideal equal paths; zero visibility removes the predicted fringe contrast | not a full wave-equation / finite-aperture / decoherence solver |
 | Stern–Gerlach | ideal spin-\(1/2\) Born probabilities | \(P_+(0)=1\), \(P_+(\pi/2)=0.5\), \(P_+(\pi)=0\) | no finite magnet field, spatial wave-packet, detector efficiency, or preparation error |
@@ -99,7 +101,9 @@ The collection should grow by adding qualified experiments, not by declaring a f
 
 - NIST, *2022 CODATA recommended values of the fundamental physical constants*: https://physics.nist.gov/cuu/Constants/ and https://physics.nist.gov/cuu/pdf/all.pdf
 - NIST, *How Do You Measure the Strength of Gravity?* (Cavendish/torsion balance context): https://www.nist.gov/how-do-you-measure-it/how-do-you-measure-strength-gravity
-- NIST, *Introduction to the constants for nonexperts, 1900–1920* (historical charge and photoelectric \(h/e\) measurement context): https://physics.nist.gov/cuu/Constants/historical1.html
+- NIST, *Introduction to the constants for nonexperts, 1900–1920* (historical charge and photoelectric \(h/e\) measurement context; documents Millikan's early bias traced to air-viscosity error): https://physics.nist.gov/cuu/Constants/historical1.html
+- Millikan, *On the Elementary Electrical Charge and the Avogadro Constant* (1913 primary-source record): https://authors.library.caltech.edu/records/sfc90-k2g07
+- UNSW Physics, *The Foucault pendulum — the physics (and maths) involved*: https://newt.phys.unsw.edu.au/~jw/pendulumdetails.html
 - American Physical Society, *Robert Millikan Reports His Oil Drop Results*: https://www.aps.org/apsnews/2006/08/robert-millikan-oil-drop-results
 - PhET Interactive Simulations, *Photoelectric Effect* (pedagogical reference for frequency/intensity/voltage/material controls): https://phet.colorado.edu/en/simulations/photoelectric
 
