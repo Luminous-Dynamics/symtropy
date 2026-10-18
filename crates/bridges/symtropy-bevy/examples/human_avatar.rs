@@ -10,16 +10,11 @@
 //! This is an asset/animation smoke test, not a human-motion realism benchmark.
 
 use bevy::{
-    animation::{
-        AnimationGraph, AnimationGraphHandle, AnimationNodeIndex, AnimationPlayer,
-        AnimationTransitions,
-    },
+    animation::{AnimationGraph, AnimationPlayer},
     light::CascadeShadowConfigBuilder,
     prelude::*,
     world_serialization::WorldInstanceReady,
 };
-use std::time::Duration;
-
 use symtropy_bevy::{
     HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanMotion,
 };
