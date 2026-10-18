@@ -115,7 +115,10 @@
       "expected": {
         "shared_record_decision": "reject_or_redact_under_explicit_policy",
         "invariant": "Direct identity, political affiliation, and precise vulnerable-household location do not enter the shared benchmark evidence plane."
-      }
+      },
+      "proposed_shared_record_fields": [
+        "aggregate_service_gap"
+      ]
     },
     {
       "id": "pirb-r3-no-lookahead-01",
