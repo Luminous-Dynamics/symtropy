@@ -343,8 +343,9 @@ fn classify(lower: i128, upper: i128, limit: i128, lower_is_better: bool) -> Dec
 fn residual_interval(record: &PairedRecord) -> Interval {
     let center =
         i128::from(record.reference_value_ticks) - i128::from(record.model_prediction_ticks);
-    let spread = i128::from(record.reference_uncertainty_ticks)
-        + i128::from(record.model_numerical_uncertainty_ticks);
+    // Keep reference measurement uncertainty in the residual envelope. Model numerical
+    // uncertainty remains a separate term when the envelope is applied to a prediction.
+    let spread = i128::from(record.reference_uncertainty_ticks);
     Interval {
         lower: center - spread,
         upper: center + spread,
@@ -559,9 +560,9 @@ mod tests {
         let report = evaluate_bytes(FIXTURE).expect("frozen fixture passes");
         assert_eq!(report.calibration_record_count, 3);
         assert_eq!(report.holdout_record_count, 3);
-        assert_eq!(report.envelope.lower_residual_ticks, -4);
-        assert_eq!(report.envelope.upper_residual_ticks, 9);
-        assert_eq!(report.envelope.width_ticks, 13);
+        assert_eq!(report.envelope.lower_residual_ticks, -3);
+        assert_eq!(report.envelope.upper_residual_ticks, 8);
+        assert_eq!(report.envelope.width_ticks, 11);
         assert_eq!(report.heldout_residual_covered_count, 3);
         assert_eq!(report.heldout_residual_miss_count, 0);
         assert_eq!(report.false_robust_feasible_count, 0);
@@ -660,8 +661,7 @@ mod tests {
             for record in calibration {
                 let residual = i128::from(record.reference_value_ticks)
                     - i128::from(record.model_prediction_ticks);
-                let spread = i128::from(record.reference_uncertainty_ticks)
-                    + i128::from(record.model_numerical_uncertainty_ticks);
+                let spread = i128::from(record.reference_uncertainty_ticks);
                 oracle_lower = oracle_lower.min(residual - spread);
                 oracle_upper = oracle_upper.max(residual + spread);
             }
