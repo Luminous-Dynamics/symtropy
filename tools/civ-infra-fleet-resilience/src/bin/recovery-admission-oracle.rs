@@ -28,6 +28,22 @@ struct ScenarioCheck {
 }
 
 #[derive(Clone, Debug, Serialize)]
+struct MutationOutcome {
+    scenario_id: String,
+    mutation_id: String,
+    admitted: bool,
+    next_state: Option<String>,
+    reason_codes: Vec<String>,
+}
+
+struct MutationSummary {
+    outcomes: Vec<MutationOutcome>,
+    violations: Vec<String>,
+    protective_stop_checks: usize,
+    protective_stop_violations: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
 struct OracleReport {
     schema_version: String,
     classification: String,
