@@ -9,27 +9,29 @@
       "source_id": "minelib-dataset-catalogue",
       "record_kind": "dataset_catalogue",
       "title": "MineLib open-pit mining optimization benchmark instances",
-      "canonical_url": "https://mansci-web.uai.cl/minelib/Datasets.xhtml",
+      "canonical_url": "https://minelib.org/v1/Datasets.xhtml",
       "citation": "MineLib dataset catalogue; accessed as a reference record for MINE-REFERENCE-001.",
       "upstream_version": "catalogue version not recorded",
-      "license_state": "unverified",
-      "redistribution_allowed": false,
+      "license_state": "verified_open",
+      "redistribution_allowed": true,
       "access_state": "metadata_only",
       "source_sha256": null,
-      "review_note": "Review instance-specific academic-download terms before retrieval, caching, derived redistribution, or committing data. Do not treat public listing as permission to redistribute."
+      "review_note": "The official MineLib v1 landing page states that MineLib is licensed under CC BY-SA 3.0 Unported. Preserve attribution and ShareAlike obligations. This catalogue metadata does not rule out instance-specific third-party exceptions; review the exact instance record before downloading, adapting, or redistributing any data.",
+      "license_name": "CC BY-SA 3.0 Unported"
     },
     {
       "source_id": "minelib-format-spec-v1",
       "record_kind": "format_specification",
       "title": "MineLib file format specification v1.0",
-      "canonical_url": "https://mansci-web.uai.cl/minelib/minelib_format.pdf",
+      "canonical_url": "https://minelib.org/v1/minelib_format.pdf",
       "citation": "Espinoza, Goycoolea, Moreno and Newman, MineLib file format specification v1.0, 2012-07-23.",
       "upstream_version": "1.0",
-      "license_state": "unverified",
-      "redistribution_allowed": false,
+      "license_state": "verified_open",
+      "redistribution_allowed": true,
       "access_state": "metadata_only",
       "source_sha256": null,
-      "review_note": "Reference only. The format document describes linked block-model, precedence, and problem-data files. Validate exact fields and terms against the complete upstream specification before implementing a parser."
+      "review_note": "The official MineLib v1 site links this format document and states that MineLib is licensed under CC BY-SA 3.0 Unported. Preserve attribution and ShareAlike obligations when adapting the document. This entry is a metadata record; no PDF is copied into this repository.",
+      "license_name": "CC BY-SA 3.0 Unported"
     },
     {
       "source_id": "lotsu-2026-production-scheduling-article",
@@ -39,11 +41,11 @@
       "citation": "Lotsu, Bimpong and Boakye, Frontiers in Artificial Intelligence 9 (2026), 1759758.",
       "upstream_version": "version of record published 2026-05-21",
       "license_state": "verified_open",
-      "license_name": "CC-BY-4.0",
+      "license_name": "Creative Commons Attribution License (CC BY; version not specified on article page)",
       "redistribution_allowed": true,
       "access_state": "metadata_only",
       "source_sha256": null,
-      "review_note": "The paper evaluates a 602-block, 12-period synthetic case and documents a Zenodo artifact record. Its modeled NPV and runtime are not real-mine performance claims; inspect the separate data-artifact license before using or redistributing artifact files."
+      "review_note": "The article's own statements section declares a Creative Commons Attribution License (CC BY). Its separate Zenodo artifact is tracked separately and remains unverified for redistribution. The paper's published case is synthetic; no paper outputs are treated as measured mine performance."
     },
     {
       "source_id": "lotsu-2026-zenodo-artifacts",
