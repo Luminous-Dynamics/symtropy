@@ -364,7 +364,7 @@ fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> 
         &report.object_count,
         "p99_frame_interval_ms",
     )?;
-    if mean < 0.0 || p50 > p95 || p95 > p99 {
+    if p50 > p95 || p95 > p99 {
         return Err(format!(
             "{}: frame-time mean/percentiles are inconsistent",
             path.display()
