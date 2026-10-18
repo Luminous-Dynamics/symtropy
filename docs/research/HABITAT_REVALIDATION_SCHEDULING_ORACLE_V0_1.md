@@ -69,3 +69,11 @@ Do not claim all-instance exact optimality where the selected algorithms or know
 - No performance claim until raw trials, exact workload digests, environment metadata, and incomplete-search counts are published.
 
 The intended novelty is not simply a faster schedule optimizer. It is a connected decision system where a proposed timeline, its assumptions, gates, relevant evidence, uncertainty, and later evidence invalidation remain auditable as one chain—while established scheduling datasets ensure it does not benchmark only against its own invented examples.
+
+## Heuristic scheduling baseline
+
+A separate experimental implementation now lives in [tools/habitat-scheduling-planner](https://github.com/Luminous-Dynamics/symtropy/tree/research/whole-property-habitat-benchmark-v0-1/tools/habitat-scheduling-planner). It tries five deterministic topological list-scheduling priorities and independently revalidates every emitted candidate. It reports `HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL` when it has a valid schedule, `PROVEN_INFEASIBLE_PRECHECK` only for direct hard-constraint/lower-bound contradictions, and `NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY` if the tried heuristic rules found no schedule.
+
+It evaluates the declared upper-duration scenario separately from nominal durations, and separates a candidate robust schedule from a proven hard-constraint infeasibility. It never promotes a heuristic candidate to a global optimum. A negative-control unit test corrupts a valid schedule so two tasks overlap on one exclusive crew; the independent validator must reject it.
+
+This is a first comparison point for the exact micro-oracle, not an optimal solver and not yet a large-instance benchmark. The oracle, heuristic scheduler, and any future exact/anytime optimizer should remain separately implemented enough that candidate schedules are checked by a validator that does not rely on the candidate generator's own occupancy calculations.
