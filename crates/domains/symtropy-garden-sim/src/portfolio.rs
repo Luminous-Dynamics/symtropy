@@ -15,19 +15,14 @@ use std::cmp::Ordering;
 
 pub const GARDEN_PORTFOLIO_SCHEMA_VERSION: u16 = 1;
 
-fn serialize_i128_as_decimal_string<S>(
-    value: &i128,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_i128_as_decimal_string<S>(value: &i128, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
     serializer.serialize_str(&value.to_string())
 }
 
-fn deserialize_i128_from_decimal_string<'de, D>(
-    deserializer: D,
-) -> Result<i128, D::Error>
+fn deserialize_i128_from_decimal_string<'de, D>(deserializer: D) -> Result<i128, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -35,19 +30,14 @@ where
     raw.parse::<i128>().map_err(serde::de::Error::custom)
 }
 
-fn serialize_u64_as_decimal_string<S>(
-    value: &u64,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_u64_as_decimal_string<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
     serializer.serialize_str(&value.to_string())
 }
 
-fn deserialize_u64_from_decimal_string<'de, D>(
-    deserializer: D,
-) -> Result<u64, D::Error>
+fn deserialize_u64_from_decimal_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -278,8 +268,7 @@ pub fn compare_portfolios_v1(
     request: &PortfolioComparisonRequestV1,
 ) -> PortfolioComparisonReportV1 {
     let mut blockers = Vec::new();
-    let mut objectives: Vec<&PortfolioObjectiveDefinitionV1> =
-        request.objectives.iter().collect();
+    let mut objectives: Vec<&PortfolioObjectiveDefinitionV1> = request.objectives.iter().collect();
     objectives.sort_by(|left, right| left.objective_id.cmp(&right.objective_id));
 
     if request.schema_version != GARDEN_PORTFOLIO_SCHEMA_VERSION {
@@ -750,11 +739,22 @@ mod tests {
     #[test]
     fn infeasible_and_unassessed_candidates_never_enter_frontier() {
         let report = compare_portfolios_v1(&valid_request());
-        assert!(!report.frontier_candidate_ids.contains(&"Z-UNSAFE".to_owned()));
-        assert!(!report.frontier_candidate_ids.contains(&"Z-UNKNOWN".to_owned()));
-        assert!(report.excluded_candidates.iter().all(|item| {
-            item.feasibility != PortfolioCandidateFeasibilityV1::Feasible
-        }));
+        assert!(
+            !report
+                .frontier_candidate_ids
+                .contains(&"Z-UNSAFE".to_owned())
+        );
+        assert!(
+            !report
+                .frontier_candidate_ids
+                .contains(&"Z-UNKNOWN".to_owned())
+        );
+        assert!(
+            report
+                .excluded_candidates
+                .iter()
+                .all(|item| { item.feasibility != PortfolioCandidateFeasibilityV1::Feasible })
+        );
     }
 
     #[test]
@@ -787,9 +787,11 @@ mod tests {
         let report = compare_portfolios_v1(&request);
         assert_eq!(report.status, PortfolioComparisonStatusV1::Blocked);
         assert!(report.frontier_candidate_ids.is_empty());
-        assert!(report.blockers.iter().any(|item| {
-            item.code == PortfolioComparisonBlockerCodeV1::CandidateScopeMismatch
-        }));
+        assert!(
+            report.blockers.iter().any(|item| {
+                item.code == PortfolioComparisonBlockerCodeV1::CandidateScopeMismatch
+            })
+        );
         assert!(report.blockers.iter().any(|item| {
             item.code == PortfolioComparisonBlockerCodeV1::CandidatePeriodMismatch
         }));
@@ -806,9 +808,11 @@ mod tests {
         assert!(report.blockers.iter().any(|item| {
             item.code == PortfolioComparisonBlockerCodeV1::CandidateObjectiveUnitMismatch
         }));
-        assert!(report.blockers.iter().any(|item| {
-            item.code == PortfolioComparisonBlockerCodeV1::MissingObjectiveValue
-        }));
+        assert!(
+            report.blockers.iter().any(|item| {
+                item.code == PortfolioComparisonBlockerCodeV1::MissingObjectiveValue
+            })
+        );
         assert!(report.blockers.iter().any(|item| {
             item.code == PortfolioComparisonBlockerCodeV1::CandidateObjectiveScaleMismatch
         }));
@@ -820,29 +824,41 @@ mod tests {
         request.candidates.push(request.candidates[0].clone());
         let report = compare_portfolios_v1(&request);
         assert_eq!(report.status, PortfolioComparisonStatusV1::Blocked);
-        assert!(report.blockers.iter().any(|item| {
-            item.code == PortfolioComparisonBlockerCodeV1::DuplicateCandidateId
-        }));
+        assert!(
+            report.blockers.iter().any(|item| {
+                item.code == PortfolioComparisonBlockerCodeV1::DuplicateCandidateId
+            })
+        );
 
         let mut request = valid_request();
         request.objectives.push(request.objectives[0].clone());
         let report = compare_portfolios_v1(&request);
         assert_eq!(report.status, PortfolioComparisonStatusV1::Blocked);
-        assert!(report.blockers.iter().any(|item| {
-            item.code == PortfolioComparisonBlockerCodeV1::DuplicateObjectiveId
-        }));
+        assert!(
+            report.blockers.iter().any(|item| {
+                item.code == PortfolioComparisonBlockerCodeV1::DuplicateObjectiveId
+            })
+        );
     }
 
     fn generated_request(seed: u64, case_index: usize) -> PortfolioComparisonRequestV1 {
         let mut state = seed;
         let objectives = vec![
-            objective("cost_minor_units", PortfolioObjectiveDirectionV1::Minimize, "minor_unit"),
+            objective(
+                "cost_minor_units",
+                PortfolioObjectiveDirectionV1::Minimize,
+                "minor_unit",
+            ),
             objective("water_ml", PortfolioObjectiveDirectionV1::Minimize, "ml"),
             objective("edible_grams", PortfolioObjectiveDirectionV1::Maximize, "g"),
-            objective("diversity_groups", PortfolioObjectiveDirectionV1::Maximize, "group"),
+            objective(
+                "diversity_groups",
+                PortfolioObjectiveDirectionV1::Maximize,
+                "group",
+            ),
         ];
         let mut candidates = Vec::new();
-        for index in 0..12 {
+        for index in 0_usize..12 {
             let id = format!("CASE-{case_index:03}-CAND-{index:02}");
             let feasibility = if index == 0 {
                 PortfolioCandidateFeasibilityV1::Unassessed
@@ -867,9 +883,21 @@ mod tests {
                         "minor_unit",
                         i128::from(next_random(&mut state) % 10_001),
                     ),
-                    value("water_ml", "ml", i128::from(next_random(&mut state) % 10_001)),
-                    value("edible_grams", "g", i128::from(next_random(&mut state) % 10_001)),
-                    value("diversity_groups", "group", i128::from(next_random(&mut state) % 101)),
+                    value(
+                        "water_ml",
+                        "ml",
+                        i128::from(next_random(&mut state) % 10_001),
+                    ),
+                    value(
+                        "edible_grams",
+                        "g",
+                        i128::from(next_random(&mut state) % 10_001),
+                    ),
+                    value(
+                        "diversity_groups",
+                        "group",
+                        i128::from(next_random(&mut state) % 101),
+                    ),
                 ]
             } else {
                 Vec::new()
@@ -967,18 +995,28 @@ mod tests {
     #[test]
     fn one_hundred_seeded_scenarios_match_independent_exhaustive_oracle() {
         for case_index in 0..100 {
-            let case_seed = u64::try_from(case_index)
-                .expect("case index is bounded by the 100-case corpus");
-            let request = generated_request(
-                0x5eed_u64.wrapping_add(case_seed * 7919),
-                case_index,
-            );
+            let case_seed =
+                u64::try_from(case_index).expect("case index is bounded by the 100-case corpus");
+            let request = generated_request(0x5eed_u64.wrapping_add(case_seed * 7919), case_index);
             let expected = reference_frontier(&request);
             let actual = compare_portfolios_v1(&request);
-            assert_eq!(actual.status, PortfolioComparisonStatusV1::Compared, "case {case_index}");
-            assert_eq!(actual.frontier_candidate_ids, expected.0, "frontier case {case_index}");
-            assert_eq!(actual.dominated_candidate_ids, expected.1, "dominated case {case_index}");
-            assert_eq!(actual.dominance_witnesses, expected.2, "witness case {case_index}");
+            assert_eq!(
+                actual.status,
+                PortfolioComparisonStatusV1::Compared,
+                "case {case_index}"
+            );
+            assert_eq!(
+                actual.frontier_candidate_ids, expected.0,
+                "frontier case {case_index}"
+            );
+            assert_eq!(
+                actual.dominated_candidate_ids, expected.1,
+                "dominated case {case_index}"
+            );
+            assert_eq!(
+                actual.dominance_witnesses, expected.2,
+                "witness case {case_index}"
+            );
 
             let mut expected_exclusions: Vec<_> = request
                 .candidates
@@ -994,14 +1032,21 @@ mod tests {
                 .iter()
                 .map(|candidate| candidate.candidate_id.clone())
                 .collect();
-            assert_eq!(actual_exclusions, expected_exclusions, "exclusions case {case_index}");
+            assert_eq!(
+                actual_exclusions, expected_exclusions,
+                "exclusions case {case_index}"
+            );
         }
     }
 
     #[test]
     fn strict_dominance_is_irreflexive_and_asymmetric() {
         let definitions = vec![
-            objective("cost", PortfolioObjectiveDirectionV1::Minimize, "minor_unit"),
+            objective(
+                "cost",
+                PortfolioObjectiveDirectionV1::Minimize,
+                "minor_unit",
+            ),
             objective("delivered", PortfolioObjectiveDirectionV1::Maximize, "gram"),
         ];
         let axes: Vec<_> = definitions.iter().collect();
@@ -1016,7 +1061,11 @@ mod tests {
     #[test]
     fn strict_dominance_is_transitive_for_mixed_objective_directions() {
         let definitions = vec![
-            objective("cost", PortfolioObjectiveDirectionV1::Minimize, "minor_unit"),
+            objective(
+                "cost",
+                PortfolioObjectiveDirectionV1::Minimize,
+                "minor_unit",
+            ),
             objective("delivered", PortfolioObjectiveDirectionV1::Maximize, "gram"),
         ];
         let axes: Vec<_> = definitions.iter().collect();
@@ -1049,10 +1098,9 @@ mod tests {
             *state = state
                 .wrapping_mul(6_364_136_223_846_793_005)
                 .wrapping_add(1_442_695_040_888_963_407);
-            let width = u64::try_from(index + 1)
-                .expect("test permutation width fits into u64");
-            let other = usize::try_from(*state % width)
-                .expect("permutation remainder fits into usize");
+            let width = u64::try_from(index + 1).expect("test permutation width fits into u64");
+            let other =
+                usize::try_from(*state % width).expect("permutation remainder fits into usize");
             items.swap(index, other);
         }
     }

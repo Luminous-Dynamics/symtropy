@@ -12,10 +12,9 @@
 use std::hint::black_box;
 use std::time::Instant;
 use symtropy_garden_sim::portfolio::{
-    compare_portfolios_v1, PortfolioCandidateFeasibilityV1, PortfolioCandidateV1,
-    PortfolioComparisonRequestV1, PortfolioComparisonStatusV1,
-    PortfolioObjectiveDefinitionV1, PortfolioObjectiveDirectionV1,
-    PortfolioObjectiveValueV1, GARDEN_PORTFOLIO_SCHEMA_VERSION,
+    GARDEN_PORTFOLIO_SCHEMA_VERSION, PortfolioCandidateFeasibilityV1, PortfolioCandidateV1,
+    PortfolioComparisonRequestV1, PortfolioComparisonStatusV1, PortfolioObjectiveDefinitionV1,
+    PortfolioObjectiveDirectionV1, PortfolioObjectiveValueV1, compare_portfolios_v1,
 };
 
 fn next_random(state: &mut u64) -> u64 {
@@ -193,8 +192,12 @@ fn measure_batch(label: &str, requests: &[PortfolioComparisonRequestV1]) {
     println!(
         "workload={label} scenarios={} candidates_per_scenario={} objectives_per_scenario={} repetitions=30 p50_ms={} p95_ms={} output_fingerprint_sum_fnv1a64={output_fingerprint_sum:016x}",
         requests.len(),
-        requests.first().map_or(0, |request| request.candidates.len()),
-        requests.first().map_or(0, |request| request.objectives.len()),
+        requests
+            .first()
+            .map_or(0, |request| request.candidates.len()),
+        requests
+            .first()
+            .map_or(0, |request| request.objectives.len()),
         p50 / 1_000_000,
         p95 / 1_000_000,
     );
