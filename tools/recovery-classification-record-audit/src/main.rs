@@ -974,4 +974,54 @@ mod tests {
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
         assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_ENTRY_FROM_FUTURE")));
     }
+    #[test]
+    fn missing_revocation_entry_is_rejected() {
+        let mut value = packet();
+        let record_id = value.records[0].record_id.clone();
+        value.revocation_entries.retain(|entry| entry.record_id != record_id);
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_ENTRY_MISSING")));
+    }
+
+    #[test]
+    fn duplicate_revocation_entries_are_rejected() {
+        let mut value = packet();
+        let duplicate = value.revocation_entries[0].clone();
+        value.revocation_entries.push(duplicate);
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_REVOCATION_ENTRY")));
+    }
+
+    #[test]
+    fn invalid_validity_window_is_rejected_even_after_rehash() {
+        let mut value = packet();
+        let id = "synthetic://classification-review/forest-known-family-complete-evidence";
+        update_payload(&mut value, id, |p| {
+            p.valid_from_day = 20010;
+            p.valid_until_day = 20005;
+        });
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("RECORD_VALIDITY_RANGE_INVALID")));
+    }
+
+    #[test]
+    fn unsorted_set_fields_are_rejected_even_after_rehash() {
+        let mut value = packet();
+        let id = "synthetic://classification-review/forest-known-family-complete-evidence";
+        update_payload(&mut value, id, |p| {
+            p.classified_failure_families.reverse();
+        });
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("CLASSIFIED_FAMILIES_NOT_CANONICAL")));
+    }
+
+
 }
