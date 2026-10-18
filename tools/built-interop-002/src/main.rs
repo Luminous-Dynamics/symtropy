@@ -602,12 +602,20 @@ mod tests {
             .into_bytes();
         let report = evaluate(&missing_id, &ids).expect("synthetic IFC still parses");
         assert_eq!(report.decision, Decision::Blocked);
-        assert_eq!(report.observations[0].outcome, PropertyOutcome::NotEvaluated);
+        assert_eq!(
+            report.observations[0].outcome,
+            PropertyOutcome::NotEvaluated
+        );
         assert_eq!(
             report.observations[0].diagnostic_code.as_deref(),
             Some("GLOBAL_ID_MISSING")
         );
-        assert!(report.diagnostics.iter().any(|d| d.starts_with("GLOBAL_ID_MISSING:")));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.starts_with("GLOBAL_ID_MISSING:"))
+        );
     }
 
     #[test]
@@ -615,16 +623,20 @@ mod tests {
         let (ifc, ids) = fixtures();
         let second_wall =
             "#2=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\n";
-        let duplicate = String::from_utf8(ifc)
-            .expect("fixture is UTF-8")
-            .replace(
-                "ENDSEC;\nEND-ISO-10303-21;",
-                &format!("{second_wall}ENDSEC;\nEND-ISO-10303-21;"),
-            );
-        let report = evaluate(duplicate.as_bytes(), &ids).expect("duplicate-identity IFC parses");
+        let duplicate = String::from_utf8(ifc).expect("fixture is UTF-8").replace(
+            "ENDSEC;\nEND-ISO-10303-21;",
+            &format!("{second_wall}ENDSEC;\nEND-ISO-10303-21;"),
+        );
+        let report =
+            evaluate(duplicate.as_bytes(), &ids).expect("duplicate-identity IFC parses");
         assert_eq!(report.decision, Decision::Blocked);
         assert_eq!(report.applicable_wall_count, Some(2));
-        assert!(report.diagnostics.iter().any(|d| d.starts_with("DUPLICATE_GLOBAL_ID:")));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.starts_with("DUPLICATE_GLOBAL_ID:"))
+        );
         assert_ne!(
             report.observations[0].source_step_id,
             report.observations[1].source_step_id
