@@ -26,8 +26,11 @@ jobs:
     name: Deterministic workload generation
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source
+      - name: Check out exact source head
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install pinned Rust toolchain
         run: |
