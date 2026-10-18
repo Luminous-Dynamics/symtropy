@@ -162,6 +162,7 @@ members = [
     # the ones that were archived instead.
     "crates/apps/symtropy-web-gallery",
     "crates/apps/symtropy-bevy-validation-scene",
+    "crates/apps/symtropy-render-benchmark",
 
     # Firstlight product spine (patches 113-122, 2026-07-21) — re-rooted from
     # the archive's own assumed top-level workspace into this one's
