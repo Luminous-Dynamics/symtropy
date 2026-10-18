@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/physics-experiment-atlas/**"
       - "docs/research/PHYSICS_EXPERIMENT_ATLAS_V0_1.md"
+      - "docs/research/PHYSICS_EXPERIMENT_HISTORICAL_CATALOG_V0_1.md"
       - ".github/workflows/physics-experiment-atlas.yml"
   push:
     branches: [main]
