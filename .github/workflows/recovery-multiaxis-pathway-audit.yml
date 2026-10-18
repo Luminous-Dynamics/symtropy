@@ -41,7 +41,7 @@ jobs:
         run: cargo fmt --check --manifest-path tools/recovery-multiaxis-pathway-audit/Cargo.toml
       - name: Run unit and adversarial tests
         run: cargo test --manifest-path tools/recovery-multiaxis-pathway-audit/Cargo.toml
-      - name: Audit the frozen 864-case corpus at exact head
+      - name: Audit the frozen 868-case corpus and temporal controls at exact head
         shell: bash
         run: |
           set -euo pipefail
