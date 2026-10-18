@@ -41,7 +41,7 @@ A check passing only means that the coded fixture agrees with the stated analyti
 
 ## Shared Symthaea experiment-design fixture
 
-The transport fixture at `tools/physics-experiment-atlas/fixtures/galileo-discrimination-v0.1.json` is mirrored in Symthaea's `crates/domains/symthaea-experiment-design/fixtures/galileo-discrimination-v0.1.json`. It gives the same two Galileo model descriptors and uncertainty descriptors to the experiment-design component, with SHA-256 digests checked by the Symthaea planner. These digests verify the descriptor bytes; they are **not** an attestation that a simulation binary executed the equations. Do not change one copy without updating and reviewing the other. They are currently mirrored artifacts; cross-repository byte-for-byte parity is not yet a CI-enforced gate.
+The transport fixture at `tools/physics-experiment-atlas/fixtures/galileo-discrimination-v0.1.json` is mirrored in Symthaea's `crates/domains/symthaea-experiment-design/fixtures/galileo-discrimination-v0.1.json`. It gives the same two Galileo model descriptors and uncertainty descriptors to the experiment-design component, with SHA-256 digests checked by the Symthaea planner. These digests verify the descriptor bytes; they are **not** an attestation that a simulation binary executed the equations. Both focused workflows pin the fixture's Git object fingerprint (`1b2a9862498722619c2259688d4557eb2dac9cef`), so unreviewed fixture drift in either repository fails that repo's gate. The fingerprint is a drift check, not an executable/model attestation. A coordinated change must review and update both copies and both pins.
 
 ## Architecture: three separate truth layers
 
