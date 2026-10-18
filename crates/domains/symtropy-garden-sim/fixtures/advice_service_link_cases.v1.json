@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "status": "synthetic_contract_cases",
+  "purpose": "Frozen synthetic cases for the advice-to-service reference contract. Every case asserts that reference validation neither mutates the service request nor authorizes disclosure or causal claims.",
+  "cases": [
+    {
+      "id": "FASL-001",
+      "mutation": "no_link",
+      "expected_disposition": "unlinked_service_request",
+      "expected_blockers": []
+    },
+    {
+      "id": "FASL-002",
+      "mutation": "valid_link",
+      "expected_disposition": "linked_reference_validated",
+      "expected_blockers": []
+    },
+    {
+      "id": "FASL-003",
+      "mutation": "scope_mismatch",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "ScopeMismatch"
+      ]
+    },
+    {
+      "id": "FASL-004",
+      "mutation": "period_mismatch",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "PeriodMismatch"
+      ]
+    },
+    {
+      "id": "FASL-005",
+      "mutation": "task_mismatch",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "TaskMismatch"
+      ]
+    },
+    {
+      "id": "FASL-006",
+      "mutation": "request_reference_mismatch",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "RequestReferenceMismatch"
+      ]
+    },
+    {
+      "id": "FASL-007",
+      "mutation": "missing_authorization_ref",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "MissingAuthorizationReference"
+      ]
+    },
+    {
+      "id": "FASL-008",
+      "mutation": "duplicate_outcome_ref",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "DuplicateOutcomeReference"
+      ]
+    },
+    {
+      "id": "FASL-009",
+      "mutation": "empty_outcome_ref",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "EmptyOutcomeReference"
+      ]
+    },
+    {
+      "id": "FASL-010",
+      "mutation": "stale_link",
+      "expected_disposition": "requires_resolution",
+      "expected_blockers": []
+    },
+    {
+      "id": "FASL-011",
+      "mutation": "disputed_link",
+      "expected_disposition": "requires_resolution",
+      "expected_blockers": []
+    },
+    {
+      "id": "FASL-012",
+      "mutation": "unavailable_link",
+      "expected_disposition": "requires_resolution",
+      "expected_blockers": []
+    },
+    {
+      "id": "FASL-013",
+      "mutation": "revoked_sharing",
+      "expected_disposition": "sharing_revoked",
+      "expected_blockers": []
+    },
+    {
+      "id": "FASL-014",
+      "mutation": "unsupported_schema",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "UnsupportedSchema"
+      ]
+    },
+    {
+      "id": "FASL-015",
+      "mutation": "empty_advice_episode_ref",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "EmptyAdviceEpisodeReference"
+      ]
+    },
+    {
+      "id": "FASL-016",
+      "mutation": "empty_source_ref",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "EmptySourceReference"
+      ]
+    },
+    {
+      "id": "FASL-017",
+      "mutation": "empty_recorded_time",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "InvalidRecordedTimestamp"
+      ]
+    },
+    {
+      "id": "FASL-018",
+      "mutation": "empty_decision_ref",
+      "expected_disposition": "blocked",
+      "expected_blockers": [
+        "EmptyDecisionReference"
+      ]
+    },
+    {
+      "id": "FASL-019",
+      "mutation": "digest_shaped_source",
+      "expected_disposition": "linked_reference_validated",
+      "expected_blockers": []
+    },
+    {
+      "id": "FASL-020",
+      "mutation": "pending_link",
+      "expected_disposition": "requires_resolution",
+      "expected_blockers": []
+    }
+  ]
+}
