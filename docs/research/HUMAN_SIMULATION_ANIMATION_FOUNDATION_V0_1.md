@@ -8,7 +8,7 @@
 
 Build a measurable human-simulation stack by separating appearance, motion, motor control, cognition, and population/social behavior. These layers interact through explicit data contracts; they must not be collapsed into one “human-like” score.
 
-The first increment adds an opt-in Bevy skeletal-animation driver for user-supplied glTF/GLB avatars. It maps semantic motion states to animation-graph clips, adds a desired-velocity-to-state adapter with hysteresis, and provides an asset-backed smoke-scene example. Small motion-quality metric functions now measure aligned root-trajectory error, stance-foot drift, and discrete jerk. It does **not** bundle a human mesh, provide facial animation, inverse kinematics or root-motion extraction, or demonstrate realistic rendered output. Those remain explicit follow-on work.
+The first increment adds an opt-in Bevy skeletal-animation driver for user-supplied glTF/GLB avatars. It maps semantic motion states to animation-graph clips, adds a desired-velocity-to-state adapter with hysteresis, and provides an asset-backed smoke-scene example. Small motion-quality metric functions now measure aligned root-trajectory error, per-joint trajectory error where named joint traces exist, stance-foot drift, and discrete jerk. It does **not** bundle a human mesh, provide facial animation, inverse kinematics or root-motion extraction, or demonstrate realistic rendered output. Those remain explicit follow-on work.
 
 ## Source audit
 
@@ -92,7 +92,7 @@ These are proposed gates, not measured results. The first report must include th
 - Run the documented cargo command and visually validate scale, skinning, materials, lighting, shadows, clip names, transitions, and failure behavior. Source presence is not proof that the model rendered.
 
 ### P2 — Physically credible movement
-- **Benchmark infrastructure scaffold committed:** a Rust trace reader/comparator now computes trajectory ADE/FDE/max error, predicted stance-foot drift, and root jerk on a shared uniform time grid. Its tests are written but not yet verified by a successful run.
+- **Benchmark infrastructure scaffold committed:** a Rust trace reader/comparator now computes root and named-joint ADE/FDE/max error, predicted stance-foot drift, and root jerk on a shared uniform time grid. Different canonical joint-name sets fail closed; an empty joint map is reported as root/contact-only rather than whole-body validation. Tests are written but not yet verified by a successful run.
 - Next add actual root-motion policy (in-place clips versus extracted root motion), pelvis/root alignment, measured foot-contact labels, ground alignment, obstacle response, and physics-corrected motion.
 - For non-commercial research only, evaluate against an appropriately split AMASS subset where its license permits; for commercial work use separately licensed or original consented mocap. Compare against motion-tracking baselines.
 - Add reach/grasp/sit/stand/turn/crouch actions using explicit contact and joint limits.
