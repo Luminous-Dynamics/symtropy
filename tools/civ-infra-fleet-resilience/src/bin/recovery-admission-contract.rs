@@ -848,14 +848,11 @@ fn evidence_map_for_attempt(
             required_ticks.entry(kind.clone()).or_insert(0);
         }
     }
+    // Only explicit receipt requirements and task acceptance requirements become
+    // evidence items. Invalidated labels describe claims/state to revoke, not
+    // evidence kinds; minting them as evidence creates false vocabulary errors.
     for observation in observations {
         for kind in &observation.required_recovery_evidence {
-            required_ticks
-                .entry(kind.clone())
-                .and_modify(|existing| *existing = (*existing).max(observation.observable_tick))
-                .or_insert(observation.observable_tick);
-        }
-        for kind in &observation.invalidated_evidence {
             required_ticks
                 .entry(kind.clone())
                 .and_modify(|existing| *existing = (*existing).max(observation.observable_tick))
@@ -874,7 +871,6 @@ fn evidence_map_for_attempt(
         })
         .collect()
 }
-
 fn predecessor_receipts(contract: &Contract, task_id: &str, tick: u32) -> Vec<TaskReceipt> {
     let Some(task) = contract.tasks.get(task_id) else {
         return Vec::new();
