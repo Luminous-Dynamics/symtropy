@@ -1010,4 +1010,118 @@ mod tests {
             .iter()
             .any(|code| code == "POLICY_COST_BUDGET_EXCEEDED"));
     }
+
+    #[test]
+    fn stale_action_revision_blocks_the_policy() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_ADAPTIVE_POLICY_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["actions"][0]["source_revision"] =
+            Value::String("stale-survey-revision".to_owned());
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
+        let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
+        assert_eq!(adaptive["status"], "rejected");
+        assert!(adaptive["rejection_codes"]
+            .as_array()
+            .expect("rejection code list")
+            .iter()
+            .any(|code| code == "POLICY_ACTION_REVISION_MISMATCH"));
+    }
+
+    #[test]
+    fn incomplete_action_partition_is_not_accepted() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_ADAPTIVE_POLICY_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["actions"][1]["outcomes"][1]["compatible_state_ids"]
+            .as_array_mut()
+            .expect("state array")
+            .retain(|state| state != "fail-bad");
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
+        let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
+        assert_eq!(adaptive["status"], "rejected");
+        assert!(adaptive["rejection_codes"]
+            .as_array()
+            .expect("rejection code list")
+            .iter()
+            .any(|code| code == "POLICY_ACTION_PARTITION_INCOMPLETE"));
+    }
+
+    #[test]
+    fn cycles_are_rejected_even_when_every_node_has_a_declared_id() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_ADAPTIVE_POLICY_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["policies"][0]["nodes"][0]["branches"][0]["next_node_id"] =
+            Value::String("root".to_owned());
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
+        let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
+        assert_eq!(adaptive["status"], "rejected");
+        assert!(adaptive["rejection_codes"]
+            .as_array()
+            .expect("rejection code list")
+            .iter()
+            .any(|code| code == "POLICY_CYCLE"));
+    }
+
+    #[test]
+    fn measurement_depth_budget_is_enforced_on_the_longest_branch() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_ADAPTIVE_POLICY_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["policies"][0]["max_depth"] = Value::from(1);
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
+        let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
+        assert_eq!(adaptive["status"], "rejected");
+        assert!(adaptive["rejection_codes"]
+            .as_array()
+            .expect("rejection code list")
+            .iter()
+            .any(|code| code == "POLICY_DEPTH_BUDGET_EXCEEDED"));
+    }
+
+    #[test]
+    fn terminal_leaf_rejects_decision_changes_between_remaining_states() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_ADAPTIVE_POLICY_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["candidates"][0]["state_results"][0]["objectives"]["repair_ticks"] =
+            Value::from(2);
+        corpus["cases"][0]["candidates"][1]["state_results"][1]["objectives"]["energy_units"] =
+            Value::from(12);
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
+        let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
+        assert_eq!(adaptive["status"], "rejected");
+        assert!(adaptive["rejection_codes"]
+            .as_array()
+            .expect("rejection code list")
+            .iter()
+            .any(|code| code == "POLICY_STOP_DECISION_NOT_STABLE"));
+    }
+
+    #[test]
+    fn missing_outcome_branch_is_rejected() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_ADAPTIVE_POLICY_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["policies"][0]["nodes"][0]["branches"]
+            .as_array_mut()
+            .expect("branch list")
+            .retain(|branch| branch["outcome_id"] != "access-fail");
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
+        let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
+        assert_eq!(adaptive["status"], "rejected");
+        assert!(adaptive["rejection_codes"]
+            .as_array()
+            .expect("rejection code list")
+            .iter()
+            .any(|code| code == "POLICY_BRANCH_MISSING"));
+    }
+
 }
