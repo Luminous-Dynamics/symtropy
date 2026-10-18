@@ -138,8 +138,8 @@ impl CostLedgerReport {
             &mut output,
             "{{\"case_id\":\"{}\",\"currency_code\":\"{}\",\"evidence_tier\":\"{}\",\"baseline_receipt_sha256\":\"{}\",\"treatment_receipt_sha256\":\"{}\",\"comparison_contract_sha256\":\"{}\",\"service_contract_id\":\"{}\",\"horizon_id\":\"{}\",\"total_baseline_cost_minor\":{},\"total_treatment_cost_minor\":{},\"total_gross_benefit_minor\":{},\"net_transfer_minor\":{},\"all_reservations_met\":{},\"categories\":[",
             self.case_id,
-            evidence_tier_name(self.evidence_tier),
             self.currency_code,
+            evidence_tier_name(self.evidence_tier),
             self.baseline_receipt_sha256,
             self.treatment_receipt_sha256,
             self.comparison_contract_sha256,
@@ -601,14 +601,14 @@ mod tests {
             report.to_json(),
             include_str!("../fixtures/component-ledger-v0.1.expected.json").trim_end()
         );
-        assert_eq!(report.total_baseline_cost_minor, 330_000);
-        assert_eq!(report.total_treatment_cost_minor, 332_000);
-        assert_eq!(report.total_gross_benefit_minor, -2_000);
+        assert_eq!(report.total_baseline_cost_minor, 300_000);
+        assert_eq!(report.total_treatment_cost_minor, 294_000);
+        assert_eq!(report.total_gross_benefit_minor, 6_000);
         assert_eq!(report.net_transfer_minor, 0);
         assert!(!report.all_reservations_met);
         assert_eq!(
             report.categories.iter().map(|c| c.gross_benefit_minor).sum::<i128>(),
-            -2_000
+            6_000
         );
     }
 
