@@ -87,7 +87,7 @@ These are proposed gates, not measured results. The first report must include th
 
 ### P2 — Physically credible movement
 - Add root-motion policy (in-place clips versus extracted root motion), pelvis/root alignment, foot-contact detection, ground alignment, obstacle response, and physics-corrected motion.
-- Evaluate against held-out AMASS or other properly licensed mocap sequences and motion-tracking baselines.
+- For non-commercial research only, evaluate against an appropriately split AMASS subset where its license permits; for commercial work use separately licensed or original consented mocap. Compare against motion-tracking baselines.
 - Add reach/grasp/sit/stand/turn/crouch actions using explicit contact and joint limits.
 
 ### P3 — Expressive person
@@ -113,7 +113,7 @@ Run locally from a fresh clone after obtaining the branch:
     cargo check -p symtropy-bevy --features human-animation --example human_avatar
     cargo run -p symtropy-bevy --features human-animation --example human_avatar
 
-Place a licensed rigged GLB at `assets/humans/person.glb`, or set `SYMTROPY_HUMAN_AVATAR` to a path relative to the Bevy `assets/` directory. The example logs discovered clip names and mappings. The exact command output and a screenshot from the rendered scene must be retained as evidence.
+Follow [`assets/humans/README.md`](../../assets/humans/README.md) for the optional Innerscene CC0 smoke-test GLB; the publisher describes its motion as authored periodic-pose recipes, not mocap. Place the rights-cleared rigged GLB at `assets/humans/person.glb`, or set `SYMTROPY_HUMAN_AVATAR` to a path relative to the Bevy `assets/` directory. The example logs discovered clip names and mappings. The exact command output and a screenshot from the rendered scene must be retained as evidence.
 
 Then run the visual scene with a legally sourced rigged GLB. Source presence or a queued workflow is not a passing result. Attach the exact commit SHA, command output, asset hashes, dataset provenance, and benchmark JSON to the validation record.
 
