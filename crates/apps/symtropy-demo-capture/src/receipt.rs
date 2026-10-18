@@ -247,7 +247,7 @@ fn inspect_image(
     expected_width: Option<u32>,
     expected_height: Option<u32>,
 ) -> ImageReceipt {
-    const MAX_PNG_BYTES: u64 = 512 * 1024 * 1024;
+    const MAX_PNG_BYTES: u64 = 256 * 1024 * 1024;
 
     let Some(path) = path else {
         return image_failure(scheduled_time_secs, None, "missing_capture_path");
@@ -257,6 +257,22 @@ fn inspect_image(
         Ok(file) => file,
         Err(_) => return image_failure(scheduled_time_secs, Some(path), "unreadable"),
     };
+
+    // Reject known oversized files before reading them into memory. The
+    // bounded read below still handles a file that grows after this metadata check.
+    if let Ok(metadata) = file.metadata() {
+        if metadata.len() > MAX_PNG_BYTES {
+            return ImageReceipt {
+                scheduled_time_secs,
+                path: Some(path.to_owned()),
+                status: "size_limit_exceeded".to_owned(),
+                byte_len: Some(metadata.len()),
+                sha256: None,
+                width_px: None,
+                height_px: None,
+            };
+        }
+    }
 
     // Hash and decode the exact same bounded byte buffer. Reopening a path for
     // decode after hashing could otherwise make the digest and dimensions refer
