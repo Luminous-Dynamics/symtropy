@@ -403,3 +403,5 @@ The work must be testable without launching Bevy, starting an LLM, accessing a n
 ## 12. Decision summary
 
 Proceed with the evidence model and validator first, then one full end-to-end case study. Treat this as research infrastructure and an open, reviewable method—not as an AI-generated historical canon. The strongest differentiator is the coupling of source-grounded historical claims, uncertain time-space, executable models, versioned reconstructions, and measurable learning outcomes in one reproducible system.
+
+The Antikythera pilot's next-stage raw-data and Bayesian reanalysis plan is documented in [ANTIKYTHERA_POSTERIOR_REPLICATION_PROTOCOL.md](case-studies/ANTIKYTHERA_POSTERIOR_REPLICATION_PROTOCOL.md). It is a protocol, not a result: the source files' exact license, inventory, and hashes remain unverified, and no posterior reproduction has been executed.
