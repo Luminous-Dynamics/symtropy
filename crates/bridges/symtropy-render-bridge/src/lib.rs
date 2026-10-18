@@ -29,7 +29,8 @@ pub use material::{
 };
 #[cfg(feature = "debug-gizmos")]
 pub use observability::{
-    ContactGlyph, PhysicsObservabilityPlugin, PhysicsOverlayConfig, extract_contact_glyphs,
+    ContactGlyph, PhysicsObservabilityPlugin, PhysicsOverlayConfig, VelocityGlyph,
+    extract_contact_glyphs, extract_velocity_glyphs,
 };
 pub use projection::{Projector, Projector2D, Projector3D, Projector4D};
 pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
