@@ -1050,6 +1050,154 @@ pub fn validate_regular_scalar_grid(grid: &RegularScalarGrid3D) -> Result<usize,
     Ok(sample_count)
 }
 
+/// Generate an indexed triangle mesh for one plane through a validated regular grid.
+/// Coordinates are converted into Bevy scene units; every source grid sample remains
+/// available on the original grid even when the slice uses a coarser stride.
+pub fn extract_grid_slice(
+    grid: &RegularScalarGrid3D,
+    request: &GridSliceRequest,
+    max_vertices: usize,
+) -> Result<GridSliceGeometry, String> {
+    validate_regular_scalar_grid(grid)?;
+    if request.grid_id != grid.metadata.id {
+        return Err("grid slice request ID does not match the supplied grid".to_owned());
+    }
+    if request.stride == 0 {
+        return Err("grid slice stride must be positive".to_owned());
+    }
+    let (fixed_axis, u_axis, v_axis) = match request.axis {
+        GridAxis::X => (0, 1, 2),
+        GridAxis::Y => (1, 2, 0),
+        GridAxis::Z => (2, 0, 1),
+    };
+    if request.index >= grid.dimensions[fixed_axis] {
+        return Err(format!(
+            "slice index {} is outside axis {:?} with size {}",
+            request.index, request.axis, grid.dimensions[fixed_axis]
+        ));
+    }
+
+    let u_indices = sampled_axis_indices(grid.dimensions[u_axis], request.stride)?;
+    let v_indices = sampled_axis_indices(grid.dimensions[v_axis], request.stride)?;
+    if u_indices.len() < 2 || v_indices.len() < 2 {
+        return Err("a drawable grid slice requires at least two samples along both in-plane axes".to_owned());
+    }
+    let width = u_indices.len();
+    let height = v_indices.len();
+    let vertex_count = width
+        .checked_mul(height)
+        .ok_or_else(|| "grid slice vertex count overflow".to_owned())?;
+    if vertex_count > max_vertices || vertex_count > MAX_GRID_SLICE_VERTICES {
+        return Err(format!(
+            "grid slice needs {vertex_count} vertices, exceeding the configured/hard limit"
+        ));
+    }
+    let cell_count = (width - 1)
+        .checked_mul(height - 1)
+        .ok_or_else(|| "grid slice cell count overflow".to_owned())?;
+    let index_count = cell_count
+        .checked_mul(6)
+        .ok_or_else(|| "grid slice index count overflow".to_owned())?;
+
+    let mut positions = Vec::with_capacity(vertex_count);
+    let mut normals = Vec::with_capacity(vertex_count);
+    let mut colors = Vec::with_capacity(vertex_count);
+    let mut indices = Vec::with_capacity(index_count);
+    let mut normal = [0.0_f32; 3];
+    normal[fixed_axis] = 1.0;
+
+    for v in &v_indices {
+        for u in &u_indices {
+            let mut coordinate = [0_usize; 3];
+            coordinate[fixed_axis] = request.index;
+            coordinate[u_axis] = *u;
+            coordinate[v_axis] = *v;
+            let linear_index = grid_linear_index(coordinate, grid.dimensions)?;
+            let position_in_source_units = [
+                grid.origin[0] + grid.spacing[0] * coordinate[0] as f64,
+                grid.origin[1] + grid.spacing[1] * coordinate[1] as f64,
+                grid.origin[2] + grid.spacing[2] * coordinate[2] as f64,
+            ];
+            positions.push(project_position(
+                position_in_source_units,
+                grid.metadata.spatial_unit,
+                grid.metadata.world_units_per_meter,
+            )?);
+            normals.push(normal);
+
+            let value = grid.values[linear_index];
+            let normalized = grid.metadata.display_range.normalize(value);
+            let rgb = grid.metadata.color_map.map_normalized(normalized);
+            colors.push([rgb[0], rgb[1], rgb[2], 1.0]);
+        }
+    }
+
+    let width_u32 = u32::try_from(width).map_err(|_| "slice width exceeds u32".to_owned())?;
+    let height_u32 = u32::try_from(height).map_err(|_| "slice height exceeds u32".to_owned())?;
+    for row in 0..(height_u32 - 1) {
+        for column in 0..(width_u32 - 1) {
+            let a = row * width_u32 + column;
+            let b = a + 1;
+            let c = a + width_u32;
+            let d = c + 1;
+            // u-axis cross v-axis points along the selected positive grid axis.
+            indices.extend_from_slice(&[a, b, c, b, d, c]);
+        }
+    }
+
+    Ok(GridSliceGeometry {
+        grid_id: grid.metadata.id.clone(),
+        axis: request.axis,
+        slice_index: request.index,
+        width: width_u32,
+        height: height_u32,
+        positions,
+        normals,
+        colors,
+        indices,
+    })
+}
+
+fn sampled_axis_indices(dimension: usize, stride: usize) -> Result<Vec<usize>, String> {
+    if dimension == 0 || stride == 0 {
+        return Err("grid dimensions and stride must be positive".to_owned());
+    }
+    let mut indices = Vec::new();
+    let mut current = 0_usize;
+    while current < dimension {
+        indices.push(current);
+        let Some(next) = current.checked_add(stride) else {
+            break;
+        };
+        current = next;
+    }
+    if indices.last().copied() != Some(dimension - 1) {
+        indices.push(dimension - 1);
+    }
+    Ok(indices)
+}
+
+fn grid_linear_index(coordinate: [usize; 3], dimensions: [usize; 3]) -> Result<usize, String> {
+    if coordinate.iter().zip(dimensions).any(|(index, size)| *index >= size) {
+        return Err("grid coordinate is outside the declared dimensions".to_owned());
+    }
+    coordinate[0]
+        .checked_add(
+            dimensions[0]
+                .checked_mul(
+                    coordinate[1]
+                        .checked_add(
+                            dimensions[1]
+                                .checked_mul(coordinate[2])
+                                .ok_or_else(|| "grid linear index overflow".to_owned())?,
+                        )
+                        .ok_or_else(|| "grid linear index overflow".to_owned())?,
+                )
+                .ok_or_else(|| "grid linear index overflow".to_owned())?,
+        )
+        .ok_or_else(|| "grid linear index overflow".to_owned())
+}
+
 fn checked_observation_count(current: usize, additional: usize) -> Result<usize, String> {
     let total = current
         .checked_add(additional)
