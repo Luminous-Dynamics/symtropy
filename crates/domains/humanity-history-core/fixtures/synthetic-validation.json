@@ -76,10 +76,10 @@
         "status": "public_domain",
         "license_id": null,
         "attribution": null,
-        "basis_note": "Synthetic zero-byte-free fixture digest; no real media distributed"
+        "basis_note": "Synthetic fixture uses the SHA-256 of an empty byte sequence; no media is included"
       },
       "distributable": true,
-      "content_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ]
 }
