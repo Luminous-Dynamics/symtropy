@@ -454,4 +454,29 @@ mod tests {
         ).unwrap();
     }
 
+    #[test]
+    fn constant_cp_solution_matches_exponential_across_four_dimensionless_steps() {
+        let cfg = config(1_000.0, 1_000.0, 0.1, 400.0);
+        let initial = cfg.initial_state();
+        let tau = cfg.mass.value() * 1_000.0 / 0.1;
+        for ratio in [0.01_f64, 0.1, 1.0, 10.0] {
+            let duration = seconds(tau * ratio);
+            let (after, report) =
+                apply_analytic_standing_loss(&cfg, initial, k(300.0), duration).unwrap();
+            let expected_temperature = 300.0 + 100.0 * (-ratio).exp();
+            let expected_loss = 1_000_000.0 * (1.0 - (-ratio).exp());
+            assert!(
+                (after.temperature.value() - expected_temperature).abs() < 1.0e-8,
+                "temperature mismatch for dimensionless step {ratio}"
+            );
+            assert!(
+                (report.heat_lost.value() - expected_loss).abs() < 1.0e-4,
+                "energy mismatch for dimensionless step {ratio}"
+            );
+            verify_analytic_standing_loss_report(
+                &cfg, initial, k(300.0), duration, report,
+            ).unwrap();
+        }
+    }
+
 }
