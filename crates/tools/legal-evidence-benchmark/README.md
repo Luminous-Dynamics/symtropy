@@ -10,6 +10,7 @@ Existing efforts cover complementary slices of the problem:
 - LegalBench-RAG evaluates retrieval of precise legal text spans.
 - COLIEE evaluates case retrieval and legal entailment tasks.
 - LegalCiteBench (2026 preprint) studies citation recovery, verification, and case matching.
+- AR-BENCH (January 2026 preprint) explores legal-error detection, classification, and correction in finalized criminal judgments; it demonstrates a useful *review-after-generation* task family, but its reported data concern Mainland China criminal cases and must not be treated as a jurisdiction-neutral corpus.
 - ELI demonstrates structured legal identifiers, metadata, and synchronization.
 - NIST AI RMF provides a trustworthiness risk-management frame.
 
@@ -96,6 +97,7 @@ The shared contract should identify authority/profile snapshots by immutable rev
 - LegalBench-RAG: https://arxiv.org/abs/2408.10343
 - COLIEE 2026 task overview: https://coliee.org/
 - LegalCiteBench (2026 preprint): https://arxiv.org/abs/2605.10186
+- AR-BENCH (2026 preprint): https://arxiv.org/abs/2601.22742
 - European Legislation Identifier: https://eur-lex.europa.eu/eli-register/what_is_eli.html
 - NIST AI Risk Management Framework: https://www.nist.gov/itl/ai-risk-management-framework/ai-rmf-development
 - SAFLII terms of use: https://www.saflii.org/content/terms.html
