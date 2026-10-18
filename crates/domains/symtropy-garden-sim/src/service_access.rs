@@ -504,15 +504,14 @@ fn validate_request(
     }
     if let (Some(quote_at), Some(valid_until)) =
         (record.quote_at_minute, record.quote_valid_until_minute)
+        && (quote_at < record.requested_at_minute || valid_until < quote_at)
     {
-        if quote_at < record.requested_at_minute || valid_until < quote_at {
-            push_blocker(
-                blockers,
-                ServiceAccessBlockerCodeV1::InvalidLifecycleOrder,
-                id,
-                "quote and validity times must be ordered after the request",
-            );
-        }
+        push_blocker(
+            blockers,
+            ServiceAccessBlockerCodeV1::InvalidLifecycleOrder,
+            id,
+            "quote and validity times must be ordered after the request",
+        );
     }
     match record.travel_charge_treatment {
         Some(TravelChargeTreatmentV1::SeparateQuotedFee) if record.travel_fee_minor.is_none() => {
@@ -584,15 +583,15 @@ fn validate_request(
             "delivered units cannot be claimed without completion",
         );
     }
-    if let Some(travel_minutes) = record.actual_travel_minutes {
-        if record.booking_at_minute.is_none() || travel_minutes == 0 {
-            push_blocker(
-                blockers,
-                ServiceAccessBlockerCodeV1::InvalidTravelEvidence,
-                id,
-                "actual travel minutes must be positive and linked to a booking",
-            );
-        }
+    if let Some(travel_minutes) = record.actual_travel_minutes
+        && (record.booking_at_minute.is_none() || travel_minutes == 0)
+    {
+        push_blocker(
+            blockers,
+            ServiceAccessBlockerCodeV1::InvalidTravelEvidence,
+            id,
+            "actual travel minutes must be positive and linked to a booking",
+        );
     }
 
     if record.delivery_decision_at_minute.is_some() != record.delivery_decision.is_some() {
@@ -683,7 +682,7 @@ fn nearest_rank(values: &mut [u64], percentile: u8) -> Option<u64> {
     }
     values.sort_unstable();
     let len = u128::try_from(values.len()).ok()?;
-    let rank = (u128::from(percentile) * len + 99) / 100;
+    let rank = (u128::from(percentile) * len).div_ceil(100);
     let index = usize::try_from(rank.max(1) - 1).ok()?;
     values.get(index).copied()
 }
@@ -691,10 +690,10 @@ fn nearest_rank(values: &mut [u64], percentile: u8) -> Option<u64> {
 fn cohort_summaries(input: &ServiceAccessInputV1) -> Vec<ServiceAccessCohortSummaryV1> {
     let mut groups: BTreeMap<&str, Vec<&ServiceAccessRequestV1>> = BTreeMap::new();
     for record in &input.requests {
-        if record.cohort_consent {
-            if let Some(cohort) = record.cohort_ref.as_deref() {
-                groups.entry(cohort).or_default().push(record);
-            }
+        if record.cohort_consent
+            && let Some(cohort) = record.cohort_ref.as_deref()
+        {
+            groups.entry(cohort).or_default().push(record);
         }
     }
     groups
