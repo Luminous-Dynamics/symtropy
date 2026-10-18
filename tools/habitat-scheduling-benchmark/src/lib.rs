@@ -40,6 +40,7 @@ pub struct ScorecardRow {
 pub struct BenchmarkReport {
     pub schema_version: String,
     pub suite_id: String,
+    pub scored_duration_scenario: String,
     pub fixture_sha256: String,
     pub fixture_bytes: usize,
     pub oracle_report_sha256: String,
@@ -276,6 +277,7 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
     Ok(BenchmarkReport {
         schema_version: REPORT_SCHEMA.to_owned(),
         suite_id,
+        scored_duration_scenario: "nominal_duration_only".to_owned(),
         fixture_sha256: sha256_hex(bytes),
         fixture_bytes: bytes.len(),
         oracle_report_sha256: sha256_hex(
