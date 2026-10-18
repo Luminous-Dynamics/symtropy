@@ -9,6 +9,7 @@ use std::process::ExitCode;
 
 mod decision;
 mod faults;
+mod experiment;
 mod morphology;
 mod portfolio;
 mod restoration;
@@ -522,6 +523,13 @@ fn run() -> Result<(), String> {
             "--restoration-schema and --restoration-ledger must be supplied together".to_owned(),
         );
     }
+    let experiment_schema_path = read_arg_path("--experiment-schema");
+    let experiment_plan_path = read_arg_path("--experiment-plan");
+    if experiment_schema_path.is_some() != experiment_plan_path.is_some() {
+        return Err(
+            "--experiment-schema and --experiment-plan must be supplied together".to_owned(),
+        );
+    }
 
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
@@ -741,6 +749,39 @@ fn run() -> Result<(), String> {
             "physical_repair_outcomes_established": false,
             "product_safety_assessed": false,
             "architecture_winner_declared": false
+        });
+    }
+
+    if let (Some(experiment_schema_path), Some(experiment_plan_path)) =
+        (experiment_schema_path, experiment_plan_path)
+    {
+        let experiment_schema_raw =
+            fs::read_to_string(&experiment_schema_path).map_err(|error| {
+                format!("cannot read {}: {error}", experiment_schema_path.display())
+            })?;
+        let experiment_plan_raw =
+            fs::read_to_string(&experiment_plan_path).map_err(|error| {
+                format!("cannot read {}: {error}", experiment_plan_path.display())
+            })?;
+        let experiment_summary =
+            experiment::audit_experiment_texts(&experiment_schema_raw, &experiment_plan_raw)
+                .map_err(|errors| errors.join("\n"))?;
+
+        report["repairability_factorial_experiment"] = json!({
+            "status": "PASS_FACTORIAL_PLAN_CONTRACT_ONLY",
+            "cell_count": experiment_summary.cell_count,
+            "factor_count": experiment_summary.factor_count,
+            "planned_trials_per_cell": experiment_summary.planned_trials_per_cell,
+            "planned_trial_count": experiment_summary.planned_trial_count,
+            "observed_trial_count": experiment_summary.observed_trial_count,
+            "benchmark_count": experiment_summary.benchmark_count,
+            "schema_sha256": experiment_summary.schema_sha256,
+            "plan_sha256": experiment_summary.plan_sha256,
+            "schema_path": experiment_schema_path.display().to_string(),
+            "plan_path": experiment_plan_path.display().to_string(),
+            "physical_trials_started": false,
+            "observed_outcome_count": 0,
+            "winner_declared": false
         });
     }
 

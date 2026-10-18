@@ -14,6 +14,7 @@ on:
       - "docs/tech/WASHER_FAULT_TO_REPAIR_BENCHMARK_CURRICULUM_V0_1.md"
       - "docs/tech/CROSS_APPLIANCE_ARCHITECTURE_MORPHOLOGY_AND_HYBRIDS_V0_1.md"
       - "docs/tech/PROOF_CARRYING_REPAIR_OUTCOME_BENCHMARK_V0_1.md"
+      - "docs/tech/REPAIRABILITY_FACTORIAL_EXPERIMENT_PLAN_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -35,6 +36,7 @@ on:
       - "docs/tech/WASHER_FAULT_TO_REPAIR_BENCHMARK_CURRICULUM_V0_1.md"
       - "docs/tech/CROSS_APPLIANCE_ARCHITECTURE_MORPHOLOGY_AND_HYBRIDS_V0_1.md"
       - "docs/tech/PROOF_CARRYING_REPAIR_OUTCOME_BENCHMARK_V0_1.md"
+      - "docs/tech/REPAIRABILITY_FACTORIAL_EXPERIMENT_PLAN_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -80,3 +82,5 @@ jobs:
           --morphology-portfolio fixtures/appliances/cross_appliance_architecture_morphology_v0_1.json
           --restoration-schema schemas/appliances/repair_restoration_evidence_v0_1.schema.json
           --restoration-ledger fixtures/appliances/repair_restoration_evidence_v0_1.json
+          --experiment-schema schemas/appliances/washer_repairability_factorial_plan_v0_1.schema.json
+          --experiment-plan fixtures/appliances/washer_repairability_factorial_plan_v0_1.json
