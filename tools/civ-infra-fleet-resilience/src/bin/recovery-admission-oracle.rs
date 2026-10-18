@@ -640,8 +640,12 @@ fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleR
             .ok_or_else(|| format!("{context}.proposal is missing"))?;
         let oracle = evaluate_candidate(&fixture, proposal)?;
 
-        candidate_admissions += usize::from(candidate_admitted);
-        oracle_admissions += usize::from(oracle.admitted);
+        if candidate_admitted {
+            candidate_admissions += 1;
+        }
+        if oracle.admitted {
+            oracle_admissions += 1;
+        }
         if candidate_admitted && !oracle.admitted {
             false_admission_count += 1;
         }
