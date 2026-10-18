@@ -22,6 +22,7 @@ fn run() -> Result<(), String> {
     let input_path = &args[1];
     let bytes = fs::read(input_path).map_err(|err| format!("cannot read input {input_path:?}: {err}"))?;
     let report = evaluate_bytes(&bytes)?;
+    let input_sha256 = report.input_sha256.clone();
     let report_bytes = serde_json::to_vec_pretty(&report).map_err(|err| format!("cannot serialize report: {err}"))?;
 
     if let Some(output_path) = args.get(2) {
