@@ -261,3 +261,17 @@ A companion civil-time provenance verifier checks source revision/payload hashes
 An independent JavaScript reconstruction matched all twelve calendar-oracle scenario outcomes and witnesses, and a separate check matched both metadata templates plus all eight negative controls; all embedded synthetic payload digests match. These are independent fixture checks, not Rust tests. The authoring environment lacks Cargo/rustc/rustfmt, and exact-head Actions remain queued, so Rust compile, test, and performance status is unverified.
 
 The next milestone is an actual recurrence compiler backed by pinned IANA rule bytes, with explicit handling for repeated and nonexistent local times and differential transition tests. The IANA database is periodically updated as civil-time rules change; RFC 5545 likewise distinguishes floating local times from time-zone-associated times and defines repeated/nonexistent local-time behavior. See [IANA releases](https://www.iana.org/time-zones/releases) and [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545.html).
+
+
+## 20. External calendar benchmark integrity audit
+
+The CA-RCPSP source corpus is mirrored with attribution under `docs/research/external/ca-rcpsp-v1.0/`. The Rust external auditor pins the byte hashes of all 12 original instance JSON files and the full 36-row result CSV, parses each source instance to calculate its longest required task-duration lower bound, joins rows by scenario identity, and retains result values instead of silently cleaning them.
+
+The source audit reproduces 12 instances, 2,819 tasks, 36 solver rows, 30 rows labelled successful and 6 failures/timeouts. All 30 reported successful `makespan_hours` values are below their instance's longest single-task duration under the same hour-units interpretation; the 12 source-declared `expected_performance.makespan_hours` values all respect that lower bound. Eighteen successful rows report calendar compliance below 1.0. These counts describe the published data artifact, not a new solver experiment. Before comparing solver quality, source maintainers must clarify what the result-table values measure and reconcile the metric semantics/units.
+
+- [Audit protocol and finding](HABITAT_CA_RCPSP_SOURCE_AUDIT_V0_1.md)
+- [Original source/attribution and mirrored data](external/ca-rcpsp-v1.0/README.md)
+- [Implementation and command](../../tools/habitat-calendar-oracle/)
+- [Tracking issue #1950](https://github.com/Luminous-Dynamics/symtropy/issues/1950)
+
+The CI contract succeeds only when these source bytes and audit counts reproduce; it does not count the suspicious upstream values as validated solver scores. This is a benchmark-integrity control, not proof of a solver bug and not a leaderboard.
