@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const FIXTURE_SCHEMA: &str = "luminous.habitat_calendar_disruption_micro_oracle.v0.1";
 pub const REPORT_SCHEMA: &str = "luminous.habitat_calendar_oracle_report.v0.1";
+pub const FROZEN_FIXTURE_SHA256: &str = "934ff338850ddd2a5e161b5fab10ce824e7f08d56ca8308b950a395280d3762c";
 const CLAIM_CEILING: &str =
     "bounded_synthetic_calendar_micro_oracle_not_real_project_performance_or_safety_authority";
 const MAX_CASES: usize = 64;
@@ -970,7 +971,9 @@ mod tests {
 
     #[test]
     fn frozen_calendar_scenarios_match_exact_reference_outcomes() {
+        assert_eq!(sha256_hex(FIXTURE), FROZEN_FIXTURE_SHA256);
         let report = evaluate_fixture_bytes(FIXTURE).expect("fixture should be valid");
+        assert_eq!(report.input_sha256, FROZEN_FIXTURE_SHA256);
         assert_eq!(report.case_count, 9);
         assert_eq!(report.scenario_count, 12);
         assert!(report.all_searches_complete);
