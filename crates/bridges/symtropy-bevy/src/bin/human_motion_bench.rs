@@ -162,32 +162,41 @@ impl Trace {
                 "{source}: skeleton_signature_sha256 must be 64 hexadecimal characters"
             ));
         }
-        if let Some(hash) = &self.retarget_map_sha256.0 {
-            if !is_hex_digest(hash, 64) {
-                return fail(format!(
-                    "{source}: retarget_map_sha256 must be null or 64 hexadecimal characters"
-                ));
-            }
+        if self
+            .retarget_map_sha256
+            .0
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
+            return fail(format!(
+                "{source}: retarget_map_sha256 must be null or 64 hexadecimal characters"
+            ));
         }
 
-        if let Some(hash) = &self.run.model_sha256 {
-            if !is_hex_digest(hash, 64) {
-                return fail(format!(
-                    "{source}: run.model_sha256 must be null or 64 hexadecimal characters"
-                ));
-            }
+        if self
+            .run
+            .model_sha256
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
+            return fail(format!(
+                "{source}: run.model_sha256 must be null or 64 hexadecimal characters"
+            ));
         }
-        if let Some(hash) = &self.run.asset_sha256 {
-            if !is_hex_digest(hash, 64) {
-                return fail(format!(
-                    "{source}: run.asset_sha256 must be null or 64 hexadecimal characters"
-                ));
-            }
+        if self
+            .run
+            .asset_sha256
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
+            return fail(format!(
+                "{source}: run.asset_sha256 must be null or 64 hexadecimal characters"
+            ));
         }
-        if let Some(split) = &self.run.split {
-            if !matches!(split.as_str(), "train" | "validation" | "test" | "synthetic") {
-                return fail(format!("{source}: unknown run.split value {split:?}"));
-            }
+        if self.run.split.as_deref().is_some_and(|split| {
+            !matches!(split, "train" | "validation" | "test" | "synthetic")
+        }) {
+            return fail(format!("{source}: unknown run.split value"));
         }
 
         if !self.run.source_kind.is_synthetic() {
@@ -460,7 +469,11 @@ fn interpolate_positions(
         .collect()
 }
 
-fn interpolate_position(source_times: &[f64], source_positions: &[[f64; 3]], target: f64) -> [f64; 3] {
+fn interpolate_position(
+    source_times: &[f64],
+    source_positions: &[[f64; 3]],
+    target: f64,
+) -> [f64; 3] {
     let upper = source_times.partition_point(|time| *time < target);
     if upper == 0 {
         return source_positions[0];
@@ -481,7 +494,11 @@ fn interpolate_position(source_times: &[f64], source_positions: &[[f64; 3]], tar
     ]
 }
 
-fn sample_contact_nearest(source_times: &[f64], contacts: &[bool], target_times: &[f64]) -> Vec<bool> {
+fn sample_contact_nearest(
+    source_times: &[f64],
+    contacts: &[bool],
+    target_times: &[f64],
+) -> Vec<bool> {
     target_times
         .iter()
         .map(|target| {
@@ -578,10 +595,14 @@ fn evaluate(
         return fail("coordinate frames differ; convert both traces to the same declared frame");
     }
     if reference.skeleton_signature_sha256 != prediction.skeleton_signature_sha256 {
-        return fail("skeleton signature hashes differ; retarget both traces to the same canonical rig");
+        return fail(
+            "skeleton signature hashes differ; retarget both traces to the same canonical rig",
+        );
     }
     if reference.retarget_map_sha256.0 != prediction.retarget_map_sha256.0 {
-        return fail("retarget-map hashes differ; do not compare traces built with incompatible retargeting");
+        return fail(
+            "retarget-map hashes differ; do not compare traces built with incompatible retargeting",
+        );
     }
 
     let timer = Instant::now();
