@@ -158,6 +158,15 @@ fn run() -> Result<ExitCode, String> {
         Some(options) => options,
         None => return Ok(ExitCode::SUCCESS),
     };
+    ensure_output_is_distinct(
+        &options.output,
+        &[
+            &options.baseline,
+            &options.baseline_receipt,
+            &options.candidate,
+            &options.candidate_receipt,
+        ],
+    )?;
 
     let baseline_receipt = read_receipt(&options.baseline_receipt)?;
     let candidate_receipt = read_receipt(&options.candidate_receipt)?;
@@ -336,13 +345,22 @@ fn parse_options(args: Vec<String>) -> Result<Option<Options>, String> {
 
 fn print_usage() {
     println!(
-        "Receipt-bound visual comparison\n\
-         Usage: symtropy-visual-diff --baseline base.png --baseline-receipt base.capture-receipt.json \\\n\
-         --candidate next.png --candidate-receipt next.capture-receipt.json --output report.json \\\n\
-         --pixel-threshold 8 --max-mean-channel-delta 1.0 \\\n\
-         --max-changed-pixel-fraction 0.01 --max-p95-pixel-delta 8 [--allow-renderer-version-change]\n\n\
-         Exit codes: 0 within budget; 1 exceeds visual-difference budget; 2 invalid or incomparable input.\n\
-         The renderer-version-change flag is for explicit migration comparisons; all other declared context must still match."
+        r#"Receipt-bound visual comparison
+
+Usage: symtropy-visual-diff
+  --baseline base.png
+  --baseline-receipt base.capture-receipt.json
+  --candidate next.png
+  --candidate-receipt next.capture-receipt.json
+  --output report.json
+  --pixel-threshold 8
+  --max-mean-channel-delta 1.0
+  --max-changed-pixel-fraction 0.01
+  --max-p95-pixel-delta 8
+  [--allow-renderer-version-change]
+
+Exit codes: 0 within budget; 1 exceeds visual-difference budget; 2 invalid or incomparable input.
+The renderer-version-change flag is for explicit migration comparisons; all other declared context must still match."#
     );
 }
 
@@ -614,6 +632,38 @@ fn read_bounded(path: &Path, max_bytes: u64) -> io::Result<Vec<u8>> {
         ));
     }
     Ok(bytes)
+}
+
+fn ensure_output_is_distinct(output: &Path, inputs: &[&Path]) -> Result<(), String> {
+    let parent = output
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("cannot create report directory {}: {error}", parent.display()))?;
+    let file_name = output
+        .file_name()
+        .ok_or_else(|| "report path must name a file".to_owned())?;
+    let output_path = if output.exists() {
+        fs::canonicalize(output)
+            .map_err(|error| format!("cannot resolve report path {}: {error}", output.display()))?
+    } else {
+        fs::canonicalize(parent)
+            .map_err(|error| format!("cannot resolve report directory {}: {error}", parent.display()))?
+            .join(file_name)
+    };
+
+    for input in inputs {
+        let input_path = fs::canonicalize(input)
+            .map_err(|error| format!("cannot resolve input path {}: {error}", input.display()))?;
+        if output_path == input_path {
+            return Err(format!(
+                "report output {} must not overwrite an input artifact",
+                output.display()
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn write_report(path: &Path, report: &VisualDiffReport) -> Result<(), String> {
