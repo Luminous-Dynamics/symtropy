@@ -282,16 +282,15 @@ fn validate_gate(gate: &Gate) -> Result<(), String> {
             gate.gate_id.as_str()
         ));
     }
-    if let Some(tool) = &gate.tool {
-        if tool.name.trim().is_empty()
+    if let Some(tool) = &gate.tool
+        && (tool.name.trim().is_empty()
             || tool.version.trim().is_empty()
-            || !is_lower_hex_of_length(&tool.config_sha256, 64)
-        {
-            return Err(format!(
-                "GATE_TOOL_IDENTITY_INVALID:{}",
-                gate.gate_id.as_str()
-            ));
-        }
+            || !is_lower_hex_of_length(&tool.config_sha256, 64))
+    {
+        return Err(format!(
+            "GATE_TOOL_IDENTITY_INVALID:{}",
+            gate.gate_id.as_str()
+        ));
     }
     let mut evidence_ids = BTreeSet::new();
     for evidence in &gate.evidence {
@@ -883,6 +882,58 @@ mod tests {
         args = fixture_args();
         args.source_commit_sha = "g".repeat(40);
         assert!(assemble_report(&args, b"s", b"i", b"t", Vec::new()).is_err());
+    }
+
+    #[test]
+    fn pinned_json_schema_matches_rust_gate_contract() {
+        let schema: Value =
+            serde_json::from_str(include_str!("../assembled-report-v1.schema.json")).unwrap();
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(schema["properties"]["schema_version"]["const"], "1.0.0");
+        assert_eq!(
+            schema["properties"]["benchmark_id"]["const"],
+            "BUILT-INTEROP-004"
+        );
+        assert_eq!(
+            schema["properties"]["evaluation_profile"]["properties"]["ids_version"]["const"],
+            "1.0"
+        );
+
+        let schema_ids = schema["properties"]["gates"]["items"]["properties"]["gate_id"]["enum"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<Vec<_>>();
+        let rust_ids = GateId::ALL.iter().map(|id| id.as_str()).collect::<Vec<_>>();
+        assert_eq!(schema_ids, rust_ids);
+
+        let schema_statuses = schema["properties"]["gates"]["items"]["properties"]["status"]["enum"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<BTreeSet<_>>();
+        let expected_statuses = ["FAIL", "NOT_RUN", "PASS", "UNRESOLVED"]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        assert_eq!(schema_statuses, expected_statuses);
+
+        let not_run_rule = schema["properties"]["gates"]["items"]["allOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|rule| rule["if"]["properties"]["status"]["const"] == "NOT_RUN")
+            .unwrap();
+        assert_eq!(not_run_rule["then"]["properties"]["evidence"]["maxItems"], 0);
+        assert!(not_run_rule["then"]["not"]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| value == "tool"));
     }
 
     #[test]
