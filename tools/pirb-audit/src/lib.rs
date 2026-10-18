@@ -16,6 +16,7 @@ const REQUIRED_SCENARIOS: [&str; 10] = [
     "pirb-r3-worst-case-frontier-01",
     "pirb-r5-displacement-not-net-impact-01",
     "pirb-r5-warning-response-chain-01",
+    "pirb-r5-network-spillover-01",
 ];
 
 const ALLOWED_TRACKS: [&str; 6] = ["PIRB-0", "PIRB-1", "PIRB-2", "PIRB-3", "PIRB-4", "PIRB-5"];
@@ -259,6 +260,9 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             }
             "pirb-r5-warning-response-chain-01" => {
                 audit_warning_response_chain(scenario, &path, &mut findings)
+            }
+            "pirb-r5-network-spillover-01" => {
+                audit_displacement(scenario, &path, &mut findings)
             }
             _ => findings.push(finding(
                 "PIRB_EVALUATOR_MISSING",
@@ -892,9 +896,20 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
     let mut after_total = 0_i64;
     let mut improved_group = false;
     let mut worsened_group = false;
+    let mut improved_groups = Vec::new();
+    let mut worsened_groups = Vec::new();
 
     for (index, outcome) in outcomes.iter().enumerate() {
         let outcome_path = format!("{path}.outcomes[{index}]");
+        let group = outcome.get("group").and_then(Value::as_str);
+        let Some(group) = group else {
+            findings.push(finding(
+                "PIRB_OUTCOME_GROUP_MISSING",
+                &format!("{outcome_path}.group"),
+                "Every group outcome must name its evaluation unit so burden shifts remain visible.",
+            ));
+            return;
+        };
         let before = outcome.get("service_gap_before").and_then(Value::as_i64);
         let after = outcome.get("service_gap_after").and_then(Value::as_i64);
         let (Some(before), Some(after)) = (before, after) else {
@@ -931,10 +946,18 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
         };
         before_total = next_before;
         after_total = next_after;
-        improved_group |= after < before;
-        worsened_group |= after > before;
+        if after < before {
+            improved_group = true;
+            improved_groups.push(group.to_owned());
+        }
+        if after > before {
+            worsened_group = true;
+            worsened_groups.push(group.to_owned());
+        }
     }
 
+    improved_groups.sort();
+    worsened_groups.sort();
     let displacement_detected = improved_group && worsened_group;
     if scenario.get("design_type").and_then(Value::as_str) == Some("before_after_only")
         && scenario
@@ -990,16 +1013,40 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
             "Expected displacement status must match the per-group outcome changes.",
         ));
     }
-    if after_total >= before_total
-        && scenario
-            .pointer("/expected/improvement_claim")
-            .and_then(Value::as_str)
-            != Some("not_supported")
-    {
+    let mut expected_improved_groups = string_list(scenario.pointer("/expected/improved_groups"));
+    let mut expected_worsened_groups = string_list(scenario.pointer("/expected/worsened_groups"));
+    expected_improved_groups.sort();
+    expected_worsened_groups.sort();
+    if improved_groups != expected_improved_groups {
+        findings.push(finding(
+            "PIRB_IMPROVED_GROUPS_MISMATCH",
+            &format!("{path}.expected.improved_groups"),
+            "The declared groups with reduced service gaps must match the per-group observations.",
+        ));
+    }
+    if worsened_groups != expected_worsened_groups {
+        findings.push(finding(
+            "PIRB_WORSENED_GROUPS_MISMATCH",
+            &format!("{path}.expected.worsened_groups"),
+            "The declared groups with increased service gaps must match the per-group observations.",
+        ));
+    }
+
+    let expected_claim = scenario
+        .pointer("/expected/improvement_claim")
+        .and_then(Value::as_str);
+    if worsened_group && after_total < before_total && expected_claim != Some("qualified_with_displacement") {
+        findings.push(finding(
+            "PIRB_DISTRIBUTIONAL_HARM_HIDDEN",
+            &format!("{path}.expected.improvement_claim"),
+            "An aggregate reduction alongside worsened groups must disclose distributional harm and cannot be labelled an unqualified improvement.",
+        ));
+    }
+    if after_total >= before_total && expected_claim != Some("not_supported") {
         findings.push(finding(
             "PIRB_NET_IMPROVEMENT_UNSUPPORTED",
             &format!("{path}.expected.improvement_claim"),
-            "No aggregate reduction is observed; a net improvement claim is unsupported.",
+            "No aggregate reduction is observed; an improvement claim is unsupported.",
         ));
     }
 }
