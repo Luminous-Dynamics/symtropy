@@ -13,7 +13,7 @@ The paradigm shift is to treat a proposed coordination policy as a **counterfact
 This composes with:
 - [MARITIME-JIT-001 #1858](https://github.com/Luminous-Dynamics/symtropy/issues/1858), which owns joint voyage/arrival/berth/energy planning;
 - [MARITIME-REC-001 #1867](https://github.com/Luminous-Dynamics/symtropy/issues/1867), which owns bounded contingent recovery;
-- [MARITIME-CASCADE-PROPAGATION-BENCHMARK-V0.1](./MARITIME-CASCADE-PROPAGATION-BENCHMARK-V0_1.md), which measures downstream service impact; and
+- [MARITIME-CASCADE-PROPAGATION-BENCHMARK-V0.1](https://github.com/Luminous-Dynamics/symtropy/pull/1985), which measures downstream service impact; and
 - Mycelix's participant authorization and binding-commitment workflows, which this benchmark must not replace.
 
 The value-sharing benchmark owns cost-boundary qualification, counterfactual comparability checks, transfer-conservation checks, and the report of participant-level outcomes. It must not create a new voyage optimizer, canonical event schema, custody system, agreement authority, or payout mechanism.
