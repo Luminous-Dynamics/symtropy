@@ -1020,7 +1020,7 @@ fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec
             .get("response_outcome_independently_verified")
             .and_then(Value::as_bool);
 
-        if !lead.is_some_and(|value| value >= 0) || !latency.is_some_and(|value| value >= 0) {
+        if lead.is_none_or(|value| value < 0) || latency.is_none_or(|value| value < 0) {
             findings.push(finding(
                 "PIRB_ALERT_TIMING_INVALID",
                 &alert_path,
