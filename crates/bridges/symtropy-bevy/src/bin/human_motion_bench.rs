@@ -550,6 +550,24 @@ struct RootTrajectoryReport {
 }
 
 #[derive(Debug, Serialize)]
+struct JointTrajectoryMetric {
+    joint_name: String,
+    samples: usize,
+    mean_displacement_error_m: f64,
+    final_displacement_error_m: f64,
+    max_displacement_error_m: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct JointTrajectoryReport {
+    joints_scored: usize,
+    macro_mean_ade_m: Option<f64>,
+    max_joint_fde_m: Option<f64>,
+    max_joint_error_m: Option<f64>,
+    per_joint: Vec<JointTrajectoryMetric>,
+}
+
+#[derive(Debug, Serialize)]
 struct FootDriftReport {
     samples_in_contact: usize,
     rms_drift_m: f64,
@@ -601,6 +619,7 @@ struct BenchmarkReport {
     alignment: AlignmentReport,
     provenance: ProvenanceReport,
     root_trajectory_error: RootTrajectoryReport,
+    joint_trajectory_error: JointTrajectoryReport,
     left_stance_foot_drift: FootDriftReport,
     right_stance_foot_drift: FootDriftReport,
     prediction_root_mean_squared_jerk_m2_s6: f64,
@@ -619,6 +638,13 @@ fn evaluate(
     if reference.skeleton_signature_sha256 != prediction.skeleton_signature_sha256 {
         return fail(
             "skeleton signature hashes differ; retarget both traces to the same canonical rig",
+        );
+    }
+    if reference.joint_world_m.keys().collect::<Vec<_>>()
+        != prediction.joint_world_m.keys().collect::<Vec<_>>()
+    {
+        return fail(
+            "joint trajectory names differ; compare both traces on the same canonical joint set",
         );
     }
     if reference.retarget_map_sha256.0 != prediction.retarget_map_sha256.0 {
@@ -662,6 +688,65 @@ fn evaluate(
     let endpoint_error_m =
         euclidean_position_error_m(prediction_endpoint, reference_endpoint)?;
 
+    let mut joint_metrics = Vec::with_capacity(reference.joint_world_m.len());
+    let mut joint_ade_sum_m = 0.0;
+    let mut max_joint_fde_m: f64 = 0.0;
+    let mut max_joint_error_m: f64 = 0.0;
+    for (joint_name, reference_positions) in &reference.joint_world_m {
+        let prediction_positions = prediction
+            .joint_world_m
+            .get(joint_name)
+            .expect("joint-name sets were checked before scoring");
+        let reference_aligned = interpolate_positions(
+            &reference.timestamps_sec,
+            reference_positions,
+            &grid.timestamps_sec,
+        );
+        let prediction_aligned = interpolate_positions(
+            &prediction.timestamps_sec,
+            prediction_positions,
+            &grid.timestamps_sec,
+        );
+        let metric = trajectory_errors(&prediction_aligned, &reference_aligned)
+            .map_err(|error| {
+                BenchError(format!("joint {joint_name:?} trajectory metric failed: {error}"))
+            })?;
+        let reference_joint_endpoint = interpolate_position(
+            &reference.timestamps_sec,
+            reference_positions,
+            grid.overlap_end_sec,
+        );
+        let prediction_joint_endpoint = interpolate_position(
+            &prediction.timestamps_sec,
+            prediction_positions,
+            grid.overlap_end_sec,
+        );
+        let joint_fde_m =
+            euclidean_position_error_m(prediction_joint_endpoint, reference_joint_endpoint)?;
+        joint_ade_sum_m += metric.mean_displacement_error_m;
+        if !joint_ade_sum_m.is_finite() {
+            return fail("joint ADE aggregation overflowed");
+        }
+        max_joint_fde_m = max_joint_fde_m.max(joint_fde_m);
+        max_joint_error_m = max_joint_error_m.max(metric.max_displacement_error_m);
+        joint_metrics.push(JointTrajectoryMetric {
+            joint_name: joint_name.clone(),
+            samples: metric.samples,
+            mean_displacement_error_m: metric.mean_displacement_error_m,
+            final_displacement_error_m: joint_fde_m,
+            max_displacement_error_m: metric.max_displacement_error_m,
+        });
+    }
+    let joints_scored = joint_metrics.len();
+    let joint_trajectory_error = JointTrajectoryReport {
+        joints_scored,
+        macro_mean_ade_m: (joints_scored > 0)
+            .then_some(joint_ade_sum_m / joints_scored as f64),
+        max_joint_fde_m: (joints_scored > 0).then_some(max_joint_fde_m),
+        max_joint_error_m: (joints_scored > 0).then_some(max_joint_error_m),
+        per_joint: joint_metrics,
+    };
+
     let left_foot = interpolate_positions(
         &prediction.timestamps_sec,
         &prediction.left_foot_world_m,
@@ -699,11 +784,15 @@ fn evaluate(
         "Foot drift is measured only over predicted contact intervals; false contact labels can make this metric misleading.",
         "Root jerk is noise-sensitive. Interpret it with tracking error and task success, never as a standalone quality score.",
         "ADE and maximum error use the common uniform grid; FDE is evaluated at the exact overlap end by position interpolation.",
+        "Root-path error alone is not a full-body fidelity score; inspect named-joint trajectory metrics when the trace includes them.",
         "Configuration hashes may differ between methods by design; both are recorded so the comparison is auditable.",
     ];
     let validity = if synthetic {
         caveats.push("At least one trace is a synthetic fixture; this report is a software test, not evidence about human motion.");
         "synthetic_fixture_only"
+    } else if joints_scored == 0 {
+        caveats.push("Neither trace contains named joint trajectories; this is a root/contact-only comparison, not a whole-body pose evaluation.");
+        "provenance_complete_root_only"
     } else {
         "provenance_complete_comparison"
     };
@@ -740,6 +829,7 @@ fn evaluate(
             final_displacement_error_m: endpoint_error_m,
             max_displacement_error_m: root.max_displacement_error_m,
         },
+        joint_trajectory_error,
         left_stance_foot_drift: FootDriftReport {
             samples_in_contact: left_drift.samples_in_contact,
             rms_drift_m: left_drift.rms_drift_m,
@@ -912,6 +1002,61 @@ mod tests {
         assert_eq!(report.root_trajectory_error.mean_displacement_error_m, 0.0);
         assert_eq!(report.root_trajectory_error.max_displacement_error_m, 0.0);
         assert!((report.root_trajectory_error.final_displacement_error_m - 0.05).abs() < 1e-9);
+    }
+
+    #[test]
+    fn scores_named_joint_trajectories_separately_from_root() {
+        let mut reference = fixture();
+        let mut prediction = fixture();
+        let positions = vec![[0.0, 1.0, 0.0]; 4];
+        reference
+            .joint_world_m
+            .insert("head".to_owned(), positions.clone());
+        prediction.joint_world_m.insert(
+            "head".to_owned(),
+            positions
+                .iter()
+                .map(|position| [position[0] + 0.03, position[1], position[2]])
+                .collect(),
+        );
+
+        let report = evaluate(&reference, &prediction, None)
+            .expect("matching named joints should be scored");
+        assert_eq!(report.joint_trajectory_error.joints_scored, 1);
+        assert!(
+            (report
+                .joint_trajectory_error
+                .per_joint[0]
+                .mean_displacement_error_m
+                - 0.03)
+                .abs()
+                < 1e-9
+        );
+        assert!(
+            (report
+                .joint_trajectory_error
+                .per_joint[0]
+                .final_displacement_error_m
+                - 0.03)
+                .abs()
+                < 1e-9
+        );
+        assert_eq!(report.root_trajectory_error.mean_displacement_error_m, 0.0);
+    }
+
+    #[test]
+    fn rejects_different_joint_sets_instead_of_scoring_only_the_overlap() {
+        let reference = fixture();
+        let mut prediction = fixture();
+        prediction
+            .joint_world_m
+            .insert("head".to_owned(), vec![[0.0, 1.0, 0.0]; 4]);
+        assert!(
+            evaluate(&reference, &prediction, None)
+                .unwrap_err()
+                .to_string()
+                .contains("joint trajectory names differ")
+        );
     }
 
     #[test]
