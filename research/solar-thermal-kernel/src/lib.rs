@@ -840,7 +840,7 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "pinch_shifted_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.shifted_temperature.value()));
     number(&mut json, "pinch_hot_side_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.hot_side_temperature.value()));
     number(&mut json, "pinch_cold_side_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.cold_side_temperature.value()));
-    json.push_str(",\\\"temporal_fixture_id\\\":\\\"analytic-day-night-storage-001\\\"");
+    json.push_str(",\"temporal_fixture_id\":\"analytic-day-night-storage-001\"");
     number(&mut json, "temporal_store_mass_kg", 10.0);
     number(&mut json, "temporal_store_min_temperature_k", 300.0);
     number(&mut json, "temporal_store_max_temperature_k", 400.0);
@@ -893,8 +893,8 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "temporal_period_1_useful_heat_delivered_j", temporal_discharge.useful_heat_delivered.value());
     number(&mut json, "temporal_period_1_heat_exchanger_loss_j", temporal_discharge.heat_exchanger_loss.value());
     number(&mut json, "temporal_period_1_unmet_useful_heat_j", temporal_discharge.unmet_useful_heat.value());
-    json.push_str(",\\\"temporal_period_1_blocked_by_temperature\\\":false");
-    json.push_str(",\\\"all_verifiers_passed\\\":true,\\\"hardware_validated\\\":false}\\n");
+    json.push_str(",\"temporal_period_1_blocked_by_temperature\":false");
+    json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}\\n");
     Ok(json)
 }
 
