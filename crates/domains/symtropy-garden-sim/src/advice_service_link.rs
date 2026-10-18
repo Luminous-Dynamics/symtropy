@@ -414,6 +414,38 @@ mod tests {
     }
 
     #[test]
+    fn serialized_link_uses_only_the_versioned_reference_contract_fields() {
+        let value = serde_json::to_value(link()).expect("link should serialize");
+        let object = value.as_object().expect("link serializes as object");
+        let required = [
+            "schema_version",
+            "link_id",
+            "service_request_ref",
+            "advice_episode_ref",
+            "decision_ref",
+            "advice_scope_ref",
+            "advice_period_ref",
+            "advice_task_code",
+            "reason",
+            "initiated_by_role",
+            "state",
+            "authorization_ref",
+            "observed_outcome_claim_refs",
+            "source_ref",
+            "recorded_at_epoch_seconds",
+        ];
+        assert_eq!(object.len(), required.len());
+        for key in required {
+            assert!(object.contains_key(key), "missing field {key}");
+        }
+        assert!(!object.contains_key("farmer_name"));
+        assert!(!object.contains_key("latitude"));
+        assert!(!object.contains_key("predicted_yield"));
+        assert!(!object.contains_key("observed_yield"));
+        assert!(!object.contains_key("payment_authorized"));
+    }
+
+    #[test]
     fn service_request_is_valid_without_an_advice_link() {
         let result = assess_advice_service_link_v1(&request(), None);
         assert_eq!(result.disposition, AdviceServiceLinkDispositionV1::UnlinkedServiceRequest);
