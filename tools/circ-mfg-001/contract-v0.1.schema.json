@@ -200,6 +200,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "authority",
         "reference_id",
         "role"
       ],
@@ -210,6 +211,9 @@
         },
         "role": {
           "$ref": "#/$defs/externalRefRole"
+        },
+        "authority": {
+          "$ref": "#/$defs/externalAuthority"
         }
       }
     },
@@ -217,6 +221,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "authority",
         "reference_id",
         "role"
       ],
@@ -227,8 +232,19 @@
         },
         "role": {
           "$ref": "#/$defs/externalRefRole"
+        },
+        "authority": {
+          "$ref": "#/$defs/externalAuthority"
         }
       }
+    },
+    "externalAuthority": {
+      "enum": [
+        "Mycelix",
+        "Symthaea",
+        "Symtropy",
+        "SolAtlas"
+      ]
     }
   }
 }
