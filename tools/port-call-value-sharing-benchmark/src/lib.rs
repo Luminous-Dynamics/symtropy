@@ -461,7 +461,8 @@ mod tests {
     #[test]
     fn duplicate_participants_and_identical_receipts_are_rejected() {
         let mut duplicate = input();
-        duplicate.participants[1].participant_id = duplicate.participants[0].participant_id.clone();
+        let duplicate_id = duplicate.participants[0].participant_id.clone();
+        duplicate.participants[1].participant_id = duplicate_id;
         assert_eq!(
             evaluate_value_share(&duplicate),
             Err(ValueShareError::DuplicateParticipant("PORT-OPS".to_owned()))
