@@ -9,10 +9,9 @@
 //! or schedule effects are performed here.
 
 use super::{
-    parse_rfc3339_timestamp, ParsedTimestamp, RejectionReason, TimeMeaning,
-    TimestampOffsetSemantics, TimestampParseError, ValidationPolicy, NANOS_PER_SECOND,
+    parse_rfc3339_timestamp, ParsedTimestamp, TimeMeaning, TimestampOffsetSemantics,
+    TimestampParseError, ValidationPolicy, NANOS_PER_SECOND,
 };
-use std::collections::BTreeSet;
 
 pub const DCSA_JIT_PROFILE: &str = "DCSA-JIT";
 
@@ -251,7 +250,11 @@ pub fn parse_timestamp(
     }
 
     let location_name =
-        required_string(&root, &["eventLocation", "locationName"], "eventLocation.locationName")?
+        required_string(
+            &root,
+            &["eventLocation", "locationName"],
+            "eventLocation.locationName",
+        )?
             .to_owned();
     let un_location_code = resolve_string_alias(
         &root,
@@ -275,14 +278,14 @@ pub fn parse_timestamp(
     let legacy_facility_code =
         optional_string(&root, &["facilitySMDGCode"], "facilitySMDGCode")?;
     if let (Some(modern), Some(legacy)) = (&facility_code, legacy_facility_code) {
-        if modern != legacy {
+        if modern.as_str() != legacy {
             return Err(DcsaJitParseError::ConflictingDuplicate {
                 field: "facilityCode/facilitySMDGCode",
             });
         }
     }
 
-    match facility_type_code {
+    match &facility_type_code {
         FacilityTypeCode::Berth => {
             if facility_code.is_none() || facility_code_list_provider.is_none() {
                 return Err(DcsaJitParseError::UnsupportedCombination(
@@ -335,7 +338,8 @@ pub fn parse_timestamp(
     let carrier_import_voyage_number =
         optional_string(&root, &["carrierImportVoyageNumber"], "carrierImportVoyageNumber")?
             .map(str::to_owned);
-    let transport_call_sequence_number = match value_at(&root, &["transportCallSequenceNumber"]) {
+    let transport_call_sequence_number =
+        match value_at(&root, &["transportCallSequenceNumber"]) {
         None | Some(serde_json::Value::Null) => None,
         Some(value) => Some(
             value
@@ -416,7 +420,9 @@ pub fn validate_timestamp(
 /// Explain which DCSA concepts could project into the PCO floor. This is a
 /// semantic mapping hint only: canonical identity and provenance mapping must
 /// be supplied separately before creating a PCO observation.
-pub fn pco_field_candidate(timestamp: &DcsaJitTimestamp) -> Result<super::PcoField, DcsaJitParseError> {
+pub fn pco_field_candidate(
+    timestamp: &DcsaJitTimestamp,
+) -> Result<super::PcoField, DcsaJitParseError> {
     match (
         &timestamp.event_classifier_code,
         &timestamp.operations_event_type_code,
