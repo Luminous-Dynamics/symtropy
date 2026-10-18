@@ -405,10 +405,16 @@ mod tests {
     fn synthetic_category_manifest_is_exactly_pinned() {
         assert_eq!(
             include_str!("../fixtures/cost-categories-v0.1.json"),
-            "{\\"schema_version\\":\\"port-call-cost-categories-v0.1\\",\\"currency_minor_unit\\":\\"USD-cent\\",\\"required_category_ids\\":[\\"coordination\\",\\"fuel\\"]}\\n"
+            concat!(
+                r#"{"schema_version":"port-call-cost-categories-v0.1","currency_minor_unit":"USD-cent","required_category_ids":["coordination","fuel"]}"#,
+                "\n"
+            )
         );
         let case = input();
-        assert_eq!(case.category_manifest_sha256, "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a");
+        assert_eq!(
+            case.category_manifest_sha256,
+            "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a"
+        );
         let categories = case
             .required_category_ids
             .iter()
