@@ -6,7 +6,7 @@ Tracking issue: https://github.com/Luminous-Dynamics/symtropy/issues/2010
 
 This is a **small real-format ingestion experiment**, not a general IDS checker or building-code tool. It parses:
 
-- an IFC STEP file through `ifc-step = 0.5.0` and `ifc-model = 0.3.0`;
+- an IFC STEP file through `ifc-step = 0.5.0` and `ifc-model = 0.3.1`;
 - an IDS document through `openbim-ids = 0.2.2`;
 - only an explicitly declared IFC4 model and IDS 1.0 version;
 - exactly one IDS specification, with exactly one `IFCWALL` applicability facet and exactly one required `Name` attribute carrying a literal `simpleValue`.
@@ -38,7 +38,7 @@ cargo test --manifest-path tools/built-interop-002/Cargo.toml
 cargo run --manifest-path tools/built-interop-002/Cargo.toml
 ```
 
-The default run consumes the two synthetic files in `fixtures/`. Pass explicit IFC and IDS paths to compare other inputs within the same narrow profile. It emits raw artifact SHA-256 hashes, parser-declared schema/version evidence, per-wall observations, explicit dispositions, and a semantic result digest sorted by stable object identity. The raw hashes remain byte-sensitive when the semantic digest is stable under record-order changes.
+The default run consumes the two synthetic files in `fixtures/`. Pass explicit IFC and IDS paths to compare other inputs within the same narrow profile. It emits raw artifact SHA-256 hashes, parser-declared schema/version evidence, per-wall observations, explicit dispositions, and a semantic result digest sorted by stable object identity. The raw hashes remain byte-sensitive when the semantic digest is stable under record-order changes. Each per-wall observation also identifies the exact IFC entity type, STEP record ID, attribute index (`2` in this IFC4-only profile), and attribute path (`IFCWALL.Name`). Duplicate `GlobalId` values mark every colliding wall `NotEvaluated`; the first occurrence does not remain falsely presented as an unambiguous preservation.
 
 ## Outcomes
 
