@@ -22,7 +22,7 @@ Nominal grade is not its lower uncertainty bound. Assay provenance is not interc
 
 ## v0.1 contract
 
-Each lot records source/sample identity, assay state and detection limit, lower/upper valuable-element grade, contaminant bounds, analytical QC, dry-basis applicability, recovery bounds, and lower/upper specific-energy and specific-water units.
+Each lot records source/sample identity, exact valuable/contaminant analyte IDs bound to the scenario, assay state and detection limit, lower/upper valuable-element grade, contaminant bounds, analytical QC, dry-basis applicability, recovery bounds, and lower/upper specific-energy and specific-water units.
 
 For a selected integer-tonne blend, the evaluator uses lower-bound grade and recovery, upper-bound contaminant grade, upper-bound energy and water, and exact selected lot masses. Lots with unresolved QC, sample/lot mismatch, unsupported basis, missing source, invalid grade/contaminant/recovery interval, invalid detection limit or inconsistent energy/water bounds are blocked.
 
@@ -30,7 +30,7 @@ The high-grade-first baseline is a named, deterministic heuristic. The bounded e
 
 ## Frozen cases
 
-The 11 synthetic cases cover: high-grade-first regret under an energy cap; robust grade-bound failure; sample/lot lineage mismatch; contaminant upper-bound rejection; energy and water limits; below-detection interval semantics; invalid recovery bounds; assay QC failure; missing source provenance; and malformed detection-limit bounds.
+The 12 synthetic cases cover: high-grade-first regret under an energy cap; robust grade-bound failure; sample/lot lineage mismatch; contaminant upper-bound rejection; energy and water limits; below-detection interval semantics; invalid recovery bounds; assay QC failure; missing source provenance; and malformed detection-limit bounds, and cross-analyte substitution (for example, zinc grade in a copper-target scenario).
 
 The independent checker reconstructs selected identities, quantities, grade, contamination, recovered lower-bound score, energy and water without calling the selector. Duplicate lots and unavailable lots fail. Search exhaustion returns an indeterminate status, never an optimality claim.
 
