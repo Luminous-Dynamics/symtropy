@@ -28,6 +28,15 @@ Internal participant allocation is not added again as a social cost. The indepen
 
 All costs use **milli-credits** per stated unit; these are synthetic accounting units, not USD or any actual tariff.
 
+## Finite-scenario robust evaluation
+
+The crate also exposes `evaluate_robust` and `verify_robust_plan`. They select one **common transfer quantity** that must be feasible and meet both facilities' participation floors in every supplied scenario. The primary objective maximizes worst-case network surplus; ties between positive worst-case plans prefer larger total surplus and then a smaller exchange. A zero-transfer baseline wins ties at zero, avoiding coordination with no robust benefit.
+
+The robust evaluator rejects empty or duplicate scenario sets and applies explicit bounds of 64 scenarios and 2,000,000 scenario evaluations. It independently rescans the feasible integer decision domain rather than trusting the optimizer's reported aggregate. The CLI includes a two-scenario synthetic case whose conservative result is 44,200 milli-credits worst-case surplus at 42 kWh input.
+
+This is **finite-set robust optimization**, not a probability-weighted expected-value model or an adaptive recourse policy. All listed scenarios must admit the same transfer amount. Future work can compare adaptive policies, calibrated distributions, CVaR/regret objectives, and recourse against this conservative baseline.
+
+
 ## Run offline
 
 From this directory:
@@ -49,6 +58,7 @@ Expected demo properties:
 - `IC-001-POSITIVE-SYNTHETIC`: 45 kWh input, 40 kWh delivered, 5 kWh loss, 85,500 milli-credits network surplus under the stipulated assumptions.
 - `IC-001-NEGATIVE-GRADE-SYNTHETIC`: zero exchange because the source temperature does not meet the sink requirement plus minimum approach.
 - `IC-001-NEGATIVE-ECONOMICS-SYNTHETIC`: zero exchange because the transfer is more expensive than the avoided utility expense.
+- `IC-001-TWO-SCENARIO-SYNTHETIC`: the common robust decision transfers 42 kWh and reports 44,200 milli-credits worst-case surplus across the nominal and conservative fixtures.
 
 These are exact arithmetic outputs for the authored synthetic fixtures, not evidence of real-world energy savings.
 
@@ -64,6 +74,7 @@ These are exact arithmetic outputs for the authored synthetic fixtures, not evid
 - checked arithmetic with overflow rejection;
 - search bound fail-closed behavior;
 - negative controls for grade incompatibility, uneconomic exchange, zero capacity and unmet participation floors, plus tamper tests.
+- finite-scenario adverse-condition fallback and robust aggregate tamper tests.
 
 ## Next steps
 
