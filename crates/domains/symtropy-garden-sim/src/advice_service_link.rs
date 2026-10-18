@@ -324,10 +324,19 @@ mod tests {
     #[test]
     fn cross_scope_period_and_task_links_fail_closed() {
         let request = request();
-        let cases = [
-            (AdviceServiceLinkBlockerCodeV1::ScopeMismatch, |link: &mut AdviceServiceLinkV1| link.advice_scope_ref = "other-site".to_owned()),
-            (AdviceServiceLinkBlockerCodeV1::PeriodMismatch, |link: &mut AdviceServiceLinkV1| link.advice_period_ref = "other-season".to_owned()),
-            (AdviceServiceLinkBlockerCodeV1::TaskMismatch, |link: &mut AdviceServiceLinkV1| link.advice_task_code = "harvest".to_owned()),
+        let cases: [(AdviceServiceLinkBlockerCodeV1, fn(&mut AdviceServiceLinkV1)); 3] = [
+            (
+                AdviceServiceLinkBlockerCodeV1::ScopeMismatch,
+                |link| link.advice_scope_ref = "other-site".to_owned(),
+            ),
+            (
+                AdviceServiceLinkBlockerCodeV1::PeriodMismatch,
+                |link| link.advice_period_ref = "other-season".to_owned(),
+            ),
+            (
+                AdviceServiceLinkBlockerCodeV1::TaskMismatch,
+                |link| link.advice_task_code = "harvest".to_owned(),
+            ),
         ];
         for (expected, mutate) in cases {
             let mut link = link();
