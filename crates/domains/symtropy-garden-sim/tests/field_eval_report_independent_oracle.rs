@@ -22,7 +22,10 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
     assert_eq!(report.excluded_count, 2);
     assert!(report.blockers.is_empty());
 
-    let counts = report.outcome_counts.as_ref().expect("valid outcome counts");
+    let counts = report
+        .outcome_counts
+        .as_ref()
+        .expect("valid outcome counts");
     assert_eq!(counts.accepted_within_useful_window, 1);
     assert_eq!(counts.accepted_late, 1);
     assert_eq!(counts.known_not_accepted, 1);
@@ -81,9 +84,9 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
 fn fixture_cannot_silently_drop_a_no_provider_case() {
     let mut manifest: FieldStudyManifestV1 =
         from_str(FIXTURE).expect("synthetic field-report fixture parses");
-    manifest.outcome_records.retain(|record| {
-        record.request_ref != "req-study-003"
-    });
+    manifest
+        .outcome_records
+        .retain(|record| record.request_ref != "req-study-003");
     let report = preflight_field_study_v1(&manifest);
     assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
     assert!(report.evidence_confirmed_lower_bound.is_none());
