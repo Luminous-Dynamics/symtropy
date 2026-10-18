@@ -263,18 +263,18 @@ fn inspect_image(
 
     // Reject known oversized files before reading them into memory. The
     // bounded read below still handles a file that grows after this metadata check.
-    if let Ok(metadata) = file.metadata() {
-        if metadata.len() > MAX_PNG_BYTES {
-            return ImageReceipt {
-                scheduled_time_secs,
-                path: Some(path.to_owned()),
-                status: "size_limit_exceeded".to_owned(),
-                byte_len: Some(metadata.len()),
-                sha256: None,
-                width_px: None,
-                height_px: None,
-            };
-        }
+    if let Ok(metadata) = file.metadata()
+        && metadata.len() > MAX_PNG_BYTES
+    {
+        return ImageReceipt {
+            scheduled_time_secs,
+            path: Some(path.to_owned()),
+            status: "size_limit_exceeded".to_owned(),
+            byte_len: Some(metadata.len()),
+            sha256: None,
+            width_px: None,
+            height_px: None,
+        };
     }
 
     // Hash and decode the exact same bounded byte buffer. Reopening a path for
