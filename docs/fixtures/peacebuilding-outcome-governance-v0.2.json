@@ -70,7 +70,8 @@
     "outcomes_observed": false,
     "preregistration_reference": "synthetic:preregistration-record:v1",
     "amendment_reason": null,
-    "preserve_prior_versions": true
+    "preserve_prior_versions": true,
+    "post_observation_amendment": false
   },
   "claim_ceiling": {
     "evidence_class": "synthetic",

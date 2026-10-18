@@ -345,7 +345,8 @@
         "outcomes_observed",
         "preregistration_reference",
         "amendment_reason",
-        "preserve_prior_versions"
+        "preserve_prior_versions",
+        "post_observation_amendment"
       ],
       "properties": {
         "predecessor_version": {
@@ -383,6 +384,9 @@
         },
         "preserve_prior_versions": {
           "const": true
+        },
+        "post_observation_amendment": {
+          "type": "boolean"
         }
       }
     },
@@ -408,7 +412,8 @@
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "minItems": 1
         },
         "prohibited_claims": {
           "type": "array",
@@ -488,5 +493,138 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "active"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "approval": {
+            "properties": {
+              "state": {
+                "const": "approved"
+              },
+              "approving_authority_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "approved_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "state",
+              "approving_authority_reference",
+              "approved_at"
+            ]
+          },
+          "geographic_scope": {
+            "properties": {
+              "coverage_complete": {
+                "const": true
+              }
+            },
+            "required": [
+              "coverage_complete"
+            ]
+          },
+          "version_control": {
+            "properties": {
+              "preregistration_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "preserve_prior_versions": {
+                "const": true
+              }
+            },
+            "required": [
+              "preregistration_reference",
+              "preserve_prior_versions"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "version_control": {
+            "properties": {
+              "post_observation_amendment": {
+                "const": true
+              }
+            },
+            "required": [
+              "post_observation_amendment"
+            ]
+          }
+        },
+        "required": [
+          "version_control"
+        ]
+      },
+      "then": {
+        "properties": {
+          "version_control": {
+            "properties": {
+              "outcomes_observed": {
+                "const": true
+              },
+              "predecessor_version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "amendment_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "outcomes_observed",
+              "predecessor_version",
+              "amendment_reason"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "version": {
+            "minimum": 2
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "then": {
+        "properties": {
+          "version_control": {
+            "properties": {
+              "predecessor_version": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "predecessor_version"
+            ]
+          }
+        }
+      }
+    }
+  ]
 }
