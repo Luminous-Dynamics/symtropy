@@ -762,4 +762,103 @@ mod tests {
         assert_eq!(result.scope_status, "OUT_OF_SCOPE");
         assert_eq!(result.disposition, "REASSESS_SCOPE");
     }
+
+    #[test]
+    fn cartesian_shift_matrix_covers_compound_scope_evidence_and_gate_interactions() {
+        let base_profiles = corpus().profiles;
+        let mut combinations = 0usize;
+
+        for profile in &base_profiles {
+            for family_is_known in [true, false] {
+                for classification in ["COMPLETE", "INCOMPLETE"] {
+                    for regime_matches in [true, false] {
+                        for evidence_mode in ["FRESH", "STALE", "MISSING_TAG"] {
+                            for gate in ["PASS", "BLOCK", "UNKNOWN"] {
+                                let observed_family = if family_is_known {
+                                    profile.covered_failure_families[0].clone()
+                                } else {
+                                    format!("held-out-family-{}", profile.profile_id)
+                                };
+                                let evidence_age_days = Some(if evidence_mode == "STALE" {
+                                    profile.max_evidence_age_days.saturating_add(1)
+                                } else {
+                                    0
+                                });
+                                let mut evidence_tags = profile.required_evidence_tags.clone();
+                                if evidence_mode == "MISSING_TAG" && !evidence_tags.is_empty() {
+                                    evidence_tags.remove(0);
+                                }
+
+                                let expected_scope = if family_is_known
+                                    && classification == "COMPLETE"
+                                    && regime_matches
+                                {
+                                    "IN_SCOPE"
+                                } else {
+                                    "OUT_OF_SCOPE"
+                                };
+                                let expected_evidence = if evidence_mode == "FRESH" {
+                                    "SUFFICIENT"
+                                } else {
+                                    "INSUFFICIENT"
+                                };
+                                let expected_disposition = if expected_scope == "OUT_OF_SCOPE" {
+                                    "REASSESS_SCOPE"
+                                } else if gate == "BLOCK" {
+                                    "BLOCKED_HARD_GATE"
+                                } else if gate == "UNKNOWN" || expected_evidence == "INSUFFICIENT" {
+                                    "HOLD_EVIDENCE"
+                                } else {
+                                    "REVIEW_ONLY_CANDIDATE"
+                                };
+
+                                let case = ScenarioCase {
+                                    case_id: format!(
+                                        "matrix-{}-{}-{}-{}-{}",
+                                        profile.profile_id,
+                                        family_is_known,
+                                        classification,
+                                        regime_matches,
+                                        evidence_mode
+                                    ) + &format!("-{gate}"),
+                                    profile_id: profile.profile_id.clone(),
+                                    domain: profile.domain.clone(),
+                                    profile_version: if regime_matches {
+                                        profile.profile_version.clone()
+                                    } else {
+                                        format!("{}-changed", profile.profile_version)
+                                    },
+                                    criteria_regime: if regime_matches {
+                                        profile.criteria_regime.clone()
+                                    } else {
+                                        format!("{}-changed", profile.criteria_regime)
+                                    },
+                                    family_classification: classification.to_string(),
+                                    observed_failure_families: vec![observed_family],
+                                    evidence_age_days,
+                                    observed_evidence_tags: evidence_tags,
+                                    hard_gate_status: gate.to_string(),
+                                    expected_scope_status: expected_scope.to_string(),
+                                    expected_evidence_status: expected_evidence.to_string(),
+                                    expected_disposition: expected_disposition.to_string(),
+                                };
+
+                                let result = evaluate_case(&case, std::slice::from_ref(profile));
+                                assert_eq!(result.scope_status, expected_scope);
+                                assert_eq!(result.evidence_status, expected_evidence);
+                                assert_eq!(result.disposition, expected_disposition);
+                                assert!(result.expected_outcome_matches);
+                                assert!(result.review_only);
+                                assert!(!result.actuation_authorized);
+                                combinations += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        assert_eq!(combinations, 216);
+    }
+
 }
