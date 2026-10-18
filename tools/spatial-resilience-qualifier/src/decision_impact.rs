@@ -51,6 +51,7 @@ pub struct ActionImpact {
     pub status: String,
     pub rejection_codes: Vec<String>,
     pub decision_relevant: bool,
+    pub changes_critical_unknown_set: bool,
     pub changes_hard_feasible_set: bool,
     pub changes_pareto_set: bool,
     pub worst_case_remaining_state_count: Option<usize>,
@@ -740,6 +741,7 @@ fn evaluate_action(
             status: "reject_action".to_owned(),
             rejection_codes,
             decision_relevant: false,
+            changes_critical_unknown_set: false,
             changes_hard_feasible_set: false,
             changes_pareto_set: false,
             worst_case_remaining_state_count: None,
@@ -752,12 +754,15 @@ fn evaluate_action(
         };
     }
 
-    let remaining_unknowns: Vec<String> = scenario
-        .unresolved_unknowns
-        .iter()
-        .filter(|unknown| !action.resolves_unknown_ids.contains(unknown))
-        .cloned()
-        .collect();
+    let remaining_unknowns = sorted(
+        scenario
+            .unresolved_unknowns
+            .iter()
+            .filter(|unknown| !action.resolves_unknown_ids.contains(unknown))
+            .cloned(),
+    );
+    let changes_critical_unknown_set =
+        remaining_unknowns != baseline.remaining_critical_unknown_ids;
 
     let mut outcome_results = Vec::new();
     let mut worst_case_state_count = 0usize;
@@ -803,7 +808,8 @@ fn evaluate_action(
         source_revision: action.source_revision.clone(),
         status: "evaluated".to_owned(),
         rejection_codes: Vec::new(),
-        decision_relevant: changes_hard || changes_pareto,
+        decision_relevant: changes_critical_unknown_set || changes_hard || changes_pareto,
+        changes_critical_unknown_set,
         changes_hard_feasible_set: changes_hard,
         changes_pareto_set: changes_pareto,
         worst_case_remaining_state_count: Some(worst_case_state_count),
@@ -876,6 +882,10 @@ fn compare_action_expected(
     }
 
     check_bool!("decision_relevant", actual.decision_relevant);
+    check_bool!(
+        "changes_critical_unknown_set",
+        actual.changes_critical_unknown_set
+    );
     check_bool!(
         "changes_hard_feasible_set",
         actual.changes_hard_feasible_set
@@ -1620,6 +1630,44 @@ mod tests {
         }
         answer.sort();
         answer
+    }
+
+    #[test]
+    fn resolving_one_of_two_critical_unknowns_is_relevant_without_premature_feasibility() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
+        corpus["cases"][4]["unresolved_critical_unknown_ids"] =
+            serde_json::json!(["fire-separation-review", "structural-load-review"]);
+        let bytes = serde_json::to_vec(&corpus).expect("serialize augmented unknowns");
+        let mut summary = DecisionImpactSummary::new(
+            &bytes,
+            EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
+        );
+        let scenario = parse_scenario(&corpus["cases"][4], 4, &mut summary)
+            .expect("scenario should parse");
+        let result = evaluate_scenario(&scenario);
+        let combined = result
+            .actions
+            .iter()
+            .find(|item| item.action_id == "wall-survey-plus-qualified-fire-review")
+            .unwrap();
+        assert!(combined.changes_critical_unknown_set);
+        assert!(combined.decision_relevant);
+        assert!(!combined.changes_hard_feasible_set);
+        assert!(!combined.changes_pareto_set);
+        assert!(
+            combined
+                .outcomes
+                .iter()
+                .all(|outcome| outcome.robust_feasible_candidate_ids.is_empty())
+        );
+        assert!(
+            combined
+                .outcomes
+                .iter()
+                .all(|outcome| outcome.remaining_critical_unknown_ids
+                    == vec!["structural-load-review"])
+        );
     }
 
     #[test]
