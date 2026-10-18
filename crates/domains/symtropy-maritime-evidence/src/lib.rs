@@ -485,9 +485,11 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
     }
 
     let (offset_minutes, offset_semantics, consumed) = match bytes.get(index).copied() {
-        Some(b'Z' | b'z') if index + 1 == bytes.len() => {
-            (0i16, TimestampOffsetSemantics::UnknownLocalOffset, index + 1)
-        }
+        Some(b'Z' | b'z') if index + 1 == bytes.len() => (
+            0i16,
+            TimestampOffsetSemantics::UnknownLocalOffset,
+            index + 1,
+        ),
         Some(b'+' | b'-') => {
             if bytes.len() != index + 6 || bytes[index + 3] != b':' {
                 return Err(TimestampParseError::InvalidTimezone);
