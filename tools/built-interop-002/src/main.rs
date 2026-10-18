@@ -11,7 +11,7 @@ use openbim_core::Detected;
 use openbim_ids::{Facet, IdsVersion, IfcVersion, Occurrence, Value};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -41,6 +41,8 @@ struct PropertyObservation {
     source_object_id: String,
     source_step_id: String,
     source_entity_type: String,
+    source_attribute_index: usize,
+    source_attribute_path: String,
     property_key: String,
     expected_value: String,
     observed_value: Option<String>,
@@ -329,7 +331,15 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     let mut observations = Vec::new();
     let mut diagnostics = Vec::new();
     let mut decision = Decision::SubsetConformant;
-    let mut seen_global_ids = BTreeSet::new();
+    let mut global_id_counts = BTreeMap::<String, usize>::new();
+    for (_, wall) in &walls {
+        if let Some(id) = wall
+            .text(0)
+            .filter(|value| !value.trim().is_empty())
+        {
+            *global_id_counts.entry(id.to_string()).or_insert(0) += 1;
+        }
+    }
     let requirement_id = format!("{}::attribute::{attribute_name}", specification.name);
 
     for (entity_id, wall) in &walls {
@@ -343,7 +353,9 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
             .unwrap_or_else(|| format!("STEP:{step_id}"));
         let identity_diagnostic = match global_id.as_deref() {
             None => Some("GLOBAL_ID_MISSING"),
-            Some(id) if !seen_global_ids.insert(id.to_string()) => Some("DUPLICATE_GLOBAL_ID"),
+            Some(id) if global_id_counts.get(id).copied().unwrap_or(0) > 1 => {
+                Some("DUPLICATE_GLOBAL_ID")
+            }
             Some(_) => None,
         };
         let observed_name = wall
@@ -402,6 +414,8 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
             source_object_id: stable_id,
             source_step_id: step_id,
             source_entity_type: wall.type_name.to_string(),
+            source_attribute_index: IFC4_WALL_NAME_ATTRIBUTE_INDEX,
+            source_attribute_path: format!("{}.Name", wall.type_name),
             property_key: attribute_name.to_string(),
             expected_value: expected_value.clone(),
             observed_value,
@@ -535,6 +549,8 @@ mod tests {
         assert_eq!(report.applicable_wall_count, Some(1));
         assert_eq!(report.observations.len(), 1);
         assert_eq!(report.observations[0].expected_value, "Panel 001");
+        assert_eq!(report.observations[0].source_attribute_index, 2);
+        assert_eq!(report.observations[0].source_attribute_path, "IFCWALL.Name");
         assert_eq!(
             report.observations[0].observed_value.as_deref(),
             Some("Panel 001")
@@ -640,10 +656,22 @@ mod tests {
             report.observations[0].source_step_id,
             report.observations[1].source_step_id
         );
-        assert!(report.observations.iter().any(|o| {
-            o.diagnostic_code.as_deref() == Some("DUPLICATE_GLOBAL_ID")
-                && o.outcome == PropertyOutcome::NotEvaluated
-        }));
+        assert_eq!(
+            report
+                .observations
+                .iter()
+                .filter(|observation| observation.diagnostic_code.as_deref()
+                    == Some("DUPLICATE_GLOBAL_ID"))
+                .count(),
+            2,
+            "every member of a duplicate-identity set must be marked ambiguous"
+        );
+        assert!(
+            report.observations.iter().all(|observation| {
+                observation.diagnostic_code.as_deref() == Some("DUPLICATE_GLOBAL_ID")
+                    && observation.outcome == PropertyOutcome::NotEvaluated
+            })
+        );
     }
 
     #[test]
