@@ -7,9 +7,9 @@ use symtropy_garden_sim::shared_fleet_dispatch::{
     DispatchRobotReadinessV1, DispatchTravelCoverageV1, DispatchTravelLegV1,
     DispatchTravelMetricV1, DispatchTravelModeV1, DispatchTravelStateV1,
     SHARED_FLEET_DISPATCH_SCHEMA_VERSION_V1, SharedFleetDispatchAssignmentV1,
-    SharedFleetDispatchBlockerCodeV1, SharedFleetDispatchDispositionV1,
-    SharedFleetDispatchInputV1, SharedFleetDispatchReportV1, SharedFleetRequestV1,
-    SharedFleetRobotV1, plan_shared_fleet_dispatch_v1,
+    SharedFleetDispatchBlockerCodeV1, SharedFleetDispatchDispositionV1, SharedFleetDispatchInputV1,
+    SharedFleetDispatchReportV1, SharedFleetRequestV1, SharedFleetRobotV1,
+    plan_shared_fleet_dispatch_v1,
 };
 
 fn request(id: &str, location: &str, deadline: u64, duration: Option<u64>) -> SharedFleetRequestV1 {
@@ -27,7 +27,12 @@ fn request(id: &str, location: &str, deadline: u64, duration: Option<u64>) -> Sh
     }
 }
 
-fn robot(id: &str, start: &str, until: u64, readiness: DispatchRobotReadinessV1) -> SharedFleetRobotV1 {
+fn robot(
+    id: &str,
+    start: &str,
+    until: u64,
+    readiness: DispatchRobotReadinessV1,
+) -> SharedFleetRobotV1 {
     SharedFleetRobotV1 {
         robot_id: id.into(),
         start_location_ref: start.into(),
@@ -42,12 +47,7 @@ fn robot(id: &str, start: &str, until: u64, readiness: DispatchRobotReadinessV1)
     }
 }
 
-fn route(
-    robot_id: &str,
-    from: &str,
-    to: &str,
-    minutes: u64,
-) -> DispatchTravelLegV1 {
+fn route(robot_id: &str, from: &str, to: &str, minutes: u64) -> DispatchTravelLegV1 {
     DispatchTravelLegV1 {
         robot_id: robot_id.into(),
         from_location_ref: from.into(),
@@ -97,7 +97,12 @@ fn base_input() -> SharedFleetDispatchInputV1 {
             request("request-a", "site-a", 20, Some(10)),
             request("request-b", "site-b", 13, Some(5)),
         ],
-        vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![
             route("robot-1", "depot", "site-a", 5),
             route("robot-1", "depot", "site-b", 2),
@@ -180,7 +185,12 @@ fn geodesic_distance_cannot_be_relabelled_as_route_time() {
 
     let report = plan_shared_fleet_dispatch_v1(&input(
         vec![request("request-a", "site-a", 20, Some(5))],
-        vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![geodesic],
     ))
     .unwrap();
@@ -196,7 +206,12 @@ fn geodesic_distance_cannot_be_relabelled_as_route_time() {
 fn missing_route_leg_is_unknown_not_zero_distance() {
     let report = plan_shared_fleet_dispatch_v1(&input(
         vec![request("request-a", "site-a", 20, Some(5))],
-        vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![],
     ))
     .unwrap();
@@ -214,7 +229,12 @@ fn no_route_claim_requires_validated_coverage_and_source_evidence() {
     let confirmed = no_route("robot-1", "depot", "site-a");
     let report = plan_shared_fleet_dispatch_v1(&input(
         vec![request("request-a", "site-a", 20, Some(5))],
-        vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![confirmed],
     ))
     .unwrap();
@@ -228,7 +248,12 @@ fn no_route_claim_requires_validated_coverage_and_source_evidence() {
     assert_blocked(
         &input(
             vec![request("request-a", "site-a", 20, Some(5))],
-            vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+            vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
             vec![unsupported],
         ),
         SharedFleetDispatchBlockerCodeV1::InvalidTravelCoverage,
@@ -239,7 +264,12 @@ fn no_route_claim_requires_validated_coverage_and_source_evidence() {
     assert_blocked(
         &input(
             vec![request("request-a", "site-a", 20, Some(5))],
-            vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+            vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
             vec![no_evidence],
         ),
         SharedFleetDispatchBlockerCodeV1::MissingTravelEvidence,
@@ -250,7 +280,12 @@ fn no_route_claim_requires_validated_coverage_and_source_evidence() {
     assert_blocked(
         &input(
             vec![request("request-a", "site-a", 20, Some(5))],
-            vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+            vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
             vec![observation_only],
         ),
         SharedFleetDispatchBlockerCodeV1::InvalidTravelStateValue,
@@ -264,7 +299,12 @@ fn unvalidated_route_does_not_imply_feasible_dispatch() {
 
     let report = plan_shared_fleet_dispatch_v1(&input(
         vec![request("request-a", "site-a", 20, Some(5))],
-        vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![unvalidated],
     ))
     .unwrap();
@@ -280,7 +320,12 @@ fn unvalidated_route_does_not_imply_feasible_dispatch() {
 fn unknown_task_duration_is_not_zero() {
     let report = plan_shared_fleet_dispatch_v1(&input(
         vec![request("request-a", "site-a", 20, None)],
-        vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![route("robot-1", "depot", "site-a", 1)],
     ))
     .unwrap();
@@ -289,14 +334,22 @@ fn unknown_task_duration_is_not_zero() {
         assignment(&report, "request-a").disposition,
         SharedFleetDispatchDispositionV1::UnknownTaskDuration
     );
-    assert_eq!(assignment(&report, "request-a").forecast_completion_minute, None);
+    assert_eq!(
+        assignment(&report, "request-a").forecast_completion_minute,
+        None
+    );
 }
 
 #[test]
 fn capacity_limit_yields_explicit_unavailable_outcome() {
     let report = plan_shared_fleet_dispatch_v1(&input(
         vec![request("request-a", "site-a", 20, Some(5))],
-        vec![robot("robot-1", "depot", 5, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            5,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![route("robot-1", "depot", "site-a", 2)],
     ))
     .unwrap();
@@ -361,7 +414,12 @@ fn observed_trip_time_is_not_used_as_future_forecast() {
             request("request-a", "site-a", 20, Some(1)),
             request("request-b", "site-b", 30, Some(1)),
         ],
-        vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+        vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
         vec![route("robot-1", "depot", "site-a", 3), observed],
     ))
     .unwrap();
@@ -385,7 +443,12 @@ fn duplicate_route_key_blocks_without_partial_report() {
     assert_blocked(
         &input(
             vec![request("request-a", "site-a", 20, Some(5))],
-            vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+            vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
             vec![leg.clone(), leg],
         ),
         SharedFleetDispatchBlockerCodeV1::DuplicateTravelLeg,
@@ -399,7 +462,12 @@ fn cross_season_route_evidence_blocks() {
     assert_blocked(
         &input(
             vec![request("request-a", "site-a", 20, Some(5))],
-            vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+            vec![robot(
+            "robot-1",
+            "depot",
+            100,
+            DispatchRobotReadinessV1::Ready,
+        )],
             vec![wrong_season],
         ),
         SharedFleetDispatchBlockerCodeV1::SeasonMismatch,
@@ -420,5 +488,8 @@ fn time_overflow_blocks_without_saturated_or_wrapped_schedule() {
         )],
         vec![route("robot-1", "depot", "site-a", 4)],
     );
-    assert_blocked(&report, SharedFleetDispatchBlockerCodeV1::ArithmeticOverflow);
+    assert_blocked(
+        &report,
+        SharedFleetDispatchBlockerCodeV1::ArithmeticOverflow,
+    );
 }
