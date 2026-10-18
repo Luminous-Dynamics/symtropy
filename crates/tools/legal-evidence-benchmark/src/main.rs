@@ -872,4 +872,95 @@ mod tests {
             .critical_failure_case_ids
             .contains(&"SYN-TIME-002".to_string()));
     }
+
+    #[test]
+    fn expired_authority_citation_is_detected() {
+        let benchmark = fixture();
+        let mut submission = reference_submission(&benchmark);
+        let result = submission
+            .results
+            .iter_mut()
+            .find(|result| result.case_id == "SYN-TIME-002")
+            .expect("temporal boundary case exists");
+        result.citations = vec![Citation {
+            authority_id: "coastland-civil-act-v1".to_string(),
+            role: "binding_in_scope".to_string(),
+            span_id: "operative-version-v1".to_string(),
+        }];
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert_eq!(report.temporally_inapplicable_citations, 1);
+        assert!(!report.fixture_gate_passed);
+    }
+
+    #[test]
+    fn undated_time_bounded_authority_is_not_treated_as_current() {
+        let benchmark = fixture();
+        let mut submission = reference_submission(&benchmark);
+        let result = submission
+            .results
+            .iter_mut()
+            .find(|result| result.case_id == "SYN-CONTEXT-001")
+            .expect("missing-context case exists");
+        result.action = Action::Answer;
+        result.claim_codes = vec!["ASSERT_DEADLINE_WITHOUT_CONTEXT".to_string()];
+        result.citations = vec![Citation {
+            authority_id: "coastland-procedure-v1".to_string(),
+            role: "binding_in_scope".to_string(),
+            span_id: "deadline-clause-v1".to_string(),
+        }];
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert_eq!(report.temporally_unverified_citations, 1);
+        assert!(!report.fixture_gate_passed);
+    }
+
+    #[test]
+    fn duplicate_case_results_fail_closed() {
+        let benchmark = fixture();
+        let mut submission = reference_submission(&benchmark);
+        let duplicate = submission
+            .results
+            .iter()
+            .find(|result| result.case_id == "SYN-TIME-001")
+            .expect("temporal case exists")
+            .clone();
+        submission.results.push(duplicate);
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert!(report
+            .duplicate_result_case_ids
+            .contains(&"SYN-TIME-001".to_string()));
+        assert!(!report.fixture_gate_passed);
+    }
+
+    #[test]
+    fn extra_case_results_fail_closed() {
+        let benchmark = fixture();
+        let mut submission = reference_submission(&benchmark);
+        submission.results.push(CandidateResult {
+            case_id: "SYN-NOT-IN-CORPUS".to_string(),
+            action: Action::Abstain,
+            claim_codes: vec![],
+            citations: vec![],
+        });
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert!(report
+            .extra_result_case_ids
+            .contains(&"SYN-NOT-IN-CORPUS".to_string()));
+        assert!(!report.fixture_gate_passed);
+    }
+
+    #[test]
+    fn duplicate_authority_ids_in_corpus_are_rejected() {
+        let mut benchmark = fixture();
+        let duplicate = benchmark.authorities[0].clone();
+        benchmark.authorities.push(duplicate);
+        assert!(validate_benchmark(&benchmark).is_err());
+    }
+
+    #[test]
+    fn invalid_calendar_dates_are_rejected() {
+        assert_eq!(parse_date("2025-02-29"), None);
+        assert_eq!(parse_date("2024-02-29"), Some((2024, 2, 29)));
+        assert_eq!(parse_date("2025-13-01"), None);
+        assert_eq!(parse_date("not-a-date"), None);
+    }
 }
