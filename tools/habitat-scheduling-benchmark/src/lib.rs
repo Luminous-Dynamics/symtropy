@@ -172,8 +172,10 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
                 .ok_or_else(|| format!("{}: candidate status has no makespan", reference.case_id))?;
             let Some(absolute) = found.checked_sub(exact) else {
                 return Err(format!(
-                    "{}: heuristic candidate beats the exact oracle; investigate ",
-                    "reference/model mismatch",
+                    concat!(
+                        "{}: heuristic candidate beats the exact oracle; investigate ",
+                        "reference/model mismatch"
+                    ),
                     reference.case_id
                 ));
             };
