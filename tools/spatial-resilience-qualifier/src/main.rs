@@ -1,9 +1,9 @@
 use spatial_resilience_qualifier::{
-    EMBEDDED_DECISION_IMPACT_CORPUS, EMBEDDED_DECISION_IMPACT_SCHEMA, EMBEDDED_MANIFEST,
-    EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
-    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA, DecisionImpactSummary, OutcomeSummary,
-    TimelineFixtureSummary, ValidationSummary, validate_decision_impact_bytes,
-    validate_manifest_bytes, validate_outcome_fixtures_bytes, validate_timeline_fixtures_bytes,
+    DecisionImpactSummary, EMBEDDED_DECISION_IMPACT_CORPUS, EMBEDDED_DECISION_IMPACT_SCHEMA,
+    EMBEDDED_MANIFEST, EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
+    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA, OutcomeSummary, TimelineFixtureSummary,
+    ValidationSummary, validate_decision_impact_bytes, validate_manifest_bytes,
+    validate_outcome_fixtures_bytes, validate_timeline_fixtures_bytes,
 };
 use std::env;
 use std::fs;
@@ -162,8 +162,7 @@ fn emit_decision_impact(summary: &DecisionImpactSummary, json_output: bool) {
         println!("case={}", case.case_id);
         println!(
             "  baseline_robust={:?} baseline_pareto={:?}",
-            case.baseline.robust_feasible_candidate_ids,
-            case.baseline.pareto_candidate_ids
+            case.baseline.robust_feasible_candidate_ids, case.baseline.pareto_candidate_ids
         );
         for action in &case.actions {
             println!(
@@ -188,7 +187,10 @@ fn emit_decision_impact(summary: &DecisionImpactSummary, json_output: bool) {
                 println!("    rejection_codes={:?}", action.rejection_codes);
             }
         }
-        println!("  recommended_action_order={:?}", case.recommended_action_order);
+        println!(
+            "  recommended_action_order={:?}",
+            case.recommended_action_order
+        );
     }
     for failure in &summary.failures {
         println!(
