@@ -17,7 +17,7 @@ use std::{
 
 const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 const CLAIM_CEILING: &str =
-    "capture-byte-integrity-and-declared-provenance-only; not-visual-quality-or-physical-validation";
+    "png-decode-byte-integrity-and-declared-provenance-only; not-visual-quality-or-physical-validation";
 
 /// Metadata supplied by the benchmark runner. Missing values remain explicit;
 /// the receipt is not qualified for comparisons until required fields exist.
@@ -105,6 +105,8 @@ pub struct ImageReceipt {
     pub status: String,
     pub byte_len: Option<u64>,
     pub sha256: Option<String>,
+    pub width_px: Option<u32>,
+    pub height_px: Option<u32>,
 }
 
 /// Versioned receipt written next to the PNGs.
@@ -139,7 +141,12 @@ impl CaptureReceipt {
         for index in 0..count {
             let scheduled_time_secs = scheduled_times.get(index).copied();
             let path = paths.get(index).cloned();
-            let image = inspect_image(scheduled_time_secs, path.as_deref());
+            let image = inspect_image(
+                scheduled_time_secs,
+                path.as_deref(),
+                metadata.width_px,
+                metadata.height_px,
+            );
             if image.status != "verified_png" {
                 capture_complete = false;
             }
@@ -222,7 +229,12 @@ fn is_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn inspect_image(scheduled_time_secs: Option<f32>, path: Option<&str>) -> ImageReceipt {
+fn inspect_image(
+    scheduled_time_secs: Option<f32>,
+    path: Option<&str>,
+    expected_width: Option<u32>,
+    expected_height: Option<u32>,
+) -> ImageReceipt {
     let Some(path) = path else {
         return image_failure(scheduled_time_secs, None, "missing_capture_path");
     };
@@ -266,6 +278,8 @@ fn inspect_image(scheduled_time_secs: Option<f32>, path: Option<&str>) -> ImageR
             status: "empty".to_owned(),
             byte_len: Some(0),
             sha256: None,
+            width_px: None,
+            height_px: None,
         };
     }
     if signature_len != PNG_SIGNATURE.len() || signature != PNG_SIGNATURE {
@@ -275,6 +289,54 @@ fn inspect_image(scheduled_time_secs: Option<f32>, path: Option<&str>) -> ImageR
             status: "invalid_png_signature".to_owned(),
             byte_len: Some(byte_len),
             sha256: Some(format!("{:x}", hasher.finalize())),
+            width_px: None,
+            height_px: None,
+        };
+    }
+
+    let digest = format!("{:x}", hasher.finalize());
+    let decoded = match image::ImageReader::open(path)
+        .and_then(|reader| reader.with_guessed_format())
+    {
+        Ok(reader) => match reader.decode() {
+            Ok(image) => image,
+            Err(_) => {
+                return ImageReceipt {
+                    scheduled_time_secs,
+                    path: Some(path.to_owned()),
+                    status: "decode_error".to_owned(),
+                    byte_len: Some(byte_len),
+                    sha256: Some(digest),
+                    width_px: None,
+                    height_px: None,
+                };
+            }
+        },
+        Err(_) => {
+            return ImageReceipt {
+                scheduled_time_secs,
+                path: Some(path.to_owned()),
+                status: "decode_error".to_owned(),
+                byte_len: Some(byte_len),
+                sha256: Some(digest),
+                width_px: None,
+                height_px: None,
+            };
+        }
+    };
+    let width_px = decoded.width();
+    let height_px = decoded.height();
+    if expected_width.is_some_and(|expected| expected != width_px)
+        || expected_height.is_some_and(|expected| expected != height_px)
+    {
+        return ImageReceipt {
+            scheduled_time_secs,
+            path: Some(path.to_owned()),
+            status: "dimension_mismatch".to_owned(),
+            byte_len: Some(byte_len),
+            sha256: Some(digest),
+            width_px: Some(width_px),
+            height_px: Some(height_px),
         };
     }
 
@@ -283,7 +345,9 @@ fn inspect_image(scheduled_time_secs: Option<f32>, path: Option<&str>) -> ImageR
         path: Some(path.to_owned()),
         status: "verified_png".to_owned(),
         byte_len: Some(byte_len),
-        sha256: Some(format!("{:x}", hasher.finalize())),
+        sha256: Some(digest),
+        width_px: Some(width_px),
+        height_px: Some(height_px),
     }
 }
 
@@ -298,6 +362,8 @@ fn image_failure(
         status: status.to_owned(),
         byte_len: None,
         sha256: None,
+        width_px: None,
+        height_px: None,
     }
 }
 
@@ -338,26 +404,32 @@ mod tests {
     }
 
     #[test]
+    fn write_test_png(path: &Path, width: u32, height: u32) {
+        use image::ImageEncoder;
+        let pixels = vec![127_u8; (width * height * 4) as usize];
+        let file = File::create(path).expect("test PNG should be created");
+        image::codecs::png::PngEncoder::new(file)
+            .write_image(&pixels, width, height, image::ExtendedColorType::Rgba8)
+            .expect("test PNG should encode");
+    }
+
+    #[test]
     fn valid_png_bytes_produce_stable_sha256_receipt() {
         let directory = test_directory();
         let path = directory.join("frame.png");
-        let mut bytes = PNG_SIGNATURE.to_vec();
-        bytes.extend_from_slice(b"fixture-payload");
-        fs::write(&path, &bytes).expect("fixture should be written");
+        write_test_png(&path, 2, 1);
+        let byte_len = fs::metadata(&path).expect("PNG metadata should exist").len();
         let path_string = path.to_string_lossy().into_owned();
 
-        let receipt = CaptureReceipt::build(
-            "test",
-            &[1.5],
-            &[path_string],
-            qualified_metadata(),
-        );
+        let receipt = CaptureReceipt::build("test", &[1.5], &[path_string], qualified_metadata());
         assert!(receipt.capture_complete);
         assert_eq!(receipt.capture_status, "complete");
         assert_eq!(receipt.qualification_status, "qualified_metadata");
         assert_eq!(receipt.images.len(), 1);
         assert_eq!(receipt.images[0].status, "verified_png");
-        assert_eq!(receipt.images[0].byte_len, Some(bytes.len() as u64));
+        assert_eq!(receipt.images[0].byte_len, Some(byte_len));
+        assert_eq!(receipt.images[0].width_px, Some(2));
+        assert_eq!(receipt.images[0].height_px, Some(1));
         assert_eq!(receipt.images[0].sha256.as_ref().map(String::len), Some(64));
 
         let _ = fs::remove_dir_all(directory);
@@ -399,7 +471,7 @@ mod tests {
     fn capture_integrity_and_provenance_qualification_are_separate() {
         let directory = test_directory();
         let path = directory.join("frame.png");
-        fs::write(&path, PNG_SIGNATURE).expect("fixture should be written");
+        write_test_png(&path, 1, 1);
         let receipt = CaptureReceipt::build(
             "test",
             &[1.5],
@@ -439,7 +511,7 @@ mod tests {
     fn receipt_file_is_json_and_replaces_earlier_run() {
         let directory = test_directory();
         let path = directory.join("frame.png");
-        fs::write(&path, PNG_SIGNATURE).expect("fixture should be written");
+        write_test_png(&path, 1, 1);
         let receipt = CaptureReceipt::build(
             "test",
             &[1.5],
