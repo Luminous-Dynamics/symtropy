@@ -14,6 +14,7 @@ pub const MAX_OUTCOMES_PER_ACTION: usize = 1_000;
 pub const MAX_POLICY_DEPTH: usize = 16;
 pub const MAX_POLICY_EVALUATION_OPERATIONS: usize = 100_000;
 pub const MAX_POLICY_LEAVES: usize = 10_000;
+pub const MAX_POLICY_LEAF_STATE_MEMBERSHIPS: usize = 100_000;
 const CLAIM_CEILING: &str =
     "synthetic_compatibility_graph_only_no_physical_measurement_or_engineering_validity_claim";
 
@@ -200,6 +201,7 @@ fn evaluate(input: &PolicyInput, input_sha256: &str) -> Result<PolicyReport, Str
     let initial_states = states.keys().cloned().collect::<BTreeSet<_>>();
     let mut leaves = Vec::new();
     let mut policy_operations = 0usize;
+    let mut leaf_state_memberships = 0usize;
     visit_policy(
         &input.candidate_policy.root_action_id,
         &initial_states,
@@ -211,6 +213,7 @@ fn evaluate(input: &PolicyInput, input_sha256: &str) -> Result<PolicyReport, Str
         &mut Vec::new(),
         &mut BTreeSet::new(),
         &mut policy_operations,
+        &mut leaf_state_memberships,
         &mut leaves,
     )?;
 
@@ -268,6 +271,7 @@ fn visit_policy(
     path: &mut Vec<PolicyStep>,
     ancestors: &mut BTreeSet<String>,
     policy_operations: &mut usize,
+    leaf_state_memberships: &mut usize,
     leaves: &mut Vec<PolicyLeaf>,
 ) -> Result<(), String> {
     consume_policy_operation(policy_operations)?;
@@ -289,6 +293,7 @@ fn visit_policy(
         });
         record_leaf(
             leaves,
+            leaf_state_memberships,
             make_leaf(
                 path.clone(),
                 LeafTerminal::ReviewRequired,
@@ -336,11 +341,13 @@ fn visit_policy(
                 path,
                 ancestors,
                 policy_operations,
+                leaf_state_memberships,
                 leaves,
             )?;
         } else {
             record_leaf(
                 leaves,
+                leaf_state_memberships,
                 make_leaf(
                     path.clone(),
                     LeafTerminal::DecisionLeaf,
@@ -406,12 +413,25 @@ fn consume_policy_operation(operations: &mut usize) -> Result<(), String> {
     Ok(())
 }
 
-fn record_leaf(leaves: &mut Vec<PolicyLeaf>, leaf: PolicyLeaf) -> Result<(), String> {
+fn record_leaf(
+    leaves: &mut Vec<PolicyLeaf>,
+    total_state_memberships: &mut usize,
+    leaf: PolicyLeaf,
+) -> Result<(), String> {
     if leaves.len() >= MAX_POLICY_LEAVES {
         return Err(format!(
             "policy expansion exceeds leaf budget {MAX_POLICY_LEAVES}"
         ));
     }
+    let next_membership_total = total_state_memberships
+        .checked_add(leaf.state_count)
+        .ok_or_else(|| "policy leaf state-membership counter overflow".to_owned())?;
+    if next_membership_total > MAX_POLICY_LEAF_STATE_MEMBERSHIPS {
+        return Err(format!(
+            "policy expansion exceeds state-membership budget {MAX_POLICY_LEAF_STATE_MEMBERSHIPS}"
+        ));
+    }
+    *total_state_memberships = next_membership_total;
     leaves.push(leaf);
     Ok(())
 }
