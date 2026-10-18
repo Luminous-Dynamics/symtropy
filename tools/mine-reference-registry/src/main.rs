@@ -98,13 +98,35 @@ fn nonempty(value: &str) -> bool {
 
 fn is_iso_date(value: &str) -> bool {
     let bytes = value.as_bytes();
-    bytes.len() == 10
-        && bytes[4] == b'-'
-        && bytes[7] == b'-'
-        && bytes
+    if bytes.len() != 10
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || !bytes
             .iter()
             .enumerate()
             .all(|(index, byte)| matches!(index, 4 | 7) || byte.is_ascii_digit())
+    {
+        return false;
+    }
+
+    let Ok(year) = value[0..4].parse::<u32>() else {
+        return false;
+    };
+    let Ok(month) = value[5..7].parse::<u32>() else {
+        return false;
+    };
+    let Ok(day) = value[8..10].parse::<u32>() else {
+        return false;
+    };
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    year > 0 && day >= 1 && day <= days_in_month
 }
 
 fn is_lower_hex(value: &str, expected_len: usize) -> bool {
@@ -284,6 +306,14 @@ mod tests {
         assert_eq!(EXPECTED_ENTRIES, registry.entries.len());
         assert!(registry.entries.iter().all(|entry| entry.access_state == AccessState::MetadataOnly));
         assert!(registry.entries.iter().all(|entry| entry.source_sha256.is_none()));
+    }
+
+    #[test]
+    fn date_validation_rejects_impossible_calendar_dates() {
+        assert!(is_iso_date("2024-02-29"));
+        assert!(!is_iso_date("2026-02-29"));
+        assert!(!is_iso_date("2026-13-01"));
+        assert!(!is_iso_date("2026-04-31"));
     }
 
     #[test]
