@@ -1,8 +1,13 @@
-# MineLib parser conformance prototype
+# MineLib parser and tiny UPIT conformance benchmark
 
-This standalone Rust crate validates a deliberately small subset of the MineLib v1 format using authored synthetic fixtures. It parses the block-model and precedence files only; it does **not** parse the optimization-model descriptor and is not an optimizer.
+This standalone Rust crate validates an intentionally small MineLib v1 profile using authored synthetic fixtures. It parses three linked inputs:
+- block-model rows: block ID, x/y/z coordinates, explicitly declared attributes;
+- precedence rows: block ID and a declared predecessor list;
+- UPIT optimization-model descriptor: name, type, block count, discount-rate field, and per-block objective rows.
 
-The manifest declares the meaning and type of each optional block attribute. This is necessary because MineLib allows user-specific block attributes; the parser must not guess a grade, tonnage, or objective column from position alone.
+It rejects unrecognized descriptor fields/sections rather than pretending to support general MineLib. Only UPIT is supported in the tiny-model path; CPIT and PCPSP descriptors are intentionally rejected. An exhaustive closure oracle runs only for at most 20 contiguous zero-based blocks, after which the correct disposition is an indeterminate size limit—not an optimality claim.
+
+The manifest must declare the meaning and type of each optional block attribute. This avoids guessing whether a field is tonnage, grade, impurity, or some other value. The fixture also compares its explicit block-value attribute to the corresponding synthetic UPIT objective coefficients to catch cross-file identity/schema mistakes.
 
 Run:
 
@@ -14,6 +19,8 @@ cargo run --quiet --manifest-path tools/minelib-parser-bench/Cargo.toml -- \
   --source-commit "$(git rev-parse HEAD)"
 ```
 
-The runner emits a JSON receipt binding the manifest, block file, precedence file, and exact source commit. Fixed decimals are converted to scaled integers without binary floating point. The `block_value_usd` total is merely an audit sum over a declared fixture column; it is not the MineLib model's discounted objective and does not validate an optimization result.
+The runner emits a JSON receipt binding the manifest, block file, precedence file, model descriptor, and exact source commit by SHA-256. Fixed decimals are converted to scaled integers without binary floating point.
 
-No third-party MineLib instance or data file is included. The test files are hand-authored synthetic fixtures, and the source-format URL is cited for structure only.
+The sum of block attribute values is called an audit sum; it is not the mathematical model objective or NPV. The UPIT objective comes from the separately parsed model descriptor. The five-block exhaustive oracle is a correctness reference only, not a production solver.
+
+No third-party MineLib instance is included. All block/precedence/model fixtures are authored synthetic inputs. The format URL is a citation to the official MineLib specification.
