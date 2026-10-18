@@ -128,6 +128,7 @@ members = [
     "crates/apps/symtropy-cli",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
+    "crates/core/symtropy-motion-contract",
     "crates/core/symtropy-bevy-scene",
     "crates/bridges/symthaea-bevy-brain",
     "crates/bridges/symtropy-symthaea-adapter",
