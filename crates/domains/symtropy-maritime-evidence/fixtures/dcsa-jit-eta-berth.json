@@ -1,0 +1,21 @@
+{
+  "publisher": {"partyName": "Synthetic Terminal"},
+  "publisherRole": "TR",
+  "eventClassifierCode": "EST",
+  "operationsEventTypeCode": "ARRI",
+  "facilityTypeCode": "BRTH",
+  "portCallPhaseTypeCode": null,
+  "portCallServiceTypeCode": null,
+  "eventDateTime": "2026-10-18T12:10:00.000+01:00",
+  "eventLocation": {
+    "locationName": "SYNTHETIC BERTH A",
+    "UNLocationCode": "ZZSYN",
+    "facilityCode": "SYN1",
+    "facilityCodeListProvider": "SMDG"
+  },
+  "UNLocationCode": "ZZSYN",
+  "facilitySMDGCode": "SYN1",
+  "vessel": {"vesselIMONumber": "9990001"},
+  "vesselIMONumber": "9990001",
+  "transportCallSequenceNumber": 1
+}
