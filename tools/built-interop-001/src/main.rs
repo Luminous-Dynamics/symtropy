@@ -277,6 +277,7 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
             );
         }
         if !rule.scale.is_finite()
+            || rule.scale <= 0.0
             || !rule.offset.is_finite()
             || !rule.absolute_tolerance.is_finite()
             || rule.absolute_tolerance < 0.0
@@ -684,6 +685,48 @@ mod tests {
                 result.case_id
             );
         }
+    }
+
+    #[test]
+    fn approved_transform_rule_is_pinned_out_of_band() {
+        const EXPECTED: &[(&str, &str, &str, f64, f64, f64)] =
+            &[( "mm-to-m-v1", "mm", "m", 0.001, 0.0, 0.000000001 )];
+
+        let (manifest, _) = fixture();
+        let rules: Vec<&TransformRule> = manifest
+            .cases
+            .iter()
+            .flat_map(|case| case.transforms.iter())
+            .collect();
+        assert_eq!(rules.len(), EXPECTED.len());
+
+        for (id, from_unit, to_unit, scale, offset, tolerance) in EXPECTED {
+            let rule = rules
+                .iter()
+                .find(|rule| rule.transform_id == *id)
+                .expect("every transform must match an independently pinned rule");
+            assert_eq!(rule.from_unit, *from_unit);
+            assert_eq!(rule.to_unit, *to_unit);
+            assert_eq!(rule.scale, *scale);
+            assert_eq!(rule.offset, *offset);
+            assert_eq!(rule.absolute_tolerance, *tolerance);
+        }
+    }
+
+    #[test]
+    fn zero_scale_cannot_erase_a_measurement() {
+        let (manifest, _) = fixture();
+        let mut case = manifest
+            .cases
+            .iter()
+            .find(|case| case.case_id == "05-declared-unit-transform-correct")
+            .expect("transform fixture exists")
+            .clone();
+        case.transforms[0].scale = 0.0;
+        assert_eq!(
+            evaluate_scenario(&case).computed_decision,
+            Decision::Blocked
+        );
     }
 
     #[test]
