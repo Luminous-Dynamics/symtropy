@@ -1114,6 +1114,60 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
         }
     }
 
+    for delta in &dataset.estimate_deltas {
+        register_id(&delta.id, &mut all_ids, &delta.id, &mut issues);
+        require_nonempty(&delta.variant_description, &delta.id, "variant description", &mut issues);
+        require_nonempty(&delta.dependence_note, &delta.id, "delta dependence note", &mut issues);
+        require_nonempty(
+            &delta.interpretation_limit,
+            &delta.id,
+            "delta interpretation limit",
+            &mut issues,
+        );
+        let baseline = dataset.estimates.iter().find(|e| e.id == delta.baseline_estimate_id);
+        let perturbed = dataset.estimates.iter().find(|e| e.id == delta.perturbed_estimate_id);
+        match (baseline, perturbed) {
+            (None, _) => issue(
+                &mut issues,
+                &delta.id,
+                ValidationCode::InvalidEstimateDelta,
+                format!("delta refers to unknown baseline estimate '{}'", delta.baseline_estimate_id),
+            ),
+            (_, None) => issue(
+                &mut issues,
+                &delta.id,
+                ValidationCode::InvalidEstimateDelta,
+                format!("delta refers to unknown perturbed estimate '{}'", delta.perturbed_estimate_id),
+            ),
+            (Some(baseline), Some(perturbed)) => {
+                if baseline.id == perturbed.id {
+                    issue(
+                        &mut issues,
+                        &delta.id,
+                        ValidationCode::InvalidEstimateDelta,
+                        "baseline and perturbed estimates must be different records",
+                    );
+                }
+                if baseline.quantity != perturbed.quantity || baseline.unit != perturbed.unit {
+                    issue(
+                        &mut issues,
+                        &delta.id,
+                        ValidationCode::InvalidEstimateDelta,
+                        "baseline and perturbed estimates must describe the same quantity and unit",
+                    );
+                }
+                if baseline.interval.is_some() || perturbed.interval.is_some() {
+                    issue(
+                        &mut issues,
+                        &delta.id,
+                        ValidationCode::InvalidEstimateDelta,
+                        "paired estimate delta requires two point-valued estimates",
+                    );
+                }
+            }
+        }
+    }
+
     for model in &dataset.reconstruction_models {
         register_id(&model.id, &mut all_ids, &model.id, &mut issues);
         require_nonempty(&model.title, &model.id, "model title", &mut issues);
