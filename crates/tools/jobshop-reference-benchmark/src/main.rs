@@ -39,10 +39,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         "solve-exact" => {
             let result = solve_exact(&instance)?;
             println!(
-                "benchmark=JOBSHOP-REF-001 solver=bounded-exhaustive optimality=proved makespan={} lower_bound={} expanded_nodes={} claim_ceiling=tiny-instance-model",
+                "benchmark=JOBSHOP-REF-001 solver=bounded-exhaustive optimality=proved makespan={} lower_bound={} expanded_nodes={} scheduled_operations={} claim_ceiling=tiny-instance-model",
                 result.makespan,
                 result.lower_bound_makespan,
-                result.expanded_nodes
+                result.expanded_nodes,
+                result.schedule.len()
             );
         }
         _ => {
