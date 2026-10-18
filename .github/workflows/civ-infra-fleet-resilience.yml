@@ -46,7 +46,7 @@ jobs:
           fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
           expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
           report="$RUNNER_TEMP/civ-infra-fleet-resilience-report.json"
-          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- "$fixture" > "$report"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin civ-infra-fleet-resilience -- "$fixture" > "$report"
           jq -e --arg expected_sha "$expected_sha" '
             .schema_version == "luminous.civ_infra.fleet_resilience_manifest_report.v0.1" and
             .input_sha256 == $expected_sha and
@@ -127,3 +127,21 @@ jobs:
             ([.policy_timeline[] | select(.tick == 4) | .visible_event_ids[] | select(. == "R-008")] | length) == 1 and
             ([.policy_timeline[4].newly_observed_events[] | select(.case_id == "R-008" and .observed_at_tick == 4 and (has("injection_tick") | not))] | length) == 1
           ' "$report"
+
+      - name: Independently verify event timeline report
+        if: ${{ hashFiles('tools/civ-infra-fleet-resilience/src/bin/event-timeline-check.rs') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          report="$RUNNER_TEMP/civ-infra-event-timeline-report.json"
+          checker_report="$RUNNER_TEMP/civ-infra-event-timeline-check.json"
+          test -s "$report"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin event-timeline-check -- "$fixture" "$report" > "$checker_report"
+          jq -e '
+            .status == "independent_event_timeline_report_verified" and
+            .fixture_id == "civ-infra-fleet-resilience-synthetic-001" and
+            .event_count == 13 and
+            .timeline_tick_count == 8 and
+            .policy_simulation_executed == false
+          ' "$checker_report"

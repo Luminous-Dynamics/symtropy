@@ -61,6 +61,7 @@
     {
       "policy_id": "B3",
       "name": "finite_instance_exhaustive_oracle",
+      "access_to_unobserved_state": false,
       "deployable_policy": false,
       "purpose": "reference_bound_only"
     }
