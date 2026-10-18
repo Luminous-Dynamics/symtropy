@@ -153,9 +153,7 @@ fn required_json_string<'a>(
             .get(*key)
             .ok_or(PcoPayloadParseError::MissingField(label))?;
     }
-    value
-        .as_str()
-        .ok_or(PcoPayloadParseError::WrongType(label))
+    value.as_str().ok_or(PcoPayloadParseError::WrongType(label))
 }
 
 /// Translate the PCO Guide's planned-arrival API response shape into a typed
@@ -194,8 +192,8 @@ pub fn parse_pco_arrival_response(
         &["dateTimeArrivalPlanned", "plannedTimeOfArrival"],
         "dateTimeArrivalPlanned.plannedTimeOfArrival",
     )?;
-    let value = parse_rfc3339_timestamp(timestamp)
-        .map_err(PcoPayloadParseError::InvalidTimestamp)?;
+    let value =
+        parse_rfc3339_timestamp(timestamp).map_err(PcoPayloadParseError::InvalidTimestamp)?;
 
     Ok(PcoObservation {
         observation_id: context.observation_id,
@@ -252,8 +250,8 @@ pub fn parse_pco_departure_response(
         &["dateTimeDeparturePlanned", "plannedTimeOfDeparture"],
         "dateTimeDeparturePlanned.plannedTimeOfDeparture",
     )?;
-    let value = parse_rfc3339_timestamp(timestamp)
-        .map_err(PcoPayloadParseError::InvalidTimestamp)?;
+    let value =
+        parse_rfc3339_timestamp(timestamp).map_err(PcoPayloadParseError::InvalidTimestamp)?;
 
     Ok(PcoObservation {
         observation_id: context.observation_id,
@@ -375,7 +373,9 @@ pub struct ObservationReport {
 
 impl ObservationReport {
     pub fn has_conflicts(&self) -> bool {
-        self.resolutions.iter().any(ObservationResolution::is_conflict)
+        self.resolutions
+            .iter()
+            .any(ObservationResolution::is_conflict)
     }
 
     /// Read-only projection containing only non-conflicting semantic groups.
@@ -464,8 +464,7 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
         }
         fractional_digits = digits as u8;
         let fraction_value = parse_digits(bytes, fraction_start, digits)?;
-        fraction_nanos =
-            i128::from(fraction_value) * 10_i128.pow(u32::from(9 - fractional_digits));
+        fraction_nanos = i128::from(fraction_value) * 10_i128.pow(u32::from(9 - fractional_digits));
     }
 
     let (offset_minutes, consumed) = match bytes.get(index).copied() {
@@ -504,11 +503,7 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
     })
 }
 
-fn parse_digits(
-    bytes: &[u8],
-    start: usize,
-    length: usize,
-) -> Result<u64, TimestampParseError> {
+fn parse_digits(bytes: &[u8], start: usize, length: usize) -> Result<u64, TimestampParseError> {
     let end = start
         .checked_add(length)
         .ok_or(TimestampParseError::InvalidDigits)?;
@@ -687,11 +682,13 @@ pub fn resolve_observations(
     // A port-call reference is scoped to its reporting port, but one
     // (port, call-reference) pair must not name multiple vessels. Quarantine
     // all otherwise-valid observations for the ambiguous identity.
-    let mut vessel_ids_by_call =
-        BTreeMap::<(String, String), BTreeSet<String>>::new();
+    let mut vessel_ids_by_call = BTreeMap::<(String, String), BTreeSet<String>>::new();
     for observation in &accepted {
         vessel_ids_by_call
-            .entry((observation.port_id.clone(), observation.port_call_id.clone()))
+            .entry((
+                observation.port_id.clone(),
+                observation.port_call_id.clone(),
+            ))
             .or_default()
             .insert(observation.ship_imo_number.clone());
     }
@@ -701,7 +698,10 @@ pub fn resolve_observations(
         .collect::<BTreeSet<_>>();
     let mut identity_checked = Vec::with_capacity(accepted.len());
     for observation in accepted.drain(..) {
-        let call_key = (observation.port_id.clone(), observation.port_call_id.clone());
+        let call_key = (
+            observation.port_id.clone(),
+            observation.port_call_id.clone(),
+        );
         if conflicting_calls.contains(&call_key) {
             rejected.push(RejectedObservation {
                 observation_id: observation.observation_id.clone(),
@@ -783,7 +783,7 @@ fn same_semantic_value(left: &PcoObservation, right: &PcoObservation) -> bool {
             a_meaning == b_meaning
                 && a.utc_unix_nanos == b.utc_unix_nanos
                 && left.location_context == right.location_context
-        },
+        
         _ => false,
     }
 }
@@ -857,11 +857,9 @@ mod tests {
     #[test]
     fn maps_pco_planned_arrival_payload_without_collapsing_identity_or_time() {
         let json = include_str!("../fixtures/pco-arrival-valid.json");
-        let item = parse_pco_arrival_response(
-            json,
-            ingest_context("OBS-PCO-ARRIVAL", "PCO-TESTBED"),
-        )
-        .unwrap();
+        let item =
+            parse_pco_arrival_response(json, ingest_context("OBS-PCO-ARRIVAL", "PCO-TESTBED"))
+                .unwrap();
         assert_eq!(item.ship_imo_number, "9990001");
         assert_eq!(item.port_id, "ZZSYN");
         assert_eq!(item.port_call_id, "SYNTH-CALL-001");
@@ -883,11 +881,9 @@ mod tests {
     #[test]
     fn maps_pco_planned_departure_payload_and_preserves_berth_name() {
         let json = include_str!("../fixtures/pco-departure-valid.json");
-        let item = parse_pco_departure_response(
-            json,
-            ingest_context("OBS-PCO-DEPARTURE", "PCO-TESTBED"),
-        )
-        .unwrap();
+        let item =
+            parse_pco_departure_response(json, ingest_context("OBS-PCO-DEPARTURE", "PCO-TESTBED"))
+                .unwrap();
         assert_eq!(item.location_context.as_deref(), Some("SYNTH-BERTH-01"));
         assert_eq!(
             item.source_field_code,
@@ -899,8 +895,7 @@ mod tests {
 
     #[test]
     fn pco_adapter_rejects_missing_location_and_malformed_time() {
-        let missing_location =
-            include_str!("../fixtures/pco-arrival-missing-location.json");
+        let missing_location = include_str!("../fixtures/pco-arrival-missing-location.json");
         assert!(matches!(
             parse_pco_arrival_response(
                 missing_location,
@@ -911,8 +906,7 @@ mod tests {
             ))
         ));
 
-        let malformed_time =
-            include_str!("../fixtures/pco-arrival-malformed-time.json");
+        let malformed_time = include_str!("../fixtures/pco-arrival-malformed-time.json");
         assert!(matches!(
             parse_pco_arrival_response(
                 malformed_time,
@@ -1318,9 +1312,12 @@ mod tests {
         assert!(report.accepted.is_empty());
         assert_eq!(report.rejected.len(), 2);
         assert!(report.resolutions.is_empty());
-        assert!(report.rejected.iter().all(|item| {
-            item.reason == RejectionReason::PortCallVesselIdentityConflict
-        }));
+        assert!(
+            report
+                .rejected
+                .iter()
+                .all(|item| { item.reason == RejectionReason::PortCallVesselIdentityConflict })
+        );
 
         let reversed = resolve_observations(&[b, a], &policy());
         assert_eq!(report, reversed);
