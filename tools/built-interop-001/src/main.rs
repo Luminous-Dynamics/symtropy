@@ -266,19 +266,23 @@ fn evaluate_requirement(
 
     if matches.is_empty() {
         result.outcome = nonconformity_outcome(requirement.criticality);
-        result.diagnostic_codes.push("NO_TARGET_OBSERVATION".to_string());
+        result
+            .diagnostic_codes
+            .push("NO_TARGET_OBSERVATION".to_string());
         return result;
     }
     if matches.len() > 1 {
         result.outcome = RequirementOutcome::Blocked;
-        result.diagnostic_codes
+        result
+            .diagnostic_codes
             .push("DUPLICATE_TARGET_OBSERVATION".to_string());
         return result;
     }
     let observation = matches[0];
     if observation.object_id != requirement.object_id {
         result.outcome = RequirementOutcome::Blocked;
-        result.diagnostic_codes
+        result
+            .diagnostic_codes
             .push("OBJECT_IDENTITY_MISMATCH".to_string());
         return result;
     }
@@ -287,16 +291,17 @@ fn evaluate_requirement(
         LossDisposition::Preserved => {
             if observation.transform_id.is_some() {
                 result.outcome = RequirementOutcome::Blocked;
-                result.diagnostic_codes
+                result
+                    .diagnostic_codes
                     .push("PRESERVED_CARRIES_TRANSFORM".to_string());
                 return result;
             }
-            if observation.observed_value.as_deref()
-                != Some(requirement.expected_value.as_str())
+            if observation.observed_value.as_deref() != Some(requirement.expected_value.as_str())
                 || observation.unit != requirement.unit
             {
                 result.outcome = nonconformity_outcome(requirement.criticality);
-                result.diagnostic_codes
+                result
+                    .diagnostic_codes
                     .push("PRESERVED_VALUE_OR_UNIT_MISMATCH".to_string());
                 return result;
             }
@@ -304,14 +309,18 @@ fn evaluate_requirement(
         }
         LossDisposition::TransformedWithDeclaredRule => {
             let matching_rules: Vec<&TransformRule> = match observation.transform_id.as_deref() {
-                Some(id) => transforms.iter().filter(|rule| rule.transform_id == id).collect(),
+                Some(id) => transforms
+                    .iter()
+                    .filter(|rule| rule.transform_id == id)
+                    .collect(),
                 None => Vec::new(),
             };
             let rule = match matching_rules.as_slice() {
                 [rule] => *rule,
                 _ => {
                     result.outcome = nonconformity_outcome(requirement.criticality);
-                    result.diagnostic_codes
+                    result
+                        .diagnostic_codes
                         .push("MISSING_OR_DUPLICATE_TRANSFORM_RULE".to_string());
                     return result;
                 }
@@ -340,7 +349,8 @@ fn evaluate_requirement(
                         || (observed - transformed).abs() > rule.absolute_tolerance
                     {
                         result.outcome = nonconformity_outcome(requirement.criticality);
-                        result.diagnostic_codes
+                        result
+                            .diagnostic_codes
                             .push("DECLARED_TRANSFORM_RESULT_MISMATCH".to_string());
                         return result;
                     }
@@ -348,29 +358,34 @@ fn evaluate_requirement(
                 }
                 _ => {
                     result.outcome = nonconformity_outcome(requirement.criticality);
-                    result.diagnostic_codes
+                    result
+                        .diagnostic_codes
                         .push("DECLARED_TRANSFORM_SCOPE_OR_NUMERIC_VALUE_INVALID".to_string());
                 }
             }
         }
         LossDisposition::Unsupported => {
             result.outcome = nonconformity_outcome(requirement.criticality);
-            result.diagnostic_codes
+            result
+                .diagnostic_codes
                 .push("UNSUPPORTED_TARGET_PROPERTY".to_string());
         }
         LossDisposition::Missing => {
             result.outcome = nonconformity_outcome(requirement.criticality);
-            result.diagnostic_codes
+            result
+                .diagnostic_codes
                 .push("MISSING_TARGET_PROPERTY".to_string());
         }
         LossDisposition::Changed => {
             result.outcome = nonconformity_outcome(requirement.criticality);
-            result.diagnostic_codes
+            result
+                .diagnostic_codes
                 .push("CHANGED_TARGET_PROPERTY".to_string());
         }
         LossDisposition::NotEvaluated => {
             result.outcome = nonconformity_outcome(requirement.criticality);
-            result.diagnostic_codes
+            result
+                .diagnostic_codes
                 .push("TARGET_PROPERTY_NOT_EVALUATED".to_string());
         }
     }
@@ -412,7 +427,10 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
     for rule in &case.transforms {
         if rule.transform_id.trim().is_empty() || !transform_ids.insert(rule.transform_id.clone()) {
             blocked = true;
-            global_issues.push(format!("EMPTY_OR_DUPLICATE_TRANSFORM_ID:{}", rule.transform_id));
+            global_issues.push(format!(
+                "EMPTY_OR_DUPLICATE_TRANSFORM_ID:{}",
+                rule.transform_id
+            ));
         }
         if !rule.scale.is_finite()
             || rule.scale <= 0.0
@@ -444,9 +462,7 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
     let mut requirement_results: Vec<RequirementResult> = case
         .requirements
         .iter()
-        .map(|requirement| {
-            evaluate_requirement(requirement, &case.observations, &case.transforms)
-        })
+        .map(|requirement| evaluate_requirement(requirement, &case.observations, &case.transforms))
         .collect();
 
     for requirement in &case.requirements {
@@ -462,7 +478,8 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
                 .filter(|result| result.requirement_id == requirement.requirement_id)
             {
                 result.outcome = RequirementOutcome::Blocked;
-                result.diagnostic_codes
+                result
+                    .diagnostic_codes
                     .push("DUPLICATE_SOURCE_REQUIREMENT_ID".to_string());
             }
         }
@@ -713,10 +730,15 @@ mod tests {
             .find(|case| case.case_id == "01-exact-property-preservation")
             .expect("preservation fixture exists")
             .clone();
-        case.requirements.retain(|requirement| requirement.requirement_id == "req-thickness");
-        case.observations.retain(|observation| observation.requirement_id == "req-thickness");
+        case.requirements
+            .retain(|requirement| requirement.requirement_id == "req-thickness");
+        case.observations
+            .retain(|observation| observation.requirement_id == "req-thickness");
         let result = evaluate_scenario(&case);
-        let property = result.requirement_results.first().expect("property result exists");
+        let property = result
+            .requirement_results
+            .first()
+            .expect("property result exists");
         assert_eq!(property.source_object_id, "panel-001");
         assert_eq!(property.property_key, "PanelThickness");
         assert_eq!(property.expected_value, "18.0");
