@@ -48,7 +48,7 @@ Run the standalone Rust crate with Cargo. It embeds the exact parent scenario co
 - synthetic candidate count, a persistent `UNVERIFIED_SYNTHETIC` authenticity ceiling, and actuation-disabled status;
 - sorted errors from structural, digest, semantic, version, validity or revocation failures.
 
-A record integrity/binding match does not automatically make a case a candidate. The candidate count is limited to cases that the parent corpus already labels `REVIEW_ONLY_CANDIDATE`, and which also have matching record integrity and case binding, in-scope profile applicability, and valid active lifecycle state. This remains a synthetic eligibility check for further human review—not permission to act.
+A record integrity/binding match does not automatically make a case a candidate. The auditor independently rechecks profile applicability, evidence freshness and required evidence tags, and the hard-gate enum/status. A candidate must have `PASS` hard-gate status and sufficient evidence even if the parent corpus's expected disposition is maliciously or accidentally changed to `REVIEW_ONLY_CANDIDATE`. It must also have matching record integrity and case binding, in-scope profile applicability, and a valid active lifecycle state. Any packet-wide audit error suppresses all synthetic review candidates. This remains a synthetic eligibility check for further human review—not permission to act.
 
 The audit rejects duplicate IDs, missing/orphan records or bindings, cross-case replay, noncanonical or digest-mismatched payloads, binding digest mismatches, profile/criteria/taxonomy/family mismatches, unknown classification/revocation states, expired or not-yet-valid records, revoked/unknown revocation states, invalid lifecycle ordering, authenticity claims above the fixture ceiling, and actuation-authorized outputs.
 
@@ -78,7 +78,7 @@ The Rust suite freezes tests for:
 - semantic mutation even after rehashing;
 - taxonomy mismatch even after rehashing;
 - cross-case record replay;
-- expiration and revocation;
+- expiration, revocation and arbitrary/unsupported revocation policy IDs even after record rehashing;
 - unknown revocation status and future revocation entries;
 - missing, duplicate and orphan bindings/records;
 - unauthorized elevation of the authenticity claim;
