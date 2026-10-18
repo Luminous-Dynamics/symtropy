@@ -18,14 +18,6 @@ hash_file() {
   fi
 }
 
-hash_stdin() {
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum | awk '{ print $1 }'
-  else
-    shasum -a 256 | awk '{ print $1 }'
-  fi
-}
-
 profile="${SYMTROPY_RENDER_BENCH_PROFILE:-balanced-1080p}"
 case "$profile" in
   quality-1080p) width=1920; height=1080; default_objects=256; default_shadows=on ;;
@@ -66,6 +58,8 @@ fi
 
 capture_dir="${SYMTROPY_DEMO_CAPTURE_DIR:-target/render-captures/$profile-n$objects-shadows-$shadows}"
 mkdir -p "$capture_dir"
+metrics_output="$capture_dir/frame-time.json"
+rm -f "$metrics_output"
 
 fixture_path="benchmarks/render/SCENE-LIGHT-01.json"
 fixture_sha256="$(hash_file "$fixture_path")"
@@ -91,6 +85,7 @@ fi
 export SYMTROPY_RENDER_BENCH_PROFILE="$profile"
 export SYMTROPY_RENDER_BENCH_OBJECTS="$objects"
 export SYMTROPY_RENDER_BENCH_SHADOWS="$shadows"
+export SYMTROPY_RENDER_BENCH_METRICS_OUTPUT="$metrics_output"
 export SYMTROPY_DEMO_CAPTURE_DIR="$capture_dir"
 export SYMTROPY_DEMO_CAPTURE_TIMES="${SYMTROPY_DEMO_CAPTURE_TIMES:-1.5,4.0,7.0}"
 export SYMTROPY_DEMO_CAPTURE_EXIT_AT="${SYMTROPY_DEMO_CAPTURE_EXIT_AT:-8.5}"
@@ -116,3 +111,9 @@ echo "Render backend: $SYMTROPY_DEMO_CAPTURE_RENDER_BACKEND"
 echo "Output: $capture_dir"
 
 cargo run --release -p symtropy-render-benchmark
+
+if [[ ! -s "$metrics_output" ]]; then
+  echo "frame-time report missing or empty: $metrics_output" >&2
+  exit 1
+fi
+echo "Frame-time report: $metrics_output"
