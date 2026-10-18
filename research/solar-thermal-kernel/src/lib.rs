@@ -894,7 +894,7 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "temporal_period_1_heat_exchanger_loss_j", temporal_discharge.heat_exchanger_loss.value());
     number(&mut json, "temporal_period_1_unmet_useful_heat_j", temporal_discharge.unmet_useful_heat.value());
     json.push_str(",\"temporal_period_1_blocked_by_temperature\":false");
-    json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}\\n");
+    json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}");
     Ok(json)
 }
 
@@ -955,6 +955,11 @@ mod tests {
         assert!(first.contains("\"pinch_minimum_cold_utility_j\":90000.000000000"));
         assert!(first.contains("\"pinch_maximum_process_heat_recovery_j\":10000.000000000"));
         assert!(first.contains("\"pinch_point_count\":1.000000000"));
+        assert!(first.contains("\"temporal_fixture_id\":\"analytic-day-night-storage-001\""));
+        assert!(first.contains("\"temporal_accepted_charge_heat_j\":900000.000000000"));
+        assert!(first.contains("\"temporal_standing_heat_loss_j\":32400.000000000"));
+        assert!(first.contains("\"temporal_useful_heat_delivered_j\":300000.000000000"));
+        assert!(first.contains("\"temporal_unmet_useful_heat_j\":0.000000000"));
     }
 
     #[test]
