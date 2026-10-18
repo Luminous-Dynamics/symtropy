@@ -17,6 +17,7 @@ bevy = { version = "=0.20.0", default-features = false, features = [
     "3d",
     "ui",
     "pan_orbit_camera",
+    "x11",
 ] }
 
 [lints.clippy]
