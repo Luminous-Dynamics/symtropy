@@ -6,9 +6,7 @@
 //! This joins the split-conformal estimate and the synthetic decision cost model,
 //! but it still does not have access to a real port schedule or schedule authority.
 
-use super::arrival_calibration::{
-    CalibratedArrivalEnvelope, CalibrationError, PredictionInterval,
-};
+use super::arrival_calibration::{CalibratedArrivalEnvelope, CalibrationError, PredictionInterval};
 use super::evidence_action::{DecisionWindow, score_window};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -119,10 +117,10 @@ pub fn choose_calibrated_window(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::arrival_calibration::{
         ArrivalResidualSample, NANOS_PER_SECOND, fit_split_conformal,
     };
+    use super::*;
 
     fn utc(value: &str) -> i128 {
         super::super::parse_rfc3339_timestamp(value)
@@ -174,8 +172,7 @@ mod tests {
     fn calibrated_interval_changes_point_decision_to_lower_worst_case_window() {
         let fitted = calibration(9);
         let predicted = utc("2026-10-18T12:55:00Z");
-        let decision =
-            choose_calibrated_window(&fitted, predicted, &windows(), 100, 130).unwrap();
+        let decision = choose_calibrated_window(&fitted, predicted, &windows(), 100, 130).unwrap();
         assert_eq!(decision.chosen_window_id.as_deref(), Some("WINDOW-13"));
         assert_eq!(decision.worst_case_cost_minutes, Some(5));
         assert_eq!(decision.abstention_reason, None);
@@ -188,14 +185,9 @@ mod tests {
     #[test]
     fn unbounded_calibration_interval_forces_explicit_abstention() {
         let fitted = calibration(8);
-        let decision = choose_calibrated_window(
-            &fitted,
-            utc("2026-10-18T12:55:00Z"),
-            &windows(),
-            100,
-            130,
-        )
-        .unwrap();
+        let decision =
+            choose_calibrated_window(&fitted, utc("2026-10-18T12:55:00Z"), &windows(), 100, 130)
+                .unwrap();
         assert_eq!(decision.chosen_window_id, None);
         assert_eq!(
             decision.abstention_reason,
@@ -206,14 +198,9 @@ mod tests {
     #[test]
     fn abstains_when_worst_case_cost_is_not_better_than_abstention() {
         let fitted = calibration(9);
-        let decision = choose_calibrated_window(
-            &fitted,
-            utc("2026-10-18T12:55:00Z"),
-            &windows(),
-            100,
-            5,
-        )
-        .unwrap();
+        let decision =
+            choose_calibrated_window(&fitted, utc("2026-10-18T12:55:00Z"), &windows(), 100, 5)
+                .unwrap();
         assert_eq!(decision.chosen_window_id, None);
         assert_eq!(decision.worst_case_cost_minutes, Some(5));
         assert_eq!(
@@ -225,14 +212,8 @@ mod tests {
     #[test]
     fn no_windows_is_reported_separately_from_calibration_failure() {
         let fitted = calibration(9);
-        let decision = choose_calibrated_window(
-            &fitted,
-            utc("2026-10-18T12:55:00Z"),
-            &[],
-            100,
-            130,
-        )
-        .unwrap();
+        let decision =
+            choose_calibrated_window(&fitted, utc("2026-10-18T12:55:00Z"), &[], 100, 130).unwrap();
         assert_eq!(decision.windows_considered, 0);
         assert_eq!(
             decision.abstention_reason,
@@ -340,7 +321,11 @@ mod tests {
                                     window,
                                     missed_penalty,
                                 );
-                                (lower.max(upper), window.starts_at_utc_nanos, window.id.clone())
+                                (
+                                    lower.max(upper),
+                                    window.starts_at_utc_nanos,
+                                    window.id.clone(),
+                                )
                             })
                             .min();
                         for abstention_cost in [0_u64, 5, 15, 30, 60, 130, 300] {
