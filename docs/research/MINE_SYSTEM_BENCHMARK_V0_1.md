@@ -215,6 +215,19 @@ Every metric record must declare name, version, value, unit, numerator/denominat
 
 A single weighted score is not a substitute for these component metrics and constraints.
 
+## 10.1 External reference studies to reproduce or compare
+
+These papers are reference baselines, not transferable guaranteed outcomes. Preserve their source, boundary, scenario, inputs and evidence tier in any comparison.
+
+- [OECD Nuclear Energy Agency, SMRs for Mining: Opportunities and Challenges for Small Modular Reactors (2024)](https://www.oecd-nea.org/jcms/pl_96131/smrs-for-mining-opportunities-and-challenges-for-small-modular-reactors): techno-economic screening for remote mines; cost estimates carry substantial uncertainty and are not proof of current site viability.
+- [She et al., hard-rock TBM specific-energy / penetration optimization (2025)](https://doi.org/10.1016/j.tust.2025.106585): a 219-interval database across five Chinese tunnel projects underlies a cutter-thrust and operating-parameter method. Reproduce only with attention to geology, TBM class, data leakage and external validation.
+- [Zhang et al., digital-twin-enabled TBM real-time control (2024)](https://doi.org/10.1016/j.autcon.2023.105240): a Singapore tunnel-project case reports a 21.12% aggregate improvement under its own chosen model, objectives and evaluation. This figure is not comparable by itself to cost/energy changes in other studies.
+- [PHM Society European Conference (2026), trolley-assisted battery-electric underground LHDs](https://www.papers.phmsociety.org/index.php/phme/article/view/5024): simulation using a real Chilean copper-mine layout reports route-dependent charging/throughput and energy-cost findings. Retain its assumed vehicle model, route and cost boundary; don't generalize the headline maximum.
+- [Xu et al., mine heat-hazard control, geothermal power and storage tunnel (2026)](https://doi.org/10.1016/j.energy.2026.140453): the paper reports a multiphysics numerical concept for combined heat regulation, storage and thermoelectric generation. Treat it as simulation evidence, not field-proven power output or a mine-cooling design.
+- [Technology System and Engineering Evaluation of Mine Geothermal Resource Utilization Based on Evidence Grading (online September 2026)](https://cje.ustb.edu.cn/en/article/doi/10.13374/j.issn2095-9389.2026.07.08.007): distinguishes occurrence/potential from deliverable engineering service and notes that active-deep-mine heat recovery still needs stronger long-term monitoring than more mature mine-water/abandoned-mine heat-pump applications.
+
+Never rank literature studies on their headline percentage alone. Different studies optimize different outputs, geologies, system boundaries, base cases, capital assumptions and evidence tiers.
+
 ## 11. Implementation sequence
 
 1. Freeze this contract and small synthetic manifest.
