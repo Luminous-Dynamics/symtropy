@@ -40,7 +40,7 @@ Out-of-domain cases receive no feasibility decision. The report gives exact cove
 
 ## Benchmark gates
 
-- Exact equality with an independently computed envelope oracle across 100 generated synthetic worlds.
+- Exact equality with an independently computed envelope oracle across 100 generated synthetic worlds: 20 each with zero residual, biased residuals, heteroscedastic reference uncertainty, asymmetric/skewed residuals and a held-out outlier.
 - 100% rejection of unit mismatch, malformed digest strings, duplicate case IDs and split leakage.
 - 100% explicit not-qualified disposition for out-of-domain holdout cases.
 - Zero false robust-feasible decisions on the declared covered synthetic suite; a mutated outlier control must be detected and counted.
