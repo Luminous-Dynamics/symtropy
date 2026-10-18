@@ -1,0 +1,148 @@
+{
+  "suite_id": "STONE_RECOVERY_REFERENCE_BENCHMARK",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic contract validation only; no quarry, material-grade, environmental, economic, or extraction-authority claim.",
+  "accounting_tolerance_ppm": 0,
+  "scenarios": [
+    {
+      "scenario_id": "SYNTHETIC_TWO_BLOCK_CLEAN_FACE",
+      "expected_disposition": "pass",
+      "expected_reason_codes": [],
+      "rock_mass": {
+        "mass_id": "mass-clean-face-001",
+        "evidence_class": "synthetic",
+        "dimensions": { "length_mm": 1000, "width_mm": 1000, "height_mm": 1000 }
+      },
+      "discontinuities": [],
+      "product_blocks": [
+        {
+          "block_id": "block-a",
+          "origin": { "x_mm": 0, "y_mm": 0, "z_mm": 0 },
+          "dimensions": { "length_mm": 450, "width_mm": 1000, "height_mm": 1000 },
+          "intended_use": "decorative",
+          "quality_evidence": "synthetic"
+        },
+        {
+          "block_id": "block-b",
+          "origin": { "x_mm": 460, "y_mm": 0, "z_mm": 0 },
+          "dimensions": { "length_mm": 540, "width_mm": 1000, "height_mm": 1000 },
+          "intended_use": "decorative",
+          "quality_evidence": "synthetic"
+        }
+      ],
+      "material_streams": {
+        "recoverable_offcuts_mm3": 0,
+        "kerf_loss_mm3": 10000000,
+        "fines_and_unclassified_mm3": 0
+      },
+      "expected_assertions": [
+        "Two non-overlapping blocks are within source bounds.",
+        "Block volumes plus kerf reconcile exactly to source volume."
+      ],
+      "negative_control": "positive known-answer: clean face, exact partition, zero accounting error"
+    },
+    {
+      "scenario_id": "SYNTHETIC_PROHIBITED_JOINT_CROSSED",
+      "expected_disposition": "reject",
+      "expected_reason_codes": ["PROHIBITED_FRACTURE_CROSSING"],
+      "rock_mass": {
+        "mass_id": "mass-joint-002",
+        "evidence_class": "synthetic",
+        "dimensions": { "length_mm": 1000, "width_mm": 1000, "height_mm": 1000 }
+      },
+      "discontinuities": [
+        {
+          "discontinuity_id": "joint-x-500",
+          "axis": "x",
+          "offset_mm": 500,
+          "crossing_policy": "forbidden"
+        }
+      ],
+      "product_blocks": [
+        {
+          "block_id": "block-crosses-joint",
+          "origin": { "x_mm": 0, "y_mm": 0, "z_mm": 0 },
+          "dimensions": { "length_mm": 1000, "width_mm": 1000, "height_mm": 1000 },
+          "intended_use": "decorative",
+          "quality_evidence": "synthetic"
+        }
+      ],
+      "material_streams": {
+        "recoverable_offcuts_mm3": 0,
+        "kerf_loss_mm3": 0,
+        "fines_and_unclassified_mm3": 0
+      },
+      "expected_assertions": [
+        "A product block crossing a prohibited joint is rejected."
+      ],
+      "negative_control": "negative: candidate spans a fracture plane that the scenario declares non-crossable"
+    },
+    {
+      "scenario_id": "SYNTHETIC_OVERLAPPING_BLOCKS",
+      "expected_disposition": "reject",
+      "expected_reason_codes": ["MATERIAL_BALANCE_MISMATCH", "PRODUCT_OVERLAP"],
+      "rock_mass": {
+        "mass_id": "mass-overlap-003",
+        "evidence_class": "synthetic",
+        "dimensions": { "length_mm": 1000, "width_mm": 1000, "height_mm": 1000 }
+      },
+      "discontinuities": [],
+      "product_blocks": [
+        {
+          "block_id": "block-overlap-a",
+          "origin": { "x_mm": 0, "y_mm": 0, "z_mm": 0 },
+          "dimensions": { "length_mm": 600, "width_mm": 1000, "height_mm": 1000 },
+          "intended_use": "decorative",
+          "quality_evidence": "synthetic"
+        },
+        {
+          "block_id": "block-overlap-b",
+          "origin": { "x_mm": 500, "y_mm": 0, "z_mm": 0 },
+          "dimensions": { "length_mm": 500, "width_mm": 1000, "height_mm": 1000 },
+          "intended_use": "decorative",
+          "quality_evidence": "synthetic"
+        }
+      ],
+      "material_streams": {
+        "recoverable_offcuts_mm3": 0,
+        "kerf_loss_mm3": 0,
+        "fines_and_unclassified_mm3": 0
+      },
+      "expected_assertions": [
+        "Geometrically overlapping blocks must not be counted as separate recovery.",
+        "Material output cannot exceed source volume without an explicit model."
+      ],
+      "negative_control": "negative: overlapping boxes also cause accounted product volume to exceed source volume"
+    },
+    {
+      "scenario_id": "SYNTHETIC_LOAD_BEARING_QUALITY_UNKNOWN",
+      "expected_disposition": "reject",
+      "expected_reason_codes": ["PRODUCT_QUALIFICATION_UNRESOLVED"],
+      "rock_mass": {
+        "mass_id": "mass-quality-004",
+        "evidence_class": "synthetic",
+        "dimensions": { "length_mm": 1000, "width_mm": 1000, "height_mm": 1000 }
+      },
+      "discontinuities": [],
+      "product_blocks": [
+        {
+          "block_id": "block-load-bearing-unknown",
+          "origin": { "x_mm": 0, "y_mm": 0, "z_mm": 0 },
+          "dimensions": { "length_mm": 1000, "width_mm": 1000, "height_mm": 1000 },
+          "intended_use": "load_bearing",
+          "quality_evidence": "unknown"
+        }
+      ],
+      "material_streams": {
+        "recoverable_offcuts_mm3": 0,
+        "kerf_loss_mm3": 0,
+        "fines_and_unclassified_mm3": 0
+      },
+      "expected_assertions": [
+        "A load-bearing use requiring qualification cannot be admitted with unknown quality evidence."
+      ],
+      "negative_control": "negative: material geometry closes, but required application evidence is absent"
+    }
+  ]
+}
