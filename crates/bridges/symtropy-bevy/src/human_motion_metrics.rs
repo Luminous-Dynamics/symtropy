@@ -169,6 +169,12 @@ pub fn mean_squared_jerk(
     if timestamps_sec.windows(2).any(|pair| pair[1] <= pair[0]) {
         return Err(MetricInputError::NonMonotonicTime);
     }
+    if timestamps_sec
+        .windows(2)
+        .any(|pair| !(pair[1] - pair[0]).is_finite())
+    {
+        return Err(MetricInputError::NonFiniteValue);
+    }
 
     let mut squared_jerk_sum = 0.0;
     let mut windows = 0usize;
@@ -184,13 +190,26 @@ pub fn mean_squared_jerk(
         let t2 = timestamps_sec[index + 2];
         let t3 = timestamps_sec[index + 3];
 
-        let d01 = scale(subtract(p1, p0), 1.0 / (t1 - t0));
-        let d12 = scale(subtract(p2, p1), 1.0 / (t2 - t1));
-        let d23 = scale(subtract(p3, p2), 1.0 / (t3 - t2));
+        let dt01 = t1 - t0;
+        let dt12 = t2 - t1;
+        let dt23 = t3 - t2;
+        let dt02 = t2 - t0;
+        let dt13 = t3 - t1;
+        let dt03 = t3 - t0;
+        if [dt01, dt12, dt23, dt02, dt13, dt03]
+            .iter()
+            .any(|delta| !delta.is_finite() || *delta <= 0.0)
+        {
+            return Err(MetricInputError::NonFiniteValue);
+        }
 
-        let dd012 = scale(subtract(d12, d01), 1.0 / (t2 - t0));
-        let dd123 = scale(subtract(d23, d12), 1.0 / (t3 - t1));
-        let ddd0123 = scale(subtract(dd123, dd012), 1.0 / (t3 - t0));
+        let d01 = scale(subtract(p1, p0), 1.0 / dt01);
+        let d12 = scale(subtract(p2, p1), 1.0 / dt12);
+        let d23 = scale(subtract(p3, p2), 1.0 / dt23);
+
+        let dd012 = scale(subtract(d12, d01), 1.0 / dt02);
+        let dd123 = scale(subtract(d23, d12), 1.0 / dt13);
+        let ddd0123 = scale(subtract(dd123, dd012), 1.0 / dt03);
         let jerk = scale(ddd0123, 6.0);
         let squared_jerk = dot(jerk, jerk);
         if jerk.iter().any(|value| !value.is_finite()) || !squared_jerk.is_finite() {
