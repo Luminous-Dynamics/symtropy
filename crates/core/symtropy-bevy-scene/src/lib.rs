@@ -95,8 +95,13 @@ impl SymtropyScenePlugin {
     }
 }
 
+pub mod architectural_review;
 pub mod loader;
 
+pub use architectural_review::{
+    ArchitecturalReviewRoute, ReviewRig, ReviewRouteIssue, ReviewWaypoint,
+    sample_review_route, validate_review_route,
+};
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
 impl Plugin for SymtropyScenePlugin {
