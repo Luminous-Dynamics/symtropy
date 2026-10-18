@@ -329,9 +329,11 @@ mod tests {
         let cfg = config(1_000.0, 2_000.0, 0.1, 400.0);
         let initial = cfg.initial_state();
         let (after, report) = apply_analytic_standing_loss(&cfg, initial, k(300.0), seconds(10_000.0)).unwrap();
-        assert!(after.temperature.value() > 300.0);
-        assert!(after.temperature.value() < 400.0);
-        assert!(report.heat_lost.value() > 0.0);
+        // Independent scalar root of the closed-form elapsed-time equation
+        // for cp(T)=5T-500 J/(kg K): T_end=393.48144459132857 K.
+        assert!((after.temperature.value() - 393.48144459132857).abs() < 1.0e-8);
+        // Integrating cp(T) between T_end and 400 K gives this stored-energy loss.
+        assert!((report.heat_lost.value() - 96_716.04201467388).abs() < 1.0e-4);
         assert!(!report.reached_minimum_temperature);
         verify_analytic_standing_loss_report(&cfg, initial, k(300.0), seconds(10_000.0), report).unwrap();
     }
