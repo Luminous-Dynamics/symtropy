@@ -1333,6 +1333,19 @@ mod tests {
     }
 
     #[test]
+    fn no_provider_label_cannot_use_a_farmer_acceptance_evidence_kind() {
+        let mut manifest = valid_manifest();
+        manifest.outcome_records[2].outcome_evidence_kind =
+            OutcomeEvidenceKindV1::FarmerDecisionEvent;
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::OutcomeEvidenceKindMismatch
+        }));
+    }
+
+    #[test]
     fn claimed_in_window_acceptance_must_match_the_timestamp() {
         let mut manifest = valid_manifest();
         manifest.outcome_records[0].acceptance_at_minute = Some(120);
