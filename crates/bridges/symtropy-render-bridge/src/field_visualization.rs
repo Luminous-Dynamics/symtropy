@@ -126,7 +126,6 @@ impl FieldUnit {
             }
         }
     }
-
 }
 
 /// How values entered the visualization pipeline. This is provenance, not proof.
@@ -344,9 +343,7 @@ impl FieldLayerMetadata {
                 return Err("frequency_hz falls outside the declared wavelength band".to_owned());
             }
         }
-        if self.quantity == PhysicalQuantity::SpectralRadiance
-            && self.wavelength_band.is_none()
-        {
+        if self.quantity == PhysicalQuantity::SpectralRadiance && self.wavelength_band.is_none() {
             return Err("spectral radiance requires an explicit wavelength band".to_owned());
         }
         Ok(())
@@ -420,7 +417,10 @@ pub fn validate_spectrum_profile(profile: &SpectrumProfile) -> Result<(), String
         if !bin.spectral_radiance.is_finite() || bin.spectral_radiance < 0.0 {
             return Err("spectral radiance must be finite and non-negative".to_owned());
         }
-        if bin.uncertainty.is_some_and(|value| !value.is_finite() || value < 0.0) {
+        if bin
+            .uncertainty
+            .is_some_and(|value| !value.is_finite() || value < 0.0)
+        {
             return Err("spectrum uncertainty must be finite and non-negative".to_owned());
         }
         previous_wavelength = bin.wavelength_m;
@@ -737,10 +737,19 @@ pub fn extract_scalar_glyphs(
             layer.metadata.world_units_per_meter,
         )?;
         if !sample.value.is_finite() {
-            return Err(format!("layer {:?} contains a non-finite scalar value", layer.metadata.id));
+            return Err(format!(
+                "layer {:?} contains a non-finite scalar value",
+                layer.metadata.id
+            ));
         }
-        if sample.uncertainty.is_some_and(|value| !value.is_finite() || value < 0.0) {
-            return Err(format!("layer {:?} contains invalid uncertainty", layer.metadata.id));
+        if sample
+            .uncertainty
+            .is_some_and(|value| !value.is_finite() || value < 0.0)
+        {
+            return Err(format!(
+                "layer {:?} contains invalid uncertainty",
+                layer.metadata.id
+            ));
         }
         let normalized = layer.metadata.display_range.normalize(sample.value);
         glyphs.push(ScalarFieldGlyph {
@@ -773,7 +782,10 @@ pub fn extract_vector_glyphs(
             layer.metadata.world_units_per_meter,
         )?;
         if sample.vector.iter().any(|component| !component.is_finite()) {
-            return Err(format!("layer {:?} contains a non-finite vector", layer.metadata.id));
+            return Err(format!(
+                "layer {:?} contains a non-finite vector",
+                layer.metadata.id
+            ));
         }
         if sample
             .magnitude_uncertainty
@@ -784,7 +796,10 @@ pub fn extract_vector_glyphs(
                 layer.metadata.id
             ));
         }
-        let magnitude = sample.vector.iter().fold(0.0_f64, |norm, value| norm.hypot(*value));
+        let magnitude = sample
+            .vector
+            .iter()
+            .fold(0.0_f64, |norm, value| norm.hypot(*value));
         if !magnitude.is_finite() {
             return Err(format!(
                 "layer {:?} contains an unrepresentable vector magnitude",
@@ -967,9 +982,7 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
         }
     }
 
-    let vector_total_budget = layers
-        .max_vector_glyphs_total
-        .min(MAX_VECTOR_GLYPHS_TOTAL);
+    let vector_total_budget = layers.max_vector_glyphs_total.min(MAX_VECTOR_GLYPHS_TOTAL);
     let mut total_vector_glyphs = 0;
     for layer in layers.vector_layers.iter().filter(|layer| layer.enabled) {
         let remaining = vector_total_budget.saturating_sub(total_vector_glyphs);
@@ -1014,8 +1027,16 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
             let side = direction.cross(helper).normalize_or_zero();
             let head_length = (length * 0.22).min(0.12);
             let head_width = head_length * 0.55;
-            gizmos.line(end, end - direction * head_length + side * head_width, color);
-            gizmos.line(end, end - direction * head_length - side * head_width, color);
+            gizmos.line(
+                end,
+                end - direction * head_length + side * head_width,
+                color,
+            );
+            gizmos.line(
+                end,
+                end - direction * head_length - side * head_width,
+                color,
+            );
         }
     }
 }
@@ -1054,7 +1075,10 @@ mod tests {
             metadata: metadata(
                 PhysicalQuantity::Temperature,
                 FieldUnit::Celsius,
-                DisplayRange { min: 0.0, max: 100.0 },
+                DisplayRange {
+                    min: 0.0,
+                    max: 100.0,
+                },
             ),
             enabled: true,
             marker_radius: 0.03,
@@ -1084,7 +1108,10 @@ mod tests {
             metadata: metadata(
                 PhysicalQuantity::Temperature,
                 FieldUnit::Celsius,
-                DisplayRange { min: 0.0, max: 100.0 },
+                DisplayRange {
+                    min: 0.0,
+                    max: 100.0,
+                },
             ),
             enabled: true,
             marker_radius: 0.03,
@@ -1110,7 +1137,10 @@ mod tests {
             metadata: metadata(
                 PhysicalQuantity::ElectricFieldMagnitude,
                 FieldUnit::Tesla,
-                DisplayRange { min: 0.0, max: 10.0 },
+                DisplayRange {
+                    min: 0.0,
+                    max: 10.0,
+                },
             ),
             enabled: true,
             marker_radius: 0.03,
@@ -1124,7 +1154,10 @@ mod tests {
         let mut meta = metadata(
             PhysicalQuantity::Temperature,
             FieldUnit::Kelvin,
-            DisplayRange { min: 200.0, max: 400.0 },
+            DisplayRange {
+                min: 200.0,
+                max: 400.0,
+            },
         );
         meta.origin = FieldDataOrigin::MeasuredSensor;
         meta.calibration = CalibrationStatus::Calibrated;
@@ -1138,7 +1171,10 @@ mod tests {
         let mut meta = metadata(
             PhysicalQuantity::ElectricFieldVector,
             FieldUnit::VoltPerMeter,
-            DisplayRange { min: 0.0, max: 100.0 },
+            DisplayRange {
+                min: 0.0,
+                max: 100.0,
+            },
         );
         meta.frequency_hz = Some(2.4e9);
         meta.wavelength_band = Some(WavelengthBand {
@@ -1155,7 +1191,10 @@ mod tests {
         let mut meta = metadata(
             PhysicalQuantity::SpectralRadiance,
             FieldUnit::WattPerSquareMeterSteradianPerNanometer,
-            DisplayRange { min: 0.0, max: 10.0 },
+            DisplayRange {
+                min: 0.0,
+                max: 10.0,
+            },
         );
         assert!(meta.validate().is_err());
         meta.wavelength_band = Some(WavelengthBand {
@@ -1240,7 +1279,10 @@ mod tests {
             metadata: metadata(
                 PhysicalQuantity::ElectricFieldVector,
                 FieldUnit::VoltPerMeter,
-                DisplayRange { min: 0.0, max: 100.0 },
+                DisplayRange {
+                    min: 0.0,
+                    max: 100.0,
+                },
             ),
             enabled: true,
             vector_scale: 1.0,
@@ -1265,7 +1307,10 @@ mod tests {
             metadata: metadata(
                 PhysicalQuantity::Temperature,
                 FieldUnit::Kelvin,
-                DisplayRange { min: 200.0, max: 400.0 },
+                DisplayRange {
+                    min: 200.0,
+                    max: 400.0,
+                },
             ),
             enabled: true,
             marker_radius: 0.03,
@@ -1284,8 +1329,7 @@ mod tests {
             min_wavelength_m: 380.0e-9,
             max_wavelength_m: 700.0e-9,
         };
-        let (min_frequency, max_frequency) =
-            band.frequency_range_hz().expect("valid optical band");
+        let (min_frequency, max_frequency) = band.frequency_range_hz().expect("valid optical band");
         assert!(min_frequency < max_frequency);
         assert!((min_frequency - SPEED_OF_LIGHT_M_PER_S / 700.0e-9).abs() < 1.0);
         assert!((max_frequency - SPEED_OF_LIGHT_M_PER_S / 380.0e-9).abs() < 1.0);
@@ -1297,7 +1341,10 @@ mod tests {
             metadata: metadata(
                 PhysicalQuantity::Temperature,
                 FieldUnit::Kelvin,
-                DisplayRange { min: 200.0, max: 400.0 },
+                DisplayRange {
+                    min: 200.0,
+                    max: 400.0,
+                },
             ),
             enabled: true,
             marker_radius: 0.03,
@@ -1310,7 +1357,11 @@ mod tests {
                 .collect(),
         };
         assert_eq!(extract_scalar_glyphs(&layer, 2).expect("bounded").len(), 2);
-        assert!(extract_scalar_glyphs(&layer, 0).expect("zero budget").is_empty());
+        assert!(
+            extract_scalar_glyphs(&layer, 0)
+                .expect("zero budget")
+                .is_empty()
+        );
     }
 
     fn test_frame() -> FieldFrame {
@@ -1325,7 +1376,10 @@ mod tests {
                 metadata: metadata(
                     PhysicalQuantity::Temperature,
                     FieldUnit::Celsius,
-                    DisplayRange { min: 0.0, max: 100.0 },
+                    DisplayRange {
+                        min: 0.0,
+                        max: 100.0,
+                    },
                 ),
                 enabled: true,
                 marker_radius: 0.03,
@@ -1339,7 +1393,10 @@ mod tests {
                 metadata: metadata(
                     PhysicalQuantity::ElectricFieldVector,
                     FieldUnit::VoltPerMeter,
-                    DisplayRange { min: 0.0, max: 500.0 },
+                    DisplayRange {
+                        min: 0.0,
+                        max: 500.0,
+                    },
                 ),
                 enabled: true,
                 vector_scale: 0.8,
@@ -1431,7 +1488,10 @@ mod tests {
             let a = map.map_normalized(0.37);
             let b = map.map_normalized(0.37);
             assert_eq!(a, b);
-            assert!(a.iter().all(|channel| channel.is_finite() && (0.0..=1.0).contains(channel)));
+            assert!(
+                a.iter()
+                    .all(|channel| channel.is_finite() && (0.0..=1.0).contains(channel))
+            );
         }
     }
 }
