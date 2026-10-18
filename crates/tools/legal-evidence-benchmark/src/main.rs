@@ -1052,4 +1052,68 @@ mod tests {
     fn raw_input_digest_changes_when_bytes_change() {
         assert_ne!(sha256_hex(b"{\"x\":1}"), sha256_hex(b"{ \"x\":1 }"));
     }
+
+    #[test]
+    fn published_json_schemas_are_json_and_local_references_resolve() {
+        use serde_json::Value;
+
+        fn collect_refs(value: &Value, refs: &mut Vec<String>) {
+            match value {
+                Value::Object(object) => {
+                    if let Some(reference) = object.get("$ref").and_then(Value::as_str) {
+                        refs.push(reference.to_string());
+                    }
+                    for child in object.values() {
+                        collect_refs(child, refs);
+                    }
+                }
+                Value::Array(items) => {
+                    for child in items {
+                        collect_refs(child, refs);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let schemas = [
+            (
+                "benchmark",
+                include_str!("../schemas/benchmark-v0.1.schema.json"),
+            ),
+            (
+                "submission",
+                include_str!("../schemas/submission-v0.1.schema.json"),
+            ),
+            (
+                "evaluation report",
+                include_str!("../schemas/evaluation-report-v0.1.schema.json"),
+            ),
+            (
+                "validation report",
+                include_str!("../schemas/validation-report-v0.1.schema.json"),
+            ),
+        ];
+
+        for (name, raw) in schemas {
+            let schema: Value =
+                serde_json::from_str(raw).unwrap_or_else(|error| panic!("{name}: {error}"));
+            assert_eq!(schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+            assert_eq!(schema["type"], "object");
+            assert_eq!(schema["additionalProperties"], false);
+            assert!(schema["required"].is_array());
+
+            let mut refs = Vec::new();
+            collect_refs(&schema, &mut refs);
+            for reference in refs {
+                let definition = reference
+                    .strip_prefix("#/$defs/")
+                    .unwrap_or_else(|| panic!("{name}: unexpected non-local ref {reference}"));
+                assert!(
+                    schema["$defs"].get(definition).is_some(),
+                    "{name}: broken local schema ref {reference}"
+                );
+            }
+        }
+    }
 }
