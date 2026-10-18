@@ -54,6 +54,7 @@ jobs:
           jq -e '
             .schema_version == "luminous.habitat_calendar_oracle_report.v0.1" and
             .suite_id == "HABITAT-CALENDAR-DISRUPTION-V0.1" and
+            .input_sha256 == "934ff338850ddd2a5e161b5fab10ce824e7f08d56ca8308b950a395280d3762c" and
             .case_count == 9 and
             .scenario_count == 12 and
             .all_searches_complete == true and
