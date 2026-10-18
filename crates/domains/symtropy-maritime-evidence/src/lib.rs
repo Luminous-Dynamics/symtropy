@@ -199,7 +199,7 @@ impl ObservationReport {
             .resolutions
             .iter()
             .filter_map(|resolution| match resolution {
-                ObservationResolution::Consistent { key, .. } => Some(key),
+                ObservationResolution::Consistent { key, .. } => Some(key.clone()),
                 ObservationResolution::Conflict { .. } => None,
             })
             .collect::<BTreeSet<_>>();
@@ -282,7 +282,7 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
             i128::from(fraction_value) * 10_i128.pow(u32::from(9 - fractional_digits));
     }
 
-    let (offset_minutes, consumed) = match bytes.get(index) {
+    let (offset_minutes, consumed) = match bytes.get(index).copied() {
         Some(b'Z' | b'z') if index + 1 == bytes.len() => (0i16, index + 1),
         Some(b'+' | b'-') => {
             if bytes.len() != index + 6 || bytes[index + 3] != b':' {
@@ -675,7 +675,7 @@ mod tests {
         let report = resolve_observations(&[a, b], &policy());
         assert!(!report.has_conflicts());
         assert!(matches!(
-            report.resolutions[0],
+            &report.resolutions[0],
             ObservationResolution::Consistent { .. }
         ));
         assert!(report.resolutions[0].agreed_value().is_some());
