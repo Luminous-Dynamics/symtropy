@@ -968,6 +968,9 @@ mod tests {
         assert!(first.contains("\"final_store_exergy_j\""));
         assert!(first.contains("\"exergy_reference_temperature_k\":300.000000000"));
         assert!(first.contains("\"optical_efficiency\":0.800000000"));
+        assert!(first.contains("\"dni_fixture_id\":\"direct-beam-interval-001\""));
+        assert!(first.contains("\"dni_incident_power_w\":3200.000000000"));
+        assert!(first.contains("\"dni_incident_energy_j\":11520000.000000000"));
         assert!(first.contains("\"store_initial_temperature_k\":300.000000000"));
         assert!(first.contains("\"store_charge_effectiveness\":1.000000000"));
         assert!(first.contains("\"standing_loss_ambient_temperature_k\":300.000000000"));
