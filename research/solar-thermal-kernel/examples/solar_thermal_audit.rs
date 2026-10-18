@@ -416,6 +416,114 @@ fn verify_report(json: &str) -> Result<(), String> {
         cascade_requested,
         expected_accepted + expected_unmet)?;
 
+    // Independently recompute the canonical single-hot/single-cold pinch case.
+    if text_field(json, "pinch_fixture_id")? != "static-sensible-pinch-001" {
+        return Err("unexpected pinch fixture id".to_owned());
+    }
+    for (key, expected) in [
+        ("pinch_hot_supply_temperature_k", 423.15),
+        ("pinch_hot_target_temperature_k", 323.15),
+        ("pinch_hot_available_heat_j", 100_000.0),
+        ("pinch_cold_supply_temperature_k", 393.15),
+        ("pinch_cold_target_temperature_k", 493.15),
+        ("pinch_cold_required_heat_j", 120_000.0),
+        ("pinch_minimum_approach_k", 20.0),
+    ] {
+        near(&format!("canonical pinch input {key}"), number(json, key)?, expected)?;
+    }
+    let hot_supply = number(json, "pinch_hot_supply_temperature_k")?;
+    let hot_target = number(json, "pinch_hot_target_temperature_k")?;
+    let hot_duty = required_nonnegative(json, "pinch_hot_available_heat_j")?;
+    let cold_supply = number(json, "pinch_cold_supply_temperature_k")?;
+    let cold_target = number(json, "pinch_cold_target_temperature_k")?;
+    let cold_duty = required_nonnegative(json, "pinch_cold_required_heat_j")?;
+    let dt_min = number(json, "pinch_minimum_approach_k")?;
+    if hot_supply <= hot_target || cold_target <= cold_supply || dt_min < 0.0 {
+        return Err("invalid pinch stream direction or minimum approach".to_owned());
+    }
+
+    let half_dt = dt_min / 2.0;
+    let hot_high = hot_supply - half_dt;
+    let hot_low = hot_target - half_dt;
+    let cold_high = cold_target + half_dt;
+    let cold_low = cold_supply + half_dt;
+    let hot_integrated_cp = hot_duty / (hot_supply - hot_target);
+    let cold_integrated_cp = cold_duty / (cold_target - cold_supply);
+
+    // This fixture has exactly one hot and one cold stream. Construct shifted
+    // endpoints from the source temperatures, then independently sweep intervals.
+    let mut endpoints = vec![hot_high, hot_low, cold_high, cold_low];
+    endpoints.sort_by(|a, b| b.total_cmp(a));
+    endpoints.dedup_by(|a, b| (*a - *b).abs() <= 1.0e-10);
+    let mut cumulative = 0.0_f64;
+    let mut minimum_cumulative = 0.0_f64;
+    let mut interval_count = 0.0_f64;
+    let mut pinch_shifted = Vec::new();
+    for bounds in endpoints.windows(2) {
+        let top = bounds[0];
+        let bottom = bounds[1];
+        let span = top - bottom;
+        if span <= 1.0e-10 {
+            continue;
+        }
+        let hot_active = hot_high >= top && hot_low <= bottom;
+        let cold_active = cold_high >= top && cold_low <= bottom;
+        let hot_cp = if hot_active { hot_integrated_cp } else { 0.0 };
+        let cold_cp = if cold_active { cold_integrated_cp } else { 0.0 };
+        cumulative += (hot_cp - cold_cp) * span;
+        minimum_cumulative = minimum_cumulative.min(cumulative);
+        interval_count += 1.0;
+    }
+    let expected_hot_utility = (-minimum_cumulative).max(0.0);
+    let expected_cold_utility = (expected_hot_utility + cumulative).max(0.0);
+    let expected_recovery = (hot_duty - expected_cold_utility)
+        .min(cold_duty - expected_hot_utility)
+        .max(0.0);
+
+    // Re-run the interval sweep to identify all boundaries where the adjusted
+    // cascade reaches zero, rather than trusting the reported pinch coordinate.
+    cumulative = 0.0;
+    for bounds in endpoints.windows(2) {
+        let top = bounds[0];
+        let bottom = bounds[1];
+        let span = top - bottom;
+        if span <= 1.0e-10 {
+            continue;
+        }
+        let hot_cp = if hot_high >= top && hot_low <= bottom { hot_integrated_cp } else { 0.0 };
+        let cold_cp = if cold_high >= top && cold_low <= bottom { cold_integrated_cp } else { 0.0 };
+        cumulative += (hot_cp - cold_cp) * span;
+        if expected_hot_utility > 0.0
+            && (cumulative + expected_hot_utility).abs()
+                <= 5.0e-8 * cumulative.abs().max(expected_hot_utility.abs()).max(1.0)
+        {
+            pinch_shifted.push(bottom);
+        }
+    }
+
+    near("pinch minimum hot utility",
+        required_nonnegative(json, "pinch_minimum_hot_utility_j")?,
+        expected_hot_utility)?;
+    near("pinch minimum cold utility",
+        required_nonnegative(json, "pinch_minimum_cold_utility_j")?,
+        expected_cold_utility)?;
+    near("pinch maximum heat recovery",
+        required_nonnegative(json, "pinch_maximum_process_heat_recovery_j")?,
+        expected_recovery)?;
+    near("pinch interval count", number(json, "pinch_interval_count")?, interval_count)?;
+    near("pinch point count", number(json, "pinch_point_count")?, pinch_shifted.len() as f64)?;
+    near("pinch global first-law balance",
+        hot_duty + expected_hot_utility,
+        cold_duty + expected_cold_utility)?;
+    let expected_shifted = pinch_shifted.first().copied().unwrap_or(0.0);
+    near("pinch shifted temperature", number(json, "pinch_shifted_temperature_k")?, expected_shifted)?;
+    near("pinch hot-side temperature",
+        number(json, "pinch_hot_side_temperature_k")?,
+        if expected_shifted > 0.0 { expected_shifted + half_dt } else { 0.0 })?;
+    near("pinch cold-side temperature",
+        number(json, "pinch_cold_side_temperature_k")?,
+        if expected_shifted > 0.0 { expected_shifted - half_dt } else { 0.0 })?;
+
     Ok(())
 }
 
@@ -453,6 +561,16 @@ mod tests {
         let tampered = report.replace(
             "\"cascade_low_store_heat_accepted_j\":40000.000000000",
             "\"cascade_low_store_heat_accepted_j\":41000.000000000",
+        );
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_pinch_utility_target() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"pinch_minimum_hot_utility_j\":110000.000000000",
+            "\"pinch_minimum_hot_utility_j\":109000.000000000",
         );
         assert!(verify_report(&tampered).is_err());
     }
