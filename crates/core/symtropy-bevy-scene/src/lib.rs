@@ -101,8 +101,8 @@ pub mod loader;
 pub use architectural_review::{
     ArchitecturalReviewRoute, ReviewAnnotation, ReviewAnnotationIssue, ReviewAnnotationKind,
     ReviewAnnotationState, ReviewRig, ReviewRouteIssue, ReviewRoutePlayback, ReviewWaypoint,
-    advance_architectural_review_routes, review_waypoint_transform, sample_review_route,
-    validate_review_annotations_for_revision, validate_review_route,
+    advance_architectural_review_routes, drive_free_review_camera, review_waypoint_transform,
+    sample_review_route, validate_review_annotations_for_revision, validate_review_route,
 };
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
@@ -110,7 +110,10 @@ impl Plugin for SymtropyScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<SymtropyScene>()
             .init_asset_loader::<SymtropySceneLoader>()
-            .add_systems(Update, advance_architectural_review_routes);
+            .add_systems(
+                Update,
+                (advance_architectural_review_routes, drive_free_review_camera).chain(),
+            );
 
         let cfg = self.config.clone();
         app.insert_resource(ClearColor(cfg.clear_color))
