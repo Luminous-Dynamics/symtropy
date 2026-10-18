@@ -887,6 +887,41 @@ mod tests {
         }
     }
 
+    fn estimate_for_fixture(id: &str, claim_id: &str) -> QuantitativeEstimate {
+        QuantitativeEstimate {
+            id: id.to_owned(),
+            claim_id: claim_id.to_owned(),
+            quantity: "synthetic count".to_owned(),
+            value_decimal: "1.0".to_owned(),
+            unit: "count".to_owned(),
+            kind: EstimateKind::ReportedIntervalEstimate,
+            method: "synthetic interval method".to_owned(),
+            assumptions: vec!["Synthetic values; not a historical measurement".to_owned()],
+            interval: Some(UncertaintyInterval {
+                lower_decimal: "0.8".to_owned(),
+                upper_decimal: "1.2".to_owned(),
+                kind: IntervalKind::Credible,
+                coverage_percent: Some("68".to_owned()),
+                conditioning_note: "Synthetic fixture interval".to_owned(),
+            }),
+            evidence: vec![evidence("fixture:source-1")],
+        }
+    }
+
+    fn model_for_fixture(id: &str, claim_id: &str, estimate_id: &str) -> ReconstructionModel {
+        ReconstructionModel {
+            id: id.to_owned(),
+            title: format!("Synthetic model {id}"),
+            summary: "Synthetic model for validator tests only".to_owned(),
+            status: ReconstructionModelStatus::PublishedInterpretation,
+            method: "synthetic model method".to_owned(),
+            target_claim_ids: vec![claim_id.to_owned()],
+            estimate_ids: vec![estimate_id.to_owned()],
+            assumptions: vec!["Synthetic and not a historical assertion".to_owned()],
+            evidence: vec![evidence("fixture:source-1")],
+        }
+    }
+
     fn fixture() -> Dataset {
         Dataset {
             schema_version: SCHEMA_VERSION.to_owned(),
@@ -1154,6 +1189,122 @@ mod tests {
         assert!(report.issues.iter().any(|item| {
             item.record_id == "dataset"
                 && item.code == ValidationCode::UnsupportedSchemaVersion
+        }));
+    }
+
+    #[test]
+    fn accepts_quantitative_estimates_and_explicit_model_comparison() {
+        let mut data = fixture();
+        data.estimates = vec![
+            estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
+            estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
+        ];
+        data.reconstruction_models = vec![
+            model_for_fixture("fixture:model-a", "fixture:claim-a", "fixture:estimate-a"),
+            model_for_fixture("fixture:model-b", "fixture:claim-b", "fixture:estimate-b"),
+        ];
+        data.model_comparisons = vec![ModelComparison {
+            id: "fixture:comparison".to_owned(),
+            question: "Which synthetic model better matches the test criterion?".to_owned(),
+            model_ids: vec!["fixture:model-a".to_owned(), "fixture:model-b".to_owned()],
+            evaluation_axes: vec!["residual".to_owned(), "assumption sensitivity".to_owned()],
+            decision_rule: "Report axes separately; no aggregate winner".to_owned(),
+            caveats: vec!["Synthetic fixture only".to_owned()],
+        }];
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+    }
+
+    #[test]
+    fn rejects_non_finite_numeric_estimate() {
+        let mut data = fixture();
+        let mut estimate = estimate_for_fixture("fixture:estimate-a", "fixture:claim-a");
+        estimate.value_decimal = "NaN".to_owned();
+        data.estimates.push(estimate);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:estimate-a"
+                && item.code == ValidationCode::InvalidNumericEstimate
+        }));
+    }
+
+    #[test]
+    fn rejects_reversed_uncertainty_interval() {
+        let mut data = fixture();
+        let mut estimate = estimate_for_fixture("fixture:estimate-a", "fixture:claim-a");
+        estimate.interval.as_mut().unwrap().lower_decimal = "2.0".to_owned();
+        estimate.interval.as_mut().unwrap().upper_decimal = "1.0".to_owned();
+        data.estimates.push(estimate);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:estimate-a"
+                && item.code == ValidationCode::InvalidUncertaintyInterval
+        }));
+    }
+
+    #[test]
+    fn credible_interval_requires_coverage_percent() {
+        let mut data = fixture();
+        let mut estimate = estimate_for_fixture("fixture:estimate-a", "fixture:claim-a");
+        estimate.interval.as_mut().unwrap().coverage_percent = None;
+        data.estimates.push(estimate);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:estimate-a"
+                && item.code == ValidationCode::InvalidUncertaintyInterval
+                && item.message.contains("coverage_percent")
+        }));
+    }
+
+    #[test]
+    fn estimate_requires_supporting_source_evidence() {
+        let mut data = fixture();
+        let mut estimate = estimate_for_fixture("fixture:estimate-a", "fixture:claim-a");
+        estimate.evidence[0].relation = EvidenceRelation::Challenges;
+        data.estimates.push(estimate);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:estimate-a"
+                && item.code == ValidationCode::MissingEstimateEvidence
+        }));
+    }
+
+    #[test]
+    fn model_comparison_requires_distinct_existing_models() {
+        let mut data = fixture();
+        data.model_comparisons.push(ModelComparison {
+            id: "fixture:comparison".to_owned(),
+            question: "Compare models".to_owned(),
+            model_ids: vec!["missing:model".to_owned(), "missing:model".to_owned()],
+            evaluation_axes: vec!["fit".to_owned()],
+            decision_rule: "No aggregate score".to_owned(),
+            caveats: vec![],
+        });
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:comparison"
+                && item.code == ValidationCode::InvalidModelComparison
+        }));
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:comparison"
+                && item.code == ValidationCode::MissingModelReference
+        }));
+    }
+
+    #[test]
+    fn model_cannot_silently_reference_unknown_estimate() {
+        let mut data = fixture();
+        let mut model = model_for_fixture(
+            "fixture:model-a",
+            "fixture:claim-a",
+            "missing:estimate",
+        );
+        model.estimate_ids = vec!["missing:estimate".to_owned()];
+        data.reconstruction_models.push(model);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:model-a"
+                && item.code == ValidationCode::MissingEstimateReference
         }));
     }
 
