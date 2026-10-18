@@ -108,7 +108,7 @@ struct TaskReceipt {
     evidence: Vec<Evidence>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 struct GateSnapshot {
     resource_available: bool,
     capacity_admissible: bool,
@@ -123,7 +123,7 @@ struct GateSnapshot {
     work_complete: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 struct Proposal {
     attempt_id: String,
     task_id: String,
@@ -158,9 +158,12 @@ struct ScenarioResult {
     scenario_id: String,
     case_id: Option<String>,
     expected_admitted: bool,
+    proposal: Proposal,
+    input_sha256: String,
     admitted: bool,
     next_state: Option<TaskState>,
     reason_codes: Vec<String>,
+    decision_sha256: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -168,6 +171,7 @@ struct ContractReport {
     schema_version: String,
     fixture_id: String,
     fixture_sha256: String,
+    scenario_set_sha256: String,
     classification: String,
     validation_status: String,
     contract_suite_executed: bool,
@@ -1231,14 +1235,22 @@ fn run_contract_suite(contract: &Contract) -> Result<ContractReport, String> {
     let scenario_results: Vec<ScenarioResult> = scenarios
         .iter()
         .map(|scenario| {
+            let proposal_bytes = serde_json::to_vec(&scenario.proposal)
+                .expect("normalized proposal should serialize");
+            let input_sha256 = sha256_hex(&proposal_bytes);
             let decision = assess(contract, &scenario.proposal);
+            let decision_bytes = serde_json::to_vec(&decision)
+                .expect("normalized decision should serialize");
             ScenarioResult {
                 scenario_id: scenario.scenario_id.clone(),
                 case_id: scenario.case_id.clone(),
                 expected_admitted: scenario.expected_admitted,
+                proposal: scenario.proposal.clone(),
+                input_sha256,
                 admitted: decision.admitted,
                 next_state: decision.next_state,
                 reason_codes: decision.reason_codes,
+                decision_sha256: sha256_hex(&decision_bytes),
             }
         })
         .collect();
@@ -1248,10 +1260,14 @@ fn run_contract_suite(contract: &Contract) -> Result<ContractReport, String> {
         .iter()
         .filter(|item| item.expected_admitted != item.admitted)
         .count();
+    let scenario_set_bytes = serde_json::to_vec(&scenario_results)
+        .expect("normalized scenario set should serialize");
+    let scenario_set_sha256 = sha256_hex(&scenario_set_bytes);
     Ok(ContractReport {
         schema_version: "luminous.civ_infra.recovery_admission_contract.v0.1".to_string(),
         fixture_id: contract.fixture_id.clone(),
         fixture_sha256: contract.fixture_sha256.clone(),
+        scenario_set_sha256,
         classification: "synthetic_only".to_string(),
         validation_status: "typed_task_admission_contract_checked".to_string(),
         contract_suite_executed: true,
@@ -1335,6 +1351,30 @@ mod tests {
                     && result.scenario_id.ends_with("missing-recovery-evidence")
                     && !result.admitted
             }));
+        }
+    }
+
+    #[test]
+    fn replay_digests_bind_each_proposal_decision_and_full_scenario_set() {
+        let contract = contract();
+        let first = run_contract_suite(&contract).expect("first suite should run");
+        let replay = run_contract_suite(&contract).expect("replay suite should run");
+        assert_eq!(first.scenario_set_sha256, replay.scenario_set_sha256);
+        assert_eq!(
+            serde_json::to_vec(&first.scenario_results).expect("first results serialize"),
+            serde_json::to_vec(&replay.scenario_results).expect("replay results serialize")
+        );
+        assert_eq!(first.fixture_sha256, replay.fixture_sha256);
+        for result in &first.scenario_results {
+            let input = serde_json::to_vec(&result.proposal).expect("proposal serializes");
+            assert_eq!(result.input_sha256, sha256_hex(&input));
+            let decision = Decision {
+                admitted: result.admitted,
+                next_state: result.next_state,
+                reason_codes: result.reason_codes.clone(),
+            };
+            let decision_bytes = serde_json::to_vec(&decision).expect("decision serializes");
+            assert_eq!(result.decision_sha256, sha256_hex(&decision_bytes));
         }
     }
 
