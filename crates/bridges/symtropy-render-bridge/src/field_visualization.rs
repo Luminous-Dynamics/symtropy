@@ -375,11 +375,9 @@ pub fn validate_spectrum_profile(profile: &SpectrumProfile) -> Result<(), String
     {
         return Err("spectrum profile requires an id, source label, and coordinate frame".to_owned());
     }
-    if !matches!(
-        profile.unit,
-        FieldUnit::WattPerSquareMeterSteradianPerNanometer
-            | FieldUnit::WattPerSquareMeterSteradianPerMeter
-    ) {
+    if profile.unit != FieldUnit::WattPerSquareMeterSteradianPerNanometer
+        && profile.unit != FieldUnit::WattPerSquareMeterSteradianPerMeter
+    {
         return Err("spectrum profile requires a spectral-radiance unit".to_owned());
     }
     if profile.calibration == CalibrationStatus::Calibrated
@@ -550,7 +548,11 @@ pub fn extract_vector_glyphs(
     }
 
     for sample in layer.samples.iter().take(max_samples) {
-        let position = project_position(sample.position)?;
+        let position = project_position(
+            sample.position,
+            layer.metadata.spatial_unit,
+            layer.metadata.world_units_per_meter,
+        )?;
         if sample.vector.iter().any(|component| !component.is_finite()) {
             return Err(format!("layer {:?} contains a non-finite vector", layer.metadata.id));
         }
