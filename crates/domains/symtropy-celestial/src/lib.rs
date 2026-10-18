@@ -398,8 +398,7 @@ mod tests {
         let eccentricity = 0.6;
         let semi_major_axis_m = 1.0e7;
         let total_mass_kg = 2.0 * BODY_MASS_KG;
-        let gravitational_parameter =
-            GRAVITATIONAL_CONSTANT_M3_KG_S2 * total_mass_kg;
+        let gravitational_parameter = GRAVITATIONAL_CONSTANT_M3_KG_S2 * total_mass_kg;
         let periapsis_m = semi_major_axis_m * (1.0 - eccentricity);
         let relative_speed_m_s = (gravitational_parameter * (1.0 + eccentricity)
             / (semi_major_axis_m * (1.0 - eccentricity)))
@@ -418,8 +417,9 @@ mod tests {
                 [0.0, relative_speed_m_s / 2.0, 0.0],
             ),
         ];
-        let period_s =
-            2.0 * std::f64::consts::PI * (semi_major_axis_m.powi(3) / gravitational_parameter).sqrt();
+        let period_s = 2.0
+            * std::f64::consts::PI
+            * (semi_major_axis_m.powi(3) / gravitational_parameter).sqrt();
         (NBodySystem::new(bodies, 0.0).unwrap(), period_s)
     }
 
