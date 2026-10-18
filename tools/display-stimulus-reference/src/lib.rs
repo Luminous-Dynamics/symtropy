@@ -4,7 +4,7 @@
 //! Deterministic PPM stimulus generation. A generated file proves only its own
 //! bytes and code-level raster, not what a host or physical display emits.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fmt;
@@ -68,10 +68,7 @@ struct RasterSpec {
     bit_depth: u8,
 }
 
-pub fn validate_manifest_str(
-    manifest_text: &str,
-    schema_text: &str,
-) -> Result<(), StimulusError> {
+pub fn validate_manifest_str(manifest_text: &str, schema_text: &str) -> Result<(), StimulusError> {
     let schema: Value = serde_json::from_str(schema_text)
         .map_err(|error| StimulusError(format!("schema JSON parse error: {error}")))?;
     let manifest: Value = serde_json::from_str(manifest_text)
@@ -98,7 +95,9 @@ pub fn validate_manifest_str(
 
 fn validate_semantics(manifest: &Value) -> Result<(), StimulusError> {
     if manifest.get("manifest_id").and_then(Value::as_str) != Some(MANIFEST_ID) {
-        return Err(StimulusError("manifest identity must remain ODRH-STIM-001".to_owned()));
+        return Err(StimulusError(
+            "manifest identity must remain ODRH-STIM-001".to_owned(),
+        ));
     }
     if manifest.get("status").and_then(Value::as_str) != Some("SPECIFICATION_ONLY") {
         return Err(StimulusError(
@@ -110,7 +109,9 @@ fn validate_semantics(manifest: &Value) -> Result<(), StimulusError> {
             "stimulus manifest evidence class must remain SYNTHETIC_STIMULUS".to_owned(),
         ));
     }
-    if manifest.get("physical_output_validation").and_then(Value::as_str)
+    if manifest
+        .get("physical_output_validation")
+        .and_then(Value::as_str)
         != Some("NOT_PERFORMED")
     {
         return Err(StimulusError(
@@ -123,7 +124,10 @@ fn validate_semantics(manifest: &Value) -> Result<(), StimulusError> {
         ));
     }
     if manifest.pointer("/encoding/format").and_then(Value::as_str) != Some("PPM_P6")
-        || manifest.pointer("/encoding/channel_order").and_then(Value::as_str) != Some("RGB")
+        || manifest
+            .pointer("/encoding/channel_order")
+            .and_then(Value::as_str)
+            != Some("RGB")
         || manifest
             .pointer("/encoding/transfer_semantics")
             .and_then(Value::as_str)
@@ -142,7 +146,8 @@ fn validate_semantics(manifest: &Value) -> Result<(), StimulusError> {
         || source.get("source_status").and_then(Value::as_str) != Some("UNQUALIFIED")
     {
         return Err(StimulusError(
-            "source workload corpus identity/digest/status changed; review before updating".to_owned(),
+            "source workload corpus identity/digest/status changed; review before updating"
+                .to_owned(),
         ));
     }
 
@@ -431,7 +436,9 @@ pub fn generate_stimulus(
     let manifest_sha256 = sha256_hex(manifest_text.as_bytes());
     let recipe_sha256 = sha256_hex(
         serde_json::to_string(stimulus)
-            .map_err(|error| StimulusError(format!("cannot canonicalize selected recipe: {error}")))?
+            .map_err(|error| {
+                StimulusError(format!("cannot canonicalize selected recipe: {error}"))
+            })?
             .as_bytes(),
     );
     let file_sha256 = sha256_hex(&bytes);
@@ -538,10 +545,7 @@ fn sample_pixel(
             let patch_height = required_u64(params, "patch_height_px")? as u32;
             let left = (spec.width - patch_width) / 2;
             let top = (spec.height - patch_height) / 2;
-            let inside = x >= left
-                && x < left + patch_width
-                && y >= top
-                && y < top + patch_height;
+            let inside = x >= left && x < left + patch_width && y >= top && y < top + patch_height;
             let color_key = if inside {
                 "foreground_code"
             } else {
@@ -563,7 +567,9 @@ fn sample_pixel(
             let blue = ((u32::from(red) + u32::from(green) + 1) / 2) as u16;
             Ok([red, green, blue])
         }
-        other => Err(StimulusError(format!("unsupported raster primitive: {other}"))),
+        other => Err(StimulusError(format!(
+            "unsupported raster primitive: {other}"
+        ))),
     }
 }
 
@@ -635,7 +641,9 @@ mod tests {
             .expect("frozen v0.1 stimulus manifest should validate");
         let manifest = parse_manifest();
         assert_eq!(
-            manifest.get("physical_output_validation").and_then(Value::as_str),
+            manifest
+                .get("physical_output_validation")
+                .and_then(Value::as_str),
             Some("NOT_PERFORMED")
         );
         assert_eq!(
@@ -652,10 +660,12 @@ mod tests {
 
         let mut mutated = generated.report;
         mutated["physical_output_validation"] = Value::String("VALIDATED".to_owned());
-        assert!(super::validate_report(&mutated)
-            .expect_err("report cannot self-promote physical validation")
-            .0
-            .contains("generated report schema violation"));
+        assert!(
+            super::validate_report(&mutated)
+                .expect_err("report cannot self-promote physical validation")
+                .0
+                .contains("generated report schema violation")
+        );
     }
 
     #[test]
@@ -677,12 +687,9 @@ mod tests {
             .expect("neutral ramp recipe");
         stimulus["width"] = Value::from(3);
         stimulus["height"] = Value::from(1);
-        let generated = generate_stimulus(
-            &encoded(&manifest),
-            SCHEMA_TEXT,
-            "ODRH-STIM-GREY-RAMP-001",
-        )
-        .expect("3 x 1 neutral ramp");
+        let generated =
+            generate_stimulus(&encoded(&manifest), SCHEMA_TEXT, "ODRH-STIM-GREY-RAMP-001")
+                .expect("3 x 1 neutral ramp");
         let mut expected = b"P6\n3 1\n255\n".to_vec();
         expected.extend_from_slice(&[0, 0, 0, 128, 128, 128, 255, 255, 255]);
         assert_eq!(generated.bytes, expected);
@@ -749,21 +756,19 @@ mod tests {
         let b = generate("ODRH-STIM-GREY-RAMP-001");
         assert_eq!(a.bytes, b.bytes);
         assert_eq!(a.report["output_sha256"], b.report["output_sha256"]);
-        assert_eq!(
-            a.report["manifest_sha256"],
-            b.report["manifest_sha256"]
-        );
+        assert_eq!(a.report["manifest_sha256"], b.report["manifest_sha256"]);
     }
 
     #[test]
     fn unsupported_source_case_cannot_enter_frozen_v01_renderer() {
         let mut manifest = parse_manifest();
-        manifest["stimuli"][0]["source_case_id"] =
-            Value::String("VIS-DISP-UNKNOWN-999".to_owned());
-        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
-            .expect_err("unknown source case must fail")
-            .0
-            .contains("allowlist"));
+        manifest["stimuli"][0]["source_case_id"] = Value::String("VIS-DISP-UNKNOWN-999".to_owned());
+        assert!(
+            validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+                .expect_err("unknown source case must fail")
+                .0
+                .contains("allowlist")
+        );
     }
 
     #[test]
@@ -778,37 +783,45 @@ mod tests {
         let mut manifest = parse_manifest();
         manifest["stimuli"][1]["claim_limit"] =
             Value::String("This proves physical luminance in nits".to_owned());
-        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
-            .expect_err("overclaiming claim_limit must fail closed")
-            .0
-            .contains("claim_limit is not the frozen"));
+        assert!(
+            validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+                .expect_err("overclaiming claim_limit must fail closed")
+                .0
+                .contains("claim_limit is not the frozen")
+        );
     }
 
     #[test]
     fn recipe_cannot_self_promote_stimulus_status() {
         let mut manifest = parse_manifest();
         manifest["stimuli"][1]["status"] = Value::String("QUALIFIED".to_owned());
-        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
-            .expect_err("stimulus status cannot be promoted by editing the recipe")
-            .0
-            .contains("UNQUALIFIED"));
+        assert!(
+            validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+                .expect_err("stimulus status cannot be promoted by editing the recipe")
+                .0
+                .contains("UNQUALIFIED")
+        );
     }
 
     #[test]
     fn invalid_levels_and_nondivisible_bars_fail_closed() {
         let mut manifest = parse_manifest();
         manifest["stimuli"][1]["parameters"]["levels"] = serde_json::json!([0, 1, 1024]);
-        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
-            .expect_err("levels beyond declared maxval must fail")
-            .0
-            .contains("exceeds maxval"));
+        assert!(
+            validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+                .expect_err("levels beyond declared maxval must fail")
+                .0
+                .contains("exceeds maxval")
+        );
 
         let mut manifest = parse_manifest();
         manifest["stimuli"][1]["width"] = Value::from(11);
-        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
-            .expect_err("uneven bars must fail")
-            .0
-            .contains("divide evenly"));
+        assert!(
+            validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+                .expect_err("uneven bars must fail")
+                .0
+                .contains("divide evenly")
+        );
     }
 
     #[test]
@@ -816,9 +829,11 @@ mod tests {
         let mut manifest = parse_manifest();
         let first_id = manifest["stimuli"][0]["id"].clone();
         manifest["stimuli"][1]["id"] = first_id;
-        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
-            .expect_err("duplicate stimulus IDs must fail")
-            .0
-            .contains("duplicate stimulus ID"));
+        assert!(
+            validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+                .expect_err("duplicate stimulus IDs must fail")
+                .0
+                .contains("duplicate stimulus ID")
+        );
     }
 }
