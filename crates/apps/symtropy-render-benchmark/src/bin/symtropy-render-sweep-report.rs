@@ -128,12 +128,10 @@ fn main() -> ExitCode {
 
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
-    let output = args
-        .next()
-        .ok_or_else(|| {
-            "usage: symtropy-render-sweep-report <output.json> <run-1.json> <run-2.json> [...]"
-                .to_owned()
-        })?;
+    let output = args.next().ok_or_else(|| {
+        "usage: symtropy-render-sweep-report <output.json> <run-1.json> <run-2.json> [...]"
+            .to_owned()
+    })?;
     let input_paths: Vec<PathBuf> = args.map(PathBuf::from).collect();
     if input_paths.len() < MIN_RUNS {
         return Err(format!("at least {MIN_RUNS} input reports are required"));
@@ -149,10 +147,8 @@ fn run() -> Result<(), String> {
         validate_report(&loaded.report, &loaded.path)?;
     }
     reports.sort_by_key(|loaded| loaded.report.object_count);
-    let comparable_reports: Vec<FrameTimeReport> = reports
-        .iter()
-        .map(|loaded| loaded.report.clone())
-        .collect();
+    let comparable_reports: Vec<FrameTimeReport> =
+        reports.iter().map(|loaded| loaded.report.clone()).collect();
     validate_comparable_context(&comparable_reports)?;
 
     let object_counts: BTreeSet<usize> = reports
@@ -227,7 +223,6 @@ fn run() -> Result<(), String> {
             )?
             .to_owned(),
         });
-        let _ = index;
     }
 
     let summary = SweepSummary {
@@ -251,14 +246,17 @@ fn run() -> Result<(), String> {
 }
 
 fn read_report(path: &Path) -> Result<LoadedReport, String> {
-    let mut file = File::open(path)
-        .map_err(|error| format!("cannot open {}: {error}", path.display()))?;
+    let mut file =
+        File::open(path).map_err(|error| format!("cannot open {}: {error}", path.display()))?;
     let length = file
         .metadata()
         .map_err(|error| format!("cannot inspect {}: {error}", path.display()))?
         .len();
     if length > MAX_REPORT_BYTES {
-        return Err(format!("{} exceeds {MAX_REPORT_BYTES} bytes", path.display()));
+        return Err(format!(
+            "{} exceeds {MAX_REPORT_BYTES} bytes",
+            path.display()
+        ));
     }
     let mut bytes = Vec::with_capacity(length as usize);
     file.take(MAX_REPORT_BYTES + 1)
@@ -279,10 +277,18 @@ fn read_report(path: &Path) -> Result<LoadedReport, String> {
 
 fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> {
     if report.schema_version != 1 {
-        return Err(format!("{}: unsupported schema version {}", path.display(), report.schema_version));
+        return Err(format!(
+            "{}: unsupported schema version {}",
+            path.display(),
+            report.schema_version
+        ));
     }
     if report.fixture_id != "SCENE-LIGHT-01" {
-        return Err(format!("{}: unexpected fixture_id {:?}", path.display(), report.fixture_id));
+        return Err(format!(
+            "{}: unexpected fixture_id {:?}",
+            path.display(),
+            report.fixture_id
+        ));
     }
     if report.measurement_status != "measured_metadata_qualified" {
         return Err(format!(
@@ -294,7 +300,10 @@ fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> 
     if report.claim_ceiling
         != "observed-real-frame-intervals-and-caller-declared-metadata-only; not-gpu-timestamp-or-visual-or-physical-validation"
     {
-        return Err(format!("{}: unexpected measurement claim ceiling", path.display()));
+        return Err(format!(
+            "{}: unexpected measurement claim ceiling",
+            path.display()
+        ));
     }
     if report.sample_count < report.min_required_samples || report.sample_count < 30 {
         return Err(format!("{}: insufficient frame samples", path.display()));
@@ -327,21 +336,30 @@ fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> 
     for (name, value) in [
         ("source_commit", report.source_commit.as_deref()),
         ("fixture_sha256", report.fixture_sha256.as_deref()),
-        ("render_settings_sha256", report.render_settings_sha256.as_deref()),
+        (
+            "render_settings_sha256",
+            report.render_settings_sha256.as_deref(),
+        ),
         ("gpu_adapter", report.gpu_adapter.as_deref()),
         ("gpu_driver", report.gpu_driver.as_deref()),
         ("render_backend", report.render_backend.as_deref()),
         ("rustc_version", report.rustc_version.as_deref()),
         ("operating_system", report.operating_system.as_deref()),
     ] {
-        let value = value.filter(|value| !value.trim().is_empty()).ok_or_else(|| {
-            format!("{}: required metadata {name} is absent", path.display())
-        })?;
+        let value = value
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| format!("{}: required metadata {name} is absent", path.display()))?;
         if name.ends_with("sha256") && !is_sha256(value) {
-            return Err(format!("{}: {name} is not a SHA-256 hex digest", path.display()));
+            return Err(format!(
+                "{}: {name} is not a SHA-256 hex digest",
+                path.display()
+            ));
         }
         if name == "source_commit" && !is_commit_id(value) {
-            return Err(format!("{}: source_commit must be 40 or 64 hexadecimal characters", path.display()));
+            return Err(format!(
+                "{}: source_commit must be 40 or 64 hexadecimal characters",
+                path.display()
+            ));
         }
     }
     let mean = required_number(
@@ -398,17 +416,32 @@ fn validate_comparable_context(reports: &[FrameTimeReport]) -> Result<(), String
             ("camera_id", first.camera_id != report.camera_id),
             ("renderer", first.renderer != report.renderer),
             ("profile", first.profile != report.profile),
-            ("shadows_enabled", first.shadows_enabled != report.shadows_enabled),
+            (
+                "shadows_enabled",
+                first.shadows_enabled != report.shadows_enabled,
+            ),
             ("width_px", first.width_px != report.width_px),
             ("height_px", first.height_px != report.height_px),
             ("source_commit", first.source_commit != report.source_commit),
-            ("fixture_sha256", first.fixture_sha256 != report.fixture_sha256),
+            (
+                "fixture_sha256",
+                first.fixture_sha256 != report.fixture_sha256,
+            ),
             ("gpu_adapter", first.gpu_adapter != report.gpu_adapter),
             ("gpu_driver", first.gpu_driver != report.gpu_driver),
-            ("render_backend", first.render_backend != report.render_backend),
+            (
+                "render_backend",
+                first.render_backend != report.render_backend,
+            ),
             ("rustc_version", first.rustc_version != report.rustc_version),
-            ("operating_system", first.operating_system != report.operating_system),
-            ("sampling_method", first.sampling_method != report.sampling_method),
+            (
+                "operating_system",
+                first.operating_system != report.operating_system,
+            ),
+            (
+                "sampling_method",
+                first.sampling_method != report.sampling_method,
+            ),
             (
                 "sample_window_start_secs",
                 first.sample_window_start_secs != report.sample_window_start_secs,
@@ -433,33 +466,58 @@ fn validate_comparable_context(reports: &[FrameTimeReport]) -> Result<(), String
 fn make_context(report: &FrameTimeReport) -> Result<SweepContext, String> {
     Ok(SweepContext {
         fixture_id: report.fixture_id.clone(),
-        fixture_sha256: required_string(&report.fixture_sha256, &report.object_count, "fixture_sha256")?.to_owned(),
+        fixture_sha256: required_string(
+            &report.fixture_sha256,
+            &report.object_count,
+            "fixture_sha256",
+        )?
+        .to_owned(),
         camera_id: report.camera_id.clone(),
         renderer: report.renderer.clone(),
-        source_commit: required_string(&report.source_commit, &report.object_count, "source_commit")?.to_owned(),
+        source_commit: required_string(
+            &report.source_commit,
+            &report.object_count,
+            "source_commit",
+        )?
+        .to_owned(),
         profile: report.profile.clone(),
         shadows_enabled: report.shadows_enabled,
         width_px: report.width_px,
         height_px: report.height_px,
-        gpu_adapter: required_string(&report.gpu_adapter, &report.object_count, "gpu_adapter")?.to_owned(),
-        gpu_driver: required_string(&report.gpu_driver, &report.object_count, "gpu_driver")?.to_owned(),
-        render_backend: required_string(&report.render_backend, &report.object_count, "render_backend")?.to_owned(),
-        rustc_version: required_string(&report.rustc_version, &report.object_count, "rustc_version")?.to_owned(),
-        operating_system: required_string(&report.operating_system, &report.object_count, "operating_system")?.to_owned(),
+        gpu_adapter: required_string(&report.gpu_adapter, &report.object_count, "gpu_adapter")?
+            .to_owned(),
+        gpu_driver: required_string(&report.gpu_driver, &report.object_count, "gpu_driver")?
+            .to_owned(),
+        render_backend: required_string(
+            &report.render_backend,
+            &report.object_count,
+            "render_backend",
+        )?
+        .to_owned(),
+        rustc_version: required_string(
+            &report.rustc_version,
+            &report.object_count,
+            "rustc_version",
+        )?
+        .to_owned(),
+        operating_system: required_string(
+            &report.operating_system,
+            &report.object_count,
+            "operating_system",
+        )?
+        .to_owned(),
         sampling_method: report.sampling_method.clone(),
         sample_window_start_secs: report.sample_window_start_secs,
         sample_window_end_secs: report.sample_window_end_secs,
     })
 }
 
-fn required_number(
-    value: Option<f64>,
-    object_count: &usize,
-    name: &str,
-) -> Result<f64, String> {
+fn required_number(value: Option<f64>, object_count: &usize, name: &str) -> Result<f64, String> {
     let value = value.ok_or_else(|| format!("object_count {object_count}: {name} is absent"))?;
     if !value.is_finite() || value < 0.0 {
-        return Err(format!("object_count {object_count}: {name} must be finite and non-negative"));
+        return Err(format!(
+            "object_count {object_count}: {name} must be finite and non-negative"
+        ));
     }
     Ok(value)
 }
@@ -489,8 +547,12 @@ fn ensure_output_is_distinct(output: &Path, inputs: &[PathBuf]) -> Result<(), St
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("cannot create output directory {}: {error}", parent.display()))?;
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "cannot create output directory {}: {error}",
+            parent.display()
+        )
+    })?;
     let file_name = output
         .file_name()
         .ok_or_else(|| "output path must name a file".to_owned())?;
@@ -499,14 +561,22 @@ fn ensure_output_is_distinct(output: &Path, inputs: &[PathBuf]) -> Result<(), St
             .map_err(|error| format!("cannot resolve output path {}: {error}", output.display()))?
     } else {
         fs::canonicalize(parent)
-            .map_err(|error| format!("cannot resolve output directory {}: {error}", parent.display()))?
+            .map_err(|error| {
+                format!(
+                    "cannot resolve output directory {}: {error}",
+                    parent.display()
+                )
+            })?
             .join(file_name)
     };
     for input in inputs {
         let input_path = fs::canonicalize(input)
             .map_err(|error| format!("cannot resolve input path {}: {error}", input.display()))?;
         if output_path == input_path {
-            return Err(format!("output path {} must not overwrite an input report", output.display()));
+            return Err(format!(
+                "output path {} must not overwrite an input report",
+                output.display()
+            ));
         }
     }
     Ok(())
@@ -531,11 +601,17 @@ fn write_json_atomically<T: Serialize>(path: &Path, value: &T) -> Result<(), Str
         .join(file_name);
     let temporary = absolute_path.with_file_name(format!(
         ".{}.{}.tmp",
-        absolute_path.file_name().unwrap_or_default().to_string_lossy(),
+        absolute_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy(),
         std::process::id()
     ));
     let result = (|| -> io::Result<()> {
-        let mut file = OpenOptions::new().write(true).create_new(true).open(&temporary)?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
         file.write_all(&bytes)?;
         file.sync_all()?;
         drop(file);
@@ -547,7 +623,10 @@ fn write_json_atomically<T: Serialize>(path: &Path, value: &T) -> Result<(), Str
     })();
     if let Err(error) = result {
         let _ = fs::remove_file(&temporary);
-        return Err(format!("cannot write summary {}: {error}", absolute_path.display()));
+        return Err(format!(
+            "cannot write summary {}: {error}",
+            absolute_path.display()
+        ));
     }
     Ok(())
 }
