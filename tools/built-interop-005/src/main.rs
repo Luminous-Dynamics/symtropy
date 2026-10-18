@@ -8,7 +8,7 @@
 
 use ifc_model::Codec;
 use ifc_step::StepCodec;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
@@ -217,7 +217,9 @@ fn main() {
         process::exit(64);
     }
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let path = first.map(PathBuf::from).unwrap_or_else(|| root.join("fixtures/panel.ifc"));
+    let path = first
+        .map(PathBuf::from)
+        .unwrap_or_else(|| root.join("fixtures/panel.ifc"));
     let bytes = fs::read(&path).unwrap_or_else(|error| {
         eprintln!("CANNOT_READ_INPUT: {}: {error}", path.display());
         process::exit(66);
@@ -270,24 +272,39 @@ mod tests {
         assert_eq!(output["evidence_payload"]["declared_schema_token"], "IFC4");
         assert_eq!(output["gate"]["gate_id"], "ifc_schema_conformance");
         assert_eq!(output["gate"]["mandatory"], true);
-        assert!(output["gate"]["tool"]["config_sha256"].as_str().unwrap().len() == 64);
+        assert!(
+            output["gate"]["tool"]["config_sha256"]
+                .as_str()
+                .unwrap()
+                .len()
+                == 64
+        );
     }
 
     #[test]
     fn malformed_step_is_unresolved_not_schema_pass() {
         let output = evaluate_bytes(b"not an IFC STEP file", "fixture://malformed.ifc");
         assert_eq!(status(&output), "UNRESOLVED");
-        assert_eq!(output["evidence_payload"]["decision_reason"]["code"], "STEP_PARSE_FAILED");
+        assert_eq!(
+            output["evidence_payload"]["decision_reason"]["code"],
+            "STEP_PARSE_FAILED"
+        );
     }
 
     #[test]
     fn unknown_declared_schema_is_unresolved_not_guessed_as_ifc4() {
         let mutated = String::from_utf8(VALID_IFC.to_vec())
             .expect("synthetic fixture is UTF-8")
-            .replace("FILE_SCHEMA(('IFC4'));", "FILE_SCHEMA(('IFC_FUTURE_TEST'));");
+            .replace(
+                "FILE_SCHEMA(('IFC4'));",
+                "FILE_SCHEMA(('IFC_FUTURE_TEST'));",
+            );
         let output = evaluate_bytes(mutated.as_bytes(), "fixture://unknown-schema.ifc");
         assert_eq!(status(&output), "UNRESOLVED");
-        assert_eq!(output["evidence_payload"]["declared_schema_token"], "IFC_FUTURE_TEST");
+        assert_eq!(
+            output["evidence_payload"]["declared_schema_token"],
+            "IFC_FUTURE_TEST"
+        );
         assert_eq!(
             output["evidence_payload"]["decision_reason"]["code"],
             "DECLARED_SCHEMA_UNAVAILABLE"
@@ -302,9 +319,16 @@ mod tests {
         let output = evaluate_bytes(mutated.as_bytes(), "fixture://invalid-guid.ifc");
         assert!(summary(&output)["errors"].as_u64().unwrap() > 0);
         assert_eq!(status(&output), "FAIL");
-        assert!(output["evidence_payload"]["findings"].as_array().unwrap().iter().any(|finding| {
-            finding["severity"] == "error" && finding["path"].as_str().unwrap().contains("#1")
-        }));
+        assert!(
+            output["evidence_payload"]["findings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|finding| {
+                    finding["severity"] == "error"
+                        && finding["path"].as_str().unwrap().contains("#1")
+                })
+        );
     }
 
     #[test]
