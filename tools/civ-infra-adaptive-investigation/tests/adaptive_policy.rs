@@ -352,3 +352,52 @@ fn exponential_policy_expansion_fails_closed_at_the_work_budget() {
         "{error}"
     );
 }
+
+
+#[test]
+fn excessive_leaf_state_memberships_fail_closed() {
+    let mut input = input_from(FIXTURE);
+    let base_state = input
+        .state_signatures
+        .first()
+        .expect("fixture has at least one state")
+        .clone();
+    let mut states = Vec::new();
+    for index in 0..1_000usize {
+        let mut state = base_state.clone();
+        state.state_id = format!("state-{index:04}");
+        state.upstream_case_ref = format!("synthetic:membership-budget#{index:04}");
+        states.push(state);
+    }
+    let state_ids = states
+        .iter()
+        .map(|state| state.state_id.clone())
+        .collect::<Vec<_>>();
+    input.state_signatures = states;
+    input.actions = vec![ActionInput {
+        action_id: "wide-root".to_owned(),
+        description: "Synthetic wide report membership-budget control".to_owned(),
+        compatibility_report_ref: "synthetic:membership-budget#wide-root".to_owned(),
+        compatibility_report_sha256: None,
+        model_support: ModelSupport::Open,
+        outcomes: (0..101usize)
+            .map(|index| OutcomeInput {
+                outcome_id: format!("outcome-{index:03}"),
+                compatible_state_ids: state_ids.clone(),
+            })
+            .collect(),
+    }];
+    input.candidate_policy = CandidatePolicy {
+        root_action_id: "wide-root".to_owned(),
+        branches: Vec::new(),
+        support_failure_terminal: SupportFailureTerminal::ReviewRequired,
+        max_supported_action_depth: 1,
+    };
+
+    let bytes = serde_json::to_vec(&input).expect("wide policy serializes");
+    let error = evaluate_bytes(&bytes).expect_err("oversized report must not be returned");
+    assert!(
+        error.contains("policy expansion exceeds state-membership budget"),
+        "{error}"
+    );
+}
