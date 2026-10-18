@@ -51,6 +51,7 @@ The evaluator reports and gates on:
 - Action, claim-code, and citation-set exact-match rates.
 - Unknown authorities and citations to sources not made available for that case.
 - Incorrect authority-role classification and unknown span identifiers.
+- Unresolved conflicts between simultaneously applicable authorities, where no conflict-resolution rule has been provided.
 - Sources outside their half-open effective interval (valid_from <= as_of < valid_to).
 - Source citations with no date for evaluating a time-bounded authority.
 - Citations to prohibited-use or unverified authority records.
