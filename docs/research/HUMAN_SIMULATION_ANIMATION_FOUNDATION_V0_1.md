@@ -86,7 +86,8 @@ These are proposed gates, not measured results. The first report must include th
 - Run the documented cargo command and visually validate scale, skinning, materials, lighting, shadows, clip names, transitions, and failure behavior. Source presence is not proof that the model rendered.
 
 ### P2 — Physically credible movement
-- Add root-motion policy (in-place clips versus extracted root motion), pelvis/root alignment, foot-contact detection, ground alignment, obstacle response, and physics-corrected motion.
+- **Benchmark infrastructure scaffold committed:** a Rust trace reader/comparator now computes trajectory ADE/FDE/max error, predicted stance-foot drift, and root jerk on a shared uniform time grid. Its tests are written but not yet verified by a successful run.
+- Next add actual root-motion policy (in-place clips versus extracted root motion), pelvis/root alignment, measured foot-contact labels, ground alignment, obstacle response, and physics-corrected motion.
 - For non-commercial research only, evaluate against an appropriately split AMASS subset where its license permits; for commercial work use separately licensed or original consented mocap. Compare against motion-tracking baselines.
 - Add reach/grasp/sit/stand/turn/crouch actions using explicit contact and joint limits.
 
@@ -108,9 +109,10 @@ These are proposed gates, not measured results. The first report must include th
 Run locally from a fresh clone after obtaining the branch:
 
     cargo fmt --check
-    cargo check -p symtropy-bevy --features human-animation
-    cargo test -p symtropy-bevy --features human-animation
+    cargo check -p symtropy-bevy
+    cargo test -p symtropy-bevy --bin human-motion-bench
     cargo check -p symtropy-bevy --features human-animation --example human_avatar
+    cargo run -p symtropy-bevy --bin human-motion-bench -- docs/research/fixtures/human-motion-trace-synthetic-v0.1.json docs/research/fixtures/human-motion-trace-synthetic-v0.1.json
     cargo run -p symtropy-bevy --features human-animation --example human_avatar
 
 Follow [`assets/humans/README.md`](../../assets/humans/README.md) for the optional Innerscene CC0 smoke-test GLB; the publisher describes its motion as authored periodic-pose recipes, not mocap. Place the rights-cleared rigged GLB at `assets/humans/person.glb`, or set `SYMTROPY_HUMAN_AVATAR` to a path relative to the Bevy `assets/` directory. The example logs discovered clip names and mappings. The exact command output and a screenshot from the rendered scene must be retained as evidence.
