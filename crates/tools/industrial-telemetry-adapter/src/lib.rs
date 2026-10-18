@@ -377,6 +377,16 @@ mod tests {
     }
 
     #[test]
+    fn one_unique_timestamp_has_no_defined_inter_event_gap() {
+        let trace = "2017-02-02T03:00:00Z|Program_Status|ACTIVE\\n2017-02-02T03:00:00Z|Spindle_Speed|0\\n";
+        let summary = parse_and_summarize(trace).expect("trace parses");
+        assert_eq!(summary.unique_timestamp_count, 1);
+        assert_eq!(summary.maximum_gap_ns, None);
+        assert_eq!(summary.maximum_gap_start_timestamp_unix_ns, None);
+        assert_eq!(summary.maximum_gap_end_timestamp_unix_ns, None);
+    }
+
+    #[test]
     fn preserves_blank_value_as_an_event_value() {
         let trace = "2017-02-02T03:00:00Z|Program_Name_Running| \n";
         let events = parse_trace(trace).expect("blank event value is allowed");
