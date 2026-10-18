@@ -58,10 +58,10 @@ pub struct TemporalScheduleReport {
 }
 
 fn duration_matches(period: TemporalPeriod) -> Result<(), ModelError> {
-    if let PeriodAction::Discharge { request } = period.action {
-        if !close(request.duration.value(), period.duration.value()) {
-            return Err(ModelError::PeriodDurationMismatch);
-        }
+    if let PeriodAction::Discharge { request } = period.action
+        && !close(request.duration.value(), period.duration.value())
+    {
+        return Err(ModelError::PeriodDurationMismatch);
     }
     Ok(())
 }
