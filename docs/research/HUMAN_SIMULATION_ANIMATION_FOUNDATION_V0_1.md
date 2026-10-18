@@ -31,12 +31,18 @@ The first increment adds an opt-in Bevy skeletal-animation driver for user-suppl
 
 The detailed task suite, metric definitions, rights constraints, target gates and reproducibility procedure now live in [`HUMAN_MOTION_BENCHMARK_PROTOCOL_V0_1.md`](HUMAN_MOTION_BENCHMARK_PROTOCOL_V0_1.md). Those values are proposed gates, not measured performance. In particular, foot drift and frame-rate targets need a real rigged avatar and a recorded scene before they can be evaluated.
 
+## Semantic cognition-to-motion contract v0.1
+
+Symtropy now defines a renderer-independent `SemanticMotionIntent` type in `symtropy_bevy::human_motion_intent` and a versioned [JSON Schema](human-motion-intent-v0.1.schema.json). The contract carries a semantic action, non-identifying actor/intent references, simulation-clock validity, urgency, confidence semantics, uncertainty, optional planar velocity/target, interruption policy, and policy/model provenance. It explicitly distinguishes calibrated probability from an uncalibrated [0, 1] score; neither is a proxy for consciousness, human likeness, reputation, or safety authority.
+
+The initial Bevy adapter maps only `idle` and `locomote` into the low-level `HumanLocomotionIntent` velocity component. It validates the input and rejects unsupported actions such as `reach` or `grasp` rather than silently rendering them as idle. This establishes a testable contract, **not yet a live Symthaea-to-Symtropy integration**. The cross-repository integration plan is tracked in [Symthaea #8025](https://github.com/Luminous-Dynamics/symthaea/issues/8025).
+
 ## Layered architecture
 
 - **Appearance/asset layer:** legally sourced, rigged glTF/GLB body mesh; PBR materials; consistent scale; skin weights; optional facial blend shapes, eye/teeth geometry, hair, clothing, hands, footwear, and LODs.
 - **Animation layer (this PR):** named GLTF clips -> animation graph -> semantic motion states -> cross-fades. Missing optional clips fall back to a documented safe state. No asset is silently downloaded.
 - **Motor/physics layer:** movement controller and Symtropy physics remain authoritative for root position, velocity, contacts, balance, and collision response. Root-motion extraction and contact correction are a separate adapter to be added and tested.
-- **Cognition layer:** Symthaea supplies goals, plans, observed beliefs, uncertainty, interaction choice, and high-level motion intent. Keep its tick rate independent of render frame rate.
+- **Cognition layer:** Symthaea supplies goals, plans, observed beliefs, uncertainty, interaction choice, and high-level motion intent through the versioned semantic intent contract. Keep its tick rate independent of render frame rate.
 - **Social/population layer:** Mycelix identity/relationship data can supply stable, privacy-minimized identity and relationship references where needed; do not treat reputation tokens or Phi as direct measures of human character.
 - **Evidence layer:** each experiment records commit SHA, configuration digest, seed, asset/license identifier, dataset version, run duration, failures, and metrics.
 
@@ -111,6 +117,7 @@ Run locally from a fresh clone after obtaining the branch:
     cargo fmt --check
     cargo check -p symtropy-bevy
     cargo test -p symtropy-bevy --bin human-motion-bench
+    cargo test -p symtropy-bevy --features human-animation
     cargo check -p symtropy-bevy --features human-animation --example human_avatar
     cargo run -p symtropy-bevy --bin human-motion-bench -- docs/research/fixtures/human-motion-trace-synthetic-v0.1.json docs/research/fixtures/human-motion-trace-synthetic-v0.1.json
     cargo run -p symtropy-bevy --features human-animation --example human_avatar
