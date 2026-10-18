@@ -134,11 +134,12 @@ pub struct AdaptedHumanMotionIntent {
     pub motion_override: Option<HumanMotion>,
 }
 
-pub fn adapt_semantic_intent_to_locomotion(
+pub fn adapt_semantic_intent_to_locomotion_at(
     intent: &SemanticMotionIntent,
+    now_sec: f64,
 ) -> Result<AdaptedHumanMotionIntent, SemanticIntentAdapterError> {
     intent
-        .validate()
+        .validate_at(now_sec)
         .map_err(SemanticIntentAdapterError::InvalidIntent)?;
 
     let (desired_planar_velocity_mps, motion_override) = match intent.intent_kind {
@@ -371,6 +372,12 @@ mod tests {
             intent_id: "test-intent-1".to_owned(),
             actor_ref: "test-actor".to_owned(),
             intent_kind,
+            coordinate_frame: crate::human_motion_intent::MotionIntentCoordinateFrame {
+                length_unit: "metre".to_owned(),
+                up_axis: "+Y".to_owned(),
+                forward_axis: "-Z".to_owned(),
+                position_space: "world".to_owned(),
+            },
             issued_at_sec: 0.0,
             valid_until_sec: Some(2.0),
             urgency: 0.25,
@@ -394,7 +401,7 @@ mod tests {
     #[test]
     fn semantic_locomotion_intent_maps_velocity_without_applying_motion() {
         let intent = semantic_intent_for_test(MotionIntentKind::Locomote, Some([0.8, -0.2]), None);
-        let adapted = adapt_semantic_intent_to_locomotion(&intent).unwrap();
+        let adapted = adapt_semantic_intent_to_locomotion_at(&intent, 0.5).unwrap();
         assert!(adapted.motion_override.is_none());
         assert!((adapted.locomotion.desired_planar_velocity_mps.x - 0.8).abs() < 1e-6);
         assert!((adapted.locomotion.desired_planar_velocity_mps.y + 0.2).abs() < 1e-6);
@@ -409,6 +416,16 @@ mod tests {
     }
 
     #[test]
+    fn expired_semantic_intents_are_rejected_before_adaptation() {
+        let mut intent = semantic_intent_for_test(MotionIntentKind::Locomote, Some([1.0, 0.0]), None);
+        intent.valid_until_sec = Some(0.5);
+        assert_eq!(
+            adapt_semantic_intent_to_locomotion_at(&intent, 0.5).unwrap_err(),
+            SemanticIntentAdapterError::InvalidIntent(IntentValidationError::Expired)
+        );
+    }
+
+    #[test]
     fn unsupported_semantic_actions_fail_closed() {
         use crate::human_motion_intent::MotionIntentTarget;
         let target = Some(MotionIntentTarget {
@@ -418,7 +435,7 @@ mod tests {
         });
         let intent = semantic_intent_for_test(MotionIntentKind::Reach, None, target);
         assert_eq!(
-            adapt_semantic_intent_to_locomotion(&intent).unwrap_err(),
+            adapt_semantic_intent_to_locomotion_at(&intent, 0.5).unwrap_err(),
             SemanticIntentAdapterError::UnsupportedIntentKind(MotionIntentKind::Reach)
         );
     }
