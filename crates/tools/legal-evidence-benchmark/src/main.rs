@@ -88,6 +88,22 @@ struct ValidationReport {
 }
 
 #[derive(Debug, Serialize)]
+struct CaseEvaluation {
+    case_id: String,
+    critical: bool,
+    expected_action: Action,
+    observed_action: Option<Action>,
+    expected_claim_codes: Vec<String>,
+    observed_claim_codes: Vec<String>,
+    expected_citations: Vec<Citation>,
+    observed_citations: Vec<Citation>,
+    action_match: bool,
+    claim_code_exact_match: bool,
+    citation_exact_match: bool,
+    failure_codes: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
 struct EvaluationReport {
     report_version: &'static str,
     evaluator_version: &'static str,
@@ -115,6 +131,7 @@ struct EvaluationReport {
     duplicate_claim_codes: usize,
     uncited_answers: usize,
     critical_failure_case_ids: Vec<String>,
+    case_evaluations: Vec<CaseEvaluation>,
     fixture_gate_passed: bool,
     claim_ceiling: &'static str,
 }
@@ -528,6 +545,30 @@ fn percent(numerator: usize, denominator: usize) -> f64 {
     }
 }
 
+fn make_case_evaluation(
+    case: &BenchmarkCase,
+    result: Option<&CandidateResult>,
+    action_match: bool,
+    claim_code_exact_match: bool,
+    citation_exact_match: bool,
+    failure_codes: Vec<String>,
+) -> CaseEvaluation {
+    CaseEvaluation {
+        case_id: case.id.clone(),
+        critical: case.critical,
+        expected_action: case.expected_action.clone(),
+        observed_action: result.map(|item| item.action.clone()),
+        expected_claim_codes: case.expected_claim_codes.clone(),
+        observed_claim_codes: result.map(|item| item.claim_codes.clone()).unwrap_or_default(),
+        expected_citations: case.expected_citations.clone(),
+        observed_citations: result.map(|item| item.citations.clone()).unwrap_or_default(),
+        action_match,
+        claim_code_exact_match,
+        citation_exact_match,
+        failure_codes,
+    }
+}
+
 fn evaluate(benchmark: &Benchmark, submission: &Submission) -> Result<EvaluationReport, String> {
     let corpus_bytes = serde_json::to_vec(benchmark)
         .map_err(|e| format!("cannot serialize benchmark for digest: {e}"))?;
@@ -597,6 +638,7 @@ fn evaluate_with_digests(
     let mut duplicate_claim_codes = 0usize;
     let mut uncited_answers = 0usize;
     let mut critical_failures = BTreeSet::new();
+    let mut case_evaluations = Vec::with_capacity(benchmark.cases.len());
 
     for case in &benchmark.cases {
         let matching = by_case.get(&case.id).map(Vec::as_slice).unwrap_or(&[]);
@@ -605,6 +647,14 @@ fn evaluate_with_digests(
             if case.critical {
                 critical_failures.insert(case.id.clone());
             }
+            case_evaluations.push(make_case_evaluation(
+                case,
+                None,
+                false,
+                false,
+                false,
+                vec!["missing_result".to_string()],
+            ));
             continue;
         }
         if matching.len() != 1 {
@@ -612,16 +662,27 @@ fn evaluate_with_digests(
             if case.critical {
                 critical_failures.insert(case.id.clone());
             }
+            case_evaluations.push(make_case_evaluation(
+                case,
+                None,
+                false,
+                false,
+                false,
+                vec!["duplicate_result".to_string()],
+            ));
             continue;
         }
 
         let result = matching[0];
         let mut case_bad = false;
+        let mut failure_codes = Vec::new();
 
-        if result.action == case.expected_action {
+        let action_match = result.action == case.expected_action;
+        if action_match {
             action_correct += 1;
         } else {
             case_bad = true;
+            failure_codes.push("action_mismatch".to_string());
         }
 
         let (actual_claims, repeated_claims) = unique_strings(&result.claim_codes);
@@ -629,11 +690,14 @@ fn evaluate_with_digests(
         if repeated_claims {
             duplicate_claim_codes += 1;
             case_bad = true;
+            failure_codes.push("duplicate_claim_codes".to_string());
         }
-        if actual_claims == expected_claims && !repeated_claims {
+        let claim_code_match = actual_claims == expected_claims && !repeated_claims;
+        if claim_code_match {
             claim_exact += 1;
         } else {
             case_bad = true;
+            failure_codes.push("claim_code_set_mismatch".to_string());
         }
 
         let (actual_citations, repeated_citations) = unique_citations(&result.citations);
@@ -641,16 +705,20 @@ fn evaluate_with_digests(
         if repeated_citations {
             duplicate_citations += 1;
             case_bad = true;
+            failure_codes.push("duplicate_citations".to_string());
         }
-        if actual_citations == expected_citations && !repeated_citations {
+        let citation_match = actual_citations == expected_citations && !repeated_citations;
+        if citation_match {
             citation_exact += 1;
         } else {
             case_bad = true;
+            failure_codes.push("citation_set_mismatch".to_string());
         }
 
         if result.action == Action::Answer && result.citations.is_empty() {
             uncited_answers += 1;
             case_bad = true;
+            failure_codes.push("uncited_answer".to_string());
         }
 
         let available: BTreeSet<&str> = case
@@ -663,15 +731,18 @@ fn evaluate_with_digests(
                 None => {
                     unknown_authority_citations += 1;
                     case_bad = true;
+                    failure_codes.push("unknown_authority".to_string());
                 }
                 Some(authority) => {
                     if !available.contains(citation.authority_id.as_str()) {
                         unavailable_source_citations += 1;
                         case_bad = true;
+                        failure_codes.push("authority_not_available_for_case".to_string());
                     }
                     if citation.role != authority.force {
                         authority_role_mismatches += 1;
                         case_bad = true;
+                        failure_codes.push("authority_role_mismatch".to_string());
                     }
                     if !authority
                         .span_ids
@@ -680,24 +751,29 @@ fn evaluate_with_digests(
                     {
                         unknown_span_citations += 1;
                         case_bad = true;
+                        failure_codes.push("unknown_span".to_string());
                     }
                     if authority.permitted_ai_use == "prohibited" {
                         prohibited_source_citations += 1;
                         case_bad = true;
+                        failure_codes.push("prohibited_source_use".to_string());
                     }
                     if authority.force == "unverified" {
                         unverified_authority_citations += 1;
                         case_bad = true;
+                        failure_codes.push("unverified_authority".to_string());
                     }
                     match active_on(authority, case.as_of.as_deref()) {
                         Some(true) => {}
                         Some(false) => {
                             temporally_inapplicable_citations += 1;
                             case_bad = true;
+                            failure_codes.push("temporally_inapplicable_authority".to_string());
                         }
                         None => {
                             temporally_unverified_citations += 1;
                             case_bad = true;
+                            failure_codes.push("temporally_unverified_authority".to_string());
                         }
                     }
                 }
@@ -707,6 +783,16 @@ fn evaluate_with_digests(
         if case_bad && case.critical {
             critical_failures.insert(case.id.clone());
         }
+        failure_codes.sort();
+        failure_codes.dedup();
+        case_evaluations.push(make_case_evaluation(
+            case,
+            Some(result),
+            action_match,
+            claim_code_match,
+            citation_match,
+            failure_codes,
+        ));
     }
 
     let missing_set: BTreeSet<&str> = missing_ids.iter().map(String::as_str).collect();
@@ -757,6 +843,7 @@ fn evaluate_with_digests(
         duplicate_claim_codes,
         uncited_answers,
         critical_failure_case_ids: critical_failures.into_iter().collect(),
+        case_evaluations,
         fixture_gate_passed,
         claim_ceiling: concat!(
             "Synthetic fixture conformance only; not legal correctness, ",
