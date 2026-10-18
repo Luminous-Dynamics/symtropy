@@ -524,6 +524,156 @@ fn verify_report(json: &str) -> Result<(), String> {
         number(json, "pinch_cold_side_temperature_k")?,
         if expected_shifted > 0.0 { expected_shifted - half_dt } else { 0.0 })?;
 
+    // Independently recompute the fixed two-period day/night storage fixture
+    // from scalar inputs. No temporal kernel functions are called here.
+    if text_field(json, "temporal_fixture_id")? != "analytic-day-night-storage-001" {
+        return Err("unexpected temporal fixture id".to_owned());
+    }
+    for (key, expected) in [
+        ("temporal_store_mass_kg", 10.0),
+        ("temporal_store_min_temperature_k", 300.0),
+        ("temporal_store_max_temperature_k", 400.0),
+        ("temporal_store_initial_temperature_k", 300.0),
+        ("temporal_cp_j_per_kg_k", 1_000.0),
+        ("temporal_max_charge_power_w", 5_000.0),
+        ("temporal_max_discharge_power_w", 1_000.0),
+        ("temporal_standing_loss_conductance_w_per_k", 0.1),
+        ("temporal_period_duration_s", 3_600.0),
+        ("temporal_ambient_temperature_k", 300.0),
+        ("temporal_charge_available_heat_j", 900_000.0),
+        ("temporal_load_supply_temperature_k", 340.0),
+        ("temporal_minimum_approach_k", 10.0),
+        ("temporal_heat_exchanger_effectiveness", 0.9),
+        ("temporal_requested_useful_heat_j", 300_000.0),
+    ] {
+        near(&format!("canonical temporal input {key}"), number(json, key)?, expected)?;
+    }
+    let store_mass = number(json, "temporal_store_mass_kg")?;
+    let store_min = number(json, "temporal_store_min_temperature_k")?;
+    let store_max = number(json, "temporal_store_max_temperature_k")?;
+    let initial_t = number(json, "temporal_store_initial_temperature_k")?;
+    let cp = number(json, "temporal_cp_j_per_kg_k")?;
+    let charge_power = number(json, "temporal_max_charge_power_w")?;
+    let discharge_power = number(json, "temporal_max_discharge_power_w")?;
+    let conductance = number(json, "temporal_standing_loss_conductance_w_per_k")?;
+    let duration = number(json, "temporal_period_duration_s")?;
+    let ambient = number(json, "temporal_ambient_temperature_k")?;
+    let offered_charge = required_nonnegative(json, "temporal_charge_available_heat_j")?;
+    let supply = number(json, "temporal_load_supply_temperature_k")?;
+    let approach = number(json, "temporal_minimum_approach_k")?;
+    let effectiveness = number(json, "temporal_heat_exchanger_effectiveness")?;
+    let requested = required_nonnegative(json, "temporal_requested_useful_heat_j")?;
+    if store_mass <= 0.0 || cp <= 0.0 || store_min >= store_max
+        || initial_t < store_min || initial_t > store_max
+        || charge_power < 0.0 || discharge_power < 0.0 || conductance < 0.0
+        || duration <= 0.0 || ambient <= 0.0 || approach < 0.0
+        || effectiveness <= 0.0 || effectiveness > 1.0
+    {
+        return Err("invalid temporal store or dispatch assumptions".to_owned());
+    }
+    let heat_capacity_j_per_k = store_mass * cp;
+    let capacity_j = heat_capacity_j_per_k * (store_max - store_min);
+    let initial_energy = heat_capacity_j_per_k * (initial_t - store_min);
+    let period_0_loss = (conductance * (initial_t - ambient).max(0.0) * duration)
+        .min(initial_energy);
+    let energy_before_charge = (initial_energy - period_0_loss).max(0.0);
+    let expected_charge = offered_charge
+        .min(charge_power * duration)
+        .min((capacity_j - energy_before_charge).max(0.0));
+    let expected_rejected = offered_charge - expected_charge;
+    let energy_after_charge = energy_before_charge + expected_charge;
+    let t_after_charge = store_min + energy_after_charge / heat_capacity_j_per_k;
+    near("temporal period 0 input temperature",
+        number(json, "temporal_period_0_temperature_before_k")?, initial_t)?;
+    near("temporal period 0 loss-adjusted temperature",
+        number(json, "temporal_period_0_temperature_after_loss_k")?,
+        store_min + energy_before_charge / heat_capacity_j_per_k)?;
+    near("temporal period 0 post-charge temperature",
+        number(json, "temporal_period_0_temperature_after_action_k")?, t_after_charge)?;
+    near("temporal period 0 standing loss",
+        required_nonnegative(json, "temporal_period_0_standing_loss_j")?, period_0_loss)?;
+    near("temporal period 0 requested charge",
+        required_nonnegative(json, "temporal_period_0_charge_requested_j")?, offered_charge)?;
+    near("temporal period 0 accepted charge",
+        required_nonnegative(json, "temporal_period_0_charge_accepted_j")?, expected_charge)?;
+    near("temporal period 0 rejected charge",
+        required_nonnegative(json, "temporal_period_0_charge_rejected_j")?, expected_rejected)?;
+    near("temporal period 0 charge balance",
+        energy_before_charge + expected_charge, heat_capacity_j_per_k * (t_after_charge - store_min))?;
+
+    let energy_after_loss = (energy_after_charge
+        - (conductance * (t_after_charge - ambient).max(0.0) * duration)
+            .min(energy_after_charge)).max(0.0);
+    let period_1_loss = energy_after_charge - energy_after_loss;
+    let t_after_loss = store_min + energy_after_loss / heat_capacity_j_per_k;
+    let cutoff = supply + approach;
+    let energy_above_cutoff = if cutoff <= store_max && t_after_loss > cutoff {
+        (energy_after_loss - heat_capacity_j_per_k * (cutoff - store_min)).max(0.0)
+    } else {
+        0.0
+    };
+    let expected_withdrawn = if t_after_loss > cutoff {
+        (requested / effectiveness)
+            .min(discharge_power * duration)
+            .min(energy_above_cutoff)
+    } else {
+        0.0
+    };
+    let expected_delivered = (expected_withdrawn * effectiveness).min(requested);
+    let expected_exchange_loss = (expected_withdrawn - expected_delivered).max(0.0);
+    let expected_unmet = (requested - expected_delivered).max(0.0);
+    let energy_final = (energy_after_loss - expected_withdrawn).max(0.0);
+    let t_final = store_min + energy_final / heat_capacity_j_per_k;
+
+    near("temporal period 1 input temperature",
+        number(json, "temporal_period_1_temperature_before_k")?, t_after_charge)?;
+    near("temporal period 1 loss-adjusted temperature",
+        number(json, "temporal_period_1_temperature_after_loss_k")?, t_after_loss)?;
+    near("temporal period 1 post-discharge temperature",
+        number(json, "temporal_period_1_temperature_after_action_k")?, t_final)?;
+    near("temporal period 1 standing loss",
+        required_nonnegative(json, "temporal_period_1_standing_loss_j")?, period_1_loss)?;
+    near("temporal period 1 requested useful heat",
+        required_nonnegative(json, "temporal_period_1_useful_heat_requested_j")?, requested)?;
+    near("temporal period 1 source heat withdrawn",
+        required_nonnegative(json, "temporal_period_1_source_heat_withdrawn_j")?, expected_withdrawn)?;
+    near("temporal period 1 useful heat delivered",
+        required_nonnegative(json, "temporal_period_1_useful_heat_delivered_j")?, expected_delivered)?;
+    near("temporal period 1 exchanger loss",
+        required_nonnegative(json, "temporal_period_1_heat_exchanger_loss_j")?, expected_exchange_loss)?;
+    near("temporal period 1 unmet useful heat",
+        required_nonnegative(json, "temporal_period_1_unmet_useful_heat_j")?, expected_unmet)?;
+    if boolean(json, "temporal_period_1_blocked_by_temperature")? != (t_after_loss <= cutoff) {
+        return Err("temporal discharge temperature-gate flag mismatch".to_owned());
+    }
+
+    near("temporal aggregate initial energy",
+        required_nonnegative(json, "temporal_initial_stored_energy_j")?, initial_energy)?;
+    near("temporal aggregate final energy",
+        required_nonnegative(json, "temporal_final_stored_energy_j")?, energy_final)?;
+    near("temporal aggregate accepted charge",
+        required_nonnegative(json, "temporal_accepted_charge_heat_j")?, expected_charge)?;
+    near("temporal aggregate rejected charge",
+        required_nonnegative(json, "temporal_rejected_charge_heat_j")?, expected_rejected)?;
+    near("temporal aggregate source withdrawal",
+        required_nonnegative(json, "temporal_source_heat_withdrawn_j")?, expected_withdrawn)?;
+    near("temporal aggregate useful delivery",
+        required_nonnegative(json, "temporal_useful_heat_delivered_j")?, expected_delivered)?;
+    near("temporal aggregate exchanger loss",
+        required_nonnegative(json, "temporal_heat_exchanger_loss_j")?, expected_exchange_loss)?;
+    near("temporal aggregate unmet service",
+        required_nonnegative(json, "temporal_unmet_useful_heat_j")?, expected_unmet)?;
+    near("temporal aggregate standing loss",
+        required_nonnegative(json, "temporal_standing_heat_loss_j")?, period_0_loss + period_1_loss)?;
+    let residual = initial_energy + expected_charge - period_0_loss - period_1_loss
+        - expected_withdrawn - energy_final;
+    near("temporal global first-law residual",
+        number(json, "temporal_energy_balance_residual_j")?, residual)?;
+    near("temporal global first-law closure",
+        initial_energy + expected_charge,
+        energy_final + period_0_loss + period_1_loss + expected_withdrawn)?;
+    near("temporal service balance", requested, expected_delivered + expected_unmet);
+
     Ok(())
 }
 
