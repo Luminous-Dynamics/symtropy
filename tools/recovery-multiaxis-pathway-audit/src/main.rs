@@ -808,7 +808,8 @@ mod tests {
     #[test]
     fn unknown_family_set_fails_closed() {
         let mut value = corpus();
-        case_mut(&mut value, &value.cases[0].case_id.clone()).family_set_id = "unregistered-family-set".to_string();
+        let case_id = value.cases[0].case_id.clone();
+        case_mut(&mut value, &case_id).family_set_id = "unregistered-family-set".to_string();
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert!(receipt.errors.iter().any(|error| error.starts_with("FAMILY_SET_UNKNOWN")));
