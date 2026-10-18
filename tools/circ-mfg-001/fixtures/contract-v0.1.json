@@ -1,0 +1,75 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "CIRC-MFG-001-contract-v0.1",
+  "evidence_class": "Synthetic",
+  "cases": [
+    {
+      "case_id": "01-complete-evidence-balanced",
+      "expected_decision": "Eligible",
+      "required_evidence_ids": ["design-revision", "bom-revision", "inspection-result"],
+      "evidence": [
+        {"evidence_id": "design-revision", "status": "Verified", "payload": "design-rev-a", "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"},
+        {"evidence_id": "bom-revision", "status": "Verified", "payload": "bom-rev-a", "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"},
+        {"evidence_id": "inspection-result", "status": "Verified", "payload": "inspection-result-pass", "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"}
+      ],
+      "mandatory_gates": [
+        {"name": "dimensional-inspection", "status": "Pass"},
+        {"name": "functional-fit-check", "status": "Pass"}
+      ],
+      "mass_balance": {"inputs_kg": 10.0, "accounted_outputs_kg": 9.99, "tolerance_kg": 0.02}
+    },
+    {
+      "case_id": "02-verified-payload-digest-mismatch",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": ["design-revision"],
+      "evidence": [
+        {"evidence_id": "design-revision", "status": "Verified", "payload": "design-rev-a", "sha256": "0000000000000000000000000000000000000000000000000000000000000000"}
+      ],
+      "mandatory_gates": [{"name": "dimensional-inspection", "status": "Pass"}],
+      "mass_balance": {"inputs_kg": 10.0, "accounted_outputs_kg": 10.0, "tolerance_kg": 0.01}
+    },
+    {
+      "case_id": "03-required-material-lot-missing",
+      "expected_decision": "Unresolved",
+      "required_evidence_ids": ["design-revision", "material-lot"],
+      "evidence": [
+        {"evidence_id": "design-revision", "status": "Verified", "payload": "design-rev-a", "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"}
+      ],
+      "mandatory_gates": [{"name": "required-material-provenance", "status": "Pass"}],
+      "mass_balance": {"inputs_kg": 4.0, "accounted_outputs_kg": 4.0, "tolerance_kg": 0.01}
+    },
+    {
+      "case_id": "04-mandatory-quality-gate-fails",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": ["inspection-result"],
+      "evidence": [
+        {"evidence_id": "inspection-result", "status": "Verified", "payload": "inspection-result-pass", "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"}
+      ],
+      "mandatory_gates": [
+        {"name": "critical-defect-screen", "status": "Fail"},
+        {"name": "functional-fit-check", "status": "Pass"}
+      ],
+      "mass_balance": {"inputs_kg": 2.5, "accounted_outputs_kg": 2.5, "tolerance_kg": 0.01}
+    },
+    {
+      "case_id": "05-mass-balance-out-of-tolerance",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": ["design-revision"],
+      "evidence": [
+        {"evidence_id": "design-revision", "status": "Verified", "payload": "design-rev-a", "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"}
+      ],
+      "mandatory_gates": [{"name": "process-acceptance", "status": "Pass"}],
+      "mass_balance": {"inputs_kg": 10.0, "accounted_outputs_kg": 9.5, "tolerance_kg": 0.1}
+    },
+    {
+      "case_id": "06-required-evidence-stale",
+      "expected_decision": "Unresolved",
+      "required_evidence_ids": ["inspection-result"],
+      "evidence": [
+        {"evidence_id": "inspection-result", "status": "Stale", "payload": null, "sha256": null}
+      ],
+      "mandatory_gates": [{"name": "inspection-currentness", "status": "Unresolved"}],
+      "mass_balance": {"inputs_kg": 5.0, "accounted_outputs_kg": 5.0, "tolerance_kg": 0.01}
+    }
+  ]
+}
