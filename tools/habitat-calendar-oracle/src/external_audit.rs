@@ -263,7 +263,7 @@ fn parse_results_csv(
         "resource_utilization",
         "notes",
     ];
-    if header.trim_end_matches('\r').split(',').collect::<Vec<_>>() != expected_header {
+    if header.trim_end_matches('\r').split(',').collect::<Vec<_>>() != expected_header.to_vec() {
         return Err("unsupported_results_csv_header".to_owned());
     }
 
