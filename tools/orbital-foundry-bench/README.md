@@ -11,7 +11,7 @@ Sixteen combinations of four binary design decisions are compared:
 - a carried spare pack versus no spare pack;
 - an explicitly declared end-of-life plan versus no plan.
 
-The versioned fixture includes five synthetic disturbance scenarios: robot-joint failure, interface mismatch, power-domain failure, delayed resupply, and a compound common-cause event. Each scenario lists ordered fault events with explicit synthetic ticks. The replay updates shared spare inventory at every event and emits an auditable event trace showing spare inventory before and after each event, modeled recovery ticks, and scenario service-loss totals.
+The versioned fixture includes five synthetic disturbance scenarios: robot-joint failure, interface mismatch, power-domain failure, delayed resupply, and a compound common-cause event with repeated power faults. Each scenario lists ordered fault events with synthetic ticks. Faults map to explicit services, and a repeated fault queues behind any active recovery on that service. The event trace records repair start/end, queue delay, spare inventory before/after, and recovery duration.
 
 The toy spare pack contains two generic repair/consumable units. This is an explicit synthetic assumption to demonstrate resource contention in a compound event; it is not a parts list or a spacecraft logistics estimate. Event timestamps and recovery values are discrete synthetic tick values. Simultaneous events are applied in fixture order, which is a deterministic tie-break policy rather than a claim about real response scheduling.
 
@@ -30,7 +30,7 @@ The JSON report includes the exact fixture SHA-256, optional source commit, all 
 
 ## Metrics and claim ceiling
 
-The report keeps launch mass in **synthetic mass units (SMU)**, assembly duration in **synthetic ticks**, interface-family count, worst-case synthetic service-loss ticks, and aggregate additive service-loss ticks separate. The additive loss metric sums modeled recovery exposure across events; it is not necessarily elapsed wall-clock downtime when events overlap. No arbitrary combined score is used.
+The report keeps launch mass in **synthetic mass units (SMU)**, assembly duration in **synthetic ticks**, interface-family count, additive service-loss ticks, and elapsed recovery horizon separate. Additive loss sums outage across affected services; elapsed recovery measures from the first fault until the last queued repair completes. These answer different questions. No arbitrary combined score is used.
 
 The hard gate requires a declared end-of-life plan and a worst-case service-loss value no greater than the fixture threshold. These are synthetic policy rules; they do not establish orbital disposal feasibility or regulatory compliance.
 
