@@ -152,6 +152,7 @@ pub enum MetricStratumKind {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
     /// Versioned estimator/resampling procedure that produced this interval.
     pub method_id: String,
     pub confidence_percent: u8,
@@ -985,6 +986,7 @@ mod tests {
         ));
         metric.value = Some(0.8);
         metric.interval = Some(ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
             confidence_percent: 90,
             lower: 0.9,
             upper: 1.0,
