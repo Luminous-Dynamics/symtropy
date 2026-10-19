@@ -1832,7 +1832,7 @@ mod tests {
         prediction.run.asset_sha256 = Some("e".repeat(64));
         prediction.run.asset_license = Some("model evaluation license".to_owned());
         prediction.run.model_sha256 = Some("1".repeat(64));
-        prediction.retarget_map_sha256.0 = Some("f".repeat(64));
+        prediction.retarget_map_sha256.0 = Some("c".repeat(64));
 
         (reference, prediction)
     }
