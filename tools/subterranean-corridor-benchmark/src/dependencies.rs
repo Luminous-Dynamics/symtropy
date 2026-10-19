@@ -201,6 +201,11 @@ pub fn evaluate_network_capacity(
         }
     }
 
+    // Stable ordering makes reports reproducible regardless of input path order.
+    available_path_ids.sort();
+    unavailable_path_ids.sort();
+    unresolved_path_ids.sort();
+
     if credited_capacity + 1.0e-9 < scenario.demand_units_per_hour
         && !unresolved_path_ids.is_empty()
     {
