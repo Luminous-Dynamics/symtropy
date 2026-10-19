@@ -20,7 +20,7 @@ The tool emits a deterministic receipt bound to the exact corpus bytes by SHA-25
 - **Uncertainty-reduction greedy:** maximizes declared marginal information score per effort.
 - **Exact small-case oracle:** exhaustively enumerates eligible subsets under the same budget limits to bound avoidable regret.
 
-The declared information score is a benchmark objective, not a biological truth score. Output also reports weighted stratum coverage, raw uncertainty reduction, effort, each exposure channel, uncovered strata and regret. Sound, light and sediment are independent hard limits, not terms that can trade against one another in a single "safety" score.
+The declared information score is a benchmark objective, not a biological truth score. Output also reports weighted stratum coverage, raw uncertainty reduction, effort, each exposure channel, uncovered strata, oracle regret and a Pareto-frontier marker. Frontier membership compares coverage, information score and uncertainty reduction as maximize objectives while minimizing effort and each exposure channel independently. A lower-exposure, lower-coverage option may remain on the frontier beside a higher-information option; no universal weighted winner or scalar "safety" score is produced. Sound, light and sediment are independent hard limits.
 
 ## Fail-closed eligibility
 
