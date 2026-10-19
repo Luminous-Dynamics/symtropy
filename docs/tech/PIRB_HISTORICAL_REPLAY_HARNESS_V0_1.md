@@ -25,6 +25,8 @@ One input record is one opaque community-period observation. There are no person
 
 The decision time is the information cutoff. Every evidence item used by that record must have been available at or before it; otherwise the dataset is rejected for look-ahead leakage. Outcome labels are evaluation targets, not decision inputs, and must become available after the decision. Unknown labels have no outcome timestamps and never count as no-harm.
 
+The dataset also declares a fixed positive outcome-follow-up horizon. A harm label must occur strictly after decision time and no later than the end of that horizon. A no-harm label is admissible only when observation has covered the entire horizon; shorter follow-up is not a negative result. This prevents the benchmark from treating "no event seen yet" as "no harm." Outcome labels become available after the decision and are evaluation targets, never decision-time features.
+
 The dataset declares a time window with exclusive boundaries:
 
 1. Training period: evaluation start through (but not including) training end.
