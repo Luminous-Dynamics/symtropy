@@ -16,7 +16,7 @@ The local example emits `UNPINNED_LOCAL_RUN` unless a commit SHA is supplied. Su
 
 The Draft 2020-12 schema and Rust semantic validator reject unknown fields, including person-level identifiers; duplicate case and community-period observations; misordered or overlapping temporal boundaries; records outside the declared window; future-dated evidence relative to the decision; alerts before decisions; invalid outcome chronology; and claimed verified responses without ordered completion/verification timestamps and an independent evidence reference.
 
-Every record represents one opaque aggregate community-period, not a person or household. Feature evidence has its own availability time and must have been available at or before the decision time. Outcome labels are kept separate from decision-time evidence and must have become available after the decision. Unknown outcomes stay unknown; they are never recoded as no harm. Unavailable, stale, and conflicting evidence remain visible in coverage indicators instead of being silently upgraded to verified.
+Every record represents one opaque aggregate community-period, not a person or household. Feature evidence has its own availability time and must have been available at or before the decision time. Outcome labels are kept separate from decision-time evidence and must have become available after the decision. Each dataset declares one fixed outcome-follow-up horizon: harm must occur inside it, and a no-harm label requires the full horizon to have elapsed. Unknown outcomes stay unknown; they are never recoded as no harm. Unavailable, stale, and conflicting evidence remain visible in coverage indicators instead of being silently upgraded to verified.
 
 ## Metrics
 
