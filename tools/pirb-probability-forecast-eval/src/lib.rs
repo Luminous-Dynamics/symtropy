@@ -965,7 +965,6 @@ fn valid_commit_sha(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-
 #[derive(Debug, Clone, Serialize)]
 pub struct VintageMetricRange {
     versions_with_score: usize,
@@ -1096,7 +1095,11 @@ fn vintage_compatibility_errors(
     let source = &reference.source;
     let other = &candidate.source;
     for (name, left, right) in [
-        ("provider", source.provider.as_str(), other.provider.as_str()),
+        (
+            "provider",
+            source.provider.as_str(),
+            other.provider.as_str(),
+        ),
         (
             "forecast source reference",
             source.forecast_source_reference.as_str(),
@@ -1112,7 +1115,11 @@ fn vintage_compatibility_errors(
             source.forecast_archive_sha256.as_str(),
             other.forecast_archive_sha256.as_str(),
         ),
-        ("model ID", source.model_id.as_str(), other.model_id.as_str()),
+        (
+            "model ID",
+            source.model_id.as_str(),
+            other.model_id.as_str(),
+        ),
         (
             "model version",
             source.model_version.as_str(),
@@ -1174,10 +1181,7 @@ fn vintage_compatibility_errors(
     findings
 }
 
-fn changed_test_labels(
-    reference: &ForecastDataset,
-    candidate: &ForecastDataset,
-) -> usize {
+fn changed_test_labels(reference: &ForecastDataset, candidate: &ForecastDataset) -> usize {
     let reference_by_id: BTreeMap<&str, &ForecastRecord> = reference
         .records
         .iter()
@@ -1206,7 +1210,11 @@ fn changed_test_labels(
 }
 
 fn vintage_metric_range(values: impl IntoIterator<Item = Option<f64>>) -> VintageMetricRange {
-    let mut present: Vec<f64> = values.into_iter().flatten().filter(|value| value.is_finite()).collect();
+    let mut present: Vec<f64> = values
+        .into_iter()
+        .flatten()
+        .filter(|value| value.is_finite())
+        .collect();
     present.sort_by(f64::total_cmp);
     if present.is_empty() {
         return VintageMetricRange {
@@ -1239,8 +1247,7 @@ pub fn compare_outcome_vintages(
 ) -> Result<OutcomeVintageSensitivityReceipt, Vec<String>> {
     if !(2..=20).contains(&inputs.len()) {
         return Err(vec![
-            "outcome-vintage comparison requires between 2 and 20 frozen input datasets"
-                .to_owned(),
+            "outcome-vintage comparison requires between 2 and 20 frozen input datasets".to_owned(),
         ]);
     }
     let mut findings = Vec::new();
@@ -1302,8 +1309,11 @@ pub fn compare_outcome_vintages(
         .iter()
         .map(|receipt| receipt.input_sha256.as_str())
         .collect();
-    let input_manifest_bytes = serde_json::to_vec(&manifest_digests)
-        .map_err(|error| vec![format!("cannot serialize outcome-vintage input manifest: {error}")])?;
+    let input_manifest_bytes = serde_json::to_vec(&manifest_digests).map_err(|error| {
+        vec![format!(
+            "cannot serialize outcome-vintage input manifest: {error}"
+        )]
+    })?;
 
     let mut summaries = Vec::with_capacity(datasets.len());
     for (index, (dataset, receipt)) in datasets.iter().zip(receipts.iter()).enumerate() {
@@ -1331,22 +1341,18 @@ pub fn compare_outcome_vintages(
             log_loss: test.log_loss,
             roc_auc: test.roc_auc,
             average_precision: test.average_precision,
-            brier_skill_score_vs_past_only_climatology:
-                test.brier_skill_score_vs_past_only_climatology,
+            brier_skill_score_vs_past_only_climatology: test
+                .brier_skill_score_vs_past_only_climatology,
             uncertainty_status: receipt.test_uncertainty.status,
         });
     }
 
     let metric_ranges = OutcomeVintageMetricRanges {
-        test_event_rate: vintage_metric_range(
-            summaries.iter().map(|row| row.test_event_rate),
-        ),
+        test_event_rate: vintage_metric_range(summaries.iter().map(|row| row.test_event_rate)),
         brier_score: vintage_metric_range(summaries.iter().map(|row| row.brier_score)),
         log_loss: vintage_metric_range(summaries.iter().map(|row| row.log_loss)),
         roc_auc: vintage_metric_range(summaries.iter().map(|row| row.roc_auc)),
-        average_precision: vintage_metric_range(
-            summaries.iter().map(|row| row.average_precision),
-        ),
+        average_precision: vintage_metric_range(summaries.iter().map(|row| row.average_precision)),
         brier_skill_score_vs_past_only_climatology: vintage_metric_range(
             summaries
                 .iter()
@@ -1400,8 +1406,9 @@ mod tests {
 
     const FIXTURE: &[u8] =
         include_bytes!("../../../docs/fixtures/pirb-probability-forecast-v0.1.json");
-    const ALTERNATE_VINTAGE: &[u8] =
-        include_bytes!("../../../docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json");
+    const ALTERNATE_VINTAGE: &[u8] = include_bytes!(
+        "../../../docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json"
+    );
     const LOCK: &[u8] = b"synthetic-test-lock";
 
     fn dataset() -> ForecastDataset {
@@ -1784,10 +1791,12 @@ mod tests {
             "cargo 1.96.0",
             LOCK,
         );
-        assert!(result
-            .unwrap_err()
-            .iter()
-            .any(|finding| finding.contains("identical forecast inventory")));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|finding| finding.contains("identical forecast inventory"))
+        );
     }
 
     #[test]
@@ -1803,10 +1812,12 @@ mod tests {
             "cargo 1.96.0",
             LOCK,
         );
-        assert!(result
-            .unwrap_err()
-            .iter()
-            .any(|finding| finding.contains("identical outcome definition")));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|finding| finding.contains("identical outcome definition"))
+        );
     }
 
     #[test]
@@ -1818,10 +1829,12 @@ mod tests {
             "cargo 1.96.0",
             LOCK,
         );
-        assert!(result
-            .unwrap_err()
-            .iter()
-            .any(|finding| finding.contains("duplicates an outcome_release_id")));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|finding| finding.contains("duplicates an outcome_release_id"))
+        );
     }
 
     #[test]
