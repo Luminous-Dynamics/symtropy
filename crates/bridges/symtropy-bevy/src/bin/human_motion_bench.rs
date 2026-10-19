@@ -1207,7 +1207,9 @@ fn evaluate(
     requested_step: Option<f64>,
 ) -> Result<BenchmarkReport, BenchError> {
     if reference.schema_version != prediction.schema_version {
-        return fail("trace schema versions differ; convert both traces to the same version before comparison");
+        return fail(
+            "trace schema versions differ; convert both traces to the same version before comparison",
+        );
     }
     if reference.coordinate_frame != prediction.coordinate_frame {
         return fail("coordinate frames differ; convert both traces to the same declared frame");
@@ -1595,19 +1597,31 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         report
             .root_orientation_error
             .as_ref()
-            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_angular_error_rad)),
+            .map_or_else(
+                || "n/a".to_owned(),
+                |value| format!("{:.2}", value.p95_angular_error_rad),
+            ),
         report
             .root_orientation_error
             .as_ref()
-            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_angular_error_deg)),
+            .map_or_else(
+                || "n/a".to_owned(),
+                |value| format!("{:.2}", value.p95_angular_error_deg),
+            ),
         report
             .root_orientation_error
             .as_ref()
-            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_absolute_yaw_error_rad)),
+            .map_or_else(
+                || "n/a".to_owned(),
+                |value| format!("{:.2}", value.p95_absolute_yaw_error_rad),
+            ),
         report
             .root_orientation_error
             .as_ref()
-            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_absolute_yaw_error_deg)),
+            .map_or_else(
+                || "n/a".to_owned(),
+                |value| format!("{:.2}", value.p95_absolute_yaw_error_deg),
+            ),
         report.prediction_root_mean_squared_jerk_m2_s6
     );
 
@@ -1809,6 +1823,9 @@ mod tests {
         assert_eq!(report.right_stance_foot_drift.max_drift_m, 0.0);
         assert_eq!(report.left_foot_contact_agreement.f1, Some(1.0));
         assert_eq!(report.right_foot_contact_agreement.f1, Some(1.0));
+        assert!(report.root_orientation_error.is_none());
+        let serialized = serde_json::to_value(&report).unwrap();
+        assert!(serialized["root_orientation_error"].is_null());
         assert!(!report.provenance.asset_hashes_match);
         assert!(
             report
