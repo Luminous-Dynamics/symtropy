@@ -6,8 +6,8 @@
 use std::collections::BTreeSet;
 
 use super::egress::{
-    assess_egress_coordination, CommunicationsState, CoordinationSupportStatus,
-    EgressCoordinationReport, LocalPlanState, LocalizationState,
+    CommunicationsState, CoordinationSupportStatus, EgressCoordinationReport, LocalPlanState,
+    LocalizationState, assess_egress_coordination,
 };
 use super::{RouteSearchDisposition, TimedEvidence};
 
@@ -141,7 +141,11 @@ mod tests {
     use super::*;
 
     fn event(id: &str, at_ms: u64, kind: MissionTraceEventKind) -> MissionTraceEvent {
-        MissionTraceEvent { id: id.to_owned(), at_ms, kind }
+        MissionTraceEvent {
+            id: id.to_owned(),
+            at_ms,
+            kind,
+        }
     }
 
     fn location(observed_at_ms: u64, max_age_ms: u64) -> TimedEvidence<LocalizationState> {
@@ -164,18 +168,39 @@ mod tests {
 
     fn base_events() -> Vec<MissionTraceEvent> {
         vec![
-            event("loc", 100, MissionTraceEventKind::LocalizationObserved(location(100, 1000))),
-            event("plan", 100, MissionTraceEventKind::LocalPlanObserved(plan(100, 1000))),
-            event("comms-live", 100, MissionTraceEventKind::CommunicationsChanged(CommunicationsState::LiveAcknowledgedPath)),
+            event(
+                "loc",
+                100,
+                MissionTraceEventKind::LocalizationObserved(location(100, 1000)),
+            ),
+            event(
+                "plan",
+                100,
+                MissionTraceEventKind::LocalPlanObserved(plan(100, 1000)),
+            ),
+            event(
+                "comms-live",
+                100,
+                MissionTraceEventKind::CommunicationsChanged(
+                    CommunicationsState::LiveAcknowledgedPath,
+                ),
+            ),
         ]
     }
 
     #[test]
     fn identical_input_trace_replays_to_identical_ordered_report() {
         let mut events = base_events();
-        events.push(event("isolate", 200, MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated)));
-        let first = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20).expect("valid trace");
-        let second = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20).expect("valid trace");
+        events.push(event(
+            "isolate",
+            200,
+            MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated),
+        ));
+        let first = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20)
+            .expect("valid trace");
+        let second =
+            replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20)
+                .expect("valid trace");
         assert_eq!(first, second);
         assert_eq!(first.disposition, TraceReplayDisposition::Complete);
         assert_eq!(first.processed_events, events.len());
@@ -184,54 +209,144 @@ mod tests {
     #[test]
     fn communications_isolation_changes_coordination_not_route_disposition() {
         let mut events = base_events();
-        events.push(event("isolate", 101, MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated)));
-        let report = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20).expect("valid trace");
-        assert_eq!(report.samples[2].report.coordination_status, CoordinationSupportStatus::LiveCoordinationAvailable);
-        assert_eq!(report.samples[3].report.coordination_status, CoordinationSupportStatus::OfflinePlanAndLocationAvailable);
-        assert_eq!(report.samples[3].report.route_disposition, RouteSearchDisposition::AdmissibleRouteFound);
+        events.push(event(
+            "isolate",
+            101,
+            MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated),
+        ));
+        let report =
+            replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20)
+                .expect("valid trace");
+        assert_eq!(
+            report.samples[2].report.coordination_status,
+            CoordinationSupportStatus::LiveCoordinationAvailable
+        );
+        assert_eq!(
+            report.samples[3].report.coordination_status,
+            CoordinationSupportStatus::OfflinePlanAndLocationAvailable
+        );
+        assert_eq!(
+            report.samples[3].report.route_disposition,
+            RouteSearchDisposition::AdmissibleRouteFound
+        );
     }
 
     #[test]
     fn checkpoint_can_make_previously_fresh_location_stale() {
         let events = vec![
-            event("loc", 100, MissionTraceEventKind::LocalizationObserved(location(100, 10))),
-            event("plan", 100, MissionTraceEventKind::LocalPlanObserved(plan(100, 1000))),
-            event("isolate", 100, MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated)),
+            event(
+                "loc",
+                100,
+                MissionTraceEventKind::LocalizationObserved(location(100, 10)),
+            ),
+            event(
+                "plan",
+                100,
+                MissionTraceEventKind::LocalPlanObserved(plan(100, 1000)),
+            ),
+            event(
+                "isolate",
+                100,
+                MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated),
+            ),
             event("tick", 111, MissionTraceEventKind::Checkpoint),
         ];
-        let report = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20).expect("valid trace");
-        assert_eq!(report.samples[2].report.coordination_status, CoordinationSupportStatus::OfflinePlanAndLocationAvailable);
-        assert_eq!(report.samples[3].report.coordination_status, CoordinationSupportStatus::CoordinationUnknown);
-        assert!(report.samples[3].report.reasons.contains(&super::super::egress::CoordinationReason::LocalizationStale));
+        let report =
+            replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20)
+                .expect("valid trace");
+        assert_eq!(
+            report.samples[2].report.coordination_status,
+            CoordinationSupportStatus::OfflinePlanAndLocationAvailable
+        );
+        assert_eq!(
+            report.samples[3].report.coordination_status,
+            CoordinationSupportStatus::CoordinationUnknown
+        );
+        assert!(
+            report.samples[3]
+                .report
+                .reasons
+                .contains(&super::super::egress::CoordinationReason::LocalizationStale)
+        );
     }
 
     #[test]
     fn pending_store_carry_forward_never_becomes_live_delivery() {
         let mut events = base_events();
-        events.push(event("delay", 101, MissionTraceEventKind::CommunicationsChanged(CommunicationsState::StoreCarryForwardPending)));
-        let report = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20).expect("valid trace");
-        assert_eq!(report.samples[3].report.coordination_status, CoordinationSupportStatus::LocalInputsAvailableMessagesDeferred);
+        events.push(event(
+            "delay",
+            101,
+            MissionTraceEventKind::CommunicationsChanged(
+                CommunicationsState::StoreCarryForwardPending,
+            ),
+        ));
+        let report =
+            replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20)
+                .expect("valid trace");
+        assert_eq!(
+            report.samples[3].report.coordination_status,
+            CoordinationSupportStatus::LocalInputsAvailableMessagesDeferred
+        );
     }
 
     #[test]
     fn route_closure_and_search_limit_remain_distinct_during_isolation() {
         let mut events = base_events();
-        events.push(event("isolate", 101, MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated)));
-        events.push(event("closed", 102, MissionTraceEventKind::RouteDispositionChanged(RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph)));
-        events.push(event("limited", 103, MissionTraceEventKind::RouteDispositionChanged(RouteSearchDisposition::SearchLimitExceeded)));
-        let report = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20).expect("valid trace");
-        assert_eq!(report.samples[4].report.route_disposition, RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph);
-        assert_eq!(report.samples[5].report.route_disposition, RouteSearchDisposition::SearchLimitExceeded);
-        assert_eq!(report.samples[5].report.coordination_status, CoordinationSupportStatus::OfflinePlanAndLocationAvailable);
+        events.push(event(
+            "isolate",
+            101,
+            MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated),
+        ));
+        events.push(event(
+            "closed",
+            102,
+            MissionTraceEventKind::RouteDispositionChanged(
+                RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph,
+            ),
+        ));
+        events.push(event(
+            "limited",
+            103,
+            MissionTraceEventKind::RouteDispositionChanged(
+                RouteSearchDisposition::SearchLimitExceeded,
+            ),
+        ));
+        let report =
+            replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20)
+                .expect("valid trace");
+        assert_eq!(
+            report.samples[4].report.route_disposition,
+            RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph
+        );
+        assert_eq!(
+            report.samples[5].report.route_disposition,
+            RouteSearchDisposition::SearchLimitExceeded
+        );
+        assert_eq!(
+            report.samples[5].report.coordination_status,
+            CoordinationSupportStatus::OfflinePlanAndLocationAvailable
+        );
     }
 
     #[test]
     fn same_timestamp_events_preserve_fixture_order() {
         let mut events = base_events();
-        events.push(event("isolate", 100, MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated)));
-        let report = replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20).expect("valid trace");
-        assert_eq!(report.samples[2].report.coordination_status, CoordinationSupportStatus::LiveCoordinationAvailable);
-        assert_eq!(report.samples[3].report.coordination_status, CoordinationSupportStatus::OfflinePlanAndLocationAvailable);
+        events.push(event(
+            "isolate",
+            100,
+            MissionTraceEventKind::CommunicationsChanged(CommunicationsState::Isolated),
+        ));
+        let report =
+            replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 20)
+                .expect("valid trace");
+        assert_eq!(
+            report.samples[2].report.coordination_status,
+            CoordinationSupportStatus::LiveCoordinationAvailable
+        );
+        assert_eq!(
+            report.samples[3].report.coordination_status,
+            CoordinationSupportStatus::OfflinePlanAndLocationAvailable
+        );
         assert_eq!(report.samples[2].at_ms, report.samples[3].at_ms);
     }
 
@@ -241,7 +356,9 @@ mod tests {
             event("later", 200, MissionTraceEventKind::Checkpoint),
             event("earlier", 199, MissionTraceEventKind::Checkpoint),
         ];
-        assert!(replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 10).is_err());
+        assert!(
+            replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 10).is_err()
+        );
     }
 
     #[test]
@@ -250,13 +367,17 @@ mod tests {
             event("duplicate", 100, MissionTraceEventKind::Checkpoint),
             event("duplicate", 101, MissionTraceEventKind::Checkpoint),
         ];
-        assert!(replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 10).is_err());
+        assert!(
+            replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 10).is_err()
+        );
     }
 
     #[test]
     fn empty_event_id_is_rejected() {
         let events = vec![event("  ", 100, MissionTraceEventKind::Checkpoint)];
-        assert!(replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 10).is_err());
+        assert!(
+            replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 10).is_err()
+        );
     }
 
     #[test]
@@ -265,8 +386,12 @@ mod tests {
             event("a", 100, MissionTraceEventKind::Checkpoint),
             event("b", 101, MissionTraceEventKind::Checkpoint),
         ];
-        let report = replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 1).expect("limit is an explicit result");
-        assert_eq!(report.disposition, TraceReplayDisposition::EventLimitExceeded);
+        let report = replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &events, 1)
+            .expect("limit is an explicit result");
+        assert_eq!(
+            report.disposition,
+            TraceReplayDisposition::EventLimitExceeded
+        );
         assert_eq!(report.processed_events, 0);
         assert!(report.samples.is_empty());
     }
@@ -283,6 +408,9 @@ mod tests {
             100,
             MissionTraceEventKind::LocalizationObserved(location(101, 1000)),
         )];
-        assert!(replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 10).is_err());
+        assert!(
+            replay_mission_trace(RouteSearchDisposition::AdmissibleRouteFound, &events, 10)
+                .is_err()
+        );
     }
 }
