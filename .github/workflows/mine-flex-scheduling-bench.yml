@@ -161,6 +161,7 @@ jobs:
             and (.generated_evaluation_set_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
             and ([.world_results[] | select(.adaptive_execution.completed_production_target == false and .adaptive_recourse.feasible == true)] | length == 0)
+            and ([.world_results[] | select(.carbon_aware_execution.completed_production_target == false and .carbon_aware_recourse.feasible == true)] | length == 0)
           ' mine-flex-recourse-receipt.json
       - name: Emit recourse metrics by split and world class
         shell: bash
@@ -171,6 +172,8 @@ jobs:
             in_envelope_world_count, out_of_envelope_world_count,
             completed_adaptive_worlds_within_envelope,
             adaptive_aborts_outside_envelope,
+            completed_carbon_first_worlds_within_envelope,
+            carbon_first_aborts_outside_envelope,
             causal_nonanticipativity_violations,
             independent_hard_constraint_violations,
             summaries,
