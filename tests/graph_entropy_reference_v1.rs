@@ -263,3 +263,42 @@ fn deterministic_edge_grid_preserves_dissipation_sign() {
 
     assert_eq!(checked, 405, "unexpected deterministic property-grid size");
 }
+
+
+#[test]
+fn hostile_edge_and_non_finite_mutations_fail_closed() {
+    let corpus = corpus();
+    let cases = corpus["cases"].as_array().expect("cases array");
+    let valid = cases
+        .iter()
+        .find(|case| case["id"].as_str() == Some("GE-001-two-node-strict"))
+        .expect("positive witness case exists");
+
+    let mut nan_conductance = valid.clone();
+    nan_conductance["edges"][0]["conductance"] = Value::String("NaN".to_owned());
+    assert!(
+        evaluate_dissipation(&nan_conductance).is_err(),
+        "NaN conductance must fail closed"
+    );
+
+    let mut infinite_conductance = valid.clone();
+    infinite_conductance["edges"][0]["conductance"] = Value::String("Infinity".to_owned());
+    assert!(
+        evaluate_dissipation(&infinite_conductance).is_err(),
+        "infinite conductance must fail closed"
+    );
+
+    let mut invalid_endpoint = valid.clone();
+    invalid_endpoint["edges"][0]["src"] = Value::from(2_u64);
+    assert!(
+        evaluate_dissipation(&invalid_endpoint).is_err(),
+        "out-of-range edge endpoint must fail closed"
+    );
+
+    let mut nan_state = valid.clone();
+    nan_state["state"][0] = Value::String("NaN".to_owned());
+    assert!(
+        evaluate_dissipation(&nan_state).is_err(),
+        "NaN state must fail closed before logarithm evaluation"
+    );
+}
