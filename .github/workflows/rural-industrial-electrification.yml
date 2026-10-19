@@ -75,16 +75,24 @@ jobs:
       - name: Validate all vehicle designs and platform-contract mappings
         run: |
           jq -e '.schema_version == "0.1.0" and .programme_id == "EV-PLATFORM-001" and (.shared_interface_contracts | length == 11) and (.platform_families | length == 10)' tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json
-          jq -en --slurpfile cat tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json --slurpfile p tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json --slurpfile m tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json '
+          jq -e '.schema_version == "0.1.0" and .programme_id == "EV-PLATFORM-001" and (.architecture_patterns | length == 9) and ([.architecture_patterns[].pattern_id] | unique | length == 9) and (.designs | length == 19) and all(.designs[]; (.subsystems | length == 6) and ([.subsystems[].subsystem_id] | unique | length == 6) and all(.subsystems[]; .status == "conceptual"))' tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json
+          jq -en --slurpfile cat tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json --slurpfile p tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json --slurpfile m tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json --slurpfile a tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json '
             ($cat[0].designs | map(.design_id) | sort) as $designs |
             ($p[0].platform_families | map(.design_ids[]) | sort) as $mapped |
             ($p[0].shared_interface_contracts | map(.contract_id) | sort) as $contracts |
             ($p[0].platform_families | map(.shared_contracts[]) | unique | sort) as $used |
             ($m[0].scenarios | map(.design_id) | sort) as $mission_designs |
-            ($designs == $mapped and ($mapped | length) == 19 and ($mapped | unique | length) == 19 and $designs == $mission_designs and ($mission_designs | unique | length) == 19 and $contracts == $used)
+            ($a[0].designs | map(.design_id) | sort) as $architecture_designs |
+            ($a[0].architecture_patterns | map(.pattern_id) | sort) as $pattern_ids |
+            ($p[0].platform_families | map(.platform_family_id)) as $family_ids |
+            ($a[0].designs | all(.[]; (.platform_family_id as $fid | $family_ids | index($fid)) != null and (.architecture_pattern_id as $pid | $pattern_ids | index($pid)) != null)) as $refs_ok |
+            ($designs == $mapped and ($mapped | length) == 19 and ($mapped | unique | length) == 19 and
+             $designs == $mission_designs and ($mission_designs | unique | length) == 19 and
+             $designs == $architecture_designs and ($architecture_designs | unique | length) == 19 and
+             $contracts == $used and $refs_ok)
           '
       - name: Hash deterministic screen reports and inputs
-        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json > screen-report.sha256
+        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json > screen-report.sha256
       - name: Upload reproducible screen reports
         uses: actions/upload-artifact@v4
         with:
@@ -102,5 +110,7 @@ jobs:
             tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json
             tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json
             tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json
+            tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json
+            tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json
           if-no-files-found: error
           retention-days: 14
