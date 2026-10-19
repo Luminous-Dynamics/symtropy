@@ -814,6 +814,86 @@ mod tests {
     }
 
     #[test]
+    fn compares_self_report_targets_with_capability_signals_on_capability_gap_case() {
+        let corpus = fixture();
+        let scenarios = validate_corpus(&corpus).expect("fixture validates");
+        let case = scenarios.iter().find(|item| {
+            item.get("case_id").and_then(Value::as_str) == Some("CAPABILITY-GAP-001")
+        }).expect("capability gap scenario exists");
+        let comparison = &case["reference_comparison"];
+        assert_eq!(
+            comparison["B1_self_report_only"]["top_reported_target_site"].as_str(),
+            Some("SITE-NORTH")
+        );
+        assert_eq!(
+            comparison["B1_self_report_only"]["top_target_matches_top_synthetic_enrollment"].as_bool(),
+            Some(false)
+        );
+        assert_eq!(
+            comparison["B3_capability_aware_heuristic"]["top_readiness_signal_site"].as_str(),
+            Some("SITE-SOUTH")
+        );
+        assert_eq!(
+            comparison["B3_capability_aware_heuristic"]["top_readiness_site_matches_top_synthetic_enrollment"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            comparison["B3_capability_aware_heuristic"]["pairwise_directional_concordance_with_synthetic_enrollment"].as_f64(),
+            Some(1.0)
+        );
+    }
+
+    #[test]
+    fn stale_and_incomplete_case_abstains_instead_of_zero_filling() {
+        let corpus = fixture();
+        let scenarios = validate_corpus(&corpus).expect("fixture validates");
+        let case = scenarios.iter().find(|item| {
+            item.get("case_id").and_then(Value::as_str) == Some("STALE-INCOMPLETE-005")
+        }).expect("stale case exists");
+        assert_eq!(
+            case["reference_comparison"]["B3_capability_aware_heuristic"]["rankable_site_count"].as_u64(),
+            Some(0)
+        );
+        assert_eq!(
+            case["reference_comparison"]["B3_capability_aware_heuristic"]["abstention_count"].as_u64(),
+            Some(2)
+        );
+    }
+
+    #[test]
+    fn candidate_projection_and_reference_comparison_ignore_input_order() {
+        let original = fixture();
+        let original_results = validate_corpus(&original).expect("original fixture validates");
+        let mut reordered = original.clone();
+        for case in reordered["cases"].as_array_mut().expect("case array") {
+            case["sites"].as_array_mut().expect("site array").reverse();
+            for site in case["sites"].as_array_mut().expect("site array") {
+                site["evidence"].as_array_mut().expect("evidence array").reverse();
+            }
+        }
+        let reordered_results = validate_corpus(&reordered).expect("reordered fixture validates");
+        assert_eq!(original_results, reordered_results);
+    }
+
+    #[test]
+    fn access_dimensions_are_reported_separately_from_readiness_scores() {
+        let corpus = fixture();
+        let scenarios = validate_corpus(&corpus).expect("fixture validates");
+        let case = scenarios.iter().find(|item| {
+            item.get("case_id").and_then(Value::as_str) == Some("REPRESENTATION-ACCESS-004")
+        }).expect("access scenario exists");
+        let comparison = &case["reference_comparison"];
+        assert!(comparison.get("separate_access_dimensions").is_some());
+        assert!(comparison.get("site_quality_score").is_none());
+        let access_rows = comparison["separate_access_dimensions"].as_array().expect("access rows");
+        assert_eq!(access_rows.len(), 2);
+        assert!(access_rows.iter().any(|row| {
+            row["site_id"].as_str() == Some("SITE-COMMUNITY")
+                && row["accessible_contact_channel_coverage"]["value"].as_f64() == Some(0.88)
+        }));
+    }
+
+    #[test]
     fn candidate_projection_excludes_truth_and_expected_invariants() {
         let projected = candidate_projection(&fixture()["cases"][0]);
         assert!(projected.get("oracle_truth").is_none());
