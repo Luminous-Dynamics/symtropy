@@ -11,7 +11,7 @@
 pub mod dynamics;
 pub use dynamics::{
     HarmonicOscillatorResult, HarmonicOscillatorSpec, OscillatorIntegrator, OscillatorSample,
-    simulate_harmonic_oscillator,
+    simulate_harmonic_oscillator, OSCILLATOR_SCHEMA_VERSION,
 };
 
 use serde::{Deserialize, Serialize};
