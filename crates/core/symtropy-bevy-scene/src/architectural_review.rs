@@ -2114,6 +2114,20 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_model_context_fixture_round_trips_and_retains_limitations() {
+        let fixture = include_str!("../fixtures/synthetic-review-model-context-v1.json");
+        let context: ReviewModelContext =
+            serde_json::from_str(fixture).expect("model-context fixture must match serde schema");
+        assert_eq!(context.source_kind, ReviewModelSourceKind::SyntheticFixture);
+        assert_eq!(context.source_format, ReviewModelFormat::BevyScene);
+        assert_eq!(context.fidelity, ReviewModelFidelity::SyntheticGeometry);
+        assert_eq!(context.source_linear_unit, ReviewLinearUnit::Metre);
+        assert_eq!(context.validate(), Ok(()));
+        assert!(context.known_limitations.iter().any(|value| value.contains("not a measured")));
+        assert!(serde_json::from_str::<ReviewModelContext>(fixture).is_ok());
+    }
+
+    #[test]
     fn source_linear_units_are_scaled_to_review_metres() {
         assert_eq!(
             scale_point_to_review_metres([1200.0, 2500.0, 3000.0], ReviewLinearUnit::Millimetre),
