@@ -23,6 +23,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-session-audit/Cargo.toml --all -- --check
       - name: Validate JSON fixture and schema
         run: |
           jq empty tools/ev-session-audit/fixtures/acn_style_synthetic_v0_1.json
