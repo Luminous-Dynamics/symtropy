@@ -176,6 +176,7 @@ pub struct ReplayReceipt {
     dataset_id: String,
     dataset_class: DatasetClass,
     temporal_split: TemporalSplit,
+    privacy: PrivacyPolicy,
     split_metrics: SplitMetricsBundle,
     test_community_metrics: Vec<CommunityMetrics>,
     test_suppressed_community_count: usize,
@@ -266,6 +267,7 @@ pub fn evaluate(
         dataset_id: dataset.dataset_id,
         dataset_class: dataset.dataset_class,
         temporal_split: split,
+        privacy: dataset.privacy,
         split_metrics,
         test_community_metrics: test_groups.0,
         test_suppressed_community_count: test_groups.1,
@@ -755,6 +757,8 @@ mod tests {
         assert_eq!(receipt.result, "pass");
         assert!(receipt.source_commit_sha_valid);
         assert_eq!(receipt.dataset_class, DatasetClass::Synthetic);
+        assert!(receipt.privacy.aggregate_only);
+        assert_eq!(receipt.privacy.minimum_subgroup_denominator, 2);
         assert_eq!(receipt.split_metrics.test.records_total, 6);
         assert_eq!(receipt.split_metrics.test.known_outcome_records, 5);
         assert_eq!(receipt.split_metrics.test.unknown_outcome_records, 1);
