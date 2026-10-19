@@ -290,7 +290,9 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
     let mut known_facts = BTreeSet::new();
     for mapping in &ruleset.fact_mappings {
         let value_is_valid = match mapping.scenario_field.as_str() {
-            "source_permission" => ["allowed", "denied", "unknown"].contains(&mapping.value.as_str()),
+            "source_permission" => {
+                ["allowed", "denied", "unknown"].contains(&mapping.value.as_str())
+            }
             "competence_confirmed"
             | "current_authority_available"
             | "required_fact_present"
@@ -437,8 +439,7 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
                 authority.id
             ));
         }
-        let unique_spans: BTreeSet<&str> =
-            authority.span_ids.iter().map(String::as_str).collect();
+        let unique_spans: BTreeSet<&str> = authority.span_ids.iter().map(String::as_str).collect();
         if unique_spans.len() != authority.span_ids.len() {
             errors.push(format!("authority {} repeats a span id", authority.id));
         }
@@ -474,7 +475,11 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
                     decision.id, citation.authority_id
                 )),
                 Some(authority) => {
-                    if !authority.span_ids.iter().any(|span| span == &citation.span_id) {
+                    if !authority
+                        .span_ids
+                        .iter()
+                        .any(|span| span == &citation.span_id)
+                    {
                         errors.push(format!(
                             "decision {} cites undeclared span {} on authority {}",
                             decision.id, citation.span_id, citation.authority_id
