@@ -25,11 +25,10 @@ pub mod telemetry_ssbo;
 pub use field_observability::{
     CalibrationState, FieldObservabilityPlugin, FieldProvenance, FieldSourceKind,
     FieldValidationError, FieldVisualizationConfig, FieldVisualizationStatus, ScalarFieldFrame,
-    ScalarFieldSample,
-    ScalarGlyph, ScalarPalette, ScalarQuantity, ScalarRange, SpectralBand, SpectralChannelSpec,
-    SpectralCompositeFrame, SpectralGlyph, SpectralSample, SpectralScalarQuantity,
-    VectorFieldFrame, VectorFieldSample, VectorGlyph, VectorQuantity, extract_scalar_glyphs,
-    extract_spectral_glyphs, extract_vector_glyphs, scalar_color,
+    ScalarFieldSample, ScalarGlyph, ScalarPalette, ScalarQuantity, ScalarRange, SpectralBand,
+    SpectralChannelSpec, SpectralCompositeFrame, SpectralGlyph, SpectralSample,
+    SpectralScalarQuantity, VectorFieldFrame, VectorFieldSample, VectorGlyph, VectorQuantity,
+    extract_scalar_glyphs, extract_spectral_glyphs, extract_vector_glyphs, scalar_color,
 };
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
