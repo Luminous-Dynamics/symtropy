@@ -767,6 +767,88 @@
       "expected_baseline_comparison_outcomes": [
         "not_assessed"
       ]
+    },
+    {
+      "id": "baseline_must_pin_exact_code_head",
+      "mutation": "baseline_invalid_code_head",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_baseline_code_head"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "baseline_must_pin_config_digest",
+      "mutation": "baseline_invalid_config_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_baseline_config_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "matched_budget_rejects_training_scope_mismatch",
+      "mutation": "baseline_training_scope_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "baseline_training_scope_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "matched_budget_rejects_compute_budget_mismatch",
+      "mutation": "baseline_compute_budget_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "baseline_compute_budget_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "declared_tradeoff_is_explicitly_allowed",
+      "mutation": "declared_budget_tradeoff_allows_scope_mismatch",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": [],
+      "expected_threshold_outcome": "meets_threshold",
+      "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin"
+      ]
+    },
+    {
+      "id": "paired_unit_membership_digest_required",
+      "mutation": "missing_paired_unit_manifest_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_paired_unit_manifest_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_unit_membership_digest_must_be_sha256",
+      "mutation": "malformed_paired_unit_manifest_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "malformed_paired_unit_manifest_digest"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
     }
   ]
 }
