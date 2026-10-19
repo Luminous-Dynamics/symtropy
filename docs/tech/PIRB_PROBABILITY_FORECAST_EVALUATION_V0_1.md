@@ -40,6 +40,17 @@ The receipt records each input digest and outcome release digest, the count of h
 
 If model probabilities, target definition, analysis unit, forecast horizon, split, or spatial mapping differ, the comparison is invalid and rejected. Such models or definitions require a separate paired model-comparison design; they cannot be conflated with outcome-vintage sensitivity.
 
+
+## Offline VIEWS source adapter
+
+The Rust-first \`pirb-views-offline-adapter\` imports only locally archived API JSON, a matching run/codebook snapshot, an explicit outcome snapshot, and a governed spatial block map. Network access is deliberately outside the evaluator. The source manifest records the run ID, exact query URI/filters, response pages, codebook path, response-column mapping, analysis unit, target definition, codebook threshold phrase, partition, attribution/license references and evaluation policy.
+
+The importer accepts only the declared binary event-probability variable (\`main_dich\` in the v0.1 contract). It checks that the codebook labels the output as a probability on [0, 1], includes the predeclared threshold and geographic analysis unit, and that the response model metadata matches the manifest. It derives cutoff and forecast-origin months from the versioned run suffix and derives the target month from the declared lead; the returned calendar month and query filter must agree. The normalized contract continues to enforce one lead horizon and a fixed target definition per dataset.
+
+The public offline adapter fixture is synthetic-only. It has seven invented release IDs, four invented units, 28 numeric probability rows and one unknown outcome. It exists to test the deterministic mapping path and its negative controls, not to estimate real conflict risk or demonstrate forecast performance. The import receipt binds the response/codebook digests and query URIs as well as the outcome snapshot, opaque spatial-block map, import manifest, normalized dataset and toolchain. The forecast-archive digest is derived from the forecast response/codebook commitments and query URIs, not from the outcome snapshot, so outcome-vintage revisions do not by themselves alter the forecast-archive identity.
+
+A successful import does not authenticate the provenance or truth of source bytes and does not determine whether a license permits a particular use. Authorization and attribution must be reviewed externally. Current forward-looking predictions must not be scored as historical outcomes until the declared outcome labels have matured. Missing outcomes stay unknown; fatality-count variables are never silently converted to probabilities.
+
 ## Temporal validity and label maturity
 
 For each record:
