@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeSet,
-    env, fs,
-    process::ExitCode,
-};
+use std::{collections::BTreeSet, env, fs, process::ExitCode};
 
 const VERSION: &str = "0.1.0";
 const MAX_PERIODS: usize = 8;
@@ -171,7 +167,10 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         || corpus.process_model.electricity_units_per_batch == 0
         || corpus.process_model.water_units_per_batch == 0
     {
-        return Err("invalid suite identity, evidence class, process model, or frozen scenario count".to_owned());
+        return Err(
+            "invalid suite identity, evidence class, process model, or frozen scenario count"
+                .to_owned(),
+        );
     }
 
     let mut scenario_ids = BTreeSet::new();
@@ -183,7 +182,10 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             || scenario.periods.len() > MAX_PERIODS
             || scenario.fixed_baseline_batches.len() != scenario.periods.len()
         {
-            return Err("scenario ID, production target, period count, or baseline length is invalid".to_owned());
+            return Err(
+                "scenario ID, production target, period count, or baseline length is invalid"
+                    .to_owned(),
+            );
         }
 
         let mut period_ids = BTreeSet::new();
@@ -193,7 +195,10 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
                 || period.safety_electricity_units == 0
                 || period.max_process_batches > 32
             {
-                return Err("period ID, declared safety floor, or process-batch limit is invalid".to_owned());
+                return Err(
+                    "period ID, declared safety floor, or process-batch limit is invalid"
+                        .to_owned(),
+                );
             }
         }
         let _ = search_space_size(&scenario.periods)?;
@@ -250,7 +255,10 @@ fn evaluate_schedule(
             return Err(format!("process capacity exceeded in {}", period.period_id));
         }
         if period.water_available_units < period.protected_water_reserve_units {
-            return Err(format!("protected water reserve unavailable in {}", period.period_id));
+            return Err(format!(
+                "protected water reserve unavailable in {}",
+                period.period_id
+            ));
         }
 
         let process_electricity = u64::from(batch_count)
@@ -271,7 +279,10 @@ fn evaluate_schedule(
         let available_for_process = u64::from(period.water_available_units)
             - u64::from(period.protected_water_reserve_units);
         if process_water > available_for_process {
-            return Err(format!("protected water reserve would be diverted in {}", period.period_id));
+            return Err(format!(
+                "protected water reserve would be diverted in {}",
+                period.period_id
+            ));
         }
 
         let cost = grid_import
@@ -341,9 +352,11 @@ fn frontier_schedules(feasible: &[ScheduleScore]) -> Vec<ScheduleScore> {
 }
 
 fn early_infeasibility(scenario: &ScenarioInput) -> Option<(ScenarioStatus, String)> {
-    if scenario.periods.iter().any(|period| {
-        period.water_available_units < period.protected_water_reserve_units
-    }) {
+    if scenario
+        .periods
+        .iter()
+        .any(|period| period.water_available_units < period.protected_water_reserve_units)
+    {
         return Some((
             ScenarioStatus::InfeasibleProtectedWaterReserve,
             "PROTECTED_WATER_RESERVE_UNMET".to_owned(),
@@ -363,9 +376,18 @@ fn early_infeasibility(scenario: &ScenarioInput) -> Option<(ScenarioStatus, Stri
 }
 
 fn expected_matches(expected: &ScenarioExpectation, outcome: &ScenarioOutcome) -> bool {
-    let best_batches = outcome.best_schedule.as_ref().map(|score| score.batches.clone());
-    let best_cost = outcome.best_schedule.as_ref().map(|score| score.total_grid_cost_units);
-    let best_carbon = outcome.best_schedule.as_ref().map(|score| score.total_grid_carbon_units);
+    let best_batches = outcome
+        .best_schedule
+        .as_ref()
+        .map(|score| score.batches.clone());
+    let best_cost = outcome
+        .best_schedule
+        .as_ref()
+        .map(|score| score.total_grid_cost_units);
+    let best_carbon = outcome
+        .best_schedule
+        .as_ref()
+        .map(|score| score.total_grid_carbon_units);
     let baseline_cost = outcome
         .fixed_baseline_schedule
         .as_ref()
@@ -439,7 +461,12 @@ fn evaluate_scenario(model: &ProcessModel, scenario: &ScenarioInput) -> Check<Sc
             candidate_schedules_evaluated,
             feasible_schedule_count: 0,
             best_schedule: None,
-            fixed_baseline_schedule: evaluate_schedule(model, scenario, &scenario.fixed_baseline_batches).ok(),
+            fixed_baseline_schedule: evaluate_schedule(
+                model,
+                scenario,
+                &scenario.fixed_baseline_batches,
+            )
+            .ok(),
             feasible_schedules,
             pareto_frontier: Vec::new(),
             expected_control_matched: false,
@@ -448,7 +475,10 @@ fn evaluate_scenario(model: &ProcessModel, scenario: &ScenarioInput) -> Check<Sc
         return Ok(outcome);
     }
 
-    let best_schedule = feasible_schedules.iter().min_by(|a, b| score_order(a, b)).cloned();
+    let best_schedule = feasible_schedules
+        .iter()
+        .min_by(|a, b| score_order(a, b))
+        .cloned();
     let fixed_baseline_schedule =
         evaluate_schedule(model, scenario, &scenario.fixed_baseline_batches).ok();
     let pareto_frontier = frontier_schedules(&feasible_schedules);
@@ -489,7 +519,9 @@ fn independently_reconstruct_score(
         if count > input.max_process_batches
             || input.water_available_units < input.protected_water_reserve_units
         {
-            return Err("independent reconstruction found a period hard-constraint failure".to_owned());
+            return Err(
+                "independent reconstruction found a period hard-constraint failure".to_owned(),
+            );
         }
         let safety = u64::from(input.safety_electricity_units);
         let process_power = u64::from(count) * u64::from(model.electricity_units_per_batch);
@@ -497,10 +529,11 @@ fn independently_reconstruct_score(
         let renewable_available = u64::from(input.renewable_electricity_units);
         let grid = demand.saturating_sub(renewable_available);
         if grid > u64::from(input.grid_import_cap_units)
-            || safety
-                > renewable_available + u64::from(input.grid_import_cap_units)
+            || safety > renewable_available + u64::from(input.grid_import_cap_units)
         {
-            return Err("independent reconstruction found an electrical capacity violation".to_owned());
+            return Err(
+                "independent reconstruction found an electrical capacity violation".to_owned(),
+            );
         }
         let process_water = u64::from(count) * u64::from(model.water_units_per_batch);
         let total_water = u64::from(input.water_available_units);
@@ -594,11 +627,8 @@ fn make_receipt(corpus: &Corpus, raw_bytes: &[u8], source_commit: &str) -> Check
         .iter()
         .filter(|outcome| outcome.expected_control_matched)
         .count();
-    let hard_constraint_violations = hard_constraint_violation_count(
-        &corpus.process_model,
-        &corpus.scenarios,
-        &scenarios,
-    );
+    let hard_constraint_violations =
+        hard_constraint_violation_count(&corpus.process_model, &corpus.scenarios, &scenarios);
     let independent_checks_passed = hard_constraint_violations == 0;
     let all_controls_matched = expected_controls_matched == corpus.scenarios.len();
     Ok(Receipt {
@@ -683,7 +713,9 @@ mod tests {
         assert_eq!(vec![1, 3, 0], best.batches);
         assert_eq!(410, best.total_grid_cost_units);
         assert_eq!(152, best.total_grid_carbon_units);
-        let baseline = outcome.fixed_baseline_schedule.expect("fixed baseline is feasible");
+        let baseline = outcome
+            .fixed_baseline_schedule
+            .expect("fixed baseline is feasible");
         assert_eq!(vec![2, 1, 1], baseline.batches);
         assert_eq!(590, baseline.total_grid_cost_units);
         assert_eq!(100, baseline.total_grid_carbon_units);
@@ -697,10 +729,18 @@ mod tests {
         let scenario = &corpus.scenarios[0];
         let outcome = evaluate_scenario(&corpus.process_model, scenario).expect("scenario");
         for score in &outcome.feasible_schedules {
-            assert!(independently_verify_score(&corpus.process_model, scenario, score));
+            assert!(independently_verify_score(
+                &corpus.process_model,
+                scenario,
+                score
+            ));
         }
         for score in &outcome.pareto_frontier {
-            assert!(independently_verify_score(&corpus.process_model, scenario, score));
+            assert!(independently_verify_score(
+                &corpus.process_model,
+                scenario,
+                score
+            ));
             assert!(score.period_balances.iter().all(|balance| {
                 balance.remaining_water_units >= balance.protected_water_reserve_units
             }));
@@ -767,7 +807,10 @@ mod tests {
         let outcome =
             evaluate_scenario(&corpus.process_model, &corpus.scenarios[0]).expect("scenario");
         assert_eq!(ScenarioStatus::InfeasibleSafetyFloor, outcome.status);
-        assert_eq!(Some("SAFETY_FLOOR_UNSERVICEABLE".to_owned()), outcome.reason_code);
+        assert_eq!(
+            Some("SAFETY_FLOOR_UNSERVICEABLE".to_owned()),
+            outcome.reason_code
+        );
         assert!(outcome.best_schedule.is_none());
     }
 
@@ -802,13 +845,11 @@ mod tests {
 
     #[test]
     fn unknown_corpus_fields_fail_closed() {
-        let contents = include_str!(
-            "../../../docs/tech/mine-flex-scheduling-corpus-v0.1.json"
-        )
-        .replace(
-            "\"suite_id\": \"MINE-FLEX-001\"",
-            "\"suite_id\": \"MINE-FLEX-001\", \"unrecognized\": true",
-        );
+        let contents = include_str!("../../../docs/tech/mine-flex-scheduling-corpus-v0.1.json")
+            .replace(
+                "\"suite_id\": \"MINE-FLEX-001\"",
+                "\"suite_id\": \"MINE-FLEX-001\", \"unrecognized\": true",
+            );
         assert!(serde_json::from_str::<Corpus>(&contents).is_err());
     }
 }
