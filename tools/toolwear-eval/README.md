@@ -9,6 +9,12 @@ Obtain the pinned CSV from the source repository and verify its bytes using tool
     cargo test --locked --offline --manifest-path tools/toolwear-eval/Cargo.toml
     cargo run --locked --offline --manifest-path tools/toolwear-eval/Cargo.toml -- --data /path/to/Dataset_Machine_tool_wear.csv
 
+For the separately versioned **MFG-DATA-002 leave-one-tool-out transfer diagnostic** (keeps every source row from one tool on the same held-out side; does not modify the frozen MFG-DATA-001 report), run:
+
+    cargo run --locked --offline --manifest-path tools/toolwear-eval/Cargo.toml -- --data /path/to/Dataset_Machine_tool_wear.csv --loto
+
+This emits a separate JSON report with one fold per tool, training/test tool identities and row counts, per-tool/pooled/macro-tool error, worst-tool error, and ranking stability across folds. All results remain in source-native Vb units, which the pinned upstream README does not specify. This still is not machine-independent qualification, sensor calibration, maintenance advice, or process-control authorization. See `docs/tech/TOOLWEAR_TRANSFER_DIAGNOSTICS_V0_1.md`.
+
 The executable rechecks the expected SHA-256 itself. Any byte change, altered schema, malformed row, non-finite numeric value, unexpected tool identity set, or duplicate record fails closed. It uses only the Rust standard library; the evaluator does not ingest or mirror the source dataset in this repository.
 
 ## Locked source and attribution
