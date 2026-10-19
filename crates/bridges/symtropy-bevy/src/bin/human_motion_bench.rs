@@ -78,28 +78,39 @@ fn has_held_out_human_reference(trace: &Trace) -> bool {
             .0
             .as_deref()
             .is_some_and(|value| is_hex_digest(value, 64))
-        && trace.run.dataset_id.as_deref().is_some_and(|value| !value.trim().is_empty())
-        && trace.run.dataset_version.as_deref().is_some_and(|value| !value.trim().is_empty())
-        && trace.run.actor_pseudonym.as_deref().is_some_and(|value| !value.trim().is_empty())
-        && trace.run.recording_id.as_deref().is_some_and(|value| !value.trim().is_empty())
+        && trace
+            .run
+            .dataset_id
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && trace
+            .run
+            .dataset_version
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && trace
+            .run
+            .actor_pseudonym
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && trace
+            .run
+            .recording_id
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
 }
 
 fn evidence_scope(reference: &Trace, prediction: &Trace) -> &'static str {
     if reference.run.source_kind.is_synthetic() || prediction.run.source_kind.is_synthetic() {
         "synthetic_software_validation_only"
-    } else if reference.trace_id != prediction.trace_id
-        && has_held_out_human_reference(reference)
-    {
+    } else if reference.trace_id != prediction.trace_id && has_held_out_human_reference(reference) {
         "declared_held_out_human_reference"
     } else {
         "source_provenance_present_reference_not_held_out_human_verified"
     }
 }
 
-fn validate_human_reference_claim(
-    reference: &Trace,
-    prediction: &Trace,
-) -> Result<(), BenchError> {
+fn validate_human_reference_claim(reference: &Trace, prediction: &Trace) -> Result<(), BenchError> {
     if reference.trace_id == prediction.trace_id {
         return fail("human-reference claims require distinct reference and prediction trace IDs");
     }
@@ -290,9 +301,7 @@ impl Trace {
         {
             return fail(format!("{source}: unknown run.split value"));
         }
-        if !self.run.source_kind.is_synthetic()
-            && self.run.split.as_deref() == Some("synthetic")
-        {
+        if !self.run.source_kind.is_synthetic() && self.run.split.as_deref() == Some("synthetic") {
             return fail(format!(
                 "{source}: non-synthetic source_kind cannot use run.split = synthetic"
             ));
@@ -618,7 +627,8 @@ fn interpolate_positions(
 }
 
 fn quaternion_norm(q: [f64; 4]) -> f64 {
-    q.iter().fold(0.0_f64, |norm, component| norm.hypot(*component))
+    q.iter()
+        .fold(0.0_f64, |norm, component| norm.hypot(*component))
 }
 
 fn validate_unit_quaternion(q: [f64; 4]) -> Result<(), &'static str> {
@@ -944,10 +954,7 @@ fn extract_contact_events(
 }
 
 fn percentile_nearest_rank(sorted_values: &[f64], percentile: f64) -> Option<f64> {
-    if sorted_values.is_empty()
-        || !percentile.is_finite()
-        || !(0.0..=1.0).contains(&percentile)
-    {
+    if sorted_values.is_empty() || !percentile.is_finite() || !(0.0..=1.0).contains(&percentile) {
         return None;
     }
     let index = ((percentile * sorted_values.len() as f64).ceil() as usize)
@@ -1143,9 +1150,10 @@ fn evaluate_root_orientation(
     let mut yaw_errors_rad = Vec::with_capacity(grid_times.len());
     for (reference, prediction) in reference_aligned.iter().zip(&prediction_aligned) {
         errors_rad.push(quaternion_angular_error_rad(*prediction, *reference)?);
-        if let (Some(reference_yaw), Some(prediction_yaw)) =
-            (quaternion_yaw_rad(*reference)?, quaternion_yaw_rad(*prediction)?)
-        {
+        if let (Some(reference_yaw), Some(prediction_yaw)) = (
+            quaternion_yaw_rad(*reference)?,
+            quaternion_yaw_rad(*prediction)?,
+        ) {
             yaw_errors_rad.push(wrapped_angle_difference_rad(prediction_yaw, reference_yaw));
         }
     }
@@ -1175,8 +1183,7 @@ fn evaluate_root_orientation(
     ordered_errors.sort_by(f64::total_cmp);
     let p95_error_rad = percentile_nearest_rank(&ordered_errors, 0.95)
         .ok_or_else(|| BenchError("could not compute root orientation P95".to_owned()))?;
-    let mut ordered_yaw_errors: Vec<f64> =
-        yaw_errors_rad.iter().map(|error| error.abs()).collect();
+    let mut ordered_yaw_errors: Vec<f64> = yaw_errors_rad.iter().map(|error| error.abs()).collect();
     ordered_yaw_errors.sort_by(f64::total_cmp);
     let p95_absolute_yaw_error_rad = percentile_nearest_rank(&ordered_yaw_errors, 0.95);
 
@@ -1184,8 +1191,7 @@ fn evaluate_root_orientation(
         interpolate_quaternion(reference_times, reference_rotations, overlap_end_sec)?;
     let prediction_endpoint =
         interpolate_quaternion(prediction_times, prediction_rotations, overlap_end_sec)?;
-    let final_error_rad =
-        quaternion_angular_error_rad(prediction_endpoint, reference_endpoint)?;
+    let final_error_rad = quaternion_angular_error_rad(prediction_endpoint, reference_endpoint)?;
     let final_reference_yaw = quaternion_yaw_rad(reference_endpoint)?;
     let final_prediction_yaw = quaternion_yaw_rad(prediction_endpoint)?;
     let final_signed_yaw_error_rad = match (final_prediction_yaw, final_reference_yaw) {
@@ -1400,8 +1406,7 @@ fn evaluate(
         &prediction.root_world_m,
         grid.overlap_end_sec,
     );
-    let endpoint_error_m =
-        euclidean_position_error_m(prediction_endpoint, reference_endpoint)?;
+    let endpoint_error_m = euclidean_position_error_m(prediction_endpoint, reference_endpoint)?;
 
     let root_orientation_error = match (
         reference.root_rotation_world_xyzw.as_deref(),
@@ -1442,9 +1447,11 @@ fn evaluate(
             prediction_positions,
             &grid.timestamps_sec,
         );
-        let metric = trajectory_errors(&prediction_aligned, &reference_aligned)
-            .map_err(|error| {
-                BenchError(format!("joint {joint_name:?} trajectory metric failed: {error}"))
+        let metric =
+            trajectory_errors(&prediction_aligned, &reference_aligned).map_err(|error| {
+                BenchError(format!(
+                    "joint {joint_name:?} trajectory metric failed: {error}"
+                ))
             })?;
         let reference_joint_endpoint = interpolate_position(
             &reference.timestamps_sec,
@@ -1475,8 +1482,7 @@ fn evaluate(
     let joints_scored = joint_metrics.len();
     let joint_trajectory_error = JointTrajectoryReport {
         joints_scored,
-        macro_mean_ade_m: (joints_scored > 0)
-            .then_some(joint_ade_sum_m / joints_scored as f64),
+        macro_mean_ade_m: (joints_scored > 0).then_some(joint_ade_sum_m / joints_scored as f64),
         max_joint_fde_m: (joints_scored > 0).then_some(max_joint_fde_m),
         max_joint_error_m: (joints_scored > 0).then_some(max_joint_error_m),
         per_joint: joint_metrics,
@@ -1724,43 +1730,43 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         joint_ade,
         joint_fde,
         report.left_stance_foot_drift.rms_drift_m,
-        report.left_foot_contact_agreement
+        report
+            .left_foot_contact_agreement
             .f1
             .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
         report.right_stance_foot_drift.rms_drift_m,
-        report.right_foot_contact_agreement
+        report
+            .right_foot_contact_agreement
             .f1
             .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
-        report.left_foot_contact_events
+        report
+            .left_foot_contact_events
             .touchdown
             .median_absolute_timing_error_sec
             .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
-        report.left_foot_contact_events
-            .liftoff
-            .median_absolute_timing_error_sec
-            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
-        report.right_foot_contact_events
-            .touchdown
-            .median_absolute_timing_error_sec
-            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
-        report.right_foot_contact_events
+        report
+            .left_foot_contact_events
             .liftoff
             .median_absolute_timing_error_sec
             .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
         report
-            .root_orientation_error
-            .as_ref()
-            .map_or_else(
-                || "n/a".to_owned(),
-                |value| format!("{:.2}", value.p95_angular_error_rad),
-            ),
+            .right_foot_contact_events
+            .touchdown
+            .median_absolute_timing_error_sec
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
         report
-            .root_orientation_error
-            .as_ref()
-            .map_or_else(
-                || "n/a".to_owned(),
-                |value| format!("{:.2}", value.p95_angular_error_deg),
-            ),
+            .right_foot_contact_events
+            .liftoff
+            .median_absolute_timing_error_sec
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
+        report.root_orientation_error.as_ref().map_or_else(
+            || "n/a".to_owned(),
+            |value| format!("{:.2}", value.p95_angular_error_rad),
+        ),
+        report.root_orientation_error.as_ref().map_or_else(
+            || "n/a".to_owned(),
+            |value| format!("{:.2}", value.p95_angular_error_deg),
+        ),
         report
             .root_orientation_error
             .as_ref()
@@ -1863,34 +1869,42 @@ mod tests {
     fn held_out_human_reference_gate_rejects_training_split_and_missing_identifiers() {
         let (mut reference, prediction) = held_out_human_reference_pair();
         reference.run.split = Some("train".to_owned());
-        assert!(validate_human_reference_claim(&reference, &prediction)
-            .unwrap_err()
-            .to_string()
-            .contains("split = test"));
+        assert!(
+            validate_human_reference_claim(&reference, &prediction)
+                .unwrap_err()
+                .to_string()
+                .contains("split = test")
+        );
 
         let (mut reference, prediction) = held_out_human_reference_pair();
         reference.run.recording_id = None;
-        assert!(validate_human_reference_claim(&reference, &prediction)
-            .unwrap_err()
-            .to_string()
-            .contains("recording_id"));
+        assert!(
+            validate_human_reference_claim(&reference, &prediction)
+                .unwrap_err()
+                .to_string()
+                .contains("recording_id")
+        );
     }
 
     #[test]
     fn held_out_human_reference_gate_rejects_synthetic_prediction_and_same_trace_id() {
         let (reference, mut prediction) = held_out_human_reference_pair();
         prediction.run.source_kind = SourceKind::SyntheticTestFixture;
-        assert!(validate_human_reference_claim(&reference, &prediction)
-            .unwrap_err()
-            .to_string()
-            .contains("cannot use a synthetic prediction"));
+        assert!(
+            validate_human_reference_claim(&reference, &prediction)
+                .unwrap_err()
+                .to_string()
+                .contains("cannot use a synthetic prediction")
+        );
 
         let (reference, mut prediction) = held_out_human_reference_pair();
         prediction.trace_id = reference.trace_id.clone();
-        assert!(validate_human_reference_claim(&reference, &prediction)
-            .unwrap_err()
-            .to_string()
-            .contains("distinct reference and prediction"));
+        assert!(
+            validate_human_reference_claim(&reference, &prediction)
+                .unwrap_err()
+                .to_string()
+                .contains("distinct reference and prediction")
+        );
     }
 
     #[test]
@@ -1925,12 +1939,8 @@ mod tests {
         assert!((orientation.mean_angular_error_rad - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
         assert!((orientation.p95_angular_error_deg - 90.0).abs() < 1e-7);
         assert!((orientation.max_angular_error_deg - 90.0).abs() < 1e-7);
-        assert!(
-            (orientation.mean_absolute_yaw_error_deg.unwrap() - 90.0).abs() < 1e-7
-        );
-        assert!(
-            (orientation.final_absolute_yaw_error_deg.unwrap() - 90.0).abs() < 1e-7
-        );
+        assert!((orientation.mean_absolute_yaw_error_deg.unwrap() - 90.0).abs() < 1e-7);
+        assert!((orientation.final_absolute_yaw_error_deg.unwrap() - 90.0).abs() < 1e-7);
     }
 
     #[test]
@@ -2012,7 +2022,8 @@ mod tests {
         let mut trace = orientation_fixture();
         trace.root_rotation_world_xyzw.as_mut().unwrap()[0] = [0.0, 0.0, 0.0, 0.0];
         assert!(
-            trace.validate(Path::new("zero-quaternion.json"))
+            trace
+                .validate(Path::new("zero-quaternion.json"))
                 .unwrap_err()
                 .to_string()
                 .contains("zero or invalid norm")
@@ -2021,7 +2032,8 @@ mod tests {
         let mut trace = orientation_fixture();
         trace.root_rotation_world_xyzw.as_mut().unwrap()[0] = [0.0, 0.0, 0.0, 2.0];
         assert!(
-            trace.validate(Path::new("non-unit-quaternion.json"))
+            trace
+                .validate(Path::new("non-unit-quaternion.json"))
                 .unwrap_err()
                 .to_string()
                 .contains("unit length")
@@ -2030,7 +2042,8 @@ mod tests {
         let mut trace = orientation_fixture();
         trace.root_rotation_world_xyzw.as_mut().unwrap().pop();
         assert!(
-            trace.validate(Path::new("short-quaternion-array.json"))
+            trace
+                .validate(Path::new("short-quaternion-array.json"))
                 .unwrap_err()
                 .to_string()
                 .contains("root_rotation_world_xyzw has")
@@ -2039,7 +2052,8 @@ mod tests {
         let mut trace = orientation_fixture();
         trace.root_rotation_world_xyzw.as_mut().unwrap()[0] = [f64::NAN, 0.0, 0.0, 1.0];
         assert!(
-            trace.validate(Path::new("non-finite-quaternion.json"))
+            trace
+                .validate(Path::new("non-finite-quaternion.json"))
                 .unwrap_err()
                 .to_string()
                 .contains("non-finite")
@@ -2048,7 +2062,8 @@ mod tests {
         let mut trace = orientation_fixture();
         trace.root_rotation_world_xyzw = None;
         assert!(
-            trace.validate(Path::new("missing-v2-quaternion.json"))
+            trace
+                .validate(Path::new("missing-v2-quaternion.json"))
                 .unwrap_err()
                 .to_string()
                 .contains("requires root_rotation_world_xyzw")
@@ -2085,10 +2100,10 @@ mod tests {
         );
 
         let mut legacy_with_rotation = legacy;
-        legacy_with_rotation.root_rotation_world_xyzw =
-            Some(vec![[0.0, 0.0, 0.0, 1.0]; 4]);
+        legacy_with_rotation.root_rotation_world_xyzw = Some(vec![[0.0, 0.0, 0.0, 1.0]; 4]);
         assert!(
-            legacy_with_rotation.validate(Path::new("illegal-v1-orientation.json"))
+            legacy_with_rotation
+                .validate(Path::new("illegal-v1-orientation.json"))
                 .unwrap_err()
                 .to_string()
                 .contains("requires schema_version 2")
@@ -2149,8 +2164,8 @@ mod tests {
 
     #[test]
     fn contact_agreement_represents_undefined_positive_class_metrics_as_null() {
-        let report = contact_agreement(&[false, false], &[false, false])
-            .expect("aligned labels compare");
+        let report =
+            contact_agreement(&[false, false], &[false, false]).expect("aligned labels compare");
         assert_eq!(report.accuracy, 1.0);
         assert_eq!(report.precision, None);
         assert_eq!(report.recall, None);
@@ -2189,12 +2204,8 @@ mod tests {
         assert!((report.alignment.prediction_max_sample_interval_sec - 0.15).abs() < 1e-9);
         assert!((report.touchdown.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
         assert!((report.liftoff.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
-        assert!(
-            (report.touchdown.median_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9
-        );
-        assert!(
-            (report.liftoff.p95_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9
-        );
+        assert!((report.touchdown.median_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
+        assert!((report.liftoff.p95_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
     }
 
     #[test]
@@ -2213,12 +2224,8 @@ mod tests {
                 kind: ContactEventKind::Touchdown,
             },
         ];
-        let report = score_contact_event_class(
-            ContactEventKind::Touchdown,
-            &reference,
-            &prediction,
-            0.05,
-        );
+        let report =
+            score_contact_event_class(ContactEventKind::Touchdown, &reference, &prediction, 0.05);
         assert_eq!(report.matched_events, 1);
         assert_eq!(report.unmatched_prediction_events, 1);
         assert_eq!(report.missed_reference_events, 0);
@@ -2312,21 +2319,11 @@ mod tests {
             .expect("matching named joints should be scored");
         assert_eq!(report.joint_trajectory_error.joints_scored, 1);
         assert!(
-            (report
-                .joint_trajectory_error
-                .per_joint[0]
-                .mean_displacement_error_m
-                - 0.03)
-                .abs()
+            (report.joint_trajectory_error.per_joint[0].mean_displacement_error_m - 0.03).abs()
                 < 1e-9
         );
         assert!(
-            (report
-                .joint_trajectory_error
-                .per_joint[0]
-                .final_displacement_error_m
-                - 0.03)
-                .abs()
+            (report.joint_trajectory_error.per_joint[0].final_displacement_error_m - 0.03).abs()
                 < 1e-9
         );
         assert_eq!(report.root_trajectory_error.mean_displacement_error_m, 0.0);
