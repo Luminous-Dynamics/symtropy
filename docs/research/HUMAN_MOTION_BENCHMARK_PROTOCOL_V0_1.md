@@ -25,6 +25,8 @@ Do not claim that Symthaea itself synthesizes superior body motion unless the ex
 - Prefer (a) original motion capture with documented participant consent and rights, (b) assets explicitly licensed for the exact research and intended commercial use, or (c) synthetic scripted fixtures for the unit tests. A demo license is not automatically a training license. The optional Innerscene Maya locomotion GLB is currently listed as CC0 and is documented in [`assets/humans/README.md`](../../assets/humans/README.md); use it to smoke-test rendering and clip playback only, not as mocap ground truth.
 - Keep source video, face identity, names, and sensitive metadata out of the public artifact by default. Publish derived traces only where consent, rights and re-identification risk are addressed.
 - Every run must pin the rig/retarget map, animation clips, model/checkpoint, dataset version, split manifest, preprocessing, random seed, engine commit and configuration digest.
+- **Evidence tiers are claims backed by metadata, not self-authenticating facts.** Trace hashes prove byte identity only if the hash is anchored to a trusted source; a `test` label or a non-empty license field does not independently prove a participant gave consent, that the signer had authority, or that the recording was held out. Preserve a rights/consent audit record outside public traces where needed, and have a human reviewer approve its release and evaluation scope. The CLI's strict gate checks declared fields; it does not verify legal rights, signatures, or consent documents.
+- Keep identity data private: actor pseudonyms and recording IDs should be random, scope-limited identifiers, with any re-identification key stored separately and access-controlled.
 - Split by actor and recording session, not merely by adjacent frames. Avoid leakage of the same motion sequence into training and evaluation.
 
 ## Machine-readable trace format
@@ -53,6 +55,7 @@ Every scenario is executed against the same avatar, coordinate system, frame rat
 
 ## Metrics and definitions
 
+- **Evidence scope:** each report records an explicit `evidence_scope` separate from geometric accuracy. Synthetic comparisons are `synthetic_software_validation_only`; a non-synthetic trace with ordinary provenance checks but no qualifying human reference is `source_provenance_present_reference_not_held_out_human_verified`; distinct traces with a declared original consent capture reference, `test` split, dataset ID/version, pseudonymous actor ID and recording/session ID are `declared_held_out_human_reference`. The last label is still a metadata-backed declaration, not an independent rights/consent audit. Use `--require-held-out-human-reference` to reject comparisons that do not meet the declared reference gate. A zero-error self-comparison is a plumbing test, not motion-fidelity evidence.
 - **Mean displacement error (ADE):** mean of the Euclidean root-position error over aligned samples.
 - **Final displacement error (FDE):** Euclidean root-position error at the exact end of the shared time interval, interpolated from the two traces even when the uniform metric grid does not land exactly on that timestamp.
 - **Maximum displacement error:** largest aligned root-position error; report as an outlier measure, not a substitute for ADE.
@@ -106,11 +109,14 @@ cargo run -p symtropy-bevy --bin human-motion-bench -- \
 cargo run -p symtropy-bevy --bin human-motion-bench -- \
   docs/research/fixtures/human-motion-trace-orientation-synthetic-v0.2.json \
   docs/research/fixtures/human-motion-trace-orientation-synthetic-v0.2.json
+
+# Add this flag to an evaluation command when a held-out human reference is required:
+# --require-held-out-human-reference
 ```
 
 For actual traces, provide the reference and candidate JSON paths; use `--step-sec 0.033333` to explicitly set a common 30 Hz grid, and `--output report.json` to save the machine-readable report. The default common grid uses the coarser median sample interval, is bounded to one million samples, interpolates positions linearly and samples contact booleans by nearest neighbour. The JSON report includes per-foot reference/prediction contact confusion counts and precision/recall/F1, native median/max source sampling intervals, and native-time touchdown/liftoff event metrics, so mislabeled stance intervals cannot be hidden by a low predicted-foot-drift score and coarse sampling is explicit. ADE and maximum error use grid samples; FDE is interpolated at the exact overlap endpoint. Both traces must overlap in time and share the same coordinate frame, canonical skeleton signature and retarget-map hash. Model/config/asset hashes are both recorded and may differ as part of the experiment.
 
-The CLI rejects malformed JSON, incomplete required fields, wrong sample counts, non-finite coordinates, non-increasing time, incomplete asset/license provenance, and incompatible skeleton/retarget metadata. Invalid samples are rejected rather than silently dropped. The report is marked `synthetic_fixture_only` when either side is synthetic. The current implementation measures metric-computation time but does not yet provide peak-memory accounting, renderer frame-time capture, visual preference study orchestration, or a real-avatar smoke screenshot.
+The CLI rejects malformed JSON, incomplete required fields, wrong sample counts, non-finite coordinates, non-increasing time, incomplete asset/license provenance, and incompatible skeleton/retarget metadata. Invalid samples are rejected rather than silently dropped. Every report contains an explicit evidence scope; use `--require-held-out-human-reference` to fail unless the reference declares `original_consent_capture`, a `test` split, dataset ID/version, pseudonymous actor ID and recording/session ID. The gate also rejects same-ID reference/prediction pairs and synthetic predictions. This is a metadata contract only: it cannot independently verify consent, permissions, dataset integrity or signed attestations. The report is marked `synthetic_fixture_only` when either side is synthetic. The current implementation measures metric-computation time but does not yet provide peak-memory accounting, renderer frame-time capture, visual preference study orchestration, or a real-avatar smoke screenshot.
 
 ## Experimental protocol
 
@@ -130,7 +136,7 @@ The CLI rejects malformed JSON, incomplete required fields, wrong sample counts,
 - **Scripted deterministic controller:** mandatory task-success/robustness baseline. The Symthaea component must beat or complement it on predeclared metrics, not merely produce a more complicated trace.
 - **InterPhys (2026):** recent physics-aware synthesis work motivates a dedicated dynamic-contact suite spanning body, object and scene interactions and force/torque consistency. Our current trace format measures kinematics/contact labels, not forces; do not claim physical-dynamics parity until force residuals and dynamic object interaction are instrumented.
 - **AnimationBench (2026):** video-model animation evaluation operationalizes character consistency and motion rationality. It may inform blinded visual/perceptual dimensions, but its video-generation scores are not directly comparable to rigged 3D skeletal animation.
-- **HumanTracker (August 2026):** its motion-tracking benchmark explicitly targets the gap between kinematic scores and human-perceived support/contact quality, using a large multi-family motion corpus and preference-aligned scoring. This motivates keeping support stability, event timing, and blinded perceptual assessment as independent benchmark axes. Do not assume its dataset license permits our use; review terms and data rights before importing traces or models.
+- **HumanTracker (August 2026):** its motion-tracking benchmark standardizes executed state and records contact forces, feet/pelvis velocities and keypoint velocities in addition to joint positions; it also reports episode success and a preference-aligned score. This motivates the next trace extension: capture one synchronized state/action/contact/force history, then derive every score from that shared record. We should study its evaluation design before creating a separate preference model. Do not assume its dataset license permits our use; review data access and rights before importing traces or models.
 
 ## Next implementation slices
 
@@ -152,7 +158,9 @@ The CLI rejects malformed JSON, incomplete required fields, wrong sample counts,
 - InterPhys — physics-aware human motion synthesis in dynamic scenes: https://arxiv.org/abs/2605.01036
 - AnimationBench — character-centric animation evaluation: https://arxiv.org/abs/2604.15299
 - HumanTracker — comprehensive human-aligned motion tracking benchmark: https://arxiv.org/abs/2608.13555
+- HumanTracker project, evaluation harness and metric definitions: https://github.com/GalaxyGeneralRobotics/HumanTracker
 - HumanTracker project and paper implementation: https://dairuliu.github.io/humantracker/
+- AMASS official dataset license and commercial-use restriction: https://amass.is.tue.mpg.de/license.html
 - ARDY implementation and evaluation notes: https://github.com/nv-tlabs/ardy
 - MotionBricks paper and project: https://nvlabs.github.io/motionbricks/
 - AMASS license: https://github.com/nghorbani/amass/blob/master/LICENSE.txt
