@@ -120,12 +120,58 @@ pub struct EquationNode {
     pub operator: EquationOperator,
     pub input_variable_ids: Vec<String>,
     pub output_variable_id: String,
-    /// Concise expression/label for the visual graph; execution uses operator and variable IDs.
-    pub expression: String,
+    /// Formula text is generated from the typed operator and variable symbols, not stored separately.
     pub basis: EquationBasis,
     pub basis_note: String,
     #[serde(default)]
     pub evidence_ids: Vec<String>,
+}
+
+fn variable_symbol<'a>(graph: &'a ExperimentGraph, id: &str) -> Result<&'a str, String> {
+    graph
+        .variables
+        .iter()
+        .find(|variable| variable.id == id)
+        .map(|variable| variable.symbol.as_str())
+        .ok_or_else(|| format!("unknown variable '{id}'"))
+}
+
+impl EquationNode {
+    /// Derive a displayable formula from the executable operator graph.
+    ///
+    /// This prevents a manually typed equation caption from disagreeing with the operator
+    /// that the interpreter actually executes. Renderers may typeset the returned expression,
+    /// but the operation and variable references remain authoritative.
+    pub fn canonical_expression(&self, graph: &ExperimentGraph) -> Result<String, String> {
+        let output = variable_symbol(graph, &self.output_variable_id)?;
+        let inputs: Vec<&str> = self
+            .input_variable_ids
+            .iter()
+            .map(|id| variable_symbol(graph, id))
+            .collect::<Result<_, _>>()?;
+
+        match (self.operator, inputs.as_slice()) {
+            (EquationOperator::Negate, [input]) => {
+                Ok(format!("{output} = -({input})"))
+            }
+            (EquationOperator::Add, [left, right]) => {
+                Ok(format!("{output} = {left} + {right}"))
+            }
+            (EquationOperator::Subtract, [left, right]) => {
+                Ok(format!("{output} = {left} - {right}"))
+            }
+            (EquationOperator::Multiply, [left, right]) => {
+                Ok(format!("{output} = {left} * {right}"))
+            }
+            (EquationOperator::Divide, [left, right]) => {
+                Ok(format!("{output} = {left} / {right}"))
+            }
+            _ => Err(format!(
+                "equation '{}' has input arity incompatible with its operator",
+                self.id
+            )),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -322,7 +368,6 @@ impl ExperimentGraph {
         let mut producers: BTreeMap<String, String> = BTreeMap::new();
         for node in &self.equations {
             register_id(&node.id, &mut all_ids, issues);
-            require_nonempty(&node.expression, &node.id, "expression label", issues);
             require_nonempty(&node.basis_note, &node.id, "equation basis note", issues);
 
             if node.basis == EquationBasis::SourceReported && node.evidence_ids.is_empty() {
@@ -573,6 +618,29 @@ mod tests {
     fn gear_graph() -> ExperimentGraph {
         serde_json::from_str(include_str!("../fixtures/gear-ratio.json"))
             .expect("parse synthetic gear-ratio experiment")
+    }
+
+    #[test]
+    fn canonical_formula_labels_are_derived_from_executable_operators() {
+        let graph = gear_graph();
+        let ratio = graph
+            .equations
+            .iter()
+            .find(|node| node.id == "equation:gear-ratio")
+            .expect("gear ratio equation");
+        assert_eq!(
+            ratio.canonical_expression(&graph).unwrap(),
+            "r = N_driver / N_driven"
+        );
+        let reverse = graph
+            .equations
+            .iter()
+            .find(|node| node.id == "equation:external-gear-direction")
+            .expect("direction equation");
+        assert_eq!(
+            reverse.canonical_expression(&graph).unwrap(),
+            "r_signed = -(r)"
+        );
     }
 
     #[test]
