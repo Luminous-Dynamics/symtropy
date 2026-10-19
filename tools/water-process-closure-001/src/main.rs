@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use water_process_closure_001::{evaluate_corpus, CaseResult, InputCorpus, Oracle};
+use water_process_closure_001::{CaseResult, InputCorpus, Oracle, evaluate_corpus};
 
 #[derive(Debug, Serialize)]
 struct Mismatch {
@@ -43,8 +43,8 @@ fn valid_revision(value: &str) -> bool {
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<(Vec<u8>, T), String> {
     let bytes = fs::read(path).map_err(|err| format!("read {}: {err}", path.display()))?;
-    let value = serde_json::from_slice(&bytes)
-        .map_err(|err| format!("parse {}: {err}", path.display()))?;
+    let value =
+        serde_json::from_slice(&bytes).map_err(|err| format!("parse {}: {err}", path.display()))?;
     Ok((bytes, value))
 }
 
@@ -52,16 +52,19 @@ fn run() -> Result<i32, String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() > 3 {
         return Err(
-            "usage: water-process-closure-001 [INPUT_JSON] [ORACLE_JSON] [RECEIPT_JSON]"
-                .to_owned(),
+            "usage: water-process-closure-001 [INPUT_JSON] [ORACLE_JSON] [RECEIPT_JSON]".to_owned(),
         );
     }
-    let input_path = PathBuf::from(args.first().map(String::as_str).unwrap_or(
-        "fixtures/water-process-closure-001-inputs-v1.json",
-    ));
-    let oracle_path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
-        "fixtures/water-process-closure-001-oracle-v1.json",
-    ));
+    let input_path = PathBuf::from(
+        args.first()
+            .map(String::as_str)
+            .unwrap_or("fixtures/water-process-closure-001-inputs-v1.json"),
+    );
+    let oracle_path = PathBuf::from(
+        args.get(1)
+            .map(String::as_str)
+            .unwrap_or("fixtures/water-process-closure-001-oracle-v1.json"),
+    );
     let receipt_path = args.get(2).map(PathBuf::from);
 
     let (input_bytes, corpus): (Vec<u8>, InputCorpus) = read_json(&input_path)?;
@@ -75,15 +78,18 @@ fn run() -> Result<i32, String> {
     }
 
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|err| format!("read {}: {err}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|err| format!("read {}: {err}", lock_path.display()))?;
 
     let actual = evaluate_corpus(&corpus)?;
     let mut expected = oracle.results;
     expected.sort_by(|a, b| a.case_id.cmp(&b.case_id));
     let mut mismatches = Vec::new();
     for row in &actual {
-        match expected.iter().find(|candidate| candidate.case_id == row.case_id) {
+        match expected
+            .iter()
+            .find(|candidate| candidate.case_id == row.case_id)
+        {
             Some(expected_row) if expected_row == row => {}
             Some(expected_row) => mismatches.push(Mismatch {
                 case_id: row.case_id.clone(),
@@ -134,7 +140,8 @@ fn run() -> Result<i32, String> {
         ],
     };
     let serialized = serde_json::to_string_pretty(&receipt)
-        .map_err(|err| format!("serialize receipt: {err}"))? + "\n";
+        .map_err(|err| format!("serialize receipt: {err}"))?
+        + "\n";
     if let Some(path) = receipt_path {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
