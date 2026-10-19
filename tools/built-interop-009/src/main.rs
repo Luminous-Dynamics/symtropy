@@ -209,16 +209,69 @@ fn valid_run_id(value: &str) -> bool {
 
 fn valid_timestamp(value: &str) -> bool {
     let b = value.as_bytes();
-    b.len() >= 20
-        && b[4] == b'-'
-        && b[7] == b'-'
-        && b[10] == b'T'
-        && b[13] == b':'
-        && b[16] == b':'
-        && (value.ends_with('Z') || value.as_bytes().get(19) == Some(&b'+') || value.as_bytes().get(19) == Some(&b'-'))
-        && b[..19].iter().all(|byte| {
-            matches!(*byte, b'-' | b'T' | b':') || byte.is_ascii_digit()
-        })
+    if b.len() < 20
+        || !b[0..4].iter().all(u8::is_ascii_digit)
+        || b[4] != b'-'
+        || !b[5..7].iter().all(u8::is_ascii_digit)
+        || b[7] != b'-'
+        || !b[8..10].iter().all(u8::is_ascii_digit)
+        || b[10] != b'T'
+        || !b[11..13].iter().all(u8::is_ascii_digit)
+        || b[13] != b':'
+        || !b[14..16].iter().all(u8::is_ascii_digit)
+        || b[16] != b':'
+        || !b[17..19].iter().all(u8::is_ascii_digit)
+    {
+        return false;
+    }
+    let number = |start: usize, end: usize| -> u32 {
+        value[start..end].parse().unwrap_or(u32::MAX)
+    };
+    let year = number(0, 4);
+    let month = number(5, 7);
+    let day = number(8, 10);
+    let hour = number(11, 13);
+    let minute = number(14, 16);
+    let second = number(17, 19);
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day)
+        || hour > 23 || minute > 59 || second > 60
+    {
+        return false;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        2 if leap => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    if day > max_day {
+        return false;
+    }
+
+    let mut zone = &value[19..];
+    if let Some(fraction) = zone.strip_prefix('.') {
+        let digits = fraction.bytes().take_while(u8::is_ascii_digit).count();
+        if digits == 0 {
+            return false;
+        }
+        zone = &fraction[digits..];
+    }
+    if zone == "Z" {
+        return true;
+    }
+    let z = zone.as_bytes();
+    if z.len() != 6
+        || !matches!(z[0], b'+' | b'-')
+        || z[3] != b':'
+        || !z[1..3].iter().all(u8::is_ascii_digit)
+        || !z[4..6].iter().all(u8::is_ascii_digit)
+    {
+        return false;
+    }
+    let offset_hour = zone[1..3].parse::<u32>().unwrap_or(u32::MAX);
+    let offset_minute = zone[4..6].parse::<u32>().unwrap_or(u32::MAX);
+    offset_hour <= 23 && offset_minute <= 59
 }
 
 fn expected_case_id(mutation: Mutation) -> &'static str {
@@ -712,6 +765,9 @@ mod tests {
     #[test]
     fn timestamp_and_ids_are_fail_closed() {
         assert!(valid_timestamp("2026-10-19T17:00:00Z"));
+        assert!(valid_timestamp("2024-02-29T17:00:00.123+02:00"));
+        assert!(!valid_timestamp("2023-02-29T17:00:00Z"));
+        assert!(!valid_timestamp("2026-99-99T25:61:99Z"));
         assert!(valid_run_id("ci-3926:attempt_1"));
         assert!(!valid_run_id("invalid/run"));
         assert!(!valid_hex("z".repeat(64).as_str(), 64));
