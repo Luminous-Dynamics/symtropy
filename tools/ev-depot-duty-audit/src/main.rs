@@ -434,7 +434,7 @@ fn audit(
         operation_days_parsed_valid_rows: operation_days.len(),
         operation_days_invalid_rows: invalid_op_rows,
         schedule_input_rows: schedule_rows,
-        schedule_parsed_valid_rows_before_key_reconciliation: valid_schedule_rows,
+        schedule_parsed_valid_rows_with_known_operation_day_ids: valid_schedule_rows,
         schedule_invalid_rows: invalid_schedule_rows,
         reconciled_operation_day_count: reconciled.len(),
         operation_day_reconciliation_issues: issues,
@@ -571,7 +571,7 @@ mod tests {
         assert_eq!(report.operation_days_parsed_valid_rows, 2);
         assert_eq!(report.schedule_input_rows, 8);
         assert_eq!(
-            report.schedule_parsed_valid_rows_before_key_reconciliation,
+            report.schedule_parsed_valid_rows_with_known_operation_day_ids,
             8
         );
         assert_eq!(report.reconciled_operation_day_count, 2);
