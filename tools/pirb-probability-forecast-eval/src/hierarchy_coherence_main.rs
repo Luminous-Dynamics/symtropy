@@ -493,11 +493,8 @@ mod tests {
 
     #[test]
     fn raw_and_reconciled_residuals_are_reported_separately() {
-        let receipt = validate_and_audit(
-            FIXTURE_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("synthetic fixture contract is valid");
+        let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+            .expect("synthetic fixture contract is valid");
         assert_eq!(
             receipt["constraint_diagnostics"][0]["raw_signed_residual"],
             0.0
@@ -557,7 +554,9 @@ mod tests {
         value["forecasts"][1]["event_type_id"] = json!("event-battles");
         let errors = audit(&value).expect_err("spatial sums require one target event type");
         assert!(
-            errors.iter().any(|error| error.contains("mixes event_type_id"))
+            errors
+                .iter()
+                .any(|error| error.contains("mixes event_type_id"))
         );
     }
 
@@ -576,7 +575,9 @@ mod tests {
         value["forecasts"][1]["forecast_id"] = first_id;
         let errors = audit(&value).expect_err("duplicate IDs must not silently overwrite rows");
         assert!(
-            errors.iter().any(|error| error.contains("forecast ID is duplicated"))
+            errors
+                .iter()
+                .any(|error| error.contains("forecast ID is duplicated"))
         );
     }
 }
