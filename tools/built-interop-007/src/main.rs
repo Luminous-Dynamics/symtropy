@@ -307,10 +307,9 @@ fn snapshot(model: &Model, schema: &Schema, side: &str) -> Snapshot {
     }
 
     let bytes = serde_json::to_vec(&entities).expect("snapshot map serializes");
-    let issue_ambiguous = issues.iter().filter(|i| matches!(i.code.as_str(), "INVALID_GLOBAL_ID" | "MISSING_GLOBAL_ID" | "DUPLICATE_GLOBAL_ID")).count();
     Snapshot {
         entities, root_count, stable_root_count: stable, nonroot_count: nonroot,
-        ambiguous_count: issue_ambiguous, unresolved_refs, issues,
+        ambiguous_count: ambiguous, unresolved_refs, issues,
         semantic_sha256: sha256_hex(&bytes)
     }
 }
@@ -432,8 +431,8 @@ fn compare_bytes(source_bytes: &[u8], target_bytes: &[u8], source_path: &str, ta
             "SCHEMA_PROFILE_MISMATCH_OR_UNSUPPORTED_SCHEMA: IFC4 is required for both inputs".into());
     }
 
-    let source = snapshot(&source_model,&schema,"source");
-    let target = snapshot(&target_model,&schema,"target");
+    let source = snapshot(&source_model,schema,"source");
+    let target = snapshot(&target_model,schema,"target");
     let mut issues = source.issues.clone();
     issues.extend(target.issues.clone());
     let (changes, counts) = compare_snapshots(&source,&target);
@@ -574,9 +573,9 @@ mod tests {
         let a=IfcValue::Integer(1); let b=IfcValue::Integer(2);
         let list=Aggregation::new(AggregateKind::List,Bound::Integer(0),Bound::Unbounded);
         let set=Aggregation::new(AggregateKind::Set,Bound::Integer(0),Bound::Unbounded);
-        let l1=canonical_value(&IfcValue::List(vec![a.clone(),b.clone()]),&BTreeMap::new(),&[list.clone()]);
+        let l1=canonical_value(&IfcValue::List(vec![a.clone(),b.clone()]),&BTreeMap::new(),std::slice::from_ref(&list));
         let l2=canonical_value(&IfcValue::List(vec![b.clone(),a.clone()]),&BTreeMap::new(),&[list]);
-        let s1=canonical_value(&IfcValue::List(vec![a.clone(),b.clone()]),&BTreeMap::new(),&[set.clone()]);
+        let s1=canonical_value(&IfcValue::List(vec![a.clone(),b.clone()]),&BTreeMap::new(),std::slice::from_ref(&set));
         let s2=canonical_value(&IfcValue::List(vec![b,a]),&BTreeMap::new(),&[set]);
         assert_ne!(l1,l2); assert_eq!(s1,s2);
     }
