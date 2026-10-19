@@ -1,7 +1,7 @@
 use super::{
     candidate_schedules, enumerate_vectors, evaluate_schedule, independently_reconstruct_score,
-    is_lower_hex, sha256, Check, GeneratedCase, ProcessModel, ScheduleScore, Split,
-    WORLDS_PER_SEED, generate_cases,
+    is_lower_hex, sha256, Check, GeneratedCase, ProcessModel, Split, WORLDS_PER_SEED,
+    generate_cases,
 };
 use serde::Serialize;
 use std::process::ExitCode;
@@ -467,8 +467,6 @@ fn make_receipt(source_commit: &str) -> Check<ExecutionReceipt> {
             let resource_outcome = realized_outcome(
                 &process,
                 world,
-                case.seed,
-                case.split,
                 resource_only,
                 "resource_only_robust_min_cost",
                 &profile,
@@ -477,8 +475,6 @@ fn make_receipt(source_commit: &str) -> Check<ExecutionReceipt> {
             let constrained_outcome = realized_outcome(
                 &process,
                 world,
-                case.seed,
-                case.split,
                 execution_constrained,
                 "execution_constrained_robust_min_cost",
                 &profile,
