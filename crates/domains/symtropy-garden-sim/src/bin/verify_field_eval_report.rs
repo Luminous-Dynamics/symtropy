@@ -79,11 +79,11 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    if let Some(path) = report_path {
-        if let Err(error) = fs::write(&path, format!("{output}\n")) {
-            eprintln!("cannot write {}: {error}", path.display());
-            return ExitCode::from(2);
-        }
+    if let Some(path) = report_path
+        && let Err(error) = fs::write(&path, format!("{output}\n"))
+    {
+        eprintln!("cannot write {}: {error}", path.display());
+        return ExitCode::from(2);
     }
     println!("{output}");
     match envelope.assessment.disposition {
