@@ -97,8 +97,8 @@
       ]
     },
     {
-      "id": "unknown_profile_state_stays_indeterminate",
-      "mutation": "profile_unknown_state",
+      "id": "profile_without_capability_claims_is_indeterminate",
+      "mutation": "profile_without_capability_claims",
       "expected_disposition": "indeterminate",
       "expected_reason_codes": [
         "profile_validation_indeterminate"
