@@ -34,14 +34,15 @@ The system must be able to abstain on source attribution while preserving a just
 
 ## 4. Fixture design
 
-FOOD_TRACEBACK_V0_1.json is synthetic and frozen at schema version 0.1.0. It contains four hand-auditable cases:
+FOOD_TRACEBACK_V0_1.json is synthetic and frozen at schema version 0.1.0. It contains five hand-auditable cases:
 
 | Case | Stressor | Required behavior |
 |---|---|---|
 | CLEAN-001 | Complete custody path; one implicated and one unrelated finished lot | Reconstruct the path, retain the affected lot, and exclude the known unrelated lot under the declared complete-coverage assumption |
 | MIX-SPLIT-002 | Two ingredient lots merge into a mix that feeds two finished lots | Propagate exposure through the actual transformation and split; do not assume one input lot maps to one output lot |
 | MISSING-HANDOFF-003 | The ingredient-to-mix custody edge is unknown while an outbreak-associated finished lot is known | Preserve containment of the observed affected lot; mark the upstream source unresolved; do not claim complete trace coverage |
-| GENOMIC-NO-ROUTE-004 | A retail sample shares a pathogen profile with a supplier sample, but no custody route connects that supplier to the affected lot | Keep genomic association distinct from material flow; do not assert a supply path or causal source from similarity alone |
+| CONFLICTED-CUSTODY-004 | Two incompatible upstream custody claims refer to one finished lot | Preserve the conflict, contain the affected lot, and abstain on conclusive source attribution |
+| GENOMIC-NO-ROUTE-005 | A retail sample shares a pathogen profile with a supplier sample, but no custody route connects that supplier to the affected lot | Keep genomic association distinct from material flow; do not assert a supply path or causal source from similarity alone |
 
 The fixture records are event- and evidence-scoped. A verified custody record is not interchangeable with a screening-only pathogen-profile comparison. Unknown and conflicted states are first-class values, not missing values to coerce into verified or false.
 
