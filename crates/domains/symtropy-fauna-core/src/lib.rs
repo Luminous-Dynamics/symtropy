@@ -253,7 +253,7 @@ pub fn validate_profile(profile: &AnimalProfile) -> ValidationResult {
             indeterminate.insert(ReasonCode::UnresolvedCapabilityEvidence);
         }
 
-        if profile.kind == ProfileKind::RealTaxonBound && claim.state.is_assertion() {
+        if profile.kind == ProfileKind::RealTaxonBound {
             if claim.evidence.class == EvidenceClass::Synthetic {
                 rejected.insert(ReasonCode::SyntheticEvidenceForRealTaxon);
             }
@@ -273,28 +273,30 @@ pub fn validate_profile(profile: &AnimalProfile) -> ValidationResult {
                 UsePermission::Granted | UsePermission::AttributionRequired => {}
             }
 
-            if claim
-                .evidence
-                .source_ref
-                .as_deref()
-                .is_none_or(|source| source.trim().is_empty())
-            {
-                indeterminate.insert(ReasonCode::MissingEvidenceSource);
-            }
-
-            match (
-                profile.taxon.as_ref().map(|taxon| taxon.taxon_id.trim()),
-                claim.evidence.taxon_id.as_deref().map(str::trim),
-            ) {
-                (_, None) | (_, Some("")) => {
-                    indeterminate.insert(ReasonCode::MissingEvidenceTaxonId);
-                }
-                (Some(profile_taxon), Some(evidence_taxon))
-                    if !profile_taxon.is_empty() && profile_taxon != evidence_taxon =>
+            if claim.state.is_assertion() {
+                if claim
+                    .evidence
+                    .source_ref
+                    .as_deref()
+                    .is_none_or(|source| source.trim().is_empty())
                 {
-                    rejected.insert(ReasonCode::EvidenceTaxonMismatch);
+                    indeterminate.insert(ReasonCode::MissingEvidenceSource);
                 }
-                _ => {}
+
+                match (
+                    profile.taxon.as_ref().map(|taxon| taxon.taxon_id.trim()),
+                    claim.evidence.taxon_id.as_deref().map(str::trim),
+                ) {
+                    (_, None) | (_, Some("")) => {
+                        indeterminate.insert(ReasonCode::MissingEvidenceTaxonId);
+                    }
+                    (Some(profile_taxon), Some(evidence_taxon))
+                        if !profile_taxon.is_empty() && profile_taxon != evidence_taxon =>
+                    {
+                        rejected.insert(ReasonCode::EvidenceTaxonMismatch);
+                    }
+                    _ => {}
+                }
             }
         }
     }
@@ -397,7 +399,7 @@ pub struct CoverageReport {
     pub in_progress: usize,
     pub unsupported: usize,
     pub not_reviewed: usize,
-    pub complete: bool,
+    pub profile_registry_complete: bool,
     pub taxa: Vec<TaxonCoverage>,
 }
 
@@ -414,9 +416,10 @@ pub enum CoverageError {
 
 /// Build a report for a pinned, explicitly selected taxonomy scope.
 ///
-/// Covered is accepted only when a real-taxon profile for that taxon passes
-/// validation. This function does not declare an entire global taxonomy covered
-/// merely because the input scope is small.
+/// Covered means profile-registry coverage: a real-taxon profile for that taxon
+/// must pass this crate's structural/evidence gates. It is not a claim that the
+/// species' behavior or biology is comprehensively simulated. The completeness
+/// flag applies only to this explicit, pinned registry scope.
 pub fn coverage_report(
     scope: &TaxonomyScope,
     declarations: &[CoverageDeclaration],
@@ -500,7 +503,7 @@ pub fn coverage_report(
         in_progress,
         unsupported,
         not_reviewed,
-        complete: !taxa.is_empty() && covered == taxa.len(),
+        profile_registry_complete: !taxa.is_empty() && covered == taxa.len(),
         taxa,
     })
 }
