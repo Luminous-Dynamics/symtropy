@@ -24,7 +24,8 @@ pub mod telemetry_ssbo;
 #[cfg(feature = "field-observability")]
 pub use field_observability::{
     CalibrationState, FieldObservabilityPlugin, FieldProvenance, FieldSourceKind,
-    FieldValidationError, FieldVisualizationConfig, ScalarFieldFrame, ScalarFieldSample,
+    FieldValidationError, FieldVisualizationConfig, FieldVisualizationStatus, ScalarFieldFrame,
+    ScalarFieldSample,
     ScalarGlyph, ScalarPalette, ScalarQuantity, ScalarRange, SpectralBand, SpectralChannelSpec,
     SpectralCompositeFrame, SpectralGlyph, SpectralSample, SpectralScalarQuantity,
     VectorFieldFrame, VectorFieldSample, VectorGlyph, VectorQuantity, extract_scalar_glyphs,
