@@ -39,6 +39,7 @@ jobs:
           jq -e '.suite_id == "EV-CHARGE-RESILIENCE-001" and (.results | length == 14) and all(.results[]; .evidence_class == "synthetic" and .site_power_limit_respected and .individual_power_limits_respected and ((.energy_balance_residual_kwh | fabs) < 0.000001) and ((.jobs | length) == .job_count) and (([.jobs[].job_id] | unique | length) == .job_count))' ev-fleet-resilience-report.json
           jq -e '[.results[] | select(.scenario_id == "deadline-policy-oracle" and .policy == "fcfs") | .missed_deadline_count] == [1]' ev-fleet-resilience-report.json
           jq -e '[.results[] | select(.scenario_id == "deadline-policy-oracle" and .policy == "earliest_departure_first") | .missed_deadline_count] == [0]' ev-fleet-resilience-report.json
+          jq -e '.capacity_frontiers | length == 14 and all(.[]; (.points | length == 20) and .sample_spacing_percent == 5 and .minimum_deadline_completion_target == 0.95 and .minimum_energy_service_target == 0.95 and all(.points[]; .site_power_limit_respected and .individual_power_limits_respected))' ev-fleet-resilience-report.json
       - name: Hash canonical report and all benchmark inputs
         run: sha256sum ev-fleet-resilience-report.json tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs tools/ev-fleet-resilience/fixtures/ev_fleet_resilience_v0_1.json tools/ev-fleet-resilience/schemas/ev_fleet_resilience_v0_1.schema.json tools/ev-fleet-resilience/README.md > ev-fleet-resilience.sha256
       - name: Upload reproducible reports and inputs
