@@ -27,9 +27,10 @@ pub use inspector::SymtropyInspectorPlugin;
 pub use field_observability::{
     CalibrationState, FieldObservabilityPlugin, FieldProvenance, FieldSourceKind,
     FieldValidationError, FieldVisualizationConfig, ScalarFieldFrame, ScalarFieldSample,
-    ScalarGlyph, ScalarPalette, ScalarQuantity, ScalarRange, SpectralBand, VectorFieldFrame,
-    VectorFieldSample, VectorGlyph, VectorQuantity, extract_scalar_glyphs, extract_vector_glyphs,
-    scalar_color,
+    ScalarGlyph, ScalarPalette, ScalarQuantity, ScalarRange, SpectralBand, SpectralChannelSpec,
+    SpectralCompositeFrame, SpectralGlyph, SpectralSample, SpectralScalarQuantity, VectorFieldFrame,
+    VectorFieldSample, VectorGlyph, VectorQuantity, extract_scalar_glyphs, extract_spectral_glyphs,
+    extract_vector_glyphs, scalar_color,
 };
 pub use material::{
     NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
