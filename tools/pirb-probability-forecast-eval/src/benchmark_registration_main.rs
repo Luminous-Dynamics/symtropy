@@ -13,6 +13,7 @@ use std::{
 
 const SCHEMA_BYTES: &[u8] =
     include_bytes!("../../../docs/schemas/pirb-cross-provider-benchmark-v0.1.schema.json");
+#[cfg(test)]
 const EXAMPLE_BYTES: &[u8] =
     include_bytes!("../../../docs/fixtures/pirb-cross-provider-benchmark-incompatible-v0.1.json");
 
@@ -96,8 +97,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             ));
         }
 
-        if output_type != "binary_probability" {
-            if let Some(metrics) = metrics {
+        if output_type != "binary_probability"
+            && let Some(metrics) = metrics
+        {
                 for metric in metrics.iter().filter_map(Value::as_str) {
                     let normalized = metric.to_ascii_lowercase();
                     let probability_only = [
@@ -120,7 +122,6 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                         ));
                     }
                 }
-            }
         }
 
         if object_string_at(registration, "governance", "data_authority_status")
@@ -137,14 +138,13 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         }
 
         let digest = string_at(provider, "artifact_digest").unwrap_or_default();
-        if digest.chars().all(|ch| ch == '0') || digest.chars().all(|ch| ch == '1') {
-            if string_at(registration, "evidence_scope") == Some("authorized_historical_evaluation")
-            {
+        if (digest.chars().all(|ch| ch == '0') || digest.chars().all(|ch| ch == '1'))
+            && string_at(registration, "evidence_scope") == Some("authorized_historical_evaluation")
+        {
                 errors.push(format!(
                     "provider {} uses a placeholder artifact digest for historical evidence",
                     id.unwrap_or("<missing>")
                 ));
-            }
         }
     }
 
