@@ -852,9 +852,9 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
                     == ((summary.feasible_worlds as u128 * 10_000)
                         / summary.evaluated_worlds as u128) as u32)
     });
-    let in_envelope_completion_control =
-        completed_adaptive_worlds_within_envelope == in_envelope_world_count
-            && completed_carbon_first_worlds_within_envelope == in_envelope_world_count;
+    let in_envelope_completion_control = completed_adaptive_worlds_within_envelope
+        == in_envelope_world_count
+        && completed_carbon_first_worlds_within_envelope == in_envelope_world_count;
     // This corpus intentionally contains a no-completion shock, so at least one of the
     // two policies must exercise its fail-closed branch rather than passing vacuously.
     let out_of_envelope_abort_control =
@@ -984,8 +984,7 @@ mod tests {
             )
             .expect("future-perturbed first action");
             assert_eq!(
-                base_action.chosen_batches_this_period,
-                changed_action.chosen_batches_this_period,
+                base_action.chosen_batches_this_period, changed_action.chosen_batches_this_period,
                 "objective {objective:?}"
             );
             assert_eq!(
@@ -1040,8 +1039,7 @@ mod tests {
             first.validation_world_count + first.held_out_world_count
         );
         assert!(
-            first.adaptive_aborts_outside_envelope + first.carbon_first_aborts_outside_envelope
-                > 0
+            first.adaptive_aborts_outside_envelope + first.carbon_first_aborts_outside_envelope > 0
         );
         assert!(first.adaptive_aborts_outside_envelope <= 192);
         assert!(first.carbon_first_aborts_outside_envelope <= 192);
