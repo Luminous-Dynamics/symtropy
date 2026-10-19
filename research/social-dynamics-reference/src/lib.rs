@@ -189,14 +189,9 @@ pub fn simulate(
     let n = scenario.population;
     let mut rng = SplitMix64::new(seed);
 
+    let neighborhoods = canonical::ring_lattice(n, 4)?;
     let mut agents = Vec::with_capacity(n);
-    for i in 0..n {
-        let neighbors = vec![
-            (i + 1) % n,
-            (i + 2) % n,
-            (i + n - 1) % n,
-            (i + n - 2) % n,
-        ];
+    for neighbors in neighborhoods {
         let trust = neighbors.iter().map(|_| 0.30 + 0.65 * rng.unit_f64()).collect();
         agents.push(Agent {
             need: 0.80 + 0.40 * rng.unit_f64(),
