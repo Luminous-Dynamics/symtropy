@@ -664,6 +664,12 @@ fn run() -> Check<ExitCode> {
     }
     if args
         .first()
+        .is_some_and(|argument| argument == "--risk-budget")
+    {
+        return robustness::run_risk_budget_cli(&args[1..]);
+    }
+    if args
+        .first()
         .is_some_and(|argument| argument == "--robustness")
     {
         return robustness::run_cli(&args[1..]);
