@@ -18,7 +18,7 @@ fn main() {
 
     let runs = 32_u64;
     println!(
-        "treatment,n_runs,mean_unmet_need_integral,mean_unmet_need_inequality_gini,mean_contributions,recovery_rate,mean_recovery_tick_when_recovered,verification_overhead,mean_repair_progress_at_shock_end"
+        "treatment,n_runs,mean_unmet_need_integral,mean_unmet_need_inequality_gini,mean_contribution_count,recovery_rate,mean_recovery_tick_when_recovered,verification_overhead,mean_repair_progress_at_shock_end"
     );
 
     for treatment in Treatment::ALL {
