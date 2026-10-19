@@ -39,6 +39,18 @@ fn object_string_at<'a>(value: &'a Value, object: &str, key: &str) -> Option<&'a
     value.get(object).and_then(|child| string_at(child, key))
 }
 
+fn output_type_matches_measure(output_type: &str, target_measure: &str) -> bool {
+    matches!(
+        (output_type, target_measure),
+        ("binary_probability", "binary_event_probability")
+            | ("event_count", "event_count")
+            | ("count_distribution", "event_count_distribution")
+            | ("prediction_interval", "event_interval")
+            | ("ordinal_risk", "ordinal_risk")
+            | ("other", "other")
+    )
+}
+
 fn push_unique_id(
     ids: &mut BTreeSet<String>,
     value: Option<&str>,
@@ -260,6 +272,17 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                 }
 
                 if let (Some(left), Some(right)) = (left, right) {
+                    let shared_id =
+                        object_string_at(registration, "shared_estimand", "estimand_id");
+                    if string_at(left, "canonical_estimand_id") != shared_id
+                        || string_at(right, "canonical_estimand_id") != shared_id
+                    {
+                        errors.push(format!(
+                            "direct comparison {} requires both providers to use the registered canonical estimand ID",
+                            comparison_id.unwrap_or("<missing>")
+                        ));
+                    }
+
                     if string_at(left, "analysis_unit")
                         != object_string_at(registration, "shared_estimand", "analysis_unit")
                         || string_at(right, "analysis_unit")
@@ -284,6 +307,19 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                             comparison_id.unwrap_or("<missing>")
                         ));
                     }
+
+                    let target_measure =
+                        object_string_at(registration, "shared_estimand", "target_measure")
+                            .unwrap_or_default();
+                    for provider in [left, right] {
+                        let output_type = string_at(provider, "output_type").unwrap_or_default();
+                        if !output_type_matches_measure(output_type, target_measure) {
+                            errors.push(format!(
+                                "direct comparison {} output_type {output_type} is incompatible with registered target_measure {target_measure}",
+                                comparison_id.unwrap_or("<missing>")
+                            ));
+                        }
+                    }
                 }
             }
             "comparable_after_predeclared_mapping" => {
@@ -301,20 +337,35 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                                     .chars()
                                     .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
                         });
-                let mapping_verified = comparison
-                    .get("mapping")
-                    .and_then(|mapping| mapping.get("independently_verified"))
+                let mapping = comparison.get("mapping").unwrap_or(&Value::Null);
+                let mapping_verified = mapping
+                    .get("independently_verified")
                     .and_then(Value::as_bool)
                     == Some(true);
-                let review_reference = comparison
-                    .get("mapping")
-                    .and_then(|mapping| string_at(mapping, "review_reference"))
+                let review_reference = string_at(mapping, "review_reference")
                     .is_some_and(|reference| !reference.is_empty());
                 let row_policy = string_at(comparison, "common_row_policy")
                     .is_some_and(|policy| !policy.is_empty());
-                if !(mapping_pinned && mapping_verified && review_reference && row_policy) {
+                let mapping_targets_registered_estimand =
+                    string_at(mapping, "target_estimand_id")
+                        == object_string_at(registration, "shared_estimand", "estimand_id");
+                let mapping_sources_match_providers = left
+                    .zip(right)
+                    .is_some_and(|(left, right)| {
+                        string_at(mapping, "left_source_estimand_id")
+                            == string_at(left, "canonical_estimand_id")
+                            && string_at(mapping, "right_source_estimand_id")
+                                == string_at(right, "canonical_estimand_id")
+                    });
+                if !(mapping_pinned
+                    && mapping_verified
+                    && review_reference
+                    && row_policy
+                    && mapping_targets_registered_estimand
+                    && mapping_sources_match_providers)
+                {
                     errors.push(format!(
-                        "mapped comparison {} requires a pinned global mapping, independent verification, review reference, and common-row policy",
+                        "mapped comparison {} requires a pinned global mapping, independent review, common-row policy, matching source estimand IDs, and the registered target estimand ID",
                         comparison_id.unwrap_or("<missing>")
                     ));
                 }
@@ -497,6 +548,34 @@ mod tests {
     }
 
     #[test]
+    fn direct_comparison_requires_canonical_estimand_identity() {
+        let mut value = example();
+        let comparison = &mut value["comparisons"][0];
+        comparison["status"] = json!("directly_comparable");
+        comparison["forecast_skill_comparison_permitted"] = json!(true);
+        comparison["common_row_policy"] = json!("common mature outcome rows");
+        comparison["mapping"] = Value::Null;
+        value["providers"][1]["canonical_estimand_id"] =
+            value["providers"][0]["canonical_estimand_id"].clone();
+        value["shared_estimand"]["estimand_id"] = json!("different-registered-estimand");
+        value["shared_estimand"]["analysis_unit"] = json!("country-month");
+        value["shared_estimand"]["temporal_aggregation"] = json!("calendar month");
+        value["shared_estimand"]["target_measure"] = json!("binary_event_probability");
+
+        let errors = validate(&value).expect_err("canonical target identity must match registration");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("canonical estimand ID"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("target_measure"))
+        );
+    }
+
+    #[test]
     fn unknown_provider_references_are_rejected() {
         let mut value = example();
         value["comparisons"][0]["right_provider_id"] = json!("provider-does-not-exist");
@@ -555,7 +634,10 @@ mod tests {
             "method_reference": "mapping-method-v1",
             "method_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
             "independently_verified": true,
-            "review_reference": "independent-review-record"
+            "review_reference": "independent-review-record",
+            "left_source_estimand_id": "views-country-month-brd25-probability",
+            "right_source_estimand_id": "acled-cast-admin1-four-week-event-count",
+            "target_estimand_id": "unresolved-no-common-estimand"
         });
         let errors = validate(&value).expect_err("global mapping pin must be required");
         assert!(
