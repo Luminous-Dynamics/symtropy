@@ -63,8 +63,6 @@ jobs:
         run: |
           sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-duty-audit/fixtures/veh_op_days_synthetic_v0_1.csv tools/ev-depot-duty-audit/fixtures/veh_schedules_synthetic_v0_1.csv tools/ev-depot-duty-audit/README.md ev-depot-duty-audit-report.json nlr-duty-audit-report.json > ev-depot-duty-audit.sha256
           (cd "${RUNNER_TEMP}" && sha256sum nlr-veh_op_days.csv nlr-veh_schedules.csv) >> ev-depot-duty-audit.sha256
-        run: |
-          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-duty-audit/fixtures/veh_op_days_synthetic_v0_1.csv tools/ev-depot-duty-audit/fixtures/veh_schedules_synthetic_v0_1.csv tools/ev-depot-duty-audit/README.md ev-depot-duty-audit-report.json > ev-depot-duty-audit.sha256
       - name: Upload reproducible audit evidence
         uses: actions/upload-artifact@v4
         with:
