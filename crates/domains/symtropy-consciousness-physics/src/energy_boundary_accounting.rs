@@ -380,6 +380,48 @@ mod tests {
             assess_energy_boundary(&loose),
             Err(EnergyBoundaryError::InvalidRelativeTolerance)
         );
+
+        let mut negative_transfer = balanced_snapshot();
+        negative_transfer.internal_transfers[0].amount = -0.5;
+        assert_eq!(
+            assess_energy_boundary(&negative_transfer),
+            Err(EnergyBoundaryError::InvalidTransferAmount)
+        );
+
+        let mut empty_boundary = balanced_snapshot();
+        empty_boundary.boundary_id.clear();
+        assert_eq!(
+            assess_energy_boundary(&empty_boundary),
+            Err(EnergyBoundaryError::EmptyBoundaryId)
+        );
+
+        let mut empty_unit = balanced_snapshot();
+        empty_unit.unit.clear();
+        assert_eq!(
+            assess_energy_boundary(&empty_unit),
+            Err(EnergyBoundaryError::EmptyEnergyUnit)
+        );
+
+        let mut duplicate_store = balanced_snapshot();
+        duplicate_store.tracked_store_ids.push("battery".to_owned());
+        assert_eq!(
+            assess_energy_boundary(&duplicate_store),
+            Err(EnergyBoundaryError::DuplicateTrackedStoreId)
+        );
+
+        let mut empty_store = balanced_snapshot();
+        empty_store.tracked_store_ids[0].clear();
+        assert_eq!(
+            assess_energy_boundary(&empty_store),
+            Err(EnergyBoundaryError::EmptyTrackedStoreId)
+        );
+
+        let mut empty_event = balanced_snapshot();
+        empty_event.boundary_flows[0].event_id.clear();
+        assert_eq!(
+            assess_energy_boundary(&empty_event),
+            Err(EnergyBoundaryError::EmptyEventId)
+        );
     }
 
     #[test]
