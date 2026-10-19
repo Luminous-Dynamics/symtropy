@@ -499,10 +499,10 @@ fn valid_constraint_target(constraint: &MotionSkillConstraint) -> bool {
         (
             MotionConstraintKind::CollisionFree
             | MotionConstraintKind::JointLimits
-            | MotionConstraintKind::SupportStable
-            | MotionConstraintKind::ContactState,
-            MotionConstraintTarget::Boolean(_),
-        ) => true,
+            | MotionConstraintKind::SupportStable,
+            MotionConstraintTarget::Boolean(enabled),
+        ) => *enabled,
+        (MotionConstraintKind::ContactState, MotionConstraintTarget::Boolean(_)) => true,
         (
             MotionConstraintKind::Style | MotionConstraintKind::Gaze,
             MotionConstraintTarget::Label(label),
@@ -816,6 +816,23 @@ mod tests {
             skill.validate(),
             Err(MotionSkillValidationError::InvalidConstraintHardness)
         );
+    }
+
+    #[test]
+    fn mandatory_physics_constraints_cannot_be_disabled() {
+        for kind in [
+            MotionConstraintKind::CollisionFree,
+            MotionConstraintKind::JointLimits,
+            MotionConstraintKind::SupportStable,
+        ] {
+            let mut skill = contract();
+            skill.constraints[0].kind = kind;
+            skill.constraints[0].target = MotionConstraintTarget::Boolean(false);
+            assert_eq!(
+                skill.validate(),
+                Err(MotionSkillValidationError::InvalidConstraintTarget)
+            );
+        }
     }
 
     #[test]
