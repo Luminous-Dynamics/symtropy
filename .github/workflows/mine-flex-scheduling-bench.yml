@@ -18,6 +18,7 @@ on:
       - "docs/tech/MINE_FLEX_RECOURSE_BENCHMARK_V0_1.md"
       - "docs/tech/MINE_FLEX_RISK_BUDGET_BENCHMARK_V0_1.md"
       - "docs/tech/MINE_FLEX_EXECUTION_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_PUMP_SUMP_BENCHMARK_V0_1.md"
       - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
       - "tools/mine-flex-scheduling-bench/**"
       - ".github/workflows/mine-flex-scheduling-bench.yml"
