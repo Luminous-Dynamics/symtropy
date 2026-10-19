@@ -865,6 +865,27 @@ fn run() -> Check<ExitCode> {
             invariant.detail
         );
     }
+    for scenario in &receipt.scenarios {
+        println!(
+            "scenario={} eligible_candidates={}",
+            scenario.scenario_id, scenario.eligible_candidate_count
+        );
+        for policy in &scenario.policy_reports {
+            println!(
+                "policy={:?} weighted_coverage_ppm={} information_score_units={} raw_uncertainty_reduction_ppm={} effort={} sound={} light={} sediment={} oracle_regret_units={} selected={}",
+                policy.policy,
+                policy.weighted_coverage_ppm,
+                policy.information_score_units,
+                policy.raw_uncertainty_reduction_ppm,
+                policy.effort_used,
+                policy.exposure_used.sound_units,
+                policy.exposure_used.light_units,
+                policy.exposure_used.sediment_units,
+                policy.oracle_regret_units,
+                policy.selected_candidate_ids.join("|")
+            );
+        }
+    }
     if receipt.result == "PASS" {
         Ok(ExitCode::SUCCESS)
     } else {
