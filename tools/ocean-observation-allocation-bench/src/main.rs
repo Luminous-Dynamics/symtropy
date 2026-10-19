@@ -159,6 +159,9 @@ struct PolicyReport {
     exposure_used: Exposure,
     uncovered_stratum_ids: Vec<String>,
     oracle_regret_units: u64,
+    /// True when no other policy is at least as good on every declared metric
+    /// and strictly better on at least one metric.
+    pareto_nondominated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -615,6 +618,26 @@ fn weighted_coverage_ppm(scenario: &Scenario, state: &SelectionState) -> u64 {
     (covered.saturating_mul(u128::from(SCALE_PPM)) / denominator).min(u128::from(SCALE_PPM)) as u64
 }
 
+fn dominates(left: &PolicyReport, right: &PolicyReport) -> bool {
+    let no_worse = left.weighted_coverage_ppm >= right.weighted_coverage_ppm
+        && left.information_score_units >= right.information_score_units
+        && left.raw_uncertainty_reduction_ppm >= right.raw_uncertainty_reduction_ppm
+        && left.effort_used <= right.effort_used
+        && left.exposure_used.sound_units <= right.exposure_used.sound_units
+        && left.exposure_used.light_units <= right.exposure_used.light_units
+        && left.exposure_used.sediment_units <= right.exposure_used.sediment_units;
+
+    let strictly_better = left.weighted_coverage_ppm > right.weighted_coverage_ppm
+        || left.information_score_units > right.information_score_units
+        || left.raw_uncertainty_reduction_ppm > right.raw_uncertainty_reduction_ppm
+        || left.effort_used < right.effort_used
+        || left.exposure_used.sound_units < right.exposure_used.sound_units
+        || left.exposure_used.light_units < right.exposure_used.light_units
+        || left.exposure_used.sediment_units < right.exposure_used.sediment_units;
+
+    no_worse && strictly_better
+}
+
 fn report_for(
     scenario: &Scenario,
     policy: Policy,
@@ -642,6 +665,7 @@ fn report_for(
         },
         uncovered_stratum_ids,
         oracle_regret_units: oracle_score.saturating_sub(state.information_score_units),
+        pareto_nondominated: false,
     }
 }
 
@@ -655,6 +679,13 @@ fn evaluate_scenario(scenario: &Scenario, seed: u64) -> ScenarioReport {
             _ => select_greedy(scenario, *policy, seed),
         };
         policy_reports.push(report_for(scenario, *policy, state, oracle_score));
+    }
+    for index in 0..policy_reports.len() {
+        let is_dominated = (0..policy_reports.len()).any(|other_index| {
+            other_index != index
+                && dominates(&policy_reports[other_index], &policy_reports[index])
+        });
+        policy_reports[index].pareto_nondominated = !is_dominated;
     }
     ScenarioReport {
         scenario_id: scenario.scenario_id.clone(),
@@ -769,6 +800,29 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
         );
     }
 
+    let pareto_frontier_consistent = scenario_reports.iter().all(|scenario| {
+        scenario
+            .policy_reports
+            .iter()
+            .enumerate()
+            .all(|(index, report)| {
+                let expected_frontier = !(0..scenario.policy_reports.len()).any(|other_index| {
+                    other_index != index
+                        && dominates(
+                            &scenario.policy_reports[other_index],
+                            report,
+                        )
+                });
+                report.pareto_nondominated == expected_frontier
+            })
+    });
+    add_invariant(
+        &mut invariants,
+        "pareto_frontier_is_consistent_with_separate_metrics",
+        pareto_frontier_consistent,
+        "Frontier membership is based on coverage, declared information score, uncertainty reduction, effort and each exposure channel separately; no weighted safety score is used.",
+    );
+
     // No biological presence/absence labels exist in this schema: record counts
     // remain sampling metadata and cannot be converted into inferred ecology.
     add_invariant(
@@ -881,8 +935,9 @@ fn run() -> Check<ExitCode> {
         );
         for policy in &scenario.policy_reports {
             println!(
-                "policy={:?} weighted_coverage_ppm={} information_score_units={} raw_uncertainty_reduction_ppm={} effort={} sound={} light={} sediment={} oracle_regret_units={} selected={}",
+                "policy={:?} pareto_nondominated={} weighted_coverage_ppm={} information_score_units={} raw_uncertainty_reduction_ppm={} effort={} sound={} light={} sediment={} oracle_regret_units={} selected={}",
                 policy.policy,
+                policy.pareto_nondominated,
                 policy.weighted_coverage_ppm,
                 policy.information_score_units,
                 policy.raw_uncertainty_reduction_ppm,
@@ -1042,6 +1097,34 @@ mod tests {
                 .policy_reports
                 .iter()
                 .all(|item| item.information_score_units <= oracle.information_score_units));
+        }
+    }
+
+    #[test]
+    fn pareto_frontier_preserves_non_scalar_tradeoffs_and_is_not_dominated() {
+        let (corpus, _) = fixture_corpus();
+        let scenario = &corpus.scenarios[0];
+        let report = evaluate_scenario(scenario, corpus.seed);
+        assert!(
+            report.policy_reports.iter().filter(|item| item.pareto_nondominated).count() >= 2,
+            "different evidence/exposure trade-offs should not be collapsed into one winner"
+        );
+        assert!(
+            report
+                .policy_reports
+                .iter()
+                .find(|item| item.policy == Policy::RawRecordCountBaseline)
+                .unwrap()
+                .pareto_nondominated,
+            "the low-exposure, low-coverage raw-count baseline remains a distinct trade-off"
+        );
+        for (index, candidate) in report.policy_reports.iter().enumerate() {
+            let dominated = report
+                .policy_reports
+                .iter()
+                .enumerate()
+                .any(|(other_index, other)| other_index != index && dominates(other, candidate));
+            assert_eq!(candidate.pareto_nondominated, !dominated);
         }
     }
 
