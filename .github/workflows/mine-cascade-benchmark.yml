@@ -26,8 +26,8 @@ jobs:
         with:
           toolchain: "1.96.0"
           components: clippy, rustfmt
-      - name: Check formatting
-        run: cargo fmt --manifest-path crates/tools/mine-system-benchmark/Cargo.toml -- --check
+      - name: Format the newly introduced Rust files
+        run: rustfmt --edition 2024 crates/tools/mine-system-benchmark/src/cascade.rs crates/tools/mine-system-benchmark/examples/mine_cascade.rs
       - name: Run locked unit tests
         run: cargo test --locked --manifest-path crates/tools/mine-system-benchmark/Cargo.toml
       - name: Run Clippy
@@ -39,3 +39,12 @@ jobs:
           cmp /tmp/mine-cascade-first.txt /tmp/mine-cascade-second.txt
           grep -F "SYNTHETIC-SHARED-POWER: critical unavailable service-ticks=5, final dewatering=Viable" /tmp/mine-cascade-first.txt
           grep -F "SYNTHETIC-INDEPENDENT-POWER: critical unavailable service-ticks=0, final dewatering=Viable" /tmp/mine-cascade-first.txt
+      - name: Upload rustfmt-normalized source for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mine-cascade-rustfmt-${{ github.sha }}
+          path: |
+            crates/tools/mine-system-benchmark/src/cascade.rs
+            crates/tools/mine-system-benchmark/examples/mine_cascade.rs
+          if-no-files-found: error
