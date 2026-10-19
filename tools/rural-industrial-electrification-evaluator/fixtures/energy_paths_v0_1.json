@@ -231,6 +231,41 @@
           "temperature_drop_c": null
         }
       ]
+    },
+    {
+      "scenario_id": "mobile-conductive-static-matched-90kw",
+      "label": "Synthetic conductive route matched to the 90 kW, 30-minute wireless receiver case",
+      "evidence_class": "synthetic",
+      "carrier": "electrical",
+      "source_available_kw": 150,
+      "requested_load_kw": 90,
+      "operation_hours": 0.5,
+      "source_temperature_c": null,
+      "required_delivery_temperature_c": null,
+      "minimum_approach_temperature_c": null,
+      "stages": [
+        {
+          "stage_id": "site_feeder",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.985,
+          "max_output_kw": 140,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "charger_power_conversion",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.96,
+          "max_output_kw": 125,
+          "temperature_drop_c": null
+        },
+        {
+          "stage_id": "connector_and_receiver",
+          "carrier": "electrical",
+          "efficiency_fraction": 0.995,
+          "max_output_kw": 110,
+          "temperature_drop_c": null
+        }
+      ]
     }
   ]
 }
