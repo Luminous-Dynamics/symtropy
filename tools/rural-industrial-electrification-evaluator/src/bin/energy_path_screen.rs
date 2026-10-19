@@ -36,7 +36,7 @@ struct Stage {
     stage_id: String,
     carrier: Carrier,
     efficiency_fraction: f64,
-    max_output_kw: Option<f64>,
+    max_output_kw: f64,
     temperature_drop_c: Option<f64>,
 }
 
@@ -52,11 +52,10 @@ enum Status {
 #[derive(Debug, Clone, Serialize)]
 struct StageResult {
     stage_id: String,
-    input_power_kw: f64,
-    converted_power_before_limit_kw: f64,
+    required_input_power_kw: f64,
+    required_output_power_kw: f64,
     conversion_loss_kw: f64,
-    capacity_curtailed_kw: f64,
-    output_power_kw: f64,
+    capacity_headroom_kw: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -65,13 +64,17 @@ struct PathResult {
     label: String,
     evidence_class: String,
     carrier: Carrier,
-    delivery_temperature_at_load_c: Option<f64>,
     status: Status,
-    source_energy_kwh: f64,
-    delivered_power_kw: f64,
-    delivered_energy_kwh: f64,
-    source_power_not_delivered_kw: f64,
-    source_energy_not_delivered_kwh: f64,
+    source_energy_available_kwh: Option<f64>,
+    requested_load_energy_kwh: Option<f64>,
+    maximum_deliverable_power_kw: Option<f64>,
+    required_source_power_kw: Option<f64>,
+    required_source_energy_kwh: Option<f64>,
+    source_power_headroom_kw: Option<f64>,
+    source_power_shortfall_kw: Option<f64>,
+    source_to_load_conversion_loss_kw: Option<f64>,
+    source_to_load_conversion_loss_kwh: Option<f64>,
+    delivery_temperature_at_load_c: Option<f64>,
     stages: Vec<StageResult>,
     findings: Vec<String>,
     claim_ceiling: &'static str,
@@ -120,7 +123,6 @@ fn main() {
     }
 
     let mut results: Vec<PathResult> = benchmark.scenarios.iter().map(evaluate).collect();
-    // Canonical identity order means shuffled input records produce the same semantic report.
     results.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
 
     let report = Report {
@@ -174,37 +176,47 @@ fn evaluate(path: &EnergyPath) -> PathResult {
         }
     }
 
-    let source_energy = path.source_available_kw * path.operation_hours;
-    let mut current_power = path.source_available_kw;
-    let mut stage_results = Vec::with_capacity(path.stages.len());
-
+    // Forward pass: maximum power that can traverse the declared chain from available source power.
+    let mut available_power = path.source_available_kw;
     for stage in &path.stages {
-        let input_power = current_power;
-        let converted = input_power * stage.efficiency_fraction;
-        let output = stage.max_output_kw.map_or(converted, |limit| converted.min(limit));
-        let conversion_loss = input_power - converted;
-        let curtailed = converted - output;
+        available_power = (available_power * stage.efficiency_fraction).min(stage.max_output_kw);
+    }
 
-        stage_results.push(StageResult {
+    // Backward pass: source power required to deliver exactly the requested load.
+    // This avoids claiming unused route capacity as delivered energy.
+    let mut required_output_power = path.requested_load_kw;
+    let mut stage_results_reversed = Vec::with_capacity(path.stages.len());
+    for stage in path.stages.iter().rev() {
+        let capacity_headroom = stage.max_output_kw - required_output_power;
+        if capacity_headroom < -1e-9 {
+            findings.push(format!("stage_output_capacity_below_required_load:{}", stage.stage_id));
+        }
+        let required_input_power = required_output_power / stage.efficiency_fraction;
+        stage_results_reversed.push(StageResult {
             stage_id: stage.stage_id.clone(),
-            input_power_kw: input_power,
-            converted_power_before_limit_kw: converted,
-            conversion_loss_kw: conversion_loss,
-            capacity_curtailed_kw: curtailed,
-            output_power_kw: output,
+            required_input_power_kw: required_input_power,
+            required_output_power_kw: required_output_power,
+            conversion_loss_kw: required_input_power - required_output_power,
+            capacity_headroom_kw: capacity_headroom,
         });
-        current_power = output;
+        required_output_power = required_input_power;
+    }
+    stage_results_reversed.reverse();
+
+    let required_source_power = required_output_power;
+    if required_source_power > path.source_available_kw + 1e-9 {
+        findings.push("source_power_insufficient_for_requested_load".to_string());
     }
 
-    if current_power + 1e-9 < path.requested_load_kw {
-        findings.push("delivered_power_below_declared_load_requirement".to_string());
-    }
+    let requested_energy = path.requested_load_kw * path.operation_hours;
+    let required_source_energy = required_source_power * path.operation_hours;
+    let source_energy_available = path.source_available_kw * path.operation_hours;
+    let conversion_loss_power = (required_source_power - path.requested_load_kw).max(0.0);
+    let conversion_loss_energy = conversion_loss_power * path.operation_hours;
+    let source_headroom = (path.source_available_kw - required_source_power).max(0.0);
+    let source_shortfall = (required_source_power - path.source_available_kw).max(0.0);
 
-    let delivered_energy = current_power * path.operation_hours;
-    let source_power_not_delivered = (path.source_available_kw - current_power).max(0.0);
-    let source_energy_not_delivered = source_power_not_delivered * path.operation_hours;
-
-    let status = if findings.is_empty() {
+    let status = if findings.is_empty() && available_power + 1e-9 >= path.requested_load_kw {
         Status::FeasibleUnderDeclaredScreen
     } else {
         Status::NotFeasibleUnderDeclaredScreen
@@ -215,14 +227,18 @@ fn evaluate(path: &EnergyPath) -> PathResult {
         label: path.label.clone(),
         evidence_class: path.evidence_class.clone(),
         carrier: path.carrier,
-        delivery_temperature_at_load_c,
         status,
-        source_energy_kwh: source_energy,
-        delivered_power_kw: current_power,
-        delivered_energy_kwh: delivered_energy,
-        source_power_not_delivered_kw: source_power_not_delivered,
-        source_energy_not_delivered_kwh: source_energy_not_delivered,
-        stages: stage_results,
+        source_energy_available_kwh: Some(source_energy_available),
+        requested_load_energy_kwh: Some(requested_energy),
+        maximum_deliverable_power_kw: Some(available_power),
+        required_source_power_kw: Some(required_source_power),
+        required_source_energy_kwh: Some(required_source_energy),
+        source_power_headroom_kw: Some(source_headroom),
+        source_power_shortfall_kw: Some(source_shortfall),
+        source_to_load_conversion_loss_kw: Some(conversion_loss_power),
+        source_to_load_conversion_loss_kwh: Some(conversion_loss_energy),
+        delivery_temperature_at_load_c,
+        stages: stage_results_reversed,
         findings,
         claim_ceiling: CLAIM_CEILING,
     }
@@ -266,10 +282,8 @@ fn validate(path: &EnergyPath) -> Option<String> {
         {
             return Some("stage_efficiency_must_be_in_(0,1]".to_string());
         }
-        if let Some(limit) = stage.max_output_kw {
-            if !limit.is_finite() || limit <= 0.0 {
-                return Some("stage_max_output_kw_must_be_finite_and_positive_when_present".to_string());
-            }
+        if !stage.max_output_kw.is_finite() || stage.max_output_kw <= 0.0 {
+            return Some("stage_max_output_kw_must_be_finite_and_positive".to_string());
         }
         if let Some(drop) = stage.temperature_drop_c {
             if !drop.is_finite() || drop < 0.0 {
@@ -282,10 +296,7 @@ fn validate(path: &EnergyPath) -> Option<String> {
         path.source_temperature_c,
         path.required_delivery_temperature_c,
         path.minimum_approach_temperature_c,
-    ]
-    .into_iter()
-    .flatten()
-    {
+    ].into_iter().flatten() {
         if !value.is_finite() {
             return Some("temperature_values_must_be_finite".to_string());
         }
@@ -299,30 +310,39 @@ fn validate(path: &EnergyPath) -> Option<String> {
     None
 }
 
-fn empty_result(path: &EnergyPath, status: Status, findings: Vec<String>, delivery_temperature_at_load_c: Option<f64>) -> PathResult {
-    let source_power = if path.source_available_kw.is_finite() && path.source_available_kw > 0.0 {
-        path.source_available_kw
-    } else {
-        0.0
-    };
-    let hours = if path.operation_hours.is_finite() && path.operation_hours > 0.0 {
-        path.operation_hours
-    } else {
-        0.0
-    };
-    let source_energy = source_power * hours;
+fn empty_result(
+    path: &EnergyPath,
+    status: Status,
+    findings: Vec<String>,
+    delivery_temperature_at_load_c: Option<f64>,
+) -> PathResult {
+    let source_energy_available = (path.source_available_kw.is_finite()
+        && path.source_available_kw > 0.0
+        && path.operation_hours.is_finite()
+        && path.operation_hours > 0.0)
+        .then_some(path.source_available_kw * path.operation_hours);
+    let requested_energy = (path.requested_load_kw.is_finite()
+        && path.requested_load_kw > 0.0
+        && path.operation_hours.is_finite()
+        && path.operation_hours > 0.0)
+        .then_some(path.requested_load_kw * path.operation_hours);
+
     PathResult {
         scenario_id: path.scenario_id.clone(),
         label: path.label.clone(),
         evidence_class: path.evidence_class.clone(),
         carrier: path.carrier,
-        delivery_temperature_at_load_c,
         status,
-        source_energy_kwh: source_energy,
-        delivered_power_kw: 0.0,
-        delivered_energy_kwh: 0.0,
-        source_power_not_delivered_kw: source_power,
-        source_energy_not_delivered_kwh: source_energy,
+        source_energy_available_kwh: source_energy_available,
+        requested_load_energy_kwh: requested_energy,
+        maximum_deliverable_power_kw: None,
+        required_source_power_kw: None,
+        required_source_energy_kwh: None,
+        source_power_headroom_kw: None,
+        source_power_shortfall_kw: None,
+        source_to_load_conversion_loss_kw: None,
+        source_to_load_conversion_loss_kwh: None,
+        delivery_temperature_at_load_c,
         stages: Vec::new(),
         findings,
         claim_ceiling: CLAIM_CEILING,
@@ -350,29 +370,30 @@ mod tests {
                     stage_id: "feeder".into(),
                     carrier: Carrier::Electrical,
                     efficiency_fraction: 0.98,
-                    max_output_kw: Some(950.0),
-                temperature_drop_c: None,
+                    max_output_kw: 950.0,
+                    temperature_drop_c: None,
                 },
                 Stage {
                     stage_id: "converter".into(),
                     carrier: Carrier::Electrical,
                     efficiency_fraction: 0.95,
-                    max_output_kw: None,
-                temperature_drop_c: None,
+                    max_output_kw: 950.0,
+                    temperature_drop_c: None,
                 },
             ],
         }
     }
 
     #[test]
-    fn stage_losses_and_capacities_match_hand_oracle() {
+    fn stage_losses_match_backward_hand_oracle() {
         let result = evaluate(&electrical_path("oracle"));
-        // 1000 * 0.98 = 980, limited to 950; 950 * 0.95 = 902.5 kW.
+        let required = 850.0 / (0.98 * 0.95);
         assert_eq!(result.status, Status::FeasibleUnderDeclaredScreen);
-        assert!((result.delivered_power_kw - 902.5).abs() < 1e-9);
-        assert!((result.source_power_not_delivered_kw - 97.5).abs() < 1e-9);
-        assert!((result.delivered_energy_kwh - 1_805.0).abs() < 1e-9);
-        assert!((result.stages[0].capacity_curtailed_kw - 30.0).abs() < 1e-9);
+        assert!((result.required_source_power_kw.unwrap() - required).abs() < 1e-9);
+        assert!((result.maximum_deliverable_power_kw.unwrap() - 902.5).abs() < 1e-9);
+        assert!((result.source_to_load_conversion_loss_kw.unwrap() - (required - 850.0)).abs() < 1e-9);
+        assert!((result.requested_load_energy_kwh.unwrap() - 1_700.0).abs() < 1e-9);
+        assert!(result.stages.iter().all(|stage| stage.capacity_headroom_kw >= 0.0));
     }
 
     #[test]
@@ -381,6 +402,16 @@ mod tests {
         path.requested_load_kw = 950.0;
         let result = evaluate(&path);
         assert_eq!(result.status, Status::NotFeasibleUnderDeclaredScreen);
+    }
+
+    #[test]
+    fn source_power_shortfall_is_not_accepted() {
+        let mut path = electrical_path("source_shortfall");
+        path.source_available_kw = 800.0;
+        let result = evaluate(&path);
+        assert_eq!(result.status, Status::NotFeasibleUnderDeclaredScreen);
+        assert!(result.findings.iter().any(|x| x == "source_power_insufficient_for_requested_load"));
+        assert!(result.source_power_shortfall_kw.unwrap() > 0.0);
     }
 
     #[test]
@@ -408,6 +439,7 @@ mod tests {
         }
         let result = evaluate(&path);
         assert_eq!(result.status, Status::Indeterminate);
+        assert!(result.maximum_deliverable_power_kw.is_none());
     }
 
     #[test]
@@ -425,18 +457,16 @@ mod tests {
     }
 
     #[test]
-    fn zero_capacity_stage_limit_is_invalid() {
+    fn zero_stage_capacity_is_invalid() {
         let mut path = electrical_path("zero_cap");
-        path.stages[0].max_output_kw = Some(0.0);
+        path.stages[0].max_output_kw = 0.0;
         assert_eq!(evaluate(&path).status, Status::InvalidInput);
     }
 
     #[test]
     fn input_order_is_canonicalized() {
-        let mut a = vec![electrical_path("z"), electrical_path("a")];
-        let mut b = a.clone();
-        a.sort_by(|x, y| x.scenario_id.cmp(&y.scenario_id));
-        b.reverse();
+        let a = vec![electrical_path("z"), electrical_path("a")];
+        let b = vec![electrical_path("a"), electrical_path("z")];
         let mut ar: Vec<PathResult> = a.iter().map(evaluate).collect();
         let mut br: Vec<PathResult> = b.iter().map(evaluate).collect();
         ar.sort_by(|x, y| x.scenario_id.cmp(&y.scenario_id));
