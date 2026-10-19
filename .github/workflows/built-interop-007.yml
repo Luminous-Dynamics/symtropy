@@ -31,18 +31,10 @@ jobs:
         with:
           toolchain: "1.96.0"
           components: rustfmt, clippy
-      # One-time bootstrap: print the lock and formatter diff for commit. This
-      # is replaced by a lock checksum and fmt --check after first resolution.
-      - name: Bootstrap dependency lock and show formatter diff
-        run: |
-          cargo generate-lockfile --manifest-path tools/built-interop-007/Cargo.toml
-          sha256sum tools/built-interop-007/Cargo.lock
-          echo "LOCKFILE_BASE64_BEGIN"
-          base64 -w0 tools/built-interop-007/Cargo.lock
-          echo
-          echo "LOCKFILE_BASE64_END"
-          cargo fmt --manifest-path tools/built-interop-007/Cargo.toml
-          git diff -- tools/built-interop-007/src/main.rs
+      - name: Verify committed dependency lock
+        run: echo "d2328bd0758d92ad0517f97729d4412955333c85cbe611aeec3496a7dd30e940  tools/built-interop-007/Cargo.lock" | sha256sum -c -
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/built-interop-007/Cargo.toml -- --check
       - name: Run semantic mutation tests
         run: cargo test --locked --manifest-path tools/built-interop-007/Cargo.toml
       - name: Run Clippy with warnings denied
