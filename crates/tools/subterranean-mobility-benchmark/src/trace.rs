@@ -413,4 +413,48 @@ mod tests {
                 .is_err()
         );
     }
+    #[test]
+    fn route_and_coordination_axes_pass_frozen_cross_product_matrix() {
+        let routes = [
+            RouteSearchDisposition::AdmissibleRouteFound,
+            RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph,
+            RouteSearchDisposition::SearchLimitExceeded,
+        ];
+        let communications = [
+            (
+                CommunicationsState::LiveAcknowledgedPath,
+                CoordinationSupportStatus::LiveCoordinationAvailable,
+            ),
+            (
+                CommunicationsState::StoreCarryForwardPending,
+                CoordinationSupportStatus::LocalInputsAvailableMessagesDeferred,
+            ),
+            (
+                CommunicationsState::Isolated,
+                CoordinationSupportStatus::OfflinePlanAndLocationAvailable,
+            ),
+            (
+                CommunicationsState::Unknown,
+                CoordinationSupportStatus::CoordinationUnknown,
+            ),
+        ];
+
+        // 3 route outcomes x 4 communications states = 12 cross-product cases.
+        // Changing one axis must not silently mutate the other axis.
+        for route in routes {
+            for (index, (comms, expected_coordination)) in communications.iter().enumerate() {
+                let mut events = base_events();
+                events.push(event(
+                    &format!("comms-{index}"),
+                    100,
+                    MissionTraceEventKind::CommunicationsChanged(*comms),
+                ));
+                let report = replay_mission_trace(route, &events, 20).expect("valid matrix trace");
+                let last = report.samples.last().expect("one sample per event");
+                assert_eq!(last.report.route_disposition, route);
+                assert_eq!(last.report.coordination_status, *expected_coordination);
+            }
+        }
+    }
+
 }
