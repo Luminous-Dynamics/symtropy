@@ -1,0 +1,109 @@
+name: Water process closure 001
+
+on:
+  push:
+    paths:
+      - "tools/water-process-closure-001/**"
+      - "fixtures/water-process-closure-001-*.json"
+      - "schemas/water-process-closure-001-*.schema.json"
+      - ".github/workflows/water-process-closure-001.yml"
+  pull_request:
+    paths:
+      - "tools/water-process-closure-001/**"
+      - "fixtures/water-process-closure-001-*.json"
+      - "schemas/water-process-closure-001-*.schema.json"
+      - ".github/workflows/water-process-closure-001.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check format
+        run: cargo fmt --package water-process-closure-001 -- --check
+      - name: Unit and frozen-oracle tests
+        run: cargo test --locked --package water-process-closure-001
+      - name: Evaluate all cases and write exact-revision receipt
+        id: evaluate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/water-process-closure-001
+          WATER_PROC_CLOSURE_REVISION="$GITHUB_SHA" \
+            cargo run --locked --package water-process-closure-001 -- \
+              fixtures/water-process-closure-001-inputs-v1.json \
+              fixtures/water-process-closure-001-oracle-v1.json \
+              artifacts/water-process-closure-001/receipt.json
+      - name: Install pinned Draft 2020-12 validator
+        if: always()
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install jsonschema
+        if: always()
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+      - name: Validate inputs, oracle, schema, and emitted receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          pairs = [
+              (
+                  Path("schemas/water-process-closure-001-inputs-v1.schema.json"),
+                  Path("fixtures/water-process-closure-001-inputs-v1.json"),
+              ),
+              (
+                  Path("schemas/water-process-closure-001-oracle-v1.schema.json"),
+                  Path("fixtures/water-process-closure-001-oracle-v1.json"),
+              ),
+          ]
+          receipt_schema_path = Path("schemas/water-process-closure-001-run-v1.schema.json")
+          receipt_path = Path("artifacts/water-process-closure-001/receipt.json")
+          receipt_schema = json.loads(receipt_schema_path.read_text(encoding="utf-8"))
+          Draft202012Validator.check_schema(receipt_schema)
+          if not receipt_path.exists():
+              raise SystemExit("WATER_PROCESS_RECEIPT_MISSING")
+          pairs.append((receipt_schema_path, receipt_path))
+          for schema_path, instance_path in pairs:
+              schema = json.loads(schema_path.read_text(encoding="utf-8"))
+              instance = json.loads(instance_path.read_text(encoding="utf-8"))
+              Draft202012Validator.check_schema(schema)
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(instance),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"{instance_path}: {pointer}: {error.message}")
+                  raise SystemExit(1)
+              print(f"WATER_PROCESS_SCHEMA_PASS: {schema_path} -> {instance_path}")
+          PY
+      - name: Upload exact inputs, oracle, and result receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-process-closure-001-evidence
+          path: |
+            fixtures/water-process-closure-001-inputs-v1.json
+            fixtures/water-process-closure-001-oracle-v1.json
+            artifacts/water-process-closure-001/
+          if-no-files-found: warn
+      - name: Fail if Rust evaluation did not match the frozen oracle
+        if: always()
+        env:
+          EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
+        run: test "$EVALUATE_OUTCOME" = "success"
