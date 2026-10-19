@@ -217,7 +217,7 @@ fn generated_forecast(seed: u64) -> ScenarioInput {
 fn changed_period(period: &PeriodInput, changes: &[(u8, u32)]) -> PeriodInput {
     let mut updated = period.clone();
     for (field, value) in changes {
-        match field {
+        match *field {
             0 => updated.renewable_electricity_units = *value,
             1 => updated.grid_import_cap_units = *value,
             2 => updated.water_available_units = *value,
@@ -897,8 +897,10 @@ mod tests {
                 assert!(summary.cost_regret.cvar95_regret_units_worst_five_percent_mean_floor.is_some());
             }
         }
+        assert_eq!(2, receipt_a.paired_comparisons.len());
+        assert!(receipt_a.paired_comparisons.iter().any(|pair| pair.split == Split::Validation));
+        assert!(receipt_a.paired_comparisons.iter().any(|pair| pair.split == Split::HeldOut));
         for pair in &receipt_a.paired_comparisons {
-            assert_eq!(Split::Validation == pair.split, pair.split == Split::Validation);
             assert!(pair.paired_worlds_both_feasible > 0);
         }
     }
