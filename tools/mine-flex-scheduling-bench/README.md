@@ -52,3 +52,13 @@ cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml --
 ```
 
 This keeps the resource-only robust minimum-cost schedule as a baseline, then applies an independent execution-envelope verifier (ramp-up/down, minimum-up-time and startup-count gates). It selects a separate robust policy whose plan also passes the execution envelope and compares both on paired generated worlds. The coarse integer batch limits are synthetic, not asset-calibrated. See [MINE-FLEX-EXEC-001](../../docs/tech/MINE_FLEX_EXECUTION_BENCHMARK_V0_1.md) for acceptance gates and scope.
+
+
+Bounded pump/sump trajectory experiment:
+
+\`\`\`sh
+cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \\
+  --pump-sump --source-commit "$(git rev-parse HEAD)"
+\`\`\`
+
+This synthetic stateful asset contract checks bounded sump volume, inflow, pump flow, required head, startup delay/energy, minimum on/off durations and per-period energy budgets. A separate recomputation checks sump-volume conservation. Units are explicit (liters per period, kPa and Wh per period); all operating values are synthetic and are not calibrated mine-equipment limits. See [MINE-FLEX-PUMP-SUMP-001](../../docs/tech/MINE_FLEX_PUMP_SUMP_BENCHMARK_V0_1.md).
