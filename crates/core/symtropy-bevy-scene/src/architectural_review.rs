@@ -1333,7 +1333,9 @@ pub enum DesignReviewSessionIssue {
     EmptySnapshotManifestArtifactId,
     InvalidSnapshotDigest,
     StaticPlanMustNotHaveRoute,
-    ModeRequiresRoute { mode: DesignReviewMode },
+    ModeRequiresRoute {
+        mode: DesignReviewMode,
+    },
     RouteRigDoesNotMatchMode {
         mode: DesignReviewMode,
         rig: ReviewRig,
@@ -1365,7 +1367,10 @@ pub fn validate_design_review_session(
         issues.push(DesignReviewSessionIssue::EmptyModelArtifactId);
     }
     if session.model_sha256.len() != 64
-        || !session.model_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+        || !session
+            .model_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
     {
         issues.push(DesignReviewSessionIssue::InvalidModelDigest);
     }
@@ -1406,18 +1411,21 @@ pub fn validate_design_review_session(
         (None, None) => {}
     }
 
-    if let Err(annotation_issues) = validate_review_annotations_for_revision(
-        &session.annotations,
-        &session.design_revision_id,
-    ) {
-        issues.push(DesignReviewSessionIssue::InvalidAnnotations(annotation_issues));
+    if let Err(annotation_issues) =
+        validate_review_annotations_for_revision(&session.annotations, &session.design_revision_id)
+    {
+        issues.push(DesignReviewSessionIssue::InvalidAnnotations(
+            annotation_issues,
+        ));
     }
     if let Err(feedback_issues) = validate_occupant_feedback_for_review(
         &session.occupant_feedback,
         &session.design_revision_id,
         session.route.as_ref(),
     ) {
-        issues.push(DesignReviewSessionIssue::InvalidOccupantFeedback(feedback_issues));
+        issues.push(DesignReviewSessionIssue::InvalidOccupantFeedback(
+            feedback_issues,
+        ));
     }
 
     if issues.is_empty() {
@@ -1599,7 +1607,9 @@ mod tests {
     fn sample_review_session(mode: DesignReviewMode) -> DesignReviewSession {
         let route = (mode != DesignReviewMode::StaticPlan).then(|| {
             let mut route = sample_route_fixture();
-            route.rig = mode.required_route_rig().expect("non-static mode has a rig");
+            route.rig = mode
+                .required_route_rig()
+                .expect("non-static mode has a rig");
             route
         });
         DesignReviewSession {
@@ -1634,30 +1644,36 @@ mod tests {
     fn review_session_rejects_route_from_an_old_revision() {
         let mut session = sample_review_session(DesignReviewMode::FloatingCamera);
         session.route.as_mut().unwrap().design_revision_id = "house:r0".into();
-        assert!(validate_design_review_session(&session)
-            .unwrap_err()
-            .contains(&DesignReviewSessionIssue::RouteDesignRevisionMismatch));
+        assert!(
+            validate_design_review_session(&session)
+                .unwrap_err()
+                .contains(&DesignReviewSessionIssue::RouteDesignRevisionMismatch)
+        );
     }
 
     #[test]
     fn review_session_rejects_mode_route_mismatch() {
         let mut session = sample_review_session(DesignReviewMode::GuidedWalkthrough);
         session.route.as_mut().unwrap().rig = ReviewRig::FloatingCamera;
-        assert!(validate_design_review_session(&session)
-            .unwrap_err()
-            .contains(&DesignReviewSessionIssue::RouteRigDoesNotMatchMode {
-                mode: DesignReviewMode::GuidedWalkthrough,
-                rig: ReviewRig::FloatingCamera,
-            }));
+        assert!(
+            validate_design_review_session(&session)
+                .unwrap_err()
+                .contains(&DesignReviewSessionIssue::RouteRigDoesNotMatchMode {
+                    mode: DesignReviewMode::GuidedWalkthrough,
+                    rig: ReviewRig::FloatingCamera,
+                })
+        );
     }
 
     #[test]
     fn review_session_rejects_malformed_model_digest() {
         let mut session = sample_review_session(DesignReviewMode::StaticPlan);
         session.model_sha256 = "not-a-digest".into();
-        assert!(validate_design_review_session(&session)
-            .unwrap_err()
-            .contains(&DesignReviewSessionIssue::InvalidModelDigest));
+        assert!(
+            validate_design_review_session(&session)
+                .unwrap_err()
+                .contains(&DesignReviewSessionIssue::InvalidModelDigest)
+        );
     }
 
     fn annotation(
