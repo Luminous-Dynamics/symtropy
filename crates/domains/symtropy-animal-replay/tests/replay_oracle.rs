@@ -541,14 +541,25 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "baseline_invalid_code_head" => inputs.baselines[0].code_head = "not-a-commit".to_owned(),
         "baseline_invalid_config_digest" => inputs.baselines[0].config_sha256 = "bad".to_owned(),
-        "baseline_training_scope_mismatch" => inputs.baselines[0].training_data_scope = "different-training-data".to_owned(),
-        "baseline_compute_budget_mismatch" => inputs.baselines[0].compute_budget = "larger-budget".to_owned(),
+        "baseline_training_scope_mismatch" => {
+            inputs.baselines[0].training_data_scope =
+                "different-training-data".to_owned();
+        }
+        "baseline_compute_budget_mismatch" => {
+            inputs.baselines[0].compute_budget = "larger-budget".to_owned();
+        }
         "declared_budget_tradeoff_allows_scope_mismatch" => {
             inputs.task.budget_policy = ComparisonBudgetPolicy::DeclaredBudgetTradeoff;
             inputs.baselines[0].training_data_scope = "different-training-data".to_owned();
         }
-        "missing_paired_unit_manifest_digest" => inputs.paired_comparisons[0].paired_unit_manifest_sha256.clear(),
-        "malformed_paired_unit_manifest_digest" => inputs.paired_comparisons[0].paired_unit_manifest_sha256 = "bad-digest".to_owned(),
+        "missing_paired_unit_manifest_digest" => {
+            inputs.paired_comparisons[0]
+                .paired_unit_manifest_sha256
+                .clear();
+        }
+        "malformed_paired_unit_manifest_digest" => {
+            inputs.paired_comparisons[0].paired_unit_manifest_sha256 = "bad-digest".to_owned();
+        }
         "empty_baseline_compute_budget" => inputs.baselines[0].compute_budget.clear(),
         "empty_platform" => inputs.run.platform.clear(),
         "empty_evaluator_version" => inputs.run.evaluator_version.clear(),
