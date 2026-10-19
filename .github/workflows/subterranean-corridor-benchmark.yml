@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: subterranean-corridor-reference-tests
+  group: subterranean-corridor-reference-tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,6 +32,7 @@ jobs:
       - name: Install pinned Rust toolchain
         run: |
           rustup toolchain install 1.96.0 --profile minimal
+          rustup component add rustfmt --toolchain 1.96.0
           rustup default 1.96.0
       - name: Format
         run: cargo fmt --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml -- --check
