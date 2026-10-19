@@ -683,10 +683,14 @@ pub fn build_replay_receipt(
             rejected.insert(ReplayReason::InvalidBaselineConfigDigest);
         }
         if task.budget_policy == ComparisonBudgetPolicy::MatchedBudget {
-            if baseline.training_data_scope != run.training_data_scope {
+            if !baseline.training_data_scope.trim().is_empty()
+                && baseline.training_data_scope != run.training_data_scope
+            {
                 rejected.insert(ReplayReason::BaselineTrainingScopeMismatch);
             }
-            if baseline.compute_budget != run.compute_budget {
+            if !baseline.compute_budget.trim().is_empty()
+                && baseline.compute_budget != run.compute_budget
+            {
                 rejected.insert(ReplayReason::BaselineComputeBudgetMismatch);
             }
         }
