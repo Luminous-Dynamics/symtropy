@@ -459,14 +459,18 @@ fn validate_episode(
             NeedOutcomeSourceV1::CanonicalServiceLifecycle => {
                 episode.request_presence == NeedRequestPresenceV1::LinkedCanonicalRequest
             }
-            NeedOutcomeSourceV1::FarmerReportedOtherChannel => matches!(
-                episode.report_basis,
-                NeedReportBasisV1::FarmerConfirmedProspective
-                    | NeedReportBasisV1::FarmerConfirmedRetrospective
-            ),
+            NeedOutcomeSourceV1::FarmerReportedOtherChannel => {
+                episode.request_presence != NeedRequestPresenceV1::FarmerConfirmsNoRequest
+                    && matches!(
+                        episode.report_basis,
+                        NeedReportBasisV1::FarmerConfirmedProspective
+                            | NeedReportBasisV1::FarmerConfirmedRetrospective
+                    )
+            }
             NeedOutcomeSourceV1::AuthorizedRelayOtherChannel => {
-                episode.report_basis
-                    == NeedReportBasisV1::AuthorizedRelayWithFarmerConfirmation
+                episode.request_presence != NeedRequestPresenceV1::FarmerConfirmsNoRequest
+                    && episode.report_basis
+                        == NeedReportBasisV1::AuthorizedRelayWithFarmerConfirmation
             }
             NeedOutcomeSourceV1::NotApplicable | NeedOutcomeSourceV1::Unknown => false,
         };
