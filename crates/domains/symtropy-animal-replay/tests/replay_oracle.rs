@@ -177,6 +177,7 @@ fn metric(metric_id: &str, value: f64, unit: &str) -> MetricObservation {
         abstained_count: 0,
         failure_reason: None,
         interval: Some(ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
             confidence_percent: 90,
             lower: (value - 0.05).max(0.0),
             upper: (value + 0.05).min(1.0),
@@ -205,6 +206,9 @@ fn valid_inputs() -> TestInputs {
         target_taxon_id: Some("TEST:1".to_owned()),
         generalization: GeneralizationTarget::UnseenSubject,
         primary_metric_id: "pose_pck".to_owned(),
+        required_confidence_percent: 90,
+        metric_uncertainty_method_id: "synthetic-test-interval-v1".to_owned(),
+        paired_comparison_method_id: "synthetic-test-interval-v1".to_owned(),
         comparison_group: "synthetic-protocol-v1".to_owned(),
         threshold: Some(DecisionThreshold {
             metric_id: "pose_pck".to_owned(),
@@ -255,6 +259,7 @@ fn valid_inputs() -> TestInputs {
             independent_unit_count: 10,
             mean_difference: Some(0.5),
             difference_interval: Some(ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
                 confidence_percent: 90,
                 lower: 0.35,
                 upper: 0.65,
@@ -353,6 +358,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
                 independent_unit_count: 10,
                 mean_difference: Some(0.2),
                 difference_interval: Some(ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
                     confidence_percent: 90,
                     lower: 0.15,
                     upper: 0.25,
@@ -372,6 +378,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "invalid_interval_bounds" => {
             inputs.metrics[0].interval = Some(ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
                 confidence_percent: 90,
                 lower: 0.95,
                 upper: 0.8,
@@ -546,6 +553,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         independent_unit_count: 10,
         mean_difference: Some(0.4),
         difference_interval: Some(ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
             confidence_percent: 90,
             lower: 0.3,
             upper: 0.5,
@@ -577,6 +585,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         independent_unit_count: 10,
         mean_difference: Some(0.4),
         difference_interval: Some(ConfidenceInterval {
+            method_id: "synthetic-test-interval-v1".to_owned(),
             confidence_percent: 90,
             lower: 0.3,
             upper: 0.5,
