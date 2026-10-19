@@ -598,7 +598,11 @@ pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {
         serde_json::to_string_pretty(&receipt)
             .map_err(|error| format!("cannot serialize pump/sump receipt: {error}"))?
     );
-    Ok(if receipt.result == "validated" { ExitCode::SUCCESS } else { ExitCode::from(2) })
+    Ok(if receipt.result == "validated" {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(2)
+    })
 }
 
 #[cfg(test)]
