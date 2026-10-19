@@ -745,6 +745,8 @@ pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayRe
             Some(value) if value.is_finite() => {
                 if let (Some(candidate_value), Some(baseline_value)) =
                     (candidate_metric.value, baseline_metric.value)
+                    && candidate_value.is_finite()
+                    && baseline_value.is_finite()
                 {
                     let observed_delta = candidate_value - baseline_value;
                     let tolerance = 1e-9 * value.abs().max(observed_delta.abs()).max(1.0);
