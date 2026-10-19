@@ -5,11 +5,13 @@ on:
     paths:
       - "tools/toolwear-eval/**"
       - "docs/tech/TOOLWEAR_EVALUATION_V0_1.md"
+      - "docs/tech/TOOLWEAR_TRANSFER_DIAGNOSTICS_V0_1.md"
       - ".github/workflows/toolwear-eval.yml"
   push:
     paths:
       - "tools/toolwear-eval/**"
       - "docs/tech/TOOLWEAR_EVALUATION_V0_1.md"
+      - "docs/tech/TOOLWEAR_TRANSFER_DIAGNOSTICS_V0_1.md"
       - ".github/workflows/toolwear-eval.yml"
   workflow_dispatch:
 
@@ -68,6 +70,7 @@ jobs:
           printf '%s  %s\n' "$expected_sha" "$data_file" | sha256sum --check --strict
           grep -F "$expected_sha" tools/toolwear-eval/src/main.rs >/dev/null
           cargo run --locked --offline --quiet --manifest-path tools/toolwear-eval/Cargo.toml -- --data "$data_file" > toolwear-report.json
+          cargo run --locked --offline --quiet --manifest-path tools/toolwear-eval/Cargo.toml -- --data "$data_file" --loto > toolwear-loto-report.json
 
       - name: Validate report contract
         run: |
@@ -88,10 +91,40 @@ jobs:
             and all(.models[]; (.pooled.rows == 476) and (.per_tool | keys | sort) == ["12","16","3","7"])
           ' toolwear-report.json > /dev/null
 
-      - name: Upload reproducible report
+      - name: Validate leave-one-tool-out transfer report
+        run: |
+          jq -e '
+            .schema_version == "0.1.0"
+            and .model_id == "MFG-DATA-002"
+            and .evidence_class == "external_dataset_evaluation_unqualified_for_process_control"
+            and .source.sha256 == "0199bc69cae5e74be3d668244f708da78450c669be641d254b5ca6aa712dda56"
+            and .diagnostic.method == "leave-one-tool-out"
+            and .diagnostic.tools == [3,4,5,6,7,9,10,11,12,13,14,15,16]
+            and .diagnostic.fold_count == 13
+            and (.folds | length) == 13
+            and all(.folds[] as $f;
+              ($f.test_tools == [$f.held_out_tool])
+              and (($f.training_tools | index($f.held_out_tool)) == null)
+              and ($f.training_rows > 0)
+              and ($f.test_rows > 0)
+              and (($f.models | keys | sort) == ["constant_train_tool_balanced","ols_AE_RMS","ols_F_c_RMS","ols_F_p_RMS"])
+            )
+            and ((.aggregate.models | keys | sort) == ["constant_train_tool_balanced","ols_AE_RMS","ols_F_c_RMS","ols_F_p_RMS"])
+            and all(.aggregate.models[];
+              (.pooled.rows == 2054)
+              and ((.per_tool | keys | length) == 13)
+              and (.worst_tool.metrics.rows > 0)
+            )
+            and (.aggregate.ranking_signature_count >= 1)
+            and (.limits | length) >= 4
+          ' toolwear-loto-report.json > /dev/null
+
+      - name: Upload reproducible reports
         uses: actions/upload-artifact@v4
         with:
           name: toolwear-eval-${{ github.sha }}
-          path: toolwear-report.json
+          path: |
+            toolwear-report.json
+            toolwear-loto-report.json
           if-no-files-found: error
           retention-days: 14
