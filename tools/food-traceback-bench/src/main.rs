@@ -348,7 +348,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
             let note = text_field(record, "note", &record_at)?;
             if !note.contains("does not assert that transfer occurred") {
                 return Err(format!(
-                    "{record_at}: unknown transfer must explicitly say it does not assert transfer occurred"
+                    "{record_at}: unknown transfer must explicitly state that it does not assert that transfer occurred"
                 ));
             }
         }
