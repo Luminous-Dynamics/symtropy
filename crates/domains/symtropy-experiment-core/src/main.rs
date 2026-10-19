@@ -6,7 +6,7 @@ use symtropy_experiment_core::ExperimentGraph;
 
 fn usage() -> ! {
     eprintln!(
-        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>\n  symtropy-experiment-run oscillator <oscillator-spec.json>"
+        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>\n  symtropy-experiment-run oscillator <oscillator-spec.json>\n  symtropy-experiment-run oscillator-convergence <oscillator-spec.json> <coarse-to-fine-dt-csv>"
     );
     process::exit(2);
 }
@@ -142,6 +142,52 @@ fn run_oscillator(path: &str) {
     }
 }
 
+fn run_oscillator_convergence(path: &str, time_steps_csv: &str) {
+    use symtropy_experiment_core::{analyze_harmonic_oscillator_convergence, HarmonicOscillatorSpec};
+
+    let raw = match fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(error) => {
+            eprintln!("could not read '{path}': {error}");
+            process::exit(2);
+        }
+    };
+    let spec: HarmonicOscillatorSpec = match serde_json::from_str(&raw) {
+        Ok(spec) => spec,
+        Err(error) => {
+            eprintln!("invalid harmonic-oscillator JSON in '{path}': {error}");
+            process::exit(2);
+        }
+    };
+    let mut time_steps_s = Vec::new();
+    for token in time_steps_csv.split(',').map(str::trim) {
+        match token.parse::<f64>() {
+            Ok(value) if value.is_finite() && value > 0.0 => time_steps_s.push(value),
+            _ => {
+                eprintln!("time-step values must be finite positive numbers");
+                process::exit(2);
+            }
+        }
+    }
+
+    match analyze_harmonic_oscillator_convergence(&spec, &time_steps_s) {
+        Ok(report) => print_json(
+            serde_json::json!({
+                "valid": true,
+                "executed": true,
+                "kind": "analytical_reference_convergence_study",
+                "report": report,
+                "interpretation_warning": "Observed order estimates are conditional on this ideal oscillator, initial state, finite time horizon, and time-step sequence. They are not a universal solver-order or physical-validation claim."
+            }),
+            "{\"valid\":true,\"executed\":false,\"error\":\"failed to serialize convergence report\"}",
+        ),
+        Err(error) => {
+            eprintln!("oscillator convergence study could not be executed: {error}");
+            process::exit(1);
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
@@ -150,6 +196,9 @@ fn main() {
             run_sweep(path, variable_id, values_csv)
         }
         [mode, path] if mode == "oscillator" => run_oscillator(path),
+        [mode, path, time_steps] if mode == "oscillator-convergence" => {
+            run_oscillator_convergence(path, time_steps)
+        }
         _ => usage(),
     }
 }
