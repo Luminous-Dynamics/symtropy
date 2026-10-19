@@ -12,9 +12,9 @@
   "eligible_request_count": "10",
   "protocol_excluded_count": "2",
   "outcomes": {
-    "accepted_within_window_count": "4",
+    "accepted_within_window_count": "3",
     "accepted_after_window_count": "1",
-    "known_not_accepted_count": "1",
+    "known_not_accepted_count": "2",
     "disputed_or_rework_count": "1",
     "outcome_unknown_count": "1",
     "follow_up_missing_count": "1",
