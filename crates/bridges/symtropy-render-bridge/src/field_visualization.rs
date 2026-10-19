@@ -1365,7 +1365,7 @@ mod tests {
     }
 
     fn test_frame() -> FieldFrame {
-        FieldFrame {
+        let mut frame = FieldFrame {
             schema_version: FIELD_FRAME_SCHEMA_VERSION,
             frame_id: "frame-0001".to_owned(),
             producer: "test-thermal-em-solver".to_owned(),
@@ -1408,7 +1408,10 @@ mod tests {
                 }],
             }],
             spectra: vec![spectrum_profile()],
-        }
+        };
+        frame.scalar_layers[0].metadata.id = "temperature-layer".to_owned();
+        frame.vector_layers[0].metadata.id = "electric-field-layer".to_owned();
+        frame
     }
 
     #[test]
