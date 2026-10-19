@@ -180,6 +180,8 @@ pub struct ForecastEvaluationReceipt {
     outcome_release_id: String,
     outcome_definition: String,
     outcome_release_sha256: String,
+    forecast_release_ids: Vec<String>,
+    forecast_record_count: usize,
     outcome_source_reference: String,
     license_reference: String,
     attribution: String,
@@ -282,6 +284,14 @@ pub fn evaluate(
         outcome_release_id: dataset.source.outcome_release_id.clone(),
         outcome_definition: dataset.source.outcome_definition.clone(),
         outcome_release_sha256: dataset.source.outcome_release_sha256.clone(),
+        forecast_release_ids: dataset
+            .records
+            .iter()
+            .map(|record| record.forecast_release_id.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
+        forecast_record_count: dataset.records.len(),
         outcome_source_reference: dataset.source.outcome_source_reference.clone(),
         license_reference: dataset.source.license_reference.clone(),
         attribution: dataset.source.attribution.clone(),
@@ -845,6 +855,8 @@ mod tests {
         assert_eq!(r.metrics.test.forecast_count, 6);
         assert_eq!(r.metrics.test.scored_count, 5);
         assert_eq!(r.metrics.test.unknown_outcome_count, 1);
+        assert_eq!(r.forecast_record_count, 18);
+        assert_eq!(r.forecast_release_ids.len(), 18);
     }
 
     #[test]
@@ -884,19 +896,25 @@ mod tests {
 
     #[test]
     fn baseline_excludes_outcomes_not_available_at_the_forecast_cutoff() {
-        let d = dataset();
-        let history = BaselineHistory::from_dataset(&d);
-        let test_record = d.records.iter().find(|r| r.forecast_id == "forecast-x1").unwrap().clone();
-        let before = history.probability(
-            test_record.input_cutoff_month,
-            d.temporal_split.minimum_climatology_history,
-        );
-        let mut changed = d.clone();
-        changed.records[0].outcome_available_month =
+        let mut not_yet_available = dataset();
+        let test_record = not_yet_available
+            .records
+            .iter()
+            .find(|record| record.forecast_id == "forecast-x1")
+            .unwrap()
+            .clone();
+        not_yet_available.records[0].outcome_available_month =
             Some(test_record.input_cutoff_month + 1);
-        let after = BaselineHistory::from_dataset(&changed).probability(
+        let before = BaselineHistory::from_dataset(&not_yet_available).probability(
             test_record.input_cutoff_month,
-            d.temporal_split.minimum_climatology_history,
+            not_yet_available.temporal_split.minimum_climatology_history,
+        );
+
+        let mut revised_before_release = not_yet_available.clone();
+        revised_before_release.records[0].outcome = ForecastOutcome::Event;
+        let after = BaselineHistory::from_dataset(&revised_before_release).probability(
+            test_record.input_cutoff_month,
+            revised_before_release.temporal_split.minimum_climatology_history,
         );
         assert_eq!(before, after);
     }
