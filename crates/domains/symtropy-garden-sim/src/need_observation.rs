@@ -9,9 +9,22 @@
 //! source evidence, or estimate causal impact.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 pub const NEED_OBSERVATION_SCHEMA_VERSION_V1: u16 = 1;
 pub const NEED_OBSERVATION_CLAIM_CEILING_V1: &str = "Synthetic need-episode accounting and contract consistency only. Does not establish the prevalence of unmet need, authenticate farmer or intermediary identity, verify service delivery, infer causality, trigger service actions, or prove South African field outcomes.";
+
+/// SHA-256 of the exact source bytes. This binds a report to an input; it does
+/// not authenticate the input or establish that its claims are true.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(64);
+    for byte in Sha256::digest(bytes) {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
+}
 
 fn serialize_u64<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
 where
