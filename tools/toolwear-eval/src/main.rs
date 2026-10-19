@@ -3,8 +3,7 @@ use std::env;
 use std::fs;
 use std::process;
 
-const EXPECTED_SHA256: &str =
-    "0199bc69cae5e74be3d668244f708da78450c669be641d254b5ca6aa712dda56";
+const EXPECTED_SHA256: &str = "0199bc69cae5e74be3d668244f708da78450c669be641d254b5ca6aa712dda56";
 const EXPECTED_BYTES: usize = 3_346_122;
 const EXPECTED_ROWS: usize = 2_054;
 const EXPECTED_COLUMNS: usize = 154;
@@ -400,8 +399,7 @@ fn report(dataset: &Dataset, source_sha: &str) -> Result<String, String> {
     let target_index = column_index(&dataset.headers, "Vb")?;
 
     let constant = fit_tool_balanced_constant(&train_rows, target_index)?;
-    let constant_result =
-        evaluate_model(dataset, &test_tools, target_index, None, constant, 0.0)?;
+    let constant_result = evaluate_model(dataset, &test_tools, target_index, None, constant, 0.0)?;
     let mut models = vec![format!(
         "\"constant_train_tool_balanced\":{}",
         model_json(&constant_result)
@@ -452,22 +450,15 @@ fn report(dataset: &Dataset, source_sha: &str) -> Result<String, String> {
 
 fn sha256_hex(input: &[u8]) -> String {
     const K: [u32; 64] = [
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xc76c51a3, 0xd192e819, 0xd6990624,
-        0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
-        0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-        0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f,
-        0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb,
-        0xbef9a3f7, 0xc67178f2,
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xc24b8b70,
+        0xc76c51a3, 0xd192e819, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c,
+        0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f,
+        0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
     ];
     let mut padded = input.to_vec();
     let bit_length = (input.len() as u64).wrapping_mul(8);
@@ -621,7 +612,10 @@ mod tests {
         let tool_ids: BTreeSet<u32> = EXPECTED_TOOLS.into_iter().collect();
         let (train, test) = source_split(&tool_ids);
         assert_eq!(test, [3, 7, 12, 16].into_iter().collect());
-        assert_eq!(train, [4, 5, 6, 9, 10, 11, 13, 14, 15].into_iter().collect());
+        assert_eq!(
+            train,
+            [4, 5, 6, 9, 10, 11, 13, 14, 15].into_iter().collect()
+        );
         assert!(train.is_disjoint(&test));
         for tool in tool_ids {
             assert!(train.contains(&tool) ^ test.contains(&tool));
@@ -630,21 +624,22 @@ mod tests {
 
     #[test]
     fn tool_balanced_linear_fit_recovers_a_known_line() {
-        let text = "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n3,3,1,1,10\n3,5,2,2,10\n4,7,3,3,10\n4,9,4,4,10\n";
+        let text =
+            "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n3,3,1,1,10\n3,5,2,2,10\n4,7,3,3,10\n4,9,4,4,10\n";
         let dataset = parse_csv(text).expect("valid fixture should parse");
         let rows: Vec<&Row> = dataset.rows.iter().collect();
         let counts = tool_counts(&rows);
         let target = column_index(&dataset.headers, "Vb").unwrap();
         let feature = column_index(&dataset.headers, "AE_RMS").unwrap();
-        let (intercept, slope) =
-            fit_tool_balanced_linear(&rows, &counts, feature, target).unwrap();
+        let (intercept, slope) = fit_tool_balanced_linear(&rows, &counts, feature, target).unwrap();
         assert!((intercept - 1.0).abs() < 1e-10);
         assert!((slope - 2.0).abs() < 1e-10);
     }
 
     #[test]
     fn constant_feature_fails_closed() {
-        let text = "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n3,3,1,1,10\n3,5,1,2,10\n4,7,1,3,10\n4,9,1,4,10\n";
+        let text =
+            "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n3,3,1,1,10\n3,5,1,2,10\n4,7,1,3,10\n4,9,1,4,10\n";
         let dataset = parse_csv(text).expect("valid fixture should parse");
         let rows: Vec<&Row> = dataset.rows.iter().collect();
         let counts = tool_counts(&rows);
