@@ -11,3 +11,5 @@ description = "Synthetic-first seafood lot traceability and cold-chain evidence 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+
+[workspace]
