@@ -527,38 +527,39 @@ pub fn evaluate_predeclared_policy(
         ]);
     }
     if policy.evidence_class == EvidenceClass::AuthorizedHistorical
-        && [
-            policy.registration.registration_evidence_reference.as_str(),
-            policy
-                .governance
-                .responsible_organization_reference
-                .as_str(),
-            policy.governance.approval_reference.as_str(),
-            policy.governance.authorization_scope.as_str(),
-            policy.warning_window_source_reference.as_str(),
-        ]
-        .iter()
-        .chain(
-            policy
-                .sensitivity_scenarios
-                .iter()
-                .flat_map(|scenario| {
-                    [
-                        scenario.scenario_reference.as_str(),
-                        scenario.warning_window_source_reference.as_str(),
-                    ]
-                }),
-        )
-        .iter()
-        .any(|value| value.trim().is_empty() || value.starts_with("synthetic:"))
-        || policy.source_references.is_empty()
-        || policy
-            .source_references
+        && (
+            [
+                policy.registration.registration_evidence_reference.as_str(),
+                policy
+                    .governance
+                    .responsible_organization_reference
+                    .as_str(),
+                policy.governance.approval_reference.as_str(),
+                policy.governance.authorization_scope.as_str(),
+                policy.warning_window_source_reference.as_str(),
+            ]
             .iter()
+            .chain(
+                policy
+                    .sensitivity_scenarios
+                    .iter()
+                    .flat_map(|scenario| {
+                        [
+                            scenario.scenario_reference.as_str(),
+                            scenario.warning_window_source_reference.as_str(),
+                        ]
+                    }),
+            )
             .any(|value| value.trim().is_empty() || value.starts_with("synthetic:"))
+            || policy.source_references.is_empty()
+            || policy
+                .source_references
+                .iter()
+                .any(|value| value.trim().is_empty() || value.starts_with("synthetic:"))
+        )
     {
         return Err(vec![
-            "authorized historical policy evaluation requires non-synthetic governance and registration references".to_owned(),
+            "authorized historical policy evaluation requires non-synthetic governance, registration, warning-window and scenario references".to_owned(),
         ]);
     }
 
