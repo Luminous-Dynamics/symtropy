@@ -13,7 +13,7 @@ use symtropy_animal_replay::{
     PairedBaselineComparison, ReplayDisposition, ReplayEvaluationInput, ReplayReason, ReplayTaskSpec,
     RunIdentity, ThresholdDirection, ThresholdOutcome, build_replay_receipt,
 };
-use symtropy_fauna_core::{AnimalProfile, EvidenceClass};
+use symtropy_fauna_core::{AnimalProfile, EvidenceClass, TaxonBinding};
 
 const PROFILE_FIXTURE: &str =
     include_str!("../../symtropy-fauna-core/fixtures/animal-capability-profiles-v1.json");
