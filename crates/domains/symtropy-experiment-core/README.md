@@ -10,6 +10,7 @@ A renderer-independent first step toward executable, visually navigable experime
 - Canonical equation labels are generated from operator and variable IDs, avoiding a separate hand-written formula that can drift from the executed calculation.
 - Parameter/input overrides are scoped to a run; deterministic one-variable sweeps return each input plus the complete evaluated value map without mutating the model.
 - A known-answer synthetic gear-pair fixture and negative tests for dimension mismatch, dimension-exponent overflow, cycles, duplicate equation outputs/IDs, missing run-time values, and division by zero; a subtraction variant tests the remaining arithmetic operator.
+- Regression checks verify parameter sweep order/model immutability and compare a finite difference to the analytic gear model slope; the interpreter can sweep declared parameter/input values without mutating the experiment graph.
 
 ## Run
 
