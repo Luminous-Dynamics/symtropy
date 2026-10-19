@@ -74,6 +74,38 @@ fn farmer_reported_off_platform_service_never_becomes_canonical_attainment() {
 }
 
 #[test]
+fn authorized_relayed_other_channel_attainment_stays_noncanonical() {
+    let mut input = valid_input();
+    input.episodes[4].request_presence = RequestPresence::NoCanonicalRequestLocated;
+    input.episodes[4].disposition = D::AdequateServiceWithinWindow;
+    input.episodes[4].outcome_source = S::AuthorizedRelayOtherChannel;
+    input.episodes[4].no_request_reason = None;
+    let report = assess_need_observation_v1(&input);
+    assert_eq!(report.disposition, AssessmentDisposition::Calculated);
+    let summary = report.summary.expect("valid summary");
+    assert_eq!(summary.adequate_service_within_window_count, 3);
+    assert_eq!(summary.canonical_service_attainment_count, 1);
+    assert_eq!(summary.other_channel_reported_attainment_count, 2);
+
+    input.episodes[4].report_basis = Basis::FarmerConfirmedProspective;
+    assert!(has_blocker(&input, B::OutcomeSourceMismatch));
+}
+
+#[test]
+fn absent_optional_barrier_answer_is_not_imputed() {
+    let mut input = valid_input();
+    input.episodes[1].no_request_reason = None;
+    let report = assess_need_observation_v1(&input);
+    assert_eq!(report.disposition, AssessmentDisposition::Calculated);
+    let summary = report.summary.expect("valid summary");
+    assert_eq!(summary.no_request_reason_not_recorded_count, 1);
+    assert_eq!(
+        summary.no_request_reason_counts.iter().map(|entry| entry.count).sum::<u64>(),
+        1
+    );
+}
+
+#[test]
 fn open_deferred_and_missing_outcomes_stay_distinct() {
     let report = assess_need_observation_v1(&valid_input());
     let summary = report.summary.expect("valid summary");
@@ -213,6 +245,8 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
         "prospective_retrospective_and_relay_basis_remain_distinct",
         "a_farmer_confirmed_no_request_has_no_invented_request_reference",
         "farmer_reported_off_platform_service_never_becomes_canonical_attainment",
+        "authorized_relayed_other_channel_attainment_stays_noncanonical",
+        "absent_optional_barrier_answer_is_not_imputed",
         "open_deferred_and_missing_outcomes_stay_distinct",
         "request_presence_link_requires_real_opaque_request_ref",
         "no_request_state_cannot_carry_fabricated_request_ref",
@@ -232,6 +266,8 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
     assert_eq!(ids.len(), expected.len());
     assert_eq!(ids, expected);
     let expected_outcomes = [
+        "CALCULATED",
+        "CALCULATED",
         "CALCULATED",
         "CALCULATED",
         "CALCULATED",
