@@ -1,6 +1,6 @@
 # Orbital Foundry V0 — synthetic reference benchmark
 
-This standalone Rust tool explores a deliberately tiny finite design space for a modular orbital-foundry concept. It is an **arithmetic, constraint, and Pareto-search reference contract**, not a spacecraft simulator.
+This standalone Rust tool explores a deliberately tiny finite design space for a modular orbital-foundry concept. It is an **event-driven arithmetic, constraint, and Pareto-search reference contract**, not a spacecraft simulator.
 
 ## What it models
 
@@ -11,9 +11,9 @@ Sixteen combinations of four binary design decisions are compared:
 - a carried spare pack versus no spare pack;
 - an explicitly declared end-of-life plan versus no plan.
 
-The fixed synthetic scenario family covers robot-joint failure, interface mismatch, power-domain failure, delayed resupply, and a compound common-cause failure. The model intentionally uses **synthetic mass units (SMU)** and **synthetic time ticks**; these are not kilograms, seconds, empirical probabilities, or flight predictions.
+The versioned fixture includes five synthetic disturbance scenarios: robot-joint failure, interface mismatch, power-domain failure, delayed resupply, and a compound common-cause event. Each scenario lists ordered fault events with explicit synthetic ticks. The replay updates shared spare inventory at every event and emits an auditable event trace showing spare inventory before and after each event, modeled recovery ticks, and scenario service-loss totals.
 
-The report keeps launch mass, assembly duration, interface-family count, the worst-case service loss, and the unweighted sum of service-loss ticks across scenarios as separate objectives. No arbitrary combined score is used. The hard gate requires a declared end-of-life plan and worst-case loss no greater than the fixture's threshold. This gate is only a synthetic policy rule; it does not establish orbital disposal feasibility or regulatory compliance.
+The toy spare pack contains two generic repair/consumable units. This is an explicit synthetic assumption to demonstrate resource contention in a compound event; it is not a parts list or a spacecraft logistics estimate. Event timestamps and recovery values are discrete synthetic tick values. Simultaneous events are applied in fixture order, which is a deterministic tie-break policy rather than a claim about real response scheduling.
 
 ## Run
 
@@ -26,22 +26,26 @@ To bind a report to a source commit:
 
     cargo run --manifest-path tools/orbital-foundry-bench/Cargo.toml -- --source-commit "$(git rev-parse HEAD)"
 
-The JSON output includes the exact scenario fixture's SHA-256, the optional source commit, every evaluated candidate, individual scenario-loss values, gate outcomes, an independent-oracle result, and the non-dominated feasible design IDs.
+The JSON report includes the exact fixture SHA-256, optional source commit, all 16 candidates, separate objective values, hard-gate results, per-scenario event traces, remaining spare inventory, independent-oracle status, and non-dominated feasible design IDs.
 
-## Verification boundary
+## Metrics and claim ceiling
 
-The model evaluator and the tiny-domain oracle are separate code paths. Tests compare all 16 configurations, reject unknown design fields, reject fixture-key drift, check the SHA-256 known-answer vector, detect tampered metrics, test end-of-life gate failure, confirm deterministic output, and preserve Pareto trade-offs.
+The report keeps launch mass in **synthetic mass units (SMU)**, assembly duration in **synthetic ticks**, interface-family count, worst-case synthetic service-loss ticks, and aggregate additive service-loss ticks separate. The additive loss metric sums modeled recovery exposure across events; it is not necessarily elapsed wall-clock downtime when events overlap. No arbitrary combined score is used.
 
-A passing local contract establishes only that this small synthetic arithmetic model behaves according to its encoded rules. It does **not** validate:
-- orbital dynamics or conjunction probability;
-- structural strength, fatigue, pressure integrity, thermal performance, radiation or micrometeoroid protection;
-- real robotic contact, collision, reachability or assembly dynamics;
-- real supply-chain statistics, lifecycle costs, launch mass or service probabilities;
-- environmental-control/life-support system behavior or crew safety;
-- end-of-life disposal compliance, spacecraft certification, or flight qualification.
+The hard gate requires a declared end-of-life plan and a worst-case service-loss value no greater than the fixture threshold. These are synthetic policy rules; they do not establish orbital disposal feasibility or regulatory compliance.
+
+## Independent checks
+
+The production event transition and the exact small-domain oracle use separate implementations. Tests cover all 16 configurations, shared spare consumption during a compound event, malformed or non-monotonic event sequences, unknown design configuration, strict fixture/schema checks, weakened thresholds, tampered metrics, a SHA-256 known-answer vector, reproducibility, and Pareto trade-offs.
+
+The focused workflow checks formatting, runs the tests, emits a deterministic receipt bound to the exact checked-out commit, independently inspects receipt fields, and uploads the receipt.
+
+## Out of scope
+
+This contract does **not** validate orbital dynamics or conjunction probability; structural strength or fatigue; contact, collision, reachability, or robotic assembly physics; thermal control, radiation or micrometeoroid protection; empirical supply-chain behavior, launch cost, mass, or service probabilities; ECLSS, life-support chemistry or crew safety; orbital disposal compliance, spacecraft certification, or flight qualification.
 
 ## Industry comparison
 
-This crate does not claim to beat NASA GMAT, OpenMDAO, NASA CARA methods, or any industrial spacecraft-design stack. Those tools operate at different layers. A meaningful later comparison must align one subproblem at a time, pin reference inputs and solver settings, document applicability and tolerances, and independently reproduce every headline result.
+This crate does not claim to beat NASA GMAT, OpenMDAO, NASA CARA methods, or any industrial spacecraft-design stack. Those tools operate at different layers. A meaningful comparison must align one subproblem at a time, pin reference inputs and solver settings, document applicability and tolerances, and independently reproduce every headline result.
 
-The next engineering increment is to consume qualified outputs from the existing scheduling/staging work, then integrate physical-discipline solvers only through explicit and validated adapters. This tool does not implement another geometric shipyard scheduler.
+The next increment should connect this lifecycle policy model to the existing exact shipyard staging/scheduling verifier, rather than creating another yard geometry engine. Higher-fidelity orbital, structural, thermal, robotics, and life-support solvers should be integrated only through explicit model-applicability and verification gates.
