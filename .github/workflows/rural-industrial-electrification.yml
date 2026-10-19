@@ -41,3 +41,9 @@ jobs:
             --bin energy_path_screen -- \
             tools/rural-industrial-electrification-evaluator/fixtures/energy_paths_v0_1.json > path-report.json
           jq -e '.results | length == 8' path-report.json
+      - name: Run chronological energy dispatch screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+            --bin energy_dispatch_screen -- \
+            tools/rural-industrial-electrification-evaluator/fixtures/dispatch_profiles_v0_1.json > dispatch-report.json
+          jq -e '.results | length == 4 and all(.[]; .maximum_absolute_energy_balance_residual_kwh < 0.000001)' dispatch-report.json
