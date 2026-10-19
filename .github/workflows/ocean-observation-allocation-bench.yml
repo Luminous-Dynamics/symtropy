@@ -54,3 +54,10 @@ jobs:
             --corpus docs/tech/OCEAN_OBSERVATION_ALLOCATION_CORPUS_V0_1.json \
             --receipt "${RUNNER_TEMP}/ocean-observation-allocation-receipt.json"
           test -s "${RUNNER_TEMP}/ocean-observation-allocation-receipt.json"
+      - name: Upload machine-readable receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-observation-allocation-receipt
+          path: ${{ runner.temp }}/ocean-observation-allocation-receipt.json
+          if-no-files-found: error
+          retention-days: 14
