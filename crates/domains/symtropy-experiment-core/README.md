@@ -7,6 +7,7 @@ A renderer-independent first step toward executable, visually navigable experime
 - A versioned JSON representation of variables, units/dimensions, equation nodes, evidence anchors, equation basis, and limitations.
 - Structural checks for record IDs, variable references, operator arity, source/evidence links, output roles, dimensional compatibility, duplicate equation outputs, and dependency cycles.
 - A small arithmetic DAG interpreter for add, subtract, multiply, divide, and negate.
+- Canonical equation labels are generated from operator and variable IDs, avoiding a separate hand-written formula that can drift from the executed calculation.
 - A known-answer synthetic gear-pair fixture and negative tests for dimension mismatch, cycles, missing run-time values, division by zero, and duplicate IDs.
 
 ## Run
