@@ -5,6 +5,7 @@ on:
     branches: ["feat/mine-flex-001-bench-v0-1"]
     paths:
       - "docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md"
       - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
       - "tools/mine-flex-scheduling-bench/**"
       - ".github/workflows/mine-flex-scheduling-bench.yml"
@@ -12,6 +13,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md"
       - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
       - "tools/mine-flex-scheduling-bench/**"
       - ".github/workflows/mine-flex-scheduling-bench.yml"
@@ -76,3 +78,53 @@ jobs:
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
           ' mine-flex-scheduling-receipt.json
+      - name: Validate generated validation and held-out robustness tournament
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \
+            --robustness --source-commit "$source_commit" > mine-flex-robustness-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-FLEX-ROBUST-001"
+            and .suite_version == "0.1.0"
+            and .generator_version == "mine-flex-generated-disturbances-v0.1.0"
+            and .validation_seed_count == 32
+            and .held_out_seed_count == 32
+            and .uncertainty_worlds_per_seed == 5
+            and .validation_world_result_count == 160
+            and .held_out_world_result_count == 160
+            and .total_world_result_count == 320
+            and .hard_constraint_violations == 0
+            and .robust_policy_feasible_worlds == 320
+            and .robust_policy_infeasible_worlds == 0
+            and ([.summaries[] | select(.policy_id == "bounded_minimax_cost" and .split == "held_out").feasible_rate_basis_points][0] == 10000)
+            and ([.summaries[] | select(.policy_id == "nominal_forecast_cost_minimizer" and .split == "held_out").cost_regret.cvar95_regret_units_worst_five_percent_mean_floor][0] != null)
+            and ([.paired_comparisons[] | select(.split == "held_out").paired_worlds_both_feasible][0] > 0)
+            and (.generated_case_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.world_results[] | select(.robust_policy.feasible == false)] | length == 0)
+          ' mine-flex-robustness-receipt.json
+      - name: Emit paired validation and held-out metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id,
+            generator_version,
+            validation_seed_count,
+            held_out_seed_count,
+            total_world_result_count,
+            hard_constraint_violations,
+            robust_policy_feasible_worlds,
+            robust_policy_infeasible_worlds,
+            summaries: [.summaries[] | {
+              split, policy_id, evaluated_worlds, feasible_worlds,
+              infeasible_worlds, feasible_rate_basis_points,
+              mean_cost_units_floor, mean_carbon_units_floor,
+              cost_regret
+            }],
+            paired_comparisons
+          }' mine-flex-robustness-receipt.json

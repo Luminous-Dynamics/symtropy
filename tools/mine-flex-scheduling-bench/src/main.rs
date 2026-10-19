@@ -1,3 +1,5 @@
+mod robustness;
+
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, env, fs, process::ExitCode};
@@ -654,6 +656,12 @@ fn make_receipt(corpus: &Corpus, raw_bytes: &[u8], source_commit: &str) -> Check
 
 fn run() -> Check<ExitCode> {
     let args = env::args().skip(1).collect::<Vec<_>>();
+    if args
+        .first()
+        .is_some_and(|argument| argument == "--robustness")
+    {
+        return robustness::run_cli(&args[1..]);
+    }
     if args.len() != 3 || args[1] != "--source-commit" {
         return Err(
             "usage: mine-flex-scheduling-bench <corpus.json> --source-commit <40-hex-sha>"
