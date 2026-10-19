@@ -147,6 +147,8 @@ struct CaseResult {
     target_byte_length: usize,
     semantic_result_sha256: String,
     decision_reason: String,
+    diff_tool_version: String,
+    diff_tool_config_sha256: String,
     elapsed_millis: u128,
 }
 
@@ -410,6 +412,15 @@ fn run_one(
     {
         return Err(format!("DIFF_TOOL_ARTIFACT_DIGEST_MISMATCH:{}", oracle.case_id));
     }
+    let tool_version = json["tool_version"]
+        .as_str()
+        .filter(|version| !version.trim().is_empty())
+        .ok_or_else(|| format!("DIFF_TOOL_VERSION_MISSING:{}", oracle.case_id))?
+        .to_owned();
+    let tool_config_sha256 = json["config_sha256"]
+        .as_str()
+        .expect("validated above")
+        .to_owned();
     let false_acceptance =
         oracle.expected_status == ExpectedStatus::Different && observed == ExpectedStatus::Equal;
     let false_rejection =
@@ -436,6 +447,8 @@ fn run_one(
         target_byte_length: target_bytes.len(),
         semantic_result_sha256: json["semantic_result_sha256"].as_str().unwrap().to_owned(),
         decision_reason: json["decision_reason"].as_str().unwrap_or("UNSPECIFIED").to_owned(),
+        diff_tool_version: tool_version,
+        diff_tool_config_sha256: tool_config_sha256,
         elapsed_millis: started.elapsed().as_millis(),
     })
 }
@@ -546,16 +559,23 @@ fn run() -> Result<i32, String> {
             oracle,
             &manifest.oracle_class,
         )?;
-        // Re-run identity metadata is stable across cases; do not let a binary
-        // silently change its declared version/config between outputs.
-        if let Some(value) = diff_version.as_ref() {
-            if value != result_tool_version_placeholder() {
+        // The producer's version/configuration must stay identical across the
+        // entire campaign; mixed reports from different tool profiles are invalid.
+        match diff_version.as_ref() {
+            Some(value) if value != &result.diff_tool_version => {
                 return Err("DIFF_TOOL_VERSION_CHANGED_WITHIN_CAMPAIGN".into());
             }
+            None => diff_version = Some(result.diff_tool_version.clone()),
+            _ => {}
+        }
+        match diff_config.as_ref() {
+            Some(value) if value != &result.diff_tool_config_sha256 => {
+                return Err("DIFF_TOOL_CONFIG_CHANGED_WITHIN_CAMPAIGN".into());
+            }
+            None => diff_config = Some(result.diff_tool_config_sha256.clone()),
+            _ => {}
         }
         results.push(result);
-        let _ = &mut diff_version;
-        let _ = &mut diff_config;
     }
 
     let summary = score(&results);
@@ -574,10 +594,10 @@ fn run() -> Result<i32, String> {
         policy_sha256: sha256_hex(POLICY.as_bytes()),
         diff_tool: ToolIdentity {
             name: "built-interop-semantic-diff".into(),
-            version: "captured-per-case-from-tool-output".into(),
+            version: diff_version.ok_or("DIFF_TOOL_VERSION_NOT_OBSERVED")?,
             source_commit_sha: args.diff_tool_source_commit_sha,
             binary_sha256: args.diff_bin_sha256,
-            config_sha256: sha256_hex(format!("{TOOL_PROFILE};{POLICY}").as_bytes()),
+            config_sha256: diff_config.ok_or("DIFF_TOOL_CONFIG_NOT_OBSERVED")?,
         },
         evaluator_source_commit_sha: args.evaluator_source_commit_sha,
         cases: results,
@@ -596,10 +616,6 @@ fn run() -> Result<i32, String> {
     println!("{}", String::from_utf8_lossy(&json));
     drop(cleanup);
     Ok(if all_matched { 0 } else { 1 })
-}
-
-fn result_tool_version_placeholder() -> &'static str {
-    "captured-per-case-from-tool-output"
 }
 
 struct TempCleanup(PathBuf);
@@ -679,6 +695,8 @@ mod tests {
             target_byte_length: 1,
             semantic_result_sha256: "c".repeat(64),
             decision_reason: "unit".into(),
+            diff_tool_version: "unit".into(),
+            diff_tool_config_sha256: "d".repeat(64),
             elapsed_millis: 0,
         };
         let cases = vec![
