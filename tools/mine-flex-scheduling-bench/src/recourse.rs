@@ -964,32 +964,35 @@ mod tests {
             "only-future-fields-changed",
             &[(1, 0, 0), (1, 1, 4), (2, 2, 2)],
         );
-        let base_action = choose_recourse_action(
-            &model(),
-            &case.forecast,
-            &case.uncertainty_envelope,
-            &base.periods[..=0],
-            &[],
-            RecourseObjective::CostFirst,
-        )
-        .expect("base first action");
-        let changed_action = choose_recourse_action(
-            &model(),
-            &case.forecast,
-            &case.uncertainty_envelope,
-            &changed.periods[..=0],
-            &[],
-            RecourseObjective::CostFirst,
-        )
-        .expect("future-perturbed first action");
-        assert_eq!(
-            base_action.chosen_batches_this_period,
-            changed_action.chosen_batches_this_period
-        );
-        assert_eq!(
-            base_action.observation_prefix_sha256,
-            changed_action.observation_prefix_sha256
-        );
+        for objective in [RecourseObjective::CostFirst, RecourseObjective::CarbonFirst] {
+            let base_action = choose_recourse_action(
+                &model(),
+                &case.forecast,
+                &case.uncertainty_envelope,
+                &base.periods[..=0],
+                &[],
+                objective,
+            )
+            .expect("base first action");
+            let changed_action = choose_recourse_action(
+                &model(),
+                &case.forecast,
+                &case.uncertainty_envelope,
+                &changed.periods[..=0],
+                &[],
+                objective,
+            )
+            .expect("future-perturbed first action");
+            assert_eq!(
+                base_action.chosen_batches_this_period,
+                changed_action.chosen_batches_this_period,
+                "objective {objective:?}"
+            );
+            assert_eq!(
+                base_action.observation_prefix_sha256,
+                changed_action.observation_prefix_sha256
+            );
+        }
     }
 
     #[test]
