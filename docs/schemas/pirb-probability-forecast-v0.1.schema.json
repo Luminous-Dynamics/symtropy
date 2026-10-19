@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-probability-forecast-v0.1.schema.json",
+  "title": "PIRB Probability Forecast Evaluation Dataset v0.1",
+  "description": "Auditable scoring contract for versioned probability forecasts. It does not establish truth, causal impact, consent, legitimacy, or deployment readiness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "evidence_class",
+    "source",
+    "privacy",
+    "temporal_split",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^pirb-probability-[a-z0-9-]+$"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "forecast_release_id",
+        "model_id",
+        "model_version",
+        "forecast_variable",
+        "target_definition",
+        "analysis_unit",
+        "threshold_definition",
+        "forecast_source_reference",
+        "forecast_release_sha256",
+        "outcome_source_id",
+        "outcome_release_id",
+        "outcome_definition",
+        "outcome_source_reference",
+        "outcome_release_sha256",
+        "license_reference",
+        "attribution"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_variable": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit": {
+          "enum": [
+            "country_month",
+            "prio_grid_month"
+          ]
+        },
+        "threshold_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_release_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_release_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "license_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "minimum_subgroup_outcomes"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "minimum_subgroup_outcomes": {
+          "type": "integer",
+          "minimum": 2
+        }
+      }
+    },
+    "temporal_split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forecast_origin_start_month",
+        "training_end_exclusive_month",
+        "calibration_end_exclusive_month",
+        "test_end_exclusive_month",
+        "evaluation_as_of_month",
+        "minimum_climatology_history",
+        "reliability_bin_count",
+        "log_loss_epsilon"
+      ],
+      "properties": {
+        "forecast_origin_start_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "training_end_exclusive_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "calibration_end_exclusive_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "test_end_exclusive_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evaluation_as_of_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_climatology_history": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reliability_bin_count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 20
+        },
+        "log_loss_epsilon": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 0.5
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/forecast"
+      }
+    }
+  },
+  "$defs": {
+    "forecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forecast_id",
+        "forecast_release_id",
+        "unit_id",
+        "forecast_origin_month",
+        "input_cutoff_month",
+        "target_month",
+        "lead_months",
+        "probability",
+        "outcome",
+        "outcome_available_month"
+      ],
+      "properties": {
+        "forecast_id": {
+          "type": "string",
+          "pattern": "^forecast-[A-Za-z0-9_-]+$"
+        },
+        "forecast_release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_id": {
+          "type": "string",
+          "pattern": "^unit-[A-Za-z0-9_-]+$"
+        },
+        "forecast_origin_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "input_cutoff_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lead_months": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 36
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "outcome": {
+          "enum": [
+            "event",
+            "no_event",
+            "unknown"
+          ]
+        },
+        "outcome_available_month": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
