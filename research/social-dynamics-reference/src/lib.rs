@@ -3,6 +3,9 @@
 //! This crate is a synthetic benchmark scaffold, not a validated model of real
 //! people. Keep rules explicit and simple until benchmark validity is shown.
 
+/// Formal consensus baselines used for canonical dynamics checks.
+pub mod canonical;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Treatment {
     NoCommitments,
