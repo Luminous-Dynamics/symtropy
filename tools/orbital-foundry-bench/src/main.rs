@@ -573,7 +573,11 @@ fn oracle_scenario_result(design: Design, scenario: &ScenarioContract) -> (u32, 
     let mut spares = if design.spare_pack { 2_u32 } else { 0_u32 };
     let mut available_at = [0_u32; 4];
     let mut service_loss = 0_u32;
-    let first_tick = scenario.events.first().map(|event| event.at_tick).unwrap_or(0);
+    let first_tick = scenario
+        .events
+        .first()
+        .map(|event| event.at_tick)
+        .unwrap_or(0);
     let mut final_tick = first_tick;
 
     for event in &scenario.events {
@@ -587,14 +591,8 @@ fn oracle_scenario_result(design: Design, scenario: &ScenarioContract) -> (u32, 
                 };
                 (0, duration)
             }
-            FaultKind::InterfaceMismatch => (
-                1,
-                if design.standardized_interfaces { 1 } else { 7 },
-            ),
-            FaultKind::PowerDomainFailure => (
-                2,
-                if design.isolated_power_domains { 1 } else { 8 },
-            ),
+            FaultKind::InterfaceMismatch => (1, if design.standardized_interfaces { 1 } else { 7 }),
+            FaultKind::PowerDomainFailure => (2, if design.isolated_power_domains { 1 } else { 8 }),
             FaultKind::ResupplyDelay => {
                 let duration = if spares > 0 {
                     spares -= 1;
@@ -604,10 +602,9 @@ fn oracle_scenario_result(design: Design, scenario: &ScenarioContract) -> (u32, 
                 };
                 (3, duration)
             }
-            FaultKind::CommonCausePowerFailure => (
-                2,
-                if design.isolated_power_domains { 3 } else { 8 },
-            ),
+            FaultKind::CommonCausePowerFailure => {
+                (2, if design.isolated_power_domains { 3 } else { 8 })
+            }
         };
 
         let actual_start = if event.at_tick > available_at[service_slot] {
@@ -1065,7 +1062,11 @@ mod tests {
         assert_eq!(simulation.events[2].repair_end_tick, 18);
         assert_eq!(simulation.service_loss_ticks, 20);
         assert_eq!(simulation.recovery_elapsed_ticks, 16);
-        assert!(!evaluate_model(shared_power, &contract).unwrap().hard_gates_pass);
+        assert!(
+            !evaluate_model(shared_power, &contract)
+                .unwrap()
+                .hard_gates_pass
+        );
     }
 
     #[test]
