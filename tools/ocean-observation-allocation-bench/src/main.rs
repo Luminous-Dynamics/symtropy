@@ -106,7 +106,8 @@ struct Candidate {
     observation_mode: ObservationMode,
     rights_review_status: RightsReviewStatus,
     use_permission: UsePermission,
-    /// Absent or incomplete profile is an explicit non-eligibility signal.\n    detection_profile: Option<DetectionProfile>,
+    /// Absent or incomplete profile is an explicit non-eligibility signal.
+    detection_profile: Option<DetectionProfile>,
     exposure_knowledge: ExposureKnowledge,
     effort_units: u32,
     /// Synthetic expected information gain before the remaining-uncertainty cap.
