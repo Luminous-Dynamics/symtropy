@@ -7,6 +7,8 @@
 //! physical safety model, rescue certification, geotechnical assessment, or
 //! permission to enter a real cave, mine, tunnel, or confined space.
 
+pub mod egress;
+
 use std::collections::{BTreeSet, VecDeque};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
