@@ -7,7 +7,7 @@
 //! reproducibility and integrity aid, not a signature, trusted timestamp, validation claim, or
 //! proof that a model is scientifically correct.
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
