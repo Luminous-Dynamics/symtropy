@@ -155,10 +155,17 @@ fn reversed_edge_and_vertex_permutation_preserve_the_declared_values() {
     let forward = evaluate_dissipation(by_id("GE-001-two-node-strict")).expect("forward case valid");
     let reverse = evaluate_dissipation(by_id("GE-007-reversed-edge-enumeration")).expect("reverse case valid");
     let path = evaluate_dissipation(by_id("GE-005-three-node-path")).expect("path case valid");
-    let permuted = evaluate_dissipation(by_id("GE-008-permuted-path")).expect("permuted path valid");
+    let permuted =
+        evaluate_dissipation(by_id("GE-008-permuted-path")).expect("permuted path valid");
 
-    assert!(close_enough(forward, reverse), "reversing both edge differences must preserve D(h)");
-    assert!(close_enough(path, permuted), "vertex relabeling must preserve D(h)");
+    assert!(
+        close_enough(forward, reverse),
+        "reversing both edge differences must preserve D(h)"
+    );
+    assert!(
+        close_enough(path, permuted),
+        "vertex relabeling must preserve D(h)"
+    );
 }
 
 #[test]
@@ -180,20 +187,31 @@ fn negative_control_mutations_are_detected() {
         .expect("destination state")
         .parse::<f64>()
         .expect("destination decimal");
-    let conductance = parse_scalar(&edge["conductance"], "witness conductance").expect("conductance");
+    let conductance =
+        parse_scalar(&edge["conductance"], "witness conductance").expect("conductance");
     let wrong_sign = conductance * (src - dst) * (dst.ln() - src.ln());
-    assert!(wrong_sign < 0.0, "reversing only the logarithmic difference must violate non-negativity");
+    assert!(
+        wrong_sign < 0.0,
+        "reversing only the logarithmic difference must violate non-negativity"
+    );
 
     let controls = corpus["mutation_controls"]
         .as_array()
         .expect("mutation controls must be an array");
     assert_eq!(controls.len(), 3, "unexpected mutation-control count");
 
-    for invalid_id in ["GE-NEG-001-negative-conductance", "GE-NEG-002-zero-state", "GE-NEG-003-negative-state"] {
+    for invalid_id in [
+        "GE-NEG-001-negative-conductance",
+        "GE-NEG-002-zero-state",
+        "GE-NEG-003-negative-state",
+    ] {
         let invalid = cases
             .iter()
             .find(|case| case["id"].as_str() == Some(invalid_id))
             .unwrap_or_else(|| panic!("missing invalid case {invalid_id}"));
-        assert!(evaluate_dissipation(invalid).is_err(), "{invalid_id}: invalid input must fail closed");
+        assert!(
+            evaluate_dissipation(invalid).is_err(),
+            "{invalid_id}: invalid input must fail closed"
+        );
     }
 }
