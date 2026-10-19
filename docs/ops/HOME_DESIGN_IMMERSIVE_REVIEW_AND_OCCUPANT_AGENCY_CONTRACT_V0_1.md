@@ -80,7 +80,7 @@ Each review route and capture should reference:
 - which materials, furnishings, lighting, weather, and site conditions are measured, simulated, assumed, or placeholders;
 - optional user annotations tied to the exact revision, not rewritten into the model silently.
 
-A new design revision must make stale captures obvious. Historic captures remain associated with the revision the person actually reviewed.
+A new design revision must make stale captures obvious. Historic captures remain associated with the revision the person actually reviewed. Occupant feedback dispositions are separately pinned to both the source revision and the revision against which the team responded. Implemented feedback needs a change request plus evidence; accessibility/circulation concerns also need independent assessment before being called implemented. A decision not to change a preference is allowed, but must remain a preference decision—not a code failure.
 
 ## Privacy and device posture
 
