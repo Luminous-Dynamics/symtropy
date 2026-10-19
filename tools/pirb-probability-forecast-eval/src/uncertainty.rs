@@ -100,11 +100,9 @@ pub(super) fn estimate(
     } else {
         (maximum_month - minimum_month + 1) as usize
     };
-    let temporal_block_count = if policy.temporal_block_length_months == 0 {
-        0
-    } else {
-        temporal_span_months / policy.temporal_block_length_months
-    };
+    let temporal_block_count = temporal_span_months
+        .checked_div(policy.temporal_block_length_months)
+        .unwrap_or(0);
 
     let mut reasons = Vec::new();
     if points.is_empty() {
@@ -527,7 +525,7 @@ mod tests {
         let mut points = Vec::new();
         for block in 0..6 {
             for month in 100..112 {
-                let outcome = (block + month as usize) % 3 == 0;
+                let outcome = (block + month as usize).is_multiple_of(3);
                 let probability = if outcome { 0.65 } else { 0.25 };
                 points.push(BootstrapPoint {
                     spatial_block_id: format!("block-{block}"),
