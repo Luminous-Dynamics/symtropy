@@ -64,7 +64,7 @@ impl SpectralBand {
             || !self.bandwidth_fwhm_nm.is_finite()
             || self.center_wavelength_nm <= 0.0
             || self.bandwidth_fwhm_nm <= 0.0
-            || self.bandwidth_fwhm_nm > self.center_wavelength_nm * 2.0
+            || self.bandwidth_fwhm_nm >= self.center_wavelength_nm * 2.0
         {
             return Err(FieldValidationError::InvalidSpectralBand);
         }
@@ -802,6 +802,18 @@ mod tests {
             bandwidth_fwhm_nm: 1_000.0,
         });
         assert!(frame.validate().is_ok());
+    }
+
+    #[test]
+    fn spectral_band_rejects_nonpositive_lower_wavelength_edge() {
+        assert_eq!(
+            SpectralBand {
+                center_wavelength_nm: 500.0,
+                bandwidth_fwhm_nm: 1000.0,
+            }
+            .validate(),
+            Err(FieldValidationError::InvalidSpectralBand)
+        );
     }
 
     #[test]
