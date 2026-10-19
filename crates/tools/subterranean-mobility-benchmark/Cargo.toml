@@ -1,0 +1,16 @@
+[package]
+name = "subterranean-mobility-benchmark"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Dependency-free fail-closed passage admissibility and route-evidence benchmark"
+
+[workspace]
+resolver = "2"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "subterranean-mobility-benchmark"
+path = "src/main.rs"
