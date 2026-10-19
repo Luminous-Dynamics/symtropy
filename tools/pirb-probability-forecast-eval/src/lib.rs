@@ -252,10 +252,8 @@ pub fn evaluate(
         calibration: compute_metrics(&dataset, SplitName::Calibration),
         test: compute_metrics(&dataset, SplitName::Test),
     };
-    let (test_unit_metrics, test_suppressed_unit_count) = unit_metrics(
-        &dataset,
-        dataset.temporal_split.minimum_subgroup_outcomes,
-    );
+    let (test_unit_metrics, test_suppressed_unit_count) =
+        unit_metrics(&dataset, dataset.temporal_split.minimum_subgroup_outcomes);
 
     Ok(ForecastEvaluationReceipt {
         receipt_version: "0.1".to_owned(),
@@ -359,9 +357,18 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
     if dataset.evidence_class == EvidenceClass::AuthorizedHistorical {
         for (name, reference) in [
             ("provider", dataset.source.provider.as_str()),
-            ("forecast_source_reference", dataset.source.forecast_source_reference.as_str()),
-            ("outcome_source_reference", dataset.source.outcome_source_reference.as_str()),
-            ("license_reference", dataset.source.license_reference.as_str()),
+            (
+                "forecast_source_reference",
+                dataset.source.forecast_source_reference.as_str(),
+            ),
+            (
+                "outcome_source_reference",
+                dataset.source.outcome_source_reference.as_str(),
+            ),
+            (
+                "license_reference",
+                dataset.source.license_reference.as_str(),
+            ),
         ] {
             if reference.trim().is_empty() || reference.starts_with("synthetic:") {
                 findings.push(format!(
@@ -567,11 +574,15 @@ fn compute_metrics(dataset: &ForecastDataset, split: SplitName) -> ForecastMetri
     let baseline_points: Vec<(f64, f64, bool)> = known
         .iter()
         .filter_map(|record| {
-            baseline_history.probability(
-                record.input_cutoff_month,
-                t.minimum_climatology_history,
-            )
-            .map(|baseline| (baseline, record.probability, record.outcome == ForecastOutcome::Event))
+            baseline_history
+                .probability(record.input_cutoff_month, t.minimum_climatology_history)
+                .map(|baseline| {
+                    (
+                        baseline,
+                        record.probability,
+                        record.outcome == ForecastOutcome::Event,
+                    )
+                })
         })
         .collect();
     let climatology_covered_count = baseline_points.len();
@@ -595,7 +606,11 @@ fn compute_metrics(dataset: &ForecastDataset, split: SplitName) -> ForecastMetri
         unknown_outcome_count: records.len() - points.len(),
         event_count,
         no_event_count,
-        event_rate: if points.is_empty() { None } else { Some(event_count as f64 / points.len() as f64) },
+        event_rate: if points.is_empty() {
+            None
+        } else {
+            Some(event_count as f64 / points.len() as f64)
+        },
         brier_score,
         log_loss,
         roc_auc,
@@ -629,10 +644,9 @@ impl BaselineHistory {
                 continue;
             }
             let key = (record.unit_id.clone(), record.target_month);
-            unique.entry(key).or_insert((
-                record.outcome == ForecastOutcome::Event,
-                available_month,
-            ));
+            unique
+                .entry(key)
+                .or_insert((record.outcome == ForecastOutcome::Event, available_month));
         }
 
         let mut observations: Vec<(i64, bool)> = unique
@@ -641,14 +655,20 @@ impl BaselineHistory {
             .collect();
         observations.sort_unstable_by_key(|(available, _)| *available);
 
-        let available_months: Vec<i64> =
-            observations.iter().map(|(available, _)| *available).collect();
+        let available_months: Vec<i64> = observations
+            .iter()
+            .map(|(available, _)| *available)
+            .collect();
         let mut event_prefix = Vec::with_capacity(observations.len() + 1);
         event_prefix.push(0);
         for (_, event) in &observations {
-            event_prefix.push(event_prefix.last().copied().unwrap_or(0) + if *event { 1 } else { 0 });
+            event_prefix
+                .push(event_prefix.last().copied().unwrap_or(0) + if *event { 1 } else { 0 });
         }
-        Self { available_months, event_prefix }
+        Self {
+            available_months,
+            event_prefix,
+        }
     }
 
     fn probability(&self, input_cutoff_month: i64, minimum_history: usize) -> Option<f64> {
@@ -754,10 +774,7 @@ fn average_precision(points: &[ScoredPoint]) -> Option<f64> {
     Some(score)
 }
 
-fn unit_metrics(
-    dataset: &ForecastDataset,
-    minimum_outcomes: usize,
-) -> (Vec<UnitMetrics>, usize) {
+fn unit_metrics(dataset: &ForecastDataset, minimum_outcomes: usize) -> (Vec<UnitMetrics>, usize) {
     let test_records: Vec<&ForecastRecord> = dataset
         .records
         .iter()
@@ -766,7 +783,10 @@ fn unit_metrics(
         .collect();
     let mut groups: BTreeMap<String, Vec<&ForecastRecord>> = BTreeMap::new();
     for record in test_records {
-        groups.entry(record.unit_id.clone()).or_default().push(record);
+        groups
+            .entry(record.unit_id.clone())
+            .or_default()
+            .push(record);
     }
 
     let mut visible = Vec::new();
@@ -778,11 +798,18 @@ fn unit_metrics(
             suppressed += 1;
             continue;
         }
-        let positives = records.iter().filter(|r| r.outcome == ForecastOutcome::Event).count();
+        let positives = records
+            .iter()
+            .filter(|r| r.outcome == ForecastOutcome::Event)
+            .count();
         let brier = records
             .iter()
             .map(|r| {
-                let y = if r.outcome == ForecastOutcome::Event { 1.0 } else { 0.0 };
+                let y = if r.outcome == ForecastOutcome::Event {
+                    1.0
+                } else {
+                    0.0
+                };
                 (r.probability - y).powi(2)
             })
             .sum::<f64>()
@@ -794,7 +821,8 @@ fn unit_metrics(
             event_count: positives,
             no_event_count: records.len() - positives,
             brier_score: brier,
-            mean_probability: records.iter().map(|r| r.probability).sum::<f64>() / records.len() as f64,
+            mean_probability: records.iter().map(|r| r.probability).sum::<f64>()
+                / records.len() as f64,
             observed_event_rate: positives as f64 / records.len() as f64,
         });
     }
@@ -808,7 +836,11 @@ fn mean(values: impl Iterator<Item = f64>) -> Option<f64> {
         count += 1;
         total += value;
     }
-    if count == 0 { None } else { Some(total / count as f64) }
+    if count == 0 {
+        None
+    } else {
+        Some(total / count as f64)
+    }
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -891,7 +923,11 @@ mod tests {
         let r = receipt();
         assert_eq!(r.test_unit_metrics.len(), 2);
         assert_eq!(r.test_suppressed_unit_count, 1);
-        assert!(r.test_unit_metrics.iter().all(|group| group.distinct_target_months >= 2));
+        assert!(
+            r.test_unit_metrics
+                .iter()
+                .all(|group| group.distinct_target_months >= 2)
+        );
     }
 
     #[test]
@@ -914,7 +950,9 @@ mod tests {
         revised_before_release.records[0].outcome = ForecastOutcome::Event;
         let after = BaselineHistory::from_dataset(&revised_before_release).probability(
             test_record.input_cutoff_month,
-            revised_before_release.temporal_split.minimum_climatology_history,
+            revised_before_release
+                .temporal_split
+                .minimum_climatology_history,
         );
         assert_eq!(before, after);
     }
@@ -932,39 +970,69 @@ mod tests {
         };
         repeated.outcome_available_month = Some(repeated.target_month + 1);
         d.records.push(repeated);
-        assert!(semantic_errors(&d).iter().any(|e| e.contains("conflicts with the frozen outcome vintage")));
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("conflicts with the frozen outcome vintage"))
+        );
     }
 
     #[test]
     fn forecast_target_and_lead_must_be_future_consistent() {
         let mut d = dataset();
         d.records[0].lead_months = 2;
-        assert!(semantic_errors(&d).iter().any(|e| e.contains("lead_months does not match")));
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("lead_months does not match"))
+        );
     }
 
     #[test]
     fn training_labels_must_mature_before_calibration() {
         let mut d = dataset();
-        d.records[0].outcome_available_month = Some(d.temporal_split.training_end_exclusive_month + 1);
-        assert!(semantic_errors(&d).iter().any(|e| e.contains("not mature by the calibration boundary")));
+        d.records[0].outcome_available_month =
+            Some(d.temporal_split.training_end_exclusive_month + 1);
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("not mature by the calibration boundary"))
+        );
     }
 
     #[test]
     fn calibration_labels_must_mature_before_test() {
         let mut d = dataset();
-        let index = d.records.iter().position(|r| r.forecast_id == "forecast-c1").unwrap();
-        d.records[index].outcome_available_month = Some(d.temporal_split.calibration_end_exclusive_month + 1);
-        assert!(semantic_errors(&d).iter().any(|e| e.contains("not mature by the test boundary")));
+        let index = d
+            .records
+            .iter()
+            .position(|r| r.forecast_id == "forecast-c1")
+            .unwrap();
+        d.records[index].outcome_available_month =
+            Some(d.temporal_split.calibration_end_exclusive_month + 1);
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("not mature by the test boundary"))
+        );
     }
 
     #[test]
     fn forecast_targets_beyond_evaluation_as_of_are_rejected() {
         let mut d = dataset();
-        let index = d.records.iter().position(|r| r.forecast_id == "forecast-x6").unwrap();
+        let index = d
+            .records
+            .iter()
+            .position(|r| r.forecast_id == "forecast-x6")
+            .unwrap();
         d.records[index].target_month = d.temporal_split.evaluation_as_of_month + 1;
         d.records[index].lead_months =
             d.records[index].target_month - d.records[index].input_cutoff_month;
-        assert!(semantic_errors(&d).iter().any(|e| e.contains("target month lies beyond evaluation_as_of_month")));
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("target month lies beyond evaluation_as_of_month"))
+        );
     }
 
     #[test]
@@ -981,25 +1049,44 @@ mod tests {
         let mut repeated = d.records[0].clone();
         repeated.forecast_id = "forecast-new-id".to_owned();
         d.records.push(repeated);
-        assert!(semantic_errors(&d).iter().any(|e| e.contains("release/unit/target/horizon")));
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("release/unit/target/horizon"))
+        );
     }
 
     #[test]
     fn calibration_bins_include_probability_one_in_last_bin() {
         let points = [
-            ScoredPoint { probability: 1.0, outcome: true },
-            ScoredPoint { probability: 0.0, outcome: false },
+            ScoredPoint {
+                probability: 1.0,
+                outcome: true,
+            },
+            ScoredPoint {
+                probability: 0.0,
+                outcome: false,
+            },
         ];
         let bins = build_reliability_bins(&points, 5);
         assert_eq!(bins.iter().map(|b| b.count).sum::<usize>(), 2);
-        assert!(bins.iter().any(|b| b.bin_index == 4 && b.count == 1 && b.upper_inclusive));
+        assert!(
+            bins.iter()
+                .any(|b| b.bin_index == 4 && b.count == 1 && b.upper_inclusive)
+        );
     }
 
     #[test]
     fn auc_and_average_precision_are_null_when_one_class_is_missing() {
         let points = [
-            ScoredPoint { probability: 0.1, outcome: false },
-            ScoredPoint { probability: 0.3, outcome: false },
+            ScoredPoint {
+                probability: 0.1,
+                outcome: false,
+            },
+            ScoredPoint {
+                probability: 0.3,
+                outcome: false,
+            },
         ];
         assert!(rank_roc_auc(&points).is_none());
         assert!(average_precision(&points).is_none());
@@ -1026,6 +1113,10 @@ mod tests {
     fn authorized_historical_input_cannot_use_synthetic_references() {
         let mut d = dataset();
         d.evidence_class = EvidenceClass::AuthorizedHistorical;
-        assert!(semantic_errors(&d).iter().any(|e| e.contains("non-synthetic")));
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("non-synthetic"))
+        );
     }
 }
