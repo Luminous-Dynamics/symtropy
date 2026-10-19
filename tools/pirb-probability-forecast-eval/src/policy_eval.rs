@@ -662,6 +662,77 @@ mod tests {
     }
 
     #[test]
+    fn capacity_infeasibility_nulls_utility_instead_of_assuming_delivery() {
+        let mut dataset: Value = serde_json::from_slice(DATASET).unwrap();
+        let mut additional = dataset["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|record| record["forecast_id"] == "forecast-x1")
+            .unwrap()
+            .clone();
+        additional["forecast_id"] = Value::String("forecast-capacity".to_owned());
+        additional["forecast_release_id"] =
+            Value::String("synthetic-capacity-run".to_owned());
+        additional["unit_id"] = Value::String("unit-epsilon".to_owned());
+        additional["spatial_block_id"] = Value::String("block-north".to_owned());
+        additional["probability"] = Value::from(0.5);
+        additional["outcome"] = Value::String("no_event".to_owned());
+        additional["outcome_available_month"] = Value::from(122);
+        dataset["records"].as_array_mut().unwrap().push(additional);
+        let dataset_bytes = serde_json::to_vec(&dataset).unwrap();
+        let receipt = evaluate_predeclared_policy(
+            &dataset_bytes,
+            POLICY,
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        )
+        .expect("valid added test row should evaluate");
+
+        let low = receipt
+            .policy_results
+            .iter()
+            .find(|row| (row.threshold - 0.2).abs() < f64::EPSILON)
+            .unwrap();
+        assert_eq!(low.status, "review_required");
+        assert!(!low.capacity_feasible);
+        assert_eq!(low.maximum_alerts_in_one_target_month, 2);
+        assert!(low.utility_units.is_none());
+        assert!(low.reason.as_deref().unwrap().contains("capacity is exceeded"));
+
+        let high = receipt
+            .policy_results
+            .iter()
+            .find(|row| (row.threshold - 0.6).abs() < f64::EPSILON)
+            .unwrap();
+        assert!(high.capacity_feasible);
+        assert!(high.utility_units.is_some());
+    }
+
+    #[test]
+    fn exploratory_after_test_policy_is_labeled_not_confirmatory() {
+        let mut value: Value = serde_json::from_slice(POLICY).unwrap();
+        value["policy_kind"] = Value::String("exploratory".to_owned());
+        value["registration"]["registered_at_month"] = Value::from(121);
+        value["registration"]["threshold_grid_registered_at_month"] = Value::from(121);
+        let policy = serde_json::to_vec(&value).unwrap();
+        let receipt = evaluate_predeclared_policy(
+            DATASET,
+            &policy,
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        )
+        .expect("after-test exploratory analysis should remain explicitly exploratory");
+        assert_eq!(receipt.result, "exploratory");
+        assert!(!receipt.predeclaration_timing_conforms_to_manifest);
+        assert!(!receipt.thresholds_selected_by_evaluator);
+    }
+
+    #[test]
     fn malformed_cost_schedule_is_rejected_by_policy_schema() {
         let mut value: Value = serde_json::from_slice(POLICY).unwrap();
         value["cost_schedule"].as_object_mut().unwrap().remove("cost_false_alert_units");
