@@ -260,6 +260,8 @@ pub enum ManifestReason {
     EmptyTrackId,
     EmptyRecordTaxon,
     RecordTaxonMismatch,
+    InvalidSamplingInterval,
+    MissingRequiredSplitRole,
     InvalidTimeRange,
     ProvenancePromotion,
     SplitIdentityLeakage,
@@ -373,7 +375,7 @@ pub fn validate_split(
             .filter(|group| !group.trim().is_empty())
         {
             add_cross_split(
-                format!("duplicate:{}:{duplicate_group}", record.study_id),
+                format!("duplicate:{duplicate_group}"),
                 record.role,
                 ManifestReason::DuplicateObservationLeakage,
                 &mut duplicate_groups,
@@ -514,7 +516,7 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
     }
     let mut declared_taxa = BTreeSet::new();
     for taxon_id in &manifest.taxonomy.taxon_ids {
-        if !declared_taxa.insert(taxon_id) {
+        if !declared_taxa.insert(taxon_id.clone()) {
             rejected.insert(ManifestReason::DuplicateTaxonBinding);
         }
     }
@@ -524,6 +526,9 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
 
     if manifest.fields.is_empty() {
         indeterminate.insert(ManifestReason::NoMeasurementFields);
+    }
+    if manifest.sample_interval_ms == Some(0) {
+        rejected.insert(ManifestReason::InvalidSamplingInterval);
     }
     let mut field_ids = BTreeSet::new();
     for field in &manifest.fields {
@@ -568,34 +573,38 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
             indeterminate.insert(ManifestReason::MissingPermissionReceipt);
             continue;
         };
-        let Some(permission) = receipts.first() else {
+        if receipts.is_empty() {
             indeterminate.insert(ManifestReason::MissingPermissionReceipt);
             continue;
-        };
-        match permission.decision {
-            PermissionDecision::Restricted => {
-                rejected.insert(ManifestReason::PermissionRestricted);
-            }
-            PermissionDecision::Revoked => {
-                rejected.insert(ManifestReason::PermissionRevoked);
-            }
-            PermissionDecision::Unknown => {
-                indeterminate.insert(ManifestReason::PermissionUnknown);
-            }
-            PermissionDecision::Granted | PermissionDecision::AttributionRequired => {
-                if permission.authority_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
-                    indeterminate.insert(ManifestReason::MissingPermissionAuthority);
+        }
+        // Inspect every duplicate receipt: never make the outcome depend on
+        // whichever conflicting permission happened to appear first.
+        for permission in receipts {
+            match permission.decision {
+                PermissionDecision::Restricted => {
+                    rejected.insert(ManifestReason::PermissionRestricted);
                 }
-                if permission.scope_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
-                    indeterminate.insert(ManifestReason::MissingPermissionScope);
+                PermissionDecision::Revoked => {
+                    rejected.insert(ManifestReason::PermissionRevoked);
                 }
-                if permission.reviewed_at.as_deref().is_none_or(|value| value.trim().is_empty()) {
-                    indeterminate.insert(ManifestReason::MissingPermissionReviewDate);
+                PermissionDecision::Unknown => {
+                    indeterminate.insert(ManifestReason::PermissionUnknown);
                 }
-                if permission.decision == PermissionDecision::AttributionRequired
-                    && permission.attribution.as_deref().is_none_or(|value| value.trim().is_empty())
-                {
-                    rejected.insert(ManifestReason::MissingRequiredAttribution);
+                PermissionDecision::Granted | PermissionDecision::AttributionRequired => {
+                    if permission.authority_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
+                        indeterminate.insert(ManifestReason::MissingPermissionAuthority);
+                    }
+                    if permission.scope_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
+                        indeterminate.insert(ManifestReason::MissingPermissionScope);
+                    }
+                    if permission.reviewed_at.as_deref().is_none_or(|value| value.trim().is_empty()) {
+                        indeterminate.insert(ManifestReason::MissingPermissionReviewDate);
+                    }
+                    if permission.decision == PermissionDecision::AttributionRequired
+                        && permission.attribution.as_deref().is_none_or(|value| value.trim().is_empty())
+                    {
+                        rejected.insert(ManifestReason::MissingRequiredAttribution);
+                    }
                 }
             }
         }
@@ -629,6 +638,11 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
 
     if manifest.records.is_empty() {
         indeterminate.insert(ManifestReason::NoSplitRecords);
+    }
+    if !manifest.records.iter().any(|record| record.role == SplitRole::Training)
+        || !manifest.records.iter().any(|record| record.role == SplitRole::Test)
+    {
+        indeterminate.insert(ManifestReason::MissingRequiredSplitRole);
     }
     if manifest.minimum_temporal_gap < 0 {
         rejected.insert(ManifestReason::InvalidTemporalGap);
