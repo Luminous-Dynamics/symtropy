@@ -302,13 +302,19 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             || scenario.ports.is_empty()
             || scenario.candidate_links.is_empty()
         {
-            return Err(format!("scenario {} missing description/ports/links", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} missing description/ports/links",
+                scenario.scenario_id
+            ));
         }
         if scenario.min_monitoring_coverage_ppm > SCALE_PPM {
             return Err("minimum monitoring coverage exceeds 1,000,000 ppm".into());
         }
         if scenario.candidate_links.len() > MAX_LINKS_PER_SCENARIO {
-            return Err(format!("scenario {} exceeds exact portfolio size limit", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} exceeds exact portfolio size limit",
+                scenario.scenario_id
+            ));
         }
         let mut port_ids = HashSet::new();
         for port in &scenario.ports {
@@ -317,37 +323,61 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
                 || port.time_window_id.trim().is_empty()
                 || !port_ids.insert(port.port_id.as_str())
             {
-                return Err(format!("scenario {} has blank/duplicate port identity", scenario.scenario_id));
+                return Err(format!(
+                    "scenario {} has blank/duplicate port identity",
+                    scenario.scenario_id
+                ));
             }
             if port.capacity_units == 0 {
                 return Err(format!("port {} capacity must be positive", port.port_id));
             }
             if port.role == PortRole::Producer {
                 if port.quality_metric != QualityMetric::None && port.quality_value.is_none() {
-                    return Err(format!("source port {} lacks declared quality", port.port_id));
+                    return Err(format!(
+                        "source port {} lacks declared quality",
+                        port.port_id
+                    ));
                 }
                 if port.min_quality.is_some() || port.max_quality.is_some() {
-                    return Err(format!("source port {} cannot carry consumer quality bounds", port.port_id));
+                    return Err(format!(
+                        "source port {} cannot carry consumer quality bounds",
+                        port.port_id
+                    ));
                 }
             } else if port.quality_metric != QualityMetric::None {
                 if port.min_quality.is_none() || port.max_quality.is_none() {
-                    return Err(format!("consumer port {} needs both quality bounds", port.port_id));
+                    return Err(format!(
+                        "consumer port {} needs both quality bounds",
+                        port.port_id
+                    ));
                 }
                 if port.min_quality > port.max_quality {
-                    return Err(format!("consumer port {} has inverted quality range", port.port_id));
+                    return Err(format!(
+                        "consumer port {} has inverted quality range",
+                        port.port_id
+                    ));
                 }
                 if port.quality_value.is_some() {
-                    return Err(format!("consumer port {} cannot claim source quality value", port.port_id));
+                    return Err(format!(
+                        "consumer port {} cannot claim source quality value",
+                        port.port_id
+                    ));
                 }
             }
         }
         let mut link_ids = HashSet::new();
         for link in &scenario.candidate_links {
             if link.link_id.trim().is_empty() || !link_ids.insert(link.link_id.as_str()) {
-                return Err(format!("scenario {} has blank/duplicate link IDs", scenario.scenario_id));
+                return Err(format!(
+                    "scenario {} has blank/duplicate link IDs",
+                    scenario.scenario_id
+                ));
             }
             if link.monitoring_coverage_ppm > SCALE_PPM {
-                return Err(format!("link {} monitoring coverage out of range", link.link_id));
+                return Err(format!(
+                    "link {} monitoring coverage out of range",
+                    link.link_id
+                ));
             }
             if link.quantity_units == 0 {
                 // Invalid links are useful as negative controls, so corpus validity keeps them representable.
@@ -393,7 +423,11 @@ fn link_issues(scenario: &Scenario, link: &CandidateLink) -> Vec<LinkIssueCode> 
         issues.push(LinkIssueCode::QualityMetricMismatch);
     }
     if source.quality_metric != QualityMetric::None {
-        match (source.quality_value, consumer.min_quality, consumer.max_quality) {
+        match (
+            source.quality_value,
+            consumer.min_quality,
+            consumer.max_quality,
+        ) {
             (Some(value), Some(min), Some(max)) if min <= max => {
                 if value < min || value > max {
                     issues.push(LinkIssueCode::QualityOutsideSinkRange);
@@ -402,7 +436,11 @@ fn link_issues(scenario: &Scenario, link: &CandidateLink) -> Vec<LinkIssueCode> 
             _ => issues.push(LinkIssueCode::MissingQualityEvidence),
         }
     }
-    if consumer.min_quality.zip(consumer.max_quality).is_some_and(|(min, max)| min > max) {
+    if consumer
+        .min_quality
+        .zip(consumer.max_quality)
+        .is_some_and(|(min, max)| min > max)
+    {
         issues.push(LinkIssueCode::InvalidSinkQualityRange);
     }
     if link.route_distance_km_milli > link.max_distance_km_milli {
@@ -434,25 +472,22 @@ fn link_issues(scenario: &Scenario, link: &CandidateLink) -> Vec<LinkIssueCode> 
     issues
 }
 
-fn add_port_quantity(
-    totals: &mut BTreeMap<String, u64>,
-    port_id: &str,
-    quantity: u64,
-) {
+fn add_port_quantity(totals: &mut BTreeMap<String, u64>, port_id: &str, quantity: u64) {
     let entry = totals.entry(port_id.to_owned()).or_default();
     *entry = entry.saturating_add(quantity);
 }
 
-fn portfolio_outcome(
-    scenario: &Scenario,
-    selected: &[usize],
-) -> Option<PortfolioOutcome> {
+fn portfolio_outcome(scenario: &Scenario, selected: &[usize]) -> Option<PortfolioOutcome> {
     let mut source_used: BTreeMap<String, u64> = BTreeMap::new();
     let mut sink_used: BTreeMap<String, u64> = BTreeMap::new();
     let mut claim_ids = HashSet::new();
     let mut impact_total = Impacts {
-        sound_units: 0, light_units: 0, sediment_units: 0,
-        thermal_units: 0, nutrient_units: 0, chemical_units: 0,
+        sound_units: 0,
+        light_units: 0,
+        sediment_units: 0,
+        thermal_units: 0,
+        nutrient_units: 0,
+        chemical_units: 0,
     };
     let mut net_value = 0_i64;
     let mut ghg_change = 0_i64;
@@ -484,12 +519,16 @@ fn portfolio_outcome(
         return None;
     }
     for (port_id, amount) in source_used {
-        if port(scenario, &port_id).is_none_or(|p| p.role != PortRole::Producer || amount > p.capacity_units) {
+        if port(scenario, &port_id)
+            .is_none_or(|p| p.role != PortRole::Producer || amount > p.capacity_units)
+        {
             return None;
         }
     }
     for (port_id, amount) in sink_used {
-        if port(scenario, &port_id).is_none_or(|p| p.role != PortRole::Consumer || amount > p.capacity_units) {
+        if port(scenario, &port_id)
+            .is_none_or(|p| p.role != PortRole::Consumer || amount > p.capacity_units)
+        {
             return None;
         }
     }
@@ -559,9 +598,10 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioReport {
     let feasible_portfolio_count = feasible.len();
     let mut pareto = Vec::new();
     for (index, outcome) in feasible.iter().enumerate() {
-        let dominated = feasible.iter().enumerate().any(|(other_index, other)| {
-            other_index != index && dominates(other, outcome)
-        });
+        let dominated = feasible
+            .iter()
+            .enumerate()
+            .any(|(other_index, other)| other_index != index && dominates(other, outcome));
         if !dominated {
             pareto.push(outcome.clone());
         }
@@ -601,14 +641,30 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
         {
             if portfolio_outcome(
                 scenario,
-                &outcome.candidate_link_ids.iter()
-                    .filter_map(|id| scenario.candidate_links.iter().position(|link| &link.link_id == id))
+                &outcome
+                    .candidate_link_ids
+                    .iter()
+                    .filter_map(|id| {
+                        scenario
+                            .candidate_links
+                            .iter()
+                            .position(|link| &link.link_id == id)
+                    })
                     .collect::<Vec<_>>(),
-            ).is_none() {
+            )
+            .is_none()
+            {
                 all_frontiers_respect_gates = false;
             }
-            let selected: Vec<&CandidateLink> = outcome.candidate_link_ids.iter()
-                .filter_map(|id| scenario.candidate_links.iter().find(|link| &link.link_id == id))
+            let selected: Vec<&CandidateLink> = outcome
+                .candidate_link_ids
+                .iter()
+                .filter_map(|id| {
+                    scenario
+                        .candidate_links
+                        .iter()
+                        .find(|link| &link.link_id == id)
+                })
                 .collect();
             let mut claims = HashSet::new();
             for link in &selected {
@@ -632,14 +688,22 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
     let mut invariants = Vec::new();
     add_invariant(&mut invariants, "portfolio_links_pass_evidence_and_physical_gates", all_frontiers_respect_gates,
         "Every Pareto portfolio consists only of links with compatible typed streams, timing/quality, rights, permissions, monitoring and environmental review.");
-    add_invariant(&mut invariants, "no_duplicate_benefit_claims", duplicate_benefit_never_reused,
-        "A benefit/counterfactual claim ID cannot be credited twice within one portfolio.");
+    add_invariant(
+        &mut invariants,
+        "no_duplicate_benefit_claims",
+        duplicate_benefit_never_reused,
+        "A benefit/counterfactual claim ID cannot be credited twice within one portfolio.",
+    );
     add_invariant(&mut invariants, "aggregate_impact_budgets_respected", all_frontiers_respect_impact_budget,
         "Every reported frontier portfolio respects independent sound, light, sediment, thermal, nutrient and chemical-pressure caps.");
     add_invariant(&mut invariants, "quality_and_timing_faults_are_enforced", quality_and_timing_are_enforced,
         "Quality and timing faults remain rejection reasons rather than being converted into viable synergies.");
-    add_invariant(&mut invariants, "exact_corpus_and_source_are_pinned", !sha256_hex(bytes).is_empty() && !source_commit.is_empty(),
-        "Receipt binds the exact synthetic corpus bytes and source commit.");
+    add_invariant(
+        &mut invariants,
+        "exact_corpus_and_source_are_pinned",
+        !sha256_hex(bytes).is_empty() && !source_commit.is_empty(),
+        "Receipt binds the exact synthetic corpus bytes and source commit.",
+    );
     add_invariant(&mut invariants, "empty_or_no_build_portfolio_remains_a_valid_baseline",
         reports.iter().all(|report| report.feasible_portfolio_count > 0),
         "The empty portfolio is always enumerated as a feasible no-build baseline, even when another portfolio dominates it on declared objectives.");
@@ -659,7 +723,12 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
         scenario_count: reports.len(),
         passed_invariant_count,
         failed_invariant_count,
-        result: if failed_invariant_count == 0 { "PASS" } else { "FAIL" }.into(),
+        result: if failed_invariant_count == 0 {
+            "PASS"
+        } else {
+            "FAIL"
+        }
+        .into(),
         invariants,
         scenarios: reports,
     }
@@ -690,44 +759,62 @@ fn run() -> Check<ExitCode> {
             }
             "--receipt" => {
                 index += 1;
-                receipt_path = Some(PathBuf::from(args.get(index).ok_or("--receipt requires a path")?));
+                receipt_path = Some(PathBuf::from(
+                    args.get(index).ok_or("--receipt requires a path")?,
+                ));
             }
             "--source-commit" => {
                 index += 1;
-                commit = Some(args.get(index).ok_or("--source-commit requires a Git ID")?.clone());
+                commit = Some(
+                    args.get(index)
+                        .ok_or("--source-commit requires a Git ID")?
+                        .clone(),
+                );
             }
             other => return Err(format!("unknown argument: {other}")),
         }
         index += 1;
     }
-    let bytes = fs::read(&corpus_path).map_err(|error| format!("cannot read corpus {}: {error}", corpus_path.display()))?;
-    let corpus: Corpus = serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
+    let bytes = fs::read(&corpus_path)
+        .map_err(|error| format!("cannot read corpus {}: {error}", corpus_path.display()))?;
+    let corpus: Corpus =
+        serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
     validate_corpus(&corpus)?;
     let source_commit = source_commit(commit)?;
     let receipt = build_receipt(&corpus, &bytes, source_commit);
-    let encoded = serde_json::to_vec_pretty(&receipt).map_err(|error| format!("cannot encode receipt: {error}"))?;
+    let encoded = serde_json::to_vec_pretty(&receipt)
+        .map_err(|error| format!("cannot encode receipt: {error}"))?;
     if let Some(path) = receipt_path {
         if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
-            fs::create_dir_all(parent).map_err(|error| format!("cannot create receipt directory: {error}"))?;
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("cannot create receipt directory: {error}"))?;
         }
         fs::write(path, encoded).map_err(|error| format!("cannot write receipt: {error}"))?;
     }
     println!(
         "suite={} corpus_sha256={} scenarios={} invariants={}/{} result={}",
-        receipt.suite_id, receipt.corpus_sha256, receipt.scenario_count,
-        receipt.passed_invariant_count, receipt.passed_invariant_count + receipt.failed_invariant_count, receipt.result
+        receipt.suite_id,
+        receipt.corpus_sha256,
+        receipt.scenario_count,
+        receipt.passed_invariant_count,
+        receipt.passed_invariant_count + receipt.failed_invariant_count,
+        receipt.result
     );
     for item in &receipt.invariants {
         println!(
             "invariant={} result={} detail={}",
-            item.invariant_id, if item.passed { "PASS" } else { "FAIL" }, item.detail
+            item.invariant_id,
+            if item.passed { "PASS" } else { "FAIL" },
+            item.detail
         );
     }
     for scenario in &receipt.scenarios {
         println!(
             "scenario={} eligible_links={} feasible_portfolios={} pareto_count={}",
-            scenario.scenario_id, scenario.individually_eligible_link_count,
-            scenario.feasible_portfolio_count, scenario.pareto_frontier.len()
+            scenario.scenario_id,
+            scenario.individually_eligible_link_count,
+            scenario.feasible_portfolio_count,
+            scenario.pareto_frontier.len()
         );
         for outcome in &scenario.pareto_frontier {
             println!(
@@ -740,7 +827,11 @@ fn run() -> Check<ExitCode> {
             println!("rejected_link={} issues={:?}", link.link_id, link.issues);
         }
     }
-    Ok(if receipt.result == "PASS" { ExitCode::SUCCESS } else { ExitCode::FAILURE })
+    Ok(if receipt.result == "PASS" {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    })
 }
 
 fn main() -> ExitCode {
@@ -758,7 +849,9 @@ mod tests {
     use super::*;
 
     fn fixture() -> (Corpus, Vec<u8>) {
-        let bytes = include_bytes!("../../../docs/tech/OCEAN_INDUSTRIAL_SYMBIOSIS_CORPUS_V0_1.json").to_vec();
+        let bytes =
+            include_bytes!("../../../docs/tech/OCEAN_INDUSTRIAL_SYMBIOSIS_CORPUS_V0_1.json")
+                .to_vec();
         let corpus: Corpus = serde_json::from_slice(&bytes).expect("synthetic corpus parses");
         validate_corpus(&corpus).expect("synthetic corpus passes schema gate");
         (corpus, bytes)
@@ -783,8 +876,14 @@ mod tests {
     fn temperature_grade_and_time_window_faults_are_rejected() {
         let (corpus, _) = fixture();
         let report = evaluate_scenario(&corpus.scenarios[1]);
-        let heat = report.rejected_links.iter().find(|item| item.link_id == "heat-too-cool").unwrap();
-        assert!(heat.issues.contains(&LinkIssueCode::QualityOutsideSinkRange));
+        let heat = report
+            .rejected_links
+            .iter()
+            .find(|item| item.link_id == "heat-too-cool")
+            .unwrap();
+        assert!(heat
+            .issues
+            .contains(&LinkIssueCode::QualityOutsideSinkRange));
         assert!(heat.issues.contains(&LinkIssueCode::TimeWindowMismatch));
     }
 
@@ -792,28 +891,52 @@ mod tests {
     fn toxic_or_unknown_brine_fate_is_not_a_viable_coproduct() {
         let (corpus, _) = fixture();
         let report = evaluate_scenario(&corpus.scenarios[2]);
-        let rejected = report.rejected_links.iter().find(|item| item.link_id == "brine-recovery-unreviewed-fate").unwrap();
-        assert!(rejected.issues.contains(&LinkIssueCode::ChemicalFateUnknown));
-        assert!(rejected.issues.contains(&LinkIssueCode::EnvironmentalReviewIncomplete));
+        let rejected = report
+            .rejected_links
+            .iter()
+            .find(|item| item.link_id == "brine-recovery-unreviewed-fate")
+            .unwrap();
+        assert!(rejected
+            .issues
+            .contains(&LinkIssueCode::ChemicalFateUnknown));
+        assert!(rejected
+            .issues
+            .contains(&LinkIssueCode::EnvironmentalReviewIncomplete));
     }
 
     #[test]
     fn duplicate_counterfactual_claims_cannot_share_a_portfolio() {
         let (corpus, _) = fixture();
         let scenario = &corpus.scenarios[3];
-        let a = scenario.candidate_links.iter().position(|link| link.link_id == "power-to-electrolyser").unwrap();
-        let b = scenario.candidate_links.iter().position(|link| link.link_id == "power-to-cold-store").unwrap();
+        let a = scenario
+            .candidate_links
+            .iter()
+            .position(|link| link.link_id == "power-to-electrolyser")
+            .unwrap();
+        let b = scenario
+            .candidate_links
+            .iter()
+            .position(|link| link.link_id == "power-to-cold-store")
+            .unwrap();
         assert!(portfolio_outcome(scenario, &[a]).is_some());
         assert!(portfolio_outcome(scenario, &[b]).is_some());
-        assert!(portfolio_outcome(scenario, &[a,b]).is_none());
+        assert!(portfolio_outcome(scenario, &[a, b]).is_none());
     }
 
     #[test]
     fn cumulative_impact_caps_are_separate_not_scalarized() {
         let (corpus, _) = fixture();
         let scenario = &corpus.scenarios[4];
-        let valid = scenario.candidate_links.iter().position(|link| link.link_id == "storm-resilient-sensor").unwrap();
-        let thermal = scenario.candidate_links.iter().position(|link| link.link_id == "thermal-impact-over-cap").unwrap();
+        let valid = scenario
+            .candidate_links
+            .iter()
+            .position(|link| link.link_id == "storm-resilient-sensor")
+            .unwrap();
+        let thermal = scenario
+            .candidate_links
+            .iter()
+            .position(|link| link.link_id == "thermal-impact-over-cap")
+            .unwrap();
         assert!(portfolio_outcome(scenario, &[valid]).is_some());
         assert!(portfolio_outcome(scenario, &[thermal]).is_none());
     }
@@ -822,16 +945,44 @@ mod tests {
     fn monitoring_rights_and_permission_are_independent_hard_gates() {
         let (corpus, _) = fixture();
         let scenario = &corpus.scenarios[4];
-        assert!(link_issues(scenario, scenario.candidate_links.iter().find(|link| link.link_id == "monitoring-under-covered").unwrap()).contains(&LinkIssueCode::MonitoringCoverageInsufficient));
-        assert!(link_issues(scenario, scenario.candidate_links.iter().find(|link| link.link_id == "rights-review-required").unwrap()).contains(&LinkIssueCode::RightsReviewIncomplete));
-        assert!(link_issues(scenario, scenario.candidate_links.iter().find(|link| link.link_id == "restricted-data-service").unwrap()).contains(&LinkIssueCode::UseNotPermitted));
+        assert!(link_issues(
+            scenario,
+            scenario
+                .candidate_links
+                .iter()
+                .find(|link| link.link_id == "monitoring-under-covered")
+                .unwrap()
+        )
+        .contains(&LinkIssueCode::MonitoringCoverageInsufficient));
+        assert!(link_issues(
+            scenario,
+            scenario
+                .candidate_links
+                .iter()
+                .find(|link| link.link_id == "rights-review-required")
+                .unwrap()
+        )
+        .contains(&LinkIssueCode::RightsReviewIncomplete));
+        assert!(link_issues(
+            scenario,
+            scenario
+                .candidate_links
+                .iter()
+                .find(|link| link.link_id == "restricted-data-service")
+                .unwrap()
+        )
+        .contains(&LinkIssueCode::UseNotPermitted));
     }
 
     #[test]
     fn incompatible_stream_units_never_pass_matching() {
         let (corpus, _) = fixture();
         let scenario = &corpus.scenarios[1];
-        let wrong = scenario.candidate_links.iter().find(|link| link.link_id == "heat-treated-as-electricity").unwrap();
+        let wrong = scenario
+            .candidate_links
+            .iter()
+            .find(|link| link.link_id == "heat-treated-as-electricity")
+            .unwrap();
         assert!(link_issues(scenario, wrong).contains(&LinkIssueCode::StreamMismatch));
     }
 
@@ -844,8 +995,16 @@ mod tests {
             for outcome in &report.pareto_frontier {
                 assert!(portfolio_outcome(
                     scenario,
-                    &outcome.candidate_link_ids.iter().filter_map(|id| scenario.candidate_links.iter().position(|link| &link.link_id == id)).collect::<Vec<_>>()
-                ).is_some());
+                    &outcome
+                        .candidate_link_ids
+                        .iter()
+                        .filter_map(|id| scenario
+                            .candidate_links
+                            .iter()
+                            .position(|link| &link.link_id == id))
+                        .collect::<Vec<_>>()
+                )
+                .is_some());
             }
         }
     }
@@ -862,8 +1021,10 @@ mod tests {
     fn unsupported_schema_and_unknown_fields_fail_closed() {
         let (_, bytes) = fixture();
         let text = String::from_utf8(bytes).unwrap();
-        assert!(serde_json::from_str::<Corpus>(&text.replace(SCHEMA_VERSION, "99.0.0"))
-            .map_or(true, |corpus| validate_corpus(&corpus).is_err()));
+        assert!(
+            serde_json::from_str::<Corpus>(&text.replace(SCHEMA_VERSION, "99.0.0"))
+                .map_or(true, |corpus| validate_corpus(&corpus).is_err())
+        );
         let unknown = text.replacen("\"seed\":", "\"owner\":\"claimed\",\n  \"seed\":", 1);
         assert!(serde_json::from_str::<Corpus>(&unknown).is_err());
     }
