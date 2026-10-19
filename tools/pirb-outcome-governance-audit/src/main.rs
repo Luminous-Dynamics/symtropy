@@ -130,6 +130,6 @@ mod tests {
     fn source_commit_must_be_exact_lowercase_git_sha() {
         assert!(valid_commit_sha("a".repeat(40).as_str()));
         assert!(!valid_commit_sha("A".repeat(40).as_str()));
-        assert!(!valid_commit_sha("abcd").as_str().is_empty() && !valid_commit_sha("abcd"));
+        assert!(!valid_commit_sha("abcd"));
     }
 }
