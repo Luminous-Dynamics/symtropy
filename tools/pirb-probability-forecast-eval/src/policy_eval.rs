@@ -68,6 +68,17 @@ struct CostSchedule {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+struct SensitivityScenario {
+    scenario_id: String,
+    scenario_reference: String,
+    minimum_warning_window_hours: u64,
+    warning_window_source_reference: String,
+    capacity: Capacity,
+    cost_schedule: CostSchedule,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct PolicyPrivacy {
     aggregate_only: bool,
     minimum_subgroup_outcomes: usize,
@@ -93,6 +104,9 @@ struct PolicyManifest {
     thresholds: Vec<f64>,
     capacity: Capacity,
     cost_schedule: CostSchedule,
+    minimum_warning_window_hours: u64,
+    warning_window_source_reference: String,
+    sensitivity_scenarios: Vec<SensitivityScenario>,
     privacy: PolicyPrivacy,
     #[serde(default)]
     source_references: Vec<String>,
@@ -121,6 +135,10 @@ pub struct ThresholdPolicyResult {
     alert_rate_on_scored_records: Option<f64>,
     coverage_on_test_records: Option<f64>,
     confusion: ConfusionCounts,
+    action_latency_hours: u64,
+    minimum_warning_window_hours: u64,
+    warning_window_source_reference: String,
+    latency_feasible: bool,
     resource_units_required: u64,
     maximum_alerts_in_one_target_month: u64,
     maximum_resource_units_in_one_target_month: u64,
@@ -128,6 +146,18 @@ pub struct ThresholdPolicyResult {
     utility_units: Option<i64>,
     utility_delta_vs_act_on_none_units: Option<i64>,
     reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SensitivityScenarioResult {
+    scenario_id: String,
+    scenario_reference: String,
+    minimum_warning_window_hours: u64,
+    warning_window_source_reference: String,
+    capacity: Capacity,
+    cost_schedule: CostSchedule,
+    act_on_none_utility_units: Option<i64>,
+    policy_results: Vec<ThresholdPolicyResult>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -164,6 +194,9 @@ pub struct PolicyEvaluationReceipt {
     action_description: String,
     resource_unit: String,
     action_latency_hours: u64,
+    minimum_warning_window_hours: u64,
+    warning_window_source_reference: String,
+    latency_window_independently_authenticated: bool,
     thresholds_evaluated: Vec<f64>,
     thresholds_selected_by_evaluator: bool,
     cost_schedule: CostSchedule,
@@ -173,6 +206,7 @@ pub struct PolicyEvaluationReceipt {
     act_on_none_utility_units: Option<i64>,
     act_on_none_scored_count: usize,
     policy_results: Vec<ThresholdPolicyResult>,
+    sensitivity_scenarios: Vec<SensitivityScenarioResult>,
     live_decision_authority: bool,
     causal_effect_estimated: bool,
     execution_claim: String,
@@ -233,6 +267,10 @@ fn scores_for_threshold(
     records: &[&ForecastRecord],
     threshold: f64,
     policy: &PolicyManifest,
+    capacity: &Capacity,
+    cost_schedule: &CostSchedule,
+    minimum_warning_window_hours: u64,
+    warning_window_source_reference: &str,
     act_on_none_utility_units: Option<i64>,
 ) -> ThresholdPolicyResult {
     let scored: Vec<&ForecastRecord> = records
@@ -298,25 +336,28 @@ fn scores_for_threshold(
         .map(|(_, resources)| *resources)
         .max()
         .unwrap_or(0);
-    let capacity_feasible = maximum_alerts <= policy.capacity.max_alerts_per_target_month
-        && maximum_monthly_resources <= policy.capacity.max_resource_units_per_target_month;
+    let capacity_feasible = maximum_alerts <= capacity.max_alerts_per_target_month
+        && maximum_monthly_resources <= capacity.max_resource_units_per_target_month;
+    let latency_feasible = policy.action.latency_hours <= minimum_warning_window_hours;
 
     let reason = if scored.is_empty() {
         Some("no mature test outcomes are available for policy evaluation".to_owned())
     } else if !capacity_feasible {
         Some("declared response capacity is exceeded in at least one target month".to_owned())
+    } else if !latency_feasible {
+        Some("declared action latency exceeds the minimum warning window".to_owned())
     } else {
         None
     };
     let status = if scored.is_empty() {
         "not_estimable"
-    } else if !capacity_feasible {
+    } else if !capacity_feasible || !latency_feasible {
         "review_required"
     } else {
         "estimated"
     };
     let utility_units = if reason.is_none() {
-        checked_utility(&confusion, resource_units_required, &policy.cost_schedule)
+        checked_utility(&confusion, resource_units_required, cost_schedule)
     } else {
         None
     };
@@ -355,6 +396,10 @@ fn scores_for_threshold(
             Some(scored.len() as f64 / records.len() as f64)
         },
         confusion,
+        action_latency_hours: policy.action.latency_hours,
+        minimum_warning_window_hours,
+        warning_window_source_reference: warning_window_source_reference.to_owned(),
+        latency_feasible,
         resource_units_required,
         maximum_alerts_in_one_target_month: maximum_alerts,
         maximum_resource_units_in_one_target_month: maximum_monthly_resources,
