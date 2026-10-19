@@ -1,0 +1,124 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-cross-provider-views-acled-metadata-example",
+  "status": "draft",
+  "evidence_scope": "provider_metadata_only",
+  "shared_estimand": {
+    "estimand_id": "unresolved-no-common-estimand",
+    "event_definition": "No single shared event definition has been approved for this metadata-only example.",
+    "analysis_unit": "unresolved",
+    "temporal_aggregation": "mixed and not aligned",
+    "target_measure": "other",
+    "mapping_policy_reference": null,
+    "mapping_policy_sha256": null
+  },
+  "outcome": {
+    "source_id": "not-selected-metadata-only",
+    "release_id": "not-selected-metadata-only",
+    "target_definition": "No outcome target selected; this fixture demonstrates comparison rejection only.",
+    "maturity_rule": "Not applicable because there are no forecast rows or scores.",
+    "evaluation_as_of": "2026-10-19",
+    "source_reference": "https://viewsforecasting.org/faq/",
+    "license_reference": "No provider data is imported or authorized for use by this fixture.",
+    "release_sha256": null
+  },
+  "temporal_design": {
+    "forecast_origin_start": "2026-10-19",
+    "training_end_exclusive": "2026-10-19",
+    "calibration_end_exclusive": "2026-10-19",
+    "test_end_exclusive": "2026-10-19",
+    "allowed_horizons": [
+      "No common horizon has been selected."
+    ],
+    "maturity_embargo_rule": "Not applicable; before any scoring, define an outcome-maturity embargo and ensure all forecast outputs share the registered estimand.",
+    "blocked_uncertainty_plan": "Not applicable; no inference or score is computed."
+  },
+  "governance": {
+    "data_authority_status": "not_applicable_metadata_only",
+    "data_authority_reference": null,
+    "disclosure_review_status": "not_applicable_metadata_only",
+    "disclosure_review_reference": null,
+    "protected_data_public_ci": false,
+    "stakeholder_cost_policy": "No intervention or resource allocation policy has been approved; decision-value comparison is disabled."
+  },
+  "providers": [
+    {
+      "provider_id": "views",
+      "provider_name": "Violence and Impacts Early-Warning System (VIEWS)",
+      "forecast_release_id": "illustrative-release-not-pinned",
+      "model_version": "not-pinned",
+      "system_reference": "https://viewsforecasting.org/data/",
+      "source_code_or_method_reference": "https://github.com/prio-data/views_api",
+      "original_target": "Country-month dichotomous target: probability of at least 25 battle-related deaths, depending on the pinned variable and release.",
+      "event_ontology": "State-based armed conflict; exact release-specific codebook must be pinned before scoring.",
+      "analysis_unit": "country-month",
+      "temporal_aggregation": "calendar month",
+      "forecast_horizon": "VIEWS release family supports multiple leads; no common horizon selected here.",
+      "output_type": "binary_probability",
+      "license_reference": "Review the provider's current data-use and attribution terms before any use.",
+      "artifact_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+      "independent_source_capture_verified": false,
+      "canonical_estimand_id": "views-country-month-brd25-probability"
+    },
+    {
+      "provider_id": "acled-cast",
+      "provider_name": "ACLED Conflict Alert System (CAST)",
+      "forecast_release_id": "illustrative-release-not-pinned",
+      "model_version": "not-pinned",
+      "system_reference": "https://acleddata.com/platform/cast-conflict-alert-system",
+      "source_code_or_method_reference": "https://acleddata.com/methodology/cast-methodology",
+      "original_target": "Counts of selected political-violence events over rolling four-week forecast periods, with hierarchical geographic outputs and high/low scenarios.",
+      "event_ontology": "ACLED Battles, Explosions/remote violence, and Violence against civilians; exact release ontology must be pinned before scoring.",
+      "analysis_unit": "administrative area / country / global hierarchy; no common unit selected",
+      "temporal_aggregation": "rolling four-week period",
+      "forecast_horizon": "Six upcoming rolling four-week periods in the documented CAST methodology; no common horizon selected here.",
+      "output_type": "event_count",
+      "license_reference": "Review ACLED terms and conditions before any use.",
+      "artifact_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "independent_source_capture_verified": false,
+      "canonical_estimand_id": "acled-cast-admin1-four-week-event-count"
+    }
+  ],
+  "comparisons": [
+    {
+      "comparison_id": "views-vs-acled-cast",
+      "left_provider_id": "views",
+      "right_provider_id": "acled-cast",
+      "status": "not_comparable",
+      "reason": "The documented examples differ in event ontology, target measure (binary probability versus event count), spatial unit, and temporal aggregation. No common outcome mapping or common mature row inventory has been approved. The example contains public method metadata only, not forecast archives or outcome rows.",
+      "forecast_skill_comparison_permitted": false,
+      "decision_value_comparison_permitted": false,
+      "common_row_policy": null,
+      "mapping": null
+    }
+  ],
+  "preregistration": {
+    "registered_at": "2026-10-19T18:55:00Z",
+    "public_registration_reference": null,
+    "primary_metrics_by_output_type": {
+      "binary_probability": [
+        "Brier score",
+        "log loss",
+        "Brier skill versus rolling past-only climatology"
+      ],
+      "event_count": [
+        "Select a suitable count-forecast scoring rule only after the outcome measure, common rows, and uncertainty representation are reviewed."
+      ]
+    },
+    "baselines": [
+      "Rolling past-only baseline where the shared target permits it",
+      "Pinned provider-native baseline where justified"
+    ],
+    "selection_policy": "No metrics are calculated for this example. Do not claim a provider ranking until target, unit, period, horizon, data vintage, and mature outcome inventory are aligned in a pre-registered plan.",
+    "primary_horizons": [
+      "Not selected; horizons are incompatible in this metadata-only example."
+    ],
+    "uncertainty_reporting": "No estimate or interval is produced. Any later comparison must use a predeclared dependence-aware design and report eligible-row coverage.",
+    "analysis_commit": null
+  },
+  "claim_ceiling": {
+    "forecast_skill_only_until_validated": true,
+    "causal_impact_established": false,
+    "live_decision_authority": false
+  }
+}
