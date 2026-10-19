@@ -84,7 +84,7 @@ fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
     let initial_position = SVector::from([1.0, -2.0, 0.5]);
 
     let mut world = PhysicsWorld::<3>::new(SVector::zeros());
-    let handle = world.add_sphere(Point::new(initial_position.into()), 0.25, mass);
+    let handle = world.add_sphere(Point::new([1.0, -2.0, 0.5]), 0.25, mass);
     world
         .body_mut(handle)
         .expect("body was inserted immediately above")
