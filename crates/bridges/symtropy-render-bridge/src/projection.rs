@@ -13,7 +13,10 @@ pub trait Projector<const D: usize>: Send + Sync {
     /// Returns (x, y, z) — for 2D rendering, z is used for sprite ordering.
     fn project(&self, point: &Point<D>) -> [f32; 3];
 
-    /// Whether an ND point is visible (within the projection's view).
+    /// Whether the point passes this projector's slice/domain and numeric-validity checks.
+    ///
+    /// This is not viewport/frustum culling; the host camera still decides whether a
+    /// finite projected point lies inside the rendered viewport.
     fn is_visible(&self, point: &Point<D>) -> bool;
 
     /// Scale factor: how many render pixels per physics unit.
@@ -98,11 +101,13 @@ impl Projector<3> for Projector3D {
     }
 }
 
-/// 4D projector: cross-section slicing.
+/// Legacy W-axis projector for 4D points and body centers.
 ///
-/// Slices the 4D world with a 3D hyperplane perpendicular to the W axis.
-/// Objects that intersect the slice appear as their 3D cross-sections.
-/// Moving the slice position along W reveals hidden geometry.
+/// Filters points by distance from the hyperplane w = w_slice and projects their
+/// first three coordinates. It does not compute exact intersections of extended
+/// geometry with the hyperplane; use a dedicated mesh/collider slicing adapter for
+/// actual continuous cross-sections. Moving the slice position reveals different
+/// sets of point/body-center samples.
 #[derive(Resource, Reflect, Debug, Clone, Copy)]
 pub struct Projector4D {
     /// Position of the slicing hyperplane along the W axis.
