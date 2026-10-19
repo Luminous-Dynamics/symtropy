@@ -189,7 +189,10 @@ struct Receipt {
 
 fn finite_sample_absolute_error_limit(calibration: &[u32], alpha_percent: usize) -> Check<i64> {
     if calibration.is_empty() || alpha_percent == 0 || alpha_percent >= 100 {
-        return Err("calibration set and miscoverage alpha must be non-empty and in (0, 100)".to_owned());
+        return Err(
+            "calibration set and miscoverage alpha must be non-empty and in (0, 100)"
+                .to_owned(),
+        );
     }
     let mut sorted = calibration.to_vec();
     sorted.sort_unstable();
@@ -506,7 +509,12 @@ fn aggregate(
         }
         summary.scenario_count += 1;
         summary.independent_audit_mismatches += result.independent_audit_mismatches;
-        for (index, (input, output)) in scenario.observations.iter().zip(&result.steps).enumerate() {
+        for (index, (input, output)) in scenario
+            .observations
+            .iter()
+            .zip(&result.steps)
+            .enumerate()
+        {
             summary.step_count += 1;
             if output.disposition != output.known_answer_disposition {
                 summary.known_answer_mismatches += 1;
@@ -514,9 +522,13 @@ fn aggregate(
             match output.disposition {
                 Disposition::UseModel => summary.model_acceptances += 1,
                 Disposition::RejectUnsafeInterval => summary.unsafe_interval_rejections += 1,
-                Disposition::AbstainMissingObservation => summary.missing_observation_abstentions += 1,
+                Disposition::AbstainMissingObservation => {
+                    summary.missing_observation_abstentions += 1
+                }
                 Disposition::AbstainStaleTelemetry => summary.stale_telemetry_abstentions += 1,
-                Disposition::AbstainResidualOutOfEnvelope => summary.residual_shift_abstentions += 1,
+                Disposition::AbstainResidualOutOfEnvelope => {
+                    summary.residual_shift_abstentions += 1
+                }
                 Disposition::AbstainRecoveryHoldoff => summary.recovery_holdoff_abstentions += 1,
             }
 
@@ -539,7 +551,8 @@ fn aggregate(
                 summary.unsafe_interval_acceptances += 1;
             }
 
-            let previous_shift = index > 0 && scenario.observations[index - 1].injected_shift_active;
+            let previous_shift =
+                index > 0 && scenario.observations[index - 1].injected_shift_active;
             if input.injected_shift_active && !previous_shift {
                 summary.shift_onsets += 1;
                 if output.disposition == Disposition::AbstainResidualOutOfEnvelope {
@@ -570,7 +583,9 @@ fn aggregate(
             }
             summary.interval_width_sum_liters = summary
                 .interval_width_sum_liters
-                .saturating_add(u64::try_from(output.interval_width_liters.max(0)).unwrap_or(u64::MAX));
+                .saturating_add(
+                    u64::try_from(output.interval_width_liters.max(0)).unwrap_or(u64::MAX),
+                );
             summary.interval_width_count += 1;
         }
     }
@@ -634,7 +649,10 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         .map(|summary| summary.unguarded_baseline_acceptances_during_shift)
         .sum::<usize>();
     let observed_count = summaries.iter().map(|summary| summary.observed_count).sum::<usize>();
-    let covered_observations = summaries.iter().map(|summary| summary.covered_observations).sum::<usize>();
+    let covered_observations = summaries
+        .iter()
+        .map(|summary| summary.covered_observations)
+        .sum::<usize>();
     let unguarded_baseline_missing_or_stale_acceptances = summaries
         .iter()
         .map(|summary| summary.unguarded_baseline_acceptances_missing_or_stale)
