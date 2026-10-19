@@ -470,7 +470,7 @@ fn rank_candidate(scenario: &Scenario, state: &State, index: usize, policy: Poli
     match policy {
         Policy::RandomFixedSeed => (u128::from(u64::MAX - stable_hash(seed, &candidate.candidate_id)), 0, 0),
         Policy::LargestCoverageGap => (
-            u128::from(!seen_strata.contains(&candidate.stratum_id)),
+            if seen_strata.contains(&candidate.stratum_id) { 0 } else { 1 },
             u128::from(stratum.priority_ppm),
             u128::from(gain),
         ),
