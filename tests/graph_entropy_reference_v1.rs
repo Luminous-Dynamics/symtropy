@@ -65,10 +65,8 @@ fn evaluate_dissipation(case: &Value) -> Result<f64, String> {
             return Err(format!("edge[{index}] endpoint outside node range"));
         }
 
-        let conductance = parse_scalar(
-            &edge["conductance"],
-            &format!("edge[{index}].conductance"),
-        )?;
+        let conductance =
+            parse_scalar(&edge["conductance"], &format!("edge[{index}].conductance"))?;
         if conductance < 0.0 {
             return Err(format!("edge[{index}] conductance must be non-negative"));
         }
