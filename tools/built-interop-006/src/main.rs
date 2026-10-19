@@ -228,6 +228,18 @@ struct BuiltInterop002Report {
     semantic_result_sha256: String,
 }
 
+#[derive(Serialize)]
+struct AdapterSemanticDigest<'a> {
+    supported_profile: &'a str,
+    decision: AdapterDecision,
+    ifc_schema_token: &'a Option<String>,
+    ids_version_evidence: &'a str,
+    parsed_entity_count: usize,
+    applicable_wall_count: Option<usize>,
+    observations: &'a [AdapterObservation],
+    diagnostics: &'a [String],
+}
+
 #[derive(Debug)]
 struct CliArgs {
     source_ifc: PathBuf,
@@ -619,6 +631,21 @@ fn adapt_built_interop_002_report(
     }
     if !is_lower_hex_of_length(&report.semantic_result_sha256, 64) {
         return Err("BUILT_INTEROP_002_SEMANTIC_DIGEST_INVALID".into());
+    }
+    let semantic_digest = AdapterSemanticDigest {
+        supported_profile: &report.supported_profile,
+        decision: report.decision,
+        ifc_schema_token: &report.ifc_schema_token,
+        ids_version_evidence: &report.ids_version_evidence,
+        parsed_entity_count: report.parsed_entity_count,
+        applicable_wall_count: report.applicable_wall_count,
+        observations: &report.observations,
+        diagnostics: &report.diagnostics,
+    };
+    let semantic_bytes = serde_json::to_vec(&semantic_digest)
+        .map_err(|error| format!("BUILT_INTEROP_002_SEMANTIC_SERIALIZATION_FAILED:{error}"))?;
+    if sha256_hex(&semantic_bytes) != report.semantic_result_sha256 {
+        return Err("BUILT_INTEROP_002_SEMANTIC_DIGEST_MISMATCH".into());
     }
 
     let profile_confirmed = report.ifc_schema_token.as_deref() == Some("IFC4")
@@ -1043,7 +1070,7 @@ mod tests {
             AdapterPropertyOutcome::Missing => Some("MISSING_TARGET_PROPERTY"),
             AdapterPropertyOutcome::NotEvaluated => Some("GLOBAL_ID_INVALID"),
         };
-        BuiltInterop002Report {
+        let mut report = BuiltInterop002Report {
             schema_version: "0.1.0".into(),
             benchmark_id: BUILT_INTEROP_002_ID.into(),
             supported_profile: BUILT_INTEROP_002_PROFILE.into(),
@@ -1056,8 +1083,21 @@ mod tests {
             applicable_wall_count: Some(1),
             observations: vec![adapter_observation(outcome)],
             diagnostics: diagnostic_code.into_iter().map(str::to_string).collect(),
-            semantic_result_sha256: "d".repeat(64),
-        }
+            semantic_result_sha256: "0".repeat(64),
+        };
+        let semantic_digest = AdapterSemanticDigest {
+            supported_profile: &report.supported_profile,
+            decision: report.decision,
+            ifc_schema_token: &report.ifc_schema_token,
+            ids_version_evidence: &report.ids_version_evidence,
+            parsed_entity_count: report.parsed_entity_count,
+            applicable_wall_count: report.applicable_wall_count,
+            observations: &report.observations,
+            diagnostics: &report.diagnostics,
+        };
+        report.semantic_result_sha256 =
+            sha256_hex(&serde_json::to_vec(&semantic_digest).unwrap());
+        report
     }
 
     fn gate_from_adapter(
@@ -1473,6 +1513,31 @@ mod tests {
         );
         let gate = gate_from_adapter(&report, target, ids).unwrap();
         assert_eq!(gate.status, GateStatus::Unresolved);
+    }
+
+    #[test]
+    fn typed_ids_adapter_recomputes_and_verifies_semantic_result_digest() {
+        let target = b"target IFC";
+        let ids = b"IDS file";
+        let mut report = built_interop_002_report(
+            AdapterDecision::SubsetConformant,
+            AdapterPropertyOutcome::Preserved,
+            target,
+            ids,
+        );
+        report.observations[0].observed_value = Some("tampered".into());
+        let raw = serde_json::to_vec(&report).unwrap();
+        assert_eq!(
+            adapt_built_interop_002_report(
+                &report,
+                &raw,
+                Path::new("adapter-report.json"),
+                target,
+                ids,
+            )
+            .unwrap_err(),
+            "BUILT_INTEROP_002_SEMANTIC_DIGEST_MISMATCH"
+        );
     }
 
     #[test]
