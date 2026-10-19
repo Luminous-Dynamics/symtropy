@@ -1236,8 +1236,10 @@ mod tests {
         let original = import();
         let mut changed_outcomes: Value = serde_json::from_slice(OUTCOMES).unwrap();
         changed_outcomes["rows"][0]["outcome"] = Value::String("event".to_owned());
+        let revised_target_month =
+            changed_outcomes["rows"][0]["target_month"].as_i64().unwrap();
         changed_outcomes["rows"][0]["outcome_available_month"] =
-            Value::from(changed_outcomes["rows"][0]["target_month"].as_i64().unwrap() + 2);
+            Value::from(revised_target_month + 2);
         let changed_bytes = serde_json::to_vec(&changed_outcomes).unwrap();
         let changed = import_views_archive(
             MANIFEST,
