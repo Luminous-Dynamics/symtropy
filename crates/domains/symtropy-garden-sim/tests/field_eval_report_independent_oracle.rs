@@ -3,7 +3,7 @@
 
 use serde_json::from_str;
 use symtropy_garden_sim::field_eval_report::{
-    FieldEvalReportDispositionV1, FieldEvalReportInputV1, FieldEvalReportBlockerCodeV1,
+    FieldEvalReportBlockerCodeV1, FieldEvalReportDispositionV1, FieldEvalReportInputV1,
     assess_field_eval_report_v1, sha256_hex,
 };
 
@@ -97,7 +97,10 @@ fn no_eligible_requests_is_not_assessable_not_zero_percent_success() {
     input.nonacceptance_reasons = Default::default();
     input.completed_pending_decision_count = 0;
     let report = assess_field_eval_report_v1(&input);
-    assert_eq!(report.disposition, FieldEvalReportDispositionV1::NotAssessable);
+    assert_eq!(
+        report.disposition,
+        FieldEvalReportDispositionV1::NotAssessable
+    );
     assert!(report.evidence_confirmed_attainment.is_none());
     assert_eq!(report.classified_request_count, 0);
 }
@@ -130,7 +133,10 @@ fn overflowing_count_sums_fail_closed() {
     input.protocol_excluded_count = 1;
     input.outcomes.accepted_within_window_count = u64::MAX;
     input.outcomes.accepted_after_window_count = 1;
-    assert!(has_blocker(&input, FieldEvalReportBlockerCodeV1::CountOverflow));
+    assert!(has_blocker(
+        &input,
+        FieldEvalReportBlockerCodeV1::CountOverflow
+    ));
 }
 
 #[test]
