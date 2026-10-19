@@ -71,7 +71,7 @@ fn get<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |at, key| at.get(*key))
 }
 
-fn text(value: &Value, path: &[&str]) -> Option<&str> {
+fn text<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
     get(value, path)?.as_str()
 }
 
@@ -83,7 +83,7 @@ fn bool_value(value: &Value, path: &[&str]) -> Option<bool> {
     get(value, path)?.as_bool()
 }
 
-fn array(value: &Value, path: &[&str]) -> Option<&Vec<Value>> {
+fn array<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Vec<Value>> {
     get(value, path)?.as_array()
 }
 
