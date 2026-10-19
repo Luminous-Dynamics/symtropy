@@ -8,7 +8,7 @@ pub mod manipulator;
 use ::nalgebra::SVector;
 use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
-use symtropy_physics::world::{NoOpCallback, PhysicsCallback};
+use symtropy_physics::world::PhysicsCallback;
 
 use bevy::prelude::*;
 
@@ -246,10 +246,10 @@ pub fn add_sphere_to_rapier(
     handle
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use symtropy_physics::world::NoOpCallback;
 
     #[test]
     fn step_advances_rapier_and_captures_the_exact_post_step_state() {
