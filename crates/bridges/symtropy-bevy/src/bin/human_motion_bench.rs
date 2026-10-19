@@ -1476,7 +1476,7 @@ fn print_usage() {
     eprintln!(
         "Usage: human-motion-bench <reference.json> <prediction.json> [--step-sec SECONDS] [--output report.json]\n\
          \n\
-         Trace contract: docs/research/human-motion-trace-v0.1.schema.json\n\
+         Trace contracts: docs/research/human-motion-trace-v0.1.schema.json (legacy) and docs/research/human-motion-trace-v0.2.schema.json (orientation)\n\
          Metrics: root/joint error, foot drift/contact agreement, native-time touchdown/liftoff event timing, and root jerk.\n\
          Without --step-sec the coarser of the two median input sample intervals is used.\n\
          Synthetic traces are accepted for software tests, but reports are labelled synthetic_fixture_only."
@@ -1681,8 +1681,8 @@ mod tests {
             trace.root_world_m = times.iter().map(|time| [*time, 0.0, 0.0]).collect();
             trace.left_foot_world_m = vec![[0.0, 0.0, 0.0]; times.len()];
             trace.right_foot_world_m = vec![[0.0, 0.0, 0.0]; times.len()];
-            trace.left_foot_contact = vec![false; times.len()];
-            trace.right_foot_contact = vec![false; times.len()];
+            trace.left_foot_contact = vec![true; times.len()];
+            trace.right_foot_contact = vec![true; times.len()];
         }
         reference.root_rotation_world_xyzw = Some(vec![identity; times.len()]);
         prediction.root_rotation_world_xyzw =
