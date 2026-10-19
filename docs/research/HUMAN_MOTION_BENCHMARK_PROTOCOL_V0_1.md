@@ -101,6 +101,11 @@ cargo test -p symtropy-bevy --bin human-motion-bench
 cargo run -p symtropy-bevy --bin human-motion-bench -- \
   docs/research/fixtures/human-motion-trace-synthetic-v0.1.json \
   docs/research/fixtures/human-motion-trace-synthetic-v0.1.json
+
+# Version 0.2 additionally validates and scores root orientation.
+cargo run -p symtropy-bevy --bin human-motion-bench -- \
+  docs/research/fixtures/human-motion-trace-orientation-synthetic-v0.2.json \
+  docs/research/fixtures/human-motion-trace-orientation-synthetic-v0.2.json
 ```
 
 For actual traces, provide the reference and candidate JSON paths; use `--step-sec 0.033333` to explicitly set a common 30 Hz grid, and `--output report.json` to save the machine-readable report. The default common grid uses the coarser median sample interval, is bounded to one million samples, interpolates positions linearly and samples contact booleans by nearest neighbour. The JSON report includes per-foot reference/prediction contact confusion counts and precision/recall/F1, so mislabeled stance intervals cannot be hidden by a low predicted-foot-drift score. ADE and maximum error use grid samples; FDE is interpolated at the exact overlap endpoint. Both traces must overlap in time and share the same coordinate frame, canonical skeleton signature and retarget-map hash. Model/config/asset hashes are both recorded and may differ as part of the experiment.
