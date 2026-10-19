@@ -833,6 +833,12 @@ pub fn import_views_archive(
             "outcome snapshot contains rows not used by the declared forecast inventory; use a snapshot matching the selected units and target months".to_owned(),
         ]);
     }
+    let declared_source_paths: BTreeSet<String> = source_files.keys().cloned().collect();
+    if source_paths_used != declared_source_paths {
+        return Err(vec![
+            "provided source files do not exactly match the manifest's referenced source-path inventory".to_owned(),
+        ]);
+    }
     records.sort_by(|left, right| left.forecast_id.cmp(&right.forecast_id));
     let forecast_record_count = records.len();
     let unique_units: BTreeSet<String> =
