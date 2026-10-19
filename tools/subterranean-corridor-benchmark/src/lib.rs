@@ -5,6 +5,7 @@
 //! This is a planning/accounting contract, not a route optimizer, geotechnical
 //! solver, thermal solver, engineering design tool, or construction approval.
 
+pub mod dependencies;
 pub mod recovery;
 
 const EPS: f64 = 1.0e-9;
