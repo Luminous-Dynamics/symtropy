@@ -139,7 +139,10 @@ fn validate(scenario: &NetworkCapacityScenario) -> Result<(), String> {
             return Err("EMPTY_OR_DUPLICATE_DEPENDENCY_ID".to_owned());
         }
     }
-    if dependency_ids.iter().any(|id| !referenced_dependencies.contains(id)) {
+    if dependency_ids
+        .iter()
+        .any(|id| !referenced_dependencies.contains(id))
+    {
         return Err("UNREFERENCED_DEPENDENCY_RECORD".to_owned());
     }
     Ok(())
@@ -153,9 +156,7 @@ fn validate(scenario: &NetworkCapacityScenario) -> Result<(), String> {
 /// close the gap, metrics are withheld with NeedsEvidence. If the known-safe paths do
 /// meet demand, a lower-bound report is possible but unresolved alternatives remain
 /// visible and the report is not classified as an ordinary comparable result.
-pub fn evaluate_network_capacity(
-    scenario: &NetworkCapacityScenario,
-) -> NetworkCapacityEvaluation {
+pub fn evaluate_network_capacity(scenario: &NetworkCapacityScenario) -> NetworkCapacityEvaluation {
     if let Err(reason) = validate(scenario) {
         return invalid(&scenario.scenario_id, reason);
     }
@@ -196,7 +197,10 @@ pub fn evaluate_network_capacity(
             available_path_ids.push(path.path_id.clone());
             credited_capacity += path.capacity_units_per_hour;
             if !credited_capacity.is_finite() {
-                return invalid(&scenario.scenario_id, "ARITHMETIC_OVERFLOW:CREDITED_CAPACITY");
+                return invalid(
+                    &scenario.scenario_id,
+                    "ARITHMETIC_OVERFLOW:CREDITED_CAPACITY",
+                );
             }
         }
     }
@@ -223,7 +227,10 @@ pub fn evaluate_network_capacity(
     let safe_delivered = credited_capacity.min(scenario.demand_units_per_hour);
     let fraction = safe_delivered / scenario.demand_units_per_hour;
     if !safe_delivered.is_finite() || !fraction.is_finite() {
-        return invalid(&scenario.scenario_id, "ARITHMETIC_OVERFLOW:SAFE_DELIVERED_CAPACITY");
+        return invalid(
+            &scenario.scenario_id,
+            "ARITHMETIC_OVERFLOW:SAFE_DELIVERED_CAPACITY",
+        );
     }
 
     let disposition = if !unresolved_path_ids.is_empty() {
@@ -285,10 +292,7 @@ mod tests {
                 ServicePath {
                     path_id: "surface-backup".to_owned(),
                     capacity_units_per_hour: 40.0,
-                    dependencies: vec![
-                        "backup-power".to_owned(),
-                        "surface-connection".to_owned(),
-                    ],
+                    dependencies: vec!["backup-power".to_owned(), "surface-connection".to_owned()],
                 },
             ],
             dependencies: vec![
@@ -330,7 +334,10 @@ mod tests {
             metrics.unavailable_path_ids,
             vec!["east-route".to_owned(), "west-route".to_owned()]
         );
-        assert_eq!(metrics.available_path_ids, vec!["surface-backup".to_owned()]);
+        assert_eq!(
+            metrics.available_path_ids,
+            vec!["surface-backup".to_owned()]
+        );
     }
 
     #[test]
@@ -338,7 +345,10 @@ mod tests {
         let mut scenario = base_scenario();
         scenario.dependencies[0].state = GateState::Unknown;
         let evaluation = evaluate_network_capacity(&scenario);
-        assert_eq!(evaluation.disposition, NetworkCapacityDisposition::NeedsEvidence);
+        assert_eq!(
+            evaluation.disposition,
+            NetworkCapacityDisposition::NeedsEvidence
+        );
         assert!(evaluation.metrics.is_none());
         assert!(evaluation.reasons.iter().any(|reason| {
             reason == "NEEDS_EVIDENCE:PATH_DEPENDENCIES:west-route"
@@ -358,16 +368,29 @@ mod tests {
         );
         let metrics = evaluation.metrics.unwrap();
         assert!((metrics.safe_delivered_fraction_lower_bound - 1.0).abs() < 1.0e-9);
-        assert!(metrics.unresolved_path_ids.contains(&"west-route".to_owned()));
-        assert!(metrics.unresolved_path_ids.contains(&"east-route".to_owned()));
+        assert!(
+            metrics
+                .unresolved_path_ids
+                .contains(&"west-route".to_owned())
+        );
+        assert!(
+            metrics
+                .unresolved_path_ids
+                .contains(&"east-route".to_owned())
+        );
     }
 
     #[test]
     fn missing_dependency_record_is_unknown_not_assumed_healthy() {
         let mut scenario = base_scenario();
-        scenario.dependencies.retain(|dependency| dependency.dependency_id != "traction-power");
+        scenario
+            .dependencies
+            .retain(|dependency| dependency.dependency_id != "traction-power");
         let evaluation = evaluate_network_capacity(&scenario);
-        assert_eq!(evaluation.disposition, NetworkCapacityDisposition::NeedsEvidence);
+        assert_eq!(
+            evaluation.disposition,
+            NetworkCapacityDisposition::NeedsEvidence
+        );
         assert!(evaluation.metrics.is_none());
     }
 
