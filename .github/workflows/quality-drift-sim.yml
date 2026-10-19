@@ -39,7 +39,7 @@ jobs:
       - name: Emit replayable summary
         run: cargo run --locked --quiet --manifest-path tools/quality-drift-sim/Cargo.toml > quality-drift-report.json
       - name: Validate report JSON
-        run: python3 -c 'import json; json.load(open("quality-drift-report.json", encoding="utf-8"))'
+        run: jq -e . quality-drift-report.json > /dev/null
       - name: Upload synthetic report
         uses: actions/upload-artifact@v4
         with:
