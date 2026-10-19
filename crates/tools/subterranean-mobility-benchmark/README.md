@@ -28,3 +28,16 @@ cargo run --offline --manifest-path crates/tools/subterranean-mobility-benchmark
 This is an evidence filter over supplied data, not a perception system or physical simulation. It does not assess rock stability, geotechnical support, atmosphere, medical suitability, real rope/anchor strength, current water dynamics, human biomechanics, device snagging, braking in a real environment, or rescue-team competence. A status of admissible means only that the provided fresh measurements satisfy the provided profile. It must not be used as an operational authorization.
 
 See SUBTERRANEAN-HUMAN-MOBILITY-001 in the docs/research directory, implementation task #2039, and FLOOD-EGRESS-001 #1963.
+
+
+## Communications-loss / egress-coordination contract
+
+The egress coordination module separates coordination support from route admissibility:
+
+- Live coordination requires a current location fix, a fresh local plan matching the declared route-graph version, and a live acknowledged communication path.
+- Store/carry-forward messages are deferred, not reported as delivered.
+- With no current path, fresh local location and a version-matched offline plan may remain locally available; that does not mean the route is still physically clear.
+- Missing/stale location or plan evidence yields an unknown status. Explicitly unavailable location or missing/unverified plan evidence prevents a guidance-available claim.
+- The route-search disposition is returned unchanged. No admissible route, a bounded/incomplete search, and coordination loss remain distinct outcomes.
+
+This is a deterministic interface contract, not an end-to-end network simulator, localization algorithm, live closure detector, or operational egress authorization.
