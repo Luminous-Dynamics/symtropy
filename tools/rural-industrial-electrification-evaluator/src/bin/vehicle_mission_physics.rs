@@ -751,10 +751,25 @@ mod tests {
         let mut segment = flat_segment();
         segment.grade_fraction = -0.2;
         segment.max_regen_battery_power_kw = 0.01;
-        let scenario = sample_scenario(segment);
-        let report = simulate(&scenario, &sample_catalog().designs[0]);
+        let mut scenario = sample_scenario(segment);
+        scenario.initial_usable_soc_fraction = 0.5;
+        let catalog = sample_catalog();
+        let report = simulate(&scenario, &catalog.designs[0]);
         assert!(report.total_regen_energy_available_at_battery_kwh > 0.0);
+        assert!(report.total_regen_energy_captured_kwh > 0.0);
         assert!(report.total_regen_energy_captured_kwh <= 0.01 * (100.0 / 3600.0) + 1e-9);
+        assert!(report.total_regen_energy_curtailed_kwh > 0.0);
+    }
+
+    #[test]
+    fn full_usable_pack_curtailed_by_regen_headroom() {
+        let mut segment = flat_segment();
+        segment.grade_fraction = -0.2;
+        let scenario = sample_scenario(segment);
+        let catalog = sample_catalog();
+        let report = simulate(&scenario, &catalog.designs[0]);
+        assert!(report.total_regen_energy_available_at_battery_kwh > 0.0);
+        assert_eq!(report.total_regen_energy_captured_kwh, 0.0);
         assert!(report.total_regen_energy_curtailed_kwh > 0.0);
     }
 
