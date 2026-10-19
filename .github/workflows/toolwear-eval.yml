@@ -30,6 +30,16 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
+      - name: Verify evaluator license metadata and SPDX header
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="AGPL-3.0-or-later"
+          actual="$(sed -n 's/^license = "\(.*\)"/\1/p' tools/toolwear-eval/Cargo.toml)"
+          test "$actual" = "$expected"
+          grep -F "SPDX-License-Identifier: $expected" tools/toolwear-eval/src/main.rs >/dev/null
+          test -s tools/toolwear-eval/LICENSE
+
       - name: Format
         run: cargo fmt --check --manifest-path tools/toolwear-eval/Cargo.toml
 
