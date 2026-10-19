@@ -243,8 +243,15 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
 }
 
 fn validate_evidence(class: &str, reference: &str, note: &str) -> Result<(), String> {
-    if !["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"]
-        .contains(&class)
+    if ![
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+        "unknown",
+    ]
+    .contains(&class)
     {
         return Err("unsupported_evidence_class".to_string());
     }
@@ -297,19 +304,37 @@ fn validate_design(design: &Design) -> Result<(), String> {
     for (name, value) in [
         ("nominal_capacity_kwh", design.nominal_capacity_kwh),
         ("pack_mass_kg", design.pack_mass_kg),
-        ("lifetime_delivered_energy_kwh", design.lifetime_delivered_energy_kwh),
-        ("smallest_replaceable_unit_kwh", design.smallest_replaceable_unit_kwh),
+        (
+            "lifetime_delivered_energy_kwh",
+            design.lifetime_delivered_energy_kwh,
+        ),
+        (
+            "smallest_replaceable_unit_kwh",
+            design.smallest_replaceable_unit_kwh,
+        ),
     ] {
         finite_positive(name, value)?;
     }
     for (name, value) in [
         ("usable_capacity_fraction", design.usable_capacity_fraction),
-        ("use_phase_grid_intensity_kgco2e_per_kwh", design.use_phase_grid_intensity_kgco2e_per_kwh),
-        ("electricity_price_usd_per_kwh", design.electricity_price_usd_per_kwh),
+        (
+            "use_phase_grid_intensity_kgco2e_per_kwh",
+            design.use_phase_grid_intensity_kgco2e_per_kwh,
+        ),
+        (
+            "electricity_price_usd_per_kwh",
+            design.electricity_price_usd_per_kwh,
+        ),
         ("labor_rate_usd_per_hour", design.labor_rate_usd_per_hour),
-        ("downtime_cost_usd_per_hour", design.downtime_cost_usd_per_hour),
+        (
+            "downtime_cost_usd_per_hour",
+            design.downtime_cost_usd_per_hour,
+        ),
         ("initial_pack_cost_usd", design.initial_pack_cost_usd),
-        ("initial_pack_embodied_kgco2e", design.initial_pack_embodied_kgco2e),
+        (
+            "initial_pack_embodied_kgco2e",
+            design.initial_pack_embodied_kgco2e,
+        ),
     ] {
         finite_nonnegative(name, value)?;
     }
@@ -332,25 +357,61 @@ fn validate_design(design: &Design) -> Result<(), String> {
     }
 
     for (name, value) in [
-        ("repair_unit_cost_usd", design.maintenance.repair_unit_cost_usd),
-        ("repair_unit_embodied_kgco2e", design.maintenance.repair_unit_embodied_kgco2e),
-        ("replacement_pack_cost_usd", design.maintenance.replacement_pack_cost_usd),
-        ("replacement_pack_embodied_kgco2e", design.maintenance.replacement_pack_embodied_kgco2e),
-        ("parts_wait_hours_per_repair", design.maintenance.parts_wait_hours_per_repair),
-        ("parts_wait_hours_per_pack_replacement", design.maintenance.parts_wait_hours_per_pack_replacement),
+        (
+            "repair_unit_cost_usd",
+            design.maintenance.repair_unit_cost_usd,
+        ),
+        (
+            "repair_unit_embodied_kgco2e",
+            design.maintenance.repair_unit_embodied_kgco2e,
+        ),
+        (
+            "replacement_pack_cost_usd",
+            design.maintenance.replacement_pack_cost_usd,
+        ),
+        (
+            "replacement_pack_embodied_kgco2e",
+            design.maintenance.replacement_pack_embodied_kgco2e,
+        ),
+        (
+            "parts_wait_hours_per_repair",
+            design.maintenance.parts_wait_hours_per_repair,
+        ),
+        (
+            "parts_wait_hours_per_pack_replacement",
+            design.maintenance.parts_wait_hours_per_pack_replacement,
+        ),
     ] {
         finite_nonnegative(name, value)?;
     }
     for (name, value) in [
         ("isolation_minutes", design.operations.isolation_minutes),
         ("diagnosis_minutes", design.operations.diagnosis_minutes),
-        ("enclosure_access_minutes", design.operations.enclosure_access_minutes),
-        ("replace_unit_minutes", design.operations.replace_unit_minutes),
+        (
+            "enclosure_access_minutes",
+            design.operations.enclosure_access_minutes,
+        ),
+        (
+            "replace_unit_minutes",
+            design.operations.replace_unit_minutes,
+        ),
         ("reassembly_minutes", design.operations.reassembly_minutes),
-        ("post_service_validation_minutes", design.operations.post_service_validation_minutes),
-        ("pack_removal_minutes", design.operations.pack_removal_minutes),
-        ("pack_installation_minutes", design.operations.pack_installation_minutes),
-        ("post_pack_validation_minutes", design.operations.post_pack_validation_minutes),
+        (
+            "post_service_validation_minutes",
+            design.operations.post_service_validation_minutes,
+        ),
+        (
+            "pack_removal_minutes",
+            design.operations.pack_removal_minutes,
+        ),
+        (
+            "pack_installation_minutes",
+            design.operations.pack_installation_minutes,
+        ),
+        (
+            "post_pack_validation_minutes",
+            design.operations.post_pack_validation_minutes,
+        ),
     ] {
         finite_nonnegative(name, value)?;
     }
@@ -365,19 +426,30 @@ fn validate_design(design: &Design) -> Result<(), String> {
             || material.recovery_route.trim().is_empty()
             || !material_ids.insert(material.material_id.clone())
         {
-            return Err(format!("empty_or_duplicate_material_identity: {}", material.material_id));
+            return Err(format!(
+                "empty_or_duplicate_material_identity: {}",
+                material.material_id
+            ));
         }
         finite_positive("material_mass_kg_per_pack", material.mass_kg_per_pack)?;
         fraction("collection_fraction", material.collection_fraction)?;
-        fraction("material_recovery_fraction", material.material_recovery_fraction)?;
+        fraction(
+            "material_recovery_fraction",
+            material.material_recovery_fraction,
+        )?;
         finite_nonnegative(
             "end_of_life_processing_kgco2e_per_kg",
             material.end_of_life_processing_kgco2e_per_kg,
         )?;
-        validate_evidence(&material.evidence_class, &material.evidence_reference, &material.evidence_note)?;
+        validate_evidence(
+            &material.evidence_class,
+            &material.evidence_reference,
+            &material.evidence_note,
+        )?;
         material_mass += material.mass_kg_per_pack;
     }
-    if !material_mass.is_finite() || (material_mass - design.pack_mass_kg).abs() > MASS_TOLERANCE_KG {
+    if !material_mass.is_finite() || (material_mass - design.pack_mass_kg).abs() > MASS_TOLERANCE_KG
+    {
         return Err(format!(
             "material_mass_does_not_conserve_pack_mass: inventory={material_mass}, declared_pack_mass={}",
             design.pack_mass_kg
@@ -391,7 +463,9 @@ fn validate_design(design: &Design) -> Result<(), String> {
         "diagnostic_access",
         "repair_validation",
         "end_of_life_handling",
-    ].into_iter().collect();
+    ]
+    .into_iter()
+    .collect();
     let mut gate_ids = BTreeSet::new();
     for gate in &design.qualification_gates {
         if gate.gate_id.trim().is_empty() || !gate_ids.insert(gate.gate_id.as_str()) {
@@ -403,17 +477,26 @@ fn validate_design(design: &Design) -> Result<(), String> {
         if !["verified_pass", "failed", "unknown", "not_assessed"].contains(&gate.status.as_str()) {
             return Err(format!("unsupported_gate_status: {}", gate.status));
         }
-        validate_evidence(&gate.evidence_class, &gate.evidence_reference, &gate.evidence_note)?;
+        validate_evidence(
+            &gate.evidence_class,
+            &gate.evidence_reference,
+            &gate.evidence_note,
+        )?;
         if gate.status == "verified_pass"
             && (gate.evidence_class == "synthetic"
                 || gate.evidence_class == "unknown"
                 || gate.evidence_reference.trim().is_empty())
         {
-            return Err(format!("gate_{}_cannot_pass_without_non_synthetic_evidence", gate.gate_id));
+            return Err(format!(
+                "gate_{}_cannot_pass_without_non_synthetic_evidence",
+                gate.gate_id
+            ));
         }
     }
     if gate_ids.len() != expected_gates.len() {
-        return Err("all_six_required_qualification_gates_must_be_present_exactly_once".to_string());
+        return Err(
+            "all_six_required_qualification_gates_must_be_present_exactly_once".to_string(),
+        );
     }
     Ok(())
 }
@@ -432,7 +515,8 @@ fn evaluate_design(design: &Design, functional_unit: &str, boundary: &str) -> De
         + design.operations.pack_removal_minutes
         + design.operations.pack_installation_minutes
         + design.operations.post_pack_validation_minutes;
-    let repair_labor_hours = repair_minutes / 60.0 * design.maintenance.repair_events_over_life as f64;
+    let repair_labor_hours =
+        repair_minutes / 60.0 * design.maintenance.repair_events_over_life as f64;
     let replacement_labor_hours = pack_replacement_minutes / 60.0
         * design.maintenance.whole_pack_replacements_over_life as f64;
     let total_labor_hours = repair_labor_hours + replacement_labor_hours;
@@ -441,13 +525,14 @@ fn evaluate_design(design: &Design, functional_unit: &str, boundary: &str) -> De
         + design.maintenance.parts_wait_hours_per_pack_replacement
             * design.maintenance.whole_pack_replacements_over_life as f64;
     let declared_downtime_hours = total_labor_hours + parts_wait_hours;
-    let repair_parts_cost = design.maintenance.repair_unit_cost_usd
-        * design.maintenance.repair_events_over_life as f64;
+    let repair_parts_cost =
+        design.maintenance.repair_unit_cost_usd * design.maintenance.repair_events_over_life as f64;
     let replacement_parts_cost = design.maintenance.replacement_pack_cost_usd
         * design.maintenance.whole_pack_replacements_over_life as f64;
     let labor_cost = total_labor_hours * design.labor_rate_usd_per_hour;
     let downtime_cost = declared_downtime_hours * design.downtime_cost_usd_per_hour;
-    let electricity_cost = design.lifetime_delivered_energy_kwh * design.electricity_price_usd_per_kwh;
+    let electricity_cost =
+        design.lifetime_delivered_energy_kwh * design.electricity_price_usd_per_kwh;
     let lifecycle_cost = design.initial_pack_cost_usd
         + repair_parts_cost
         + replacement_parts_cost
@@ -498,23 +583,27 @@ fn evaluate_design(design: &Design, functional_unit: &str, boundary: &str) -> De
         + repair_embodied
         + use_phase_impact
         + eol_impact;
-    let gates_passed = design.qualification_gates.iter()
+    let gates_passed = design
+        .qualification_gates
+        .iter()
         .filter(|gate| gate.status == "verified_pass")
         .count();
-    let design_evidence_is_actionable = !["synthetic", "unknown"].contains(&design.evidence_class.as_str());
-    let material_evidence_is_actionable = design.materials.iter().all(|material| {
-        !["synthetic", "unknown"].contains(&material.evidence_class.as_str())
-    });
-    let release_eligible = gates_passed == 6
-        && design_evidence_is_actionable
-        && material_evidence_is_actionable;
+    let design_evidence_is_actionable =
+        !["synthetic", "unknown"].contains(&design.evidence_class.as_str());
+    let material_evidence_is_actionable = design
+        .materials
+        .iter()
+        .all(|material| !["synthetic", "unknown"].contains(&material.evidence_class.as_str()));
+    let release_eligible =
+        gates_passed == 6 && design_evidence_is_actionable && material_evidence_is_actionable;
     let mass_residual = total_material_mass - design.pack_mass_kg;
     let flow_conserves = mass_residual.abs() <= MASS_TOLERANCE_KG
         && material_results.iter().all(|material| {
             (material.total_mass_through_end_of_life_kg
                 - material.recovered_mass_kg
                 - material.unrecovered_mass_kg)
-                .abs() <= MASS_TOLERANCE_KG
+                .abs()
+                <= MASS_TOLERANCE_KG
         });
     DesignResult {
         design_id: design.design_id.clone(),
@@ -644,7 +733,10 @@ mod tests {
                 pack_installation_minutes: 60.0,
                 post_pack_validation_minutes: 60.0,
             },
-            materials: vec![flow("cells", "battery-cells", 400.0, 0.9, 0.85), flow("enclosure", "aluminium-and-steel", 100.0, 0.95, 0.9)],
+            materials: vec![
+                flow("cells", "battery-cells", 400.0, 0.9, 0.85),
+                flow("enclosure", "aluminium-and-steel", 100.0, 0.95, 0.9),
+            ],
             qualification_gates: vec![
                 gate("structural_integrity"),
                 gate("thermal_containment"),
@@ -659,7 +751,11 @@ mod tests {
     #[test]
     fn declared_simple_cost_and_impact_totals_are_reconciled() {
         let design = design();
-        let result = evaluate_design(&design, "delivered battery kWh", "synthetic cradle-to-end-of-life boundary");
+        let result = evaluate_design(
+            &design,
+            "delivered battery kWh",
+            "synthetic cradle-to-end-of-life boundary",
+        );
         assert!((result.usable_capacity_kwh - 90.0).abs() < 1.0e-8);
         assert!((result.usable_pack_specific_energy_wh_per_kg - 180.0).abs() < 1.0e-8);
         assert!((result.repair_minutes_per_event - 240.0).abs() < 1.0e-8);
@@ -669,7 +765,10 @@ mod tests {
         assert!((result.total_service_labor_hours_over_life - 12.5).abs() < 1.0e-8);
         assert!((result.lifetime_electricity_cost_usd - 40000.0).abs() < 1.0e-8);
         assert!((result.use_phase_embodied_kgco2e - 80000.0).abs() < 1.0e-8);
-        assert!((result.declared_lifecycle_kgco2e - (4000.0 + 4000.0 + 150.0 + 80000.0 + 50.0)).abs() < 1.0e-7);
+        assert!(
+            (result.declared_lifecycle_kgco2e - (4000.0 + 4000.0 + 150.0 + 80000.0 + 50.0)).abs()
+                < 1.0e-7
+        );
         assert!(result.all_material_flows_conserve);
     }
 
@@ -679,28 +778,41 @@ mod tests {
         assert!(!result.release_eligible);
         assert!(!result.pareto_eligible);
         assert_eq!(result.qualification_gates_passed, 0);
-        assert_eq!(result.ranking_status, "not_ranked_qualification_or_evidence_incomplete");
+        assert_eq!(
+            result.ranking_status,
+            "not_ranked_qualification_or_evidence_incomplete"
+        );
     }
 
     #[test]
     fn mass_inventory_must_equal_declared_pack_mass() {
         let mut value = design();
         value.materials[0].mass_kg_per_pack = 399.0;
-        assert!(validate_design(&value).unwrap_err().starts_with("material_mass_does_not_conserve_pack_mass"));
+        assert!(
+            validate_design(&value)
+                .unwrap_err()
+                .starts_with("material_mass_does_not_conserve_pack_mass")
+        );
     }
 
     #[test]
     fn negative_material_mass_is_rejected() {
         let mut value = design();
         value.materials[0].mass_kg_per_pack = -1.0;
-        assert_eq!(validate_design(&value).unwrap_err(), "material_mass_kg_per_pack_must_be_finite_and_positive");
+        assert_eq!(
+            validate_design(&value).unwrap_err(),
+            "material_mass_kg_per_pack_must_be_finite_and_positive"
+        );
     }
 
     #[test]
     fn recovery_fractions_cannot_exceed_one() {
         let mut value = design();
         value.materials[0].material_recovery_fraction = 1.01;
-        assert_eq!(validate_design(&value).unwrap_err(), "material_recovery_fraction_must_be_in_[0,1]");
+        assert_eq!(
+            validate_design(&value).unwrap_err(),
+            "material_recovery_fraction_must_be_in_[0,1]"
+        );
     }
 
     #[test]
@@ -719,14 +831,21 @@ mod tests {
         value.qualification_gates[0].status = "verified_pass".to_string();
         value.qualification_gates[0].evidence_class = "synthetic".to_string();
         value.qualification_gates[0].evidence_reference = "synthetic".to_string();
-        assert!(validate_design(&value).unwrap_err().contains("cannot_pass_without_non_synthetic_evidence"));
+        assert!(
+            validate_design(&value)
+                .unwrap_err()
+                .contains("cannot_pass_without_non_synthetic_evidence")
+        );
     }
 
     #[test]
     fn every_qualification_gate_is_required_exactly_once() {
         let mut value = design();
         value.qualification_gates.pop();
-        assert_eq!(validate_design(&value).unwrap_err(), "all_six_required_qualification_gates_must_be_present_exactly_once");
+        assert_eq!(
+            validate_design(&value).unwrap_err(),
+            "all_six_required_qualification_gates_must_be_present_exactly_once"
+        );
     }
 
     #[test]
@@ -734,7 +853,12 @@ mod tests {
         let mut value = design();
         value.maintenance.whole_pack_replacements_over_life = 2;
         let result = evaluate_design(&value, "delivered battery kWh", "test boundary");
-        assert!((result.total_recovered_material_kg_over_life - 3.0 * (400.0 * 0.9 * 0.85 + 100.0 * 0.95 * 0.9)).abs() < 1.0e-7);
+        assert!(
+            (result.total_recovered_material_kg_over_life
+                - 3.0 * (400.0 * 0.9 * 0.85 + 100.0 * 0.95 * 0.9))
+                .abs()
+                < 1.0e-7
+        );
         assert!((result.replacement_pack_embodied_kgco2e_over_life - 8000.0).abs() < 1.0e-8);
     }
 
@@ -743,7 +867,12 @@ mod tests {
         let mut value = design();
         value.lifetime_delivered_energy_kwh = 100000.0;
         let result = evaluate_design(&value, "delivered battery kWh", "test boundary");
-        assert!((result.lifecycle_kgco2e_per_delivered_kwh - result.declared_lifecycle_kgco2e / 100000.0).abs() < 1.0e-12);
+        assert!(
+            (result.lifecycle_kgco2e_per_delivered_kwh
+                - result.declared_lifecycle_kgco2e / 100000.0)
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -773,7 +902,9 @@ mod tests {
             let mut shuffled = design();
             let mut state = seed + 7;
             for index in (1..shuffled.materials.len()).rev() {
-                state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1);
                 let swap_index = (state as usize) % (index + 1);
                 shuffled.materials.swap(index, swap_index);
             }
@@ -802,13 +933,19 @@ mod tests {
     fn zero_lifetime_throughput_is_rejected() {
         let mut value = design();
         value.lifetime_delivered_energy_kwh = 0.0;
-        assert_eq!(validate_design(&value).unwrap_err(), "lifetime_delivered_energy_kwh_must_be_finite_and_positive");
+        assert_eq!(
+            validate_design(&value).unwrap_err(),
+            "lifetime_delivered_energy_kwh_must_be_finite_and_positive"
+        );
     }
 
     #[test]
     fn mismatched_repairable_unit_size_is_rejected() {
         let mut value = design();
         value.smallest_replaceable_unit_kwh = 100.0;
-        assert_eq!(validate_design(&value).unwrap_err(), "smallest_replaceable_unit_exceeds_usable_pack_capacity");
+        assert_eq!(
+            validate_design(&value).unwrap_err(),
+            "smallest_replaceable_unit_exceeds_usable_pack_capacity"
+        );
     }
 }
