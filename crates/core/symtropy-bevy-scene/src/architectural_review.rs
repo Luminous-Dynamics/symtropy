@@ -133,6 +133,7 @@ pub enum ReviewAnnotationIssue {
     MissingConflictSources { annotation_id: String },
     InvalidRelatedSource { annotation_id: String },
     MissingResultEvidenceArtifact { annotation_id: String },
+    MissingUncertaintyNote { annotation_id: String },
     InvalidKindStateCombination { annotation_id: String },
     EvidenceIdWithoutDigest { annotation_id: String },
     DigestWithoutEvidenceId { annotation_id: String },
@@ -258,6 +259,15 @@ pub fn validate_review_annotations_for_revision(
                         annotation_id: annotation.annotation_id.clone(),
                     });
                 }
+                if annotation
+                    .uncertainty_note
+                    .as_deref()
+                    .is_none_or(|value| value.trim().is_empty())
+                {
+                    issues.push(ReviewAnnotationIssue::MissingUncertaintyNote {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
             }
             ReviewAnnotationKind::OwnerPreference => {
                 if !matches!(
@@ -280,6 +290,16 @@ pub fn validate_review_annotations_for_revision(
                         | ReviewAnnotationState::Informational
                 ) {
                     issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+                if annotation.state == ReviewAnnotationState::Unknown
+                    && annotation
+                        .uncertainty_note
+                        .as_deref()
+                        .is_none_or(|value| value.trim().is_empty())
+                {
+                    issues.push(ReviewAnnotationIssue::MissingUncertaintyNote {
                         annotation_id: annotation.annotation_id.clone(),
                     });
                 }
@@ -1843,6 +1863,29 @@ mod tests {
                 .contains(&ReviewAnnotationIssue::MissingResultEvidenceArtifact {
                     annotation_id: "engineering:daylight".into(),
                 })
+        );
+    }
+
+    #[test]
+    fn unknown_site_overlay_requires_a_specific_uncertainty_note() {
+        let mut site = annotation(
+            "site:flood-level",
+            "house:r1",
+            ReviewAnnotationKind::SiteUnknown,
+            ReviewAnnotationState::Unknown,
+        );
+        assert!(validate_review_annotations_for_revision(&[site.clone()], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::MissingUncertaintyNote {
+                annotation_id: "site:flood-level".into(),
+            }));
+
+        site.uncertainty_note = Some(
+            "No dated parcel-specific flood assessment is in the evidence set".into(),
+        );
+        assert_eq!(
+            validate_review_annotations_for_revision(&[site], "house:r1"),
+            Ok(())
         );
     }
 
