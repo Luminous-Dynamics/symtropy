@@ -36,7 +36,7 @@ The system must be able to abstain on source attribution while preserving a just
 
 V0.1's synthetic JSON is a benchmark fixture schema, **not** a GS1 EPCIS-conformant event feed. Do not imply standards conformance from passing this validator.
 
-The next interoperability increment should compose with Mycelix [LEX-NET-015](https://github.com/Luminous-Dynamics/mycelix/issues/1110), which already defines a cross-standard supply-chain traceability bridge and names GS1 EPCIS/CBV 2.0 as a mapping target. Reuse that owner instead of inventing a parallel GS1 adapter or traceability ledger.
+The next interoperability increment should compose with Mycelix [LEX-NET-015](https://github.com/Luminous-Dynamics/mycelix/issues/1110), which already defines a cross-standard supply-chain traceability bridge and names [GS1 EPCIS/CBV 2.0](https://www.gs1.org/standards/epcis) as a mapping target. GS1 describes EPCIS events as timestamped records of what happened to objects, where, and in what business context, including aggregation and transformation flows. Reuse that owner instead of inventing a parallel GS1 adapter or traceability ledger.
 
 The adapter should preserve the source standard/profile version and original evidence commitment; explicitly retain unmapped, missing and contradictory fields; and never invent a handoff to make a path look complete. Map relevant EPCIS event types (including object, aggregation and transformation events) and applicable FDA Critical Tracking Events / Key Data Elements as separate, versioned conformance profiles. Keep these claims distinct: event syntax conformance, issuer identity, observation content, custody interpretation, product conformity and any regulatory interpretation. None implies the others.
 
