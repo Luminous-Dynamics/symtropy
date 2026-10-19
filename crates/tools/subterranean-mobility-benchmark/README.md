@@ -21,7 +21,7 @@ cargo run --offline --manifest-path crates/tools/subterranean-mobility-benchmark
 - Returns one of three outcomes: admissible within the declared envelope, rejected by a known hard constraint, or unknown because required evidence is missing/stale.
 - Preserves reason codes. A known hard violation remains a rejection even if another required observation is missing.
 - Searches only edges passing all hard checks. Unknown edges do not become safe because they are part of the shortest path.
-- Uses stable lexical ordering and an explicit route-search expansion/hop cap. Truncated search reports SearchLimitExceeded, never a definitive no-route claim.
+- Uses stable lexical ordering and an explicit expansion, pending-frontier, and hop cap. Hitting any cap returns SearchLimitExceeded without returning a partial route or a definitive no-route claim.
 
 ## Limits
 
