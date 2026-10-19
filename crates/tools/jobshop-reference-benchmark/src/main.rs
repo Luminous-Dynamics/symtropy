@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
 
 use jobshop_reference_benchmark::{
-    dispatch_schedule, parse_classic_pair_format, solve_exact, summarize, DispatchRule,
-    ScheduledOperation,
+    DispatchRule, ScheduledOperation, dispatch_schedule, parse_classic_pair_format, solve_exact,
+    summarize,
 };
 use std::env;
 use std::error::Error;
@@ -60,11 +60,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 fn print_schedule(mut schedule: Vec<ScheduledOperation>) {
-    schedule.sort_unstable_by_key(|operation| {
-        (operation.job_index, operation.operation_index)
-    });
+    schedule.sort_unstable_by_key(|operation| (operation.job_index, operation.operation_index));
     for operation in schedule {
         println!(
             "operation job={} index={} machine={} start={} finish={}",

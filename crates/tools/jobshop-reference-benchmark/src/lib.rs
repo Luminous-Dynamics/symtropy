@@ -41,6 +41,7 @@ pub struct ExactResult {
     pub makespan: u64,
     pub lower_bound_makespan: u64,
     pub expanded_nodes: u64,
+    pub schedule: Vec<ScheduledOperation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -126,7 +127,10 @@ impl fmt::Display for BenchmarkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidInteger { token_index, value } => {
-                write!(f, "token {token_index} is not a valid nonnegative integer: {value:?}")
+                write!(
+                    f,
+                    "token {token_index} is not a valid nonnegative integer: {value:?}"
+                )
             }
             Self::InvalidDimensions => write!(f, "job and machine counts must both be positive"),
             Self::DimensionsTooLarge => write!(
@@ -210,12 +214,13 @@ pub fn parse_classic_pair_format(input: &str) -> Result<Instance, BenchmarkError
         let mut job = Vec::with_capacity(machine_count);
         for operation_index in 0..machine_count {
             let machine = parse_usize(tokens[cursor], cursor + 1)?;
-            let duration = tokens[cursor + 1]
-                .parse::<u64>()
-                .map_err(|_| BenchmarkError::InvalidInteger {
-                    token_index: cursor + 2,
-                    value: tokens[cursor + 1].to_owned(),
-                })?;
+            let duration =
+                tokens[cursor + 1]
+                    .parse::<u64>()
+                    .map_err(|_| BenchmarkError::InvalidInteger {
+                        token_index: cursor + 2,
+                        value: tokens[cursor + 1].to_owned(),
+                    })?;
             if machine >= machine_count {
                 return Err(BenchmarkError::MachineOutOfRange {
                     job: job_index,
@@ -373,8 +378,6 @@ pub fn solve_exact(instance: &Instance) -> Result<ExactResult, BenchmarkError> {
     })
 }
 
-
-
 /// Build a deterministic feasible schedule with a simple dispatching rule.
 /// At every step, select the next operation with the earliest feasible start;
 /// tie-break by the named rule and then by stable job/operation IDs. These
@@ -458,9 +461,7 @@ fn candidate_precedes(left: Candidate, right: Candidate, rule: DispatchRule) -> 
         DispatchRule::ShortestProcessingTime => {
             left.operation.duration.cmp(&right.operation.duration)
         }
-        DispatchRule::MostWorkRemaining => {
-            right.remaining_work.cmp(&left.remaining_work)
-        }
+        DispatchRule::MostWorkRemaining => right.remaining_work.cmp(&left.remaining_work),
         DispatchRule::MostOperationsRemaining => {
             right.remaining_operations.cmp(&left.remaining_operations)
         }
@@ -530,8 +531,7 @@ pub fn verify_schedule(
         seen[scheduled.job_index][scheduled.operation_index] = true;
         times[scheduled.job_index][scheduled.operation_index] =
             Some((scheduled.start_time, scheduled.finish_time));
-        machine_intervals[scheduled.machine]
-            .push((scheduled.start_time, scheduled.finish_time));
+        machine_intervals[scheduled.machine].push((scheduled.start_time, scheduled.finish_time));
         makespan = makespan.max(scheduled.finish_time);
     }
 
@@ -619,10 +619,7 @@ impl Search<'_> {
             let finish = start
                 .checked_add(operation.duration)
                 .ok_or(BenchmarkError::ArithmeticOverflow)?;
-            if self
-                .best_makespan
-                .is_some_and(|best| finish >= best)
-            {
+            if self.best_makespan.is_some_and(|best| finish >= best) {
                 continue;
             }
 
@@ -760,9 +757,8 @@ mod tests {
 
     #[test]
     fn whitespace_is_accepted_but_trailing_tokens_are_not() {
-        let instance =
-            parse_classic_pair_format("  2   2\n 0 2   1 1 \n1 2 0 1  \n")
-                .expect("whitespace accepted");
+        let instance = parse_classic_pair_format("  2   2\n 0 2   1 1 \n1 2 0 1  \n")
+            .expect("whitespace accepted");
         assert_eq!(summarize(&instance).expect("summary").operation_count, 4);
         assert!(matches!(
             parse_classic_pair_format("1 1\n0 2 extra\n"),
@@ -779,7 +775,7 @@ mod tests {
     }
     #[test]
     fn exact_oracle_matches_independent_machine_order_enumeration_on_twenty_cases() {
-        for case_index in 0..20 {
+        for case_index in 0_usize..20 {
             let machine_count = if case_index.is_multiple_of(3) { 2 } else { 3 };
             let job_count = if case_index.is_multiple_of(2) { 2 } else { 3 };
             let mut jobs = Vec::with_capacity(job_count);
@@ -795,8 +791,8 @@ mod tests {
                     .enumerate()
                     .map(|(operation_index, machine)| Operation {
                         machine,
-                        duration: ((case_index * 7 + job_index * 5 + operation_index * 3) % 9
-                            + 1) as u64,
+                        duration: ((case_index * 7 + job_index * 5 + operation_index * 3) % 9 + 1)
+                            as u64,
                     })
                     .collect();
                 jobs.push(job);
@@ -838,12 +834,7 @@ mod tests {
             }
         }
 
-        fn add_edge(
-            from: usize,
-            to: usize,
-            successors: &mut [Vec<usize>],
-            indegree: &mut [usize],
-        ) {
+        fn add_edge(from: usize, to: usize, successors: &mut [Vec<usize>], indegree: &mut [usize]) {
             successors[from].push(to);
             indegree[to] += 1;
         }
@@ -882,12 +873,7 @@ mod tests {
 
             for order in machine_orders {
                 for pair in order.windows(2) {
-                    add_edge(
-                        pair[0],
-                        pair[1],
-                        &mut successors,
-                        &mut indegree,
-                    );
+                    add_edge(pair[0], pair[1], &mut successors, &mut indegree);
                 }
             }
 
@@ -923,10 +909,10 @@ mod tests {
             best: &mut Option<u64>,
         ) {
             if machine_index == permutations.len() {
-                if let Some(candidate) = evaluate_machine_orders(instance, selected) {
-                    if best.is_none_or(|known| candidate < known) {
-                        *best = Some(candidate);
-                    }
+                if let Some(candidate) = evaluate_machine_orders(instance, selected)
+                    && best.is_none_or(|known| candidate < known)
+                {
+                    *best = Some(candidate);
                 }
                 return;
             }
@@ -1036,7 +1022,10 @@ mod tests {
             for rule in rules {
                 let result =
                     dispatch_schedule(&instance, rule).expect("dispatch rule creates a schedule");
-                assert_eq!(result.schedule.len(), instance.jobs.iter().map(Vec::len).sum());
+                assert_eq!(
+                    result.schedule.len(),
+                    instance.jobs.iter().map(Vec::len).sum()
+                );
                 assert!(result.makespan >= result.lower_bound_makespan);
                 assert_eq!(
                     verify_schedule(&instance, &result.schedule)
@@ -1061,5 +1050,4 @@ mod tests {
             assert_eq!(first, second);
         }
     }
-
 }
