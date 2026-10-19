@@ -450,7 +450,6 @@ pub fn evaluate_corpus(corpus: &Value) -> Vec<Evaluation> {
         .unwrap_or_default()
 }
 
-
 fn validate_corpus_header(corpus: &Value) -> Result<&[Value], &'static str> {
     if text(corpus, &["corpus_id"]) != Some(EXPECTED_CORPUS_ID)
         || text(corpus, &["schema_version"]) != Some(EXPECTED_SCHEMA_VERSION)
