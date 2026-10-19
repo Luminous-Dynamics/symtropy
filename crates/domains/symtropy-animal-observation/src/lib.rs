@@ -287,7 +287,7 @@ pub struct ManifestAssessment {
     pub split_report: SplitReport,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LeakageViolation {
     pub reason: ManifestReason,
     pub group_key: String,
