@@ -1,0 +1,35 @@
+name: Seafood Chain Integrity Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/seafood-chain-integrity-bench/**"
+      - "docs/tech/SEAFOOD_CHAIN_INTEGRITY_CORPUS_V0_1.json"
+      - ".github/workflows/seafood-chain-integrity-bench.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/seafood-chain-integrity-bench/**"
+      - "docs/tech/SEAFOOD_CHAIN_INTEGRITY_CORPUS_V0_1.json"
+      - ".github/workflows/seafood-chain-integrity-bench.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run focused Rust tests
+        run: cargo test --manifest-path tools/seafood-chain-integrity-bench/Cargo.toml
+      - name: Verify frozen corpus and write receipt
+        run: |
+          cargo run --manifest-path tools/seafood-chain-integrity-bench/Cargo.toml -- --corpus docs/tech/SEAFOOD_CHAIN_INTEGRITY_CORPUS_V0_1.json --source-commit "$GITHUB_SHA" --receipt target/seafood-chain-integrity-receipt.json
+      - name: Upload machine-readable receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: seafood-chain-integrity-receipt
+          path: target/seafood-chain-integrity-receipt.json
+          if-no-files-found: error
