@@ -23,7 +23,10 @@
     "thresholds",
     "capacity",
     "cost_schedule",
-    "privacy"
+    "privacy",
+    "minimum_warning_window_hours",
+    "warning_window_source_reference",
+    "sensitivity_scenarios"
   ],
   "properties": {
     "schema_version": {
@@ -243,6 +246,102 @@
       "items": {
         "type": "string",
         "minLength": 1
+      }
+    },
+    "minimum_warning_window_hours": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "A predeclared conservative lower bound on usable lead time; it is a declared source assumption, not independently derived from month-only data."
+    },
+    "warning_window_source_reference": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reference to archived timestamp evidence or a reviewed assumption establishing the minimum warning window."
+    },
+    "sensitivity_scenarios": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "scenario_reference",
+          "minimum_warning_window_hours",
+          "warning_window_source_reference",
+          "capacity",
+          "cost_schedule"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^scenario-[a-z0-9-]+$"
+          },
+          "scenario_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minimum_warning_window_hours": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "warning_window_source_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capacity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "max_alerts_per_target_month",
+              "max_resource_units_per_target_month"
+            ],
+            "properties": {
+              "max_alerts_per_target_month": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "max_resource_units_per_target_month": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "cost_schedule": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost_unit",
+              "utility_if_true_alert_units",
+              "cost_false_alert_units",
+              "cost_missed_event_units",
+              "cost_per_resource_unit_units"
+            ],
+            "properties": {
+              "cost_unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "utility_if_true_alert_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cost_false_alert_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cost_missed_event_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cost_per_resource_unit_units": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
       }
     }
   }
