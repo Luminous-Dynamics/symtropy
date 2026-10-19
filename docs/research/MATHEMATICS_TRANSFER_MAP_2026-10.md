@@ -39,6 +39,8 @@ This works because logarithm monotonicity makes each edge contribution nonnegati
 
 ### Proposed adaptation sequence
 
+A versioned reference corpus with symbolic expected expressions, domain-rejection cases, permutation cases and seeded sign mutations is included at [\`graph-entropy-reference-v1.json\`](./data/graph-entropy-reference-v1.json). The corpus specifies source inputs and mathematical expectations; it is not yet consumed by a test harness and has not been run against Lean or Rust.
+
 1. Re-express the finite graph and dynamics in the canonical, pinned Symtropy proof environment. Do not create a second Lake/Mathlib root.
 2. Prove the abstract sign lemma with explicit nonnegative-conductance and positive-state premises.
 3. Add small exact reference graphs: one node, two nodes, path, cycle, disconnected components, zero-weight edges, and permuted node/edge enumeration.
