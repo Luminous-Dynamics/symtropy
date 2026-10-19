@@ -176,9 +176,9 @@ For each declared study report it checks:
 - opaque, bounded references and a supported schema version are present; unknown JSON fields are rejected;
 - integer sums and rate numerators do not overflow.
 
-The output carries an SHA-256 digest of the exact input bytes and exact count bounds, not rounded floating-point rates. For (N\) eligible requests, (A\) confirmed within-window acceptances, and (U\) unascertained outcomes:
-- **lower evidence bound:** (A/N\);
-- **upper identification bound:** ((A+U)/N\).
+The output carries an SHA-256 digest of the exact input bytes and exact count bounds, not rounded floating-point rates. Let N be the eligible-request denominator, A be confirmed in-window acceptances, and U be the sum of the three mutually exclusive uncertain categories (completed pending decision + outcome unknown + follow-up missing):
+- **lower evidence bound:** A / N;
+- **upper identification bound:** (A + U) / N.
 
 Known late acceptances, typed nonacceptance, and recorded disputes/rework do not inflate the upper bound. Pending decision, unknown remote outcome, and missing follow-up are disjoint categories and must not be double-counted. The identification bounds are not confidence intervals; sampling uncertainty and causal inference require a separately declared analysis plan. A zero-eligible report is `NotAssessable`, not a zero-percent success/failure.
 
