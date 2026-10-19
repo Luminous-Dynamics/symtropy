@@ -1136,6 +1136,8 @@ mod tests {
         let mut metric = MetricObservation {
             metric_id: "pose_pck".to_owned(),
             unit: "fraction".to_owned(),
+            stratum_kind: MetricStratumKind::Overall,
+            stratum_id: "all".to_owned(),
             state: MetricState::Reported,
             value: Some(f64::NAN),
             sample_count: 10,
