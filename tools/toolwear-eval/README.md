@@ -1,6 +1,6 @@
 # MFG-DATA-001 — tool-wear evaluator
 
-This is a narrow, deterministic Rust evaluator for a pinned machine-tool-wear feature table. It is not a calibrated process twin, maintenance controller, machine-independent qualification, or manufacturing-release tool.
+This is a narrow, deterministic Rust evaluator for a pinned machine-tool-wear feature table. The evaluator software is licensed under GNU AGPL-3.0-or-later; see this directory's full `LICENSE` text. The upstream measurement data has its own separate licence and is not copied into this repository. This is not a calibrated process twin, maintenance controller, machine-independent qualification, or manufacturing-release tool.
 
 ## Run
 
