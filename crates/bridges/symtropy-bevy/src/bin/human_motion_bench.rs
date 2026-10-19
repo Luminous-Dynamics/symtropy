@@ -1084,10 +1084,16 @@ fn evaluate_root_orientation(
     let mean_error_rad = error_sum / errors_rad.len() as f64;
     let yaw_samples_scored = yaw_errors_rad.len();
     let yaw_samples_undefined = grid_times.len().saturating_sub(yaw_samples_scored);
-    let mean_signed_yaw_error_rad = (yaw_samples_scored > 0)
-        .then_some(yaw_error_sum / yaw_samples_scored as f64);
-    let mean_absolute_yaw_error_rad = (yaw_samples_scored > 0)
-        .then_some(yaw_absolute_sum / yaw_samples_scored as f64);
+    let mean_signed_yaw_error_rad = if yaw_samples_scored > 0 {
+        Some(yaw_error_sum / yaw_samples_scored as f64)
+    } else {
+        None
+    };
+    let mean_absolute_yaw_error_rad = if yaw_samples_scored > 0 {
+        Some(yaw_absolute_sum / yaw_samples_scored as f64)
+    } else {
+        None
+    };
     let mut ordered_errors = errors_rad;
     ordered_errors.sort_by(f64::total_cmp);
     let p95_error_rad = percentile_nearest_rank(&ordered_errors, 0.95)
