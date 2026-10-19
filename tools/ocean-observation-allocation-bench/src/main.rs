@@ -682,8 +682,7 @@ fn evaluate_scenario(scenario: &Scenario, seed: u64) -> ScenarioReport {
     }
     for index in 0..policy_reports.len() {
         let is_dominated = (0..policy_reports.len()).any(|other_index| {
-            other_index != index
-                && dominates(&policy_reports[other_index], &policy_reports[index])
+            other_index != index && dominates(&policy_reports[other_index], &policy_reports[index])
         });
         policy_reports[index].pareto_nondominated = !is_dominated;
     }
@@ -807,11 +806,7 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
             .enumerate()
             .all(|(index, report)| {
                 let expected_frontier = !(0..scenario.policy_reports.len()).any(|other_index| {
-                    other_index != index
-                        && dominates(
-                            &scenario.policy_reports[other_index],
-                            report,
-                        )
+                    other_index != index && dominates(&scenario.policy_reports[other_index], report)
                 });
                 report.pareto_nondominated == expected_frontier
             })
@@ -1106,7 +1101,12 @@ mod tests {
         let scenario = &corpus.scenarios[0];
         let report = evaluate_scenario(scenario, corpus.seed);
         assert!(
-            report.policy_reports.iter().filter(|item| item.pareto_nondominated).count() >= 2,
+            report
+                .policy_reports
+                .iter()
+                .filter(|item| item.pareto_nondominated)
+                .count()
+                >= 2,
             "different evidence/exposure trade-offs should not be collapsed into one winner"
         );
         assert!(
