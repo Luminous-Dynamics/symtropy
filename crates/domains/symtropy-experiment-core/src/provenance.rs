@@ -339,6 +339,40 @@ mod tests {
     }
 
     #[test]
+    fn rfc8785_canonical_json_sorts_object_properties_recursively() {
+        let value = serde_json::json!({
+            "c": true,
+            "nested": {"z": 1, "a": 2},
+            "b": false,
+            "a": "Hello!"
+        });
+        let bytes = canonical_json_bytes(&value).unwrap();
+        assert_eq!(
+            bytes,
+            br#"{"a":"Hello!","b":false,"c":true,"nested":{"a":2,"z":1}}"#
+        );
+    }
+
+    #[test]
+    fn rfc8785_canonical_json_uses_ecmascript_number_formatting_vectors() {
+        assert_eq!(canonical_json_bytes(&1e23_f64).unwrap(), b"1e+23");
+        assert_eq!(canonical_json_bytes(&1e-7_f64).unwrap(), b"1e-7");
+        assert_eq!(canonical_json_bytes(&-0.0_f64).unwrap(), b"0");
+        assert_eq!(
+            canonical_json_bytes(&5e-324_f64).unwrap(),
+            b"5e-324"
+        );
+    }
+
+    #[test]
+    fn receipt_schema_identifies_jcs_hashing_contract() {
+        let value = receipt(br#"{"model":1}"#, &serde_json::json!({"a": 1}), &serde_json::json!({"answer": 42}));
+        assert_eq!(value.payload.receipt_schema_version, "0.2.0");
+        assert_eq!(value.payload.canonicalization_algorithm, "RFC8785-JCS");
+        assert_ne!(value.payload.canonicalization_algorithm, "serde_json::to_vec");
+    }
+
+    #[test]
     fn verification_fails_closed_for_empty_or_wrong_digest() {
         let mut value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
         value.receipt_sha256 = "not-a-sha256-digest".to_owned();
