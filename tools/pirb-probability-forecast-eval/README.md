@@ -19,6 +19,21 @@ The separate `pirb-outcome-vintage-sensitivity` binary compares 2–20 frozen da
 
 Run it with repeated `--input PATH` arguments. Do not place protected data or raw release files in public CI; a sensitivity receipt includes input and outcome digests and should follow the data controller's publication/access policy.
 
+
+## Frozen VIEWS archive import (offline only)
+
+The \`pirb-views-offline-adapter\` binary maps locally saved response pages into the normalized dataset contract. It does not contact VIEWS or download data. The manifest pins each response to one model/versioned run, query URI, analysis unit, target month, partition, matching codebook, column mapping, outcome release and governed opaque spatial-block map.
+
+Public CI contains a synthetic VIEWS-shaped response envelope and a synthetic \`main_dich\` codebook. They are invented fixtures, not real VIEWS data. Only the declared \`main_dich\` binary-event-probability target is accepted; fatality counts, even bounded numeric counts, are not reinterpreted as probabilities. The codebook's unit/range, threshold language, geography, response model metadata and target-month query filter must agree with the manifest.
+
+Example from the repository root:
+
+    cargo run --bin pirb-views-offline-adapter --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --manifest docs/fixtures/views-import-manifest-synthetic-v0.1.json --outcomes docs/fixtures/views-outcomes-synthetic-v0.1.json --block-map docs/fixtures/views-spatial-block-map-synthetic-v0.1.json --output pirb-views-normalized.json --receipt pirb-views-import-receipt.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
+
+The adapter rejects unsafe relative source paths, missing or duplicate outcome keys, missing block mappings, incomplete response pagination, source/model mismatches, wrong horizons/query months, duplicate forecast observations, non-probability codebooks, and extra source files not declared by the manifest. Receipts bind the manifest, outcome snapshot, block-map, codebook, response pages, generated archive commitment, normalized dataset and dependency lock.
+
+A passing import receipt establishes mapping/conformance only. Source references and license strings are declarations to review, not cryptographic proof of permission. For authorized historical use, keep raw files and receipts in the controlled environment and check data terms, attribution, confidentiality, and disclosure risk before publishing any derived metrics.
+
 ## Normalized input contract
 
 The Draft 2020-12 schema is deliberately one outcome definition, one analysis unit, and one forecast horizon per dataset. Score each horizon separately. A normalized adapter for an external provider must state the exact forecast release, model/version, probability variable, target definition, outcome release, source-file digests, attribution, and license reference. Every row carries its forecast release, opaque unit, forecast issue month, last input-data month, target month, lead, probability, outcome label, and label-availability month.
