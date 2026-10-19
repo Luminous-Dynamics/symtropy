@@ -322,19 +322,32 @@ pub struct ReplayReceipt {
     pub receipt_sha256: String,
 }
 
+#[derive(Debug)]
+pub struct ReplayEvaluationInput<'a> {
+    pub profile: &'a AnimalProfile,
+    pub manifest: &'a ReferencePackManifest,
+    pub mode: EvaluationMode,
+    pub task: ReplayTaskSpec,
+    pub run: RunIdentity,
+    pub metrics: Vec<MetricObservation>,
+    pub baselines: Vec<BaselineReference>,
+    pub paired_baseline_comparisons: Vec<PairedBaselineComparison>,
+}
+
 /// Build an evidence-bounded scorecard receipt. Arrays with canonical ordering
 /// are sorted before hashing; the source manifest is digested by its own
 /// canonicalizer. This function never downloads data or grants source rights.
-pub fn build_replay_receipt(
-    profile: &AnimalProfile,
-    manifest: &ReferencePackManifest,
-    mode: EvaluationMode,
-    task: ReplayTaskSpec,
-    run: RunIdentity,
-    mut metrics: Vec<MetricObservation>,
-    mut baselines: Vec<BaselineReference>,
-    mut paired_baseline_comparisons: Vec<PairedBaselineComparison>,
-) -> Result<ReplayReceipt, serde_json::Error> {
+pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayReceipt, serde_json::Error> {
+    let ReplayEvaluationInput {
+        profile,
+        manifest,
+        mode,
+        task,
+        run,
+        mut metrics,
+        mut baselines,
+        mut paired_baseline_comparisons,
+    } = input;
     let profile_validation = validate_profile(profile);
     let manifest_validation = validate_manifest(manifest);
     let mut rejected = BTreeSet::new();
