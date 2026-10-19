@@ -368,9 +368,7 @@ pub fn import_views_archive(
     source_files: &BTreeMap<String, Vec<u8>>,
     runtime: ImportRuntime<'_>,
 ) -> Result<ViewsImportBundle, Vec<String>> {
-    if runtime.source_commit != "UNPINNED_LOCAL_RUN"
-        && !valid_commit_sha(runtime.source_commit)
-    {
+    if runtime.source_commit != "UNPINNED_LOCAL_RUN" && !valid_commit_sha(runtime.source_commit) {
         return Err(vec![
             "source commit must be a lowercase 40-character Git SHA or UNPINNED_LOCAL_RUN"
                 .to_owned(),
@@ -1063,14 +1061,8 @@ mod tests {
     }
 
     fn import() -> ViewsImportBundle {
-        import_views_archive(
-            MANIFEST,
-            OUTCOMES,
-            BLOCK_MAP,
-            &source_map(),
-            runtime(),
-        )
-        .expect("synthetic VIEWS archive should import")
+        import_views_archive(MANIFEST, OUTCOMES, BLOCK_MAP, &source_map(), runtime())
+            .expect("synthetic VIEWS archive should import")
     }
 
     #[test]
@@ -1108,13 +1100,7 @@ mod tests {
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
         manifest["source"]["codebook_variable_key"] = Value::String("main_mean".to_owned());
         let bytes = serde_json::to_vec(&manifest).unwrap();
-        let result = import_views_archive(
-            &bytes,
-            OUTCOMES,
-            BLOCK_MAP,
-            &source_map(),
-            runtime(),
-        );
+        let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
         assert!(result.is_err());
     }
 
@@ -1127,13 +1113,7 @@ mod tests {
             "views-api-response-synthetic-2020-03.json".to_owned(),
             serde_json::to_vec(&page).unwrap(),
         );
-        let result = import_views_archive(
-            MANIFEST,
-            OUTCOMES,
-            BLOCK_MAP,
-            &sources,
-            runtime(),
-        );
+        let result = import_views_archive(MANIFEST, OUTCOMES, BLOCK_MAP, &sources, runtime());
         assert!(
             result
                 .unwrap_err()
@@ -1151,14 +1131,8 @@ mod tests {
             "views-api-response-synthetic-2020-03.json".to_owned(),
             serde_json::to_vec(&page).unwrap(),
         );
-        let changed = import_views_archive(
-            MANIFEST,
-            OUTCOMES,
-            BLOCK_MAP,
-            &sources,
-            runtime(),
-        )
-        .unwrap();
+        let changed =
+            import_views_archive(MANIFEST, OUTCOMES, BLOCK_MAP, &sources, runtime()).unwrap();
         let original = import();
         assert_ne!(
             changed.receipt.forecast_archive_sha256,
@@ -1186,13 +1160,7 @@ mod tests {
             "views-api-response-synthetic-2020-03.json".to_owned(),
             serde_json::to_vec(&page).unwrap(),
         );
-        let result = import_views_archive(
-            MANIFEST,
-            OUTCOMES,
-            BLOCK_MAP,
-            &sources,
-            runtime(),
-        );
+        let result = import_views_archive(MANIFEST, OUTCOMES, BLOCK_MAP, &sources, runtime());
         assert!(
             result
                 .unwrap_err()
@@ -1206,13 +1174,7 @@ mod tests {
         let mut outcomes: Value = serde_json::from_slice(OUTCOMES).unwrap();
         outcomes["rows"][0]["unit_id"] = Value::String("unit-country-UNKNOWN".to_owned());
         let bytes = serde_json::to_vec(&outcomes).unwrap();
-        let result = import_views_archive(
-            MANIFEST,
-            &bytes,
-            BLOCK_MAP,
-            &source_map(),
-            runtime(),
-        );
+        let result = import_views_archive(MANIFEST, &bytes, BLOCK_MAP, &source_map(), runtime());
         assert!(
             result
                 .unwrap_err()
@@ -1226,13 +1188,7 @@ mod tests {
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
         manifest["releases"][0]["response_paths"] = Value::Array(vec![]);
         let bytes = serde_json::to_vec(&manifest).unwrap();
-        let result = import_views_archive(
-            &bytes,
-            OUTCOMES,
-            BLOCK_MAP,
-            &source_map(),
-            runtime(),
-        );
+        let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
         assert!(result.is_err());
     }
 }
