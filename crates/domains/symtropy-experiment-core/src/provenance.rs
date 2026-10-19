@@ -90,7 +90,7 @@ impl RunReceipt {
         execution_settings: BTreeMap<String, String>,
     ) -> Result<Self, String> {
         let model_bytes = canonical_json_bytes(model)?;
-        let output_bytes = deterministic_json_bytes(output_payload)?;
+        let output_bytes = canonical_json_bytes(output_payload)?;
 
         let source_revision = std::env::var("SYMTROPY_SOURCE_REVISION")
             .ok()
@@ -128,7 +128,7 @@ impl RunReceipt {
             output_payload_sha256: sha256_hex(&output_bytes),
             execution_settings,
         };
-        let receipt_bytes = deterministic_json_bytes(&payload)?;
+        let receipt_bytes = canonical_json_bytes(&payload)?;
         Ok(Self {
             payload,
             receipt_sha256: sha256_hex(&receipt_bytes),
@@ -140,7 +140,14 @@ impl RunReceipt {
     /// This detects accidental or deliberate field modification only if the expected digest is
     /// retained independently. It does not authenticate the writer or make unsigned data trusted.
     pub fn verify(&self) -> Result<bool, String> {
-        let expected = sha256_hex(&deterministic_json_bytes(&self.payload)?);
+        // Fail closed for unknown digest contracts even if a self-consistent hash is supplied.
+        if self.payload.receipt_schema_version != RUN_RECEIPT_SCHEMA_VERSION
+            || self.payload.digest_algorithm != "sha256"
+            || self.payload.canonicalization_algorithm != RECEIPT_CANONICALIZATION_ALGORITHM
+        {
+            return Ok(false);
+        }
+        let expected = sha256_hex(&canonical_json_bytes(&self.payload)?);
         Ok(expected == self.receipt_sha256)
     }
 
@@ -272,8 +279,8 @@ mod tests {
         let model = json!({"a": 1});
         let output = json!({"answer": 42});
         let value = receipt(input, &model, &output);
-        let model_bytes = deterministic_json_bytes(&model).unwrap();
-        let output_bytes = deterministic_json_bytes(&output).unwrap();
+        let model_bytes = canonical_json_bytes(&model).unwrap();
+        let output_bytes = canonical_json_bytes(&output).unwrap();
 
         let valid = value.verify_artifact_bytes(input, &model_bytes, &output_bytes).unwrap();
         assert!(valid.is_valid());
@@ -295,8 +302,8 @@ mod tests {
         let output_bytes = include_bytes!("../fixtures/receipt-known-answer-output.json");
         let model: serde_json::Value = serde_json::from_slice(input_bytes).unwrap();
         let output: serde_json::Value = serde_json::from_slice(output_bytes).unwrap();
-        let model_bytes = deterministic_json_bytes(&model).unwrap();
-        let output_serialized = deterministic_json_bytes(&output).unwrap();
+        let model_bytes = canonical_json_bytes(&model).unwrap();
+        let output_serialized = canonical_json_bytes(&output).unwrap();
         let receipt: RunReceipt = serde_json::from_str(include_str!(
             "../fixtures/receipt-known-answer.json"
         ))
@@ -370,6 +377,19 @@ mod tests {
         assert_eq!(value.payload.receipt_schema_version, "0.2.0");
         assert_eq!(value.payload.canonicalization_algorithm, "RFC8785-JCS");
         assert_ne!(value.payload.canonicalization_algorithm, "serde_json::to_vec");
+    }
+
+    #[test]
+    fn verifier_rejects_unknown_serialization_contract_even_with_matching_digest() {
+        let mut value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
+        value.payload.canonicalization_algorithm = "made-up-json-format".to_owned();
+        value.receipt_sha256 = sha256_hex(&canonical_json_bytes(&value.payload).unwrap());
+        assert_eq!(value.verify(), Ok(false));
+
+        value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
+        value.payload.receipt_schema_version = "999.0.0".to_owned();
+        value.receipt_sha256 = sha256_hex(&canonical_json_bytes(&value.payload).unwrap());
+        assert_eq!(value.verify(), Ok(false));
     }
 
     #[test]
