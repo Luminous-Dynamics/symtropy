@@ -152,6 +152,38 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             }
         }
         let kind = string_at(constraint, "kind").unwrap_or_default();
+        let expected_child_keys = constraint["expected_child_keys"]
+            .as_array()
+            .expect("schema validation requires expected_child_keys")
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>();
+        let actual_child_keys = child_ids
+            .iter()
+            .filter_map(Value::as_str)
+            .filter_map(|child_id| forecast_by_id.get(child_id).copied())
+            .filter_map(|child| match kind {
+                "spatial" => string_at(child, "unit_id"),
+                "event_type" => string_at(child, "event_type_id"),
+                _ => None,
+            })
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>();
+        if completeness == "complete" && actual_child_keys != expected_child_keys {
+            let missing = expected_child_keys
+                .difference(&actual_child_keys)
+                .cloned()
+                .collect::<Vec<_>>();
+            let unexpected = actual_child_keys
+                .difference(&expected_child_keys)
+                .cloned()
+                .collect::<Vec<_>>();
+            errors.push(format!(
+                "constraint {id} claims complete child coverage but the actual child set differs from expected_child_keys; missing {missing:?}, unexpected {unexpected:?}"
+            ));
+        }
+
         let mut seen_child_units = BTreeSet::new();
         let mut seen_child_events = BTreeSet::new();
         for child_id in child_ids.iter().filter_map(Value::as_str) {
@@ -288,6 +320,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         let parent = forecast_by_id
             .get(parent_id)
             .expect("semantic validation requires parent forecast");
+        let kind = string_at(constraint, "kind").expect("schema validated constraint kind");
         let child_ids = constraint["child_forecast_ids"]
             .as_array()
             .expect("schema validated child_forecast_ids");
@@ -295,6 +328,30 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             .iter()
             .filter_map(Value::as_str)
             .filter(|child_id| !forecast_by_id.contains_key(child_id))
+            .collect::<Vec<_>>();
+        let expected_child_keys = constraint["expected_child_keys"]
+            .as_array()
+            .expect("schema validated expected_child_keys")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>();
+        let actual_child_keys = child_ids
+            .iter()
+            .filter_map(Value::as_str)
+            .filter_map(|child_id| forecast_by_id.get(child_id).copied())
+            .filter_map(|child| match kind {
+                "spatial" => string_at(child, "unit_id"),
+                "event_type" => string_at(child, "event_type_id"),
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
+        let missing_expected_child_keys = expected_child_keys
+            .difference(&actual_child_keys)
+            .copied()
+            .collect::<Vec<_>>();
+        let unexpected_child_keys = actual_child_keys
+            .difference(&expected_child_keys)
+            .copied()
             .collect::<Vec<_>>();
 
         if completeness != "complete" {
@@ -313,7 +370,10 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
                 "reconciled_signed_residual": Value::Null,
                 "reconciled_status": "not_assessable",
                 "absolute_tolerance": tolerance,
-                "missing_child_forecast_ids": missing_child_ids
+                "missing_child_forecast_ids": missing_child_ids,
+                "expected_child_keys": expected_child_keys,
+                "missing_expected_child_keys": missing_expected_child_keys,
+                "unexpected_child_keys": unexpected_child_keys
             }));
             continue;
         }
@@ -372,7 +432,10 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             "reconciled_signed_residual": reconciled_residual,
             "reconciled_status": reconciled_status,
             "absolute_tolerance": tolerance,
-            "missing_child_forecast_ids": missing_child_ids
+            "missing_child_forecast_ids": missing_child_ids,
+            "expected_child_keys": expected_child_keys,
+            "missing_expected_child_keys": missing_expected_child_keys,
+            "unexpected_child_keys": unexpected_child_keys
         }));
     }
 
@@ -575,6 +638,15 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("claims complete child coverage"))
         );
+    }
+
+    #[test]
+    fn complete_constraint_cannot_omit_an_existing_declared_child() {
+        let mut value = fixture();
+        value["aggregation_constraints"][0]["child_forecast_ids"] =
+            json!(["fc-admin1-a-organized"]);
+        let errors = audit(&value).expect_err("a listed subset cannot claim complete coverage");
+        assert!(errors.iter().any(|error| error.contains("expected_child_keys")));
     }
 
     #[test]
