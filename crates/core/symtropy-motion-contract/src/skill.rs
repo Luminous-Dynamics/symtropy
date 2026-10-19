@@ -339,8 +339,6 @@ impl MotionSkillContract {
         if !evidence.now_sec.is_finite() || evidence.now_sec < 0.0 {
             return Err(MotionSkillValidationError::InvalidEvaluationTime);
         }
-        validate_start_evidence(self, evidence)?;
-
         if evidence.now_sec < self.issued_at_sec {
             return Ok(MotionSkillOutcome::NotYetValid);
         }
@@ -350,6 +348,7 @@ impl MotionSkillContract {
         {
             return Ok(MotionSkillOutcome::Expired);
         }
+        validate_start_evidence(self, evidence)?;
 
         if !evidence.hard_constraint_conflicts.is_empty() {
             let details = evidence
