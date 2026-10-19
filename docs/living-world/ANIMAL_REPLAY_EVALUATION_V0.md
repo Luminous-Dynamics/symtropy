@@ -152,6 +152,8 @@ A preregistered threshold is met only when the declared uncertainty interval cle
 
 A leaderboard delta alone is not a superiority claim. For each claimed model-vs-baseline result, use a paired comparison at the declared independent unit (for example animal, recording or study), with a pinned paired-effect estimator, confidence level, unit count, signed candidate-minus-baseline difference, minimum meaningful effect, and non-inferiority margin. Require the paired mean difference to agree with the candidate/baseline means when both are available; otherwise mark the comparison not assessed or incomplete. Report `outperforms_by_margin`, `non_inferior`, `regresses_beyond_margin`, `uncertain`, `not_assessed`, or `incomplete` separately from the absolute-threshold decision. A higher-is-better vs lower-is-better flag must be explicit; direction is never inferred from a metric name.
 
+Every paired comparison must bind an exact canonical digest of paired-unit membership. A baseline row must include its own run ID, immutable code HEAD and config digest, evaluator/toolchain/platform, revision, training-data scope and compute budget. A free-form model name or leaderboard label is insufficient provenance. The task must state whether it is a matched-budget comparison or an explicit cost/performance trade-off. Matched-budget mode rejects mismatched declared training-data scope or compute budget; a trade-off may be reported, but must not be described as an equal-budget SOTA comparison.
+
 A future typed result record should bind at minimum:
 
 - schema version, stable run ID, task ID/version and result status (eligible, indeterminate, reject, incomplete);
