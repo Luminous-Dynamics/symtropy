@@ -9,6 +9,7 @@
 //! and numerical regression tests. See the dynamics module for its solver-specific contract.
 
 pub mod dynamics;
+pub mod units;
 pub use dynamics::{
     analyze_harmonic_oscillator_convergence, simulate_harmonic_oscillator, ConvergenceOrderEstimate,
     ConvergencePoint, HarmonicOscillatorResult, HarmonicOscillatorSpec, OscillatorConvergenceReport,
@@ -17,6 +18,7 @@ pub use dynamics::{
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use units::unit_definition;
 
 pub const SCHEMA_VERSION: &str = "0.1";
 
@@ -231,6 +233,8 @@ pub enum ValidationCode {
     MissingVariableReference,
     InvalidInputArity,
     DimensionMismatch,
+    UnknownUnit,
+    UnitDimensionMismatch,
     InvalidOutputRole,
     DuplicateEquationOutput,
     DependencyCycle,
@@ -442,6 +446,26 @@ impl ExperimentGraph {
             require_nonempty(&variable.symbol, &variable.id, "variable symbol", issues);
             require_nonempty(&variable.description, &variable.id, "variable description", issues);
             require_nonempty(&variable.unit, &variable.id, "variable unit", issues);
+            if !variable.unit.trim().is_empty() {
+                match unit_definition(&variable.unit) {
+                    Ok(definition) if definition.dimension != variable.dimension => issue(
+                        issues,
+                        &variable.id,
+                        ValidationCode::UnitDimensionMismatch,
+                        format!(
+                            "declared unit '{}' resolves to dimension {:?}, not the variable's declared dimension {:?}",
+                            variable.unit, definition.dimension, variable.dimension
+                        ),
+                    ),
+                    Ok(_) => {}
+                    Err(message) => issue(
+                        issues,
+                        &variable.id,
+                        ValidationCode::UnknownUnit,
+                        message,
+                    ),
+                }
+            }
             if let Some(value) = &variable.value_decimal {
                 if parse_finite(value).is_none() {
                     issue(
@@ -654,9 +678,10 @@ impl ExperimentGraph {
 
     /// Execute a validated acyclic arithmetic graph using IEEE-754 binary64 operations.
     ///
-    /// This is a minimal reference interpreter for checking graph semantics. It is not a
-    /// high-precision arithmetic engine, an ODE solver, or physical validation. Scientific
-    /// backends must declare their solver and numerical tolerances separately.
+    /// Supplied and overridden values use each variable's declared unit. The interpreter converts
+    /// them to canonical base units before evaluating equations and converts results back to each
+    /// variable's declared unit at the API boundary. This is a minimal reference interpreter,
+    /// not a high-precision engine, an ODE solver, or physical validation.
     pub fn evaluate(&self) -> Result<BTreeMap<String, String>, String> {
         self.evaluate_with_overrides(&BTreeMap::new())
     }
@@ -703,7 +728,15 @@ impl ExperimentGraph {
             if let Some(value) = supplied {
                 let number = parse_finite(value)
                     .ok_or_else(|| format!("invalid value '{}' for '{}'", value, variable.id))?;
-                values.insert(variable.id.clone(), number);
+                let unit = unit_definition(&variable.unit)?;
+                let canonical = number * unit.scale_to_canonical;
+                if !canonical.is_finite() {
+                    return Err(format!(
+                        "value '{}' for '{}' overflows its canonical unit scale",
+                        value, variable.id
+                    ));
+                }
+                values.insert(variable.id.clone(), canonical);
             }
         }
 
@@ -747,10 +780,23 @@ impl ExperimentGraph {
             values.insert(node.output_variable_id.clone(), result);
         }
 
-        Ok(values
-            .into_iter()
-            .map(|(id, value)| (id, value.to_string()))
-            .collect())
+        let mut declared_unit_values = BTreeMap::new();
+        for (id, canonical_value) in values {
+            let variable = variable_map
+                .get(id.as_str())
+                .copied()
+                .ok_or_else(|| format!("evaluated value has no declared variable '{id}'"))?;
+            let unit = unit_definition(&variable.unit)?;
+            let declared_value = canonical_value / unit.scale_to_canonical;
+            if !declared_value.is_finite() {
+                return Err(format!(
+                    "result for '{}' overflows declared unit '{}'",
+                    id, variable.unit
+                ));
+            }
+            declared_unit_values.insert(id, declared_value.to_string());
+        }
+        Ok(declared_unit_values)
     }
 
     /// Run a deterministic one-variable sweep, preserving the caller's value order.
@@ -946,6 +992,71 @@ mod tests {
         // This checks a finite difference against the independently simplified analytic relation.
         let expected_slope = -0.5_f64 / 12.0_f64;
         assert!(((y1 - y0) - expected_slope).abs() < 1e-12);
+    }
+
+    #[test]
+    fn degree_inputs_are_converted_before_equation_execution() {
+        let mut graph = gear_graph();
+        let angle = graph
+            .variables
+            .iter_mut()
+            .find(|variable| variable.id == "variable:theta_input")
+            .expect("input angle");
+        angle.unit = "deg".to_owned();
+        angle.value_decimal = Some("180".to_owned());
+
+        let values = graph.evaluate().expect("degree-valued graph should execute");
+        let output = values["variable:theta_output"].parse::<f64>().unwrap();
+        let expected = -4.0 * std::f64::consts::PI + 0.1;
+        assert!((output - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn computed_results_are_returned_in_the_declared_output_unit() {
+        let mut graph = gear_graph();
+        let output = graph
+            .variables
+            .iter_mut()
+            .find(|variable| variable.id == "variable:theta_output")
+            .expect("output angle");
+        output.unit = "deg".to_owned();
+
+        let values = graph.evaluate().expect("degree output should execute");
+        let output_degrees = values["variable:theta_output"].parse::<f64>().unwrap();
+        assert!((output_degrees - (-1.9 * 180.0 / std::f64::consts::PI)).abs() < 1e-10);
+    }
+
+    #[test]
+    fn unit_dimension_disagreement_is_rejected() {
+        let mut graph = gear_graph();
+        graph
+            .variables
+            .iter_mut()
+            .find(|variable| variable.id == "variable:n_driver")
+            .expect("driver tooth count")
+            .unit = "m".to_owned();
+
+        assert!(graph.validate().issues.iter().any(|item| {
+            item.code == ValidationCode::UnitDimensionMismatch
+                && item.record_id == "variable:n_driver"
+        }));
+    }
+
+    #[test]
+    fn unknown_units_fail_closed_instead_of_being_assumed_dimensionless() {
+        let mut graph = gear_graph();
+        graph
+            .variables
+            .iter_mut()
+            .find(|variable| variable.id == "variable:theta_input")
+            .expect("input angle")
+            .unit = "arcminute".to_owned();
+
+        assert!(graph.validate().issues.iter().any(|item| {
+            item.code == ValidationCode::UnknownUnit
+                && item.record_id == "variable:theta_input"
+        }));
+        assert!(graph.evaluate().is_err());
     }
 
     #[test]
