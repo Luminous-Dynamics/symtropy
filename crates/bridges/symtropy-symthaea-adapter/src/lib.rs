@@ -353,6 +353,7 @@ mod tests {
         result_safety: MotorSafetyLevel,
         result_effort: f32,
         result_success: bool,
+        result_confidence: f32,
         num_actuators: usize,
         safety_override: Option<MotorSafetyLevel>,
     }
@@ -367,6 +368,7 @@ mod tests {
                 result_safety: MotorSafetyLevel::Green,
                 result_effort: 1.0,
                 result_success: true,
+                result_confidence: 0.9,
                 num_actuators: 21,
                 safety_override: None,
             }
@@ -386,7 +388,7 @@ mod tests {
                 prediction_error: 0.1,
                 safety_level: self.result_safety,
                 epistemic_grounding: 0,
-                observation_confidence: 0.9,
+                observation_confidence: self.result_confidence,
             }
         }
 
@@ -572,6 +574,17 @@ mod tests {
         let mut planner = EmbodimentPlanner::new(Box::new(bridge));
         assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
         assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidBridgeOutput));
+    }
+
+    #[test]
+    fn invalid_bridge_confidence_fails_closed() {
+        for confidence in [f32::NAN, f32::INFINITY, -0.01, 1.01] {
+            let mut bridge = MockBridge::new();
+            bridge.result_confidence = confidence;
+            let mut planner = EmbodimentPlanner::new(Box::new(bridge));
+            assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
+            assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidBridgeOutput));
+        }
     }
 
     #[test]
