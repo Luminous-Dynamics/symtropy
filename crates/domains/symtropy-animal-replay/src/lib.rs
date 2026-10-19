@@ -71,6 +71,7 @@ pub enum ReplayReason {
     EmptyMetricId,
     DuplicateMetricId,
     EmptyMetricUnit,
+    EmptyMetricStratum,
     InvalidMetricObservation,
     InvalidConfidenceInterval,
     InvalidThreshold,
@@ -84,6 +85,7 @@ pub enum ReplayReason {
     BaselineComparisonGroupMismatch,
     BaselineMetricMismatch,
     BaselineUnitMismatch,
+    BaselineStratumMismatch,
     BaselineMetricNotReported,
 }
 
@@ -113,6 +115,20 @@ pub enum MetricState {
     Failed,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MetricStratumKind {
+    Overall,
+    Taxon,
+    LifeStage,
+    Condition,
+    Study,
+    Site,
+    Occlusion,
+    GeneralizationGroup,
+    Other,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConfidenceInterval {
     pub confidence_percent: u8,
@@ -123,6 +139,10 @@ pub struct ConfidenceInterval {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MetricObservation {
     pub metric_id: String,
+    /// Stable subgroup kind: overall, taxon, stage, study/site, condition, etc.
+    pub stratum_kind: MetricStratumKind,
+    /// Stable key within the declared pack; "all" is used by the overall row.
+    pub stratum_id: String,
     pub unit: String,
     pub state: MetricState,
     pub value: Option<f64>,
@@ -364,13 +384,21 @@ pub fn build_replay_receipt(
         indeterminate.insert(ReplayReason::MissingDeterministicSeed);
     }
 
-    metrics.sort_by(|left, right| left.metric_id.cmp(&right.metric_id));
-    let mut metric_ids = BTreeSet::new();
+    metrics.sort_by(|left, right| {
+        left.metric_id
+            .cmp(&right.metric_id)
+            .then_with(|| left.stratum_kind.cmp(&right.stratum_kind))
+            .then_with(|| left.stratum_id.cmp(&right.stratum_id))
+    });
+    let mut metric_keys = BTreeSet::new();
     for metric in &metrics {
         if metric.metric_id.trim().is_empty() {
             rejected.insert(ReplayReason::EmptyMetricId);
         }
-        if !metric_ids.insert(metric.metric_id.clone()) {
+        if metric.stratum_id.trim().is_empty() {
+            rejected.insert(ReplayReason::EmptyMetricStratum);
+        }
+        if !metric_keys.insert((metric.metric_id.clone(), metric.stratum_kind, metric.stratum_id.clone())) {
             rejected.insert(ReplayReason::DuplicateMetricId);
         }
         if metric.unit.trim().is_empty() {
@@ -390,9 +418,10 @@ pub fn build_replay_receipt(
         }
     }
 
-    let primary_metric = metrics
-        .iter()
-        .find(|metric| metric.metric_id == task.primary_metric_id);
+    let primary_metric = metrics.iter().find(|metric| {
+        metric.metric_id == task.primary_metric_id
+            && metric.stratum_kind == MetricStratumKind::Overall
+    });
     if primary_metric.is_none() {
         incomplete.insert(ReplayReason::MissingPrimaryMetric);
     }
@@ -429,6 +458,12 @@ pub fn build_replay_receipt(
         }
         if baseline.primary_metric.metric_id != task.primary_metric_id {
             rejected.insert(ReplayReason::BaselineMetricMismatch);
+        }
+        if let Some(primary) = primary_metric
+            && (baseline.primary_metric.stratum_kind != primary.stratum_kind
+                || baseline.primary_metric.stratum_id != primary.stratum_id)
+        {
+            rejected.insert(ReplayReason::BaselineStratumMismatch);
         }
         if let Some(primary) = primary_metric {
             if baseline.primary_metric.unit != primary.unit {
