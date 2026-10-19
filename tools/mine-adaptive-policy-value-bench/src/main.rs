@@ -208,7 +208,9 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         corpus.utility_model.b_low_grade_utility_units,
     ] {
         if utility < 0 {
-            return Err("synthetic utility table must be non-negative in this v0.1 profile".to_owned());
+            return Err(
+                "synthetic utility table must be non-negative in this v0.1 profile".to_owned(),
+            );
         }
     }
 
@@ -223,9 +225,14 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             .ok_or_else(|| "probability basis-point sum overflows".to_owned())?;
     }
     if total_probability != PROBABILITY_BPS
-        || corpus.scenarios.iter().any(|scenario| scenario.probability_basis_points == 0)
+        || corpus
+            .scenarios
+            .iter()
+            .any(|scenario| scenario.probability_basis_points == 0)
     {
-        return Err("scenario probabilities must be positive and sum to 10,000 basis points".to_owned());
+        return Err(
+            "scenario probabilities must be positive and sum to 10,000 basis points".to_owned(),
+        );
     }
     Ok(())
 }
@@ -247,7 +254,11 @@ fn prior_route(corpus: &Corpus) -> Check<Route> {
         a_sum += i128::from(scenario.probability_basis_points) * i128::from(a);
         b_sum += i128::from(scenario.probability_basis_points) * i128::from(b);
     }
-    Ok(if a_sum >= b_sum { Route::LotA } else { Route::LotB })
+    Ok(if a_sum >= b_sum {
+        Route::LotA
+    } else {
+        Route::LotB
+    })
 }
 
 fn observation_by_id<'a>(visible: &'a [Observation], id: &str) -> Check<&'a Observation> {
@@ -271,7 +282,9 @@ fn policy_step(
             },
             used_event_ids: Vec::new(),
         },
-        (Policy::Static, _) => return Err("static policy should have terminated at epoch 0".to_owned()),
+        (Policy::Static, _) => {
+            return Err("static policy should have terminated at epoch 0".to_owned())
+        }
         (Policy::TwoStage, 0) | (Policy::RollingHorizon, 0) => PolicyStep {
             action: Action::RequestAssayA,
             used_event_ids: Vec::new(),
@@ -279,7 +292,11 @@ fn policy_step(
         (Policy::TwoStage, 1) => {
             let a = observation_by_id(visible, "ASSAY_A")?;
             PolicyStep {
-                action: if a.high_grade { Action::ChooseA } else { Action::ChooseB },
+                action: if a.high_grade {
+                    Action::ChooseA
+                } else {
+                    Action::ChooseB
+                },
                 used_event_ids: vec!["ASSAY_A".to_owned()],
             }
         }
@@ -289,7 +306,11 @@ fn policy_step(
         (Policy::RollingHorizon, 1) => {
             let a = observation_by_id(visible, "ASSAY_A")?;
             PolicyStep {
-                action: if a.high_grade { Action::ChooseA } else { Action::RequestAssayB },
+                action: if a.high_grade {
+                    Action::ChooseA
+                } else {
+                    Action::RequestAssayB
+                },
                 used_event_ids: vec!["ASSAY_A".to_owned()],
             }
         }
@@ -336,8 +357,11 @@ fn utility_for_route(model: &UtilityModel, scenario: &Scenario, route: Route) ->
 }
 
 fn clairvoyant_upper_bound(model: &UtilityModel, scenario: &Scenario) -> i64 {
-    utility_for_route(model, scenario, Route::LotA)
-        .max(utility_for_route(model, scenario, Route::LotB))
+    utility_for_route(model, scenario, Route::LotA).max(utility_for_route(
+        model,
+        scenario,
+        Route::LotB,
+    ))
 }
 
 fn simulate_policy(
@@ -384,8 +408,12 @@ fn simulate_policy(
                 } else {
                     ("ASSAY_B", "LOT_B", scenario.b_high_grade)
                 };
-                if visible.iter().any(|observation| observation.event_id == event_id)
-                    || pending.iter().any(|observation| observation.event_id == event_id)
+                if visible
+                    .iter()
+                    .any(|observation| observation.event_id == event_id)
+                    || pending
+                        .iter()
+                        .any(|observation| observation.event_id == event_id)
                 {
                     return Err(format!("policy requested duplicate assay {event_id}"));
                 }
@@ -463,7 +491,11 @@ fn verify_trace(
             return Err("decision trace is not chronological".to_owned());
         }
         previous_epoch = Some(decision.epoch);
-        let visible: BTreeSet<&str> = decision.visible_event_ids.iter().map(String::as_str).collect();
+        let visible: BTreeSet<&str> = decision
+            .visible_event_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         if visible.len() != decision.visible_event_ids.len() {
             return Err("visible-event snapshot has duplicate IDs".to_owned());
         }
@@ -481,7 +513,9 @@ fn verify_trace(
         }
         for event_id in &used {
             if !visible.contains(event_id) {
-                return Err(format!("decision dependency {event_id} is absent from its visible snapshot"));
+                return Err(format!(
+                    "decision dependency {event_id} is absent from its visible snapshot"
+                ));
             }
             let observation = delivered
                 .get(event_id)
@@ -490,12 +524,16 @@ fn verify_trace(
                 || !observation.source_record_present
                 || !observation.qc_pass
             {
-                return Err(format!("decision dependency {event_id} was not admissible at decision time"));
+                return Err(format!(
+                    "decision dependency {event_id} was not admissible at decision time"
+                ));
             }
         }
         for event_id in &visible {
             if pending_ids.contains(event_id) {
-                return Err("pending observation is incorrectly present in visible snapshot".to_owned());
+                return Err(
+                    "pending observation is incorrectly present in visible snapshot".to_owned(),
+                );
             }
         }
     }
@@ -510,16 +548,19 @@ fn weighted_mean(scenarios: &[Scenario], values: &[i64]) -> Check<i64> {
     if scenarios.len() != values.len() {
         return Err("weighted mean value count does not match scenario count".to_owned());
     }
-    let weighted_sum = scenarios
-        .iter()
-        .zip(values)
-        .try_fold(0_i128, |sum, (scenario, value)| {
-            sum.checked_add(i128::from(scenario.probability_basis_points) * i128::from(*value))
-                .ok_or_else(|| "weighted metric sum overflows".to_owned())
-        })?;
+    let weighted_sum =
+        scenarios
+            .iter()
+            .zip(values)
+            .try_fold(0_i128, |sum, (scenario, value)| {
+                sum.checked_add(i128::from(scenario.probability_basis_points) * i128::from(*value))
+                    .ok_or_else(|| "weighted metric sum overflows".to_owned())
+            })?;
     let divisor = i128::from(PROBABILITY_BPS);
     if weighted_sum % divisor != 0 {
-        return Err("weighted fixture mean is not an exact integer in declared utility units".to_owned());
+        return Err(
+            "weighted fixture mean is not an exact integer in declared utility units".to_owned(),
+        );
     }
     i64::try_from(weighted_sum / divisor).map_err(|_| "weighted mean overflows i64".to_owned())
 }
@@ -534,7 +575,10 @@ fn reduction_basis_points(baseline: i64, improved: i64) -> Check<u32> {
 
 fn source_commit_from_args(args: &[String]) -> Check<String> {
     if args.len() != 4 || args[2] != "--source-commit" {
-        return Err("usage: mine-adaptive-policy-value-bench <corpus.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: mine-adaptive-policy-value-bench <corpus.json> --source-commit <40-hex-sha>"
+                .to_owned(),
+        );
     }
     let source_commit = args[3].to_ascii_lowercase();
     if !is_lower_hex(&source_commit, 40) {
@@ -547,7 +591,8 @@ fn run() -> Check<ExitCode> {
     let args: Vec<String> = env::args().collect();
     let source_commit = source_commit_from_args(&args)?;
     let corpus_path = &args[1];
-    let bytes = fs::read(corpus_path).map_err(|error| format!("cannot read corpus {corpus_path}: {error}"))?;
+    let bytes = fs::read(corpus_path)
+        .map_err(|error| format!("cannot read corpus {corpus_path}: {error}"))?;
     let corpus: Corpus =
         serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
     validate_corpus(&corpus)?;
@@ -557,10 +602,12 @@ fn run() -> Check<ExitCode> {
     for scenario in &corpus.scenarios {
         let static_outcome = simulate_policy(Policy::Static, scenario, &corpus, prior_route)?;
         let two_stage_outcome = simulate_policy(Policy::TwoStage, scenario, &corpus, prior_route)?;
-        let rolling_outcome = simulate_policy(Policy::RollingHorizon, scenario, &corpus, prior_route)?;
+        let rolling_outcome =
+            simulate_policy(Policy::RollingHorizon, scenario, &corpus, prior_route)?;
         let upper_bound = clairvoyant_outcome(&corpus.utility_model, scenario);
         let expected = &scenario.expected;
-        let expected_control_matched = static_outcome.net_utility_units == expected.static_net_units
+        let expected_control_matched = static_outcome.net_utility_units
+            == expected.static_net_units
             && two_stage_outcome.net_utility_units == expected.two_stage_net_units
             && rolling_outcome.net_utility_units == expected.rolling_horizon_net_units
             && upper_bound == expected.clairvoyant_upper_bound_units
@@ -581,31 +628,52 @@ fn run() -> Check<ExitCode> {
 
     let static_mean = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.static_policy.net_utility_units).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| row.static_policy.net_utility_units)
+            .collect::<Vec<_>>(),
     )?;
     let two_stage_mean = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.two_stage.net_utility_units).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| row.two_stage.net_utility_units)
+            .collect::<Vec<_>>(),
     )?;
     let rolling_mean = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.rolling_horizon.net_utility_units).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| row.rolling_horizon.net_utility_units)
+            .collect::<Vec<_>>(),
     )?;
     let clairvoyant_mean = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.clairvoyant_upper_bound_units).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| row.clairvoyant_upper_bound_units)
+            .collect::<Vec<_>>(),
     )?;
     let static_regret = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.static_policy.clairvoyant_regret_units).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| row.static_policy.clairvoyant_regret_units)
+            .collect::<Vec<_>>(),
     )?;
     let two_stage_regret = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.two_stage.clairvoyant_regret_units).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| row.two_stage.clairvoyant_regret_units)
+            .collect::<Vec<_>>(),
     )?;
     let rolling_regret = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.rolling_horizon.clairvoyant_regret_units).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| row.rolling_horizon.clairvoyant_regret_units)
+            .collect::<Vec<_>>(),
     )?;
 
     let trace_violations = scenario_receipts
@@ -616,38 +684,66 @@ fn run() -> Check<ExitCode> {
     let nonanticipativity_violations = count_nonanticipativity_violations(&scenario_receipts);
     let static_assays = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| i64::from(row.static_policy.assay_count) * 1000).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| i64::from(row.static_policy.assay_count) * 1000)
+            .collect::<Vec<_>>(),
     )?;
     let two_stage_assays = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| i64::from(row.two_stage.assay_count) * 1000).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| i64::from(row.two_stage.assay_count) * 1000)
+            .collect::<Vec<_>>(),
     )?;
     let rolling_assays = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| i64::from(row.rolling_horizon.assay_count) * 1000).collect::<Vec<_>>(),
+        &scenario_receipts
+            .iter()
+            .map(|row| i64::from(row.rolling_horizon.assay_count) * 1000)
+            .collect::<Vec<_>>(),
     )?;
 
     let rolling_vs_two_stage = reduction_basis_points(two_stage_regret, rolling_regret)?;
     let rolling_vs_static = reduction_basis_points(static_regret, rolling_regret)?;
-    let all_controls_matched = scenario_receipts.iter().all(|row| row.expected_control_matched)
+    let all_controls_matched = scenario_receipts
+        .iter()
+        .all(|row| row.expected_control_matched)
         && static_mean == corpus.expected_aggregate.static_weighted_mean_net_units
         && two_stage_mean == corpus.expected_aggregate.two_stage_weighted_mean_net_units
-        && rolling_mean == corpus.expected_aggregate.rolling_horizon_weighted_mean_net_units
-        && clairvoyant_mean == corpus.expected_aggregate.clairvoyant_weighted_mean_upper_bound_units
+        && rolling_mean
+            == corpus
+                .expected_aggregate
+                .rolling_horizon_weighted_mean_net_units
+        && clairvoyant_mean
+            == corpus
+                .expected_aggregate
+                .clairvoyant_weighted_mean_upper_bound_units
         && static_regret == corpus.expected_aggregate.static_mean_regret_units
         && two_stage_regret == corpus.expected_aggregate.two_stage_mean_regret_units
         && rolling_regret == corpus.expected_aggregate.rolling_horizon_mean_regret_units
         && trace_violations == corpus.expected_aggregate.trace_violations
         && nonanticipativity_violations == corpus.expected_aggregate.nonanticipativity_violations
-        && rolling_vs_two_stage == corpus.expected_aggregate.rolling_regret_reduction_vs_two_stage_basis_points
-        && rolling_vs_static == corpus.expected_aggregate.rolling_regret_reduction_vs_static_basis_points;
+        && rolling_vs_two_stage
+            == corpus
+                .expected_aggregate
+                .rolling_regret_reduction_vs_two_stage_basis_points
+        && rolling_vs_static
+            == corpus
+                .expected_aggregate
+                .rolling_regret_reduction_vs_static_basis_points;
 
     let expected_controls_matched = scenario_receipts
         .iter()
         .filter(|row| row.expected_control_matched)
         .count();
     let receipt = Receipt {
-        result: if all_controls_matched { "validated" } else { "control_mismatch" }.to_owned(),
+        result: if all_controls_matched {
+            "validated"
+        } else {
+            "control_mismatch"
+        }
+        .to_owned(),
         suite_id: corpus.suite_id,
         suite_version: corpus.suite_version,
         evaluator_version: VERSION.to_owned(),
@@ -657,7 +753,10 @@ fn run() -> Check<ExitCode> {
         expected_controls_matched,
         trace_violations,
         nonanticipativity_violations,
-        two_stage_regret_reduction_vs_static_basis_points: reduction_basis_points(static_regret, two_stage_regret)?,
+        two_stage_regret_reduction_vs_static_basis_points: reduction_basis_points(
+            static_regret,
+            two_stage_regret,
+        )?,
         rolling_regret_reduction_vs_two_stage_basis_points: rolling_vs_two_stage,
         rolling_regret_reduction_vs_static_basis_points: rolling_vs_static,
         policy_aggregates: vec![
@@ -688,14 +787,22 @@ fn run() -> Check<ExitCode> {
         serde_json::to_string_pretty(&receipt)
             .map_err(|error| format!("cannot serialize receipt: {error}"))?
     );
-    Ok(if all_controls_matched { ExitCode::SUCCESS } else { ExitCode::from(2) })
+    Ok(if all_controls_matched {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(2)
+    })
 }
 
 fn count_nonanticipativity_violations(scenarios: &[ScenarioReceipt]) -> usize {
     let mut seen: BTreeMap<(Policy, u32, String), Action> = BTreeMap::new();
     let mut violations = 0_usize;
     for scenario in scenarios {
-        for outcome in [&scenario.static_policy, &scenario.two_stage, &scenario.rolling_horizon] {
+        for outcome in [
+            &scenario.static_policy,
+            &scenario.two_stage,
+            &scenario.rolling_horizon,
+        ] {
             let observations: BTreeMap<String, &Observation> = outcome
                 .delivered_observations
                 .iter()
@@ -706,7 +813,9 @@ fn count_nonanticipativity_violations(scenarios: &[ScenarioReceipt]) -> usize {
                     .visible_event_ids
                     .iter()
                     .filter_map(|event_id| observations.get(event_id))
-                    .map(|observation| format!("{}:{}", observation.event_id, observation.high_grade))
+                    .map(|observation| {
+                        format!("{}:{}", observation.event_id, observation.high_grade)
+                    })
                     .collect::<Vec<_>>()
                     .join("|");
                 let key = (outcome.policy, decision.epoch, signature);
@@ -738,8 +847,10 @@ mod tests {
     use super::*;
 
     fn corpus() -> Corpus {
-        serde_json::from_str(include_str!("../../../docs/tech/mine-adaptive-policy-value-corpus-v0.1.json"))
-            .expect("frozen synthetic policy tournament should deserialize")
+        serde_json::from_str(include_str!(
+            "../../../docs/tech/mine-adaptive-policy-value-corpus-v0.1.json"
+        ))
+        .expect("frozen synthetic policy tournament should deserialize")
     }
 
     #[test]
@@ -749,12 +860,27 @@ mod tests {
         let prior = prior_route(&corpus).expect("prior baseline is defined");
         assert_eq!(Route::LotA, prior);
         for scenario in &corpus.scenarios {
-            let s = simulate_policy(Policy::Static, scenario, &corpus, prior).expect("static policy");
-            let t = simulate_policy(Policy::TwoStage, scenario, &corpus, prior).expect("two-stage policy");
-            let r = simulate_policy(Policy::RollingHorizon, scenario, &corpus, prior).expect("rolling policy");
-            assert_eq!(scenario.expected.static_net_units, s.net_utility_units, "{}", scenario.scenario_id);
-            assert_eq!(scenario.expected.two_stage_net_units, t.net_utility_units, "{}", scenario.scenario_id);
-            assert_eq!(scenario.expected.rolling_horizon_net_units, r.net_utility_units, "{}", scenario.scenario_id);
+            let s =
+                simulate_policy(Policy::Static, scenario, &corpus, prior).expect("static policy");
+            let t = simulate_policy(Policy::TwoStage, scenario, &corpus, prior)
+                .expect("two-stage policy");
+            let r = simulate_policy(Policy::RollingHorizon, scenario, &corpus, prior)
+                .expect("rolling policy");
+            assert_eq!(
+                scenario.expected.static_net_units, s.net_utility_units,
+                "{}",
+                scenario.scenario_id
+            );
+            assert_eq!(
+                scenario.expected.two_stage_net_units, t.net_utility_units,
+                "{}",
+                scenario.scenario_id
+            );
+            assert_eq!(
+                scenario.expected.rolling_horizon_net_units, r.net_utility_units,
+                "{}",
+                scenario.scenario_id
+            );
             assert_eq!(
                 scenario.expected.clairvoyant_upper_bound_units,
                 clairvoyant_upper_bound(&corpus.utility_model, scenario),
@@ -793,7 +919,10 @@ mod tests {
         .expect("integer weighted mean");
         assert_eq!(107, rolling);
         assert_eq!(98, two_stage);
-        assert_eq!(5294, reduction_basis_points(17, 8).expect("positive baseline"));
+        assert_eq!(
+            5294,
+            reduction_basis_points(17, 8).expect("positive baseline")
+        );
     }
 
     #[test]
@@ -802,7 +931,8 @@ mod tests {
         let prior = prior_route(&corpus).expect("prior baseline");
         for scenario in &corpus.scenarios {
             for policy in [Policy::Static, Policy::TwoStage, Policy::RollingHorizon] {
-                let outcome = simulate_policy(policy, scenario, &corpus, prior).expect("policy execution");
+                let outcome =
+                    simulate_policy(policy, scenario, &corpus, prior).expect("policy execution");
                 assert!(outcome.trace_valid);
                 for decision in &outcome.decisions {
                     for event_id in &decision.used_event_ids {
@@ -830,7 +960,9 @@ mod tests {
         let prior = prior_route(&corpus).expect("prior baseline");
         let mut outcome = simulate_policy(Policy::RollingHorizon, scenario, &corpus, prior)
             .expect("rolling policy");
-        outcome.decisions[0].visible_event_ids.push("ASSAY_A".to_owned());
+        outcome.decisions[0]
+            .visible_event_ids
+            .push("ASSAY_A".to_owned());
         assert!(verify_trace(&outcome.decisions, &outcome.delivered_observations, &[]).is_err());
     }
 
@@ -857,12 +989,32 @@ mod tests {
             .iter()
             .find(|(id, _)| id == "WORLD_A_LOW_B_LOW")
             .expect("world exists");
-        let a_decision = low_a_high_b.1.decisions.iter().find(|d| d.epoch == 1).expect("decision");
-        let b_decision = low_a_low_b.1.decisions.iter().find(|d| d.epoch == 1).expect("decision");
+        let a_decision = low_a_high_b
+            .1
+            .decisions
+            .iter()
+            .find(|d| d.epoch == 1)
+            .expect("decision");
+        let b_decision = low_a_low_b
+            .1
+            .decisions
+            .iter()
+            .find(|d| d.epoch == 1)
+            .expect("decision");
         assert_eq!(a_decision.action, b_decision.action);
         assert_eq!(Action::RequestAssayB, a_decision.action);
-        let a_late = low_a_high_b.1.decisions.iter().find(|d| d.epoch == 2).expect("late decision");
-        let b_late = low_a_low_b.1.decisions.iter().find(|d| d.epoch == 2).expect("late decision");
+        let a_late = low_a_high_b
+            .1
+            .decisions
+            .iter()
+            .find(|d| d.epoch == 2)
+            .expect("late decision");
+        let b_late = low_a_low_b
+            .1
+            .decisions
+            .iter()
+            .find(|d| d.epoch == 2)
+            .expect("late decision");
         assert_ne!(a_late.action, b_late.action);
     }
 
