@@ -49,6 +49,41 @@ All are proposed targets, not observed results:
 - No weighted aggregate can hide unknown or critical-service loss.
 - Synthetic results remain synthetic until calibrated models and held-out physical observations support stronger evidence claims.
 
+## Competitive baseline and architectural boundaries
+
+This work must be assessed against existing capabilities rather than marketed as a blanket replacement for mine-planning software.
+
+### Existing Symtropy work to compose
+
+- [MINE-SYSTEM-001 #1933 / PR #1934](https://github.com/Luminous-Dynamics/symtropy/pull/1934) owns mine-campaign resource/product accounting and Pareto comparison.
+- [MINE-FLEX-001 #2068](https://github.com/Luminous-Dynamics/symtropy/issues/2068) owns safety-first flexible electricity/water scheduling.
+- [MINE-FLEX-RECOURSE-001 #2098](https://github.com/Luminous-Dynamics/symtropy/issues/2098) owns causal recourse under sequential observations.
+- [MINE-MISSION-TRACE-001 #2097](https://github.com/Luminous-Dynamics/symtropy/issues/2097), [FLOOD-EGRESS-001 #1963](https://github.com/Luminous-Dynamics/symtropy/issues/1963), and Symthaea's [MINE-COMMS-TRACE-001 #8066](https://github.com/Luminous-Dynamics/symthaea/issues/8066) own time-ordered communications / egress fault semantics.
+
+Symtropy also has [MARITIME-CASCADE-001 / PR #1988](https://github.com/Luminous-Dynamics/symtropy/pull/1988). That evaluator addresses fixed-schedule operation timing, precedence-propagated delay, shared-resource overlap and causal-driver attribution; its PR describes an independent oracle sweep across 855 tiny schedule/shock configurations. It is related precedent, not a drop-in replacement: this mining module models three-state service viability, required AllOf versus AtLeast redundancy rules, common-cause failure domains, capacity thresholds, and stale/unknown evidence. Keep the contracts separate unless a reviewed shared interface eliminates more duplication than it introduces. Do not create a second generic schedule propagation engine here.
+
+### External industry and research baselines
+
+- **Commercial mine planning / haulage:** Deswik Planning integrates designs and schedules; Deswik NOVA describes integrated scheduling, blending and haulage scenario management; Deswik LHS supports haulage flow, congestion / seasonal scenarios and calibration from site GPS and truck cycles: https://www.deswik.com/products/planning , https://www.deswik.com/products/nova , https://www.deswik.com/products/lhs . These are capability baselines and potential import/export counterparts, not independently scored benchmark contestants in this synthetic service simulator.
+- **Public optimisation instances:** MineLib provides block models / precedence data across open-pit problems and also lists underground agricola and catan instances: https://minelib.org/v1/Datasets.xhtml . Use the existing MINE-REFERENCE / MINE-UPIT ownership for source-pinned scheduling adapters; this cascade package must not grow a second MineLib parser or production scheduler.
+- **Interoperability:** the Global Mining Guidelines Group describes Open Mining Format (OMF) 2.0-beta as an open, Rust-based library and data-exchange format for 3D mining data: https://gmggroup.org/omf/ . Sol-Atlas should investigate OMF compatibility for spatial/block-model exchange instead of inventing a competing 3D interchange format. OMF does not define these service-failure semantics.
+- **Validated process twins:** a 2025 SAG-mill digital-twin paper reports prediction errors below 5% for its specific 2.5-minute prediction horizon and 30-second sampling setup: https://doi.org/10.1016/j.mineng.2024.109076 . Treat this as a study-specific process-model comparison; it cannot be compared numerically to an E0 synthetic dependency simulator.
+- **Model drift:** a 2025 paper on autonomous residual monitoring for metallurgical digital twins evaluates multivariate residual monitoring in offline and online settings: https://doi.org/10.1016/j.mineng.2024.109107 . Add residual / model-discrepancy monitoring when calibrated physical submodels enter the simulator.
+
+Industry packages already handle important point solutions. Our plausible differentiator is an open, auditable composition benchmark for cross-service viability, common-cause resilience, uncertainty-aware safe restart, and fair policy comparisons across otherwise separate physical and operational models. Superiority remains unproven until equivalent inputs, outcomes, and evaluation boundaries exist.
+
+### Proposed advancement gates
+
+| Evidence stage | Gate |
+| --- | --- |
+| E0: contract semantics | deterministic replay; exhaustive small-state comparison against an independent recursive oracle; reject malformed inputs and exceeded work budgets |
+| E1: cross-service behaviour | zero false-viable states in the frozen critical-hazard controls; shared-cause redundancy fails while independent redundancy remains viable |
+| E2: policy quality | fixed and adaptive recovery policies compared on paired held-out disturbances; no hard-invariant regressions; publish per-class loss and regret |
+| E3: calibrated models | define model-specific error, interval-coverage and drift alarms before running held-out physical records |
+| E4: site evaluation | read-only shadow operation, domain expert review, operational change-control and explicit site authorization before any safety-relevant use |
+
+E0/E1 results demonstrate software semantics only. The 144-state exhaustive oracle fixture is authored but not yet executed in this environment; it is not a test pass. Do not claim any percentage performance improvement until the named baselines, data and holdout protocol are frozen.
+
 ## Next model layer
 
 Add repair crews, spares, access-constrained repair precedence, restoration delays and policy decisions limited to observations delivered by the current tick. Integrate by references/adapters to existing communication-timeline and flood-egress benchmarks, not by duplicating their physics or receipt schemas.

@@ -15,6 +15,12 @@ This is deliberately a small semantic kernel, not an end-to-end physical mine si
 
 It does not simulate rock fracture/cutting, wear, haulage, processing, water flow, ventilation, thermal systems, mine economics, SMRs or geotechnical behavior. Cost, water and emissions metrics are caller-supplied comparison values at this stage; they are not independently recomputed from dedicated sub-ledgers yet.
 
+## Cascade validation status
+
+The cascade module contains a recursive reference oracle exercised across 144 synthetic combinations of two root-service local states, capacities and evidence freshness, plus fixed adversarial tests for shared-cause failure and independent redundancy. These tests are authored, not yet executed here. The module is a service-viability evaluator, not the operation-timing/resource-overlap evaluator from [MARITIME-CASCADE-001 PR #1988](https://github.com/Luminous-Dynamics/symtropy/pull/1988).
+
+See [MINE_CASCADE_SIMULATION_V0_1.md](../../../docs/research/MINE_CASCADE_SIMULATION_V0_1.md) for industry baselines, reuse boundaries and staged acceptance gates.
+
 ## Run locally
 
 From a Rust toolchain compatible with edition 2024:
