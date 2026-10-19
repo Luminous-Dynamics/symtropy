@@ -23,6 +23,7 @@ fn main() {
         .add_systems(Startup, setup)
         .run();
 }
+
 fn spawn_box(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -183,4 +184,3 @@ fn waypoint(
         dwell_seconds,
     }
 }
-
