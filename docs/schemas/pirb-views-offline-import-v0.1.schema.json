@@ -92,10 +92,8 @@
           "minLength": 1
         },
         "analysis_unit": {
-          "enum": [
-            "country_month",
-            "prio_grid_month"
-          ]
+          "const": "country_month",
+          "description": "v0.1 adapter supports only the state-based country-month target."
         },
         "threshold_definition": {
           "type": "string",
