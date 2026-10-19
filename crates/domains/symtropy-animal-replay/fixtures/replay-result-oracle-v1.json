@@ -703,6 +703,54 @@
       "expected_baseline_comparison_outcomes": [
         "not_assessed"
       ]
+    },
+    {
+      "id": "empty_uncertainty_method_rejected",
+      "mutation": "empty_uncertainty_method",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_uncertainty_method"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "metric_interval_must_match_preregistered_protocol",
+      "mutation": "metric_confidence_protocol_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "uncertainty_protocol_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_interval_confidence_must_match_protocol",
+      "mutation": "paired_confidence_protocol_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "uncertainty_protocol_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
+    },
+    {
+      "id": "paired_interval_method_must_match_protocol",
+      "mutation": "paired_interval_method_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "uncertainty_protocol_mismatch"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
     }
   ]
 }
