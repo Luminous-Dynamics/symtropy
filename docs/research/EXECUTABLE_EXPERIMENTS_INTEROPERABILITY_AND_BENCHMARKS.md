@@ -105,7 +105,7 @@ For every import/export, produce a machine-readable report:
 
 Do not claim “lossless conversion” based on parsing success. Compare semantics and outputs on reference cases.
 
-## 3.1 From one-off runs to design of experiments
+## 4. From one-off runs to design of experiments
 
 The first executable core now supports parameter/input overrides scoped to a single run and a deterministic one-variable sweep. The synthetic gear fixture can evaluate driver tooth counts 47, 48 and 49 without mutating the canonical graph.
 
@@ -125,7 +125,7 @@ Keep these outputs distinct:
 
 A sweep is not a probability distribution. A finite difference is not a global sensitivity index. A well-resolved sensitivity calculation does not prove a model is correct.
 
-## 3.2 Verification, validation and uncertainty must be separate gates
+## 5. Verification, validation and uncertainty must be separate gates
 
 NASA-STD-7009B defines practices for modeling and simulation, including acceptance criteria and credibility assessment across a model's life cycle. NASA's verification guidance distinguishes verifying implementation/numerical solution from validating a model against experimental evidence. Symtropy should encode these as distinct statuses and artifacts rather than one unqualified “validated” flag. (References: https://standards.nasa.gov/standard/NASA/NASA-STD-7009; https://www.grc.nasa.gov/www/wind/valid/tutorial/verassess.html; https://www.nasa.gov/reference/appendix-i-verification-and-validation-plan-outline/)
 
@@ -137,7 +137,7 @@ NASA-STD-7009B defines practices for modeling and simulation, including acceptan
 
 Every run should include an intended-use statement, acceptance metric/threshold, target evidence, data split or independence note, limitations, solver/environment identity and visible failed checks. No aggregate score may hide a failed safety-critical validation gate.
 
-## 4. Benchmark suite to build
+## 6. Benchmark suite to build
 
 Benchmarks should be reported as a vector; a good render must not compensate for wrong science.
 
@@ -156,7 +156,7 @@ Benchmarks should be reported as a vector; a good render must not compensate for
 
 The 10^-12 rad goal is specific to the simple arithmetic fixture and reference interpreter; it is not a universal tolerance for real physical simulation. Numerical thresholds must be justified for each model family. The one-variable sweep now has a known finite-difference check against the toy model's analytic slope, -theta_in/N_driven = -1/24 rad per added driver tooth. This is a benchmark for that synthetic graph only.
 
-## 5. Recommended implementation sequence
+## 7. Recommended implementation sequence
 
 1. **Secure the baseline:** run the new crate tests and workspace checks on a toolchain; preserve logs/SHAs. The current authored tests are not claimed as executed until a real run is recorded.
 2. **Harden model semantics:** add unit symbols/conversion policies, explicit variable roles and evidence mappings; property-test graph validation and canonical expression generation.
