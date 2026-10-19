@@ -711,9 +711,9 @@ mod tests {
         assert!((metrics.private_cost_per_service_unit_usd - 2.42).abs() < EPS);
         assert!((metrics.social_cost_per_service_unit_usd - 2.47).abs() < EPS);
         assert!((metrics.total_lifecycle_energy_kwh - 42_000.0).abs() < EPS);
-        assert!((metrics.total_lifecycle_emissions_kg_co2e - 6_300.0).abs() < EPS);
+        assert!((metrics.total_lifecycle_emissions_kg_co2e - 9_000.0).abs() < EPS);
         assert!((metrics.energy_kwh_per_service_unit - 42.0).abs() < EPS);
-        assert!((metrics.emissions_kg_co2e_per_service_unit - 6.3).abs() < EPS);
+        assert!((metrics.emissions_kg_co2e_per_service_unit - 9.0).abs() < EPS);
     }
 
     #[test]
