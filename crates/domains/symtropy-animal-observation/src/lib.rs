@@ -128,7 +128,7 @@ pub struct SourceSnapshot {
 pub struct TaxonomyBinding {
     pub source: String,
     pub release: String,
-    pub taxon_id: String,
+    pub taxon_ids: Vec<String>,
     pub mapping_ref: Option<String>,
 }
 
@@ -228,6 +228,7 @@ pub enum ManifestReason {
     EmptyTaxonomySource,
     EmptyTaxonomyRelease,
     EmptyTaxonId,
+    DuplicateTaxonBinding,
     MissingTaxonomyMappingReference,
     NoMeasurementFields,
     EmptyFieldId,
@@ -265,6 +266,7 @@ pub enum ManifestReason {
     MissingRequiredSite,
     MissingRequiredIndividual,
     MissingRequiredTaxon,
+    InvalidTemporalGap,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -363,16 +365,18 @@ pub fn validate_split(
                 roles: vec![record.role],
             });
         }
-        add_cross_split(
-            format!("duplicate:{}:{}", record.study_id, record.duplicate_group.as_deref().unwrap_or("")),
-            record.role,
-            ManifestReason::DuplicateObservationLeakage,
-            &mut duplicate_groups,
-            &mut violations,
-        );
-        if record.duplicate_group.is_none() {
-            // Records without a declared duplicate group are not all one group.
-            duplicate_groups.remove(&format!("duplicate:{}:", record.study_id));
+        if let Some(duplicate_group) = record
+            .duplicate_group
+            .as_deref()
+            .filter(|group| !group.trim().is_empty())
+        {
+            add_cross_split(
+                format!("duplicate:{}:{duplicate_group}", record.study_id),
+                record.role,
+                ManifestReason::DuplicateObservationLeakage,
+                &mut duplicate_groups,
+                &mut violations,
+            );
         }
         add_cross_split(
             format!("track:{}:{}", record.study_id, record.track_id),
@@ -496,8 +500,16 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
     if manifest.taxonomy.release.trim().is_empty() {
         indeterminate.insert(ManifestReason::EmptyTaxonomyRelease);
     }
-    if manifest.taxonomy.taxon_id.trim().is_empty() {
+    if manifest.taxonomy.taxon_ids.is_empty()
+        || manifest.taxonomy.taxon_ids.iter().any(|taxon_id| taxon_id.trim().is_empty())
+    {
         indeterminate.insert(ManifestReason::EmptyTaxonId);
+    }
+    let mut declared_taxa = BTreeSet::new();
+    for taxon_id in &manifest.taxonomy.taxon_ids {
+        if !declared_taxa.insert(taxon_id) {
+            rejected.insert(ManifestReason::DuplicateTaxonBinding);
+        }
     }
     if manifest.taxonomy.mapping_ref.as_deref().is_none_or(str::is_empty) {
         indeterminate.insert(ManifestReason::MissingTaxonomyMappingReference);
@@ -615,6 +627,9 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
     if manifest.records.is_empty() {
         indeterminate.insert(ManifestReason::NoSplitRecords);
     }
+    if manifest.minimum_temporal_gap < 0 {
+        rejected.insert(ManifestReason::InvalidTemporalGap);
+    }
     let mut record_ids = BTreeSet::new();
     for record in &manifest.records {
         if record.record_id.trim().is_empty() {
@@ -634,7 +649,7 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         }
         if record.taxon_id.trim().is_empty() {
             rejected.insert(ManifestReason::EmptyRecordTaxon);
-        } else if record.taxon_id != manifest.taxonomy.taxon_id {
+        } else if !declared_taxa.contains(&record.taxon_id) {
             indeterminate.insert(ManifestReason::RecordTaxonMismatch);
         }
         if record.start_time > record.end_time {
@@ -711,12 +726,9 @@ pub fn manifest_sha256(manifest: &ReferencePackManifest) -> Result<String, serde
     let mut canonical = manifest.clone();
     canonical.fields.sort();
     canonical.requested_operations.sort();
-    canonical.requested_operations.dedup();
     canonical.permissions.sort();
     canonical.declared_supported_claims.sort();
-    canonical.declared_supported_claims.dedup();
     canonical.requested_claims.sort();
-    canonical.requested_claims.dedup();
     canonical.records.sort();
     let bytes = serde_json::to_vec(&canonical)?;
     Ok(sha256_hex(&bytes))
@@ -749,8 +761,8 @@ mod tests {
             taxonomy: TaxonomyBinding {
                 source: "test-taxonomy".to_owned(),
                 release: "test-release-1".to_owned(),
-                taxon_id: "TEST:1".to_owned(),
-                mapping_ref: Some("test://mapping/1".to_owned()),
+                taxon_ids: vec!["TEST:1".to_owned()],
+            mapping_ref: Some("test://mapping/1".to_owned()),
             },
             provenance: EvidenceClass::Synthetic,
             modality: ObservationModality::VideoKeypoints2d,
