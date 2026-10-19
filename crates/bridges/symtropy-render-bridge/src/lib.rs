@@ -14,6 +14,8 @@
 
 #[cfg(feature = "inspector")]
 pub mod inspector;
+#[cfg(feature = "field-observability")]
+pub mod field_observability;
 pub mod material;
 pub mod projection;
 pub mod sync;
@@ -21,6 +23,14 @@ pub mod telemetry_ssbo;
 
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
+#[cfg(feature = "field-observability")]
+pub use field_observability::{
+    CalibrationState, FieldObservabilityPlugin, FieldProvenance, FieldSourceKind,
+    FieldValidationError, FieldVisualizationConfig, ScalarFieldFrame, ScalarFieldSample,
+    ScalarGlyph, ScalarPalette, ScalarQuantity, ScalarRange, SpectralBand, VectorFieldFrame,
+    VectorFieldSample, VectorGlyph, VectorQuantity, extract_scalar_glyphs, extract_vector_glyphs,
+    scalar_color,
+};
 pub use material::{
     NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
     TelemetryMaterialPlugin, TelemetrySettings,
