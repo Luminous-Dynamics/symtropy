@@ -716,7 +716,8 @@ pub fn manage_architectural_review_controls(
             }
         } else if keys.just_pressed(KeyCode::Space) {
             free_camera.disable();
-            playback.set_playing(!playback.is_playing());
+            let should_play = !playback.is_playing();
+            playback.set_playing(should_play);
         } else if keys.just_pressed(KeyCode::KeyR) {
             free_camera.disable();
             playback.restart();
