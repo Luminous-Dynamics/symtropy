@@ -2350,6 +2350,7 @@ mod tests {
     fn rejects_non_synthetic_trace_without_rights_or_provenance() {
         let mut trace = fixture();
         trace.run.source_kind = SourceKind::LicensedAsset;
+        trace.run.split = None;
         assert!(
             trace
                 .validate(Path::new("missing-provenance.json"))
