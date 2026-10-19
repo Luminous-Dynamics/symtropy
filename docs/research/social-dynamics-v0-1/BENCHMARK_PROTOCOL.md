@@ -147,6 +147,8 @@ Recent work makes validation itself a central challenge for LLM-agent social sim
 - Grimm et al. (2025), ODD and NetLogo replication exercise; 15 of 18 selected models were replicated: https://doi.org/10.1016/j.ecolmodel.2024.110967
 - Wunder, Suri & Watts (2013), *Empirical agent based models of cooperation in public goods games*: https://www.microsoft.com/en-us/research/publication/empirical-agent-based-models-of-cooperation-in-public-goods-games/
 
+For candidate external datasets, licensing gates, grouped study-level holdouts, and an empirical prediction protocol, see [EXTERNAL_VALIDATION_PLAN.md](EXTERNAL_VALIDATION_PLAN.md).
+
 ## 11. Interpreting the prototype's paired bootstrap
 
 The current runner compares each treatment to the no-commitments baseline on the same declared synthetic seed list, then uses a deterministic paired bootstrap to estimate a 95% interval for relative reduction in simulated unmet need. Positive values mean a lower simulated loss.
