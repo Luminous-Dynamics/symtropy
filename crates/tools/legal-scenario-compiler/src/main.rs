@@ -1156,4 +1156,115 @@ mod tests {
         assert_eq!(first_ids, second_ids);
         assert_ne!(serialized(&first), serialized(&second));
     }
+
+    #[test]
+    fn published_corpus_schema_has_resolvable_local_references() {
+        use serde_json::Value;
+
+        fn visit(schema: &Value, root: &Value, references: &mut Vec<String>) {
+            match schema {
+                Value::Object(object) => {
+                    if let Some(reference) = object.get("$ref").and_then(Value::as_str) {
+                        references.push(reference.to_string());
+                    }
+                    for child in object.values() {
+                        visit(child, root, references);
+                    }
+                }
+                Value::Array(items) => {
+                    for child in items {
+                        visit(child, root, references);
+                    }
+                }
+                _ => {}
+            }
+            let _ = root;
+        }
+
+        let schema: Value = serde_json::from_str(include_str!(
+            "../schemas/generated-corpus-v0.1.schema.json"
+        ))
+        .expect("published schema parses");
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(schema["additionalProperties"], false);
+        assert_eq!(schema["properties"]["cases"]["minItems"], 96);
+        assert_eq!(schema["properties"]["metamorphic_pairs"]["minItems"], 54);
+
+        let mut references = Vec::new();
+        visit(&schema, &schema, &mut references);
+        for reference in references {
+            let definition = reference
+                .strip_prefix("#/$defs/")
+                .expect("schema uses local definitions");
+            assert!(
+                schema["$defs"].get(definition).is_some(),
+                "unresolved reference {reference}"
+            );
+        }
+    }
+
+    #[test]
+    fn generated_corpus_contains_all_required_schema_fields() {
+        use serde_json::Value;
+
+        fn check_required(schema_root: &Value, schema: &Value, instance: &Value, path: &str) {
+            if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
+                let name = reference
+                    .strip_prefix("#/$defs/")
+                    .expect("schema references are local");
+                check_required(
+                    schema_root,
+                    &schema_root["$defs"][name],
+                    instance,
+                    path,
+                );
+                return;
+            }
+            if let Some(required) = schema.get("required").and_then(Value::as_array) {
+                for field in required {
+                    let name = field.as_str().expect("required field is a string");
+                    assert!(
+                        instance.get(name).is_some(),
+                        "{path} missing required field {name}"
+                    );
+                }
+            }
+            if let Some(properties) = schema.get("properties").and_then(Value::as_object) {
+                for (name, child_schema) in properties {
+                    if let Some(child_instance) = instance.get(name) {
+                        check_required(
+                            schema_root,
+                            child_schema,
+                            child_instance,
+                            &format!("{path}.{name}"),
+                        );
+                    }
+                }
+            }
+            if let (Some(item_schema), Some(items)) =
+                (schema.get("items"), instance.as_array())
+            {
+                for (index, item) in items.iter().enumerate() {
+                    check_required(
+                        schema_root,
+                        item_schema,
+                        item,
+                        &format!("{path}[{index}]"),
+                    );
+                }
+            }
+        }
+
+        let corpus = generate_corpus(42, &ruleset(), RULESET_JSON)
+            .expect("generated corpus validates");
+        let schema: Value = serde_json::from_str(include_str!(
+            "../schemas/generated-corpus-v0.1.schema.json"
+        ))
+        .expect("published schema parses");
+        let instance = serde_json::to_value(corpus).expect("corpus serializes");
+        check_required(&schema, &schema, &instance, "corpus");
+    }
 }
