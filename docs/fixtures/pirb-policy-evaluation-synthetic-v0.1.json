@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "pirb-policy-synthetic-capacity-aware",
+  "evidence_class": "synthetic",
+  "dataset_id": "pirb-probability-synthetic-reference",
+  "forecast_archive_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "outcome_release_id": "synthetic-outcomes-v1",
+  "outcome_release_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "analysis_unit": "country_month",
+  "lead_months": 1,
+  "target_definition": "Fictional binary outcome in the target month; for evaluator plumbing only.",
+  "policy_kind": "confirmatory",
+  "registration": {
+    "registered_at_month": 119,
+    "threshold_grid_registered_at_month": 119,
+    "registration_evidence_reference": "synthetic:registered-policy-fixture-v1"
+  },
+  "governance": {
+    "responsible_organization_reference": "synthetic:fictional-humanitarian-service",
+    "approval_reference": "synthetic:fictional-approval-record",
+    "authorization_scope": "Test-only hypothetical aggregate policy; no operational deployment",
+    "human_review_required": true
+  },
+  "action": {
+    "action_id": "synthetic-service-check",
+    "action_description": "Fictional aggregate welfare-check service in the synthetic test dataset only",
+    "resource_unit": "service-team-hour",
+    "resource_units_per_alert": 1,
+    "latency_hours": 24
+  },
+  "thresholds": [
+    0.2,
+    0.4,
+    0.6
+  ],
+  "capacity": {
+    "max_alerts_per_target_month": 1,
+    "max_resource_units_per_target_month": 1
+  },
+  "cost_schedule": {
+    "cost_unit": "synthetic-utility-unit",
+    "utility_if_true_alert_units": 100,
+    "cost_false_alert_units": 20,
+    "cost_missed_event_units": 150,
+    "cost_per_resource_unit_units": 5
+  },
+  "privacy": {
+    "aggregate_only": true,
+    "minimum_subgroup_outcomes": 2
+  },
+  "source_references": [
+    "synthetic:fictional-policy-reference"
+  ]
+}
