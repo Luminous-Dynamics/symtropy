@@ -6,6 +6,10 @@ Evidence-bounded result receipts for animal reference-task evaluations.
 
 - Reuse the capability-profile and rights/split manifest validators; this crate is not a second authority for species profiles or data rights.
 - Bind one task and claim ceiling to the target, generalization split, code HEAD, config/evaluator/toolchain/platform, clean/dirty tree identity, seeds, metric definitions, uncertainty, sample counts, baseline references and threshold decision.
+- Pin the required confidence level and versioned uncertainty method for score intervals and for paired-effect intervals; intervals whose confidence/method differs from the preregistered task are rejected.
+- Require explicit paired candidate-minus-baseline effects (independent unit, confidence interval, minimum effect and non-inferiority margin). A baseline point score alone is never a claim that the candidate is superior.
+- Classify baseline comparisons as outperforms-by-margin, non-inferior, regresses-beyond-margin, uncertain, not-assessed or incomplete. Higher-is-better and lower-is-better metrics are normalized explicitly.
+- Bind every reported primary-metric stratum to its own baseline score and paired comparison. Taxon strata must be present in the manifest taxonomy, and the paired mean delta must agree with the reported candidate-minus-baseline means.
 - Preserve a metric matrix by stable stratum (overall, taxon, life stage, site/study, occlusion or condition); the same metric may appear in multiple different strata, but duplicate metric/stratum keys are rejected.
 - Mark a threshold as met only when the full reported confidence interval clears the threshold. If the interval overlaps it, return `uncertain`; if no interval is provided, the threshold is not assessed.
 - Reject fabricated/non-finite scores, unit mismatches, duplicate metrics/baselines, unbound claims, known bad evidence, and synthetic evidence presented as empirical.
