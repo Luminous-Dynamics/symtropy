@@ -252,10 +252,10 @@ impl SemanticMotionIntent {
             return Err(IntentValidationError::InvalidUncertainty);
         }
         if self.confidence_semantics == ConfidenceSemantics::CalibratedProbability
-            && !self
+            && self
                 .calibration_profile_id
                 .as_deref()
-                .is_some_and(|value| !value.trim().is_empty())
+                .is_none_or(|value| value.trim().is_empty())
         {
             return Err(IntentValidationError::MissingCalibrationProfile);
         }
