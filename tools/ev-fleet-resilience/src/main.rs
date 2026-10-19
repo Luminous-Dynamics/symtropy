@@ -109,6 +109,9 @@ struct JobState {
 struct JobResult {
     job_id: String,
     template_id: String,
+    template_evidence_class: String,
+    template_evidence_reference: String,
+    template_evidence_note: String,
     arrival_minute: f64,
     departure_minute: f64,
     initial_soc_fraction: f64,
@@ -134,6 +137,8 @@ struct ScenarioResult {
     scenario_id: String,
     label: String,
     evidence_class: String,
+    evidence_reference: String,
+    evidence_note: String,
     policy: String,
     job_count: usize,
     completed_by_deadline_count: usize,
@@ -644,6 +649,9 @@ fn simulate_scenario(
         jobs.push(JobResult {
             job_id: state.job.job_id.clone(),
             template_id: state.job.template_id.clone(),
+            template_evidence_class: template.evidence_class.clone(),
+            template_evidence_reference: template.evidence_reference.clone(),
+            template_evidence_note: template.evidence_note.clone(),
             arrival_minute: state.job.arrival_minute,
             departure_minute: state.job.departure_minute,
             initial_soc_fraction: state.job.initial_soc_fraction,
@@ -695,6 +703,8 @@ fn simulate_scenario(
         scenario_id: scenario.scenario_id.clone(),
         label: scenario.label.clone(),
         evidence_class: scenario.evidence_class.clone(),
+        evidence_reference: scenario.evidence_reference.clone(),
+        evidence_note: scenario.evidence_note.clone(),
         policy: policy.as_str().to_string(),
         job_count,
         completed_by_deadline_count,
@@ -1090,4 +1100,61 @@ mod tests {
             }
         }
     }
+    #[test]
+    fn delivered_service_is_monotone_with_site_capacity_for_fixed_inputs() {
+        let template = template(100.0, 0.92, 20.0, constant_curve(80.0));
+        let templates = templates(template);
+        let jobs = vec![
+            job("a-urgent", 0.0, 60.0, 0.10, 0.25),
+            job("b-middle", 0.0, 90.0, 0.10, 0.32),
+            job("c-late", 15.0, 120.0, 0.15, 0.40),
+            job("d-late2", 20.0, 125.0, 0.20, 0.45),
+        ];
+        for policy in Policy::ALL {
+            let mut previous_delivered = 0.0;
+            let mut previous_completed = 0;
+            for budget_kw in [2.0, 4.0, 8.0, 12.0, 20.0, 30.0] {
+                let case = scenario(jobs.clone(), 3, budget_kw, vec![]);
+                let result = simulate_scenario(&templates, &case, policy).unwrap();
+                assert!(
+                    result.delivered_battery_energy_kwh + 1.0e-7 >= previous_delivered,
+                    "delivered energy decreased at {budget_kw} kW under {}",
+                    policy.as_str()
+                );
+                assert!(
+                    result.completed_by_deadline_count >= previous_completed,
+                    "deadline completions decreased at {budget_kw} kW under {}",
+                    policy.as_str()
+                );
+                previous_delivered = result.delivered_battery_energy_kwh;
+                previous_completed = result.completed_by_deadline_count;
+            }
+        }
+    }
+
+    #[test]
+    fn policy_comparison_preserves_declared_jobs_and_energy_demand() {
+        let template = template(100.0, 0.9, 12.0, constant_curve(60.0));
+        let templates = templates(template);
+        let case = scenario(
+            vec![
+                job("a", 0.0, 90.0, 0.2, 0.7),
+                job("b", 5.0, 45.0, 0.3, 0.6),
+                job("c", 20.0, 100.0, 0.1, 0.5),
+            ],
+            2,
+            16.0,
+            vec![],
+        );
+        let fcfs = simulate_scenario(&templates, &case, Policy::FirstComeFirstServed).unwrap();
+        let edf = simulate_scenario(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
+        assert_eq!(fcfs.job_count, case.jobs.len());
+        assert_eq!(edf.job_count, case.jobs.len());
+        assert!((fcfs.requested_battery_energy_kwh - edf.requested_battery_energy_kwh).abs() < EPSILON);
+        assert_eq!(
+            fcfs.jobs.iter().map(|j| j.job_id.as_str()).collect::<Vec<_>>(),
+            edf.jobs.iter().map(|j| j.job_id.as_str()).collect::<Vec<_>>()
+        );
+    }
+
 }
