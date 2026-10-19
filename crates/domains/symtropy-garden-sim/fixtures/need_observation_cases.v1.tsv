@@ -6,7 +6,7 @@ a_farmer_confirmed_no_request_has_no_invented_request_reference	CALCULATED	Repor
 farmer_reported_off_platform_service_never_becomes_canonical_attainment	CALCULATED	Separates farmer-reported alternative-channel service from canonical lifecycle evidence
 authorized_relayed_other_channel_attainment_stays_noncanonical	CALCULATED	Authorized relay preserves provenance and does not become canonical platform fulfilment
 absent_optional_barrier_answer_is_not_imputed	CALCULATED	An unanswered or unasked barrier question is not inferred
-open_deferred_and_missing_outcomes_stay_distinct	CALCULATED	Preserves open need, farmer deferral and missing follow-up as different states
+open_deferred_and_missing_outcomes_stay_distinct	CALCULATED	Preserves open need, farmer deferral, unknown outcome and missing follow-up as different states
 request_presence_link_requires_real_opaque_request_ref	BLOCKED	Rejects linked request state without a real opaque request reference
 no_request_state_cannot_carry_fabricated_request_ref	BLOCKED	Prevents invented canonical request IDs for no-request reports
 telemetry_non_use_cannot_create_a_need_episode	BLOCKED	Absence of clicks or requests is never farmer-confirmed need evidence
