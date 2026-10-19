@@ -1,0 +1,361 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-views-offline-import-v0.1.schema.json",
+  "title": "PIRB Frozen VIEWS Offline Import Manifest v0.1",
+  "description": "Locally reviewed mapping manifest for immutable VIEWS API response JSON, codebook, outcome snapshot and spatial block map. It does not fetch data or authorize use.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "evidence_class",
+    "source",
+    "partition",
+    "column_mapping",
+    "privacy",
+    "temporal_split",
+    "lead_months",
+    "spatial_blocking_method_reference",
+    "resampling",
+    "releases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^pirb-probability-[a-z0-9-]+$"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "forecast_archive_id",
+        "model_id",
+        "model_version",
+        "forecast_variable",
+        "codebook_variable_key",
+        "variable_kind",
+        "target_definition",
+        "analysis_unit",
+        "violence_type",
+        "binary_event_threshold_brd",
+        "threshold_definition",
+        "codebook_required_phrase",
+        "forecast_source_reference",
+        "forecast_license_reference",
+        "forecast_attribution",
+        "outcome_source_id",
+        "outcome_release_id",
+        "outcome_definition",
+        "outcome_source_reference",
+        "outcome_license_reference",
+        "outcome_attribution"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_archive_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "pattern": "^[0-9]{3}$"
+        },
+        "forecast_variable": {
+          "type": "string",
+          "minLength": 1
+        },
+        "codebook_variable_key": {
+          "const": "main_dich"
+        },
+        "variable_kind": {
+          "const": "binary_event_probability"
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit": {
+          "const": "country_month",
+          "description": "v0.1 adapter supports only the state-based country-month target."
+        },
+        "threshold_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "codebook_required_phrase": {
+          "type": "string",
+          "minLength": 3
+        },
+        "forecast_source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_license_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_attribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_license_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_attribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "violence_type": {
+          "const": "sb",
+          "description": "v0.1 supports the state-based violence binary target only."
+        },
+        "binary_event_threshold_brd": {
+          "type": "integer",
+          "const": 25,
+          "description": "State-based country-month event threshold for this v0.1 adapter."
+        }
+      }
+    },
+    "partition": {
+      "enum": [
+        "predict",
+        "eval",
+        "calib"
+      ],
+      "description": "Local evaluation-partition annotation. The VIEWS API route has no eval/predict/calib path segment; this annotation is not authenticated by the response envelope."
+    },
+    "column_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "year_index",
+        "month_index",
+        "unit_key_index",
+        "probability_index",
+        "metadata_model_index",
+        "unit_id_prefix"
+      ],
+      "properties": {
+        "year_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "month_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unit_key_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "probability_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metadata_model_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unit_id_prefix": {
+          "type": "string",
+          "pattern": "^unit-[A-Za-z0-9_-]+-$"
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "minimum_subgroup_outcomes"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "minimum_subgroup_outcomes": {
+          "type": "integer",
+          "minimum": 2
+        }
+      }
+    },
+    "temporal_split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forecast_origin_start_month",
+        "training_end_exclusive_month",
+        "calibration_end_exclusive_month",
+        "test_end_exclusive_month",
+        "evaluation_as_of_month",
+        "minimum_climatology_history",
+        "reliability_bin_count",
+        "log_loss_epsilon"
+      ],
+      "properties": {
+        "forecast_origin_start_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "training_end_exclusive_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "calibration_end_exclusive_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "test_end_exclusive_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evaluation_as_of_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_climatology_history": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reliability_bin_count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 20
+        },
+        "log_loss_epsilon": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 0.5
+        }
+      }
+    },
+    "lead_months": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 36
+    },
+    "spatial_blocking_method_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "temporal_block_length_months",
+        "minimum_spatial_blocks",
+        "minimum_temporal_blocks",
+        "replicates",
+        "minimum_valid_replicates",
+        "seed",
+        "confidence_level"
+      ],
+      "properties": {
+        "temporal_block_length_months": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "minimum_spatial_blocks": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "minimum_temporal_blocks": {
+          "type": "integer",
+          "minimum": 6
+        },
+        "replicates": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 10000
+        },
+        "minimum_valid_replicates": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidence_level": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "exclusiveMaximum": 1
+        }
+      }
+    },
+    "releases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "query_uri",
+          "response_paths",
+          "codebook_path"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+_[0-9]{4}_[0-9]{2}_t[0-9]{2}$"
+          },
+          "query_uri": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://api\\.viewsforecasting\\.org/"
+          },
+          "response_paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "codebook_path": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

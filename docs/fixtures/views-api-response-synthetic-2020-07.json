@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "next_page": "",
+    "prev_page": "",
+    "model_tree": {
+      "sb": [
+        {
+          "parent": "",
+          "node": "sc_cm_sb_dich_main"
+        }
+      ],
+      "ns": [],
+      "os": [],
+      "px": []
+    },
+    "models": [
+      "sc_cm_sb_dich_main"
+    ],
+    "row_count": 4,
+    "page_count": 1,
+    "page_cur": 1,
+    "start_date": 488,
+    "end_date": 488
+  },
+  "data": [
+    [
+      2020,
+      8,
+      "AAA",
+      0.16
+    ],
+    [
+      2020,
+      8,
+      "BBB",
+      0.25
+    ],
+    [
+      2020,
+      8,
+      "CCC",
+      0.35
+    ],
+    [
+      2020,
+      8,
+      "DDD",
+      0.03
+    ]
+  ]
+}

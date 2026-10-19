@@ -1,0 +1,173 @@
+{
+  "schema_version": "0.1",
+  "rows": [
+    {
+      "unit_id": "unit-country-AAA",
+      "target_month": 24243,
+      "outcome": "no_event",
+      "outcome_available_month": 24244
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "target_month": 24243,
+      "outcome": "no_event",
+      "outcome_available_month": 24244
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "target_month": 24243,
+      "outcome": "no_event",
+      "outcome_available_month": 24244
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "target_month": 24243,
+      "outcome": "no_event",
+      "outcome_available_month": 24244
+    },
+    {
+      "unit_id": "unit-country-AAA",
+      "target_month": 24244,
+      "outcome": "no_event",
+      "outcome_available_month": 24245
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "target_month": 24244,
+      "outcome": "no_event",
+      "outcome_available_month": 24245
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "target_month": 24244,
+      "outcome": "event",
+      "outcome_available_month": 24245
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "target_month": 24244,
+      "outcome": "no_event",
+      "outcome_available_month": 24245
+    },
+    {
+      "unit_id": "unit-country-AAA",
+      "target_month": 24245,
+      "outcome": "event",
+      "outcome_available_month": 24246
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "target_month": 24245,
+      "outcome": "no_event",
+      "outcome_available_month": 24246
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "target_month": 24245,
+      "outcome": "no_event",
+      "outcome_available_month": 24246
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "target_month": 24245,
+      "outcome": "no_event",
+      "outcome_available_month": 24246
+    },
+    {
+      "unit_id": "unit-country-AAA",
+      "target_month": 24247,
+      "outcome": "no_event",
+      "outcome_available_month": 24248
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "target_month": 24247,
+      "outcome": "event",
+      "outcome_available_month": 24248
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "target_month": 24247,
+      "outcome": "no_event",
+      "outcome_available_month": 24248
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "target_month": 24247,
+      "outcome": "no_event",
+      "outcome_available_month": 24248
+    },
+    {
+      "unit_id": "unit-country-AAA",
+      "target_month": 24248,
+      "outcome": "no_event",
+      "outcome_available_month": 24249
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "target_month": 24248,
+      "outcome": "event",
+      "outcome_available_month": 24249
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "target_month": 24248,
+      "outcome": "no_event",
+      "outcome_available_month": 24249
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "target_month": 24248,
+      "outcome": "no_event",
+      "outcome_available_month": 24249
+    },
+    {
+      "unit_id": "unit-country-AAA",
+      "target_month": 24250,
+      "outcome": "event",
+      "outcome_available_month": 24251
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "target_month": 24250,
+      "outcome": "no_event",
+      "outcome_available_month": 24251
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "target_month": 24250,
+      "outcome": "no_event",
+      "outcome_available_month": 24251
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "target_month": 24250,
+      "outcome": "no_event",
+      "outcome_available_month": 24251
+    },
+    {
+      "unit_id": "unit-country-AAA",
+      "target_month": 24251,
+      "outcome": "no_event",
+      "outcome_available_month": 24252
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "target_month": 24251,
+      "outcome": "event",
+      "outcome_available_month": 24252
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "target_month": 24251,
+      "outcome": "no_event",
+      "outcome_available_month": 24252
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "target_month": 24251,
+      "outcome": "unknown",
+      "outcome_available_month": null
+    }
+  ]
+}

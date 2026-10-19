@@ -19,6 +19,21 @@ The separate `pirb-outcome-vintage-sensitivity` binary compares 2–20 frozen da
 
 Run it with repeated `--input PATH` arguments. Do not place protected data or raw release files in public CI; a sensitivity receipt includes input and outcome digests and should follow the data controller's publication/access policy.
 
+
+## Frozen VIEWS archive import (offline only)
+
+The \`pirb-views-offline-adapter\` binary maps locally saved response pages into the normalized dataset contract. It does not contact VIEWS or download data. The manifest pins each response to one model/versioned run, query URI, analysis unit, target month, partition, matching codebook, column mapping, outcome release and governed opaque spatial-block map.
+
+Public CI contains a synthetic VIEWS-shaped response envelope and synthetic \`main_dich\` codebook. They are invented fixtures, not real VIEWS data. v0.1 accepts only the state-based country-month probability-of-at-least-25-BRDs target, exactly \`sc_cm_sb_dich_main\` with codebook key \`main_dich\`. PRIO-GRID, other violence types and fatality-count variables are rejected until their target-specific mappings are separately reviewed; bounded numeric counts are never reinterpreted as probabilities. The codebook's unit/range, threshold language, geography, response model metadata and target-month query filter must agree with the manifest.
+
+Example from the repository root:
+
+    cargo run --bin pirb-views-offline-adapter --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --manifest docs/fixtures/views-import-manifest-synthetic-v0.1.json --outcomes docs/fixtures/views-outcomes-synthetic-v0.1.json --block-map docs/fixtures/views-spatial-block-map-synthetic-v0.1.json --output pirb-views-normalized.json --receipt pirb-views-import-receipt.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
+
+The adapter rejects unsafe relative source paths, missing or duplicate outcome keys, missing block mappings, incomplete response pagination, source/model mismatches, wrong horizons/query months, duplicate forecast observations, non-probability codebooks, and extra source files not declared by the manifest. The query URI must match the documented route shape `/{run}/{loa}/{violence_type}/{model}` (for example, `/fatalities003_2026_08_t01/cm/sb/sc_cm_sb_dich_main?month=...`). The upstream implementation does not use `eval`/`predict`/`calib` as a route segment. The receipt marks the model route as checked but keeps partition verification false, because the ordinary response envelope does not authenticate its analysis split. Real-data import requires trusted capture provenance and explicit split mapping. Receipts bind the manifest, outcome snapshot, block-map, codebook, response pages, forecast-only archive commitment, normalized dataset and dependency lock. The forecast archive digest commits to provider/archive ID, model/version, forecast variable, target/unit/violence type/threshold/lead, query URIs and response/codebook digests; it deliberately excludes outcome-vintage fields. A regression test proves an outcome-only label/availability revision leaves the forecast archive digest unchanged while changing the outcome and normalized-dataset digests.
+
+A passing import receipt establishes mapping/conformance only. Source references and license strings are declarations to review, not cryptographic proof of permission. For authorized historical use, keep raw files and receipts in the controlled environment and check data terms, attribution, confidentiality, and disclosure risk before publishing any derived metrics.
+
 ## Normalized input contract
 
 The Draft 2020-12 schema is deliberately one outcome definition, one analysis unit, and one forecast horizon per dataset. Score each horizon separately. A normalized adapter for an external provider must state the exact forecast release, model/version, probability variable, target definition, outcome release, source-file digests, attribution, and license reference. Every row carries its forecast release, opaque unit, forecast issue month, last input-data month, target month, lead, probability, outcome label, and label-availability month.

@@ -1,0 +1,121 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "pirb-probability-views-offline-synthetic",
+  "evidence_class": "synthetic",
+  "source": {
+    "provider": "VIEWS-SYNTHETIC-FIXTURE",
+    "forecast_archive_id": "views-synthetic-monthly-archive-v1",
+    "model_id": "fatalities",
+    "model_version": "003",
+    "forecast_variable": "sc_cm_sb_dich_main",
+    "codebook_variable_key": "main_dich",
+    "variable_kind": "binary_event_probability",
+    "target_definition": "Synthetic binary event probability for at least 25 battle-related deaths per country-month.",
+    "analysis_unit": "country_month",
+    "threshold_definition": "Synthetic country-month event threshold: at least 25 battle-related deaths.",
+    "codebook_required_phrase": "at least 25 battle-related deaths",
+    "forecast_source_reference": "https://api.viewsforecasting.org/ (synthetic offline response fixtures; not real VIEWS observations)",
+    "forecast_license_reference": "synthetic:not-a-real-license",
+    "forecast_attribution": "Synthetic test data authored for PIRB; no real-source data are included.",
+    "outcome_source_id": "synthetic-outcome-source",
+    "outcome_release_id": "synthetic-outcome-release-v1",
+    "outcome_definition": "Synthetic event/no-event label for the declared country-month threshold.",
+    "outcome_source_reference": "synthetic:outcome-snapshot",
+    "outcome_license_reference": "synthetic:not-a-real-license",
+    "outcome_attribution": "Synthetic outcomes authored for PIRB evaluator tests only.",
+    "violence_type": "sb",
+    "binary_event_threshold_brd": 25
+  },
+  "partition": "eval",
+  "column_mapping": {
+    "year_index": 0,
+    "month_index": 1,
+    "unit_key_index": 2,
+    "probability_index": 3,
+    "metadata_model_index": 0,
+    "unit_id_prefix": "unit-country-"
+  },
+  "privacy": {
+    "aggregate_only": true,
+    "minimum_subgroup_outcomes": 2
+  },
+  "temporal_split": {
+    "forecast_origin_start_month": 24243,
+    "training_end_exclusive_month": 24247,
+    "calibration_end_exclusive_month": 24250,
+    "test_end_exclusive_month": 24252,
+    "evaluation_as_of_month": 24254,
+    "minimum_climatology_history": 3,
+    "reliability_bin_count": 5,
+    "log_loss_epsilon": 0.000001
+  },
+  "lead_months": 1,
+  "spatial_blocking_method_reference": "synthetic:fictional-country-cluster-map-v1",
+  "resampling": {
+    "temporal_block_length_months": 1,
+    "minimum_spatial_blocks": 4,
+    "minimum_temporal_blocks": 6,
+    "replicates": 200,
+    "minimum_valid_replicates": 100,
+    "seed": 20261019,
+    "confidence_level": 0.95
+  },
+  "releases": [
+    {
+      "run_id": "fatalities003_2020_03_t01",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_03_t01/cm/sb/sc_cm_sb_dich_main?month=484",
+      "response_paths": [
+        "views-api-response-synthetic-2020-03.json"
+      ],
+      "codebook_path": "views-codebook-synthetic-v0.1.json"
+    },
+    {
+      "run_id": "fatalities003_2020_04_t01",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_04_t01/cm/sb/sc_cm_sb_dich_main?month=485",
+      "response_paths": [
+        "views-api-response-synthetic-2020-04.json"
+      ],
+      "codebook_path": "views-codebook-synthetic-v0.1.json"
+    },
+    {
+      "run_id": "fatalities003_2020_05_t01",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_05_t01/cm/sb/sc_cm_sb_dich_main?month=486",
+      "response_paths": [
+        "views-api-response-synthetic-2020-05.json"
+      ],
+      "codebook_path": "views-codebook-synthetic-v0.1.json"
+    },
+    {
+      "run_id": "fatalities003_2020_07_t01",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_07_t01/cm/sb/sc_cm_sb_dich_main?month=488",
+      "response_paths": [
+        "views-api-response-synthetic-2020-07.json"
+      ],
+      "codebook_path": "views-codebook-synthetic-v0.1.json"
+    },
+    {
+      "run_id": "fatalities003_2020_08_t01",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_08_t01/cm/sb/sc_cm_sb_dich_main?month=489",
+      "response_paths": [
+        "views-api-response-synthetic-2020-08.json"
+      ],
+      "codebook_path": "views-codebook-synthetic-v0.1.json"
+    },
+    {
+      "run_id": "fatalities003_2020_10_t01",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_10_t01/cm/sb/sc_cm_sb_dich_main?month=491",
+      "response_paths": [
+        "views-api-response-synthetic-2020-10.json"
+      ],
+      "codebook_path": "views-codebook-synthetic-v0.1.json"
+    },
+    {
+      "run_id": "fatalities003_2020_11_t01",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_11_t01/cm/sb/sc_cm_sb_dich_main?month=492",
+      "response_paths": [
+        "views-api-response-synthetic-2020-11.json"
+      ],
+      "codebook_path": "views-codebook-synthetic-v0.1.json"
+    }
+  ]
+}

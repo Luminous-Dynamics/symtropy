@@ -17,4 +17,8 @@ hex = "0.4"
 name = "pirb-outcome-vintage-sensitivity"
 path = "src/vintage_main.rs"
 
+[[bin]]
+name = "pirb-views-offline-adapter"
+path = "src/views_adapter_main.rs"
+
 [workspace]
