@@ -6,12 +6,13 @@ use std::{collections::BTreeMap, env, fs, process};
 use serde::Serialize;
 use serde_json::Value;
 use symtropy_experiment_core::{
-    units::UNIT_REGISTRY_VERSION, ExperimentGraph, RunReceipt,
+    units::UNIT_REGISTRY_VERSION, ExperimentGraph, HarmonicOscillatorResult,
+    HarmonicOscillatorSpec, OscillatorConvergenceReport, RunReceipt, SweepPoint,
 };
 
 fn usage() -> ! {
     eprintln!(
-        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run inspect <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>\n  symtropy-experiment-run oscillator <oscillator-spec.json>\n  symtropy-experiment-run oscillator-convergence <oscillator-spec.json> <coarse-to-fine-dt-csv>"
+        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run inspect <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>\n  symtropy-experiment-run oscillator <oscillator-spec.json>\n  symtropy-experiment-run oscillator-convergence <oscillator-spec.json> <coarse-to-fine-dt-csv>\n  symtropy-experiment-run verify-receipt <result-envelope.json> <original-input.json>"
     );
     process::exit(2);
 }
@@ -520,6 +521,164 @@ fn run_oscillator_convergence(path: &str, time_steps_csv: &str) {
     }
 }
 
+fn canonical_output_payload_bytes(
+    envelope: &Value,
+    receipt: &RunReceipt,
+) -> Result<Vec<u8>, String> {
+    let mode = receipt.payload.execution_mode.as_str();
+    let failure_payload = || {
+        serde_json::json!({
+            "executed": false,
+            "error": envelope.get("error").cloned().unwrap_or(Value::Null),
+        })
+    };
+
+    let payload: Value = match mode {
+        "run" => {
+            if let Some(values) = envelope.get("values") {
+                return serde_json::to_vec(values)
+                    .map_err(|error| format!("could not serialize run values: {error}"));
+            }
+            if envelope.get("issues").is_some() {
+                serde_json::json!({
+                    "valid": false,
+                    "experiment_id": envelope.get("experiment_id").cloned().unwrap_or(Value::Null),
+                    "issues": envelope.get("issues").cloned().unwrap_or(Value::Null),
+                })
+            } else {
+                failure_payload()
+            }
+        }
+        "inspect" => serde_json::json!({
+            "projection": envelope.get("projection").cloned().unwrap_or(Value::Null),
+            "baseline_evaluation": envelope.get("baseline_evaluation").cloned().unwrap_or(Value::Null),
+        }),
+        "sweep" => {
+            if let Some(points_value) = envelope.get("points") {
+                let points: Vec<SweepPoint> = serde_json::from_value(points_value.clone())
+                    .map_err(|error| format!("invalid sweep points in result envelope: {error}"))?;
+                return serde_json::to_vec(&points)
+                    .map_err(|error| format!("could not serialize sweep points: {error}"));
+            }
+            failure_payload()
+        }
+        "oscillator" => {
+            if let Some(result_value) = envelope.get("result") {
+                let result: HarmonicOscillatorResult = serde_json::from_value(result_value.clone())
+                    .map_err(|error| format!("invalid oscillator result in envelope: {error}"))?;
+                return serde_json::to_vec(&result)
+                    .map_err(|error| format!("could not serialize oscillator result: {error}"));
+            }
+            failure_payload()
+        }
+        "oscillator-convergence" => {
+            if let Some(report_value) = envelope.get("report") {
+                let report: OscillatorConvergenceReport = serde_json::from_value(report_value.clone())
+                    .map_err(|error| format!("invalid convergence report in envelope: {error}"))?;
+                return serde_json::to_vec(&report)
+                    .map_err(|error| format!("could not serialize convergence report: {error}"));
+            }
+            failure_payload()
+        }
+        other => return Err(format!("unsupported receipt execution mode '{other}'")),
+    };
+    serde_json::to_vec(&payload).map_err(|error| format!("could not serialize output payload: {error}"))
+}
+
+fn run_verify_receipt(envelope_path: &str, input_path: &str) {
+    let envelope_raw = read_text(envelope_path);
+    let envelope: Value = match serde_json::from_str(&envelope_raw) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid result envelope JSON in '{envelope_path}': {error}");
+            process::exit(2);
+        }
+    };
+    let Some(receipt_value) = envelope.get("run_receipt").cloned() else {
+        eprintln!("result envelope has no 'run_receipt' field");
+        process::exit(2);
+    };
+    let receipt: RunReceipt = match serde_json::from_value(receipt_value) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid run receipt in '{envelope_path}': {error}");
+            process::exit(2);
+        }
+    };
+
+    let input_bytes = match fs::read(input_path) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            eprintln!("could not read original input artifact '{input_path}': {error}");
+            process::exit(2);
+        }
+    };
+    let model_bytes = match receipt.payload.execution_mode.as_str() {
+        "run" | "inspect" | "sweep" => {
+            let graph: ExperimentGraph = match serde_json::from_slice(&input_bytes) {
+                Ok(graph) => graph,
+                Err(error) => {
+                    eprintln!("input artifact is not a valid experiment graph: {error}");
+                    process::exit(2);
+                }
+            };
+            match serde_json::to_vec(&graph) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    eprintln!("could not serialize parsed experiment graph: {error}");
+                    process::exit(2);
+                }
+            }
+        }
+        "oscillator" | "oscillator-convergence" => {
+            let spec: HarmonicOscillatorSpec = match serde_json::from_slice(&input_bytes) {
+                Ok(spec) => spec,
+                Err(error) => {
+                    eprintln!("input artifact is not a valid oscillator specification: {error}");
+                    process::exit(2);
+                }
+            };
+            match serde_json::to_vec(&spec) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    eprintln!("could not serialize parsed oscillator specification: {error}");
+                    process::exit(2);
+                }
+            }
+        }
+        other => {
+            eprintln!("unsupported receipt execution mode '{other}'");
+            process::exit(2);
+        }
+    };
+    let output_bytes = match canonical_output_payload_bytes(&envelope, &receipt) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            eprintln!("{error}");
+            process::exit(2);
+        }
+    };
+    let verification = match receipt.verify_artifact_bytes(&input_bytes, &model_bytes, &output_bytes) {
+        Ok(result) => result,
+        Err(error) => {
+            eprintln!("could not verify run receipt: {error}");
+            process::exit(2);
+        }
+    };
+    print_json(
+        serde_json::json!({
+            "valid": verification.is_valid(),
+            "receipt_sha256": receipt.receipt_sha256,
+            "verification": verification,
+            "scope_warning": "This verifies receipt self-integrity and matches the saved input artifact, parsed-model serialization, and output payload to recorded digests. It does not authenticate the producer, prove that execution occurred, or validate scientific correctness."
+        }),
+        "{"valid":false,"error":"could not serialize receipt verification report"}",
+    );
+    if !verification.is_valid() {
+        process::exit(1);
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
@@ -531,6 +690,9 @@ fn main() {
         [mode, path] if mode == "oscillator" => run_oscillator(path),
         [mode, path, time_steps] if mode == "oscillator-convergence" => {
             run_oscillator_convergence(path, time_steps)
+        }
+        [mode, envelope_path, input_path] if mode == "verify-receipt" => {
+            run_verify_receipt(envelope_path, input_path)
         }
         _ => usage(),
     }
