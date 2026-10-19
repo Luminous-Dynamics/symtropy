@@ -294,7 +294,7 @@ fn validate_parameters(stimulus: &Value, spec: RasterSpec) -> Result<(), Stimulu
                 .ok_or_else(|| StimulusError(format!("stimulus {id} levels must be an array")))?;
             if levels.len() < 2
                 || levels.len() as u32 > spec.width
-                || spec.width % levels.len() as u32 != 0
+                || !spec.width.is_multiple_of(levels.len() as u32)
             {
                 return Err(StimulusError(format!(
                     "stimulus {id} width must divide evenly into at least two level bars"
@@ -566,7 +566,7 @@ fn sample_pixel(
         "rgb_gradient" => {
             let red = rounded_scale(x, spec.width - 1, spec.maxval)?;
             let green = rounded_scale(y, spec.height - 1, spec.maxval)?;
-            let blue = ((u32::from(red) + u32::from(green) + 1) / 2) as u16;
+            let blue = (u32::from(red) + u32::from(green)).div_ceil(2) as u16;
             Ok([red, green, blue])
         }
         other => Err(StimulusError(format!(
