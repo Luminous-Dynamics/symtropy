@@ -503,7 +503,7 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
         if let Some(available) = record.outcome_available_month {
             if record.outcome != ForecastOutcome::Unknown {
                 if belongs_to_split(record, dataset, SplitName::Training)
-                    && available > t.training_end_exclusive_month
+                    && available >= t.training_end_exclusive_month
                 {
                     findings.push(format!(
                         "{} training outcome was not mature by the calibration boundary",
@@ -511,7 +511,7 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
                     ));
                 }
                 if belongs_to_split(record, dataset, SplitName::Calibration)
-                    && available > t.calibration_end_exclusive_month
+                    && available >= t.calibration_end_exclusive_month
                 {
                     findings.push(format!(
                         "{} calibration outcome was not mature by the test boundary",
@@ -1003,7 +1003,7 @@ mod tests {
     fn training_labels_must_mature_before_calibration() {
         let mut d = dataset();
         d.records[0].outcome_available_month =
-            Some(d.temporal_split.training_end_exclusive_month + 1);
+            Some(d.temporal_split.training_end_exclusive_month);
         assert!(
             semantic_errors(&d)
                 .iter()
@@ -1020,7 +1020,7 @@ mod tests {
             .position(|r| r.forecast_id == "forecast-c1")
             .unwrap();
         d.records[index].outcome_available_month =
-            Some(d.temporal_split.calibration_end_exclusive_month + 1);
+            Some(d.temporal_split.calibration_end_exclusive_month);
         assert!(
             semantic_errors(&d)
                 .iter()
