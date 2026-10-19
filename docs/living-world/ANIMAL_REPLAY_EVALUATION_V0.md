@@ -138,6 +138,8 @@ A metric is keyed by its metric definition plus a stable stratum kind and identi
 
 A preregistered threshold is met only when the declared uncertainty interval clears it in the required direction. If the interval overlaps the threshold, record `uncertain`; if no suitable interval exists, the threshold is `not_assessed`, not passed. A point estimate on the favorable side is not sufficient to call a threshold met.
 
+A leaderboard delta alone is not a superiority claim. For each claimed model-vs-baseline result, use a paired comparison at the declared independent unit (for example animal, recording or study), with a pinned paired-effect estimator, confidence level, unit count, signed candidate-minus-baseline difference, minimum meaningful effect, and non-inferiority margin. Require the paired mean difference to agree with the candidate/baseline means when both are available; otherwise mark the comparison not assessed or incomplete. Report `outperforms_by_margin`, `non_inferior`, `regresses_beyond_margin`, `uncertain`, `not_assessed`, or `incomplete` separately from the absolute-threshold decision. A higher-is-better vs lower-is-better flag must be explicit; direction is never inferred from a metric name.
+
 A future typed result record should bind at minimum:
 
 - schema version, stable run ID, task ID/version and result status (eligible, indeterminate, reject, incomplete);
