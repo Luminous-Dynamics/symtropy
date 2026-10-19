@@ -90,7 +90,8 @@ struct Report {
 
 fn main() {
     let path = env::args().nth(1).unwrap_or_else(|| {
-        "tools/rural-industrial-electrification-evaluator/fixtures/energy_paths_v0_1.json".to_string()
+        "tools/rural-industrial-electrification-evaluator/fixtures/energy_paths_v0_1.json"
+            .to_string()
     });
 
     let input = match fs::read_to_string(&path) {
@@ -157,20 +158,33 @@ fn evaluate(path: &EnergyPath) -> PathResult {
             path.minimum_approach_temperature_c,
         ) {
             (Some(source_temp), Some(required_temp), Some(approach)) => {
-                let drops: Option<Vec<f64>> = path.stages.iter().map(|stage| stage.temperature_drop_c).collect();
+                let drops: Option<Vec<f64>> = path
+                    .stages
+                    .iter()
+                    .map(|stage| stage.temperature_drop_c)
+                    .collect();
                 let Some(drops) = drops else {
-                    findings.push("thermal_route_missing_one_or_more_stage_temperature_drops".to_string());
+                    findings.push(
+                        "thermal_route_missing_one_or_more_stage_temperature_drops".to_string(),
+                    );
                     return empty_result(path, Status::Indeterminate, findings, None);
                 };
                 let delivered_temp = source_temp - drops.iter().sum::<f64>();
                 delivery_temperature_at_load_c = Some(delivered_temp);
                 if delivered_temp - approach < required_temp {
                     findings.push("source_temperature_cannot_meet_required_delivery_temperature_after_declared_stage_drops_and_approach".to_string());
-                    return empty_result(path, Status::NotFeasibleUnderDeclaredScreen, findings, Some(delivered_temp));
+                    return empty_result(
+                        path,
+                        Status::NotFeasibleUnderDeclaredScreen,
+                        findings,
+                        Some(delivered_temp),
+                    );
                 }
             }
             _ => {
-                findings.push("thermal_route_missing_source_delivery_or_approach_temperature".to_string());
+                findings.push(
+                    "thermal_route_missing_source_delivery_or_approach_temperature".to_string(),
+                );
                 return empty_result(path, Status::Indeterminate, findings, None);
             }
         }
@@ -189,7 +203,10 @@ fn evaluate(path: &EnergyPath) -> PathResult {
     for stage in path.stages.iter().rev() {
         let capacity_headroom = stage.max_output_kw - required_output_power;
         if capacity_headroom < -1e-9 {
-            findings.push(format!("stage_output_capacity_below_required_load:{}", stage.stage_id));
+            findings.push(format!(
+                "stage_output_capacity_below_required_load:{}",
+                stage.stage_id
+            ));
         }
         let required_input_power = required_output_power / stage.efficiency_fraction;
         stage_results_reversed.push(StageResult {
@@ -259,8 +276,14 @@ fn validate(path: &EnergyPath) -> Option<String> {
         return Some("scenario_id_and_label_must_be_nonempty".to_string());
     }
 
-    if !["synthetic", "measured", "manufacturer", "literature", "estimate"]
-        .contains(&path.evidence_class.as_str())
+    if ![
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+    ]
+    .contains(&path.evidence_class.as_str())
     {
         return Some("unsupported_evidence_class".to_string());
     }
@@ -287,7 +310,10 @@ fn validate(path: &EnergyPath) -> Option<String> {
         }
         if let Some(drop) = stage.temperature_drop_c {
             if !drop.is_finite() || drop < 0.0 {
-                return Some("stage_temperature_drop_c_must_be_finite_and_nonnegative_when_present".to_string());
+                return Some(
+                    "stage_temperature_drop_c_must_be_finite_and_nonnegative_when_present"
+                        .to_string(),
+                );
             }
         }
     }
@@ -296,7 +322,10 @@ fn validate(path: &EnergyPath) -> Option<String> {
         path.source_temperature_c,
         path.required_delivery_temperature_c,
         path.minimum_approach_temperature_c,
-    ].into_iter().flatten() {
+    ]
+    .into_iter()
+    .flatten()
+    {
         if !value.is_finite() {
             return Some("temperature_values_must_be_finite".to_string());
         }
@@ -391,9 +420,16 @@ mod tests {
         assert_eq!(result.status, Status::FeasibleUnderDeclaredScreen);
         assert!((result.required_source_power_kw.unwrap() - required).abs() < 1e-9);
         assert!((result.maximum_deliverable_power_kw.unwrap() - 902.5).abs() < 1e-9);
-        assert!((result.source_to_load_conversion_loss_kw.unwrap() - (required - 850.0)).abs() < 1e-9);
+        assert!(
+            (result.source_to_load_conversion_loss_kw.unwrap() - (required - 850.0)).abs() < 1e-9
+        );
         assert!((result.requested_load_energy_kwh.unwrap() - 1_700.0).abs() < 1e-9);
-        assert!(result.stages.iter().all(|stage| stage.capacity_headroom_kw >= 0.0));
+        assert!(
+            result
+                .stages
+                .iter()
+                .all(|stage| stage.capacity_headroom_kw >= 0.0)
+        );
     }
 
     #[test]
@@ -410,7 +446,12 @@ mod tests {
         path.source_available_kw = 800.0;
         let result = evaluate(&path);
         assert_eq!(result.status, Status::NotFeasibleUnderDeclaredScreen);
-        assert!(result.findings.iter().any(|x| x == "source_power_insufficient_for_requested_load"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|x| x == "source_power_insufficient_for_requested_load")
+        );
         assert!(result.source_power_shortfall_kw.unwrap() > 0.0);
     }
 
