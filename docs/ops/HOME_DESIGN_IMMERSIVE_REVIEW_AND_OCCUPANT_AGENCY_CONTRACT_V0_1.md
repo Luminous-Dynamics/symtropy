@@ -47,6 +47,19 @@ Each overlay distinguishes:
 
 Aesthetic deviation from a catalog or typical style is not itself a compliance finding. When a concept conflicts with a genuine binding requirement, show the exact rule and a lawful alternative-design, variance/appeal, or evidence-backed reform path when the jurisdiction provides one. Do not imply that the render itself has authority to override the rule.
 
+## Occupant feedback is a design input, not a compliance finding
+
+The `OccupantReviewFeedback` contract stores the user's own category, priority, note, optional desired change, design revision, route/waypoint or room-component reference, sharing scope, explicit public-sharing consent, disposition, and resulting design-change request ID where applicable.
+
+- Preferences such as an arched window or a more intimate living room are legitimate design inputs, not violations.
+- An accessibility or circulation concern prompts investigation; it does not itself prove a code breach. Verified measurements, applicable rules, and qualified review remain separate.
+- Feedback from an old design revision remains historical and must not be silently applied to a later version.
+- Public case-study use needs explicit consent; local/private review is the safe default.
+- A feedback item accepted for implementation must link to a traceable change request. Closing or deferring it needs a reason.
+- The data structure does not include sensor feeds. Camera/microphone, gaze, or body-pose recording are optional product features, not prerequisites for collecting feedback.
+
+This creates a learning loop: experience a design → record a location- and revision-specific reaction → create a traceable design change → invalidate dependent calculations/route evidence → review the revised design. None of these steps automatically changes binding rules or declares compliance.
+
 ## Version and provenance
 
 Each review route and capture should reference:
