@@ -88,10 +88,7 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("cannot write import receipt {receipt_path}: {error}"))?;
 
     println!(
-        "Imported {} records from {} archived releases; normalized dataset SHA-256 {}",
-        bundle.receipt.forecast_record_count,
-        bundle.receipt.release_count,
-        bundle.receipt.normalized_dataset_sha256
+        "Offline archive import completed; normalized dataset and receipt were written to the requested paths."
     );
     Ok(())
 }
