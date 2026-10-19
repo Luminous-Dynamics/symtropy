@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-/// Receipt schema 0.2.0 binds digests to RFC 8785 JSON Canonicalization Scheme bytes.
-pub const RUN_RECEIPT_SCHEMA_VERSION: &str = "0.2.0";
+/// Receipt schema 0.3.0 binds digests to RFC 8785 JCS and adds build-input digests.
+pub const RUN_RECEIPT_SCHEMA_VERSION: &str = "0.3.0";
 pub const RECEIPT_CANONICALIZATION_ALGORITHM: &str = "RFC8785-JCS";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,10 +23,14 @@ pub struct RunReceiptPayload {
     pub canonicalization_algorithm: String,
     pub execution_mode: String,
     pub package_version: String,
-    /// Optional build provenance supplied by the caller via SYMTROPY_SOURCE_REVISION.
-    /// It is informational unless verified against an independent source.
+    /// Build-time revision supplied through SYMTROPY_SOURCE_REVISION, if valid.
+    /// It is still an assertion by the build environment, not an authenticated attestation.
     pub source_revision: Option<String>,
-    /// Runtime/build facts available without trusting external metadata.
+    /// SHA-256 of the Cargo.lock bytes present when this binary was built, when available.
+    pub cargo_lock_sha256: Option<String>,
+    /// SHA-256 of this package's Cargo.toml bytes present when this binary was built.
+    pub package_manifest_sha256: Option<String>,
+    /// Build and runtime facts; build claims are not independently authenticated.
     pub execution_environment: BTreeMap<String, String>,
     pub experiment_id: Option<String>,
     pub model_schema_version: Option<String>,
@@ -77,6 +81,23 @@ fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
         .map_err(|error| format!("could not canonicalize receipt material as RFC 8785 JCS: {error}"))
 }
 
+fn nonempty_build_value(value: Option<&'static str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+}
+
+fn insert_build_environment(
+    environment: &mut BTreeMap<String, String>,
+    key: &str,
+    value: Option<String>,
+) {
+    if let Some(value) = value {
+        environment.insert(key.to_owned(), value);
+    }
+}
+
 impl RunReceipt {
     #[allow(clippy::too_many_arguments)]
     pub fn build<M: Serialize, O: Serialize>(
@@ -92,10 +113,11 @@ impl RunReceipt {
         let model_bytes = canonical_json_bytes(model)?;
         let output_bytes = canonical_json_bytes(output_payload)?;
 
-        let source_revision = std::env::var("SYMTROPY_SOURCE_REVISION")
-            .ok()
-            .map(|value| value.trim().to_owned())
-            .filter(|value| !value.is_empty());
+        // These values are embedded by build.rs, not read from the runtime environment.
+        let source_revision = nonempty_build_value(option_env!("SYMTROPY_BUILD_SOURCE_REVISION"));
+        let cargo_lock_sha256 = nonempty_build_value(option_env!("SYMTROPY_BUILD_CARGO_LOCK_SHA256"));
+        let package_manifest_sha256 =
+            nonempty_build_value(option_env!("SYMTROPY_BUILD_PACKAGE_MANIFEST_SHA256"));
 
         let mut execution_environment = BTreeMap::from([
             ("architecture".to_owned(), std::env::consts::ARCH.to_owned()),
@@ -105,12 +127,21 @@ impl RunReceipt {
                 (if cfg!(debug_assertions) { "debug" } else { "release" }).to_owned(),
             ),
         ]);
-        if let Ok(version) = std::env::var("SYMTROPY_RUSTC_VERSION") {
-            let version = version.trim();
-            if !version.is_empty() {
-                execution_environment.insert("rustc_version_reported_by_builder".to_owned(), version.to_owned());
-            }
-        }
+        insert_build_environment(
+            &mut execution_environment,
+            "rustc_version_at_build",
+            nonempty_build_value(option_env!("SYMTROPY_BUILD_RUSTC_VERSION")),
+        );
+        insert_build_environment(
+            &mut execution_environment,
+            "cargo_target_triple",
+            nonempty_build_value(option_env!("SYMTROPY_BUILD_TARGET")),
+        );
+        insert_build_environment(
+            &mut execution_environment,
+            "cargo_host_triple",
+            nonempty_build_value(option_env!("SYMTROPY_BUILD_HOST")),
+        );
 
         let payload = RunReceiptPayload {
             receipt_schema_version: RUN_RECEIPT_SCHEMA_VERSION.to_owned(),
@@ -119,6 +150,8 @@ impl RunReceipt {
             execution_mode: execution_mode.into(),
             package_version: env!("CARGO_PKG_VERSION").to_owned(),
             source_revision,
+            cargo_lock_sha256,
+            package_manifest_sha256,
             execution_environment,
             experiment_id,
             model_schema_version,
@@ -265,12 +298,32 @@ mod tests {
     fn receipt_is_versioned_and_states_its_digest_algorithm() {
         let value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
         assert_eq!(value.payload.receipt_schema_version, RUN_RECEIPT_SCHEMA_VERSION);
+        assert_eq!(value.payload.receipt_schema_version, "0.3.0");
         assert_eq!(value.payload.digest_algorithm, "sha256");
         assert_eq!(
             value.payload.canonicalization_algorithm,
             RECEIPT_CANONICALIZATION_ALGORITHM
         );
         assert_eq!(value.payload.unit_registry_version.as_deref(), Some("0.1.0"));
+    }
+
+    #[test]
+    fn workspace_build_embeds_lockfile_and_package_manifest_digests() {
+        let value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
+        assert!(value
+            .payload
+            .cargo_lock_sha256
+            .as_deref()
+            .is_some_and(|digest| digest.len() == 64));
+        assert!(value
+            .payload
+            .package_manifest_sha256
+            .as_deref()
+            .is_some_and(|digest| digest.len() == 64));
+        assert!(value
+            .payload
+            .execution_environment
+            .contains_key("rustc_version_at_build"));
     }
 
     #[test]
