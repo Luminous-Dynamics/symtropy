@@ -341,7 +341,9 @@ pub fn evaluate_passage(
             let (ascent_upper, descent_upper) = if direction == TravelDirection::Forward {
                 (upper, lower.saturating_neg())
             } else {
-                (lower.saturating_neg(), upper.saturating_neg())
+                // Reversing signed grade [lower, upper] gives [-upper, -lower].
+                // Maximum uphill grade is -lower; maximum downhill magnitude is upper.
+                (lower.saturating_neg(), upper)
             };
             if ascent_upper > i64::from(profile.maximum_ascent_grade_permille) {
                 Some(ReasonCode::AscentTooSteep)
@@ -646,6 +648,17 @@ pub fn find_admissible_route(
                 to_node: edge.to.clone(),
                 direction: edge.direction,
             });
+            // Bound pending work as well as popped expansions: high-degree graphs
+            // must not allocate an unbounded frontier before the expansion cap trips.
+            if queue.len() >= max_expansions {
+                return Ok(RouteSearchReport {
+                    disposition: RouteSearchDisposition::SearchLimitExceeded,
+                    route: None,
+                    expanded_states,
+                    rejected_edge_directions,
+                    unknown_edge_directions,
+                });
+            }
             queue.push_back(State { node: edge.to.clone(), nodes, traversals });
         }
     }
@@ -763,6 +776,19 @@ mod tests {
     }
 
     #[test]
+    fn reversing_a_downhill_segment_checks_the_uphill_limit() {
+        let mut p = passage("p", "s", "d");
+        p.grade_permille = Some(m(-280, 0, "downhill-grade"));
+        let forward = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward)
+            .expect("valid inputs");
+        let reverse = evaluate_passage(&p, &profile(), 150, TravelDirection::Reverse)
+            .expect("valid inputs");
+        assert_eq!(forward.decision, PassageDecisionKind::AdmissibleWithinDeclaredEnvelope);
+        assert_eq!(reverse.decision, PassageDecisionKind::RejectOutsideEnvelope);
+        assert!(reverse.reasons.contains(&ReasonCode::AscentTooSteep));
+    }
+
+    #[test]
     fn reverse_traversal_swaps_step_up_and_step_down_limits() {
         let mut p = passage("p", "s", "d");
         p.maximum_step_up_mm = Some(m(130, 0, "up-step"));
@@ -863,6 +889,23 @@ mod tests {
     fn route_search_cap_does_not_masquerade_as_no_route() {
         let passages = vec![passage("s-a", "s", "a"), passage("a-d", "a", "d"), passage("s-b", "s", "b"), passage("b-d", "b", "d")];
         let report = find_admissible_route(&passages, &profile(), "s", "d", 150, 8, 1).expect("valid graph");
+        assert_eq!(report.disposition, RouteSearchDisposition::SearchLimitExceeded);
+        assert!(report.route.is_none());
+    }
+
+    #[test]
+    fn high_degree_frontier_is_bounded_before_allocating_all_candidates() {
+        let passages = vec![
+            passage("s-a", "s", "a"),
+            passage("s-b", "s", "b"),
+            passage("s-c", "s", "c"),
+            passage("a-d", "a", "d"),
+            passage("b-d", "b", "d"),
+            passage("c-d", "c", "d"),
+        ];
+        let report = find_admissible_route(
+            &passages, &profile(), "s", "d", 150, 4, 2,
+        ).expect("valid graph");
         assert_eq!(report.disposition, RouteSearchDisposition::SearchLimitExceeded);
         assert!(report.route.is_none());
     }
