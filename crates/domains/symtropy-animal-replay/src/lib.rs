@@ -84,6 +84,10 @@ pub enum ReplayReason {
     EmptyBaselineId,
     DuplicateBaselineId,
     InvalidBaselineMetadata,
+    InvalidBaselineCodeHead,
+    InvalidBaselineConfigDigest,
+    BaselineTrainingScopeMismatch,
+    BaselineComputeBudgetMismatch,
     BaselineComparisonGroupMismatch,
     BaselineMetricMismatch,
     BaselineUnitMismatch,
@@ -101,6 +105,8 @@ pub enum ReplayReason {
     MissingPairedSamples,
     MissingPairedDifference,
     MissingPairedInterval,
+    MissingPairedUnitManifestDigest,
+    MalformedPairedUnitManifestDigest,
     InvalidPairedDifference,
     PairedDifferenceDoesNotMatchScores,
     InvalidPairedInterval,
@@ -186,6 +192,16 @@ pub struct DecisionThreshold {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ComparisonBudgetPolicy {
+    /// Candidate and baseline use identical declared data and compute budgets.
+    MatchedBudget,
+    /// The task is an explicit performance-cost frontier comparison; budgets may differ.
+    DeclaredBudgetTradeoff,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReplayTaskSpec {
     pub task_id: String,
     pub task_version: String,
@@ -195,6 +211,7 @@ pub struct ReplayTaskSpec {
     pub target_taxon_id: Option<String>,
     pub generalization: GeneralizationTarget,
     pub primary_metric_id: String,
+    pub budget_policy: ComparisonBudgetPolicy,
     pub required_confidence_percent: u8,
     /// Versioned method used for metric-score uncertainty intervals.
     pub metric_uncertainty_method_id: String,
@@ -249,6 +266,8 @@ pub struct PairedBaselineComparison {
     pub stratum_kind: MetricStratumKind,
     pub stratum_id: String,
     pub comparison_group: String,
+    /// Digest of the exact canonical paired-unit membership manifest (e.g., animal/episode IDs).
+    pub paired_unit_manifest_sha256: String,
     /// Paired metric difference is model minus baseline; objective controls sign interpretation.
     pub objective: MetricObjective,
     /// What counts as an independent paired unit (animal, recording, or study; not frames by default).
@@ -275,7 +294,14 @@ pub struct BaselineComparisonResult {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BaselineReference {
     pub baseline_id: String,
+    /// Human/model release label, retained alongside immutable execution identity.
     pub revision: String,
+    pub run_id: String,
+    pub code_head: String,
+    pub config_sha256: String,
+    pub evaluator_version: String,
+    pub toolchain: String,
+    pub platform: String,
     pub comparison_group: String,
     pub training_data_scope: String,
     pub compute_budget: String,
