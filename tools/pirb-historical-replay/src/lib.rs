@@ -308,6 +308,12 @@ fn records_in_split(dataset: &ReplayDataset, name: SplitName) -> Vec<&ReplayReco
 
 fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
     let mut findings = Vec::new();
+    if !dataset.privacy.aggregate_only {
+        findings.push("privacy.aggregate_only must be true".to_owned());
+    }
+    if dataset.privacy.minimum_subgroup_denominator == 0 {
+        findings.push("privacy.minimum_subgroup_denominator must be positive".to_owned());
+    }
     if dataset.schema_version != "0.1" {
         findings.push("schema_version must be 0.1".to_owned());
     }
@@ -874,8 +880,9 @@ mod tests {
     #[test]
     fn negative_outcome_requires_full_outcome_horizon() {
         let mut dataset = parsed_fixture();
+        let decision_at = dataset.records[1].decision_at;
         dataset.records[1].outcome_available_at =
-            Some(dataset.records[1].decision_at + dataset.temporal_split.outcome_horizon_seconds - 1);
+            Some(decision_at + dataset.temporal_split.outcome_horizon_seconds - 1);
         assert!(
             semantic_errors(&dataset)
                 .iter()
@@ -886,8 +893,9 @@ mod tests {
     #[test]
     fn harm_outside_declared_outcome_horizon_is_rejected() {
         let mut dataset = parsed_fixture();
+        let decision_at = dataset.records[0].decision_at;
         dataset.records[0].harm_occurred_at =
-            Some(dataset.records[0].decision_at + dataset.temporal_split.outcome_horizon_seconds + 1);
+            Some(decision_at + dataset.temporal_split.outcome_horizon_seconds + 1);
         assert!(
             semantic_errors(&dataset)
                 .iter()
@@ -898,13 +906,15 @@ mod tests {
     #[test]
     fn alert_before_decision_is_rejected() {
         let mut dataset = parsed_fixture();
-        dataset.records[0].alert_issued_at = Some(dataset.records[0].decision_at - 1);
+        let decision_at = dataset.records[0].decision_at;
+        dataset.records[0].alert_issued_at = Some(decision_at - 1);
         assert!(
             semantic_errors(&dataset)
                 .iter()
                 .any(|finding| finding.contains("predates decision_at"))
         );
     }
+
     #[test]
     fn bounded_temporal_confusion_table_matches_independent_oracle() {
         let mut dataset = parsed_fixture();
