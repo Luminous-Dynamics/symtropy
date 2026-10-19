@@ -24,12 +24,13 @@ The rules are deliberately simple reference policies, not behaviorally calibrate
 ## Modeling contract
 
 - The network is a deterministic degree-four ring lattice.
+- The canonical module exposes ring_lattice, voter_update (one asynchronous voter event), and degroot_step (one synchronous DeGroot averaging step). Its tests cover graph validity, absorbing consensus, local-update semantics, convex-hull preservation, and mean preservation for a regular undirected ring. These are formal-mechanism sanity checks, not yet an independent replication of a published empirical benchmark.
 - Randomness uses an in-crate SplitMix64 generator to avoid an external RNG version dependency.
 - The model pre-draws action/noise/tampering channels each tick so treatment branches do not consume different amounts of randomness. Initial states and random channels are paired by seed.
 - Resource reserve bounds contribution feasibility; shared service capacity sets the main unmet-need outcome.
 - Recovery is counted only if capacity reaches 98% of baseline within the declared shock window.
 - The benchmark reports unmet need, peak unmet need, the Gini coefficient of cumulative unmet need, total contributions, recovery rate/time, observation overhead, and repair progress. The optional sweep varies observation noise (0.00/0.20), observation cost (0.00/0.35), signal-tampering rate (0.00/0.20), and shock capacity (0.25/0.65) one factor at a time around the default scenario. It does not test interactions between factors or network-density changes.
-- Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, a zero-duration shock, Gini calculations, and paired-bootstrap behavior on known synthetic values (eleven tests total across the library and binary).
+- Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, a zero-duration shock, Gini calculations, and paired-bootstrap behavior on known synthetic values (eighteen tests total across the library and binary).
 
 ## Known limitations
 
