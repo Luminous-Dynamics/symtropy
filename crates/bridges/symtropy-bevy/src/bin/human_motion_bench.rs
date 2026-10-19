@@ -1603,9 +1603,9 @@ fn print_usage() {
         "Usage: human-motion-bench <reference.json> <prediction.json> [--step-sec SECONDS] [--output report.json]\n\
          \n\
          Trace contracts: docs/research/human-motion-trace-v0.1.schema.json (legacy) and docs/research/human-motion-trace-v0.2.schema.json (orientation)\n\
-         Metrics: root/joint error, foot drift/contact agreement, native-time touchdown/liftoff event timing, and root jerk.\n\
+         Metrics: root/joint error, contact agreement/events, root orientation, and root jerk.\n\
          Without --step-sec the coarser of the two median input sample intervals is used.\n\
-         Synthetic traces are accepted for software tests, but reports are labelled synthetic_fixture_only."
+         Synthetic traces are software-validation only. Use --require-held-out-human-reference for a strict held-out human-capture claim."
     );
 }
 
