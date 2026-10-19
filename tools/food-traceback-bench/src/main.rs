@@ -589,7 +589,7 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
     require_keys(
         boundary,
         &["input_projection", "oracle_truth_is_hidden"],
-        &["input_projection", "oracle_truth_is_hidden"],
+        &["input_projection", "oracle_truth_is_hidden", "rationale"],
         "corpus.evaluator_boundary",
     )?;
     if boundary
