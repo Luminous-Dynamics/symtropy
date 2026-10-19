@@ -125,3 +125,13 @@ Add repair crews, spares, access-constrained repair precedence, restoration dela
 - MineLib benchmark data and descriptions: https://mansci-web.uai.cl/minelib/Datasets.xhtml
 
 These sources motivate model verification, data dependencies and benchmark design; none validates this synthetic service simulator as a mine-safety model.
+
+
+## MINE-REPAIR-ORACLE-001 implementation slice
+
+A separate Rust module, repair_oracle, provides a bounded exhaustive scheduler for tiny repair cases. The model represents repair duration, crew class/count, consumable spare inventory, job prerequisites, access-opening work and a weighted service-restoration objective. It rejects invalid/cyclic inputs, enforces explicit hard search caps, and returns SearchLimitExceeded rather than calling a partial search optimal.
+
+This is a small exact oracle, not a scalable industrial optimiser. All jobs in a problem are required to complete within its finite horizon. The objective is the sum of critical_weight × completion_tick; this is a transparent synthetic proxy for restoration delay, not a complete mine-economics function.
+
+Authored tests cover one-crew priority trade-offs, independent crew parallelism, access-opening prerequisites, spare scarcity, input-order determinism, search-cap behavior and invalid dependency/access graphs. A separate brute-force Cartesian-product oracle sweeps 450 feasible two-job combinations across duration, critical weights, horizon and crew capacity, independently enumerating every pair of start times and checking the optimizer's objective. They remain unverified until the focused exact-head workflow completes. See [MINE-REPAIR-ORACLE-001 #2169](https://github.com/Luminous-Dynamics/symtropy/issues/2169).
+

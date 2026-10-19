@@ -11,6 +11,7 @@
 //! Synthetic fixtures are not empirical mine measurements.
 
 pub mod cascade;
+pub mod repair_oracle;
 
 use std::fmt;
 

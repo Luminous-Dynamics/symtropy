@@ -27,7 +27,7 @@ jobs:
           toolchain: "1.96.0"
           components: clippy, rustfmt
       - name: Format the newly introduced Rust files
-        run: rustfmt --edition 2024 crates/tools/mine-system-benchmark/src/cascade.rs crates/tools/mine-system-benchmark/examples/mine_cascade.rs
+        run: rustfmt --edition 2024 crates/tools/mine-system-benchmark/src/cascade.rs crates/tools/mine-system-benchmark/src/repair_oracle.rs crates/tools/mine-system-benchmark/examples/mine_cascade.rs
       - name: Run locked unit tests
         run: cargo test --locked --manifest-path crates/tools/mine-system-benchmark/Cargo.toml
       - name: Run Clippy
@@ -46,5 +46,6 @@ jobs:
           name: mine-cascade-rustfmt-${{ github.sha }}
           path: |
             crates/tools/mine-system-benchmark/src/cascade.rs
+            crates/tools/mine-system-benchmark/src/repair_oracle.rs
             crates/tools/mine-system-benchmark/examples/mine_cascade.rs
           if-no-files-found: error
