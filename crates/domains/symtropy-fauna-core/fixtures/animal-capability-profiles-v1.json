@@ -1,6 +1,6 @@
 {
   "schema_version": "ANIMAL-CAPABILITY-PROFILES-V1",
-  "note": "All archetypes and non-reference case values in this fixture are synthetic. It is a decision-contract corpus, not measured animal biology.",
+  "note": "All profiles and non-reference values in this corpus are synthetic test fixtures. The real_taxon_bound template deliberately uses TEST:1 and test:// placeholders to exercise validation branches only; it is not a real animal record or a measured biological claim.",
   "synthetic_template": {
     "id": "synthetic/template",
     "kind": "synthetic_archetype",
@@ -16,9 +16,10 @@
           "class": "synthetic",
           "source_ref": null,
           "permission": "synthetic_only",
-          "attribution_present": false,
           "taxon_id": null,
-          "stage": "adult"
+          "stage": "adult",
+          "attribution": null,
+          "permission_scope": null
         },
         "stage_requirement": null
       }
@@ -33,19 +34,20 @@
       "taxon_id": "TEST:1"
     },
     "stage": "adult",
-    "provenance": "measured",
+    "provenance": "modeled",
     "capabilities": [
       {
         "axis": "locomotion",
         "key": "walking",
         "state": "present",
         "evidence": {
-          "class": "measured",
+          "class": "modeled",
           "source_ref": "doi:test/animal-profile-1",
           "permission": "granted",
-          "attribution_present": false,
           "taxon_id": "TEST:1",
-          "stage": "adult"
+          "stage": "adult",
+          "attribution": null,
+          "permission_scope": "test-fixture-only"
         },
         "stage_requirement": null
       }
@@ -67,9 +69,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -90,9 +93,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -113,9 +117,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -136,9 +141,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -159,9 +165,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -182,9 +189,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -205,9 +213,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -228,9 +237,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -251,9 +261,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -274,9 +285,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -297,9 +309,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -320,9 +333,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -343,9 +357,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -366,9 +381,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -389,9 +405,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -412,9 +429,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -435,9 +453,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -458,9 +477,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -481,9 +501,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -504,9 +525,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -527,9 +549,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -550,9 +573,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -573,9 +597,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -596,9 +621,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -619,9 +645,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -642,9 +669,10 @@
             "class": "synthetic",
             "source_ref": null,
             "permission": "synthetic_only",
-            "attribution_present": false,
             "taxon_id": null,
-            "stage": "adult"
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
           },
           "stage_requirement": null
         }
@@ -1028,6 +1056,33 @@
       "expected_reason_codes": [
         "evidence_rights_unknown",
         "unresolved_capability_evidence"
+      ]
+    },
+    {
+      "id": "real_missing_permission_scope",
+      "base_profile": "real",
+      "mutation": "real_missing_permission_scope",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_scope"
+      ]
+    },
+    {
+      "id": "real_whitespace_permission_scope",
+      "base_profile": "real",
+      "mutation": "real_whitespace_permission_scope",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_scope"
+      ]
+    },
+    {
+      "id": "real_attribution_whitespace",
+      "base_profile": "real",
+      "mutation": "real_attribution_whitespace",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_required_attribution"
       ]
     }
   ]
