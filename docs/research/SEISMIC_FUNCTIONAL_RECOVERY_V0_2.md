@@ -11,6 +11,7 @@ Research anchors:
 - NIST SP 1310, *Initial Framework to Design Lifeline Infrastructure for Post-Earthquake Functional Recovery, Volume 1* (2024): https://doi.org/10.6028/NIST.SP.1310
 - NIST SP 1311, *Initial Framework to Design Lifeline Infrastructure for Post-Earthquake Functional Recovery, Volume 2* (2024): https://doi.org/10.6028/NIST.SP.1311
 - NIST, *Functional Recovery Performance Targets Workshop Report* (published 2025): https://www.nist.gov/publications/functional-recovery-performance-targets-workshop-report
+- Johnson et al., *Advancing Resilience Across Lifeline Infrastructure Systems: The Need for Consistent Guidance* (ICONHIC 2026; NIST describes the gap in system-level guidance for interdependent lifelines): https://www.nist.gov/publications/advancing-resilience-across-lifeline-infrastructure-systems-need-consistent-guidance
 - *Resilience Models for Tunnel Recovery After Earthquakes* (2025): https://doi.org/10.1016/j.eng.2025.06.028
 - FHWA, tunnel seismic screening/retrofit guidance: https://www.fhwa.dot.gov/publications/research/infrastructure/pavements/ltpp/05067/
 
@@ -59,13 +60,13 @@ Under piecewise-linear interpolation and trapezoidal integration:
 - Delivered service = 1,875 units; horizon delivered fraction = 0.625.
 - T50 = 10 h; T90 = 20 h; T95 = 30 h.
 
-A second fixture forces service to fall from 80% to 30% before recovering, verifying that the evaluator rejects the early crossing and reports the later sustainable crossing instead. Other tests cover right-censoring, unresolved inspection, failed egress, malformed curves, and missing references for declared measured evidence.
+A second fixture forces service to fall from 80% to 30% before recovering, verifying that the evaluator rejects the early crossing and reports the later sustainable crossing instead. Other tests cover right-censoring, unresolved inspection, failed egress, malformed curves, and missing references for declared measured evidence. A 32-case deterministic contract stress matrix crosses eight event labels with four curve shapes (recovery, aftershock-like drop, no recovery by horizon, and full service), alternating passenger/freight unit labels and varying the demand rate. This is software-metric coverage, not eight physically modeled hazards.
 
 ## Benchmark ladder and targets
 
 1. **Contract correctness:** hand calculations, boundary values, monotonic and non-monotonic curves, missing horizon recovery, malformed records, and numerical overflow.
 2. **Safety negatives:** zero false-safe outputs in seeded hard-stop tests. This is only a finite-suite software acceptance criterion, not evidence of zero real-world risk.
-3. **Scenario completeness:** the current branch now adds a bounded dependency-capacity kernel. Extend it with repair precedence and constrained crews, spatially correlated failures, and coupled infrastructure outage scenarios.
+3. **Scenario completeness:** the current branch adds a bounded dependency-capacity kernel, including common-cause failure of paths with a shared declared dependency. Extend it with repair precedence and constrained crews, spatially correlated failures, and coupled infrastructure outage scenarios.
 4. **Model validity:** reproduce a published scenario only when inputs and model assumptions can be reconstructed, then test on held-out experimental or historical cases. Separate synthetic, sourced, measured, and independently reviewed inputs.
 5. **Industry comparison:** compare recovery curves, T50/T90/T95, cumulative unmet demand, censoring, and scenario coverage against traceable published frameworks and cases with a matched service contract. Do not claim “better than SOTA” until data, thresholds, uncertainty, and independent evaluation are comparable.
 
