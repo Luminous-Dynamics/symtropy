@@ -377,6 +377,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         json!(raw_coherent as f64 / assessable as f64)
     };
 
+    let constraint_count = diagnostics.len();
     let registration_id =
         string_at(&registration, "registration_id").expect("schema validated registration_id");
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
@@ -404,7 +405,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         "reconciliation_method_sha256": registration["reconciliation_policy"]["method_sha256"],
         "constraint_diagnostics": diagnostics,
         "summary": {
-            "constraint_count": diagnostics.len(),
+            "constraint_count": constraint_count,
             "assessable_constraint_count": assessable,
             "raw_coherent_constraint_count": raw_coherent,
             "reconciled_coherent_constraint_count": reconciled_coherent,
@@ -573,7 +574,8 @@ mod tests {
     #[test]
     fn duplicate_forecast_ids_are_rejected() {
         let mut value = fixture();
-        value["forecasts"][1]["forecast_id"] = value["forecasts"][0]["forecast_id"].clone();
+        let first_id = value["forecasts"][0]["forecast_id"].clone();
+        value["forecasts"][1]["forecast_id"] = first_id;
         let errors = audit(&value).expect_err("duplicate IDs must not silently overwrite rows");
         assert!(errors.iter().any(|error| error.contains("forecast ID is duplicated")));
     }
