@@ -1613,6 +1613,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
     let mut positional: Vec<PathBuf> = Vec::new();
     let mut requested_step: Option<f64> = None;
     let mut output_path: Option<PathBuf> = None;
+    let mut require_held_out_human_reference = false;
 
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -1637,6 +1638,9 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
                     .ok_or_else(|| BenchError("--output requires a path".to_owned()))?;
                 output_path = Some(PathBuf::from(value));
             }
+            "--require-held-out-human-reference" => {
+                require_held_out_human_reference = true;
+            }
             _ if arg.starts_with('-') => {
                 return Err(Box::new(BenchError(format!(
                     "unknown option {arg:?}; use --help for usage"
@@ -1655,6 +1659,9 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
 
     let reference = read_trace(&positional[0])?;
     let prediction = read_trace(&positional[1])?;
+    if require_held_out_human_reference {
+        validate_human_reference_claim(&reference, &prediction)?;
+    }
     let report = evaluate(&reference, &prediction, requested_step)?;
     let json = serde_json::to_string_pretty(&report)?;
 
@@ -1668,7 +1675,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.4} m"));
     eprintln!(
         concat!(
-            "Motion benchmark: validity={}, samples={}, joints_scored={}, ",
+            "Motion benchmark: validity={}, evidence_scope={}, samples={}, joints_scored={}, ",
             "source max interval ref/pred={:.1}/{:.1} ms, ",
             "root ADE={:.4} m, FDE={:.4} m, max={:.4} m, ",
             "macro joint ADE={}, max joint FDE={}, ",
@@ -1678,6 +1685,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             "root orient P95 (rad/deg)={}/{}, yaw P95 (rad/deg)={}/{}, root jerk={:.4} m²/s⁶"
         ),
         report.validity,
+        report.evidence_scope,
         report.alignment.samples,
         report.joint_trajectory_error.joints_scored,
         report.alignment.reference_max_sample_interval_sec * 1000.0,
