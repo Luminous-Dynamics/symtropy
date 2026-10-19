@@ -879,7 +879,10 @@ mod tests {
         assert_eq!(0, receipt.freshness_only_acceptances_missing_or_stale);
         assert_eq!(0, receipt.residual_only_acceptances_during_shift);
         assert_eq!(64, receipt.residual_only_acceptances_missing_or_stale);
-        assert_eq!(192, receipt.residual_only_acceptances_during_recovery_holdoff);
+        assert_eq!(
+            192,
+            receipt.residual_only_acceptances_during_recovery_holdoff
+        );
     }
 
     #[test]
