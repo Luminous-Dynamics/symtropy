@@ -65,7 +65,7 @@ pub enum ReplayReason {
     InvalidRunIdentity,
     InvalidCodeHead,
     InvalidConfigDigest,
-    DirtyTreeMissingDigest,
+    InvalidWorkingTreeDigest,
     MissingDeterministicSeed,
     ComparisonGroupMismatch,
     EmptyMetricId,
@@ -373,12 +373,12 @@ pub fn build_replay_receipt(
     if let Some(tree_digest) = run.working_tree_sha256.as_deref()
         && !is_lower_hex(tree_digest, &[64])
     {
-        rejected.insert(ReplayReason::DirtyTreeMissingDigest);
+        rejected.insert(ReplayReason::InvalidWorkingTreeDigest);
     }
     if !run.working_tree_clean
         && run.working_tree_sha256.as_deref().is_none_or(|digest| !is_lower_hex(digest, &[64]))
     {
-        rejected.insert(ReplayReason::DirtyTreeMissingDigest);
+        rejected.insert(ReplayReason::InvalidWorkingTreeDigest);
     }
     if run.deterministic_replay && run.seed.is_none() {
         indeterminate.insert(ReplayReason::MissingDeterministicSeed);
