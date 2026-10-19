@@ -490,7 +490,7 @@ fn report() {
 
         let fixed = &result_sets[1].1;
         let condition = &result_sets[2].1;
-        print!("}},\"condition_based_minus_fixed_cycle\":{{");
+        print!("},\"condition_based_minus_fixed_cycle\":{{");
         print_delta(
             "throughput",
             paired_delta(condition, fixed, RunMetrics::throughput),
@@ -505,7 +505,7 @@ fn report() {
             "escape_rate",
             paired_delta(condition, fixed, RunMetrics::escape_rate),
         );
-        print!("}}}}");
+        print!("}}");
     }
 
     println!("]}}");
