@@ -73,6 +73,14 @@ cargo run -p symtropy-bevy-scene --example architectural_review_room
 
 The example creates an illustrative room with a scripted route and a direct free-camera mode: Space pauses/resumes the route, R restarts it, F toggles free camera, hold right mouse to look, WASD to move horizontally, E/Q to rise/descend, and Shift to move faster. The direct camera pauses the route and preserves the currently displayed view orientation when enabled. Route controls are explicitly ordered before route advancement and free-camera movement. This is a visual prototype with synthetic geometry, not a real home model, collision-checked navigation, XR implementation, engineering simulation, or compliance check.
 
+## Owner-led design alternatives
+
+The `design_intent` module distinguishes jurisdiction-pinned binding requirements, owner-declared hard constraints, preferences, exploration goals, engineering assumptions, and unverified site constraints. Each candidate needs an evaluation for every declared intent.
+
+There is deliberately **no overall scalar score** that tries to declare one home best across privacy, cultural expression, daylight, affordability, maintenance, spatial character, and other unlike objectives. A candidate can be marked `ReadyForTechnicalAssessment` only when its hard constraints have known, satisfied or justified-not-applicable outcomes; this remains a path to independent assessment, not code compliance or approval. An owner can explicitly decline an alternative without misrepresenting that personal choice as a code violation. A `BlockedByHardConstraint` disposition needs an evidence-linked unsatisfied hard constraint, and binding requirements require exact rule-source/module provenance.
+
+These types validate the comparison contract; they do not author building geometry, evaluate laws, prove source authenticity, or assess the truth of a claimed measurement.
+
 ## License
 
 Apache-2.0 OR MIT (permissive). No AGPL deps.
