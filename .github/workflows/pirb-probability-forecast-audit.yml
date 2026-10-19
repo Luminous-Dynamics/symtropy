@@ -94,6 +94,7 @@ jobs:
               and .evidence_class == "synthetic"
               and .provider == "synthetic"
               and .forecast_archive_id == "synthetic-runset-v1"
+              and .lead_months == 1
               and .forecast_archive_sha256 == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
               and .outcome_release_sha256 == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
               and .forecast_source_reference == "synthetic:forecast-source"
