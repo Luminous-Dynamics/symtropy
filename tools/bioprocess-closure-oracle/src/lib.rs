@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -307,8 +307,8 @@ fn evaluate_case(value: &Value) -> Evaluation {
     }
 
     let claim = text(request, &["claim"]).unwrap_or_default();
-    if get(process, &["gross_product_g"]).is_none()
-        || get(process, &["usable_product_g"]).is_none()
+    if get(process, &["gross_product_g"]).is_none_or(Value::is_null)
+        || get(process, &["usable_product_g"]).is_none_or(Value::is_null)
     {
         return result(
             case_id,
@@ -316,14 +316,14 @@ fn evaluate_case(value: &Value) -> Evaluation {
             "USABLE_PRODUCT_BREAKDOWN_MISSING",
         );
     }
-    if get(process, &["rejected_product_g"]).is_none() {
+    if get(process, &["rejected_product_g"]).is_none_or(Value::is_null) {
         return result(
             case_id,
             Disposition::Indeterminate,
             "REJECTED_BATCH_BURDEN_MISSING",
         );
     }
-    if get(process, &["downstream_recovery_loss_g"]).is_none() {
+    if get(process, &["downstream_recovery_loss_g"]).is_none_or(Value::is_null) {
         return result(
             case_id,
             Disposition::Indeterminate,
@@ -680,8 +680,8 @@ mod tests {
     #[test]
     fn duplicate_stream_ids_are_invalid() {
         let mut input = corpus();
-        input["cases"][0]["process"]["resource_balances"][1]["stream_id"] =
-            input["cases"][0]["process"]["resource_balances"][0]["stream_id"].clone();
+        let first_stream_id = input["cases"][0]["process"]["resource_balances"][0]["stream_id"].clone();
+        input["cases"][0]["process"]["resource_balances"][1]["stream_id"] = first_stream_id;
         let result = evaluate_case(&input["cases"][0]);
         assert_eq!(result.disposition, Disposition::InvalidInput);
         assert_eq!(result.reason_codes, vec!["DUPLICATE_RESOURCE_STREAM_ID"]);
