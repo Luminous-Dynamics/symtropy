@@ -12,7 +12,7 @@ fn service(id: &str, domain: &str) -> Service {
         capacity: 10.0,
         minimum_capacity: 5.0,
         evidence_current: true,
-        failure_domain: Some(domain.to_owned()),
+        failure_domains: vec![domain.to_owned()],
         requirements: Vec::new(),
         critical: false,
     }

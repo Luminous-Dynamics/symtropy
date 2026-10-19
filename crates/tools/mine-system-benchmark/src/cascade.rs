@@ -26,7 +26,7 @@ pub struct Service {
     pub capacity: f64,
     pub minimum_capacity: f64,
     pub evidence_current: bool,
-    pub failure_domain: Option<String>,
+    pub failure_domains: Vec<String>,
     pub requirements: Vec<DependencyRule>,
     pub critical: bool,
 }
@@ -171,8 +171,14 @@ fn validate_and_index(s: &Scenario) -> Result<BTreeMap<String, Service>, Simulat
             || service.capacity < 0.0 || service.minimum_capacity < 0.0 {
             return invalid(format!("service {} has invalid capacity", service.id));
         }
-        if service.failure_domain.as_ref().is_some_and(|d| d.trim().is_empty()) {
-            return invalid(format!("service {} has empty failure domain", service.id));
+        let mut unique_domains = BTreeSet::new();
+        for domain in &service.failure_domains {
+            if domain.trim().is_empty() {
+                return invalid(format!("service {} has empty failure domain", service.id));
+            }
+            if !unique_domains.insert(domain) {
+                return invalid(format!("service {} repeats failure domain {domain}", service.id));
+            }
         }
         let id = service.id.clone();
         if services.insert(id.clone(), service.clone()).is_some() { return invalid(format!("duplicate service ID {id}")); }
@@ -203,7 +209,7 @@ fn validate_and_index(s: &Scenario) -> Result<BTreeMap<String, Service>, Simulat
             }
         }
     }
-    let domains: BTreeSet<String> = services.values().filter_map(|s| s.failure_domain.clone()).collect();
+    let domains: BTreeSet<String> = services.values().flat_map(|s| s.failure_domains.iter().cloned()).collect();
     let mut event_ids = BTreeSet::new();
     for event in &s.events {
         if event.id.trim().is_empty() { return invalid("event ID is empty"); }
@@ -267,7 +273,7 @@ fn evaluate(services: &BTreeMap<String, Service>, runtime: &BTreeMap<String, Run
         let service = &services[id];
         let state = &runtime[id];
         let local = if state.local_state == LocalState::Unavailable
-            || service.failure_domain.as_ref().is_some_and(|d| down_domains.contains(d)) {
+            || service.failure_domains.iter().any(|d| down_domains.contains(d)) {
             Disposition::Unavailable
         } else if state.local_state == LocalState::Unknown || !state.evidence_current {
             Disposition::Unknown
@@ -338,7 +344,7 @@ fn accumulate(duration: u64, services: &BTreeMap<String, Service>, states: &BTre
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn svc(id: &str) -> Service { Service { id: id.into(), local_state: LocalState::Available, capacity: 10.0, minimum_capacity: 5.0, evidence_current: true, failure_domain: None, requirements: Vec::new(), critical: false } }
+    fn svc(id: &str) -> Service { Service { id: id.into(), local_state: LocalState::Available, capacity: 10.0, minimum_capacity: 5.0, evidence_current: true, failure_domains: Vec::new(), requirements: Vec::new(), critical: false } }
     fn scenario(services: Vec<Service>, events: Vec<Event>, horizon_tick: u64) -> Scenario { Scenario { id: "SYNTHETIC-CASCADE".into(), horizon_tick, max_services: 32, max_events: 64, services, events } }
     fn ev(at_tick: u64, id: &str, kind: EventKind) -> Event { Event { at_tick, id: id.into(), kind } }
 
@@ -354,8 +360,8 @@ mod tests {
 
     #[test]
     fn common_cause_defeats_nominal_redundancy() {
-        let mut a = svc("pump-a"); a.failure_domain = Some("shared-power".into());
-        let mut b = svc("pump-b"); b.failure_domain = Some("shared-power".into());
+        let mut a = svc("pump-a"); a.failure_domains = vec!["shared-power".into()];
+        let mut b = svc("pump-b"); b.failure_domains = vec!["shared-power".into()];
         let mut dewatering = svc("dewatering"); dewatering.critical = true; dewatering.requirements = vec![DependencyRule::AtLeast { service_ids: vec!["pump-a".into(), "pump-b".into()], minimum_viable: 1 }];
         let input = scenario(vec![a, b, dewatering], vec![ev(1, "shared-down", EventKind::SetFailureDomainAvailable { domain: "shared-power".into(), available: false }), ev(4, "shared-up", EventKind::SetFailureDomainAvailable { domain: "shared-power".into(), available: true })], 6);
         let report = simulate(&input).unwrap();
@@ -366,8 +372,8 @@ mod tests {
 
     #[test]
     fn independent_redundancy_survives_single_domain_loss() {
-        let mut a = svc("pump-a"); a.failure_domain = Some("power-a".into());
-        let mut b = svc("pump-b"); b.failure_domain = Some("power-b".into());
+        let mut a = svc("pump-a"); a.failure_domains = vec!["power-a".into()];
+        let mut b = svc("pump-b"); b.failure_domains = vec!["power-b".into()];
         let mut dewatering = svc("dewatering"); dewatering.requirements = vec![DependencyRule::AtLeast { service_ids: vec!["pump-a".into(), "pump-b".into()], minimum_viable: 1 }];
         let input = scenario(vec![dewatering, b, a], vec![ev(1, "power-a-down", EventKind::SetFailureDomainAvailable { domain: "power-a".into(), available: false })], 3);
         let report = simulate(&input).unwrap();
@@ -564,6 +570,43 @@ mod tests {
         input.max_services = 4;
         input.max_events = MAX_CONFIGURED_EVENTS + 1;
         assert!(matches!(simulate(&input), Err(SimulationError::InvalidInput(_))));
+    }
+
+
+    #[test]
+    fn any_active_failure_domain_can_disable_a_multi_domain_service() {
+        let mut pump_a = svc("pump-a");
+        pump_a.failure_domains = vec!["power-a".into(), "shared-control".into()];
+        let mut pump_b = svc("pump-b");
+        pump_b.failure_domains = vec!["power-b".into(), "shared-control".into()];
+        let mut dewatering = svc("dewatering");
+        dewatering.critical = true;
+        dewatering.requirements = vec![DependencyRule::AtLeast {
+            service_ids: vec!["pump-a".into(), "pump-b".into()],
+            minimum_viable: 1,
+        }];
+        let input = scenario(
+            vec![pump_a, pump_b, dewatering],
+            vec![ev(2, "shared-control-fails", EventKind::SetFailureDomainAvailable {
+                domain: "shared-control".into(), available: false,
+            })],
+            5,
+        );
+        let report = simulate(&input).unwrap();
+        assert_eq!(report.snapshots[0].dispositions["pump-a"], Disposition::Unavailable);
+        assert_eq!(report.snapshots[0].dispositions["pump-b"], Disposition::Unavailable);
+        assert_eq!(report.snapshots[0].dispositions["dewatering"], Disposition::Unavailable);
+        assert_eq!(report.critical_unavailable_service_ticks, 3);
+    }
+
+    #[test]
+    fn duplicate_failure_domains_are_rejected() {
+        let mut pump = svc("pump");
+        pump.failure_domains = vec!["power-a".into(), "power-a".into()];
+        assert!(matches!(
+            simulate(&scenario(vec![pump], vec![], 1)),
+            Err(SimulationError::InvalidInput(_))
+        ));
     }
 
 }
