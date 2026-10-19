@@ -721,8 +721,9 @@ mod tests {
         let mut scenario = corpus().scenarios.remove(0);
         scenario.lots[0].source_kind = SourceKind::Derived;
         scenario.lots[0].source_evidence_status = EvidenceStatus::NotApplicable;
+        let child_lot_id = scenario.lots[1].lot_id.clone();
         scenario.lots[0].parent_inputs.push(ParentInput {
-            lot_id: scenario.lots[1].lot_id.clone(),
+            lot_id: child_lot_id,
             mass_g: 1_000,
         });
         let result = evaluate_one(&scenario);
