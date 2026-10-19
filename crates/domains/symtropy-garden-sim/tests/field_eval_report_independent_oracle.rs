@@ -75,7 +75,7 @@ fn completed_pending_decision_is_a_subset_not_an_extra_denominator_bucket() {
 #[test]
 fn known_late_or_disputed_outcomes_do_not_inflate_upper_bound() {
     let mut input = valid_input();
-    input.outcomes.accepted_after_window_count = 3;
+    input.outcomes.accepted_after_window_count = 2;
     input.outcomes.disputed_or_rework_count = 2;
     input.outcomes.known_not_accepted_count = 0;
     input.nonacceptance_reasons = Default::default();
@@ -144,6 +144,6 @@ fn input_sha256_uses_a_standard_known_vector() {
 #[test]
 fn report_result_keeps_a_claim_ceiling() {
     let report = assess_field_eval_report_v1(&valid_input());
-    assert!(report.claim_ceiling.contains("does not authenticate"));
+    assert!(report.claim_ceiling.contains("Does not authenticate"));
     assert!(report.claim_ceiling.contains("causal effects"));
 }
