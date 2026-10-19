@@ -47,6 +47,23 @@ Report per split and scenario class:
 
 Do not collapse these into one quality score. Missing outcomes do not count as covered or uncovered; their denominator is separate. The unguarded baseline is a synthetic comparator, not a representation of every commercial industrial controller.
 
+## Paired policy baselines
+
+Every generated observation is evaluated under four explicit policies using the same calibration threshold and identical inputs:
+
+- **Unguarded interval-only:** accepts any candidate whose interval lies inside protected bounds; ignores measurement freshness, residuals and recovery state.
+- **Freshness-only:** rejects missing/stale observations and unsafe intervals, but ignores model residual drift and post-shift recovery.
+- **Residual-only:** rejects missing observations, residuals beyond the frozen calibration threshold and unsafe intervals, but ignores telemetry age and does not latch/recover after degradation.
+- **Full credibility gate:** applies freshness, residual, hard-bound and three-healthy-step re-entry checks.
+
+The benchmark compares policy-specific false acceptance categories rather than a weighted leaderboard. Frozen synthetic expected counts are:
+- Freshness-only admits 448 timesteps with injected residual shift, but 0 stale/missing timesteps.
+- Residual-only admits 0 timesteps during the injected shift, but accepts 64 stale-telemetry timesteps and admits 192 recovery-holdoff timesteps before the full policy's three-step re-entry period completes.
+- The unguarded interval-only baseline admits 448 shifted timesteps and 128 stale/missing timesteps.
+- The full credibility gate admits zero shifted, stale/missing or unsafe-interval timesteps in this finite corpus and has zero known-answer/independent-audit mismatches.
+
+These values are generated fixture counts, not estimated operational error rates. The comparison is intentionally multi-dimensional: the freshness gate misses drift, the residual-only gate ignores freshness and recovery discipline, and the unguarded policy misses both. No composite score may obscure those distinct failure modes.
+
 ## Acceptance gates
 
 The exact-head workflow requires:
