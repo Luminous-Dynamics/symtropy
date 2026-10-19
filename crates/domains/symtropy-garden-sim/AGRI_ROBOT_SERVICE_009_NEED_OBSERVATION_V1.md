@@ -36,6 +36,8 @@ Eligible report bases are explicitly distinct:
 
 For the authorized-relay basis, the fixture uses an opaque `auth-` reference. Its syntax is not proof that the mandate or consent is real; an actual integration needs its own authority verification.
 
+The timing axis is separately declared as `anticipated`, `current`, or `retrospective`. Direct prospective reports cannot be labelled retrospective; farmer-confirmed retrospective recall must use the retrospective timing class. Authorized relays retain their own report-basis and authority fields while also declaring the timing. This lets reports stratify *how* a need was observed separately from *when* the need was relevant.
+
 ## Request existence and outcomes are separate axes
 
 Request presence can be:
