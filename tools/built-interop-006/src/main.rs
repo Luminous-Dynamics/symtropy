@@ -1075,6 +1075,48 @@ mod tests {
         )
     }
 
+    fn schema_gate_producer(target_bytes: &[u8]) -> ProducerGate {
+        let payload = serde_json::json!({
+            "profile_id": IFC_SCHEMA_PROFILE_ID,
+            "input_sha256": sha256_hex(target_bytes),
+            "input_byte_length": target_bytes.len(),
+            "declared_schema_token": "IFC4",
+            "decision_reason": {"code": "VALIDATION_COMPLETED"},
+            "summary": {
+                "errors": 0,
+                "evaluation_errors": 0,
+                "warnings": 0,
+                "unsupported": 0,
+                "truncated": false,
+                "validator_is_conformant": true
+            },
+            "findings": []
+        });
+        let payload_hash = sha256_hex(&serde_json::to_vec(&payload).unwrap());
+        ProducerGate {
+            gate: Gate {
+                gate_id: GateId::IfcSchemaConformance,
+                mandatory: true,
+                status: GateStatus::Pass,
+                claim_scope: "synthetic schema-gate contract fixture".into(),
+                limitations: vec!["Synthetic report only.".into()],
+                tool: Some(ToolIdentity {
+                    name: "ifc-validate+ifc-schema".into(),
+                    version: IFC_SCHEMA_TOOL_VERSION.into(),
+                    config_sha256: sha256_hex(IFC_SCHEMA_POLICY_ID.as_bytes()),
+                }),
+                evidence: vec![Evidence {
+                    evidence_id: "schema-test-evidence".into(),
+                    kind: EvidenceKind::ValidatorReport,
+                    sha256: payload_hash,
+                    locator: PAYLOAD_POINTER.into(),
+                }],
+            },
+            path: PathBuf::from("schema-gate.json"),
+            evidence_payload: Some(payload),
+        }
+    }
+
     fn all_pass_gates() -> Vec<Gate> {
         GateId::ALL
             .iter()
@@ -1304,6 +1346,74 @@ mod tests {
                 .unwrap()
                 .iter()
                 .any(|value| value == "tool")
+        );
+    }
+
+    #[test]
+    fn embedded_schema_payload_is_bound_to_exact_target_bytes_and_profile() {
+        let target = b"target model bytes";
+        let producer = schema_gate_producer(target);
+        assert!(verify_embedded_payload(&producer, target, "IFC4").is_ok());
+    }
+
+    #[test]
+    fn embedded_schema_payload_rejects_a_different_target_artifact() {
+        let target = b"target model bytes";
+        let producer = schema_gate_producer(target);
+        assert_eq!(
+            verify_embedded_payload(&producer, b"other target", "IFC4").unwrap_err(),
+            "IFC_SCHEMA_EVIDENCE_ARTIFACT_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn embedded_payload_without_a_pointer_is_not_silently_accepted() {
+        let target = b"target model bytes";
+        let mut producer = schema_gate_producer(target);
+        producer.gate.evidence[0].locator = "schema-gate.json".into();
+        assert_eq!(
+            verify_embedded_payload(&producer, target, "IFC4").unwrap_err(),
+            "EVIDENCE_PAYLOAD_UNREFERENCED"
+        );
+    }
+
+    #[test]
+    fn schema_pointer_without_embedded_payload_is_rejected() {
+        let target = b"target model bytes";
+        let mut producer = schema_gate_producer(target);
+        producer.evidence_payload = None;
+        assert_eq!(
+            verify_embedded_payload(&producer, target, "IFC4").unwrap_err(),
+            "EVIDENCE_PAYLOAD_MISSING"
+        );
+    }
+
+    #[test]
+    fn embedded_payload_digest_and_declared_schema_are_verified() {
+        let target = b"target model bytes";
+        let mut producer = schema_gate_producer(target);
+        producer.evidence_payload.as_mut().unwrap()["findings"] =
+            serde_json::json!([{"tampered": true}]);
+        assert_eq!(
+            verify_embedded_payload(&producer, target, "IFC4").unwrap_err(),
+            "EVIDENCE_POINTER_DIGEST_MISMATCH"
+        );
+
+        let producer = schema_gate_producer(target);
+        assert_eq!(
+            verify_embedded_payload(&producer, target, "IFC2X3").unwrap_err(),
+            "IFC_SCHEMA_EVIDENCE_PROFILE_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn schema_gate_requires_pinned_tool_configuration_provenance() {
+        let target = b"target model bytes";
+        let mut producer = schema_gate_producer(target);
+        producer.gate.tool.as_mut().unwrap().config_sha256 = "0".repeat(64);
+        assert_eq!(
+            verify_embedded_payload(&producer, target, "IFC4").unwrap_err(),
+            "IFC_SCHEMA_TOOL_PROVENANCE_MISMATCH"
         );
     }
 
