@@ -21,4 +21,8 @@ path = "src/vintage_main.rs"
 name = "pirb-views-offline-adapter"
 path = "src/views_adapter_main.rs"
 
+[[bin]]
+name = "pirb-policy-evaluation"
+path = "src/policy_main.rs"
+
 [workspace]
