@@ -67,7 +67,8 @@ jobs:
             --bin vehicle_mission_physics -- \
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json \
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json > vehicle-mission-report.json
-          jq -e '.results | length == 8 and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-mission-report.json
+          jq -e '.results | length == 19 and ([.[].design_id] | unique | length == 19) and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-mission-report.json
+          jq -e '[.results[] | select(.status == "blocked") | .scenario_id] == ["compact-ev-city-arterial", "light-van-delivery-route", "open-pit-haul-steep-loaded-stress", "rural-4x4-field-support"]' vehicle-mission-report.json
           jq -e '[.results[] | select(.scenario_id == "open-pit-haul-steep-loaded-stress") | .status] == ["blocked"]' vehicle-mission-report.json
       - name: Hash deterministic screen reports
         run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json > screen-report.sha256
