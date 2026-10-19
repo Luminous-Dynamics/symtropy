@@ -65,6 +65,7 @@ pub enum ReplayReason {
     InvalidRunIdentity,
     InvalidCodeHead,
     InvalidConfigDigest,
+    DirtyTreeMissingDigest,
     MissingDeterministicSeed,
     ComparisonGroupMismatch,
     EmptyMetricId,
@@ -98,6 +99,7 @@ pub enum ThresholdDirection {
 pub enum ThresholdOutcome {
     MeetsThreshold,
     BelowThreshold,
+    Uncertain,
     NotAssessed,
     Incomplete,
 }
@@ -161,6 +163,8 @@ pub struct RunIdentity {
     /// Full Git commit ID (40 hex characters; 64 is accepted for SHA-256 Git).
     pub code_head: String,
     pub config_sha256: String,
+    pub working_tree_clean: bool,
+    pub working_tree_sha256: Option<String>,
     pub evaluator_version: String,
     pub toolchain: String,
     pub platform: String,
@@ -346,6 +350,16 @@ pub fn build_replay_receipt(
     if !is_lower_hex(&run.config_sha256, &[64]) {
         rejected.insert(ReplayReason::InvalidConfigDigest);
     }
+    if let Some(tree_digest) = run.working_tree_sha256.as_deref()
+        && !is_lower_hex(tree_digest, &[64])
+    {
+        rejected.insert(ReplayReason::DirtyTreeMissingDigest);
+    }
+    if !run.working_tree_clean
+        && run.working_tree_sha256.as_deref().is_none_or(|digest| !is_lower_hex(digest, &[64]))
+    {
+        rejected.insert(ReplayReason::DirtyTreeMissingDigest);
+    }
     if run.deterministic_replay && run.seed.is_none() {
         indeterminate.insert(ReplayReason::MissingDeterministicSeed);
     }
@@ -459,15 +473,24 @@ pub fn build_replay_receipt(
             ThresholdOutcome::NotAssessed
         }
     } else if let (Some(threshold), Some(metric)) = (&task.threshold, primary_metric) {
-        if let Some(value) = metric.value {
-            let meets = match threshold.direction {
-                ThresholdDirection::AtLeast => value >= threshold.value,
-                ThresholdDirection::AtMost => value <= threshold.value,
-            };
-            if meets {
-                ThresholdOutcome::MeetsThreshold
-            } else {
-                ThresholdOutcome::BelowThreshold
+        if metric.value.is_some() {
+            match metric.interval.as_ref() {
+                Some(interval) => match threshold.direction {
+                    ThresholdDirection::AtLeast if interval.lower >= threshold.value => {
+                        ThresholdOutcome::MeetsThreshold
+                    }
+                    ThresholdDirection::AtLeast if interval.upper < threshold.value => {
+                        ThresholdOutcome::BelowThreshold
+                    }
+                    ThresholdDirection::AtMost if interval.upper <= threshold.value => {
+                        ThresholdOutcome::MeetsThreshold
+                    }
+                    ThresholdDirection::AtMost if interval.lower > threshold.value => {
+                        ThresholdOutcome::BelowThreshold
+                    }
+                    _ => ThresholdOutcome::Uncertain,
+                },
+                None => ThresholdOutcome::NotAssessed,
             }
         } else {
             ThresholdOutcome::Incomplete
