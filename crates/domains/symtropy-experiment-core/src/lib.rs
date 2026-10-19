@@ -644,6 +644,44 @@ mod tests {
     }
 
     #[test]
+    fn subtraction_operator_executes_and_renders() {
+        let mut graph = gear_graph();
+        let phase = graph
+            .equations
+            .iter_mut()
+            .find(|node| node.id == "equation:phase-offset")
+            .expect("phase equation");
+        phase.operator = EquationOperator::Subtract;
+        assert_eq!(
+            phase.canonical_expression(&graph).unwrap(),
+            "theta_out = theta_scaled - phi"
+        );
+        let values = graph.evaluate().expect("execute subtraction variant");
+        let output = values["variable:theta_output"].parse::<f64>().unwrap();
+        assert!((output - (-2.1_f64)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn dimension_exponent_overflow_is_rejected() {
+        let extreme = Dimension {
+            exponents: [i8::MAX, 0, 0, 0, 0, 0, 0, 0],
+        };
+        assert!(combined_dimension(extreme, extreme, false).is_none());
+        assert!(combined_dimension(extreme, Dimension::DIMENSIONLESS, true).is_some());
+    }
+
+    #[test]
+    fn duplicate_equation_outputs_are_rejected() {
+        let mut graph = gear_graph();
+        let output_id = graph.equations[0].output_variable_id.clone();
+        graph.equations[1].output_variable_id = output_id;
+        let report = graph.validate();
+        assert!(report.issues.iter().any(|item| {
+            item.code == ValidationCode::DuplicateEquationOutput
+        }));
+    }
+
+    #[test]
     fn gear_ratio_graph_evaluates_to_known_answer() {
         let graph = gear_graph();
         let report = graph.validate();
