@@ -6,7 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
 
-const METHOD: &str = "two-way product bootstrap: spatial-cluster resampling x temporal moving blocks";
+const METHOD: &str =
+    "two-way product bootstrap: spatial-cluster resampling x temporal moving blocks";
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -175,9 +176,7 @@ pub(super) fn estimate(
                 let spatial = *spatial_multiplicity
                     .get(point.spatial_block_id.as_str())
                     .unwrap_or(&0);
-                let temporal = *temporal_multiplicity
-                    .get(&point.target_month)
-                    .unwrap_or(&0);
+                let temporal = *temporal_multiplicity.get(&point.target_month).unwrap_or(&0);
                 let weight = spatial * temporal;
                 (weight > 0).then_some(WeightedPoint {
                     probability: point.probability,
@@ -247,7 +246,9 @@ pub(super) fn estimate(
                 "primary score intervals did not reach the required {} valid replicates (Brier: {}, log loss: {})",
                 policy.minimum_valid_replicates,
                 brier_interval.as_ref().map_or(0, |ci| ci.valid_replicates),
-                log_loss_interval.as_ref().map_or(0, |ci| ci.valid_replicates)
+                log_loss_interval
+                    .as_ref()
+                    .map_or(0, |ci| ci.valid_replicates)
             ))
         },
         confidence_level: policy.confidence_level,
@@ -444,10 +445,7 @@ fn weighted_average_precision(points: &[WeightedPoint]) -> Option<f64> {
             .filter(|point| point.outcome)
             .map(|point| point.weight)
             .sum();
-        let group_weight: f64 = ordered[start..end]
-            .iter()
-            .map(|point| point.weight)
-            .sum();
+        let group_weight: f64 = ordered[start..end].iter().map(|point| point.weight).sum();
         true_positives += group_positive;
         seen += group_weight;
         score += (group_positive / total_positive) * (true_positives / seen);
