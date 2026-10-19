@@ -9,8 +9,8 @@ use symtropy_animal_observation::{
 };
 use symtropy_animal_replay::{
     BaselineReference, ConfidenceInterval, DecisionThreshold, EvaluationMode, MetricObservation,
-    MetricState, ReplayDisposition, ReplayReason, ReplayTaskSpec, RunIdentity, ThresholdDirection,
-    ThresholdOutcome, build_replay_receipt,
+    MetricState, MetricStratumKind, ReplayDisposition, ReplayReason, ReplayTaskSpec, RunIdentity,
+    ThresholdDirection, ThresholdOutcome, build_replay_receipt,
 };
 use symtropy_fauna_core::{AnimalProfile, EvidenceClass, EvidenceState, TaxonBinding, UsePermission};
 
@@ -163,6 +163,8 @@ fn valid_manifest() -> ReferencePackManifest {
 fn metric(metric_id: &str, value: f64, unit: &str) -> MetricObservation {
     MetricObservation {
         metric_id: metric_id.to_owned(),
+        stratum_kind: MetricStratumKind::Overall,
+        stratum_id: "all".to_owned(),
         unit: unit.to_owned(),
         state: MetricState::Reported,
         value: Some(value),
@@ -176,6 +178,19 @@ fn metric(metric_id: &str, value: f64, unit: &str) -> MetricObservation {
             upper: (value + 0.05).min(1.0),
         }),
     }
+}
+
+fn metric_for_stratum(
+    metric_id: &str,
+    value: f64,
+    unit: &str,
+    stratum_kind: MetricStratumKind,
+    stratum_id: &str,
+) -> MetricObservation {
+    let mut result = metric(metric_id, value, unit);
+    result.stratum_kind = stratum_kind;
+    result.stratum_id = stratum_id.to_owned();
+    result
 }
 
 fn valid_inputs() -> TestInputs {
@@ -280,6 +295,23 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             primary.missing_count = 10;
             primary.interval = None;
         }
+        "empty_metric_stratum" => inputs.metrics[0].stratum_id.clear(),
+        "same_metric_across_taxa" => inputs.metrics.push(metric_for_stratum(
+            "pose_pck",
+            0.7,
+            "fraction",
+            MetricStratumKind::Taxon,
+            "TEST:1",
+        )),
+        "baseline_stratum_mismatch" => {
+            inputs.baselines[0].primary_metric = metric_for_stratum(
+                "pose_pck",
+                0.4,
+                "fraction",
+                MetricStratumKind::Taxon,
+                "TEST:1",
+            );
+        }
         "invalid_interval_bounds" => {
             inputs.metrics[0].interval = Some(ConfidenceInterval {
                 confidence_percent: 90,
@@ -349,7 +381,7 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
     let corpus: OracleCorpus = serde_json::from_str(ORACLE_FIXTURE).unwrap();
     assert_eq!(corpus.schema_version, "ANIMAL-REPLAY-RESULT-ORACLE-V1");
     assert!(corpus.note.contains("synthetic"));
-    assert_eq!(corpus.cases.len(), 36);
+    assert_eq!(corpus.cases.len(), 41);
     for case in corpus.cases {
         let mut inputs = valid_inputs();
         apply_mutation(&mut inputs, &case.mutation);
