@@ -8,6 +8,7 @@ Existing efforts cover complementary slices of the problem:
 
 - LegalBench covers a broad set of legal reasoning tasks.
 - LegalBench-RAG evaluates retrieval of precise legal text spans.
+- OpenExempt (Findings of ACL 2026) uses expert-crafted symbolic representations of U.S. bankruptcy statutes to generate machine-computable reasoning tasks on demand; its published benchmark contains 9,765 samples across nine suites. This supports the next architectural step: generate held-out variants from explicitly represented rules instead of relying only on static Q/A pairs. The paper is task-family inspiration; this project does not copy its data or code into this synthetic-only fixture. https://aclanthology.org/2026.findings-acl.1328/
 - COLIEE evaluates case retrieval and legal entailment tasks.
 - LegalCiteBench (2026 preprint) studies citation recovery, verification, and case matching.
 - AR-BENCH (January 2026 preprint) explores legal-error detection, classification, and correction in finalized criminal judgments; it demonstrates a useful *review-after-generation* task family, but its reported data concern Mainland China criminal cases and must not be treated as a jurisdiction-neutral corpus.
@@ -52,7 +53,7 @@ The corpus declares paired case relationships with one of four contracts:
 - `evidence_must_change`: at least the claim-code set or citation set must change.
 - `output_must_match`: action, claim-code set, and citation set must all remain stable.
 
-The current synthetic pairs test a statute effective-date boundary, evidence that changes jurisdictional competence, irrelevant wording variation, and source permission changing from denied to permitted for the represented operation. The corpus validator rejects pairs whose expected outputs contradict their declared relationship. The evaluator separately reports observed pair failures and fails the release gate if any declared relation is violated or either case result is absent/duplicated.
+The current synthetic pairs test a statute effective-date boundary, evidence that changes jurisdictional competence, irrelevant wording variation, and source permission changing from denied to permitted for the represented operation. The current fixture contains 14 fictional cases, 11 synthetic authority records, and four declared metamorphic pairs. The corpus validator rejects pairs whose expected outputs contradict their declared relationship. The evaluator separately reports observed pair failures and fails the release gate if any declared relation is violated or either case result is absent/duplicated.
 
 Pairs are explicit test contracts, not a general legal theorem prover. They only establish behavior for the declared transformations; broad robustness claims require unseen and expert-reviewed cases.
 
