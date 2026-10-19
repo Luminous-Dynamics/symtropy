@@ -1227,7 +1227,6 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
     }
 
     for contrast in &dataset.estimate_contrasts {
-        register_id(&contrast.id, &mut all_ids, &contrast.id, &mut issues);
         require_nonempty(&contrast.purpose, &contrast.id, "contrast purpose", &mut issues);
         require_nonempty(&contrast.dependence_note, &contrast.id, "contrast dependence note", &mut issues);
         require_nonempty(
