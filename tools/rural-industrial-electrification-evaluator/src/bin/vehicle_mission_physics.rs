@@ -163,10 +163,12 @@ struct Report {
 fn main() {
     let mut args = env::args().skip(1);
     let catalog_path = args.next().unwrap_or_else(|| {
-        "tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json".to_string()
+        "tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json"
+            .to_string()
     });
     let profile_path = args.next().unwrap_or_else(|| {
-        "tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json".to_string()
+        "tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json"
+            .to_string()
     });
     let catalog_input = read_file(&catalog_path);
     let profile_input = read_file(&profile_path);
@@ -190,12 +192,17 @@ fn main() {
         process::exit(2);
     }
 
-    let design_by_id: std::collections::BTreeMap<&str, &Design> =
-        catalog.designs.iter().map(|design| (design.design_id.as_str(), design)).collect();
+    let design_by_id: std::collections::BTreeMap<&str, &Design> = catalog
+        .designs
+        .iter()
+        .map(|design| (design.design_id.as_str(), design))
+        .collect();
 
-    let mut results: Vec<ScenarioResult> = profiles.scenarios.iter().map(|scenario| {
-        simulate(scenario, design_by_id[scenario.design_id.as_str()])
-    }).collect();
+    let mut results: Vec<ScenarioResult> = profiles
+        .scenarios
+        .iter()
+        .map(|scenario| simulate(scenario, design_by_id[scenario.design_id.as_str()]))
+        .collect();
     results.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
 
     let report = Report {
@@ -232,7 +239,10 @@ fn validate_inputs(catalog: &Catalog, profiles: &ProfileCorpus) -> Result<(), St
     if profiles.schema_version != "0.2.0" || profiles.profile_set_id != "EV-MISSION-PHYSICS-001" {
         return Err("unsupported_mission_profile_schema_or_id".to_string());
     }
-    if profiles.claim_ceiling.trim().is_empty() || profiles.scenarios.is_empty() || catalog.designs.is_empty() {
+    if profiles.claim_ceiling.trim().is_empty()
+        || profiles.scenarios.is_empty()
+        || catalog.designs.is_empty()
+    {
         return Err("claim_ceiling_and_nonempty_catalogs_are_required".to_string());
     }
 
@@ -251,7 +261,10 @@ fn validate_inputs(catalog: &Catalog, profiles: &ProfileCorpus) -> Result<(), St
             }
         }
         for (name, value) in [
-            ("installed_module_mass_kg", design.mass.installed_module_mass_kg),
+            (
+                "installed_module_mass_kg",
+                design.mass.installed_module_mass_kg,
+            ),
             ("target_payload_kg", design.mass.target_payload_kg),
         ] {
             if !value.is_finite() || value < 0.0 {
@@ -259,8 +272,14 @@ fn validate_inputs(catalog: &Catalog, profiles: &ProfileCorpus) -> Result<(), St
             }
         }
         for (name, value) in [
-            ("state_of_health_fraction", design.battery.state_of_health_fraction),
-            ("temperature_capacity_fraction", design.battery.temperature_capacity_fraction),
+            (
+                "state_of_health_fraction",
+                design.battery.state_of_health_fraction,
+            ),
+            (
+                "temperature_capacity_fraction",
+                design.battery.temperature_capacity_fraction,
+            ),
         ] {
             if !value.is_finite() || value <= 0.0 || value > 1.0 {
                 return Err(format!("design_{}_must_be_in_(0,1]", name));
@@ -283,89 +302,165 @@ fn validate_inputs(catalog: &Catalog, profiles: &ProfileCorpus) -> Result<(), St
             return Err(format!("duplicate_scenario_id: {}", scenario.scenario_id));
         }
         if !by_id.contains(scenario.design_id.as_str()) {
-            return Err(format!("unknown_design_id: {} references {}", scenario.scenario_id, scenario.design_id));
+            return Err(format!(
+                "unknown_design_id: {} references {}",
+                scenario.scenario_id, scenario.design_id
+            ));
         }
         if scenario.scenario_id.trim().is_empty()
             || scenario.label.trim().is_empty()
             || scenario.mission_functional_unit.trim().is_empty()
             || scenario.evidence_note.trim().is_empty()
         {
-            return Err(format!("scenario_{}_text_fields_must_be_nonempty", scenario.scenario_id));
+            return Err(format!(
+                "scenario_{}_text_fields_must_be_nonempty",
+                scenario.scenario_id
+            ));
         }
-        if !["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"]
-            .contains(&scenario.evidence_class.as_str())
+        if ![
+            "synthetic",
+            "measured",
+            "manufacturer",
+            "literature",
+            "estimate",
+            "unknown",
+        ]
+        .contains(&scenario.evidence_class.as_str())
         {
-            return Err(format!("scenario_{}_unsupported_evidence_class", scenario.scenario_id));
+            return Err(format!(
+                "scenario_{}_unsupported_evidence_class",
+                scenario.scenario_id
+            ));
         }
         if scenario.evidence_class != "synthetic"
             && scenario.evidence_class != "unknown"
             && scenario.evidence_reference.trim().is_empty()
         {
-            return Err(format!("scenario_{}_non_synthetic_evidence_requires_reference", scenario.scenario_id));
+            return Err(format!(
+                "scenario_{}_non_synthetic_evidence_requires_reference",
+                scenario.scenario_id
+            ));
         }
         for (name, value) in [
-            ("initial_usable_soc_fraction", scenario.initial_usable_soc_fraction),
-            ("declared_peak_battery_power_kw", scenario.declared_peak_battery_power_kw),
+            (
+                "initial_usable_soc_fraction",
+                scenario.initial_usable_soc_fraction,
+            ),
+            (
+                "declared_peak_battery_power_kw",
+                scenario.declared_peak_battery_power_kw,
+            ),
             ("rotating_mass_factor", scenario.rotating_mass_factor),
         ] {
             if !value.is_finite() || value <= 0.0 {
-                return Err(format!("scenario_{}_{}_must_be_finite_and_positive", scenario.scenario_id, name));
+                return Err(format!(
+                    "scenario_{}_{}_must_be_finite_and_positive",
+                    scenario.scenario_id, name
+                ));
             }
         }
         if scenario.initial_usable_soc_fraction > 1.0 || scenario.rotating_mass_factor < 1.0 {
-            return Err(format!("scenario_{}_soc_or_rotating_mass_factor_out_of_domain", scenario.scenario_id));
+            return Err(format!(
+                "scenario_{}_soc_or_rotating_mass_factor_out_of_domain",
+                scenario.scenario_id
+            ));
         }
         for (name, value) in [
             ("auxiliary_load_kw", scenario.auxiliary_load_kw),
-            ("nontravel_duration_hours", scenario.nontravel_duration_hours),
-            ("nontravel_auxiliary_load_kw", scenario.nontravel_auxiliary_load_kw),
+            (
+                "nontravel_duration_hours",
+                scenario.nontravel_duration_hours,
+            ),
+            (
+                "nontravel_auxiliary_load_kw",
+                scenario.nontravel_auxiliary_load_kw,
+            ),
         ] {
             if !value.is_finite() || value < 0.0 {
-                return Err(format!("scenario_{}_{}_must_be_finite_and_nonnegative", scenario.scenario_id, name));
+                return Err(format!(
+                    "scenario_{}_{}_must_be_finite_and_nonnegative",
+                    scenario.scenario_id, name
+                ));
             }
         }
         if scenario.segments.is_empty() {
-            return Err(format!("scenario_{}_must_contain_segments", scenario.scenario_id));
+            return Err(format!(
+                "scenario_{}_must_contain_segments",
+                scenario.scenario_id
+            ));
         }
 
         let mut segment_ids = BTreeSet::new();
         for segment in &scenario.segments {
-            if segment.segment_id.trim().is_empty() || !segment_ids.insert(segment.segment_id.clone()) {
-                return Err(format!("scenario_{}_segment_ids_must_be_unique", scenario.scenario_id));
+            if segment.segment_id.trim().is_empty()
+                || !segment_ids.insert(segment.segment_id.clone())
+            {
+                return Err(format!(
+                    "scenario_{}_segment_ids_must_be_unique",
+                    scenario.scenario_id
+                ));
             }
             for (name, value) in [
                 ("distance_m", segment.distance_m),
                 ("duration_s", segment.duration_s),
                 ("initial_speed_mps", segment.initial_speed_mps),
                 ("final_speed_mps", segment.final_speed_mps),
-                ("rolling_resistance_coefficient", segment.rolling_resistance_coefficient),
+                (
+                    "rolling_resistance_coefficient",
+                    segment.rolling_resistance_coefficient,
+                ),
                 ("drag_area_m2", segment.drag_area_m2),
                 ("air_density_kg_per_m3", segment.air_density_kg_per_m3),
-                ("drivetrain_efficiency_fraction", segment.drivetrain_efficiency_fraction),
-                ("regenerative_efficiency_fraction", segment.regenerative_efficiency_fraction),
-                ("max_regen_battery_power_kw", segment.max_regen_battery_power_kw),
+                (
+                    "drivetrain_efficiency_fraction",
+                    segment.drivetrain_efficiency_fraction,
+                ),
+                (
+                    "regenerative_efficiency_fraction",
+                    segment.regenerative_efficiency_fraction,
+                ),
+                (
+                    "max_regen_battery_power_kw",
+                    segment.max_regen_battery_power_kw,
+                ),
                 ("work_energy_demand_kwh", segment.work_energy_demand_kwh),
             ] {
                 if !value.is_finite() || value < 0.0 {
-                    return Err(format!("scenario_{}_segment_{}_{}_must_be_finite_and_nonnegative", scenario.scenario_id, segment.segment_id, name));
+                    return Err(format!(
+                        "scenario_{}_segment_{}_{}_must_be_finite_and_nonnegative",
+                        scenario.scenario_id, segment.segment_id, name
+                    ));
                 }
             }
             if !segment.grade_fraction.is_finite() || segment.grade_fraction.abs() > 0.5 {
-                return Err(format!("scenario_{}_segment_{}_grade_out_of_domain", scenario.scenario_id, segment.segment_id));
+                return Err(format!(
+                    "scenario_{}_segment_{}_grade_out_of_domain",
+                    scenario.scenario_id, segment.segment_id
+                ));
             }
-            if segment.duration_s <= 0.0 || segment.air_density_kg_per_m3 <= 0.0
+            if segment.duration_s <= 0.0
+                || segment.air_density_kg_per_m3 <= 0.0
                 || segment.drivetrain_efficiency_fraction <= 0.0
                 || segment.drivetrain_efficiency_fraction > 1.0
                 || segment.regenerative_efficiency_fraction > 1.0
             {
-                return Err(format!("scenario_{}_segment_{}_invalid_duration_or_efficiency", scenario.scenario_id, segment.segment_id));
+                return Err(format!(
+                    "scenario_{}_segment_{}_invalid_duration_or_efficiency",
+                    scenario.scenario_id, segment.segment_id
+                ));
             }
             if segment.distance_m == 0.0 {
                 if segment.initial_speed_mps > 1e-9 || segment.final_speed_mps > 1e-9 {
-                    return Err(format!("scenario_{}_segment_{}_stationary_segment_must_have_zero_speed", scenario.scenario_id, segment.segment_id));
+                    return Err(format!(
+                        "scenario_{}_segment_{}_stationary_segment_must_have_zero_speed",
+                        scenario.scenario_id, segment.segment_id
+                    ));
                 }
             } else if segment.distance_m / segment.duration_s <= 0.0 {
-                return Err(format!("scenario_{}_segment_{}_average_speed_must_be_positive", scenario.scenario_id, segment.segment_id));
+                return Err(format!(
+                    "scenario_{}_segment_{}_average_speed_must_be_positive",
+                    scenario.scenario_id, segment.segment_id
+                ));
             }
         }
     }
@@ -401,19 +496,23 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
         let cos_grade = 1.0 / (1.0 + segment.grade_fraction * segment.grade_fraction).sqrt();
         let rolling_force = segment.rolling_resistance_coefficient * mass * G * cos_grade;
         let grade_force = mass * G * segment.grade_fraction * cos_grade;
-        let aerodynamic_force = 0.5 * segment.air_density_kg_per_m3
-            * segment.drag_area_m2 * average_speed * average_speed;
+        let aerodynamic_force = 0.5
+            * segment.air_density_kg_per_m3
+            * segment.drag_area_m2
+            * average_speed
+            * average_speed;
 
         let road_work_j = (rolling_force + grade_force + aerodynamic_force) * segment.distance_m;
-        let kinetic_delta_j = 0.5 * mass * scenario.rotating_mass_factor
+        let kinetic_delta_j = 0.5
+            * mass
+            * scenario.rotating_mass_factor
             * (segment.final_speed_mps * segment.final_speed_mps
                 - segment.initial_speed_mps * segment.initial_speed_mps);
         let net_wheel_work_j = road_work_j + kinetic_delta_j;
         let wheel_work_kwh = net_wheel_work_j / JOULES_PER_KWH;
         let positive_wheel_work_kwh = wheel_work_kwh.max(0.0);
         let braking_available_kwh = (-wheel_work_kwh).max(0.0);
-        let traction_battery_kwh =
-            positive_wheel_work_kwh / segment.drivetrain_efficiency_fraction;
+        let traction_battery_kwh = positive_wheel_work_kwh / segment.drivetrain_efficiency_fraction;
         let aux_kwh = scenario.auxiliary_load_kw * dt_h;
         let before_regen_demand = traction_battery_kwh + aux_kwh + segment.work_energy_demand_kwh;
         let unserved = (before_regen_demand - soc).max(0.0);
@@ -423,7 +522,8 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
         let regen_available_battery =
             braking_available_kwh * segment.regenerative_efficiency_fraction;
         let regen_power_cap_kwh = segment.max_regen_battery_power_kw * dt_h;
-        let regen_capture = regen_available_battery.min(regen_power_cap_kwh)
+        let regen_capture = regen_available_battery
+            .min(regen_power_cap_kwh)
             .min((usable_capacity - soc).max(0.0));
         let regen_curtailed = (regen_available_battery - regen_capture).max(0.0);
         soc = (soc + regen_capture).min(usable_capacity);
@@ -485,7 +585,8 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
         findings.push("loaded_mass_exceeds_gross_mass_limit".to_string());
     }
     if energy_margin < -1e-9 || unserved_total > 1e-9 {
-        findings.push("mission_energy_exceeds_available_usable_battery_energy_or_reserve".to_string());
+        findings
+            .push("mission_energy_exceeds_available_usable_battery_energy_or_reserve".to_string());
     }
     if peak_margin < -1e-9 || max_avg_traction_power > design.battery.rated_peak_power_kw + 1e-9 {
         findings.push("declared_or_segment_average_power_exceeds_peak_rating".to_string());
@@ -500,7 +601,8 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
         findings.push("simplified_longitudinal_screen_is_not_vehicle_validation".to_string());
         Status::PassesSyntheticScreen
     } else {
-        findings.push("physics_screen_only_independent_vehicle_validation_still_required".to_string());
+        findings
+            .push("physics_screen_only_independent_vehicle_validation_still_required".to_string());
         Status::PassesEvidenceBackedScreen
     };
 
@@ -621,7 +723,10 @@ mod tests {
         let uphill = sample_scenario(uphill_seg);
         let flat_result = simulate(&flat, &sample_catalog().designs[0]);
         let hill_result = simulate(&uphill, &sample_catalog().designs[0]);
-        assert!(hill_result.total_traction_battery_energy_kwh > flat_result.total_traction_battery_energy_kwh);
+        assert!(
+            hill_result.total_traction_battery_energy_kwh
+                > flat_result.total_traction_battery_energy_kwh
+        );
     }
 
     #[test]
