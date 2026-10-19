@@ -630,7 +630,7 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
             };
             let metadata_matches = receipt.payload.experiment_id.as_deref() == Some(graph.id.as_str())
                 && receipt.payload.model_schema_version.as_deref() == Some(graph.schema_version.as_str())
-                && receipt.payload.unit_registry_version.is_some();
+                && receipt.payload.unit_registry_version.as_deref() == Some(UNIT_REGISTRY_VERSION);
             let bytes = match canonical_json_bytes(&graph) {
                 Ok(bytes) => bytes,
                 Err(error) => {
