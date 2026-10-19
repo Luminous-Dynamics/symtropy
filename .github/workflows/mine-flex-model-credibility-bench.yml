@@ -27,13 +27,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pinned Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
           toolchain: 1.96.0
           components: rustfmt
@@ -100,3 +100,11 @@ jobs:
             unguarded_baseline_missing_or_stale_acceptances,
             covered_observations, observed_count, summaries
           }' mine-flex-model-credibility-receipt.json
+      - name: Retain exact-head receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: mine-flex-model-credibility-${{ github.event.pull_request.head.sha || github.sha }}
+          path: mine-flex-model-credibility-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
