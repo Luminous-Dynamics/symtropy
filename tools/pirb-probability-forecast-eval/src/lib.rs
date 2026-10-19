@@ -385,6 +385,14 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
     if resampling.spatial_blocking_method_reference.trim().is_empty() {
         findings.push("spatial_blocking_method_reference must not be empty".to_owned());
     }
+    if resampling.spatial_block_map_sha256.len() != 64
+        || !resampling
+            .spatial_block_map_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        findings.push("spatial_block_map_sha256 must be a lowercase 64-character SHA-256 digest".to_owned());
+    }
     if !(1..=12).contains(&resampling.temporal_block_length_months)
         || resampling.minimum_spatial_blocks < 4
         || resampling.minimum_temporal_blocks < 6
@@ -1279,6 +1287,17 @@ mod tests {
             semantic_errors(&d)
                 .iter()
                 .any(|finding| finding.contains("changes spatial_block_id"))
+        );
+    }
+
+    #[test]
+    fn spatial_block_map_digest_must_be_canonical_sha256() {
+        let mut d = dataset();
+        d.resampling.spatial_block_map_sha256 = "not-a-digest".to_owned();
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|finding| finding.contains("spatial_block_map_sha256"))
         );
     }
 
