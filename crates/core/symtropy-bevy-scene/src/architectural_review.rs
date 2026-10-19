@@ -1517,8 +1517,95 @@ impl ReviewJurisdictionContext {
     }
 }
 
+/// Declared representation of the model being reviewed. These labels describe
+/// provenance, not geometric accuracy or compliance; actual source bytes must
+/// still be verified by the artifact store, and fidelity needs an independent check.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum ReviewModelSourceKind {
+    SyntheticFixture,
+    DesignExchange,
+    NativeScene,
+    SurveyedCapture,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum ReviewModelFormat {
+    Ifc,
+    Gltf,
+    Glb,
+    SymtropyScene,
+    BevyScene,
+    Other,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum ReviewLinearUnit {
+    Metre,
+    Millimetre,
+    Foot,
+    Inch,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum ReviewModelFidelity {
+    SyntheticGeometry,
+    VisualApproximation,
+    DesignGeometry,
+    SurveyedAsBuiltGeometry,
+}
+
+/// Describes what a virtual walkthrough actually represents. A route uses
+/// metres in the normalized review frame even when the source model uses
+/// millimetres, feet or inches; an importer must perform and test that conversion.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ReviewModelContext {
+    pub source_kind: ReviewModelSourceKind,
+    pub source_format: ReviewModelFormat,
+    pub fidelity: ReviewModelFidelity,
+    pub source_linear_unit: ReviewLinearUnit,
+    pub coordinate_frame_id: String,
+    /// Explicit known gaps, placeholders, unmodelled systems and assumptions.
+    /// Include a non-empty "not assessed" entry when no review has been done.
+    pub known_limitations: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReviewModelContextIssue {
+    EmptyCoordinateFrameId,
+    MissingLimitations,
+    BlankLimitation { index: usize },
+    FidelitySourceKindMismatch,
+}
+
+impl ReviewModelContext {
+    pub fn validate(&self) -> Result<(), Vec<ReviewModelContextIssue>> {
+        let mut issues = Vec::new();
+        if self.coordinate_frame_id.trim().is_empty() {
+            issues.push(ReviewModelContextIssue::EmptyCoordinateFrameId);
+        }
+        if self.known_limitations.is_empty() {
+            issues.push(ReviewModelContextIssue::MissingLimitations);
+        }
+        for (index, limitation) in self.known_limitations.iter().enumerate() {
+            if limitation.trim().is_empty() {
+                issues.push(ReviewModelContextIssue::BlankLimitation { index });
+            }
+        }
+        if self.fidelity == ReviewModelFidelity::SurveyedAsBuiltGeometry
+            && self.source_kind != ReviewModelSourceKind::SurveyedCapture
+        {
+            issues.push(ReviewModelContextIssue::FidelitySourceKindMismatch);
+        }
+        if issues.is_empty() {
+            Ok(())
+        } else {
+            Err(issues)
+        }
+    }
+}
+
 /// Current serialized review-session manifest schema. Bump this on breaking changes.
-pub const DESIGN_REVIEW_SESSION_SCHEMA_VERSION: u32 = 2;
+pub const DESIGN_REVIEW_SESSION_SCHEMA_VERSION: u32 = 3;
 
 /// Review manifest tied to the exact homeowner brief and model artifact.
 ///
@@ -1533,6 +1620,9 @@ pub struct DesignReviewSession {
     pub design_revision_id: String,
     pub model_artifact_id: String,
     pub model_sha256: String,
+    /// Explicit representation/source context so a visual approximation is not
+    /// confused with surveyed as-built geometry.
+    pub model_context: ReviewModelContext,
     pub viewer_build_id: String,
     pub snapshot_manifest_artifact_id: String,
     /// Omitted only in the pre-hash payload produced by review_session_manifest_bytes.
@@ -1577,6 +1667,7 @@ pub enum DesignReviewSessionIssue {
     InvalidComfortProfile(Vec<ReviewComfortProfileIssue>),
     InvalidJurisdictionContext(Vec<ReviewJurisdictionContextIssue>),
     BindingAnnotationsWithoutJurisdictionContext,
+    InvalidModelContext(Vec<ReviewModelContextIssue>),
 }
 
 /// Validate the provenance closure of one review session before showing it as a
@@ -1611,6 +1702,9 @@ pub fn validate_design_review_session(
             .all(|byte| byte.is_ascii_hexdigit())
     {
         issues.push(DesignReviewSessionIssue::InvalidModelDigest);
+    }
+    if let Err(context_issues) = session.model_context.validate() {
+        issues.push(DesignReviewSessionIssue::InvalidModelContext(context_issues));
     }
     if session.viewer_build_id.trim().is_empty() {
         issues.push(DesignReviewSessionIssue::EmptyViewerBuildId);
@@ -1890,6 +1984,17 @@ mod tests {
             design_revision_id: "house:r1".into(),
             model_artifact_id: "model:house-r1".into(),
             model_sha256: "a".repeat(64),
+            model_context: ReviewModelContext {
+                source_kind: ReviewModelSourceKind::SyntheticFixture,
+                source_format: ReviewModelFormat::BevyScene,
+                fidelity: ReviewModelFidelity::SyntheticGeometry,
+                source_linear_unit: ReviewLinearUnit::Metre,
+                coordinate_frame_id: "synthetic-room:local-metres".into(),
+                known_limitations: vec![
+                    "Synthetic room proportions; not a measured or approved home".into(),
+                    "No collision, structural, daylight, energy, acoustic, or code analysis".into(),
+                ],
+            },
             viewer_build_id: "symtropy-build:dev-test".into(),
             snapshot_manifest_artifact_id: "review-manifest:house-r1".into(),
             snapshot_sha256: "b".repeat(64),
@@ -1971,6 +2076,45 @@ mod tests {
             rule_context_artifact_id: "rule-context:za-jhb:r3".into(),
             rule_context_sha256: "d".repeat(64),
         }
+    }
+
+    #[test]
+    fn virtual_review_requires_explicit_model_fidelity_and_limitations() {
+        let mut session = sample_review_session(DesignReviewMode::StaticPlan);
+        session.model_context.known_limitations.clear();
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .iter()
+            .any(|issue| matches!(
+                issue,
+                DesignReviewSessionIssue::InvalidModelContext(context_issues)
+                    if context_issues.contains(&ReviewModelContextIssue::MissingLimitations)
+            )));
+
+        session.model_context.known_limitations = vec!["Synthetic geometry; dimensions not verified".into()];
+        session.model_context.fidelity = ReviewModelFidelity::SurveyedAsBuiltGeometry;
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .iter()
+            .any(|issue| matches!(
+                issue,
+                DesignReviewSessionIssue::InvalidModelContext(context_issues)
+                    if context_issues.contains(&ReviewModelContextIssue::FidelitySourceKindMismatch)
+            )));
+    }
+
+    #[test]
+    fn model_context_rejects_blank_coordinate_frame_and_blank_limitations() {
+        let mut session = sample_review_session(DesignReviewMode::StaticPlan);
+        session.model_context.coordinate_frame_id.clear();
+        session.model_context.known_limitations = vec!["  ".into()];
+        let issues = validate_design_review_session(&session).unwrap_err();
+        assert!(issues.iter().any(|issue| matches!(
+            issue,
+            DesignReviewSessionIssue::InvalidModelContext(context_issues)
+                if context_issues.contains(&ReviewModelContextIssue::EmptyCoordinateFrameId)
+                    && context_issues.contains(&ReviewModelContextIssue::BlankLimitation { index: 0 })
+        )));
     }
 
     #[test]
