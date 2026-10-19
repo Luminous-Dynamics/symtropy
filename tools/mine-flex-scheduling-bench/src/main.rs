@@ -656,6 +656,9 @@ fn make_receipt(corpus: &Corpus, raw_bytes: &[u8], source_commit: &str) -> Check
 
 fn run() -> Check<ExitCode> {
     let args = env::args().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|argument| argument == "--recourse") {
+        return robustness::run_recourse_cli(&args[1..]);
+    }
     if args
         .first()
         .is_some_and(|argument| argument == "--robustness")
