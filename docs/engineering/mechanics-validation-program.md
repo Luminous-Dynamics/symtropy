@@ -99,6 +99,7 @@ A digest establishes identity/integrity relative to the digested bytes, not the 
 - Expand the existing analytical and orientation-aware validation examples into a named benchmark ladder.
 - Add case-specific convergence checks and negative controls before widening supported mechanisms.
 - Keep Criterion microbenchmarks separate from correctness/validation gates; report both throughput and invariant health.
+- Enforce dimensional validity in energy accounting. Contact impulse has units of N·s, not joules; a dimensionless multiple of friction-impulse magnitude must never be promoted to physical heat. Compose with [THERMAL-LOSS-001 / world-contact friction-loss integration](https://github.com/Luminous-Dynamics/symtropy/issues/809): promote friction loss to thermal transfer only when the applicable mechanical-energy delta is measured, the inertia/contact regime is qualified, and the energy ledger reconciles. Preserve explicit unqualified/unsupported states for contacts where this is not yet defensible.
 - Publish known unsupported models plainly. Rigid-body contact does not replace FEA, fatigue, fluid, thermal, wear, or fracture models.
 
 ### Symthaea — investigation and experiment selection
