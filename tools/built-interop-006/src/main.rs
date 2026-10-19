@@ -1007,6 +1007,72 @@ mod tests {
         }
     }
 
+    fn adapter_observation(outcome: AdapterPropertyOutcome) -> AdapterObservation {
+        AdapterObservation {
+            requirement_id: "walls::attribute::Name".into(),
+            source_object_id: "0000000000000000000000".into(),
+            source_step_id: "#1".into(),
+            source_entity_type: "IFCWALL".into(),
+            source_attribute_index: 2,
+            source_attribute_path: "IFCWALL.Name".into(),
+            property_key: "Name".into(),
+            expected_value: "Panel 001".into(),
+            observed_value: (outcome == AdapterPropertyOutcome::Preserved)
+                .then(|| "Panel 001".into()),
+            outcome,
+            diagnostic_code: match outcome {
+                AdapterPropertyOutcome::Preserved => None,
+                AdapterPropertyOutcome::Changed => Some("CHANGED_TARGET_PROPERTY".into()),
+                AdapterPropertyOutcome::Missing => Some("MISSING_TARGET_PROPERTY".into()),
+                AdapterPropertyOutcome::NotEvaluated => Some("GLOBAL_ID_INVALID".into()),
+            },
+        }
+    }
+
+    fn built_interop_002_report(
+        decision: AdapterDecision,
+        outcome: AdapterPropertyOutcome,
+        target_bytes: &[u8],
+        ids_bytes: &[u8],
+    ) -> BuiltInterop002Report {
+        let diagnostic_code = match outcome {
+            AdapterPropertyOutcome::Preserved => None,
+            AdapterPropertyOutcome::Changed => Some("CHANGED_TARGET_PROPERTY"),
+            AdapterPropertyOutcome::Missing => Some("MISSING_TARGET_PROPERTY"),
+            AdapterPropertyOutcome::NotEvaluated => Some("GLOBAL_ID_INVALID"),
+        };
+        BuiltInterop002Report {
+            schema_version: "0.1.0".into(),
+            benchmark_id: BUILT_INTEROP_002_ID.into(),
+            supported_profile: BUILT_INTEROP_002_PROFILE.into(),
+            decision,
+            ifc_schema_token: Some("IFC4".into()),
+            ids_version_evidence: "Declared:IDS1.0".into(),
+            ifc_input_sha256: sha256_hex(target_bytes),
+            ids_input_sha256: sha256_hex(ids_bytes),
+            parsed_entity_count: 1,
+            applicable_wall_count: Some(1),
+            observations: vec![adapter_observation(outcome)],
+            diagnostics: diagnostic_code.into_iter().map(str::to_string).collect(),
+            semantic_result_sha256: "d".repeat(64),
+        }
+    }
+
+    fn gate_from_adapter(
+        report: &BuiltInterop002Report,
+        target_bytes: &[u8],
+        ids_bytes: &[u8],
+    ) -> Result<Gate, String> {
+        let raw = serde_json::to_vec(report).unwrap();
+        adapt_built_interop_002_report(
+            report,
+            &raw,
+            Path::new("adapter-report.json"),
+            target_bytes,
+            ids_bytes,
+        )
+    }
+
     fn all_pass_gates() -> Vec<Gate> {
         GateId::ALL
             .iter()
@@ -1237,6 +1303,102 @@ mod tests {
                 .iter()
                 .any(|value| value == "tool")
         );
+    }
+
+    #[test]
+    fn typed_ids_adapter_report_maps_subset_conformance_to_pass_and_hashes_exact_report() {
+        let target = b"the exact target IFC bytes";
+        let ids = b"the exact IDS requirement bytes";
+        let report = built_interop_002_report(
+            AdapterDecision::SubsetConformant,
+            AdapterPropertyOutcome::Preserved,
+            target,
+            ids,
+        );
+        let raw = serde_json::to_vec(&report).unwrap();
+        let gate = adapt_built_interop_002_report(
+            &report,
+            &raw,
+            Path::new("adapter-report.json"),
+            target,
+            ids,
+        )
+        .unwrap();
+
+        assert_eq!(gate.gate_id, GateId::IdsModelConformance);
+        assert_eq!(gate.status, GateStatus::Pass);
+        assert_eq!(gate.evidence[0].sha256, sha256_hex(&raw));
+        assert_eq!(
+            gate.evidence[0].evidence_id,
+            format!("built-interop-002-report-{}", sha256_hex(&raw))
+        );
+    }
+
+    #[test]
+    fn typed_ids_adapter_maps_changed_or_missing_required_name_to_fail() {
+        let target = b"target IFC";
+        let ids = b"IDS file";
+        for outcome in [AdapterPropertyOutcome::Changed, AdapterPropertyOutcome::Missing] {
+            let report = built_interop_002_report(
+                AdapterDecision::Blocked,
+                outcome,
+                target,
+                ids,
+            );
+            let gate = gate_from_adapter(&report, target, ids).unwrap();
+            assert_eq!(gate.gate_id, GateId::IdsModelConformance);
+            assert_eq!(gate.status, GateStatus::Fail, "outcome={outcome:?}");
+        }
+    }
+
+    #[test]
+    fn typed_ids_identity_or_unsupported_blocker_stays_unresolved_not_fail() {
+        let target = b"target IFC";
+        let ids = b"IDS file";
+        let report = built_interop_002_report(
+            AdapterDecision::Blocked,
+            AdapterPropertyOutcome::NotEvaluated,
+            target,
+            ids,
+        );
+        let gate = gate_from_adapter(&report, target, ids).unwrap();
+        assert_eq!(gate.status, GateStatus::Unresolved);
+    }
+
+    #[test]
+    fn typed_ids_adapter_requires_target_and_ids_byte_digests_to_match() {
+        let target = b"target IFC";
+        let ids = b"IDS file";
+        let report = built_interop_002_report(
+            AdapterDecision::SubsetConformant,
+            AdapterPropertyOutcome::Preserved,
+            target,
+            ids,
+        );
+        assert!(adapt_built_interop_002_report(
+            &report,
+            &serde_json::to_vec(&report).unwrap(),
+            Path::new("adapter-report.json"),
+            b"different IFC",
+            ids,
+        )
+        .unwrap_err()
+        .starts_with("BUILT_INTEROP_002_ARTIFACT_DIGEST_MISMATCH"));
+    }
+
+    #[test]
+    fn typed_ids_report_with_wrong_schema_profile_cannot_pass() {
+        let target = b"target IFC";
+        let ids = b"IDS file";
+        let mut report = built_interop_002_report(
+            AdapterDecision::SubsetConformant,
+            AdapterPropertyOutcome::Preserved,
+            target,
+            ids,
+        );
+        report.ifc_schema_token = Some("IFC2X3".into());
+        let gate = gate_from_adapter(&report, target, ids).unwrap();
+        assert_eq!(gate.status, GateStatus::Unresolved);
     }
 
     #[test]
