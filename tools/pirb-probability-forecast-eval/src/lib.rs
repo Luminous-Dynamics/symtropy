@@ -500,24 +500,24 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
         // A forecast is eligible for tuning only if its label had matured by
         // the next partition boundary. Otherwise later labels could leak into
         // calibration choices or model selection.
-        if let Some(available) = record.outcome_available_month {
-            if record.outcome != ForecastOutcome::Unknown {
-                if belongs_to_split(record, dataset, SplitName::Training)
-                    && available >= t.training_end_exclusive_month
-                {
-                    findings.push(format!(
-                        "{} training outcome was not mature by the calibration boundary",
-                        record.forecast_id
-                    ));
-                }
-                if belongs_to_split(record, dataset, SplitName::Calibration)
-                    && available >= t.calibration_end_exclusive_month
-                {
-                    findings.push(format!(
-                        "{} calibration outcome was not mature by the test boundary",
-                        record.forecast_id
-                    ));
-                }
+        if let Some(available) = record.outcome_available_month
+            && record.outcome != ForecastOutcome::Unknown
+        {
+            if belongs_to_split(record, dataset, SplitName::Training)
+                && available >= t.training_end_exclusive_month
+            {
+                findings.push(format!(
+                    "{} training outcome was not mature by the calibration boundary",
+                    record.forecast_id
+                ));
+            }
+            if belongs_to_split(record, dataset, SplitName::Calibration)
+                && available >= t.calibration_end_exclusive_month
+            {
+                findings.push(format!(
+                    "{} calibration outcome was not mature by the test boundary",
+                    record.forecast_id
+                ));
             }
         }
     }
