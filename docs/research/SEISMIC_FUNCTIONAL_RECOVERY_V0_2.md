@@ -65,9 +65,23 @@ A second fixture forces service to fall from 80% to 30% before recovering, verif
 
 1. **Contract correctness:** hand calculations, boundary values, monotonic and non-monotonic curves, missing horizon recovery, malformed records, and numerical overflow.
 2. **Safety negatives:** zero false-safe outputs in seeded hard-stop tests. This is only a finite-suite software acceptance criterion, not evidence of zero real-world risk.
-3. **Scenario completeness:** later work should add explicit dependency graphs, common-cause failures, repair precedence and constrained crews, inspection holds, and coupled infrastructure outages.
+3. **Scenario completeness:** the current branch now adds a bounded dependency-capacity kernel. Extend it with repair precedence and constrained crews, spatially correlated failures, and coupled infrastructure outage scenarios.
 4. **Model validity:** reproduce a published scenario only when inputs and model assumptions can be reconstructed, then test on held-out experimental or historical cases. Separate synthetic, sourced, measured, and independently reviewed inputs.
 5. **Industry comparison:** compare recovery curves, T50/T90/T95, cumulative unmet demand, censoring, and scenario coverage against traceable published frameworks and cases with a matched service contract. Do not claim “better than SOTA” until data, thresholds, uncertainty, and independent evaluation are comparable.
+
+## Common-cause dependency capacity prototype
+
+The `dependencies` module declares service paths, their nominal capacities (in the scenario's units per hour), and the required dependencies for each path. Each dependency has an explicit state. This models an important resilience distinction: two routes are not independent if both require the same traction-power feed, control network, portal, drainage outlet, or other component that can fail from the same event.
+
+A deterministic fixture contains two nominally separate rail routes with capacities 60 and 50 service units/hour that both require `traction-power`, plus a surface backup path with capacity 40. When the shared traction-power dependency is `Failed`, the two rail paths are unavailable and only 40 of the 100 units/hour demand is credited. The expected safe-capacity lower bound is 40%, not the nominal 150% capacity suggested by adding all route capacities.
+
+If a dependency is Unknown, NotApplicable, or missing:
+- Its path contributes no safe-capacity credit.
+- If remaining known-safe paths cannot meet demand and unresolved paths could change that result, the evaluator returns `NEEDS_EVIDENCE` with no metrics.
+- If known-safe capacity already meets demand, it may return a `CONSERVATIVE_LOWER_BOUND` report that explicitly lists unresolved paths.
+- Failed dependencies make affected paths unavailable. Output path lists are sorted for deterministic reports.
+
+This module intentionally does not compute hazard-driven dependency failures, probability of common causes, network flow/assignment, demand elasticity, route travel times, egress/inspection authority, or repair actions. The set of dependency states and each path capacity remain supplied inputs; the evaluator cannot authenticate their evidence. Scenarios should eventually be generated from a declared dependency graph and correlated hazard model, then validated against observed incidents or published test cases. Never interpret the synthetic 40% example as a real corridor prediction.
 
 ## Exclusions
 
