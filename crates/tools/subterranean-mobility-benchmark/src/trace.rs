@@ -6,8 +6,8 @@
 use std::collections::BTreeSet;
 
 use super::egress::{
-    CommunicationsState, CoordinationSupportStatus, EgressCoordinationReport, LocalPlanState,
-    LocalizationState, assess_egress_coordination,
+    CommunicationsState, EgressCoordinationReport, LocalPlanState, LocalizationState,
+    assess_egress_coordination,
 };
 use super::{RouteSearchDisposition, TimedEvidence};
 
@@ -138,6 +138,7 @@ pub fn replay_mission_trace(
 
 #[cfg(test)]
 mod tests {
+    use super::super::egress::CoordinationSupportStatus;
     use super::*;
 
     fn event(id: &str, at_ms: u64, kind: MissionTraceEventKind) -> MissionTraceEvent {
