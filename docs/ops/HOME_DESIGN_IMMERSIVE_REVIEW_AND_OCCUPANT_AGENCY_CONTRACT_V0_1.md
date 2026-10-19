@@ -47,6 +47,17 @@ Each overlay distinguishes:
 
 Aesthetic deviation from a catalog or typical style is not itself a compliance finding. When a concept conflicts with a genuine binding requirement, show the exact rule and a lawful alternative-design, variance/appeal, or evidence-backed reform path when the jurisdiction provides one. Do not imply that the render itself has authority to override the rule.
 
+## Compare designs without optimizing away human values
+
+The owner-led design-intent API now includes an optional explicit 0–100 rating on owner-preference evaluations and computes a deterministic Pareto frontier instead of an aggregate "best home" score. It retains alternatives when their trade-offs are real (for example, more daylight versus greater privacy), records pairs with missing ratings as incomparable, and excludes alternatives with failed/unresolved hard constraints from preference ranking while recording why. Ratings are owner-entered, never synthesized as objective facts by the compliance engine.
+
+Acceptance targets:
+- 100% of blocked alternatives have a traceable failed hard constraint and evidence; owner-declined options are never mislabeled as noncompliant.
+- 0 aggregate preference scores are created by the core.
+- 100% of dominance decisions are reproducible from the explicit owner ratings and comparison snapshot.
+- 100% of comparisons with an asymmetric missing rating are reported as incomparable rather than using an imputed value.
+- No preference rating can change a binding rule, convert an unknown hard requirement into a pass, or grant permission to build.
+
 ## Occupant feedback is a design input, not a compliance finding
 
 The `OccupantReviewFeedback` contract stores the user's own category, priority, note, optional desired change, design revision, route/waypoint or room-component reference, sharing scope, explicit public-sharing consent, disposition, and resulting design-change request ID where applicable.
