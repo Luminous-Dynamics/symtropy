@@ -51,6 +51,23 @@ A January 2026 paper on [physics-guided unsupervised domain adaptation for tool-
 
 Proposed stretch gate for the model-comparison stage: beat the strongest preregistered transparent baseline on **macro-tool MAE without materially worsening worst-tool error**, and report uncertainty across tool groups. Numeric improvement thresholds should be chosen after baseline variance and measurement quality are known; this v0.1 structural/transfer harness does not yet implement intervals or a physical utility trial.
 
+## First exact-head dataset result
+
+The focused GitHub Actions run [#39315118040](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39315118040) passed on code head `a4bc812f7caa316d84baaea64a7783ba9bc38b0b`. It verified the pinned source bytes (3,346,122 bytes; SHA-256 `0199bc69cae5e74be3d668244f708da78450c669be641d254b5ca6aa712dda56`), ran the Rust tests/Clippy, validated the fixed MFG-DATA-001 report and the separate 13-fold report, and uploaded both artifacts.
+
+The generated MFG-DATA-002 report was 22,806 bytes with SHA-256 `b607a2c95eafcd0bf5469f379b6bd48c5a74614d64697861573377d28e06280a`. The companion unchanged MFG-DATA-001 report was 3,247 bytes with SHA-256 `1c82242d40859997cedabcf07e14bdefc754b3795cd7d6cc716ba299b93baa34`.
+
+| Predeclared model | LOTO pooled MAE | LOTO pooled RMSE | Macro-tool MAE | Macro-tool RMSE | Worst held-out tool (MAE) |
+|---|---:|---:|---:|---:|---:|
+| Tool-balanced constant | 82.285 | 118.276 | 80.007 | 105.266 | 4 (126.346) |
+| OLS on `AE_RMS` | 81.467 | 126.223 | 77.210 | 104.763 | 10 (165.325) |
+| OLS on `F_c_RMS` | 37.942 | 51.654 | 37.722 | 46.752 | 4 (66.092) |
+| OLS on `F_p_RMS` | 61.953 | 82.436 | 66.220 | 79.499 | 9 (104.337) |
+
+The `F_c_RMS` one-feature baseline had the lowest held-out MAE on 10 of 13 tools; `AE_RMS` led on 2, and `F_p_RMS` on 1. There were seven distinct model-ranking signatures across folds, confirming that ranking depends on the held-out tool. Against the declared constant baseline, `F_c_RMS` reduced LOTO pooled MAE by about 53.9% and pooled RMSE by about 56.4% in this dataset/protocol.
+
+These values are source-native Vb errors; physical units are not specified by the pinned upstream README. The large per-tool changes and seven ranking signatures are precisely why a single fixed holdout or pooled score is insufficient. The result does not imply the best feature model is universally best, that the tool IDs represent independent factories, or that maintenance, safety, yield, energy savings, or process control would improve.
+
 ## Failure-domain interpretation
 
 If a feature model ranks first on some held-out tools but fails badly on another, the report should make that visible. The aggregate ranking-signature count is a coarse diagnostic of rank stability, not a probability or confidence estimate. Worst-tool MAE is a red-flagging statistic, not a formal guarantee on future tools. This v0.1 does not compute prediction intervals, infer Vb units, qualify instruments, validate raw signal processing, or translate predictions into maintenance thresholds.
