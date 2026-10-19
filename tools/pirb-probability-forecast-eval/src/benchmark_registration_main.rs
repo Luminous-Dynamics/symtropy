@@ -346,12 +346,10 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                     .is_some_and(|reference| !reference.is_empty());
                 let row_policy = string_at(comparison, "common_row_policy")
                     .is_some_and(|policy| !policy.is_empty());
-                let mapping_targets_registered_estimand =
-                    string_at(mapping, "target_estimand_id")
-                        == object_string_at(registration, "shared_estimand", "estimand_id");
-                let mapping_sources_match_providers = left
-                    .zip(right)
-                    .is_some_and(|(left, right)| {
+                let mapping_targets_registered_estimand = string_at(mapping, "target_estimand_id")
+                    == object_string_at(registration, "shared_estimand", "estimand_id");
+                let mapping_sources_match_providers =
+                    left.zip(right).is_some_and(|(left, right)| {
                         string_at(mapping, "left_source_estimand_id")
                             == string_at(left, "canonical_estimand_id")
                             && string_at(mapping, "right_source_estimand_id")
@@ -562,17 +560,14 @@ mod tests {
         value["shared_estimand"]["temporal_aggregation"] = json!("calendar month");
         value["shared_estimand"]["target_measure"] = json!("binary_event_probability");
 
-        let errors = validate(&value).expect_err("canonical target identity must match registration");
+        let errors =
+            validate(&value).expect_err("canonical target identity must match registration");
         assert!(
             errors
                 .iter()
                 .any(|error| error.contains("canonical estimand ID"))
         );
-        assert!(
-            errors
-                .iter()
-                .any(|error| error.contains("target_measure"))
-        );
+        assert!(errors.iter().any(|error| error.contains("target_measure")));
     }
 
     #[test]
