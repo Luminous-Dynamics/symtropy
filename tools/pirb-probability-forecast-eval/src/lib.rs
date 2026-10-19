@@ -44,7 +44,6 @@ pub struct SourceContract {
     threshold_definition: String,
     forecast_source_reference: String,
     forecast_archive_sha256: String,
-    forecast_source_reference: String,
     outcome_source_id: String,
     outcome_release_id: String,
     outcome_definition: String,
