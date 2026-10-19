@@ -461,6 +461,36 @@
       "expected_reason_codes": [
         "missing_required_attribution"
       ]
+    },
+    {
+      "id": "granular_location_missing_policy",
+      "mutation": "granular_location_missing_policy",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_location_privacy_policy"
+      ]
+    },
+    {
+      "id": "granular_location_too_fine",
+      "mutation": "granular_location_too_fine",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "granular_location_privacy_violation"
+      ]
+    },
+    {
+      "id": "granular_location_safe_aggregation",
+      "mutation": "granular_location_safe",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "granular_location_missing_resolution",
+      "mutation": "granular_location_missing_resolution",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_location_resolution"
+      ]
     }
   ]
 }
