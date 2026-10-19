@@ -978,15 +978,15 @@ mod tests {
 
     fn transfer_fixture() -> Dataset {
         let text = concat!(
-            "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\\n",
-            "3,1,0.2,1,3\\n",
-            "3,2,0.4,2,2\\n",
-            "4,3,0.6,3,4\\n",
-            "4,5,0.8,4,5\\n",
-            "5,6,1.0,5,7\\n",
-            "5,7,1.2,6,8\\n",
-            "6,9,1.4,7,10\\n",
-            "6,10,1.6,8,11\\n"
+            "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n",
+            "3,1,0.2,1,3\n",
+            "3,2,0.4,2,2\n",
+            "4,3,0.6,3,4\n",
+            "4,5,0.8,4,5\n",
+            "5,6,1.0,5,7\n",
+            "5,7,1.2,6,8\n",
+            "6,9,1.4,7,10\n",
+            "6,10,1.6,8,11\n"
         );
         parse_csv(text).expect("transfer fixture should parse")
     }
@@ -1015,17 +1015,17 @@ mod tests {
     fn loto_report_exposes_worst_tool_and_ranking_stability() {
         let dataset = transfer_fixture();
         let json = tool_transfer_diagnostics(&dataset, "test-source-sha").unwrap();
-        assert!(json.contains("\\"model_id\\":\\"MFG-DATA-002\\""));
-        assert!(json.contains("\\"method\\":\\"leave-one-tool-out\\""));
-        assert!(json.contains("\\"worst_tool\\""));
-        assert!(json.contains("\\"ranking_signature_count\\""));
-        assert!(json.contains("\\"model_ranking_by_mae\\""));
-        assert!(json.contains("\\"fold_count\\":4"));
+        assert!(json.contains("\"model_id\":\"MFG-DATA-002\""));
+        assert!(json.contains("\"method\":\"leave-one-tool-out\""));
+        assert!(json.contains("\"worst_tool\""));
+        assert!(json.contains("\"ranking_signature_count\""));
+        assert!(json.contains("\"model_ranking_by_mae\""));
+        assert!(json.contains("\"fold_count\":4"));
     }
 
     #[test]
     fn leave_one_tool_out_rejects_single_tool_dataset() {
-        let text = "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\\n3,1,0.5,2,4\\n3,2,0.6,3,5\\n";
+        let text = "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n3,1,0.5,2,4\n3,2,0.6,3,5\n";
         let dataset = parse_csv(text).unwrap();
         assert!(fit_leave_one_tool_out(&dataset).is_err());
     }
