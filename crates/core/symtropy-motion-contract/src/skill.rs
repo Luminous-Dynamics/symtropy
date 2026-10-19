@@ -160,6 +160,7 @@ pub struct MotionSkillStartEvidence {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MotionSkillExecutionFailure {
+    NoActiveExecution,
     MissingPreconditionEvidence,
     MissingPostconditionEvidence,
     PostconditionNotVerified,
@@ -192,6 +193,10 @@ pub enum MotionSkillOutcome {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MotionSkillCompletionEvidence {
+    /// Current simulation-clock time used to enforce the same expiry boundary as skill start.
+    pub now_sec: f64,
+    /// True only if this evidence refers to an execution that was actually started.
+    pub execution_started: bool,
     /// False when one or more required observations were unavailable or stale.
     pub observations_complete: bool,
     pub verified_postconditions: Vec<String>,
@@ -415,12 +420,29 @@ impl MotionSkillContract {
         evidence: &MotionSkillCompletionEvidence,
     ) -> Result<MotionSkillOutcome, MotionSkillValidationError> {
         self.validate()?;
+        if !evidence.now_sec.is_finite() || evidence.now_sec < 0.0 {
+            return Err(MotionSkillValidationError::InvalidEvaluationTime);
+        }
+        if evidence.now_sec < self.issued_at_sec {
+            return Ok(MotionSkillOutcome::NotYetValid);
+        }
+        if self
+            .valid_until_sec
+            .is_some_and(|until| evidence.now_sec >= until)
+        {
+            return Ok(MotionSkillOutcome::Expired);
+        }
         if evidence
             .recovery_skill_id
             .as_deref()
             .is_some_and(|value| value.trim().is_empty())
         {
             return Err(MotionSkillValidationError::InvalidRecoverySkillId);
+        }
+        if !evidence.execution_started {
+            return Ok(MotionSkillOutcome::ExecutionFailed {
+                reason: MotionSkillExecutionFailure::NoActiveExecution,
+            });
         }
 
         let required = self
@@ -736,6 +758,8 @@ mod tests {
     fn completion_requires_complete_evidence_for_every_postcondition() {
         let skill = contract();
         let incomplete = MotionSkillCompletionEvidence {
+            now_sec: 2.0,
+            execution_started: true,
             observations_complete: false,
             verified_postconditions: vec!["at-target".to_owned()],
             failed_postconditions: Vec::new(),
@@ -750,6 +774,8 @@ mod tests {
         );
 
         let partial = MotionSkillCompletionEvidence {
+            now_sec: 2.0,
+            execution_started: true,
             observations_complete: true,
             verified_postconditions: vec!["at-target".to_owned()],
             failed_postconditions: Vec::new(),
@@ -764,6 +790,8 @@ mod tests {
         );
 
         let complete = MotionSkillCompletionEvidence {
+            now_sec: 2.0,
+            execution_started: true,
             observations_complete: true,
             verified_postconditions: vec!["at-target".to_owned(), "stable-support".to_owned()],
             failed_postconditions: Vec::new(),
@@ -777,9 +805,44 @@ mod tests {
     }
 
     #[test]
+    fn completion_rejects_unstarted_and_expired_execution() {
+        let skill = contract();
+        let mut evidence = MotionSkillCompletionEvidence {
+            now_sec: 2.0,
+            execution_started: false,
+            observations_complete: true,
+            verified_postconditions: vec!["at-target".to_owned(), "stable-support".to_owned()],
+            failed_postconditions: Vec::new(),
+            interrupted: false,
+            recovery_skill_id: None,
+        };
+        assert_eq!(
+            skill.evaluate_completion(&evidence),
+            Ok(MotionSkillOutcome::ExecutionFailed {
+                reason: MotionSkillExecutionFailure::NoActiveExecution
+            })
+        );
+
+        evidence.execution_started = true;
+        evidence.now_sec = 5.0;
+        assert_eq!(
+            skill.evaluate_completion(&evidence),
+            Ok(MotionSkillOutcome::Expired)
+        );
+
+        evidence.now_sec = 2.0;
+        assert_eq!(
+            skill.evaluate_completion(&evidence),
+            Ok(MotionSkillOutcome::Completed)
+        );
+    }
+
+    #[test]
     fn interruption_is_explicit_and_carries_optional_recovery_skill() {
         let skill = contract();
         let evidence = MotionSkillCompletionEvidence {
+            now_sec: 2.0,
+            execution_started: true,
             observations_complete: false,
             verified_postconditions: Vec::new(),
             failed_postconditions: Vec::new(),
@@ -873,6 +936,8 @@ mod tests {
 
         let skill = contract();
         let evidence = MotionSkillCompletionEvidence {
+            now_sec: 2.0,
+            execution_started: true,
             observations_complete: true,
             verified_postconditions: vec!["invented-postcondition".to_owned()],
             failed_postconditions: Vec::new(),
