@@ -84,6 +84,10 @@ enum Mutation {
     UnseenTaxonLeak,
     FutureTimeSameTrackDisjoint,
     FutureTimeBoundaryTouch,
+    GranularLocationMissingPolicy,
+    GranularLocationTooFine,
+    GranularLocationSafe,
+    GranularLocationMissingResolution,
     WhitespacePermissionScope,
     WhitespaceAttribution,
 }
@@ -209,6 +213,40 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
             manifest.records[1].start_time = 100;
             manifest.records[1].end_time = 300;
         }
+        Mutation::GranularLocationMissingPolicy => {
+            grant_location_operation(&mut manifest);
+            manifest.location_disclosure = None;
+        }
+        Mutation::GranularLocationTooFine => {
+            grant_location_operation(&mut manifest);
+            manifest.location_disclosure = Some(
+                symtropy_animal_observation::LocationDisclosurePolicy {
+                    sensitive_species_location: true,
+                    minimum_export_grid_m: Some(10_000),
+                    actual_export_grid_m: Some(100),
+                },
+            );
+        }
+        Mutation::GranularLocationSafe => {
+            grant_location_operation(&mut manifest);
+            manifest.location_disclosure = Some(
+                symtropy_animal_observation::LocationDisclosurePolicy {
+                    sensitive_species_location: true,
+                    minimum_export_grid_m: Some(10_000),
+                    actual_export_grid_m: Some(20_000),
+                },
+            );
+        }
+        Mutation::GranularLocationMissingResolution => {
+            grant_location_operation(&mut manifest);
+            manifest.location_disclosure = Some(
+                symtropy_animal_observation::LocationDisclosurePolicy {
+                    sensitive_species_location: false,
+                    minimum_export_grid_m: None,
+                    actual_export_grid_m: None,
+                },
+            );
+        }
         Mutation::WhitespacePermissionScope => {
             manifest.permissions[0].scope_ref = Some("   ".to_owned());
         }
@@ -241,6 +279,20 @@ fn frozen_manifest_oracle_matches_every_expected_disposition_and_reason() {
             case.id
         );
     }
+}
+
+fn grant_location_operation(manifest: &mut ReferencePackManifest) {
+    manifest
+        .requested_operations
+        .push(DataOperation::PublishGranularLocation);
+    manifest.permissions.push(OperationPermission {
+        operation: DataOperation::PublishGranularLocation,
+        decision: PermissionDecision::Granted,
+        authority_ref: Some("test://authority/location-publication".to_owned()),
+        scope_ref: Some("test://scope/aggregated-location-only".to_owned()),
+        attribution: None,
+        reviewed_at: Some("2026-01-01".to_owned()),
+    });
 }
 
 fn manifest_fixture() -> ReferencePackManifest {
@@ -304,6 +356,7 @@ fn manifest_fixture() -> ReferencePackManifest {
         requested_claims: vec![ClaimKind::VisiblePose2d],
         generalization: GeneralizationTarget::UnseenSubject,
         minimum_temporal_gap: 0,
+        location_disclosure: None,
         records: vec![
             symtropy_animal_observation::SplitRecord {
                 record_id: "r-train".to_owned(),
