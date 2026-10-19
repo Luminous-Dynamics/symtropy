@@ -653,10 +653,28 @@ pub fn build_replay_receipt(
             rejected.insert(ReplayReason::DuplicateBaselineId);
         }
         if baseline.revision.trim().is_empty()
+            || baseline.run_id.trim().is_empty()
+            || baseline.evaluator_version.trim().is_empty()
+            || baseline.toolchain.trim().is_empty()
+            || baseline.platform.trim().is_empty()
             || baseline.training_data_scope.trim().is_empty()
             || baseline.compute_budget.trim().is_empty()
         {
             rejected.insert(ReplayReason::InvalidBaselineMetadata);
+        }
+        if !is_lower_hex(&baseline.code_head, &[40, 64]) {
+            rejected.insert(ReplayReason::InvalidBaselineCodeHead);
+        }
+        if !is_lower_hex(&baseline.config_sha256, &[64]) {
+            rejected.insert(ReplayReason::InvalidBaselineConfigDigest);
+        }
+        if task.budget_policy == ComparisonBudgetPolicy::MatchedBudget {
+            if baseline.training_data_scope != run.training_data_scope {
+                rejected.insert(ReplayReason::BaselineTrainingScopeMismatch);
+            }
+            if baseline.compute_budget != run.compute_budget {
+                rejected.insert(ReplayReason::BaselineComputeBudgetMismatch);
+            }
         }
         if baseline.comparison_group != task.comparison_group {
             rejected.insert(ReplayReason::BaselineComparisonGroupMismatch);
@@ -746,6 +764,11 @@ pub fn build_replay_receipt(
         }
         if comparison.independent_unit_count == 0 {
             incomplete.insert(ReplayReason::MissingPairedSamples);
+        }
+        if comparison.paired_unit_manifest_sha256.trim().is_empty() {
+            rejected.insert(ReplayReason::MissingPairedUnitManifestDigest);
+        } else if !is_lower_hex(&comparison.paired_unit_manifest_sha256, &[64]) {
+            rejected.insert(ReplayReason::MalformedPairedUnitManifestDigest);
         }
         let candidate_metric = metrics.iter().find(|metric| {
             metric.metric_id == comparison.metric_id
