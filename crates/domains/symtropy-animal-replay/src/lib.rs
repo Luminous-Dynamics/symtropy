@@ -480,6 +480,7 @@ pub fn build_replay_receipt(
             .cmp(&right.metric_id)
             .then_with(|| left.stratum_kind.cmp(&right.stratum_kind))
             .then_with(|| left.stratum_id.cmp(&right.stratum_id))
+            .then_with(|| canonical_sort_key(left).cmp(&canonical_sort_key(right)))
     });
     let mut metric_keys = BTreeSet::new();
     for metric in &metrics {
@@ -543,7 +544,11 @@ pub fn build_replay_receipt(
     if baselines.is_empty() {
         incomplete.insert(ReplayReason::NoBaseline);
     }
-    baselines.sort_by(|left, right| left.baseline_id.cmp(&right.baseline_id));
+    baselines.sort_by(|left, right| {
+        left.baseline_id
+            .cmp(&right.baseline_id)
+            .then_with(|| canonical_sort_key(left).cmp(&canonical_sort_key(right)))
+    });
     let mut baseline_ids = BTreeSet::new();
     for baseline in &mut baselines {
         baseline.additional_metrics.sort_by(|left, right| {
@@ -551,6 +556,7 @@ pub fn build_replay_receipt(
                 .cmp(&right.metric_id)
                 .then_with(|| left.stratum_kind.cmp(&right.stratum_kind))
                 .then_with(|| left.stratum_id.cmp(&right.stratum_id))
+                .then_with(|| canonical_sort_key(left).cmp(&canonical_sort_key(right)))
         });
         let mut baseline_metric_keys = BTreeSet::new();
         baseline_metric_keys.insert((
@@ -982,6 +988,10 @@ fn validate_metric(metric: &MetricObservation) -> MetricValidation {
             }
         }
     }
+}
+
+fn canonical_sort_key<T: Serialize + std::fmt::Debug>(value: &T) -> Vec<u8> {
+    serde_json::to_vec(value).unwrap_or_else(|_| format!("{value:?}").into_bytes())
 }
 
 fn is_lower_hex(value: &str, allowed_lengths: &[usize]) -> bool {
