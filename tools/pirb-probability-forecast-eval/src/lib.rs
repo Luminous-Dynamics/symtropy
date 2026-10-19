@@ -1389,6 +1389,8 @@ mod tests {
 
     const FIXTURE: &[u8] =
         include_bytes!("../../../docs/fixtures/pirb-probability-forecast-v0.1.json");
+    const ALTERNATE_VINTAGE: &[u8] =
+        include_bytes!("../../../docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json");
     const LOCK: &[u8] = b"synthetic-test-lock";
 
     fn dataset() -> ForecastDataset {
@@ -1729,6 +1731,86 @@ mod tests {
                 .iter()
                 .any(|finding| finding.contains("spatial_block_map_sha256"))
         );
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_requires_same_forecast_inventory() {
+        let comparison = compare_outcome_vintages(
+            &[FIXTURE, ALTERNATE_VINTAGE],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        )
+        .expect("two synthetic outcome vintages should compare");
+        assert_eq!(comparison.result, "pass");
+        assert!(comparison.same_forecast_inventory_verified);
+        assert_eq!(comparison.vintage_count, 2);
+        assert_eq!(comparison.forecast_record_count, 18);
+        assert_eq!(comparison.vintages[0].changed_test_labels_vs_reference, 0);
+        assert_eq!(comparison.vintages[1].changed_test_labels_vs_reference, 1);
+        assert_eq!(comparison.vintages[0].test_event_count, 2);
+        assert_eq!(comparison.vintages[1].test_event_count, 1);
+        assert_ne!(
+            comparison.vintages[0].input_sha256,
+            comparison.vintages[1].input_sha256
+        );
+        assert!(comparison.metric_ranges.brier_score.spread.is_some());
+        assert_eq!(comparison.metric_ranges.brier_score.versions_with_score, 2);
+        assert!(!comparison.causal_effect_estimated);
+        assert!(!comparison.live_decision_authority);
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_rejects_changed_forecast_probability() {
+        let mut value: Value = serde_json::from_slice(ALTERNATE_VINTAGE).unwrap();
+        value["records"][0]["probability"] = Value::from(0.11);
+        let changed = serde_json::to_vec(&value).unwrap();
+        let result = compare_outcome_vintages(
+            &[FIXTURE, changed.as_slice()],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        );
+        assert!(result
+            .unwrap_err()
+            .iter()
+            .any(|finding| finding.contains("identical forecast inventory")));
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_rejects_changed_target_definition() {
+        let mut value: Value = serde_json::from_slice(ALTERNATE_VINTAGE).unwrap();
+        value["source"]["outcome_definition"] =
+            Value::String("different target definition".to_owned());
+        let changed = serde_json::to_vec(&value).unwrap();
+        let result = compare_outcome_vintages(
+            &[FIXTURE, changed.as_slice()],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        );
+        assert!(result
+            .unwrap_err()
+            .iter()
+            .any(|finding| finding.contains("identical outcome definition")));
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_rejects_duplicate_snapshot() {
+        let result = compare_outcome_vintages(
+            &[FIXTURE, FIXTURE],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        );
+        assert!(result
+            .unwrap_err()
+            .iter()
+            .any(|finding| finding.contains("duplicates an outcome_release_id")));
     }
 
     #[test]
