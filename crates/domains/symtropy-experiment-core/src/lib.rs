@@ -10,6 +10,8 @@
 
 pub mod dynamics;
 pub mod units;
+pub mod provenance;
+pub use provenance::{RunReceipt, RunReceiptPayload, RUN_RECEIPT_SCHEMA_VERSION};
 pub use dynamics::{
     analyze_harmonic_oscillator_convergence, simulate_harmonic_oscillator, ConvergenceOrderEstimate,
     ConvergencePoint, HarmonicOscillatorResult, HarmonicOscillatorSpec, OscillatorConvergenceReport,
