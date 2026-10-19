@@ -31,6 +31,7 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FieldEvalReportInputV1 {
     pub schema_version: u16,
     pub study_ref: String,
@@ -56,6 +57,7 @@ pub struct FieldEvalReportInputV1 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FieldEvalOutcomePartitionV1 {
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub accepted_within_window_count: u64,
@@ -96,6 +98,7 @@ impl FieldEvalOutcomePartitionV1 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FieldEvalNonacceptanceReasonsV1 {
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub no_provider_count: u64,
