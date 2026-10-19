@@ -345,8 +345,8 @@ pub fn assess_field_eval_report_v1(input: &FieldEvalReportInputV1) -> FieldEvalR
         None
     };
 
-    let classified_request_count =
-        (disposition != FieldEvalReportDispositionV1::Blocked).then(|| classified_total.unwrap_or(0));
+    let classified_request_count = (disposition != FieldEvalReportDispositionV1::Blocked)
+        .then(|| classified_total.unwrap_or(0));
     FieldEvalReportAssessmentV1 {
         study_ref: input.study_ref.clone(),
         disposition,
