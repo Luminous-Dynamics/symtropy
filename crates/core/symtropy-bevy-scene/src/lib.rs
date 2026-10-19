@@ -99,11 +99,14 @@ pub mod architectural_review;
 pub mod loader;
 
 pub use architectural_review::{
-    ArchitecturalReviewRoute, ReviewAnnotation, ReviewAnnotationIssue, ReviewAnnotationKind,
+    ArchitecturalReviewRoute, OccupantFeedbackCategory, OccupantFeedbackIssue,
+    OccupantFeedbackLifecycle, OccupantFeedbackPriority, OccupantFeedbackShareScope,
+    OccupantReviewFeedback, ReviewAnnotation, ReviewAnnotationIssue, ReviewAnnotationKind,
     ReviewAnnotationState, ReviewFreeCameraController, ReviewRig, ReviewRouteIssue,
     ReviewRoutePlayback, ReviewWaypoint, advance_architectural_review_routes,
     drive_free_review_camera, manage_architectural_review_controls, review_waypoint_transform,
-    sample_review_route, validate_review_annotations_for_revision, validate_review_route,
+    sample_review_route, validate_occupant_feedback_for_review,
+    validate_review_annotations_for_revision, validate_review_route,
 };
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
