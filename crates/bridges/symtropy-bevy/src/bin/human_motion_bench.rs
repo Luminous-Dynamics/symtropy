@@ -28,6 +28,7 @@ use symtropy_bevy::human_motion_metrics::{
 const MAX_GRID_SAMPLES: usize = 1_000_000;
 const GRID_EPSILON_RATIO: f64 = 1.0e-8;
 const DEFAULT_CONTACT_EVENT_TOLERANCE_SEC: f64 = 0.1;
+const QUATERNION_NORM_TOLERANCE: f64 = 1.0e-3;
 
 #[derive(Debug)]
 struct BenchError(String);
@@ -119,6 +120,8 @@ struct Trace {
     retarget_map_sha256: NullableDigest,
     timestamps_sec: Vec<f64>,
     root_world_m: Vec<[f64; 3]>,
+    #[serde(default)]
+    root_rotation_world_xyzw: Option<Vec<[f64; 4]>>,
     left_foot_world_m: Vec<[f64; 3]>,
     left_foot_contact: Vec<bool>,
     right_foot_world_m: Vec<[f64; 3]>,
@@ -134,11 +137,24 @@ struct Trace {
 impl Trace {
     fn validate(&self, path: &Path) -> Result<(), BenchError> {
         let source = path.display();
-        if self.schema_version != 1 {
+        if !matches!(self.schema_version, 1 | 2) {
             return fail(format!(
-                "{source}: unsupported schema_version {}; expected 1",
+                "{source}: unsupported schema_version {}; expected 1 or 2",
                 self.schema_version
             ));
+        }
+        match (self.schema_version, self.root_rotation_world_xyzw.as_ref()) {
+            (1, Some(_)) => {
+                return fail(format!(
+                    "{source}: root_rotation_world_xyzw requires schema_version 2"
+                ));
+            }
+            (2, None) => {
+                return fail(format!(
+                    "{source}: schema_version 2 requires root_rotation_world_xyzw"
+                ));
+            }
+            _ => {}
         }
         if self.trace_id.trim().is_empty() {
             return fail(format!("{source}: trace_id must not be empty"));
@@ -270,6 +286,22 @@ impl Trace {
             .any(|pair| !(pair[1] - pair[0]).is_finite())
         {
             return fail(format!("{source}: timestamp difference overflowed"));
+        }
+
+        if let Some(rotations) = &self.root_rotation_world_xyzw {
+            validate_length(
+                self.timestamps_sec.len(),
+                rotations.len(),
+                "root_rotation_world_xyzw",
+                path,
+            )?;
+            for (index, rotation) in rotations.iter().copied().enumerate() {
+                validate_unit_quaternion(rotation).map_err(|error| {
+                    BenchError(format!(
+                        "{source}: root_rotation_world_xyzw[{index}] {error}"
+                    ))
+                })?;
+            }
         }
 
         validate_positions(
@@ -478,6 +510,115 @@ fn interpolate_positions(
         .iter()
         .map(|target| interpolate_position(source_times, source_positions, *target))
         .collect()
+}
+
+fn quaternion_norm(q: [f64; 4]) -> f64 {
+    q.iter().fold(0.0_f64, |norm, component| norm.hypot(*component))
+}
+
+fn validate_unit_quaternion(q: [f64; 4]) -> Result<(), &'static str> {
+    if q.iter().any(|component| !component.is_finite()) {
+        return Err("contains a non-finite component");
+    }
+    let norm = quaternion_norm(q);
+    if !norm.is_finite() || norm <= f64::MIN_POSITIVE {
+        return Err("has a zero or invalid norm");
+    }
+    if (norm - 1.0).abs() > QUATERNION_NORM_TOLERANCE {
+        return Err("must be unit length within 1e-3 norm tolerance");
+    }
+    Ok(())
+}
+
+fn normalize_quaternion(q: [f64; 4]) -> Result<[f64; 4], BenchError> {
+    let norm = quaternion_norm(q);
+    if !norm.is_finite() || norm <= f64::MIN_POSITIVE {
+        return fail("cannot normalize a zero or invalid quaternion");
+    }
+    Ok([q[0] / norm, q[1] / norm, q[2] / norm, q[3] / norm])
+}
+
+fn quaternion_dot(a: [f64; 4], b: [f64; 4]) -> f64 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
+}
+
+/// Shortest-arc SLERP for unit quaternions in XYZW order.
+fn slerp_quaternion(a: [f64; 4], b: [f64; 4], fraction: f64) -> Result<[f64; 4], BenchError> {
+    let a = normalize_quaternion(a)?;
+    let mut b = normalize_quaternion(b)?;
+    let mut dot = quaternion_dot(a, b);
+    if dot < 0.0 {
+        b = [-b[0], -b[1], -b[2], -b[3]];
+        dot = -dot;
+    }
+    dot = dot.clamp(-1.0, 1.0);
+    let fraction = fraction.clamp(0.0, 1.0);
+
+    let result = if dot > 0.9995 {
+        [
+            a[0] + fraction * (b[0] - a[0]),
+            a[1] + fraction * (b[1] - a[1]),
+            a[2] + fraction * (b[2] - a[2]),
+            a[3] + fraction * (b[3] - a[3]),
+        ]
+    } else {
+        let theta = dot.acos();
+        let sin_theta = theta.sin();
+        if !sin_theta.is_finite() || sin_theta.abs() <= f64::MIN_POSITIVE {
+            return fail("SLERP encountered a degenerate interpolation arc");
+        }
+        let weight_a = ((1.0 - fraction) * theta).sin() / sin_theta;
+        let weight_b = (fraction * theta).sin() / sin_theta;
+        [
+            weight_a * a[0] + weight_b * b[0],
+            weight_a * a[1] + weight_b * b[1],
+            weight_a * a[2] + weight_b * b[2],
+            weight_a * a[3] + weight_b * b[3],
+        ]
+    };
+    normalize_quaternion(result)
+}
+
+fn interpolate_quaternion(
+    source_times: &[f64],
+    source_rotations: &[[f64; 4]],
+    target: f64,
+) -> Result<[f64; 4], BenchError> {
+    let upper = source_times.partition_point(|time| *time < target);
+    if upper == 0 {
+        return normalize_quaternion(source_rotations[0]);
+    }
+    if upper >= source_times.len() {
+        return normalize_quaternion(source_rotations[source_rotations.len() - 1]);
+    }
+    let lower = upper - 1;
+    let span = source_times[upper] - source_times[lower];
+    let fraction = ((target - source_times[lower]) / span).clamp(0.0, 1.0);
+    slerp_quaternion(source_rotations[lower], source_rotations[upper], fraction)
+}
+
+fn interpolate_quaternions(
+    source_times: &[f64],
+    source_rotations: &[[f64; 4]],
+    target_times: &[f64],
+) -> Result<Vec<[f64; 4]>, BenchError> {
+    target_times
+        .iter()
+        .map(|target| interpolate_quaternion(source_times, source_rotations, *target))
+        .collect()
+}
+
+/// Geodesic angular distance between 3D rotations, in radians. q and -q are
+/// equivalent quaternion encodings and therefore produce the same error.
+fn quaternion_angular_error_rad(a: [f64; 4], b: [f64; 4]) -> Result<f64, BenchError> {
+    let a = normalize_quaternion(a)?;
+    let b = normalize_quaternion(b)?;
+    let error = 2.0 * quaternion_dot(a, b).abs().clamp(0.0, 1.0).acos();
+    if error.is_finite() {
+        Ok(error)
+    } else {
+        fail("quaternion angular error is not finite")
+    }
 }
 
 fn interpolate_position(
@@ -830,6 +971,71 @@ fn contact_event_report(
 }
 
 #[derive(Debug, Serialize)]
+struct RootOrientationReport {
+    samples: usize,
+    mean_angular_error_rad: f64,
+    mean_angular_error_deg: f64,
+    final_angular_error_rad: f64,
+    final_angular_error_deg: f64,
+    p95_angular_error_rad: f64,
+    p95_angular_error_deg: f64,
+    max_angular_error_rad: f64,
+    max_angular_error_deg: f64,
+}
+
+fn evaluate_root_orientation(
+    reference_times: &[f64],
+    reference_rotations: &[[f64; 4]],
+    prediction_times: &[f64],
+    prediction_rotations: &[[f64; 4]],
+    grid_times: &[f64],
+    overlap_end_sec: f64,
+) -> Result<RootOrientationReport, BenchError> {
+    let reference_aligned =
+        interpolate_quaternions(reference_times, reference_rotations, grid_times)?;
+    let prediction_aligned =
+        interpolate_quaternions(prediction_times, prediction_rotations, grid_times)?;
+
+    let mut errors_rad = Vec::with_capacity(grid_times.len());
+    for (reference, prediction) in reference_aligned.iter().zip(&prediction_aligned) {
+        errors_rad.push(quaternion_angular_error_rad(*prediction, *reference)?);
+    }
+    if errors_rad.is_empty() {
+        return fail("root orientation evaluation requires at least one aligned sample");
+    }
+    let error_sum: f64 = errors_rad.iter().sum();
+    if !error_sum.is_finite() {
+        return fail("root orientation error aggregation overflowed");
+    }
+    let mean_error_rad = error_sum / errors_rad.len() as f64;
+    let mut ordered_errors = errors_rad;
+    ordered_errors.sort_by(f64::total_cmp);
+    let p95_error_rad = percentile_nearest_rank(&ordered_errors, 0.95)
+        .ok_or_else(|| BenchError("could not compute root orientation P95".to_owned()))?;
+
+    let reference_endpoint =
+        interpolate_quaternion(reference_times, reference_rotations, overlap_end_sec)?;
+    let prediction_endpoint =
+        interpolate_quaternion(prediction_times, prediction_rotations, overlap_end_sec)?;
+    let final_error_rad =
+        quaternion_angular_error_rad(prediction_endpoint, reference_endpoint)?;
+    let max_error_rad = ordered_errors.last().copied().unwrap_or(0.0);
+    const RAD_TO_DEG: f64 = 180.0 / std::f64::consts::PI;
+
+    Ok(RootOrientationReport {
+        samples: grid_times.len(),
+        mean_angular_error_rad: mean_error_rad,
+        mean_angular_error_deg: mean_error_rad * RAD_TO_DEG,
+        final_angular_error_rad: final_error_rad,
+        final_angular_error_deg: final_error_rad * RAD_TO_DEG,
+        p95_angular_error_rad: p95_error_rad,
+        p95_angular_error_deg: p95_error_rad * RAD_TO_DEG,
+        max_angular_error_rad: max_error_rad,
+        max_angular_error_deg: max_error_rad * RAD_TO_DEG,
+    })
+}
+
+#[derive(Debug, Serialize)]
 struct RootTrajectoryReport {
     samples: usize,
     mean_displacement_error_m: f64,
@@ -920,6 +1126,7 @@ struct BenchmarkReport {
     alignment: AlignmentReport,
     provenance: ProvenanceReport,
     root_trajectory_error: RootTrajectoryReport,
+    root_orientation_error: Option<RootOrientationReport>,
     joint_trajectory_error: JointTrajectoryReport,
     left_stance_foot_drift: FootDriftReport,
     right_stance_foot_drift: FootDriftReport,
@@ -937,6 +1144,9 @@ fn evaluate(
     prediction: &Trace,
     requested_step: Option<f64>,
 ) -> Result<BenchmarkReport, BenchError> {
+    if reference.schema_version != prediction.schema_version {
+        return fail("trace schema versions differ; convert both traces to the same version before comparison");
+    }
     if reference.coordinate_frame != prediction.coordinate_frame {
         return fail("coordinate frames differ; convert both traces to the same declared frame");
     }
@@ -992,6 +1202,22 @@ fn evaluate(
     );
     let endpoint_error_m =
         euclidean_position_error_m(prediction_endpoint, reference_endpoint)?;
+
+    let root_orientation_error = match (
+        reference.root_rotation_world_xyzw.as_deref(),
+        prediction.root_rotation_world_xyzw.as_deref(),
+    ) {
+        (Some(reference_rotations), Some(prediction_rotations)) => Some(evaluate_root_orientation(
+            &reference.timestamps_sec,
+            reference_rotations,
+            &prediction.timestamps_sec,
+            prediction_rotations,
+            &grid.timestamps_sec,
+            grid.overlap_end_sec,
+        )?),
+        (None, None) => None,
+        _ => return fail("both traces must provide root rotations when either trace has orientation data"),
+    };
 
     let mut joint_metrics = Vec::with_capacity(reference.joint_world_m.len());
     let mut joint_ade_sum_m = 0.0;
@@ -1123,6 +1349,7 @@ fn evaluate(
         "Root jerk is noise-sensitive. Interpret it with tracking error and task success, never as a standalone quality score.",
         "ADE and maximum error use the common uniform grid; FDE is evaluated at the exact overlap end by position interpolation.",
         "Root-path error alone is not a full-body fidelity score; inspect named-joint trajectory metrics when the trace includes them.",
+        "Root orientation is only scored for v0.2 traces with quaternion samples; a null orientation report means the v0.1 contract did not provide orientation, not that orientation error was zero.",
         "Configuration hashes may differ between methods by design; both are recorded so the comparison is auditable.",
     ];
     let validity = if synthetic {
@@ -1167,6 +1394,7 @@ fn evaluate(
             final_displacement_error_m: endpoint_error_m,
             max_displacement_error_m: root.max_displacement_error_m,
         },
+        root_orientation_error,
         joint_trajectory_error,
         left_stance_foot_drift: FootDriftReport {
             samples_in_contact: left_drift.samples_in_contact,
