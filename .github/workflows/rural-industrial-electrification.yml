@@ -7,6 +7,7 @@ on:
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md"
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md"
       - "docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md"
+      - "docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md"
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md"
       - "docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md"
+      - "docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   workflow_dispatch:
 
