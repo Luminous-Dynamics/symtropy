@@ -17,8 +17,9 @@ taxonomy-scoped coverage reporting.
 
 This is not an animal simulator, species database, behavioral policy, taxonomic
 authority, or biological validation claim. The 26 archetype profiles and oracle
-values are synthetic. A `covered` taxon must have a matching eligible real-taxon
-profile; omissions stay `not_reviewed`.
+values are synthetic. A `covered` taxon must have a matching eligible real-taxon profile; omissions
+stay `not_reviewed`. This is **profile-registry coverage**, not proof that the
+species' anatomy, behavior, physiology, or ecology is comprehensively simulated.
 
 ## Focused qualification
 
