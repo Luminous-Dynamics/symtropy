@@ -79,3 +79,18 @@ MCS and other charge interfaces must be evaluated against the applicable current
 - https://saemobilus.sae.org/standards/j3271_202503-sae-megawatt-charging-system-electric-vehicles
 
 Every numerical vehicle and mission fixture remains synthetic. The current artifacts are design-system and analysis scaffolding, not finished CAD, verified components, certified safety cases, supplier specifications, production readiness or permission to deploy.
+
+## Per-design subsystem architecture trees
+
+The machine-readable reference tree lives in `tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json`, validated against `schemas/vehicle_subsystem_architectures_v0_1.schema.json`. It maps all 19 designs to one of nine architecture patterns and to their platform family. Each design decomposes into six reviewable subsystem blocks:
+
+1. **Structure and mission body** — frame/body/implements, load paths, payload and access envelope.
+2. **Traction drive** — motors/drive units, reduction, axle/track interface, regen and friction-brake boundary.
+3. **Energy storage and protection** — pack placement, protection/isolation, reserve and service boundary.
+4. **Thermal management** — battery, drive and work-system heat sources; no common coolant circuit is assumed.
+5. **Charging / energy interface** — AC/DC depot, high-power conductive, opportunity charging, trolley or dedicated export interface according to duty and site.
+6. **Controls, safety and service** — driver/operator controls, fault handling, safe-stop, diagnostics, recovery, updates and maintenance provenance.
+
+These are conceptual trees with an explicit qualification gate per subsystem. No specific cell supplier, motor/inverter part, system voltage, connector pinout, wiring harness, frame dimensions, axle rating or cooling-loop design is asserted. A platform-family or interface match is a work-allocation and software-contract statement—not proof of physical interchangeability.
+
+For a complete build definition each architecture still needs CAD and packaging, mass properties and axle/wheel loads, duty-cycle drive and work maps, battery cell/pack calculations, thermal and electrical schematics, protection/grounding, DFM/repair bill of materials, hazard analysis, controlled interface drawings, production/test procedures, and applicable independent qualification. Those deliverables should be created class-by-class from sourced requirements rather than fabricating a nominally complete BOM from synthetic envelopes.
