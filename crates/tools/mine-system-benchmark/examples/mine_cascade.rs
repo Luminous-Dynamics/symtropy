@@ -33,7 +33,7 @@ fn scenario(shared_pump_power: bool) -> Scenario {
         capacity: 10.0,
         minimum_capacity: 5.0,
         evidence_current: true,
-        failure_domain: None,
+        failure_domains: Vec::new(),
         requirements: vec![DependencyRule::AtLeast {
             service_ids: vec!["pump-a".to_owned(), "pump-b".to_owned()],
             minimum_viable: 1,
