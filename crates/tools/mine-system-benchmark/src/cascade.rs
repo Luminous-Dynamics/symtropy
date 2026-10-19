@@ -9,6 +9,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
+const MAX_CONFIGURED_SERVICES: usize = 512;
+const MAX_CONFIGURED_EVENTS: usize = 10_000;
+const MAX_DEPENDENCY_EDGES: usize = 8_192;
+const MAX_EVALUATION_WORK: usize = 2_000_000;
+
 /// Known local state. Unknown is never interpreted as healthy.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalState { Available, Unavailable, Unknown }
@@ -148,7 +153,11 @@ pub fn simulate(scenario: &Scenario) -> Result<SimulationReport, SimulationError
 
 fn validate_and_index(s: &Scenario) -> Result<BTreeMap<String, Service>, SimulationError> {
     if s.id.trim().is_empty() { return invalid("scenario ID is empty"); }
+    if s.services.is_empty() { return invalid("scenario has no services"); }
     if s.max_services == 0 || s.max_events == 0 { return invalid("service/event caps must be positive"); }
+    if s.max_services > MAX_CONFIGURED_SERVICES || s.max_events > MAX_CONFIGURED_EVENTS {
+        return invalid("configured caps exceed the simulator hard limits");
+    }
     if s.services.len() > s.max_services {
         return Err(SimulationError::LimitExceeded { resource: "service count", observed: s.services.len(), limit: s.max_services });
     }
@@ -169,6 +178,7 @@ fn validate_and_index(s: &Scenario) -> Result<BTreeMap<String, Service>, Simulat
         if services.insert(id.clone(), service.clone()).is_some() { return invalid(format!("duplicate service ID {id}")); }
     }
     let ids: BTreeSet<String> = services.keys().cloned().collect();
+    let mut dependency_edges = 0usize;
     for service in services.values() {
         for rule in &service.requirements {
             let deps = match rule {
@@ -185,6 +195,8 @@ fn validate_and_index(s: &Scenario) -> Result<BTreeMap<String, Service>, Simulat
             };
             let mut seen = BTreeSet::new();
             for dep in deps {
+                dependency_edges = dependency_edges.checked_add(1).ok_or_else(|| SimulationError::InvalidInput("dependency edge count overflow".into()))?;
+                if dependency_edges > MAX_DEPENDENCY_EDGES { return invalid("dependency-edge cap exceeded"); }
                 if !seen.insert(dep) { return invalid(format!("service {} repeats dependency {dep}", service.id)); }
                 if !ids.contains(dep) { return invalid(format!("service {} references missing dependency {dep}", service.id)); }
                 if dep == &service.id { return invalid(format!("service {} depends on itself", service.id)); }
@@ -212,6 +224,11 @@ fn validate_and_index(s: &Scenario) -> Result<BTreeMap<String, Service>, Simulat
             }
         }
     }
+    let per_tick_work = services.len().checked_add(dependency_edges)
+        .ok_or_else(|| SimulationError::InvalidInput("evaluation-work estimate overflow".into()))?;
+    let estimated_work = per_tick_work.checked_mul(s.events.len().saturating_add(1))
+        .ok_or_else(|| SimulationError::InvalidInput("evaluation-work estimate overflow".into()))?;
+    if estimated_work > MAX_EVALUATION_WORK { return invalid("estimated service evaluation work exceeds the hard budget"); }
     Ok(services)
 }
 
