@@ -203,10 +203,10 @@ pub fn validate_review_annotations_for_revision(
             }
             ReviewAnnotationKind::BindingConflict => {
                 if annotation.state != ReviewAnnotationState::Conflict
-                    || !annotation
+                    || annotation
                         .source_ref
                         .as_deref()
-                        .is_some_and(|value| !value.trim().is_empty())
+                        .is_none_or(|value| value.trim().is_empty())
                 {
                     issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
                         annotation_id: annotation.annotation_id.clone(),
@@ -949,10 +949,10 @@ pub fn validate_occupant_feedback_for_review(
             });
         }
         if item.lifecycle == OccupantFeedbackLifecycle::AcceptedForDesignChange
-            && !item
+            && item
                 .design_change_request_id
                 .as_deref()
-                .is_some_and(|value| !value.trim().is_empty())
+                .is_none_or(|value| value.trim().is_empty())
         {
             issues.push(OccupantFeedbackIssue::AcceptedWithoutChangeRequest {
                 feedback_id: item.feedback_id.clone(),
