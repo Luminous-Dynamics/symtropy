@@ -424,7 +424,11 @@ fn bounds(minimum: u32, maximum: u32) -> Bounds {
 }
 
 fn period(inflow: Bounds, head: Bounds, budget: u32) -> PeriodInput {
-    PeriodInput { inflow_liters: inflow, required_head_kpa: head, energy_budget_wh: budget }
+    PeriodInput {
+        inflow_liters: inflow,
+        required_head_kpa: head,
+        energy_budget_wh: budget,
+    }
 }
 
 fn default_envelope() -> Envelope {
@@ -501,7 +505,11 @@ fn cases() -> Vec<Case> {
         maximum_sump_liters: 100,
         commands_on: vec![true, false, true],
         periods: vec![nominal_period.clone(), nominal_period.clone(), nominal_period.clone()],
-        envelope: Envelope { minimum_off_periods: 2, minimum_on_periods: 1, ..default_envelope() },
+        envelope: Envelope {
+            minimum_off_periods: 2,
+            minimum_on_periods: 1,
+            ..default_envelope()
+        },
     };
     let power = Case {
         case_id: "operating-energy-budget".to_owned(),
