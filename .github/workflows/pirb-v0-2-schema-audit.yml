@@ -44,3 +44,53 @@ jobs:
 
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/pirb-outcome-governance-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate and verify exact-head proof-carrying receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          rustc_version="$(rustc --version)"
+          cargo_version="$(cargo --version)"
+          cargo run --locked --manifest-path tools/pirb-outcome-governance-audit/Cargo.toml -- \
+            --source-commit "$source_commit" \
+            --rustc-version "$rustc_version" \
+            --cargo-version "$cargo_version" > pirb-v0-2-receipt.json
+          schema_sha="$(sha256sum docs/schemas/peacebuilding-outcome-governance-v0.2.schema.json | cut -d ' ' -f1)"
+          fixture_sha="$(sha256sum docs/fixtures/peacebuilding-outcome-governance-v0.2.json | cut -d ' ' -f1)"
+          lock_sha="$(sha256sum tools/pirb-outcome-governance-audit/Cargo.lock | cut -d ' ' -f1)"
+          jq --exit-status \
+            --arg source_commit "$source_commit" \
+            --arg schema_sha "$schema_sha" \
+            --arg fixture_sha "$fixture_sha" \
+            --arg lock_sha "$lock_sha" \
+            --arg rustc_version "$rustc_version" \
+            --arg cargo_version "$cargo_version" \
+            ' .passed == true
+              and .schema_meta_valid == true
+              and .example_valid == true
+              and .validation_error_count == 0
+              and .source_commit == $source_commit
+              and (.source_commit | test("^[0-9a-f]{40}$"))
+              and .schema_sha256 == $schema_sha
+              and .fixture_sha256 == $fixture_sha
+              and .dependency_lock_sha256 == $lock_sha
+              and .rustc_version == $rustc_version
+              and .cargo_version == $cargo_version
+              and .metric_id == "pirb-metric-fictional-essential-service-gap"
+              and .metric_version == 1
+              and .governance_event_count == 4' pirb-v0-2-receipt.json > /dev/null
+          cat pirb-v0-2-receipt.json
+
+      - name: Upload exact-head v0.2 receipt and inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pirb-v0-2-outcome-governance-receipt
+          path: |
+            pirb-v0-2-receipt.json
+            docs/schemas/peacebuilding-outcome-governance-v0.2.schema.json
+            docs/fixtures/peacebuilding-outcome-governance-v0.2.json
+            tools/pirb-outcome-governance-audit/Cargo.lock
+          if-no-files-found: warn
+          retention-days: 90

@@ -90,6 +90,12 @@ These are software-conformance targets, not field impact thresholds:
 - **State/event agreement:** the declared metric status must agree with its latest state-changing governance event; a review-required challenge must not leave the metric silently active.
 - **Independent tests:** each state transition has a nominal case, a violating mutation, and a missing/unknown-evidence mutation; bounded state-space checks use an independently structured oracle.
 
+## Proof-carrying audit receipt
+
+The executable workflow should emit a deterministic receipt without a wall-clock field or nondeterministic ordering. It binds the exact Git commit, metric schema and fixture SHA-256 digests, generated Cargo lockfile digest, Rust and Cargo version strings, metric ID/version, event count, validation outcome and explicit claim ceiling. The workflow independently recomputes the digests from the checked-out files, verifies every receipt field, and archives the receipt with the schema, fixture and lockfile. A queued run, a branch status, or a receipt from a different commit is not evidence for the reviewed head.
+
+Acceptance targets: zero receipt/source mismatch; zero schema/fixture/lock digest mismatch; zero successful receipt if schema meta-validation or fixture/semantic validation fails; exact byte-for-byte receipt determinism for identical input/toolchain metadata; 100% traceability from receipt to its three audited inputs.
+
 ## Implementation sequence
 
 1. Review the state machine and schema with peacebuilding evaluators, local/community partners, data-protection specialists, and relevant civic/service domain maintainers. No consultation is implied by this draft.
