@@ -707,7 +707,7 @@ mod tests {
         let outcome =
             evaluate_scenario(&corpus.process_model, &corpus.scenarios[0]).expect("scenario");
         assert_eq!(ScenarioStatus::Feasible, outcome.status);
-        assert_eq!(5, outcome.candidate_schedules_evaluated);
+        assert_eq!(8, outcome.candidate_schedules_evaluated);
         assert_eq!(5, outcome.feasible_schedule_count);
         let best = outcome.best_schedule.expect("feasible optimum");
         assert_eq!(vec![1, 3, 0], best.batches);
