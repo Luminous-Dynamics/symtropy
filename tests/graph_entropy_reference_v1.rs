@@ -119,19 +119,25 @@ fn corpus_cases_match_symbolic_expectations_and_domains() {
         let result = evaluate_dissipation(case);
 
         if valid {
-            let actual = result.unwrap_or_else(|error| panic!("{id}: valid case rejected: {error}"));
+            let actual =
+                result.unwrap_or_else(|error| panic!("{id}: valid case rejected: {error}"));
             let expression = case["expected"]["dissipation_expression"]
                 .as_str()
                 .unwrap_or_else(|| panic!("{id}: valid case lacks symbolic expectation"));
             let expected = expected_expression(expression);
             assert!(actual.is_finite(), "{id}: result is not finite");
-            assert!(actual >= -REL_TOL, "{id}: dissipation must be non-negative, got {actual}");
+            assert!(
+                actual >= -REL_TOL,
+                "{id}: dissipation must be non-negative, got {actual}"
+            );
             assert!(
                 close_enough(actual, expected),
                 "{id}: actual {actual:.17e} differs from {expression} ({expected:.17e})"
             );
             match case["expected"]["relation_to_zero"].as_str() {
-                Some("strictly_positive") => assert!(actual > 0.0, "{id}: expected strict positivity"),
+                Some("strictly_positive") => {
+                    assert!(actual > 0.0, "{id}: expected strict positivity")
+                }
                 Some("equal") => assert_eq!(actual, 0.0, "{id}: expected exact zero"),
                 other => panic!("{id}: unknown relation-to-zero expectation {other:?}"),
             }
@@ -152,8 +158,10 @@ fn reversed_edge_and_vertex_permutation_preserve_the_declared_values() {
             .unwrap_or_else(|| panic!("missing case {id}"))
     };
 
-    let forward = evaluate_dissipation(by_id("GE-001-two-node-strict")).expect("forward case valid");
-    let reverse = evaluate_dissipation(by_id("GE-007-reversed-edge-enumeration")).expect("reverse case valid");
+    let forward =
+        evaluate_dissipation(by_id("GE-001-two-node-strict")).expect("forward case valid");
+    let reverse = evaluate_dissipation(by_id("GE-007-reversed-edge-enumeration"))
+        .expect("reverse case valid");
     let path = evaluate_dissipation(by_id("GE-005-three-node-path")).expect("path case valid");
     let permuted =
         evaluate_dissipation(by_id("GE-008-permuted-path")).expect("permuted path valid");
