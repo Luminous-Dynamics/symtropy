@@ -1492,7 +1492,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             "left-foot drift RMS={:.4} m (contact F1={}), ",
             "right-foot drift RMS={:.4} m (contact F1={}), ",
             "event median abs L touchdown/liftoff={}/{}, R touchdown/liftoff={}/{}, ",
-            "root jerk={:.4} m²/s⁶"
+            "root orient P95={}/{}°, root jerk={:.4} m²/s⁶"
         ),
         report.validity,
         report.alignment.samples,
@@ -1526,6 +1526,12 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             .liftoff
             .median_absolute_timing_error_sec
             .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
+        report.root_orientation_error
+            .as_ref()
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_angular_error_rad)),
+        report.root_orientation_error
+            .as_ref()
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_angular_error_deg)),
         report.prediction_root_mean_squared_jerk_m2_s6
     );
 
@@ -1553,6 +1559,110 @@ mod tests {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../docs/research/fixtures/human-motion-trace-synthetic-v0.1.json");
         read_trace(&path).expect("the committed synthetic trace fixture should validate")
+    }
+
+    fn orientation_fixture() -> Trace {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "../../../docs/research/fixtures/human-motion-trace-orientation-synthetic-v0.2.json",
+        );
+        read_trace(&path).expect("the committed v0.2 orientation fixture should validate")
+    }
+
+    #[test]
+    fn committed_orientation_fixture_has_zero_error_against_itself() {
+        let trace = orientation_fixture();
+        assert_eq!(trace.schema_version, 2);
+        let report =
+            evaluate(&trace, &trace, None).expect("identical orientation fixtures should compare");
+        let orientation = report
+            .root_orientation_error
+            .expect("v0.2 traces include root orientation");
+        assert_eq!(orientation.samples, 4);
+        assert_eq!(orientation.mean_angular_error_rad, 0.0);
+        assert_eq!(orientation.final_angular_error_rad, 0.0);
+        assert_eq!(orientation.p95_angular_error_deg, 0.0);
+        assert_eq!(orientation.max_angular_error_deg, 0.0);
+        assert_eq!(report.validity, "synthetic_fixture_only");
+    }
+
+    #[test]
+    fn quaternion_geodesic_metric_detects_ninety_degree_yaw_error() {
+        let reference = orientation_fixture();
+        let mut prediction = orientation_fixture();
+        let half_angle = std::f64::consts::FRAC_PI_4;
+        let yaw_90 = [0.0, half_angle.sin(), 0.0, half_angle.cos()];
+        prediction.root_rotation_world_xyzw = Some(vec![yaw_90; prediction.timestamps_sec.len()]);
+
+        let report =
+            evaluate(&reference, &prediction, None).expect("valid quaternion traces should compare");
+        let orientation = report.root_orientation_error.unwrap();
+        assert!((orientation.mean_angular_error_rad - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
+        assert!((orientation.p95_angular_error_deg - 90.0).abs() < 1e-7);
+        assert!((orientation.max_angular_error_deg - 90.0).abs() < 1e-7);
+    }
+
+    #[test]
+    fn quaternion_sign_equivalence_and_shortest_arc_slerp_are_respected() {
+        let identity = [0.0, 0.0, 0.0, 1.0];
+        let negative_identity = [0.0, 0.0, 0.0, -1.0];
+        assert_eq!(
+            quaternion_angular_error_rad(identity, negative_identity).unwrap(),
+            0.0
+        );
+        let midpoint = slerp_quaternion(identity, negative_identity, 0.5).unwrap();
+        assert!(quaternion_angular_error_rad(identity, midpoint).unwrap() < 1e-9);
+    }
+
+    #[test]
+    fn v2_schema_rejects_invalid_quaternion_norm_and_wrong_sample_count() {
+        let mut trace = orientation_fixture();
+        trace.root_rotation_world_xyzw.as_mut().unwrap()[0] = [0.0, 0.0, 0.0, 0.0];
+        assert!(
+            trace.validate(Path::new("zero-quaternion.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("zero or invalid norm")
+        );
+
+        let mut trace = orientation_fixture();
+        trace.root_rotation_world_xyzw.as_mut().unwrap()[0] = [0.0, 0.0, 0.0, 2.0];
+        assert!(
+            trace.validate(Path::new("non-unit-quaternion.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("unit length")
+        );
+
+        let mut trace = orientation_fixture();
+        trace.root_rotation_world_xyzw.as_mut().unwrap().pop();
+        assert!(
+            trace.validate(Path::new("short-quaternion-array.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("root_rotation_world_xyzw has")
+        );
+    }
+
+    #[test]
+    fn trace_versions_must_match_and_v1_cannot_smuggle_orientation() {
+        let legacy = fixture();
+        let v2 = orientation_fixture();
+        assert!(
+            evaluate(&legacy, &v2, None)
+                .unwrap_err()
+                .to_string()
+                .contains("schema versions differ")
+        );
+
+        let mut legacy_with_rotation = legacy;
+        legacy_with_rotation.root_rotation_world_xyzw =
+            Some(vec![[0.0, 0.0, 0.0, 1.0]; 4]);
+        assert!(
+            legacy_with_rotation.validate(Path::new("illegal-v1-orientation.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("requires schema_version 2")
+        );
     }
 
     #[test]
