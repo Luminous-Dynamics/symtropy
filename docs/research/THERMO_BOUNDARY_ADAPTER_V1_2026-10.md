@@ -57,7 +57,7 @@ Eight focused unit tests cover:
 4. input event-order invariance;
 5. duplicate event IDs across boundary and internal event classes;
 6. unknown and same-store transfer endpoints;
-7. negative/non-finite energy magnitudes, invalid stored energy and invalid tolerance;
+7. negative/non-finite energy magnitudes, invalid stored energy and tolerance above the 1% cap;
 8. numeric overflow during flow accumulation.
 
 The parent frozen ledger corpus and independent oracle remain part of the stacked branch and are run separately by CI, so the additive API does not replace the reference corpus.
