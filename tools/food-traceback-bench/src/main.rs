@@ -395,8 +395,7 @@ fn association_only_sources(
         if record.get("evidence_type").and_then(Value::as_str)
             != Some("pathogen_profile_comparison")
             || record.get("status").and_then(Value::as_str) != Some("screening_only")
-            || record.get("scope").and_then(Value::as_str)
-                != Some("relatedness_only_not_custody")
+            || record.get("scope").and_then(Value::as_str) != Some("relatedness_only_not_custody")
         {
             continue;
         }
@@ -1045,17 +1044,29 @@ mod tests {
     fn profile_match_without_material_route_exposes_association_only_false_positive() {
         let corpus = fixture();
         let scenarios = validate_corpus(&corpus).expect("fixture validates");
-        let case = scenarios.iter().find(|item| {
-            item.get("case_id").and_then(Value::as_str) == Some("GENOMIC-NO-ROUTE-005")
-        }).expect("genomic-without-route case exists");
+        let case = scenarios
+            .iter()
+            .find(|item| {
+                item.get("case_id").and_then(Value::as_str) == Some("GENOMIC-NO-ROUTE-005")
+            })
+            .expect("genomic-without-route case exists");
         let b2 = &case["reference_comparison"]["B2_association_only"];
         assert_eq!(
             b2["source_candidates"].as_array().expect("candidate array")[0].as_str(),
             Some("ING-B")
         );
-        assert_eq!(b2["source_metrics"]["true_positive_count"].as_u64(), Some(0));
-        assert_eq!(b2["source_metrics"]["false_positive_count"].as_u64(), Some(1));
-        assert_eq!(b2["disposition"].as_str(), Some("association_only_not_custody"));
+        assert_eq!(
+            b2["source_metrics"]["true_positive_count"].as_u64(),
+            Some(0)
+        );
+        assert_eq!(
+            b2["source_metrics"]["false_positive_count"].as_u64(),
+            Some(1)
+        );
+        assert_eq!(
+            b2["disposition"].as_str(),
+            Some("association_only_not_custody")
+        );
         assert_eq!(b2["may_claim_material_flow"].as_bool(), Some(false));
         let b3 = &case["reference_comparison"]["B3_evidence_bounded_envelope"];
         assert_eq!(
