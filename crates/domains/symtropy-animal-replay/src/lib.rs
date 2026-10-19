@@ -555,6 +555,111 @@ pub fn build_replay_receipt(
         }
     }
 
+    paired_baseline_comparisons.sort_by(|left, right| {
+        left.baseline_id
+            .cmp(&right.baseline_id)
+            .then_with(|| left.metric_id.cmp(&right.metric_id))
+            .then_with(|| left.stratum_kind.cmp(&right.stratum_kind))
+            .then_with(|| left.stratum_id.cmp(&right.stratum_id))
+    });
+    let mut comparison_keys = BTreeSet::new();
+    for comparison in &paired_baseline_comparisons {
+        let key = (
+            comparison.baseline_id.clone(),
+            comparison.metric_id.clone(),
+            comparison.stratum_kind,
+            comparison.stratum_id.clone(),
+        );
+        if !comparison_keys.insert(key) {
+            rejected.insert(ReplayReason::DuplicateBaselineComparison);
+        }
+        let Some(baseline) = baselines.iter().find(|item| item.baseline_id == comparison.baseline_id) else {
+            rejected.insert(ReplayReason::UnknownBaselineForComparison);
+            continue;
+        };
+        if comparison.metric_id.trim().is_empty()
+            || comparison.stratum_id.trim().is_empty()
+            || comparison.pairing_unit.trim().is_empty()
+            || comparison.comparison_group.trim().is_empty()
+        {
+            rejected.insert(ReplayReason::InvalidComparisonMetadata);
+        }
+        if comparison.comparison_group != task.comparison_group
+            || comparison.comparison_group != baseline.comparison_group
+        {
+            rejected.insert(ReplayReason::ComparisonGroupMismatchForBaseline);
+        }
+        if !comparison.minimum_effect_size.is_finite()
+            || comparison.minimum_effect_size < 0.0
+            || !comparison.non_inferiority_margin.is_finite()
+            || comparison.non_inferiority_margin < 0.0
+        {
+            rejected.insert(ReplayReason::InvalidEffectMargins);
+        }
+        if comparison.independent_unit_count == 0 {
+            incomplete.insert(ReplayReason::MissingPairedSamples);
+        }
+        let candidate_metric = metrics.iter().find(|metric| {
+            metric.metric_id == comparison.metric_id
+                && metric.stratum_kind == comparison.stratum_kind
+                && metric.stratum_id == comparison.stratum_id
+        });
+        let Some(candidate_metric) = candidate_metric else {
+            rejected.insert(ReplayReason::BaselineComparisonStratumMismatch);
+            continue;
+        };
+        if candidate_metric.unit != baseline.primary_metric.unit {
+            rejected.insert(ReplayReason::BaselineComparisonUnitMismatch);
+        }
+        if comparison.independent_unit_count > candidate_metric.sample_count {
+            rejected.insert(ReplayReason::MissingPairedSamples);
+        }
+        if comparison.stratum_kind == MetricStratumKind::Overall
+            && comparison.stratum_id == "all"
+            && comparison.independent_unit_count > baseline.primary_metric.sample_count
+        {
+            rejected.insert(ReplayReason::MissingPairedSamples);
+        }
+        match comparison.mean_difference {
+            Some(value) if value.is_finite() => {}
+            Some(_) => {
+                rejected.insert(ReplayReason::InvalidPairedDifference);
+            }
+            None => {
+                incomplete.insert(ReplayReason::MissingPairedDifference);
+            }
+        }
+        match comparison.difference_interval.as_ref() {
+            Some(interval)
+                if interval.lower.is_finite()
+                    && interval.upper.is_finite()
+                    && interval.lower <= interval.upper
+                    && comparison.mean_difference.is_some_and(|mean| {
+                        mean >= interval.lower && mean <= interval.upper
+                    })
+                    && interval.confidence_percent > 0
+                    && interval.confidence_percent < 100 => {}
+            Some(_) => {
+                rejected.insert(ReplayReason::InvalidPairedInterval);
+            }
+            None => {
+                incomplete.insert(ReplayReason::MissingPairedInterval);
+            }
+        }
+    }
+
+    for baseline in &baselines {
+        let has_primary_comparison = paired_baseline_comparisons.iter().any(|comparison| {
+            comparison.baseline_id == baseline.baseline_id
+                && comparison.metric_id == task.primary_metric_id
+                && comparison.stratum_kind == MetricStratumKind::Overall
+                && comparison.stratum_id == "all"
+        });
+        if !has_primary_comparison {
+            incomplete.insert(ReplayReason::MissingBaselineComparison);
+        }
+    }
+
     let disposition = if !rejected.is_empty() {
         ReplayDisposition::Reject
     } else if !indeterminate.is_empty() {
@@ -572,6 +677,23 @@ pub fn build_replay_receipt(
         disposition,
         reason_codes: reason_codes.into_iter().collect(),
     };
+
+    let baseline_comparison_results: Vec<BaselineComparisonResult> = paired_baseline_comparisons
+        .iter()
+        .map(|comparison| {
+            let (outcome, normalized_mean_difference, normalized_interval) =
+                assess_paired_comparison(comparison, disposition);
+            BaselineComparisonResult {
+                baseline_id: comparison.baseline_id.clone(),
+                metric_id: comparison.metric_id.clone(),
+                stratum_kind: comparison.stratum_kind,
+                stratum_id: comparison.stratum_id.clone(),
+                outcome,
+                normalized_mean_difference,
+                normalized_interval,
+            }
+        })
+        .collect();
 
     let threshold_outcome = if disposition != ReplayDisposition::Eligible {
         if matches!(primary_metric.map(|metric| metric.state), Some(MetricState::Missing | MetricState::Abstained | MetricState::Failed))
@@ -641,6 +763,8 @@ pub fn build_replay_receipt(
         run,
         metrics,
         baselines,
+        paired_baseline_comparisons,
+        baseline_comparison_results,
         assessment,
         threshold_outcome,
     };
@@ -650,6 +774,43 @@ pub fn build_replay_receipt(
         payload,
         receipt_sha256,
     })
+}
+
+fn assess_paired_comparison(
+    comparison: &PairedBaselineComparison,
+    receipt_disposition: ReplayDisposition,
+) -> (BaselineComparisonOutcome, Option<f64>, Option<ConfidenceInterval>) {
+    if receipt_disposition != ReplayDisposition::Eligible {
+        return (BaselineComparisonOutcome::NotAssessed, None, None);
+    }
+    let (Some(mean), Some(interval)) = (
+        comparison.mean_difference,
+        comparison.difference_interval.as_ref(),
+    ) else {
+        return (BaselineComparisonOutcome::Incomplete, None, None);
+    };
+    let (normalized_mean, lower, upper) = match comparison.objective {
+        MetricObjective::HigherIsBetter => (mean, interval.lower, interval.upper),
+        MetricObjective::LowerIsBetter => (-mean, -interval.upper, -interval.lower),
+    };
+    let outcome = if lower > comparison.minimum_effect_size {
+        BaselineComparisonOutcome::OutperformsByMargin
+    } else if upper < -comparison.non_inferiority_margin {
+        BaselineComparisonOutcome::RegressesBeyondMargin
+    } else if lower >= -comparison.non_inferiority_margin {
+        BaselineComparisonOutcome::NonInferior
+    } else {
+        BaselineComparisonOutcome::Uncertain
+    };
+    (
+        outcome,
+        Some(normalized_mean),
+        Some(ConfidenceInterval {
+            confidence_percent: interval.confidence_percent,
+            lower,
+            upper,
+        }),
+    )
 }
 
 enum MetricValidation {
