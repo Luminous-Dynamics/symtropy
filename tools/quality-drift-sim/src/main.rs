@@ -379,7 +379,7 @@ fn healthy_run(run: &RunMetrics) -> bool {
 }
 
 fn verify_benchmark() -> Result<(), String> {
-    let mut all_results: Vec<(&'static str, Policy, Vec<RunMetrics>)> = Vec::new();
+    let mut checked_policy_pairs = 0usize;
 
     for scenario in SCENARIOS {
         let mut policy_runs = Vec::new();
@@ -421,7 +421,8 @@ fn verify_benchmark() -> Result<(), String> {
         }
 
         for (policy, runs) in policy_runs {
-            all_results.push((scenario.id, policy, runs));
+            let _ = (scenario.id, policy, runs);
+            checked_policy_pairs += 1;
         }
     }
 
@@ -431,7 +432,7 @@ fn verify_benchmark() -> Result<(), String> {
     if repeat_a != repeat_b {
         return Err("deterministic replay failed".into());
     }
-    if all_results.len() != SCENARIOS.len() * Policy::ALL.len() {
+    if checked_policy_pairs != SCENARIOS.len() * Policy::ALL.len() {
         return Err("scenario/policy coverage is incomplete".into());
     }
     Ok(())
