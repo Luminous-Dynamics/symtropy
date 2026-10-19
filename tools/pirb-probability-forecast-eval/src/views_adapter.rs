@@ -171,6 +171,7 @@ pub struct ViewsImportReceipt {
     dataset_id: String,
     evidence_class: EvidenceClass,
     partition: String,
+    partition_request_uri_verified: bool,
     partition_independently_verified: bool,
     forecast_archive_id: String,
     forecast_archive_sha256: String,
@@ -569,12 +570,12 @@ pub fn import_views_archive(
                 release.run_id
             )]);
         }
-        let expected_suffix = format!("/{model_variable}");
+        let expected_suffix = format!("/{model_variable}/{}", manifest.partition);
         let query_without_args = release.query_uri.split('?').next().unwrap_or("");
         if !query_without_args.ends_with(&expected_suffix) {
             return Err(vec![format!(
-                "query URI for {:?} does not terminate at declared probability variable {:?}",
-                release.run_id, model_variable
+                "query URI for {:?} must terminate at declared probability variable and partition {:?}",
+                release.run_id, manifest.partition
             )]);
         }
 
@@ -959,6 +960,7 @@ pub fn import_views_archive(
         dataset_id: manifest.dataset_id,
         evidence_class: manifest.evidence_class,
         partition: manifest.partition,
+        partition_request_uri_verified: true,
         partition_independently_verified: false,
         forecast_archive_id: manifest.source.forecast_archive_id,
         forecast_archive_sha256,
