@@ -49,7 +49,7 @@
       "fixed_baseline_batches": [2, 1, 1],
       "expected": {
         "status": "feasible",
-        "candidate_schedules_evaluated": 5,
+        "candidate_schedules_evaluated": 8,
         "feasible_schedule_count": 5,
         "best_schedule_batches": [1, 3, 0],
         "best_grid_cost_units": 410,
