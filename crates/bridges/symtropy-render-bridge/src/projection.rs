@@ -155,7 +155,9 @@ impl Projector4D {
     /// Alpha (opacity) based on distance from slice plane. Invalid configurations
     /// and non-finite points fail closed as fully transparent.
     pub fn alpha(&self, point: &Point<4>) -> f32 {
-        if !self.configuration_is_valid() {
+        if !self.configuration_is_valid()
+            || !(0..4).all(|axis| point.coord(axis).is_finite())
+        {
             return 0.0;
         }
         let dist = self.w_distance(point);
@@ -313,9 +315,12 @@ mod tests {
         assert_eq!(invalid.alpha(&point), 0.0);
 
         let valid = Projector4D::new(0.0, 1.0, 1.0);
-        let nonfinite = Point::new([1.0, 2.0, 3.0, f64::NAN]);
-        assert!(!valid.is_visible(&nonfinite));
-        assert_eq!(valid.alpha(&nonfinite), 0.0);
+        let nonfinite_w = Point::new([1.0, 2.0, 3.0, f64::NAN]);
+        let nonfinite_xyz = Point::new([f64::NAN, 2.0, 3.0, 0.0]);
+        assert!(!valid.is_visible(&nonfinite_w));
+        assert_eq!(valid.alpha(&nonfinite_w), 0.0);
+        assert!(!valid.is_visible(&nonfinite_xyz));
+        assert_eq!(valid.alpha(&nonfinite_xyz), 0.0);
     }
 
     #[test]
