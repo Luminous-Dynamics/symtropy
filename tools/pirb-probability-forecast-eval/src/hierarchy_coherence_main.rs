@@ -8,8 +8,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env, fs,
-    process,
+    env, fs, process,
 };
 
 const SCHEMA_BYTES: &[u8] =
@@ -43,8 +42,12 @@ fn number_at(value: &Value, key: &str) -> Option<f64> {
 
 fn semantic_errors(registration: &Value) -> Vec<String> {
     let mut errors = Vec::new();
-    let origin = registration["forecast_origin_index"].as_i64().unwrap_or_default();
-    let target = registration["target_period_index"].as_i64().unwrap_or_default();
+    let origin = registration["forecast_origin_index"]
+        .as_i64()
+        .unwrap_or_default();
+    let target = registration["target_period_index"]
+        .as_i64()
+        .unwrap_or_default();
     let cutoff = registration["reconciliation_policy"]["parameter_fit_cutoff_index"]
         .as_i64()
         .unwrap_or_default();
@@ -66,9 +69,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         .get("aggregation_constraints")
         .and_then(Value::as_array)
     else {
-        return vec![
-            "aggregation_constraints must be an array after schema validation".to_owned(),
-        ];
+        return vec!["aggregation_constraints must be an array after schema validation".to_owned()];
     };
 
     let mut forecast_by_id = BTreeMap::new();
@@ -105,9 +106,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         let completeness = string_at(constraint, "completeness").unwrap_or_default();
         for child_id in child_ids.iter().filter_map(Value::as_str) {
             if child_id == parent_id {
-                errors.push(format!(
-                    "constraint {id} cannot use its parent as a child"
-                ));
+                errors.push(format!("constraint {id} cannot use its parent as a child"));
             }
             if !forecast_by_id.contains_key(child_id) && completeness == "complete" {
                 errors.push(format!(
@@ -139,16 +138,12 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                         ));
                     }
                     if !seen_child_units.insert(string_at(child, "unit_id").unwrap_or_default()) {
-                        errors.push(format!(
-                            "spatial constraint {id} repeats a child unit"
-                        ));
+                        errors.push(format!("spatial constraint {id} repeats a child unit"));
                     }
                 }
                 "event_type" => {
                     if string_at(child, "unit_id") != string_at(parent, "unit_id") {
-                        errors.push(format!(
-                            "event-type constraint {id} mixes unit_id values"
-                        ));
+                        errors.push(format!("event-type constraint {id} mixes unit_id values"));
                     }
                     if string_at(child, "event_type_id") == string_at(parent, "event_type_id") {
                         errors.push(format!(
@@ -163,7 +158,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                         ));
                     }
                 }
-                _ => errors.push(format!("constraint {id} has an unsupported aggregation kind")),
+                _ => errors.push(format!(
+                    "constraint {id} has an unsupported aggregation kind"
+                )),
             }
         }
     }
@@ -187,14 +184,18 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
 
     let registration: Value = serde_json::from_slice(input)
         .map_err(|error| vec![format!("hierarchy registration JSON is invalid: {error}")])?;
-    let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
-        .map_err(|error| vec![format!("embedded hierarchy schema JSON is invalid: {error}")])?;
+    let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
+        vec![format!(
+            "embedded hierarchy schema JSON is invalid: {error}"
+        )]
+    })?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
     })?;
-    let validator = jsonschema::draft202012::new(&schema).map_err(|error| {
-        vec![format!("cannot build hierarchy schema validator: {error}")]
-    })?;
+    let validator = jsonschema::draft202012::new(&schema)
+        .map_err(|error| vec![format!("cannot build hierarchy schema validator: {error}")])?;
     let mut errors = validator
         .iter_errors(&registration)
         .map(|error| format!("{} at {}", error, error.instance_path()))
@@ -216,8 +217,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         .iter()
         .map(|forecast| {
             (
-                string_at(forecast, "forecast_id")
-                    .expect("schema validation requires forecast_id"),
+                string_at(forecast, "forecast_id").expect("schema validation requires forecast_id"),
                 forecast,
             )
         })
@@ -354,9 +354,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
     let mean_absolute_raw_residual = if absolute_raw_residuals.is_empty() {
         Value::Null
     } else {
-        json!(
-            absolute_raw_residuals.iter().sum::<f64>() / absolute_raw_residuals.len() as f64
-        )
+        json!(absolute_raw_residuals.iter().sum::<f64>() / absolute_raw_residuals.len() as f64)
     };
     let mean_absolute_reconciled_residual = if absolute_reconciled_residuals.is_empty() {
         Value::Null
@@ -432,17 +430,15 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
 
 fn run() -> Result<(), String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
-    let input_path = option_value(&args, "--input")?
-        .ok_or_else(|| {
-            "usage: pirb-hierarchy-coherence-audit --input REGISTRATION.json [--source-commit SHA]"
-                .to_owned()
-        })?;
+    let input_path = option_value(&args, "--input")?.ok_or_else(|| {
+        "usage: pirb-hierarchy-coherence-audit --input REGISTRATION.json [--source-commit SHA]"
+            .to_owned()
+    })?;
     let input = fs::read(&input_path)
         .map_err(|error| format!("cannot read hierarchy registration {input_path}: {error}"))?;
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
-    let receipt = validate_and_audit(&input, &source_commit)
-        .map_err(|errors| errors.join("\n"))?;
+    let receipt = validate_and_audit(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -475,14 +471,14 @@ mod tests {
 
     #[test]
     fn fixture_reports_spatial_and_event_type_coherence_without_filling_missing_children() {
-        let receipt = validate_and_audit(
-            FIXTURE_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("synthetic fixture contract is valid");
+        let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+            .expect("synthetic fixture contract is valid");
         assert_eq!(receipt["summary"]["constraint_count"], 3);
         assert_eq!(receipt["summary"]["assessable_constraint_count"], 2);
-        assert_eq!(receipt["summary"]["reconciled_coherent_constraint_count"], 2);
+        assert_eq!(
+            receipt["summary"]["reconciled_coherent_constraint_count"],
+            2
+        );
         assert_eq!(receipt["summary"]["not_assessable_constraint_count"], 1);
         assert_eq!(
             receipt["constraint_diagnostics"][2]["status"],
@@ -560,7 +556,9 @@ mod tests {
         let mut value = fixture();
         value["forecasts"][1]["event_type_id"] = json!("event-battles");
         let errors = audit(&value).expect_err("spatial sums require one target event type");
-        assert!(errors.iter().any(|error| error.contains("mixes event_type_id")));
+        assert!(
+            errors.iter().any(|error| error.contains("mixes event_type_id"))
+        );
     }
 
     #[test]
@@ -577,6 +575,8 @@ mod tests {
         let first_id = value["forecasts"][0]["forecast_id"].clone();
         value["forecasts"][1]["forecast_id"] = first_id;
         let errors = audit(&value).expect_err("duplicate IDs must not silently overwrite rows");
-        assert!(errors.iter().any(|error| error.contains("forecast ID is duplicated")));
+        assert!(
+            errors.iter().any(|error| error.contains("forecast ID is duplicated"))
+        );
     }
 }
