@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::env;
@@ -43,9 +43,11 @@ struct Design {
 impl DesignSpec {
     fn resolve(self) -> Check<Design> {
         Ok(Design {
-            standardized_interfaces: self.standardized_interfaces
+            standardized_interfaces: self
+                .standardized_interfaces
                 .ok_or_else(|| "standardized_interfaces is unknown".to_string())?,
-            isolated_power_domains: self.isolated_power_domains
+            isolated_power_domains: self
+                .isolated_power_domains
                 .ok_or_else(|| "isolated_power_domains is unknown".to_string())?,
             spare_pack: self
                 .spare_pack
@@ -151,8 +153,7 @@ fn parse_contract(bytes: &[u8]) -> Check<Contract> {
 
     if string_field(&root, "schema_version", "root")? != "0.1.0"
         || string_field(&root, "evidence_class", "root")? != "synthetic"
-        || string_field(&root, "model", "root")?
-            != "discrete_lifecycle_contract_not_physics"
+        || string_field(&root, "model", "root")? != "discrete_lifecycle_contract_not_physics"
     {
         return Err("root: unsupported schema, evidence class, or model claim".to_string());
     }
@@ -195,11 +196,7 @@ fn parse_contract(bytes: &[u8]) -> Check<Contract> {
     let mut scenario_ids = Vec::with_capacity(scenarios.len());
     for (index, scenario) in scenarios.iter().enumerate() {
         let at = format!("scenarios[{index}]");
-        exact_keys(
-            scenario,
-            &["id", "disturbance", "claim_ceiling"],
-            &at,
-        )?;
+        exact_keys(scenario, &["id", "disturbance", "claim_ceiling"], &at)?;
         let id = string_field(scenario, "id", &at)?;
         let _disturbance = string_field(scenario, "disturbance", &at)?;
         let ceiling = string_field(scenario, "claim_ceiling", &at)?;
@@ -304,14 +301,13 @@ fn evaluate_model(design: Design, contract: &Contract) -> Check<Metrics> {
 // This oracle intentionally does not call evaluate_model or its arithmetic helpers.
 // It recomputes each field through a separate, simple expression over the tiny finite domain.
 fn oracle_metrics(design: Design, contract: &Contract) -> Metrics {
-    let launch_mass_smu =
-        100 + (design.standardized_interfaces as u32) * 8
-            + (design.isolated_power_domains as u32) * 18
-            + (design.spare_pack as u32) * 12
-            + (design.end_of_life_plan as u32) * 5;
+    let launch_mass_smu = 100
+        + (design.standardized_interfaces as u32) * 8
+        + (design.isolated_power_domains as u32) * 18
+        + (design.spare_pack as u32) * 12
+        + (design.end_of_life_plan as u32) * 5;
 
-    let assembly_ticks = 12
-        - 2 * (design.standardized_interfaces as u32)
+    let assembly_ticks = 12 - 2 * (design.standardized_interfaces as u32)
         + 2 * (design.isolated_power_domains as u32)
         + (design.spare_pack as u32)
         + (design.end_of_life_plan as u32);
@@ -682,8 +678,16 @@ mod tests {
         );
         let frontier = pareto_frontier(&rows);
         assert_eq!(frontier.len(), 4);
-        assert!(frontier.iter().any(|id| id.as_str() == "std=1|power_isolated=1|spares=1|eol_plan=1"));
-        assert!(frontier.iter().any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1"));
+        assert!(
+            frontier
+                .iter()
+                .any(|id| id.as_str() == "std=1|power_isolated=1|spares=1|eol_plan=1")
+        );
+        assert!(
+            frontier
+                .iter()
+                .any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1")
+        );
     }
 
     #[test]
