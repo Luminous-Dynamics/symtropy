@@ -22,7 +22,9 @@
     "outcome_definition": "Synthetic event/no-event label for the declared country-month threshold.",
     "outcome_source_reference": "synthetic:outcome-snapshot",
     "outcome_license_reference": "synthetic:not-a-real-license",
-    "outcome_attribution": "Synthetic outcomes authored for PIRB evaluator tests only."
+    "outcome_attribution": "Synthetic outcomes authored for PIRB evaluator tests only.",
+    "violence_type": "sb",
+    "binary_event_threshold_brd": 25
   },
   "partition": "eval",
   "column_mapping": {
