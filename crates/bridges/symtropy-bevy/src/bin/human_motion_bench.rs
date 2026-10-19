@@ -1278,7 +1278,11 @@ fn evaluate(
             grid.overlap_end_sec,
         )?),
         (None, None) => None,
-        _ => return fail("both traces must provide root rotations when either trace has orientation data"),
+        _ => {
+            return fail(
+                "both traces must provide root rotations when either trace has orientation data",
+            );
+        }
     };
 
     let mut joint_metrics = Vec::with_capacity(reference.joint_world_m.len());
@@ -1554,7 +1558,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             "left-foot drift RMS={:.4} m (contact F1={}), ",
             "right-foot drift RMS={:.4} m (contact F1={}), ",
             "event median abs L touchdown/liftoff={}/{}, R touchdown/liftoff={}/{}, ",
-            "root orient P95={}/{}°, yaw P95={}/{}°, root jerk={:.4} m²/s⁶"
+            "root orient P95 (rad/deg)={}/{}, yaw P95 (rad/deg)={}/{}, root jerk={:.4} m²/s⁶"
         ),
         report.validity,
         report.alignment.samples,
@@ -1588,16 +1592,20 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             .liftoff
             .median_absolute_timing_error_sec
             .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
-        report.root_orientation_error
+        report
+            .root_orientation_error
             .as_ref()
             .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_angular_error_rad)),
-        report.root_orientation_error
+        report
+            .root_orientation_error
             .as_ref()
             .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_angular_error_deg)),
-        report.root_orientation_error
+        report
+            .root_orientation_error
             .as_ref()
             .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_absolute_yaw_error_rad)),
-        report.root_orientation_error
+        report
+            .root_orientation_error
             .as_ref()
             .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_absolute_yaw_error_deg)),
         report.prediction_root_mean_squared_jerk_m2_s6
@@ -1661,8 +1669,8 @@ mod tests {
         let yaw_90 = [0.0, half_angle.sin(), 0.0, half_angle.cos()];
         prediction.root_rotation_world_xyzw = Some(vec![yaw_90; prediction.timestamps_sec.len()]);
 
-        let report =
-            evaluate(&reference, &prediction, None).expect("valid quaternion traces should compare");
+        let report = evaluate(&reference, &prediction, None)
+            .expect("valid quaternion traces should compare");
         let orientation = report.root_orientation_error.unwrap();
         assert!((orientation.mean_angular_error_rad - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
         assert!((orientation.p95_angular_error_deg - 90.0).abs() < 1e-7);
