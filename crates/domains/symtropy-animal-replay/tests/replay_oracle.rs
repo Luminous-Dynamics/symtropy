@@ -39,6 +39,8 @@ struct OracleCase {
     expected_disposition: ReplayDisposition,
     expected_reason_codes: Vec<ReplayReason>,
     expected_threshold_outcome: ThresholdOutcome,
+    #[serde(default)]
+    expected_baseline_comparison_outcomes: Vec<BaselineComparisonOutcome>,
 }
 
 struct TestInputs {
@@ -353,7 +355,42 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "threshold_metric_mismatch" => {
             inputs.task.threshold.as_mut().unwrap().metric_id = "another_metric".to_owned();
         }
-        "no_baseline" => inputs.baselines.clear(),
+        "missing_paired_comparison" => inputs.paired_comparisons.clear(),
+        "duplicate_paired_comparison" => inputs.paired_comparisons.push(inputs.paired_comparisons[0].clone()),
+        "unknown_baseline_comparison" => inputs.paired_comparisons[0].baseline_id = "missing-baseline".to_owned(),
+        "comparison_group_mismatch" => inputs.paired_comparisons[0].comparison_group = "different-protocol".to_owned(),
+        "empty_pairing_unit" => inputs.paired_comparisons[0].pairing_unit.clear(),
+        "zero_paired_samples" => inputs.paired_comparisons[0].independent_unit_count = 0,
+        "missing_paired_difference" => inputs.paired_comparisons[0].mean_difference = None,
+        "missing_paired_interval" => inputs.paired_comparisons[0].difference_interval = None,
+        "invalid_paired_interval" => inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: 0.8, upper: 0.2 }),
+        "invalid_effect_margins" => inputs.paired_comparisons[0].minimum_effect_size = -0.1,
+        "uncertain_paired_effect" => {
+            inputs.metrics[0] = metric("pose_pck", 0.45, "fraction");
+            inputs.paired_comparisons[0].mean_difference = Some(0.05);
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: -0.1, upper: 0.2 });
+        }
+        "noninferior_paired_effect" => {
+            inputs.metrics[0] = metric("pose_pck", 0.42, "fraction");
+            inputs.paired_comparisons[0].mean_difference = Some(0.02);
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: -0.02, upper: 0.06 });
+        }
+        "regression_paired_effect" => {
+            inputs.metrics[0] = metric("pose_pck", 0.2, "fraction");
+            inputs.paired_comparisons[0].mean_difference = Some(-0.2);
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: -0.3, upper: -0.1 });
+        }
+        "lower_is_better_outperforms" => {
+            inputs.metrics[0] = metric("pose_pck", 0.2, "fraction");
+            inputs.paired_comparisons[0].objective = MetricObjective::LowerIsBetter;
+            inputs.paired_comparisons[0].mean_difference = Some(-0.2);
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: -0.3, upper: -0.1 });
+            inputs.paired_comparisons[0].minimum_effect_size = 0.05;
+        }
+        "no_baseline" => {
+            inputs.baselines.clear();
+            inputs.paired_comparisons.clear();
+        }
         "duplicate_baseline_id" => inputs.baselines.push(inputs.baselines[0].clone()),
         "baseline_metric_mismatch" => {
             inputs.baselines[0].primary_metric.metric_id = "another_metric".to_owned();
@@ -371,9 +408,13 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "below_threshold" => {
             inputs.metrics[0] = metric("pose_pck", 0.6, "fraction");
+            inputs.paired_comparisons[0].mean_difference = Some(0.2);
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: 0.15, upper: 0.25 });
         }
         "threshold_interval_overlaps" => {
             inputs.metrics[0] = metric("pose_pck", 0.79, "fraction");
+            inputs.paired_comparisons[0].mean_difference = Some(0.39);
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: 0.34, upper: 0.44 });
         }
         "no_threshold" => inputs.task.threshold = None,
         "target_taxon_absent_from_test" => {
@@ -433,6 +474,12 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
             "case {}",
             case.id
         );
+        assert_eq!(
+            receipt.payload.baseline_comparison_results.iter().map(|result| result.outcome).collect::<Vec<_>>(),
+            case.expected_baseline_comparison_outcomes,
+            "baseline comparisons for case {}",
+            case.id
+        );
         assert_eq!(receipt.payload.qualification_scope, "synthetic_oracle_only");
         assert_eq!(receipt.receipt_sha256.len(), 64);
     }
@@ -482,6 +529,8 @@ fn receipt_digest_binds_metrics_seed_and_permission_scope() {
 
     let mut changed_metric = valid_inputs();
     changed_metric.metrics[0] = metric("pose_pck", 0.85, "fraction");
+    changed_metric.paired_comparisons[0].mean_difference = Some(0.45);
+    changed_metric.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: 0.4, upper: 0.5 });
     assert_ne!(original.receipt_sha256, build(changed_metric).receipt_sha256);
 
     let mut changed_seed = valid_inputs();
