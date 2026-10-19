@@ -309,7 +309,7 @@ fn snapshot(model: &Model, schema: &Schema, side: &str) -> Snapshot {
     let bytes = serde_json::to_vec(&entities).expect("snapshot map serializes");
     let issue_ambiguous = issues.iter().filter(|i| matches!(i.code.as_str(), "INVALID_GLOBAL_ID" | "MISSING_GLOBAL_ID" | "DUPLICATE_GLOBAL_ID")).count();
     Snapshot {
-        entities, root_count, stable_root_count: stable, nonroot_count,
+        entities, root_count, stable_root_count: stable, nonroot_count: nonroot,
         ambiguous_count: issue_ambiguous, unresolved_refs, issues,
         semantic_sha256: sha256_hex(&bytes)
     }
