@@ -134,6 +134,13 @@ fn overflowing_count_sums_fail_closed() {
 }
 
 #[test]
+fn unknown_report_fields_are_rejected_instead_of_silently_ignored() {
+    let mut value: serde_json::Value = serde_json::from_str(EXAMPLE).expect("fixture JSON");
+    value["unexpected_success_count"] = serde_json::Value::String("999".into());
+    assert!(serde_json::from_value::<FieldEvalReportInputV1>(value).is_err());
+}
+
+#[test]
 fn input_sha256_uses_a_standard_known_vector() {
     assert_eq!(
         sha256_hex(b"abc"),
