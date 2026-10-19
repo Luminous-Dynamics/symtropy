@@ -145,6 +145,7 @@ pub struct ForecastMetricBundle {
 pub struct UnitMetrics {
     unit_id: String,
     scored_count: usize,
+    distinct_target_months: usize,
     event_count: usize,
     no_event_count: usize,
     brier_score: f64,
@@ -175,6 +176,7 @@ pub struct ForecastEvaluationReceipt {
     analysis_unit: AnalysisUnit,
     threshold_definition: String,
     forecast_archive_sha256: String,
+    forecast_source_reference: String,
     outcome_source_id: String,
     outcome_release_id: String,
     outcome_definition: String,
@@ -539,9 +541,13 @@ fn compute_metrics(dataset: &ForecastDataset, split: SplitName) -> ForecastMetri
         let y = if p.outcome { 1.0 } else { 0.0 };
         (p.probability - y).powi(2)
     }));
-    let log_loss = mean(points.iter().map(|p| {
-        let p = p.probability.clamp(epsilon, 1.0 - epsilon);
-        if p.outcome { -p.ln() } else { -(1.0 - p).ln() }
+    let log_loss = mean(points.iter().map(|point| {
+        let probability = point.probability.clamp(epsilon, 1.0 - epsilon);
+        if point.outcome {
+            -probability.ln()
+        } else {
+            -(1.0 - probability).ln()
+        }
     }));
     let reliability_bins = build_reliability_bins(&points, t.reliability_bin_count);
     let ece = expected_calibration_error(&reliability_bins, points.len());
@@ -757,7 +763,9 @@ fn unit_metrics(
     let mut visible = Vec::new();
     let mut suppressed = 0;
     for (unit_id, records) in groups {
-        if records.len() < minimum_outcomes {
+        let distinct_target_months: BTreeSet<i64> =
+            records.iter().map(|record| record.target_month).collect();
+        if distinct_target_months.len() < minimum_outcomes {
             suppressed += 1;
             continue;
         }
@@ -773,6 +781,7 @@ fn unit_metrics(
         visible.push(UnitMetrics {
             unit_id,
             scored_count: records.len(),
+            distinct_target_months: distinct_target_months.len(),
             event_count: positives,
             no_event_count: records.len() - positives,
             brier_score: brier,
@@ -871,7 +880,7 @@ mod tests {
         let r = receipt();
         assert_eq!(r.test_unit_metrics.len(), 2);
         assert_eq!(r.test_suppressed_unit_count, 1);
-        assert!(r.test_unit_metrics.iter().all(|group| group.scored_count >= 2));
+        assert!(r.test_unit_metrics.iter().all(|group| group.distinct_target_months >= 2));
     }
 
     #[test]
