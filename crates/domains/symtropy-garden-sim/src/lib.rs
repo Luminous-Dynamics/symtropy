@@ -14,6 +14,7 @@ pub mod field_robot_cost;
 pub mod portfolio;
 pub mod provider_coverage;
 pub mod service_access;
+pub mod field_eval_report;
 
 /// Serialize exact integers as decimal strings so JSON consumers that use
 /// IEEE-754 numbers (for example, JavaScript) do not silently round quantities.
