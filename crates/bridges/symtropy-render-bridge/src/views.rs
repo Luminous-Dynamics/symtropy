@@ -22,7 +22,7 @@ pub enum ViewDimension {
     /// A true planar view with no encoded height axis.
     Planar2D,
     /// An oblique orthographic representation that encodes ground depth and height.
-    Oblique2_5D,
+    Oblique25D,
     /// A spatial 3D view; camera projection is managed by the host renderer.
     Spatial3D,
     /// A 3D cross-section of a 4D world using an explicitly configured hyperplane.
@@ -325,14 +325,14 @@ impl ViewProfile {
 /// PI/2 is a top-down plan view. This is a coordinate projection, not a Bevy camera;
 /// align the host camera with the resulting basis to avoid applying perspective twice.
 #[derive(Debug, Clone, Copy, PartialEq, Resource)]
-pub struct Projector2_5D {
+pub struct ProjectorOblique25D {
     pub scale_factor: f32,
     pub azimuth_radians: f64,
     pub elevation_radians: f64,
     pub center: [f64; 3],
 }
 
-impl Projector2_5D {
+impl ProjectorOblique25D {
     pub fn new(
         scale_factor: f32,
         azimuth_radians: f64,
@@ -406,7 +406,7 @@ impl Projector2_5D {
     }
 }
 
-impl Projector<3> for Projector2_5D {
+impl Projector<3> for ProjectorOblique25D {
     fn project(&self, point: &Point<3>) -> [f32; 3] {
         self.project_coordinates([point.coord(0), point.coord(1), point.coord(2)])
             .unwrap_or([f32::NAN; 3])
@@ -633,7 +633,7 @@ mod tests {
         let strategic =
             ViewProfile::recommended(ViewPurpose::Strategic, ViewDimension::Planar2D);
         let operational =
-            ViewProfile::recommended(ViewPurpose::Operational, ViewDimension::Oblique2_5D);
+            ViewProfile::recommended(ViewPurpose::Operational, ViewDimension::Oblique25D);
         let tactical =
             ViewProfile::recommended(ViewPurpose::Tactical, ViewDimension::Spatial3D);
         let scientific =
@@ -703,7 +703,7 @@ mod tests {
 
     #[test]
     fn two_point_five_d_projection_keeps_height_distinct_from_ground_depth() {
-        let projector = Projector2_5D::new(1.0, 0.0, std::f64::consts::FRAC_PI_4).unwrap();
+        let projector = ProjectorOblique25D::new(1.0, 0.0, std::f64::consts::FRAC_PI_4).unwrap();
         let ground = Point::new([0.0, 0.0, 0.0]);
         let elevated = Point::new([0.0, 0.0, 2.0]);
         let ground_projected = projector.project(&ground);
@@ -717,18 +717,18 @@ mod tests {
     #[test]
     fn two_point_five_d_projection_centers_and_rejects_invalid_configuration() {
         let mut projector =
-            Projector2_5D::new(2.0, 0.0, std::f64::consts::FRAC_PI_2).unwrap();
+            ProjectorOblique25D::new(2.0, 0.0, std::f64::consts::FRAC_PI_2).unwrap();
         projector.set_center([3.0, 4.0, 0.0]).unwrap();
         let projected = projector.project(&Point::new([4.0, 6.0, 0.0]));
         near(projected[0] as f64, 2.0, 1e-6);
         near(projected[1] as f64, 2.0, 1e-6);
 
         assert_eq!(
-            Projector2_5D::new(0.0, 0.0, 0.5),
+            ProjectorOblique25D::new(0.0, 0.0, 0.5),
             Err(ViewConfigError::NonPositiveScale)
         );
         assert_eq!(
-            Projector2_5D::new(1.0, 0.0, 2.0),
+            ProjectorOblique25D::new(1.0, 0.0, 2.0),
             Err(ViewConfigError::ElevationOutOfRange)
         );
     }
