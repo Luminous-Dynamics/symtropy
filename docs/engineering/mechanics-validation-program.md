@@ -9,6 +9,8 @@ Symtropy already has an analytical free-fall convergence example, an orientation
 
 This cross-stack roadmap **complements rather than replaces** the crate-level [Research Validation Protocol](../../crates/core/symtropy-physics/RESEARCH_VALIDATION.md) and [Orientation-Aware Collision Validation](../../crates/core/symtropy-physics/ORIENTED_COLLISION_VALIDATION.md). Keep those documents canonical for the physics crate’s current validity envelope and solver-specific acceptance criteria. The workstreams below focus on connecting that physics evidence to maintenance decisions, provenance, asset context, and lifecycle outcomes across the four systems.
 
+The engine-wide physics corpus should compose with the existing [PHYS-VALID-06 qualification-corpus issue](https://github.com/Luminous-Dynamics/symtropy/issues/460), not create a competing scenario schema or duplicate solver qualification. The two implementation proposals linked from this research program are intentionally narrow additions to its analytical translational lane; the broader cross-system work here is about using qualified physical evidence in component, maintenance, provenance, and asset decisions.
+
 This program deliberately separates four claims that are often conflated:
 
 1. **Implementation correctness:** the code follows the stated algorithm and does not violate internal invariants.
