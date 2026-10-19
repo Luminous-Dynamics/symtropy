@@ -615,7 +615,7 @@ pub fn compute_owner_preference_frontier(
             let mut comparable_dimensions = 0;
 
             for intent_id in &preference_ids {
-                match (left_ratings[intent_id], right_ratings[intent_id]) {
+                match (left_ratings[*intent_id], right_ratings[*intent_id]) {
                     (Some(left_rating), Some(right_rating)) => {
                         comparable_dimensions += 1;
                         if left_rating > right_rating {
@@ -858,10 +858,11 @@ mod tests {
         assert!(!report.frontier_candidate_ids.contains(&"candidate:a".to_owned()));
         assert!(report.excluded_candidates.iter().any(|item| {
             item.candidate_id == "candidate:a"
-                && item.reason
-                    == FrontierExclusionReason::HardConstraintUnresolved {
-                        intent_id: "rule:egress".into(),
-                    }
+                && matches!(
+                    &item.reason,
+                    FrontierExclusionReason::HardConstraintUnresolved { intent_id }
+                        if intent_id == "rule:egress"
+                )
         }));
     }
 
