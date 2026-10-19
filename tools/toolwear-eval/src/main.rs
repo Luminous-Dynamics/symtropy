@@ -1012,6 +1012,78 @@ mod tests {
     }
 
     #[test]
+    fn target_shuffling_cannot_change_group_fold_assignments() {
+        let mut dataset = transfer_fixture();
+        let target = column_index(&dataset.headers, "Vb").unwrap();
+        let before = fit_leave_one_tool_out(&dataset).unwrap();
+        let before_assignment: Vec<(u32, BTreeSet<u32>, usize, usize)> = before
+            .iter()
+            .map(|fold| (
+                fold.held_out_tool,
+                fold.training_tools.clone(),
+                fold.training_rows,
+                fold.test_rows,
+            ))
+            .collect();
+
+        let mut labels: Vec<f64> = dataset
+            .rows
+            .iter()
+            .map(|row| value(row, target).unwrap())
+            .collect();
+        labels.rotate_left(3);
+        for (row, label) in dataset.rows.iter_mut().zip(labels) {
+            row.values[target] = Some(label);
+        }
+
+        let after = fit_leave_one_tool_out(&dataset).unwrap();
+        let after_assignment: Vec<(u32, BTreeSet<u32>, usize, usize)> = after
+            .iter()
+            .map(|fold| (
+                fold.held_out_tool,
+                fold.training_tools.clone(),
+                fold.training_rows,
+                fold.test_rows,
+            ))
+            .collect();
+        assert_eq!(before_assignment, after_assignment);
+    }
+
+    #[test]
+    fn column_reordering_does_not_change_named_feature_or_label_binding() {
+        let original = transfer_fixture();
+        let reordered_names = ["F_p_RMS", "tool", "Vb", "F_c_RMS", "AE_RMS"];
+        let indices: Vec<usize> = reordered_names
+            .iter()
+            .map(|name| column_index(&original.headers, name).unwrap())
+            .collect();
+        let reordered = Dataset {
+            headers: reordered_names.iter().map(|name| (*name).to_owned()).collect(),
+            rows: original
+                .rows
+                .iter()
+                .map(|row| Row {
+                    tool: row.tool,
+                    values: indices.iter().map(|index| row.values[*index]).collect(),
+                })
+                .collect(),
+            missing_cells: original.missing_cells,
+        };
+        assert_eq!(
+            tool_transfer_diagnostics(&original, "same-source-identity").unwrap(),
+            tool_transfer_diagnostics(&reordered, "same-source-identity").unwrap()
+        );
+    }
+
+    #[test]
+    fn loto_report_is_byte_deterministic() {
+        let dataset = transfer_fixture();
+        let first = tool_transfer_diagnostics(&dataset, "test-source-sha").unwrap();
+        let second = tool_transfer_diagnostics(&dataset, "test-source-sha").unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
     fn loto_report_exposes_worst_tool_and_ranking_stability() {
         let dataset = transfer_fixture();
         let json = tool_transfer_diagnostics(&dataset, "test-source-sha").unwrap();
