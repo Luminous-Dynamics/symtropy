@@ -10,7 +10,7 @@ From the repository root:
     cargo run --release --manifest-path research/social-dynamics-reference/Cargo.toml
     cargo run --release --manifest-path research/social-dynamics-reference/Cargo.toml -- --runs 256 --runs-csv social-dynamics-runs.csv
 
-The executable prints one summary CSV row per treatment, including paired relative reduction in unmet need and a deterministic 95% paired-bootstrap interval versus the no-commitments baseline. By default it runs 32 paired seeds for a 128-agent ring-lattice community under a temporary shared-water capacity shock. Use --runs N to change the seed count (minimum 20) and --runs-csv PATH to write one raw row per treatment/seed for independent auditing. The Rust scenario defaults are documented in Scenario::default; the JSON fixture is an accompanying machine-readable scenario sketch and has not yet become the executable input format.
+The executable prints one summary CSV row per scenario and treatment, including paired relative reduction in unmet need and a deterministic 95% paired-bootstrap interval versus the no-commitments baseline. By default it runs 32 paired seeds for a 128-agent ring-lattice community under a temporary shared-water capacity shock. Use --runs N to change the seed count (minimum 20), --sweep to run the baseline plus eight one-factor sensitivity cases, and --runs-csv PATH to write one raw row per scenario/treatment/seed for independent auditing. The Rust scenario defaults are documented in Scenario::default; the JSON fixture is an accompanying machine-readable scenario sketch and has not yet become the executable input format.
 
 ## Treatment arms
 
@@ -28,11 +28,11 @@ The rules are deliberately simple reference policies, not behaviorally calibrate
 - The model pre-draws action/noise/tampering channels each tick so treatment branches do not consume different amounts of randomness. Initial states and random channels are paired by seed.
 - Resource reserve bounds contribution feasibility; shared service capacity sets the main unmet-need outcome.
 - Recovery is counted only if capacity reaches 98% of baseline within the declared shock window.
-- The benchmark reports unmet need, peak unmet need, total contributions, recovery timing, observation overhead, and repair progress.
-- Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, a zero-duration shock, Gini calculations, and paired-bootstrap behavior on known synthetic values (nine tests total across the library and binary).
+- The benchmark reports unmet need, peak unmet need, the Gini coefficient of cumulative unmet need, total contributions, recovery rate/time, observation overhead, and repair progress. The optional sweep varies observation noise (0.00/0.20), observation cost (0.00/0.35), signal-tampering rate (0.00/0.20), and shock capacity (0.25/0.65) one factor at a time around the default scenario. It does not test interactions between factors or network-density changes.
+- Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, a zero-duration shock, Gini calculations, and paired-bootstrap behavior on known synthetic values (eleven tests total across the library and binary).
 
 ## Known limitations
 
-This prototype has no empirical calibration, no spatial heterogeneity, no institutional-capture mechanism; the only adversarial behavior represented is signal flipping, no real Mycelix or Symthaea integration, and no Sol-Atlas input. The network is synthetic and fixed. The model omits strategic adaptation, household movement, service queues, equity weights, and confidence intervals around forecasts. These are research limitations, not hidden capabilities.
+This prototype has no empirical calibration, no spatial heterogeneity, no institutional-capture mechanism; the only adversarial behavior represented is signal flipping, no real Mycelix or Symthaea integration, and no Sol-Atlas input. The network is a synthetic degree-four ring lattice and fixed during each run. The model omits strategic adaptation, household movement, service queues, equity weights, and confidence intervals around forecasts. These are research limitations, not hidden capabilities.
 
 Do not use outputs to make claims about a real city, real households, individual trustworthiness, or policy effectiveness. The paired-bootstrap interval quantifies variation across this toy model's synthetic seeds; it is not a confidence interval for real people and is not evidence of empirical prediction. The next valid step is to test canonical models and assess whether the mechanism-specific treatment effects survive ablation, parameter sensitivity, and held-out validation.
