@@ -274,15 +274,20 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         if scenario.scenario_id != SCENARIO_IDS[scenario_index] {
             return Err(format!(
                 "scenario {scenario_index} must be {}, got {}",
-                SCENARIO_IDS[scenario_index],
-                scenario.scenario_id
+                SCENARIO_IDS[scenario_index], scenario.scenario_id
             ));
         }
         if scenario.description.trim().is_empty() {
-            return Err(format!("scenario {} has an empty description", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} has an empty description",
+                scenario.scenario_id
+            ));
         }
         if scenario.strata.is_empty() || scenario.candidates.is_empty() {
-            return Err(format!("scenario {} must have strata and candidates", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} must have strata and candidates",
+                scenario.scenario_id
+            ));
         }
         if scenario.candidates.len() > MAX_CANDIDATES_PER_SCENARIO {
             return Err(format!(
@@ -295,14 +300,25 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
 
         let mut stratum_ids = HashSet::new();
         for stratum in &scenario.strata {
-            if stratum.stratum_id.trim().is_empty() || !stratum_ids.insert(stratum.stratum_id.as_str()) {
-                return Err(format!("scenario {} has a blank/duplicate stratum ID", scenario.scenario_id));
+            if stratum.stratum_id.trim().is_empty()
+                || !stratum_ids.insert(stratum.stratum_id.as_str())
+            {
+                return Err(format!(
+                    "scenario {} has a blank/duplicate stratum ID",
+                    scenario.scenario_id
+                ));
             }
             if stratum.priority_ppm == 0 || stratum.priority_ppm > SCALE_PPM {
-                return Err(format!("stratum {} priority must be in 1..=1,000,000 ppm", stratum.stratum_id));
+                return Err(format!(
+                    "stratum {} priority must be in 1..=1,000,000 ppm",
+                    stratum.stratum_id
+                ));
             }
             if stratum.uncertainty_ppm > SCALE_PPM {
-                return Err(format!("stratum {} uncertainty exceeds 1,000,000 ppm", stratum.stratum_id));
+                return Err(format!(
+                    "stratum {} uncertainty exceeds 1,000,000 ppm",
+                    stratum.stratum_id
+                ));
             }
         }
 
@@ -311,20 +327,28 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             if candidate.candidate_id.trim().is_empty()
                 || !candidate_ids.insert(candidate.candidate_id.as_str())
             {
-                return Err(format!("scenario {} has a blank/duplicate candidate ID", scenario.scenario_id));
+                return Err(format!(
+                    "scenario {} has a blank/duplicate candidate ID",
+                    scenario.scenario_id
+                ));
             }
             if !stratum_ids.contains(candidate.stratum_id.as_str()) {
                 return Err(format!(
                     "candidate {} references missing stratum {}",
-                    candidate.candidate_id,
-                    candidate.stratum_id
+                    candidate.candidate_id, candidate.stratum_id
                 ));
             }
             if candidate.effort_units == 0 {
-                return Err(format!("candidate {} must have positive effort", candidate.candidate_id));
+                return Err(format!(
+                    "candidate {} must have positive effort",
+                    candidate.candidate_id
+                ));
             }
             if candidate.information_gain_ppm > SCALE_PPM {
-                return Err(format!("candidate {} information gain exceeds 1,000,000 ppm", candidate.candidate_id));
+                return Err(format!(
+                    "candidate {} information gain exceeds 1,000,000 ppm",
+                    candidate.candidate_id
+                ));
             }
         }
     }
@@ -335,7 +359,8 @@ fn corpus_from_bytes(bytes: &[u8]) -> Check<Corpus> {
     if bytes.len() > MAX_CORPUS_BYTES {
         return Err(format!("corpus exceeds {MAX_CORPUS_BYTES} byte limit"));
     }
-    let corpus: Corpus = serde_json::from_slice(bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
     validate_corpus(&corpus)?;
     Ok(corpus)
 }
@@ -347,14 +372,20 @@ fn source_commit(explicit: Option<String>) -> Check<String> {
         .ok_or_else(|| {
             "source commit is required (use --source-commit, OCEAN_ALLOCATION_SOURCE_COMMIT, or GITHUB_SHA)".to_owned()
         })?;
-    if !(40..=64).contains(&candidate.len()) || !candidate.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    if !(40..=64).contains(&candidate.len())
+        || !candidate.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
         return Err("source commit must be a 40-64 character hexadecimal Git object ID".into());
     }
     Ok(candidate.to_ascii_lowercase())
 }
 
 fn stratum_index(scenario: &Scenario, id: &str) -> usize {
-    scenario.strata.iter().position(|stratum| stratum.stratum_id == id).expect("corpus validation ensures stratum references exist")
+    scenario
+        .strata
+        .iter()
+        .position(|stratum| stratum.stratum_id == id)
+        .expect("corpus validation ensures stratum references exist")
 }
 
 fn is_eligible(candidate: &Candidate) -> bool {
@@ -374,7 +405,10 @@ fn can_add(scenario: &Scenario, state: &SelectionState, candidate_index: usize) 
     if state.effort_used.saturating_add(candidate.effort_units) > scenario.budget.effort_units {
         return false;
     }
-    state.exposure_used.add(candidate.exposure).within(scenario.budget)
+    state
+        .exposure_used
+        .add(candidate.exposure)
+        .within(scenario.budget)
 }
 
 fn add_candidate(scenario: &Scenario, state: &mut SelectionState, index: usize) {
@@ -394,12 +428,18 @@ fn add_candidate(scenario: &Scenario, state: &mut SelectionState, index: usize) 
     state.effort_used = state.effort_used.saturating_add(candidate.effort_units);
     state.exposure_used = state.exposure_used.add(candidate.exposure);
     state.information_score_units = state.information_score_units.saturating_add(weighted_score);
-    state.raw_uncertainty_reduction_ppm = state.raw_uncertainty_reduction_ppm.saturating_add(reduction);
+    state.raw_uncertainty_reduction_ppm = state
+        .raw_uncertainty_reduction_ppm
+        .saturating_add(reduction);
 }
 
 fn stable_hash(seed: u64, id: &str) -> u64 {
     let mut hash = 0xcbf29ce484222325_u64;
-    for byte in seed.to_le_bytes().into_iter().chain(id.as_bytes().iter().copied()) {
+    for byte in seed
+        .to_le_bytes()
+        .into_iter()
+        .chain(id.as_bytes().iter().copied())
+    {
         hash ^= u64::from(byte);
         hash = hash.wrapping_mul(0x100000001b3);
     }
@@ -418,8 +458,8 @@ fn rank_candidate(
     let stratum = &scenario.strata[s_idx];
     let remaining = state.remaining_uncertainty[s_idx];
     let marginal_gain = candidate.information_gain_ppm.min(remaining);
-    let marginal_score = u128::from(marginal_gain) * u128::from(stratum.priority_ppm)
-        / u128::from(SCALE_PPM);
+    let marginal_score =
+        u128::from(marginal_gain) * u128::from(stratum.priority_ppm) / u128::from(SCALE_PPM);
     let uncovered_first = if state.covered[s_idx] { 0 } else { 1 };
     let effort = u128::from(candidate.effort_units.max(1));
 
@@ -445,7 +485,8 @@ fn rank_candidate(
                 .saturating_mul(u128::from(stratum.historical_effort_units).saturating_add(1));
             Rank {
                 primary: uncovered_first,
-                secondary: (marginal_score.saturating_mul(u128::from(SCALE_PPM))) / denominator.max(1),
+                secondary: (marginal_score.saturating_mul(u128::from(SCALE_PPM)))
+                    / denominator.max(1),
                 tertiary: u128::from(remaining),
             }
         }
@@ -486,7 +527,11 @@ fn select_greedy(scenario: &Scenario, policy: Policy, seed: u64) -> SelectionSta
     state
 }
 
-fn selection_for_mask(scenario: &Scenario, mask: u32, eligible: &[usize]) -> Option<SelectionState> {
+fn selection_for_mask(
+    scenario: &Scenario,
+    mask: u32,
+    eligible: &[usize],
+) -> Option<SelectionState> {
     let mut state = SelectionState::new(scenario);
     for (bit, candidate_index) in eligible.iter().enumerate() {
         if mask & (1_u32 << bit) != 0 {
@@ -535,20 +580,30 @@ fn exact_oracle(scenario: &Scenario) -> SelectionState {
 }
 
 fn selected_ids(scenario: &Scenario, state: &SelectionState) -> Vec<String> {
-    state.selected.iter().map(|index| scenario.candidates[*index].candidate_id.clone()).collect()
+    state
+        .selected
+        .iter()
+        .map(|index| scenario.candidates[*index].candidate_id.clone())
+        .collect()
 }
 
 fn weighted_coverage_ppm(scenario: &Scenario, state: &SelectionState) -> u64 {
-    let denominator: u128 = scenario.strata.iter().map(|stratum| u128::from(stratum.priority_ppm)).sum();
+    let denominator: u128 = scenario
+        .strata
+        .iter()
+        .map(|stratum| u128::from(stratum.priority_ppm))
+        .sum();
     if denominator == 0 {
         return 0;
     }
-    let covered: u128 = scenario.strata.iter().enumerate()
+    let covered: u128 = scenario
+        .strata
+        .iter()
+        .enumerate()
         .filter(|(index, _)| state.covered[*index])
         .map(|(_, stratum)| u128::from(stratum.priority_ppm))
         .sum();
-    (covered.saturating_mul(u128::from(SCALE_PPM)) / denominator)
-        .min(u128::from(SCALE_PPM)) as u64
+    (covered.saturating_mul(u128::from(SCALE_PPM)) / denominator).min(u128::from(SCALE_PPM)) as u64
 }
 
 fn report_for(
@@ -557,7 +612,10 @@ fn report_for(
     state: SelectionState,
     oracle_score: u64,
 ) -> PolicyReport {
-    let uncovered_stratum_ids = scenario.strata.iter().enumerate()
+    let uncovered_stratum_ids = scenario
+        .strata
+        .iter()
+        .enumerate()
         .filter(|(index, _)| !state.covered[*index])
         .map(|(_, stratum)| stratum.stratum_id.clone())
         .collect();
@@ -591,7 +649,11 @@ fn evaluate_scenario(scenario: &Scenario, seed: u64) -> ScenarioReport {
     }
     ScenarioReport {
         scenario_id: scenario.scenario_id.clone(),
-        eligible_candidate_count: scenario.candidates.iter().filter(|candidate| is_eligible(candidate)).count(),
+        eligible_candidate_count: scenario
+            .candidates
+            .iter()
+            .filter(|candidate| is_eligible(candidate))
+            .count(),
         policy_reports,
     }
 }
@@ -610,7 +672,9 @@ fn add_invariant(
 }
 
 fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationReceipt {
-    let scenario_reports: Vec<ScenarioReport> = corpus.scenarios.iter()
+    let scenario_reports: Vec<ScenarioReport> = corpus
+        .scenarios
+        .iter()
         .map(|scenario| evaluate_scenario(scenario, corpus.seed))
         .collect();
     let mut invariants = Vec::new();
@@ -619,7 +683,9 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
     let mut no_ineligible_selected = true;
     let mut oracle_dominates_score = true;
     for (scenario, report) in corpus.scenarios.iter().zip(&scenario_reports) {
-        let candidate_by_id: std::collections::BTreeMap<&str, &Candidate> = scenario.candidates.iter()
+        let candidate_by_id: std::collections::BTreeMap<&str, &Candidate> = scenario
+            .candidates
+            .iter()
             .map(|candidate| (candidate.candidate_id.as_str(), candidate))
             .collect();
         for policy_report in &report.policy_reports {
@@ -638,7 +704,9 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
                 all_budgets_respected = false;
             }
         }
-        let oracle_score = report.policy_reports.iter()
+        let oracle_score = report
+            .policy_reports
+            .iter()
             .find(|item| item.policy == Policy::ExactSmallCaseOracle)
             .map(|item| item.information_score_units)
             .unwrap_or(0);
@@ -668,9 +736,18 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
         "The exhaustive oracle reports zero regret against its own declared objective.",
     );
 
-    if let Some(biased) = scenario_reports.iter().find(|report| report.scenario_id == "access-biased-sampling") {
-        let aware = biased.policy_reports.iter().find(|report| report.policy == Policy::EffortAwareStratified);
-        let raw = biased.policy_reports.iter().find(|report| report.policy == Policy::RawRecordCountBaseline);
+    if let Some(biased) = scenario_reports
+        .iter()
+        .find(|report| report.scenario_id == "access-biased-sampling")
+    {
+        let aware = biased
+            .policy_reports
+            .iter()
+            .find(|report| report.policy == Policy::EffortAwareStratified);
+        let raw = biased
+            .policy_reports
+            .iter()
+            .find(|report| report.policy == Policy::RawRecordCountBaseline);
         let passed = match (aware, raw) {
             (Some(aware), Some(raw)) => aware.weighted_coverage_ppm > raw.weighted_coverage_ppm,
             _ => false,
@@ -707,7 +784,12 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
         scenario_count: scenario_reports.len(),
         passed_invariant_count,
         failed_invariant_count,
-        result: if failed_invariant_count == 0 { "PASS" } else { "FAIL" }.to_owned(),
+        result: if failed_invariant_count == 0 {
+            "PASS"
+        } else {
+            "FAIL"
+        }
+        .to_owned(),
         invariants,
         scenarios: scenario_reports,
     }
@@ -727,11 +809,17 @@ fn run() -> Check<ExitCode> {
             }
             "--receipt" => {
                 index += 1;
-                receipt_path = Some(PathBuf::from(args.get(index).ok_or("--receipt requires a path")?));
+                receipt_path = Some(PathBuf::from(
+                    args.get(index).ok_or("--receipt requires a path")?,
+                ));
             }
             "--source-commit" => {
                 index += 1;
-                explicit_commit = Some(args.get(index).ok_or("--source-commit requires a Git object ID")?.clone());
+                explicit_commit = Some(
+                    args.get(index)
+                        .ok_or("--source-commit requires a Git object ID")?
+                        .clone(),
+                );
             }
             other => return Err(format!("unknown argument: {other}")),
         }
@@ -746,9 +834,16 @@ fn run() -> Check<ExitCode> {
     let serialized = serde_json::to_vec_pretty(&receipt)
         .map_err(|error| format!("cannot serialize receipt: {error}"))?;
     if let Some(path) = receipt_path {
-        if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
-            fs::create_dir_all(parent)
-                .map_err(|error| format!("cannot create receipt directory {}: {error}", parent.display()))?;
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::create_dir_all(parent).map_err(|error| {
+                format!(
+                    "cannot create receipt directory {}: {error}",
+                    parent.display()
+                )
+            })?;
         }
         fs::write(&path, &serialized)
             .map_err(|error| format!("cannot write receipt {}: {error}", path.display()))?;
@@ -792,7 +887,9 @@ mod tests {
     use super::*;
 
     fn fixture_corpus() -> (Corpus, Vec<u8>) {
-        let bytes = include_bytes!("../../../docs/tech/OCEAN_OBSERVATION_ALLOCATION_CORPUS_V0_1.json").to_vec();
+        let bytes =
+            include_bytes!("../../../docs/tech/OCEAN_OBSERVATION_ALLOCATION_CORPUS_V0_1.json")
+                .to_vec();
         let corpus = corpus_from_bytes(&bytes).expect("frozen synthetic corpus must parse");
         (corpus, bytes)
     }
@@ -816,8 +913,16 @@ mod tests {
     fn effort_aware_policy_beats_raw_record_count_on_frozen_access_bias_case() {
         let (corpus, _) = fixture_corpus();
         let report = evaluate_scenario(&corpus.scenarios[0], corpus.seed);
-        let aware = report.policy_reports.iter().find(|item| item.policy == Policy::EffortAwareStratified).unwrap();
-        let raw = report.policy_reports.iter().find(|item| item.policy == Policy::RawRecordCountBaseline).unwrap();
+        let aware = report
+            .policy_reports
+            .iter()
+            .find(|item| item.policy == Policy::EffortAwareStratified)
+            .unwrap();
+        let raw = report
+            .policy_reports
+            .iter()
+            .find(|item| item.policy == Policy::RawRecordCountBaseline)
+            .unwrap();
         assert!(aware.weighted_coverage_ppm > raw.weighted_coverage_ppm);
     }
 
@@ -828,8 +933,16 @@ mod tests {
             let reports = evaluate_scenario(scenario, corpus.seed);
             for report in reports.policy_reports {
                 for selected in report.selected_candidate_ids {
-                    let candidate = scenario.candidates.iter().find(|item| item.candidate_id == selected).unwrap();
-                    assert!(is_eligible(candidate), "ineligible candidate selected: {}", candidate.candidate_id);
+                    let candidate = scenario
+                        .candidates
+                        .iter()
+                        .find(|item| item.candidate_id == selected)
+                        .unwrap();
+                    assert!(
+                        is_eligible(candidate),
+                        "ineligible candidate selected: {}",
+                        candidate.candidate_id
+                    );
                 }
             }
         }
@@ -853,10 +966,17 @@ mod tests {
         let (corpus, _) = fixture_corpus();
         for scenario in &corpus.scenarios {
             let report = evaluate_scenario(scenario, corpus.seed);
-            let oracle = report.policy_reports.iter().find(|item| item.policy == Policy::ExactSmallCaseOracle).unwrap();
+            let oracle = report
+                .policy_reports
+                .iter()
+                .find(|item| item.policy == Policy::ExactSmallCaseOracle)
+                .unwrap();
             assert_eq!(oracle.oracle_regret_units, 0);
             assert!(scenario.candidates.len() <= MAX_CANDIDATES_PER_SCENARIO);
-            assert!(report.policy_reports.iter().all(|item| item.information_score_units <= oracle.information_score_units));
+            assert!(report
+                .policy_reports
+                .iter()
+                .all(|item| item.information_score_units <= oracle.information_score_units));
         }
     }
 
