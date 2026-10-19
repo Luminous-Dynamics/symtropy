@@ -407,12 +407,8 @@ fn report(dataset: &Dataset, source_sha: &str) -> Result<String, String> {
 
     for feature in FEATURES {
         let feature_index = column_index(&dataset.headers, feature)?;
-        let (intercept, slope) = fit_tool_balanced_linear(
-            &train_rows,
-            &train_counts,
-            feature_index,
-            target_index,
-        )?;
+        let (intercept, slope) =
+            fit_tool_balanced_linear(&train_rows, &train_counts, feature_index, target_index)?;
         let result = evaluate_model(
             dataset,
             &test_tools,
