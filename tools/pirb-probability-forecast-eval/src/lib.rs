@@ -35,7 +35,7 @@ pub enum ForecastOutcome {
 #[serde(deny_unknown_fields)]
 pub struct SourceContract {
     provider: String,
-    forecast_release_id: String,
+    forecast_archive_id: String,
     model_id: String,
     model_version: String,
     forecast_variable: String,
@@ -43,7 +43,8 @@ pub struct SourceContract {
     analysis_unit: AnalysisUnit,
     threshold_definition: String,
     forecast_source_reference: String,
-    forecast_release_sha256: String,
+    forecast_archive_sha256: String,
+    forecast_source_reference: String,
     outcome_source_id: String,
     outcome_release_id: String,
     outcome_definition: String,
@@ -77,7 +78,7 @@ pub struct TemporalSplit {
 #[serde(deny_unknown_fields)]
 pub struct ForecastRecord {
     forecast_id: String,
-    forecast_release_id: String,
+    forecast_archive_id: String,
     unit_id: String,
     forecast_issued_month: i64,
     input_cutoff_month: i64,
@@ -104,7 +105,8 @@ pub struct ForecastDataset {
 pub struct ReliabilityBin {
     bin_index: usize,
     lower_inclusive: f64,
-    upper_exclusive: f64,
+    upper_bound: f64,
+    upper_inclusive: bool,
     count: usize,
     mean_probability: f64,
     observed_event_rate: f64,
@@ -118,6 +120,7 @@ pub struct ForecastMetrics {
     unknown_outcome_count: usize,
     event_count: usize,
     no_event_count: usize,
+    event_rate: Option<f64>,
     brier_score: Option<f64>,
     log_loss: Option<f64>,
     roc_auc: Option<f64>,
@@ -164,18 +167,21 @@ pub struct ForecastEvaluationReceipt {
     dataset_id: String,
     evidence_class: EvidenceClass,
     provider: String,
-    forecast_release_id: String,
+    forecast_archive_id: String,
     model_id: String,
     model_version: String,
     forecast_variable: String,
     target_definition: String,
     analysis_unit: AnalysisUnit,
     threshold_definition: String,
-    forecast_release_sha256: String,
+    forecast_archive_sha256: String,
     outcome_source_id: String,
     outcome_release_id: String,
     outcome_definition: String,
     outcome_release_sha256: String,
+    outcome_source_reference: String,
+    license_reference: String,
+    attribution: String,
     privacy: PrivacyPolicy,
     temporal_split: TemporalSplit,
     metrics: ForecastMetricBundle,
@@ -262,18 +268,22 @@ pub fn evaluate(
         dataset_id: dataset.dataset_id.clone(),
         evidence_class: dataset.evidence_class,
         provider: dataset.source.provider.clone(),
-        forecast_release_id: dataset.source.forecast_release_id.clone(),
+        forecast_archive_id: dataset.source.forecast_archive_id.clone(),
         model_id: dataset.source.model_id.clone(),
         model_version: dataset.source.model_version.clone(),
         forecast_variable: dataset.source.forecast_variable.clone(),
         target_definition: dataset.source.target_definition.clone(),
         analysis_unit: dataset.source.analysis_unit,
         threshold_definition: dataset.source.threshold_definition.clone(),
-        forecast_release_sha256: dataset.source.forecast_release_sha256.clone(),
+        forecast_archive_sha256: dataset.source.forecast_archive_sha256.clone(),
+        forecast_source_reference: dataset.source.forecast_source_reference.clone(),
         outcome_source_id: dataset.source.outcome_source_id.clone(),
         outcome_release_id: dataset.source.outcome_release_id.clone(),
         outcome_definition: dataset.source.outcome_definition.clone(),
         outcome_release_sha256: dataset.source.outcome_release_sha256.clone(),
+        outcome_source_reference: dataset.source.outcome_source_reference.clone(),
+        license_reference: dataset.source.license_reference.clone(),
+        attribution: dataset.source.attribution.clone(),
         privacy: dataset.privacy.clone(),
         temporal_split: dataset.temporal_split,
         metrics,
@@ -395,6 +405,12 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
         if record.input_cutoff_month > record.forecast_issued_month {
             findings.push(format!(
                 "{} uses an input cutoff later than the forecast issue month",
+                record.forecast_id
+            ));
+        }
+        if record.target_month > t.evaluation_as_of_month {
+            findings.push(format!(
+                "{} target month lies beyond evaluation_as_of_month",
                 record.forecast_id
             ));
         }
@@ -564,6 +580,7 @@ fn compute_metrics(dataset: &ForecastDataset, split: SplitName) -> ForecastMetri
         unknown_outcome_count: records.len() - points.len(),
         event_count,
         no_event_count,
+        event_rate: if points.is_empty() { None } else { Some(event_count as f64 / points.len() as f64) },
         brier_score,
         log_loss,
         roc_auc,
@@ -614,7 +631,7 @@ impl BaselineHistory {
         let mut event_prefix = Vec::with_capacity(observations.len() + 1);
         event_prefix.push(0);
         for (_, event) in &observations {
-            event_prefix.push(event_prefix.last().copied().unwrap_or(0) + usize::from(*event));
+            event_prefix.push(event_prefix.last().copied().unwrap_or(0) + if *event { 1 } else { 0 });
         }
         Self { available_months, event_prefix }
     }
@@ -648,7 +665,8 @@ fn build_reliability_bins(points: &[ScoredPoint], bin_count: usize) -> Vec<Relia
             Some(ReliabilityBin {
                 bin_index: index,
                 lower_inclusive: index as f64 / bin_count as f64,
-                upper_exclusive: (index + 1) as f64 / bin_count as f64,
+                upper_bound: (index + 1) as f64 / bin_count as f64,
+                upper_inclusive: index + 1 == bin_count,
                 count,
                 mean_probability,
                 observed_event_rate: event_count as f64 / count as f64,
@@ -914,6 +932,16 @@ mod tests {
     }
 
     #[test]
+    fn forecast_targets_beyond_evaluation_as_of_are_rejected() {
+        let mut d = dataset();
+        let index = d.records.iter().position(|r| r.forecast_id == "forecast-x6").unwrap();
+        d.records[index].target_month = d.temporal_split.evaluation_as_of_month + 1;
+        d.records[index].lead_months =
+            d.records[index].target_month - d.records[index].input_cutoff_month;
+        assert!(semantic_errors(&d).iter().any(|e| e.contains("target month lies beyond evaluation_as_of_month")));
+    }
+
+    #[test]
     fn probabilities_outside_unit_interval_are_rejected_by_schema() {
         let mut value: Value = serde_json::from_slice(FIXTURE).unwrap();
         value["records"][0]["probability"] = Value::from(1.1);
@@ -938,7 +966,7 @@ mod tests {
         ];
         let bins = build_reliability_bins(&points, 5);
         assert_eq!(bins.iter().map(|b| b.count).sum::<usize>(), 2);
-        assert!(bins.iter().any(|b| b.bin_index == 4 && b.count == 1));
+        assert!(bins.iter().any(|b| b.bin_index == 4 && b.count == 1 && b.upper_inclusive));
     }
 
     #[test]
