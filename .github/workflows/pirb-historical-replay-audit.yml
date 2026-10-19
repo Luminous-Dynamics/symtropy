@@ -1,0 +1,112 @@
+name: PIRB Historical Replay Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/schemas/pirb-historical-replay-v0.1.schema.json"
+      - "docs/fixtures/pirb-historical-replay-v0.1.json"
+      - "docs/tech/PIRB_HISTORICAL_REPLAY_HARNESS_V0_1.md"
+      - "tools/pirb-historical-replay/**"
+      - ".github/workflows/pirb-historical-replay-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pirb-historical-replay-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Generate standalone dependency lock
+        run: cargo generate-lockfile --manifest-path tools/pirb-historical-replay/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/pirb-historical-replay/Cargo.toml -- --check
+
+      - name: Run schema, semantics, and negative-control tests
+        run: cargo test --locked --manifest-path tools/pirb-historical-replay/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/pirb-historical-replay/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute exact-head replay and independently verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="docs/fixtures/pirb-historical-replay-v0.1.json"
+          schema="docs/schemas/pirb-historical-replay-v0.1.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+          dependency_lock_sha="$(sha256sum tools/pirb-historical-replay/Cargo.lock | awk '{print $1}')"
+          rustc_version="$(rustc --version)"
+          cargo_version="$(cargo --version)"
+
+          cargo run --locked --quiet --manifest-path tools/pirb-historical-replay/Cargo.toml -- \
+            --input "$input" \
+            --source-commit "$source_commit" \
+            --rustc-version "$rustc_version" \
+            --cargo-version "$cargo_version" > pirb-historical-replay-receipt.json
+
+          jq -e \
+            --arg source_commit "$source_commit" \
+            --arg input_sha "$expected_input_sha" \
+            --arg schema_sha "$expected_schema_sha" \
+            --arg lock_sha "$dependency_lock_sha" \
+            --arg rustc_version "$rustc_version" \
+            --arg cargo_version "$cargo_version" \
+            '
+              .result == "pass"
+              and .evaluator == "PIRB historical replay"
+              and .execution_claim == "descriptive_retrospective_performance_only"
+              and .causal_effect_estimated == false
+              and .live_decision_authority == false
+              and .exact_head_verified == true
+              and .source_commit == $source_commit
+              and (.source_commit | test("^[0-9a-f]{40}$"))
+              and .input_sha256 == $input_sha
+              and .schema_sha256 == $schema_sha
+              and .dependency_lock_sha256 == $lock_sha
+              and .rustc_version == $rustc_version
+              and .cargo_version == $cargo_version
+              and .split_metrics.test.records_total == 6
+              and .split_metrics.test.known_outcome_records == 5
+              and .split_metrics.test.unknown_outcome_records == 1
+              and .split_metrics.test.true_positives == 1
+              and .split_metrics.test.false_alerts == 2
+              and .split_metrics.test.missed_harms == 1
+              and .split_metrics.test.true_negatives == 1
+              and .test_suppressed_community_count == 2
+              and (.test_community_metrics | length == 2)
+            ' pirb-historical-replay-receipt.json
+
+      - name: Upload exact-head synthetic receipt and inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pirb-historical-replay-synthetic-receipt
+          path: |
+            pirb-historical-replay-receipt.json
+            tools/pirb-historical-replay/Cargo.lock
+            docs/fixtures/pirb-historical-replay-v0.1.json
+            docs/schemas/pirb-historical-replay-v0.1.schema.json
+          if-no-files-found: warn
+          retention-days: 90
