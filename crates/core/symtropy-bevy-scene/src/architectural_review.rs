@@ -1469,6 +1469,54 @@ impl DesignReviewMode {
     }
 }
 
+/// Snapshot reference returned by the jurisdiction/rule-composition pipeline.
+/// It pins review overlays to one profile and one immutable composed-rule artifact.
+/// The viewer checks metadata and digest syntax only; bytes and legal applicability
+/// still require the Mycelix evidence/source trust adapters.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ReviewJurisdictionContext {
+    pub jurisdiction_profile_id: String,
+    pub jurisdiction_label: String,
+    pub rule_context_artifact_id: String,
+    pub rule_context_sha256: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReviewJurisdictionContextIssue {
+    EmptyJurisdictionProfileId,
+    EmptyJurisdictionLabel,
+    EmptyRuleContextArtifactId,
+    InvalidRuleContextDigest,
+}
+
+impl ReviewJurisdictionContext {
+    pub fn validate(&self) -> Result<(), Vec<ReviewJurisdictionContextIssue>> {
+        let mut issues = Vec::new();
+        if self.jurisdiction_profile_id.trim().is_empty() {
+            issues.push(ReviewJurisdictionContextIssue::EmptyJurisdictionProfileId);
+        }
+        if self.jurisdiction_label.trim().is_empty() {
+            issues.push(ReviewJurisdictionContextIssue::EmptyJurisdictionLabel);
+        }
+        if self.rule_context_artifact_id.trim().is_empty() {
+            issues.push(ReviewJurisdictionContextIssue::EmptyRuleContextArtifactId);
+        }
+        if self.rule_context_sha256.len() != 64
+            || !self
+                .rule_context_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit())
+        {
+            issues.push(ReviewJurisdictionContextIssue::InvalidRuleContextDigest);
+        }
+        if issues.is_empty() {
+            Ok(())
+        } else {
+            Err(issues)
+        }
+    }
+}
+
 /// Current serialized review-session manifest schema. Bump this on breaking changes.
 pub const DESIGN_REVIEW_SESSION_SCHEMA_VERSION: u32 = 2;
 
@@ -1492,6 +1540,9 @@ pub struct DesignReviewSession {
     pub snapshot_sha256: String,
     /// Explicit consent and motion settings used for this review session.
     pub comfort_profile: ReviewComfortProfile,
+    /// Optional for purely visual/creative exploration. Required whenever the
+    /// session presents binding-rule or required-evidence overlays.
+    pub jurisdiction_context: Option<ReviewJurisdictionContext>,
     pub mode: DesignReviewMode,
     pub route: Option<ArchitecturalReviewRoute>,
     pub annotations: Vec<ReviewAnnotation>,
@@ -1524,6 +1575,8 @@ pub enum DesignReviewSessionIssue {
     InvalidAnnotations(Vec<ReviewAnnotationIssue>),
     InvalidOccupantFeedback(Vec<OccupantFeedbackIssue>),
     InvalidComfortProfile(Vec<ReviewComfortProfileIssue>),
+    InvalidJurisdictionContext(Vec<ReviewJurisdictionContextIssue>),
+    BindingAnnotationsWithoutJurisdictionContext,
 }
 
 /// Validate the provenance closure of one review session before showing it as a
@@ -1575,6 +1628,24 @@ pub fn validate_design_review_session(
     }
     if let Err(profile_issues) = session.comfort_profile.validate() {
         issues.push(DesignReviewSessionIssue::InvalidComfortProfile(profile_issues));
+    }
+    if let Some(context) = &session.jurisdiction_context {
+        if let Err(context_issues) = context.validate() {
+            issues.push(DesignReviewSessionIssue::InvalidJurisdictionContext(
+                context_issues,
+            ));
+        }
+    }
+    let has_binding_annotations = session.annotations.iter().any(|annotation| {
+        matches!(
+            annotation.kind,
+            ReviewAnnotationKind::BindingRequirement
+                | ReviewAnnotationKind::BindingConflict
+                | ReviewAnnotationKind::RequiredEvidence
+        )
+    });
+    if has_binding_annotations && session.jurisdiction_context.is_none() {
+        issues.push(DesignReviewSessionIssue::BindingAnnotationsWithoutJurisdictionContext);
     }
 
     match (session.mode.required_route_rig(), session.route.as_ref()) {
@@ -1823,6 +1894,7 @@ mod tests {
             snapshot_manifest_artifact_id: "review-manifest:house-r1".into(),
             snapshot_sha256: "b".repeat(64),
             comfort_profile: ReviewComfortProfile::default(),
+            jurisdiction_context: None,
             mode,
             route,
             annotations: Vec::new(),
@@ -1890,6 +1962,53 @@ mod tests {
         let bytes = serde_json::to_vec(&session).unwrap();
         let restored: DesignReviewSession = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(restored, session);
+    }
+
+    fn sample_jurisdiction_context() -> ReviewJurisdictionContext {
+        ReviewJurisdictionContext {
+            jurisdiction_profile_id: "ZA/GP/Johannesburg".into(),
+            jurisdiction_label: "Johannesburg, Gauteng, South Africa".into(),
+            rule_context_artifact_id: "rule-context:za-jhb:r3".into(),
+            rule_context_sha256: "d".repeat(64),
+        }
+    }
+
+    #[test]
+    fn binding_overlays_require_a_pinned_jurisdiction_rule_snapshot() {
+        let mut session = sample_review_session(DesignReviewMode::StaticPlan);
+        let mut binding = annotation(
+            "rule:egress",
+            "house:r1",
+            ReviewAnnotationKind::BindingRequirement,
+            ReviewAnnotationState::Unknown,
+        );
+        binding.source_ref = Some("clause:building-regulation:egress".into());
+        binding.module_id = Some("ZA/GP/Johannesburg".into());
+        session.annotations.push(binding);
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .contains(&DesignReviewSessionIssue::BindingAnnotationsWithoutJurisdictionContext));
+
+        session.jurisdiction_context = Some(sample_jurisdiction_context());
+        assert_eq!(validate_design_review_session(&session), Ok(()));
+    }
+
+    #[test]
+    fn invalid_jurisdiction_rule_snapshot_digest_blocks_session() {
+        let mut session = sample_review_session(DesignReviewMode::StaticPlan);
+        let mut context = sample_jurisdiction_context();
+        context.rule_context_sha256 = "not-a-digest".into();
+        session.jurisdiction_context = Some(context);
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .iter()
+            .any(|issue| matches!(
+                issue,
+                DesignReviewSessionIssue::InvalidJurisdictionContext(context_issues)
+                    if context_issues.contains(
+                        &ReviewJurisdictionContextIssue::InvalidRuleContextDigest
+                    )
+            )));
     }
 
     #[test]
