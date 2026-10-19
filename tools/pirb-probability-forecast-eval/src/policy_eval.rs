@@ -888,6 +888,89 @@ mod tests {
     }
 
     #[test]
+    fn cost_sensitivity_reports_each_schedule_without_selecting_a_winner() {
+        let receipt = evaluate();
+        assert_eq!(receipt.sensitivity_scenarios.len(), 3);
+        assert!(!receipt.latency_window_independently_authenticated);
+        assert_eq!(receipt.minimum_warning_window_hours, 48);
+        assert!(receipt.policy_results.iter().all(|row| row.latency_feasible));
+
+        let reference = receipt
+            .sensitivity_scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "scenario-reference-costs")
+            .unwrap();
+        let reference_six = reference
+            .policy_results
+            .iter()
+            .find(|row| (row.threshold - 0.6).abs() < f64::EPSILON)
+            .unwrap();
+        assert_eq!(reference_six.utility_units, Some(-80));
+
+        let high_cost = receipt
+            .sensitivity_scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "scenario-high-false-alert-cost")
+            .unwrap();
+        let high_cost_six = high_cost
+            .policy_results
+            .iter()
+            .find(|row| (row.threshold - 0.6).abs() < f64::EPSILON)
+            .unwrap();
+        assert_eq!(high_cost_six.utility_units, Some(-140));
+        assert_eq!(
+            high_cost_six.utility_delta_vs_act_on_none_units,
+            Some(160)
+        );
+        assert!(!receipt.thresholds_selected_by_evaluator);
+    }
+
+    #[test]
+    fn response_latency_exceeding_warning_window_nulls_utility() {
+        let receipt = evaluate();
+        let tight_window = receipt
+            .sensitivity_scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "scenario-latency-exceeds-window")
+            .unwrap();
+        assert_eq!(tight_window.minimum_warning_window_hours, 12);
+        assert!(!tight_window.latency_window_independently_authenticated);
+        for row in &tight_window.policy_results {
+            assert!(!row.latency_feasible);
+            assert_eq!(row.status, "review_required");
+            assert!(row.utility_units.is_none());
+            assert!(
+                row.reason
+                    .as_deref()
+                    .unwrap()
+                    .contains("exceeds the minimum warning window")
+            );
+        }
+    }
+
+    #[test]
+    fn duplicate_scenario_ids_are_rejected() {
+        let mut value: Value = serde_json::from_slice(POLICY).unwrap();
+        value["sensitivity_scenarios"][1]["scenario_id"] =
+            Value::String("scenario-reference-costs".to_owned());
+        let policy = serde_json::to_vec(&value).unwrap();
+        let result = evaluate_predeclared_policy(
+            DATASET,
+            &policy,
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        );
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("unique IDs"))
+        );
+    }
+
+    #[test]
     fn malformed_cost_schedule_is_rejected_by_policy_schema() {
         let mut value: Value = serde_json::from_slice(POLICY).unwrap();
         value["cost_schedule"]
