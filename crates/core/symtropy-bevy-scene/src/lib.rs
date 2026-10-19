@@ -100,16 +100,17 @@ pub mod design_intent;
 pub mod loader;
 
 pub use architectural_review::{
-    ArchitecturalReviewRoute, FeedbackResolutionDisposition, FeedbackResolutionIssue,
-    FeedbackResolutionRecord, OccupantFeedbackCategory, OccupantFeedbackIssue,
-    OccupantFeedbackLifecycle, OccupantFeedbackPriority, OccupantFeedbackShareScope,
-    OccupantReviewFeedback, ReviewAnnotation, ReviewAnnotationIssue, ReviewAnnotationKind,
-    ReviewAnnotationState, ReviewFreeCameraController, ReviewRig, ReviewRouteIssue,
-    ReviewRoutePlayback, ReviewSourceRef, ReviewWaypoint, advance_architectural_review_routes,
+    ArchitecturalReviewRoute, DesignReviewMode, DesignReviewSession, DesignReviewSessionIssue,
+    FeedbackResolutionDisposition, FeedbackResolutionIssue, FeedbackResolutionRecord,
+    OccupantFeedbackCategory, OccupantFeedbackIssue, OccupantFeedbackLifecycle,
+    OccupantFeedbackPriority, OccupantFeedbackShareScope, OccupantReviewFeedback,
+    ReviewAnnotation, ReviewAnnotationIssue, ReviewAnnotationKind, ReviewAnnotationState,
+    ReviewFreeCameraController, ReviewRig, ReviewRouteIssue, ReviewRoutePlayback,
+    ReviewSourceRef, ReviewWaypoint, advance_architectural_review_routes,
     drive_free_review_camera, manage_architectural_review_controls, review_waypoint_transform,
-    sample_review_route, validate_feedback_resolutions_for_revision,
-    validate_occupant_feedback_for_review, validate_review_annotations_for_revision,
-    validate_review_route,
+    sample_review_route, validate_design_review_session,
+    validate_feedback_resolutions_for_revision, validate_occupant_feedback_for_review,
+    validate_review_annotations_for_revision, validate_review_route,
 };
 pub use design_intent::{
     AlternativeDisposition, DesignAlternative, DesignComparison, DesignIntent, DesignIntentClass,
