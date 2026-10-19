@@ -663,7 +663,7 @@ mod tests {
         .unwrap();
         assert_eq!(report.covered, 1);
         assert_eq!(report.not_reviewed, 1);
-        assert!(!report.complete);
+        assert!(!report.profile_registry_complete);
     }
 
     #[test]
@@ -706,6 +706,6 @@ mod tests {
         ];
         let report = coverage_report(&scope, &declarations, &profiles).unwrap();
         assert_eq!(report.covered, 2);
-        assert!(report.complete);
+        assert!(report.profile_registry_complete);
     }
 }
