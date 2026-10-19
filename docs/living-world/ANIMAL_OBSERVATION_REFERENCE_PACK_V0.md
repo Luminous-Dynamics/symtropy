@@ -40,9 +40,9 @@ These are candidate benchmark sources, not automatically usable dependencies. Ve
 
 Official project: https://github.com/AlexTheBad/AP-10K
 
-The published AP-10K benchmark reports 10,015 images with annotated keypoints spanning 54 species and 23 animal families. It is a useful pose-estimation and visible-morphology reference. An AP-10K adapter must keep image/keypoint coordinates, visibility/occlusion flags, image dimensions, annotation convention and source split explicit. It must not promote a still-image result into a claim about dynamic gait, 3D contact forces, energetic cost, internal physiology or cognition.
+The published AP-10K benchmark reports 10,015 images with annotated keypoints spanning 54 species and 23 animal families. The official repository currently lists the dataset under **CC BY 4.0**: https://github.com/AlexTheBad/AP-10K. It is a useful pose-estimation and visible-morphology reference. An AP-10K adapter must keep image/keypoint coordinates, visibility/occlusion flags, image dimensions, annotation convention, dataset/source revision and split explicit.
 
-The repository's code license and the dataset/annotation/image rights must be checked independently; a public GitHub repository or paper citation does not by itself establish all downstream rights.
+The CC BY 4.0 declaration must be retained in the source receipt, with attribution and change notices handled as required by the license. It does not remove the need to check source-image terms, any third-party content/annotations, the exact artifact actually downloaded, and the contemplated downstream operation. Do not infer model-training/redistribution rights for additional assets from the existence of the code repository. A still-image result must not be promoted into a claim about dynamic gait, 3D contact forces, energetic cost, internal physiology or cognition.
 
 ### VastMAT multi-animal tracking (preprint dated 2026-09-28)
 
