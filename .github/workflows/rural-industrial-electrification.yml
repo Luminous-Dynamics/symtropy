@@ -12,6 +12,8 @@ on:
     paths:
       - "tools/rural-industrial-electrification-evaluator/**"
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md"
+      - "docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md"
+      - "docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   workflow_dispatch:
 
