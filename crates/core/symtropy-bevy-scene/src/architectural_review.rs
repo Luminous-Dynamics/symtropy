@@ -559,6 +559,94 @@ fn sample_valid_route_pose(
     waypoint_transform(route.waypoints.last()?)
 }
 
+/// Whether the route begins moving when a review session opens. Automatic
+/// motion must be explicitly opted into by the person creating the session.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum ReviewRouteStartPolicy {
+    ManualStart,
+    OptInAutoStart,
+}
+
+/// User-selected motion and control settings. These are stored in the review
+/// manifest so a session can be reproduced; they are not universal comfort
+/// limits or medical guidance. Static review always remains available.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ReviewComfortProfile {
+    pub profile_id: String,
+    pub start_policy: ReviewRouteStartPolicy,
+    /// Playback rate relative to the authored route; must be in (0, 1] so a
+    /// comfort profile can slow a route, never make it run faster than authored.
+    pub route_playback_rate: f32,
+    pub free_camera_speed_mps: f32,
+    /// Set to 1.0 to disable the Shift speed boost.
+    pub fast_multiplier: f32,
+    pub mouse_sensitivity: f32,
+    /// Must remain below PI/2 to avoid camera pole flips.
+    pub max_pitch_radians: f32,
+    pub allow_vertical_translation: bool,
+}
+
+impl Default for ReviewComfortProfile {
+    fn default() -> Self {
+        Self {
+            profile_id: "comfort:manual-reduced-motion".into(),
+            start_policy: ReviewRouteStartPolicy::ManualStart,
+            route_playback_rate: 0.5,
+            free_camera_speed_mps: 0.8,
+            fast_multiplier: 1.0,
+            mouse_sensitivity: 0.001,
+            max_pitch_radians: 1.2,
+            allow_vertical_translation: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReviewComfortProfileIssue {
+    EmptyProfileId,
+    InvalidRoutePlaybackRate,
+    InvalidFreeCameraSpeed,
+    InvalidFastMultiplier,
+    InvalidMouseSensitivity,
+    InvalidMaximumPitch,
+}
+
+impl ReviewComfortProfile {
+    pub fn validate(&self) -> Result<(), Vec<ReviewComfortProfileIssue>> {
+        let mut issues = Vec::new();
+        if self.profile_id.trim().is_empty() {
+            issues.push(ReviewComfortProfileIssue::EmptyProfileId);
+        }
+        if !self.route_playback_rate.is_finite()
+            || self.route_playback_rate <= 0.0
+            || self.route_playback_rate > 1.0
+        {
+            issues.push(ReviewComfortProfileIssue::InvalidRoutePlaybackRate);
+        }
+        if !self.free_camera_speed_mps.is_finite() || self.free_camera_speed_mps <= 0.0 {
+            issues.push(ReviewComfortProfileIssue::InvalidFreeCameraSpeed);
+        }
+        if !self.fast_multiplier.is_finite() || self.fast_multiplier < 1.0 {
+            issues.push(ReviewComfortProfileIssue::InvalidFastMultiplier);
+        }
+        if !self.mouse_sensitivity.is_finite() || self.mouse_sensitivity <= 0.0 {
+            issues.push(ReviewComfortProfileIssue::InvalidMouseSensitivity);
+        }
+        if !self.max_pitch_radians.is_finite()
+            || self.max_pitch_radians <= 0.0
+            || self.max_pitch_radians >= std::f32::consts::FRAC_PI_2
+        {
+            issues.push(ReviewComfortProfileIssue::InvalidMaximumPitch);
+        }
+
+        if issues.is_empty() {
+            Ok(())
+        } else {
+            Err(issues)
+        }
+    }
+}
+
 /// Component that plays a validated route on the Transform it is attached to.
 /// For an XR scene, attach it to the rig origin and have the XR adapter apply
 /// tracked head pose below that origin; do not attach it to a head-tracked camera
@@ -567,16 +655,46 @@ fn sample_valid_route_pose(
 #[derive(Component, Clone, Debug)]
 pub struct ReviewRoutePlayback {
     route: ArchitecturalReviewRoute,
+    comfort_profile: ReviewComfortProfile,
     elapsed_seconds: f32,
     playing: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReviewPlaybackSetupIssue {
+    InvalidRoute(Vec<ReviewRouteIssue>),
+    InvalidComfortProfile(Vec<ReviewComfortProfileIssue>),
+}
+
 impl ReviewRoutePlayback {
+    /// Construct with the conservative default profile. Routes start paused;
+    /// Space or an explicit app action is required to begin motion.
     pub fn new(route: ArchitecturalReviewRoute) -> Result<Self, Vec<ReviewRouteIssue>> {
         validate_review_route(&route)?;
-        let playing = route.rig != ReviewRig::AccessibleTeleport;
         Ok(Self {
             route,
+            comfort_profile: ReviewComfortProfile::default(),
+            elapsed_seconds: 0.0,
+            playing: false,
+        })
+    }
+
+    /// Construct from an explicit, validated profile. Auto-start is honored
+    /// only when the person has selected OptInAutoStart, and never for teleport.
+    pub fn new_with_comfort_profile(
+        route: ArchitecturalReviewRoute,
+        comfort_profile: ReviewComfortProfile,
+    ) -> Result<Self, Vec<ReviewPlaybackSetupIssue>> {
+        validate_review_route(&route)
+            .map_err(|issues| vec![ReviewPlaybackSetupIssue::InvalidRoute(issues)])?;
+        comfort_profile
+            .validate()
+            .map_err(|issues| vec![ReviewPlaybackSetupIssue::InvalidComfortProfile(issues)])?;
+        let playing = comfort_profile.start_policy == ReviewRouteStartPolicy::OptInAutoStart
+            && route.rig != ReviewRig::AccessibleTeleport;
+        Ok(Self {
+            route,
+            comfort_profile,
             elapsed_seconds: 0.0,
             playing,
         })
@@ -584,6 +702,10 @@ impl ReviewRoutePlayback {
 
     pub fn route(&self) -> &ArchitecturalReviewRoute {
         &self.route
+    }
+
+    pub fn comfort_profile(&self) -> &ReviewComfortProfile {
+        &self.comfort_profile
     }
 
     pub fn elapsed_seconds(&self) -> f32 {
@@ -599,8 +721,8 @@ impl ReviewRoutePlayback {
         self.playing = playing && self.route.rig != ReviewRig::AccessibleTeleport;
     }
 
-    /// Restart a clock-driven route from its first stop. Teleport routes remain
-    /// stopped because route advancement must be driven by explicit user input.
+    /// Restart a clock-driven route from its first stop. This is an explicit
+    /// user action; teleport routes remain stopped and manually selected.
     pub fn restart(&mut self) {
         if self.route.rig != ReviewRig::AccessibleTeleport {
             self.elapsed_seconds = 0.0;
@@ -625,6 +747,8 @@ pub struct ReviewFreeCameraController {
     pub mouse_sensitivity: f32,
     /// Maximum absolute camera pitch; keeping this below PI/2 avoids pole flips.
     pub max_pitch_radians: f32,
+    /// Vertical flying camera motion is off by default and can be enabled in the profile.
+    pub allow_vertical_translation: bool,
 }
 
 impl ReviewFreeCameraController {
@@ -643,10 +767,11 @@ impl ReviewFreeCameraController {
             enabled: false,
             yaw_radians,
             pitch_radians,
-            speed_mps: 1.2,
-            fast_multiplier: 2.5,
-            mouse_sensitivity: 0.002,
-            max_pitch_radians,
+            speed_mps: 0.8,
+            fast_multiplier: 1.0,
+            mouse_sensitivity: 0.001,
+            max_pitch_radians: 1.2,
+            allow_vertical_translation: false,
         }
     }
 
@@ -665,6 +790,25 @@ impl ReviewFreeCameraController {
 
     pub fn is_enabled(&self) -> bool {
         self.enabled
+    }
+
+    /// Apply the profile recorded in the review session. Invalid profiles leave
+    /// the current controller settings unchanged.
+    pub fn apply_comfort_profile(
+        &mut self,
+        profile: &ReviewComfortProfile,
+    ) -> Result<(), Vec<ReviewComfortProfileIssue>> {
+        profile.validate()?;
+        self.speed_mps = profile.free_camera_speed_mps;
+        self.fast_multiplier = profile.fast_multiplier;
+        self.mouse_sensitivity = profile.mouse_sensitivity;
+        self.max_pitch_radians = profile.max_pitch_radians;
+        self.pitch_radians = self.pitch_radians.clamp(
+            -self.max_pitch_radians,
+            self.max_pitch_radians,
+        );
+        self.allow_vertical_translation = profile.allow_vertical_translation;
+        Ok(())
     }
 
     /// Enable direct movement and atomically pause the attached scripted route.
