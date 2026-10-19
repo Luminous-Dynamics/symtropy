@@ -176,7 +176,10 @@ pub enum OverallDisposition {
 
 pub fn evaluate_corpus(corpus: &InputCorpus) -> Result<Vec<CaseResult>, String> {
     if corpus.schema_version != INPUT_SCHEMA_VERSION {
-        return Err(format!("unsupported input schema version: {}", corpus.schema_version));
+        return Err(format!(
+            "unsupported input schema version: {}",
+            corpus.schema_version
+        ));
     }
     if corpus.qualification_status != "NotRun" || corpus.claim_ceiling != CLAIM_CEILING {
         return Err("input corpus claim ceiling or qualification state is invalid".to_owned());
@@ -271,21 +274,30 @@ fn evaluate_mass(case: &ProcessCase) -> MassStatus {
     if b.tolerance_g < 0
         || b.input_mass_g.lower < 0
         || b.input_mass_g.upper < b.input_mass_g.lower
-        || b.outputs.iter().any(|o| {
-            o.stream_id.trim().is_empty()
-                || o.lower_g < 0
-                || o.upper_g < o.lower_g
-        })
+        || b.outputs
+            .iter()
+            .any(|o| o.stream_id.trim().is_empty() || o.lower_g < 0 || o.upper_g < o.lower_g)
     {
         return MassStatus::Invalid;
     }
     let mut stream_ids = HashSet::with_capacity(b.outputs.len());
-    if b.outputs.iter().any(|o| !stream_ids.insert(o.stream_id.as_str())) {
+    if b.outputs
+        .iter()
+        .any(|o| !stream_ids.insert(o.stream_id.as_str()))
+    {
         return MassStatus::Invalid;
     }
 
-    let output_lower = b.outputs.iter().map(|o| i128::from(o.lower_g)).sum::<i128>();
-    let output_upper = b.outputs.iter().map(|o| i128::from(o.upper_g)).sum::<i128>();
+    let output_lower = b
+        .outputs
+        .iter()
+        .map(|o| i128::from(o.lower_g))
+        .sum::<i128>();
+    let output_upper = b
+        .outputs
+        .iter()
+        .map(|o| i128::from(o.upper_g))
+        .sum::<i128>();
     let input_lower = i128::from(b.input_mass_g.lower);
     let input_upper = i128::from(b.input_mass_g.upper);
     let tolerance = i128::from(b.tolerance_g);
@@ -476,7 +488,10 @@ mod tests {
         corpus.cases[0].mass_balance.input_mass_g.lower = 900;
         corpus.cases[0].mass_balance.input_mass_g.upper = 1_100;
         let row = evaluate_case(&corpus.cases[0]);
-        assert_eq!(row.material_mass_status, MassStatus::PossibleWithUncertainty);
+        assert_eq!(
+            row.material_mass_status,
+            MassStatus::PossibleWithUncertainty
+        );
         assert_eq!(row.overall_disposition, OverallDisposition::Indeterminate);
     }
 
@@ -519,7 +534,11 @@ mod tests {
     fn duplicate_case_ids_fail_closed_at_corpus_boundary() {
         let mut corpus = load_corpus();
         corpus.cases[1].case_id = corpus.cases[0].case_id.clone();
-        assert!(evaluate_corpus(&corpus).unwrap_err().contains("duplicate case ID"));
+        assert!(
+            evaluate_corpus(&corpus)
+                .unwrap_err()
+                .contains("duplicate case ID")
+        );
     }
 
     #[test]
