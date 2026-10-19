@@ -108,6 +108,34 @@ These references cover behavior labels and interaction-aware representations—d
 
 **Targets for Symtropy:** first reproduce one source-specific task and its published baseline, then evaluate leave-one-individual-out and (when source identity permits) leave-one-study/site-out splits. Report class-wise F1/precision/recall, calibration, temporal boundary error and macro-average by taxon/action class; for interaction representations, report task-specific downstream performance and subgroup gaps. Use the paired comparison receipt from the implementation PR, with the individual/episode as the independent unit—not correlated frames. No cross-taxon transfer claim should follow from an ordinary random split.
 
+### Proposed benchmark execution matrix
+
+This matrix avoids treating “animal intelligence” as one leaderboard. First reproduce one task exactly; then extend difficulty while preserving the source's official metrics and split rules.
+
+| Benchmark family | Reference task | Primary evaluation | Baselines to reproduce | Harder-than-random-split test |
+|---|---|---|---|---|
+| Pose / identity tracking | AP-10K or APT-36K pinned split | Source-defined AP/PCK/HOTA and ID-switch metrics as applicable | Published reference; simple visual/temporal baseline | Species/category-disjoint and long-occlusion clips; report each taxon and identity switch |
+| Video behavior | One Animal Kingdom action-recognition or temporal grounding task | Source metric: multi-label mAP/F1 or temporal localization metric, never interchangeable | Published method plus class-prior and simple temporal baseline | Held-out scene, animal identity, viewpoint or context where annotations support it |
+| Bio-logger ethogram | One BEBE dataset and permitted operation | Official task metrics, class-wise precision/recall/F1 and per-individual scores | Published reference and label-prior / simple feature baseline | Leave-one-individual-out; source/study transfer only when there is a defensible mapping |
+| Multi-agent representations | One MABe22 downstream task | Reproduce that task's official classification/regression metric and its split | Official evaluator/reference; simple linear probe on the same features | Held-out recording/animal/context; report mice, beetle-ant and fly tasks separately |
+| Movement forecasting | One rights-reviewed Movebank study | Predeclared horizon-specific location error plus probabilistic score when available | Persistence/constant-velocity plus published baseline | Future-time, held-out individual/site/study; prevent neighboring windows from crossing splits |
+| Active sensing | Synthetic known-answer scenes first | Task utility minus explicit sensing/movement cost, false-percept rate, regret to finite oracle | Passive, periodic, event-triggered, EVSI and resource-aware EVSI | Held-out emitter/noise/occlusion regime with identical sensor budgets |
+| Counterfactual sensorimotor response | Controlled intervention task | Signed response effect, calibration and task cost | No-change/control policy and matched baseline | Held-out intervention combinations with expected null effects preserved |
+
+For supervised behavior tasks, use class-balanced macro-F1 and per-class precision/recall in addition to the benchmark's official metric when class imbalance is material. For regression tasks, preserve the official error/score and uncertainty; never substitute F1. Report both per-independent-unit results and task-level aggregation. A cross-task summary must first normalize each official metric using a predeclared rule, show all component tasks, and may not conceal a failed hard gate behind an average.
+
+### Release gates for a credible SOTA claim
+
+1. **Protocol reproduction:** pin upstream version, labels, code/evaluator, split file and permissions; reproduce the published baseline to a predeclared tolerance before evaluating the candidate.
+2. **Leakage audit:** verify no animal/individual/clip/scene or near-duplicate spans train and test contrary to the target generalization claim. Group by the real independent unit, not frames.
+3. **Paired evaluation:** run candidate and baseline on exactly the same held-out units; pin uncertainty method and practical effect threshold in advance.
+4. **Ablation:** remove one modality, temporal history or interaction cue at a time. A claimed mechanism should degrade in its predicted direction; otherwise weaken the claim.
+5. **Robustness:** test noise, occlusion, missing sensors, label uncertainty and at least one held-out condition. Publish failures and subgroup gaps.
+6. **Cost frontier:** report compute, latency, memory, training-data volume and sensing/action budget beside quality. Only compare “better” under a declared matched budget or as an explicit Pareto trade-off.
+7. **Reproduction package:** export a rights-checked, immutable manifest and receipt, metric-by-stratum report, exact run identity, seeds, and negative-control results.
+
+A proposed initial win threshold is a preregistered practically meaningful paired improvement whose confidence interval excludes zero and whose estimate clears the practical margin, with no protected key stratum beyond its predeclared non-inferiority margin. A universal “+3 points” target is not automatically appropriate across AP, F1, HOTA, forecast error and calibrated decision utility; margins must be chosen per task before seeing holdout scores.
+
 ### Movement ecology / Movebank
 
 Movebank is a rich source ecosystem, not one homogeneous benchmark: its September 2026 platform totals are 11.8 billion locations, 9.5 billion other animal-borne sensor measurements, 10,192 studies and 1,712 taxa. Studies have independent owners and permissions; IDs should not be presumed globally unique, and sensitive animal locations need conservation-aware handling. Sources: [Movebank overview](https://www.movebank.org/cms/movebank-content/about-movebank), [data policy](https://www.movebank.org/cms/movebank-content/data-policy), [data model](https://www.movebank.org/cms/movebank-content/mb-data-model).
