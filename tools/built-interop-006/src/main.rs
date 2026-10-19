@@ -884,21 +884,31 @@ fn verify_embedded_payload(
         let lost = counts["lost"].as_u64().unwrap_or(0);
         let dropped = counts["dropped"].as_u64().unwrap_or(0);
         let unresolved = counts["unresolved"].as_u64().unwrap_or(0);
-        let coverage_complete = payload["comparison_coverage_complete"] == Value::Bool(true);
+        let profile_confirmed = payload
+            .get("profile_confirmed")
+            .and_then(Value::as_bool)
+            .ok_or_else(|| "DELTA_PROFILE_CONFIRMATION_MISSING".to_string())?;
+        let coverage_complete = payload
+            .get("comparison_coverage_complete")
+            .and_then(Value::as_bool)
+            .ok_or_else(|| "DELTA_COVERAGE_FIELD_MISSING".to_string())?;
         let definite_loss = changed > 0 || lost > 0 || dropped > 0;
         let reason = payload["decision_reason"].as_str().unwrap_or("");
         let state_consistent = match input.gate.status {
             GateStatus::Pass => {
-                coverage_complete
+                profile_confirmed
+                    && coverage_complete
                     && compared > 0
                     && unresolved == 0
                     && !definite_loss
                     && reason == "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS"
             }
-            GateStatus::Fail => definite_loss && reason == "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            GateStatus::Fail => {
+                profile_confirmed && definite_loss && reason == "DEFINITE_SOURCE_TO_TARGET_LOSS"
+            }
             GateStatus::Unresolved => {
                 reason == "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED"
-                    && (!definite_loss || !coverage_complete)
+                    && (!definite_loss || !profile_confirmed)
             }
             GateStatus::NotRun => false,
         };
@@ -1209,6 +1219,7 @@ mod tests {
 
     struct DeltaTestConfig {
         status: GateStatus,
+        profile_confirmed: bool,
         coverage_complete: bool,
         compared: u64,
         preserved: u64,
@@ -1235,6 +1246,7 @@ mod tests {
             "source_adapter_report_sha256": "a".repeat(64),
             "target_adapter_report_sha256": "b".repeat(64),
             "supported_profile": DELTA_PROFILE_ID,
+            "profile_confirmed": config.profile_confirmed,
             "comparison_coverage_complete": config.coverage_complete,
             "counts": {
                 "compared": config.compared,
@@ -1636,6 +1648,7 @@ mod tests {
             ids,
             DeltaTestConfig {
                 status: GateStatus::Pass,
+                profile_confirmed: true,
                 coverage_complete: true,
                 compared: 1,
                 preserved: 1,
@@ -1715,6 +1728,7 @@ mod tests {
             ids,
             DeltaTestConfig {
                 status: GateStatus::Pass,
+                profile_confirmed: true,
                 coverage_complete: true,
                 compared: 1,
                 preserved: 1,
@@ -1752,6 +1766,7 @@ mod tests {
             ids,
             DeltaTestConfig {
                 status: GateStatus::Pass,
+                profile_confirmed: true,
                 coverage_complete: true,
                 compared: 1,
                 preserved: 0,
@@ -1773,6 +1788,7 @@ mod tests {
             ids,
             DeltaTestConfig {
                 status: GateStatus::Fail,
+                profile_confirmed: true,
                 coverage_complete: false,
                 compared: 1,
                 preserved: 0,
@@ -1791,6 +1807,7 @@ mod tests {
             ids,
             DeltaTestConfig {
                 status: GateStatus::Fail,
+                profile_confirmed: true,
                 coverage_complete: true,
                 compared: 1,
                 preserved: 1,
@@ -1808,6 +1825,53 @@ mod tests {
     }
 
     #[test]
+    fn unconfirmed_profile_with_apparent_loss_remains_unresolved() {
+        let source = b"source";
+        let target = b"target";
+        let ids = b"ids";
+        let producer = delta_gate_producer(
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Unresolved,
+                profile_confirmed: false,
+                coverage_complete: false,
+                compared: 1,
+                preserved: 0,
+                changed: 1,
+                lost: 0,
+                dropped: 0,
+                unresolved: 1,
+                reason: "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED",
+            },
+        );
+        assert!(verify_embedded_payload(&producer, source, target, ids, "IFC4").is_ok());
+
+        let falsely_blocked = delta_gate_producer(
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Fail,
+                profile_confirmed: false,
+                coverage_complete: false,
+                compared: 1,
+                preserved: 0,
+                changed: 1,
+                lost: 0,
+                dropped: 0,
+                unresolved: 1,
+                reason: "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            },
+        );
+        assert_eq!(
+            verify_embedded_payload(&falsely_blocked, source, target, ids, "IFC4").unwrap_err(),
+            "DELTA_STATUS_PAYLOAD_MISMATCH"
+        );
+    }
+
+    #[test]
     fn paired_delta_requires_pinned_tool_and_configuration() {
         let source = b"source";
         let target = b"target";
@@ -1818,6 +1882,7 @@ mod tests {
             ids,
             DeltaTestConfig {
                 status: GateStatus::Pass,
+                profile_confirmed: true,
                 coverage_complete: true,
                 compared: 1,
                 preserved: 1,
