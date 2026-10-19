@@ -112,7 +112,7 @@ pub use architectural_review::{
 pub use design_intent::{
     AlternativeDisposition, DesignAlternative, DesignIntent, DesignIntentClass, DesignIntentIssue,
     IntentEvaluation, IntentEvaluationOutcome, IntentOrigin, IntentPriority,
-    validate_design_comparison,
+    validate_design_comparison, validate_design_comparison_snapshot,
 };
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
