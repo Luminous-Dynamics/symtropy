@@ -30,24 +30,24 @@ fn valid_mixed_need_and_request_denominators_are_separate() {
     let report = assess_need_observation_v1(&valid_input());
     assert_eq!(report.disposition, AssessmentDisposition::Calculated);
     let summary = report.summary.expect("valid summary");
-    assert_eq!(summary.screened_candidate_count, 8);
-    assert_eq!(summary.eligible_need_count, 6);
+    assert_eq!(summary.screened_candidate_count, 9);
+    assert_eq!(summary.eligible_need_count, 7);
     assert_eq!(summary.protocol_excluded_count, 2);
     assert_eq!(summary.linked_canonical_request_count, 1);
     assert_eq!(summary.farmer_confirms_no_request_count, 2);
     assert_eq!(summary.no_canonical_request_located_count, 1);
-    assert_eq!(summary.request_existence_unknown_or_not_assessed_count, 2);
+    assert_eq!(summary.request_existence_unknown_or_not_assessed_count, 3);
 }
 
 #[test]
 fn prospective_retrospective_and_relay_basis_remain_distinct() {
     let report = assess_need_observation_v1(&valid_input());
     let summary = report.summary.expect("valid summary");
-    assert_eq!(summary.prospective_farmer_report_count, 4);
+    assert_eq!(summary.prospective_farmer_report_count, 5);
     assert_eq!(summary.retrospective_farmer_recall_count, 1);
     assert_eq!(summary.authorized_relay_count, 1);
     assert_eq!(summary.anticipated_need_count, 1);
-    assert_eq!(summary.current_need_count, 4);
+    assert_eq!(summary.current_need_count, 5);
     assert_eq!(summary.retrospective_timing_count, 1);
 }
 
@@ -117,7 +117,7 @@ fn open_deferred_and_missing_outcomes_stay_distinct() {
     assert_eq!(summary.open_need_without_adequate_service_count, 2);
     assert_eq!(summary.farmer_deferred_count, 1);
     assert_eq!(summary.follow_up_missing_count, 1);
-    assert_eq!(summary.outcome_unknown_count, 0);
+    assert_eq!(summary.outcome_unknown_count, 1);
 }
 
 #[test]
@@ -213,7 +213,7 @@ fn canonical_service_attainment_requires_a_linked_canonical_request() {
 #[test]
 fn unknown_outcome_cannot_claim_positive_service_evidence() {
     let mut input = valid_input();
-    input.episodes[5].outcome_source = S::CanonicalServiceLifecycle;
+    input.episodes[6].outcome_source = S::CanonicalServiceLifecycle;
     assert!(has_blocker(&input, B::OutcomeSourceMismatch));
 }
 
