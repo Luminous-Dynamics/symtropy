@@ -17,6 +17,7 @@ struct Scenario {
     scenario_id: String,
     label: String,
     evidence_class: String,
+    result_status: String,
     evidence_reference: String,
     evidence_note: String,
     nominal_pack_capacity_kwh: f64,
@@ -356,6 +357,11 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
         scenario_id: scenario.scenario_id.clone(),
         label: scenario.label.clone(),
         evidence_class: scenario.evidence_class.clone(),
+        result_status: match scenario.evidence_class.as_str() {
+            "synthetic" => "passes_synthetic_screen".to_string(),
+            "unknown" => "indeterminate".to_string(),
+            _ => "passes_evidence_backed_screen".to_string(),
+        },
         evidence_reference: scenario.evidence_reference.clone(),
         evidence_note: scenario.evidence_note.clone(),
         nominal_pack_capacity_kwh: scenario.nominal_pack_capacity_kwh,
@@ -528,6 +534,15 @@ mod tests {
         assert_eq!(result.results.len(), 1);
         assert!((result.results[0].soc_start_fraction - 0.52).abs() < 1e-9);
         assert!((result.results[0].soc_end_fraction - 0.78).abs() < 1e-9);
+    }
+
+    #[test]
+    fn unknown_evidence_remains_indeterminate() {
+        let mut scenario = sample_scenario();
+        scenario.evidence_class = "unknown".to_string();
+        scenario.evidence_reference.clear();
+        let result = evaluate_scenario(&scenario);
+        assert_eq!(result.result_status, "indeterminate");
     }
 
     #[test]
