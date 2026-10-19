@@ -554,8 +554,7 @@ mod tests {
                     scenario.scenario_id
                 );
                 assert!(
-                    (metrics.delivered_service_units
-                        + metrics.cumulative_unmet_service_units
+                    (metrics.delivered_service_units + metrics.cumulative_unmet_service_units
                         - metrics.demanded_service_units)
                         .abs()
                         < 1.0e-8,
@@ -582,5 +581,4 @@ mod tests {
             }
         }
     }
-
 }
