@@ -284,9 +284,8 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             inputs.task.target_taxon_id = Some("TEST:404".to_owned());
         }
         "empirical_synthetic_inputs" => inputs.mode = EvaluationMode::EmpiricalReference,
-        "profile_unknown_state" => {
-            inputs.profile = real_profile();
-            inputs.profile.capabilities[0].state = EvidenceState::Unknown;
+        "profile_without_capability_claims" => {
+            inputs.profile.capabilities.clear();
         }
         "profile_taxon_for_synthetic" => {
             inputs.profile.taxon = Some(TaxonBinding {
