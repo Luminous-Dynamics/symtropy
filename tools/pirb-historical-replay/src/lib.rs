@@ -884,9 +884,8 @@ mod tests {
             record.case_id = format!("case-oracle-{index}");
             record.community_id = "community-oracle".to_owned();
             record.period_id = format!("period-oracle-{index}");
-            record.decision_at = dataset.temporal_split.calibration_end_exclusive
-                + 5
-                + index as i64 * 10;
+            record.decision_at =
+                dataset.temporal_split.calibration_end_exclusive + 5 + index as i64 * 10;
             record.evidence[0].available_at = Some(record.decision_at - 1);
             record.outcome = outcome;
             let harm_at = if outcome == Outcome::Harm {
@@ -980,5 +979,4 @@ mod tests {
         assert_eq!(actual.outcome_coverage_percent, Some(71.43));
         assert_eq!(actual.median_warning_lead_seconds, Some(4.0));
     }
-
 }
