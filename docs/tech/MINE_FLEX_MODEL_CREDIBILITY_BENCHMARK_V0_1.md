@@ -8,7 +8,7 @@ This suite inserts a separate runtime credibility gate before a model-derived ca
 
 ## Fixed contract
 
-- Synthetic residual calibration sample: 64 values, with a finite-sample absolute-error quantile using a declared 5% miscoverage level.
+- Synthetic residual calibration sample: 64 values, with a finite-sample absolute-error quantile using a declared 5% miscoverage level. If a requested quantile rank exceeds the available calibration sample, evaluation fails closed rather than clamping to the largest residual.
 - Fixed deterministic, disjoint seed splits: 32 validation seeds and 32 held-out seeds.
 - Six scenarios per seed: nominal; abrupt residual shift; stale telemetry; missing observation; safety-boundary crossing; recovery after a shift.
 - Eight time steps per scenario: 384 scenarios and 3,072 decision opportunities in the generated suite.
