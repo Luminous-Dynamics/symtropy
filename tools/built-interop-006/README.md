@@ -51,6 +51,10 @@ For `exchange_semantic_preservation`, the assembler requires an embedded, explic
 
 The delta payload now includes an explicit `profile_confirmed` bit. The assembler accepts `FAIL` only when the supported profile is confirmed and at least one definite changed/lost/dropped count is nonzero. A report with an unconfirmed profile remains `UNRESOLVED`, even when it records an apparent difference. `PASS` requires confirmed profile, complete comparison coverage, at least one compared object, no unresolved cases, and no definite losses.
 
+## Cross-tool integration
+
+`test-pipeline.sh` runs the pinned BUILT-INTEROP-005 IFC schema gate against the checked-in IFC4 wall fixture, verifies the typed producer envelope and evidence hash, then passes that JSON directly to this assembler. It asserts the schema result is either PASS or UNRESOLVED (never hides FAIL), all seven unprovided gates remain NOT_RUN with no tool/evidence, and the assembled overall result is UNQUALIFIED. This integration is deliberately not a qualified exchange: no semantic-preservation or engineering evidence has been generated.
+
 ## Schema and testing
 
 - `assembled-report-v1.schema.json` pins the BUILT-INTEROP-004-shaped full report.
