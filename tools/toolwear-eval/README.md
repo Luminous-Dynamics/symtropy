@@ -23,6 +23,7 @@ The executable rechecks the expected SHA-256 itself. Any byte change, altered sc
 ## Fixed evaluation protocol
 
 - Label: Vb. The pinned README describes flank wear but does not specify its physical units; the report therefore uses source-native values and does not infer units.
+- The pinned table contains 1,142 blank cells in two unused sensor columns. Those are reported as missing, not imputed; tool ID, label, and all modeled feature values must be present and finite.
 - Split: sort the 13 numeric tool IDs ascending and hold out every fourth identity starting at index zero. Test tools are 3, 7, 12, 16; training tools are 4, 5, 6, 9, 10, 11, 13, 14, 15. A tool can never appear in both sets.
 - Baseline: a constant equal to the equally weighted mean of training-tool label means.
 - Linear baselines: one-feature, tool-balanced least squares fitted on training tools only, independently for the predeclared features AE_RMS, F_c_RMS, and F_p_RMS.

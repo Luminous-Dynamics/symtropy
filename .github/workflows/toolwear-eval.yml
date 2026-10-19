@@ -61,7 +61,8 @@ jobs:
 
       - name: Validate report contract
         run: |
-          jq -e '
+          expected_missing_cells="$(sed -n 's/^expected_missing_cells=//p' tools/toolwear-eval/source.lock)"
+          jq -e --argjson expected_missing_cells "$expected_missing_cells" '
             .schema_version == "0.1.0"
             and .model_id == "MFG-DATA-001"
             and .evidence_class == "external_dataset_evaluation_unqualified_for_process_control"
@@ -69,6 +70,8 @@ jobs:
             and .dataset_diagnostics.rows == 2054
             and .dataset_diagnostics.columns == 154
             and .dataset_diagnostics.distinct_tools == 13
+            and .dataset_diagnostics.non_finite_cells == 0
+            and .dataset_diagnostics.missing_cells == $expected_missing_cells
             and .split.train_tools == [4,5,6,9,10,11,13,14,15]
             and .split.test_tools == [3,7,12,16]
             and (.models | keys | sort) == ["constant_train_tool_balanced","ols_AE_RMS","ols_F_c_RMS","ols_F_p_RMS"]
