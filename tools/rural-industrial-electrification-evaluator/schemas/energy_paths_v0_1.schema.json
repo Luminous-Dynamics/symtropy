@@ -128,12 +128,6 @@
               }
             }
           }
-        },
-        "delivery_temperature_at_load_c": {
-          "type": [
-            "number",
-            "null"
-          ]
         }
       }
     }
