@@ -8,7 +8,7 @@ pub mod manipulator;
 use ::nalgebra::SVector;
 use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
-use symtropy_physics::world::PhysicsCallback;
+use symtropy_physics::world::{NoOpCallback, PhysicsCallback};
 
 use bevy::prelude::*;
 
@@ -244,4 +244,128 @@ pub fn add_sphere_to_rapier(
     let collider = ColliderBuilder::ball(radius).build();
     collider_set.insert_with_parent(collider, handle, rigid_body_set);
     handle
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn step_advances_rapier_and_captures_the_exact_post_step_state() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut rigid_bodies = RigidBodySet::new();
+        let mut colliders = ColliderSet::new();
+        let handle = add_sphere_to_rapier(
+            &mut rigid_bodies,
+            &mut colliders,
+            Vec3::new(0.0, 10.0, 0.0),
+            0.2,
+            1.0,
+        );
+
+        let gravity = vector![0.0, -9.81, 0.0];
+        let mut parameters = IntegrationParameters::default();
+        // Deliberately disagree with dt below. The bridge must execute the
+        // caller-supplied dt rather than silently reuse this stale setting.
+        parameters.dt = 0.5;
+
+        let mut island_manager = IslandManager::new();
+        let mut broad_phase = BroadPhase::new();
+        let mut narrow_phase = NarrowPhase::new();
+        let mut impulse_joints = ImpulseJointSet::new();
+        let mut multibody_joints = MultibodyJointSet::new();
+        let mut ccd_solver = CCDSolver::new();
+        let mut query_pipeline = QueryPipeline::new();
+
+        let dt = 1.0 / 60.0;
+        bridge
+            .step(
+                dt,
+                &gravity,
+                &mut rigid_bodies,
+                &mut colliders,
+                &parameters,
+                &mut island_manager,
+                &mut broad_phase,
+                &mut narrow_phase,
+                &mut impulse_joints,
+                &mut multibody_joints,
+                &mut ccd_solver,
+                Some(&mut query_pipeline),
+                &(),
+                &(),
+            )
+            .expect("finite step inputs should advance the Rapier pipeline");
+
+        let body = rigid_bodies.get(handle).expect("body remains in set");
+        let y = body.translation().y;
+        assert!(y < 10.0, "gravity should advance the body downward");
+        assert!(
+            y > 9.99,
+            "bridge should use 1/60 s, not the stale 0.5 s parameter"
+        );
+
+        let states = bridge.last_body_states();
+        assert_eq!(states.len(), 1);
+        assert_eq!(states[0].handle, handle);
+        assert!((states[0].translation[1] - y).abs() < 1e-6);
+        assert!((states[0].linear_velocity[1] - body.linvel().y).abs() < 1e-6);
+    }
+
+    #[test]
+    fn invalid_timestep_rejects_without_mutation_and_invalidates_old_readback() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut rigid_bodies = RigidBodySet::new();
+        let mut colliders = ColliderSet::new();
+        let handle = add_sphere_to_rapier(
+            &mut rigid_bodies,
+            &mut colliders,
+            Vec3::new(0.0, 10.0, 0.0),
+            0.2,
+            1.0,
+        );
+
+        let gravity = vector![0.0, -9.81, 0.0];
+        let parameters = IntegrationParameters::default();
+        let mut island_manager = IslandManager::new();
+        let mut broad_phase = BroadPhase::new();
+        let mut narrow_phase = NarrowPhase::new();
+        let mut impulse_joints = ImpulseJointSet::new();
+        let mut multibody_joints = MultibodyJointSet::new();
+        let mut ccd_solver = CCDSolver::new();
+
+        let before = rigid_bodies
+            .get(handle)
+            .expect("body remains in set")
+            .position()
+            .clone();
+
+        let result = bridge.step(
+            f32::NAN,
+            &gravity,
+            &mut rigid_bodies,
+            &mut colliders,
+            &parameters,
+            &mut island_manager,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut impulse_joints,
+            &mut multibody_joints,
+            &mut ccd_solver,
+            None,
+            &(),
+            &(),
+        );
+
+        assert_eq!(result, Err(RapierBridgeStepError::InvalidTimeStep));
+        assert_eq!(
+            rigid_bodies
+                .get(handle)
+                .expect("body remains in set")
+                .position(),
+            &before
+        );
+        assert!(bridge.last_body_states().is_empty());
+    }
 }
