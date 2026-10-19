@@ -249,7 +249,7 @@ fn verify_receipt(
     if profile
         .reviewer
         .as_ref()
-        .is_some_and(|reviewer| reviewer.reviewed_at_utc > request.as_of_utc)
+        .is_some_and(|reviewer| reviewer.reviewed_at_utc.as_str() > request.as_of_utc.as_str())
         && receipt.reason_code != "profile_review_after_request_time"
     {
         return Err("receipt does not reflect review occurring after request time".to_string());
