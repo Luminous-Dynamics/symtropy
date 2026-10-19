@@ -254,20 +254,21 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "analysis_unit",
+          "artifact_digest",
+          "canonical_estimand_id",
+          "event_ontology",
+          "forecast_horizon",
+          "forecast_release_id",
+          "license_reference",
+          "model_version",
+          "original_target",
+          "output_type",
           "provider_id",
           "provider_name",
-          "forecast_release_id",
-          "model_version",
-          "system_reference",
           "source_code_or_method_reference",
-          "original_target",
-          "event_ontology",
-          "analysis_unit",
-          "temporal_aggregation",
-          "forecast_horizon",
-          "output_type",
-          "license_reference",
-          "artifact_digest"
+          "system_reference",
+          "temporal_aggregation"
         ],
         "properties": {
           "provider_id": {
@@ -335,6 +336,10 @@
           "independent_source_capture_verified": {
             "type": "boolean",
             "default": false
+          },
+          "canonical_estimand_id": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -399,10 +404,13 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
+                  "independently_verified",
+                  "left_source_estimand_id",
                   "method_reference",
                   "method_sha256",
-                  "independently_verified",
-                  "review_reference"
+                  "review_reference",
+                  "right_source_estimand_id",
+                  "target_estimand_id"
                 ],
                 "properties": {
                   "method_reference": {
@@ -417,6 +425,18 @@
                     "const": true
                   },
                   "review_reference": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "left_source_estimand_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "right_source_estimand_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target_estimand_id": {
                     "type": "string",
                     "minLength": 1
                   }
