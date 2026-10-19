@@ -404,8 +404,15 @@ fn audit(
             reasons.push(format!("vmt_mismatch:segments={schedule_vmt:.9},operation_days={:.9},tolerance={vmt_tolerance:.9}", day.vmt));
         }
         if reasons.is_empty() {
-            let first_on_shift_start_second = segments.iter().find(|segment| segment.on_shift).map(|segment| segment.start_second);
-            let last_on_shift_end_second = segments.iter().rev().find(|segment| segment.on_shift).map(|segment| segment.end_second);
+            let first_on_shift_start_second = segments
+                .iter()
+                .find(|segment| segment.on_shift)
+                .map(|segment| segment.start_second);
+            let last_on_shift_end_second = segments
+                .iter()
+                .rev()
+                .find(|segment| segment.on_shift)
+                .map(|segment| segment.end_second);
             reconciled_profiles.push(ReconciledOperationDayProfile {
                 operation_day_id: day.id,
                 vmt_miles: day.vmt,
@@ -599,10 +606,22 @@ mod tests {
         );
         assert_eq!(report.reconciled_operation_day_count, 2);
         assert_eq!(report.reconciled_operation_day_profiles.len(), 2);
-        assert_eq!(report.reconciled_operation_day_profiles[0].first_on_shift_start_second, Some(8 * 3600));
-        assert_eq!(report.reconciled_operation_day_profiles[0].last_on_shift_end_second, Some(17 * 3600));
-        assert_eq!(report.reconciled_operation_day_profiles[1].first_on_shift_start_second, Some(4 * 3600));
-        assert_eq!(report.reconciled_operation_day_profiles[1].last_on_shift_end_second, Some(18 * 3600));
+        assert_eq!(
+            report.reconciled_operation_day_profiles[0].first_on_shift_start_second,
+            Some(8 * 3600)
+        );
+        assert_eq!(
+            report.reconciled_operation_day_profiles[0].last_on_shift_end_second,
+            Some(17 * 3600)
+        );
+        assert_eq!(
+            report.reconciled_operation_day_profiles[1].first_on_shift_start_second,
+            Some(4 * 3600)
+        );
+        assert_eq!(
+            report.reconciled_operation_day_profiles[1].last_on_shift_end_second,
+            Some(18 * 3600)
+        );
         assert!(report.operation_day_reconciliation_issues.is_empty());
         assert_eq!(report.daily_vmt_miles.p50, Some(65.0));
         assert_eq!(report.daily_vmt_miles.p95, Some(90.0));
