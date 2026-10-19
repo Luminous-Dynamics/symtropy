@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1",
+  "entries": [
+    {
+      "unit_id": "unit-country-AAA",
+      "spatial_block_id": "block-north"
+    },
+    {
+      "unit_id": "unit-country-BBB",
+      "spatial_block_id": "block-east"
+    },
+    {
+      "unit_id": "unit-country-CCC",
+      "spatial_block_id": "block-south"
+    },
+    {
+      "unit_id": "unit-country-DDD",
+      "spatial_block_id": "block-west"
+    }
+  ]
+}
