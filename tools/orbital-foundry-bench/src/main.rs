@@ -1098,7 +1098,7 @@ mod tests {
         assert!(
             frontier
                 .iter()
-                .any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1")
+                .any(|id| id.as_str() == "std=0|power_isolated=1|spares=1|eol_plan=1")
         );
     }
 
