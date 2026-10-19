@@ -64,7 +64,7 @@ jobs:
           rustc_version="$(rustc --version)"
           cargo_version="$(cargo --version)"
 
-          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- \
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-probability-forecast-eval -- \
             --input "$input" \
             --source-commit "$source_commit" \
             --rustc-version "$rustc_version" \
