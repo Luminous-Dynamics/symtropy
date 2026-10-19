@@ -73,7 +73,8 @@ pub struct EvidenceRecord {
     pub class: EvidenceClass,
     pub source_ref: Option<String>,
     pub permission: UsePermission,
-    pub attribution_present: bool,
+    pub permission_scope: Option<String>,
+    pub attribution: Option<String>,
     pub taxon_id: Option<String>,
     pub stage: Option<String>,
 }
@@ -126,6 +127,7 @@ pub enum ReasonCode {
     EvidenceRightsUnknown,
     EvidenceRightsRestricted,
     MissingRequiredAttribution,
+    MissingPermissionScope,
     MissingEvidenceSource,
     MissingEvidenceTaxonId,
     EvidenceTaxonMismatch,
@@ -267,10 +269,25 @@ pub fn validate_profile(profile: &AnimalProfile) -> ValidationResult {
                 UsePermission::Restricted => {
                     rejected.insert(ReasonCode::EvidenceRightsRestricted);
                 }
-                UsePermission::AttributionRequired if !claim.evidence.attribution_present => {
-                    rejected.insert(ReasonCode::MissingRequiredAttribution);
+                UsePermission::Granted | UsePermission::AttributionRequired => {
+                    if claim
+                        .evidence
+                        .permission_scope
+                        .as_deref()
+                        .is_none_or(|scope| scope.trim().is_empty())
+                    {
+                        indeterminate.insert(ReasonCode::MissingPermissionScope);
+                    }
+                    if claim.evidence.permission == UsePermission::AttributionRequired
+                        && claim
+                            .evidence
+                            .attribution
+                            .as_deref()
+                            .is_none_or(|attribution| attribution.trim().is_empty())
+                    {
+                        rejected.insert(ReasonCode::MissingRequiredAttribution);
+                    }
                 }
-                UsePermission::Granted | UsePermission::AttributionRequired => {}
             }
 
             if claim.state.is_assertion() {
@@ -459,6 +476,11 @@ pub fn coverage_report(
         .iter()
         .filter(|profile| profile.kind == ProfileKind::RealTaxonBound)
         .filter(|profile| validate_profile(profile).disposition == ValidationDisposition::Eligible)
+        .filter(|profile| {
+            profile.taxon.as_ref().is_some_and(|taxon| {
+                taxon.source == scope.source && taxon.release == scope.release
+            })
+        })
         .filter_map(|profile| profile.taxon.as_ref().map(|taxon| taxon.taxon_id.clone()))
         .collect::<BTreeSet<_>>();
 
@@ -521,7 +543,12 @@ mod tests {
             } else {
                 UsePermission::Granted
             },
-            attribution_present: false,
+            permission_scope: if class == EvidenceClass::Synthetic {
+                None
+            } else {
+                Some("test-fixture-only".to_owned())
+            },
+            attribution: None,
             taxon_id: taxon_id.map(str::to_owned),
             stage: Some("adult".to_owned()),
         }
