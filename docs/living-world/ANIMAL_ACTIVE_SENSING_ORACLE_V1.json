@@ -1,0 +1,353 @@
+{
+  "schema_version": "ANIMAL-ACTIVE-SENSING-ORACLE-V1",
+  "status": "synthetic_contract_fixture",
+  "note": "These are independent expected-outcome contracts over synthetic scenarios. They are not measurements, model performance results, or empirical animal observations.",
+  "case_count": 36,
+  "independent_unit": "episode_or_scene",
+  "cases": [
+    {
+      "id": "no_emission",
+      "group": "signal_validity",
+      "setup": "No source emission is present in the scene.",
+      "expected": {
+        "percept": "none",
+        "information_gain_credit": 0,
+        "cue_caused_action": false
+      },
+      "invariant": "No percept or cue reward is fabricated."
+    },
+    {
+      "id": "wrong_modality",
+      "group": "signal_validity",
+      "setup": "A signal is emitted but its kind is incompatible with the active receptor.",
+      "expected": {
+        "percept": "none",
+        "information_gain_credit": 0
+      },
+      "invariant": "No incompatible signal becomes a valid percept."
+    },
+    {
+      "id": "below_threshold_occluded",
+      "group": "signal_validity",
+      "setup": "The signal is attenuated below the receptor threshold or fully occluded.",
+      "expected": {
+        "percept": "none",
+        "information_gain_credit": 0
+      },
+      "invariant": "Truth at the source cannot bypass propagation or detection."
+    },
+    {
+      "id": "orientation_blocks_detection",
+      "group": "signal_validity",
+      "setup": "The source is outside the receptor field of view/orientation.",
+      "expected": {
+        "percept": "none_until_reorientation",
+        "action_cost_required": true
+      },
+      "invariant": "Detection changes only after a causal sensing-geometry change."
+    },
+    {
+      "id": "noise_masks_signal",
+      "group": "signal_validity",
+      "setup": "Ambient noise masks a cue that is detectable in a matched quiet control.",
+      "expected": {
+        "quiet_control": "detectable",
+        "noisy_case": "masked_or_lower_confidence"
+      },
+      "invariant": "Noise cannot increase certainty without another evidence source."
+    },
+    {
+      "id": "ambiguous_sources",
+      "group": "belief",
+      "setup": "Two sources generate observationally ambiguous signals.",
+      "expected": {
+        "belief": "multiple_hypotheses_or_abstain"
+      },
+      "invariant": "Controller does not collapse ambiguity to evaluator truth."
+    },
+    {
+      "id": "second_sample_disambiguates",
+      "group": "belief",
+      "setup": "A second permitted observation separates the two previously ambiguous sources.",
+      "expected": {
+        "belief": "uncertainty_reduced_after_second_observation"
+      },
+      "invariant": "The first observation is not retroactively upgraded to certain."
+    },
+    {
+      "id": "delayed_signal",
+      "group": "provenance",
+      "setup": "A percept is delivered after a delay.",
+      "expected": {
+        "emission_time_preserved": true,
+        "observation_time_preserved": true,
+        "freshness": "stale_or_delayed"
+      },
+      "invariant": "Delayed evidence is not silently treated as current."
+    },
+    {
+      "id": "contradictory_observations",
+      "group": "belief",
+      "setup": "A later observation contradicts an earlier one.",
+      "expected": {
+        "belief": "conflict_or_revised_with_provenance"
+      },
+      "invariant": "Earlier evidence is not silently deleted."
+    },
+    {
+      "id": "falsified_reliable_cue",
+      "group": "belief",
+      "setup": "A cue previously believed reliable is contradicted by later evidence.",
+      "expected": {
+        "belief_update": true,
+        "old_confidence_not_forced_to_one": true
+      },
+      "invariant": "The belief remains fallible and revisable."
+    },
+    {
+      "id": "battery_exhausted",
+      "group": "resource_budget",
+      "setup": "The sensor battery/energy budget is exhausted.",
+      "expected": {
+        "additional_sensor_activation": "unavailable"
+      },
+      "invariant": "Sensing cannot continue with zero cost."
+    },
+    {
+      "id": "receptor_cooldown",
+      "group": "resource_budget",
+      "setup": "A receptor has a nonzero sampling cooldown.",
+      "expected": {
+        "immediate_repeat": "denied_or_deferred"
+      },
+      "invariant": "Repeated requests cannot bypass cooldown."
+    },
+    {
+      "id": "reorientation_cost",
+      "group": "resource_budget",
+      "setup": "Reorienting the receptor consumes declared time or energy.",
+      "expected": {
+        "cost_delta": "positive_as_declared"
+      },
+      "invariant": "Reorientation is included in episode cost."
+    },
+    {
+      "id": "movement_for_sensing_cost",
+      "group": "resource_budget",
+      "setup": "The agent moves to improve its sensing geometry.",
+      "expected": {
+        "body_state_changes": true,
+        "movement_cost_recorded": true
+      },
+      "invariant": "Moving for a better view is not free or state-neutral."
+    },
+    {
+      "id": "costly_observation_no_decision_change",
+      "group": "decision_value",
+      "setup": "A high-cost observation is expected not to change the optimal permitted action.",
+      "expected": {
+        "rational_policy_may_decline": true
+      },
+      "invariant": "Raw information gain is not automatically net decision value."
+    },
+    {
+      "id": "cheap_decision_changing_observation",
+      "group": "decision_value",
+      "setup": "A cheap observation offers modest information but is expected to change an important decision.",
+      "expected": {
+        "rational_policy_may_select": true
+      },
+      "invariant": "Policy values decision relevance after declared cost."
+    },
+    {
+      "id": "high_entropy_low_utility",
+      "group": "decision_value",
+      "setup": "An observation strongly reduces entropy but is irrelevant to the current objective.",
+      "expected": {
+        "entropy_gain_may_be_positive": true,
+        "net_decision_value_may_be_nonpositive": true
+      },
+      "invariant": "Entropy reduction alone is not scored as success."
+    },
+    {
+      "id": "no_available_compatible_signal",
+      "group": "abstention",
+      "setup": "No available modality can detect a compatible signal.",
+      "expected": {
+        "abstain_allowed": true,
+        "fabricated_percept": false
+      },
+      "invariant": "A lack of information is represented honestly."
+    },
+    {
+      "id": "misleading_cue_recovery",
+      "group": "belief",
+      "setup": "A deliberately misleading cue is followed by disconfirming evidence.",
+      "expected": {
+        "belief": "fallible_update_on_disconfirmation"
+      },
+      "invariant": "The controller can recover instead of preserving false certainty."
+    },
+    {
+      "id": "modality_ablation",
+      "group": "robustness",
+      "setup": "One sensory modality is removed while the rest of the world remains fixed.",
+      "expected": {
+        "report": [
+          "task_quality",
+          "belief_quality",
+          "resource_cost"
+        ]
+      },
+      "invariant": "Ablation reports both utility and cost changes."
+    },
+    {
+      "id": "degraded_receptor",
+      "group": "signal_validity",
+      "setup": "Receptor sensitivity is reduced, with all other causal inputs fixed.",
+      "expected": {
+        "detection_probability": "not_increased_without_other_cause"
+      },
+      "invariant": "Degraded sensitivity cannot improve detection under fixed conditions."
+    },
+    {
+      "id": "source_strength_monotonicity",
+      "group": "signal_validity",
+      "setup": "Source strength increases while path, receptor and noise remain fixed.",
+      "expected": {
+        "received_signal_strength": "nondecreasing"
+      },
+      "invariant": "Signal propagation monotonicity holds under declared fixed conditions."
+    },
+    {
+      "id": "modality_disappears",
+      "group": "decision_value",
+      "setup": "A previously available low-cost modality becomes unavailable mid-episode.",
+      "expected": {
+        "replan_with_current_affordances": true
+      },
+      "invariant": "Policy only acts on currently available sensors/actions."
+    },
+    {
+      "id": "deterministic_replay",
+      "group": "reproducibility",
+      "setup": "Same scene, seed, controller and deterministic configuration are replayed.",
+      "expected": {
+        "canonical_receipt_equal": true
+      },
+      "invariant": "Canonical sensing/decision outputs replay identically."
+    },
+    {
+      "id": "rendering_invariance",
+      "group": "invariance",
+      "setup": "Identical canonical scene is evaluated with rendering enabled and disabled.",
+      "expected": {
+        "canonical_signal_trace_equal": true,
+        "sensing_cost_equal": true
+      },
+      "invariant": "Presentation does not change canonical sensory evidence or cost."
+    },
+    {
+      "id": "fixture_order_invariance",
+      "group": "reproducibility",
+      "setup": "Equivalent fixture entries are supplied in a different input order.",
+      "expected": {
+        "canonical_digest_equal": true
+      },
+      "invariant": "Input ordering does not alter canonical identity."
+    },
+    {
+      "id": "unseen_scene_seed",
+      "group": "generalization",
+      "setup": "A held-out scene seed is used; the controller does not receive that seed.",
+      "expected": {
+        "seed_hidden_from_controller": true,
+        "score_stratified": true
+      },
+      "invariant": "Evaluation seed cannot leak the target answer."
+    },
+    {
+      "id": "unseen_emitter_composition",
+      "group": "generalization",
+      "setup": "A held-out combination of known signal emitters is tested.",
+      "expected": {
+        "claim": "compositional_generalization_only_if_heldout_passes"
+      },
+      "invariant": "A familiar component is not evidence of a validated composition."
+    },
+    {
+      "id": "heldout_noise_occlusion",
+      "group": "generalization",
+      "setup": "A noise/occlusion regime is kept sealed from policy selection.",
+      "expected": {
+        "split": "heldout_regime"
+      },
+      "invariant": "Tune-set conditions are not reused as the held-out result."
+    },
+    {
+      "id": "hidden_truth_query",
+      "group": "authority_boundary",
+      "setup": "The controller requests arbitrary hidden world truth.",
+      "expected": {
+        "request": "denied_or_rejected",
+        "violation_receipt": true
+      },
+      "invariant": "Only the evaluator can inspect hidden canonical state."
+    },
+    {
+      "id": "fabricated_percept",
+      "group": "authority_boundary",
+      "setup": "The controller submits a percept without source-emission provenance.",
+      "expected": {
+        "qualification": "reject"
+      },
+      "invariant": "Percepts are backed by permitted signal history."
+    },
+    {
+      "id": "missing_result_not_zero",
+      "group": "receipt_integrity",
+      "setup": "A task result is missing or an episode fails.",
+      "expected": {
+        "state": "incomplete_or_failed",
+        "implicit_zero": false
+      },
+      "invariant": "Missingness and failure are not converted into a score of zero."
+    },
+    {
+      "id": "unfair_sensor_budget",
+      "group": "comparison_fairness",
+      "setup": "Under matched-budget policy, baseline is given extra sensing budget.",
+      "expected": {
+        "comparison": "reject"
+      },
+      "invariant": "An unequal sensing budget cannot be represented as a matched-budget win."
+    },
+    {
+      "id": "revoked_source_permission",
+      "group": "rights",
+      "setup": "The observation/source permission for a required operation is revoked or unknown.",
+      "expected": {
+        "qualification": "reject_or_indeterminate"
+      },
+      "invariant": "The benchmark never upgrades unknown/revoked rights to a grant."
+    },
+    {
+      "id": "missing_paired_unit_digest",
+      "group": "comparison_fairness",
+      "setup": "The independent-unit membership manifest is absent or malformed.",
+      "expected": {
+        "comparison": "incomplete_or_reject"
+      },
+      "invariant": "Paired differences must be bound to exact unit membership."
+    },
+    {
+      "id": "free_extra_samples",
+      "group": "comparison_fairness",
+      "setup": "EVSI policy appears better only because it received uncharged extra samples.",
+      "expected": {
+        "comparison": "reject"
+      },
+      "invariant": "All samples and action costs are charged using one protocol."
+    }
+  ]
+}
