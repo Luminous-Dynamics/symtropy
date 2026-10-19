@@ -243,10 +243,8 @@ pub fn evaluate(
     let calibration_records = records_in_split(&dataset, SplitName::Calibration);
     let test_records = records_in_split(&dataset, SplitName::Test);
 
-    let test_groups = community_metrics(
-        &test_records,
-        dataset.privacy.minimum_subgroup_denominator,
-    );
+    let test_groups =
+        community_metrics(&test_records, dataset.privacy.minimum_subgroup_denominator);
     let split_metrics = SplitMetricsBundle {
         training: compute_metrics(&training_records, "training"),
         calibration: compute_metrics(&calibration_records, "calibration"),
@@ -313,8 +311,14 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
         findings.push("schema_version must be 0.1".to_owned());
     }
     for (name, reference) in [
-        ("authority_reference", &dataset.authorization.authority_reference),
-        ("protocol_reference", &dataset.authorization.protocol_reference),
+        (
+            "authority_reference",
+            &dataset.authorization.authority_reference,
+        ),
+        (
+            "protocol_reference",
+            &dataset.authorization.protocol_reference,
+        ),
         (
             "privacy_review_reference",
             &dataset.authorization.privacy_review_reference,
@@ -478,11 +482,7 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
     findings
 }
 
-fn validate_response(
-    record: &ReplayRecord,
-    evaluation_as_of: i64,
-    findings: &mut Vec<String>,
-) {
+fn validate_response(record: &ReplayRecord, evaluation_as_of: i64, findings: &mut Vec<String>) {
     let response = &record.response;
     let alert_at = record.alert_issued_at;
     match (alert_at, response.status) {
@@ -514,9 +514,7 @@ fn validate_response(
                     record.case_id
                 )),
             }
-            if response.verified_at.is_some()
-                || response.independent_evidence_reference.is_some()
-            {
+            if response.verified_at.is_some() || response.independent_evidence_reference.is_some() {
                 findings.push(format!(
                     "{} unverified completion cannot carry independent verification fields",
                     record.case_id
@@ -528,7 +526,9 @@ fn validate_response(
                 .completed_at
                 .is_some_and(|time| time >= alert_at && time <= evaluation_as_of);
             let verification_is_valid = response.verified_at.is_some_and(|time| {
-                response.completed_at.is_some_and(|completed| time >= completed)
+                response
+                    .completed_at
+                    .is_some_and(|completed| time >= completed)
                     && time <= evaluation_as_of
             });
             let has_independent_reference = response
@@ -587,8 +587,7 @@ fn community_metrics(
             true_negatives: metrics.true_negatives,
             late_alerts: metrics.late_alerts,
             recall_percent: metrics.recall_percent,
-            false_alerts_per_100_community_periods:
-                metrics.false_alerts_per_100_community_periods,
+            false_alerts_per_100_community_periods: metrics.false_alerts_per_100_community_periods,
         });
     }
     (visible, suppressed)
@@ -669,15 +668,15 @@ fn compute_metrics(records: &[&ReplayRecord], split: &str) -> SplitMetrics {
         percentage(metrics.false_alerts, metrics.known_outcome_records);
     metrics.outcome_coverage_percent =
         percentage(metrics.known_outcome_records, metrics.records_total);
-    metrics.verified_response_completion_percent =
-        percentage(metrics.independently_verified_response_count, metrics.alerts_issued);
+    metrics.verified_response_completion_percent = percentage(
+        metrics.independently_verified_response_count,
+        metrics.alerts_issued,
+    );
     warning_leads.sort_unstable();
     metrics.median_warning_lead_seconds = match warning_leads.len() {
         0 => None,
         n if n % 2 == 1 => Some(warning_leads[n / 2] as f64),
-        n => Some(
-            (warning_leads[n / 2 - 1] as f64 + warning_leads[n / 2] as f64) / 2.0,
-        ),
+        n => Some((warning_leads[n / 2 - 1] as f64 + warning_leads[n / 2] as f64) / 2.0),
     };
     metrics
 }
@@ -771,11 +770,12 @@ mod tests {
     #[test]
     fn evidence_available_after_decision_is_rejected() {
         let mut dataset = parsed_fixture();
-        dataset.records[0].evidence[0].available_at =
-            Some(dataset.records[0].decision_at + 1);
-        assert!(semantic_errors(&dataset)
-            .iter()
-            .any(|finding| finding.contains("look-ahead evidence")));
+        dataset.records[0].evidence[0].available_at = Some(dataset.records[0].decision_at + 1);
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("look-ahead evidence"))
+        );
     }
 
     #[test]
@@ -783,9 +783,11 @@ mod tests {
         let mut dataset = parsed_fixture();
         dataset.temporal_split.calibration_end_exclusive =
             dataset.temporal_split.training_end_exclusive;
-        assert!(semantic_errors(&dataset)
-            .iter()
-            .any(|finding| finding.contains("strictly ordered")));
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("strictly ordered"))
+        );
     }
 
     #[test]
@@ -793,18 +795,22 @@ mod tests {
         let mut dataset = parsed_fixture();
         dataset.records[1].community_id = dataset.records[0].community_id.clone();
         dataset.records[1].period_id = dataset.records[0].period_id.clone();
-        assert!(semantic_errors(&dataset)
-            .iter()
-            .any(|finding| finding.contains("community_id/period_id")));
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("community_id/period_id"))
+        );
     }
 
     #[test]
     fn verified_response_requires_an_independent_reference() {
         let mut dataset = parsed_fixture();
         dataset.records[7].response.independent_evidence_reference = None;
-        assert!(semantic_errors(&dataset)
-            .iter()
-            .any(|finding| finding.contains("independent evidence reference")));
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("independent evidence reference"))
+        );
     }
 
     #[test]
@@ -819,21 +825,17 @@ mod tests {
     fn historical_dataset_cannot_claim_synthetic_authorization_references() {
         let mut dataset = parsed_fixture();
         dataset.dataset_class = DatasetClass::AuthorizedHistorical;
-        assert!(semantic_errors(&dataset)
-            .iter()
-            .any(|finding| finding.contains("cannot use a synthetic")));
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("cannot use a synthetic"))
+        );
     }
 
     #[test]
     fn local_unpinned_run_is_never_marked_exact_head_verified() {
-        let receipt = evaluate(
-            FIXTURE,
-            "UNPINNED_LOCAL_RUN",
-            "unknown",
-            "unknown",
-            LOCK,
-        )
-        .expect("local run should still be useful");
+        let receipt = evaluate(FIXTURE, "UNPINNED_LOCAL_RUN", "unknown", "unknown", LOCK)
+            .expect("local run should still be useful");
         assert!(!receipt.exact_head_verified);
     }
 
@@ -857,9 +859,11 @@ mod tests {
     fn alert_before_decision_is_rejected() {
         let mut dataset = parsed_fixture();
         dataset.records[0].alert_issued_at = Some(dataset.records[0].decision_at - 1);
-        assert!(semantic_errors(&dataset)
-            .iter()
-            .any(|finding| finding.contains("predates decision_at")));
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("predates decision_at"))
+        );
     }
     #[test]
     fn bounded_temporal_confusion_table_matches_independent_oracle() {
