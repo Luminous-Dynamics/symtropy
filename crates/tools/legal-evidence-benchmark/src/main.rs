@@ -21,6 +21,7 @@ struct Benchmark {
     description: String,
     authorities: Vec<Authority>,
     cases: Vec<BenchmarkCase>,
+    metamorphic_pairs: Vec<MetamorphicPair>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -798,6 +799,12 @@ fn evaluate_with_digests(
             failure_codes,
         ));
     }
+
+    let (metamorphic_pairs_passed, metamorphic_pair_failure_ids) =
+        evaluate_metamorphic_pairs(benchmark, submission);
+    let metamorphic_gate_passed =
+        metamorphic_pair_failure_ids.is_empty()
+            && metamorphic_pairs_passed == benchmark.metamorphic_pairs.len();
 
     let missing_set: BTreeSet<&str> = missing_ids.iter().map(String::as_str).collect();
     let duplicate_set: BTreeSet<&str> = duplicate_ids.iter().map(String::as_str).collect();
