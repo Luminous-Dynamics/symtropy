@@ -609,7 +609,7 @@ pub fn import_views_archive(
         if !query_without_args.ends_with(&expected_suffix) {
             return Err(vec![format!(
                 "query URI for {:?} must encode the declared analysis unit, violence type and probability variable; partition is not a VIEWS route segment",
-                release.run_id, manifest.partition
+                release.run_id
             )]);
         }
 
@@ -1169,7 +1169,12 @@ mod tests {
         manifest["releases"][0]["query_uri"] = Value::String(query.replace("/cm/sb/", "/cm/ns/"));
         let bytes = serde_json::to_vec(&manifest).unwrap();
         let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
-        assert!(result.unwrap_err().iter().any(|error| error.contains("analysis unit, violence type, probability variable")));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("must encode the declared analysis unit"))
+        );
     }
 
     #[test]
