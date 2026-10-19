@@ -1,0 +1,29 @@
+{
+  "main_dich": {
+    "name": "Predicted probability of synthetic conflict",
+    "description": "Synthetic probability of at least 25 battle-related deaths per country-month. This fixture is synthetic and does not describe a real country.",
+    "unit": {
+      "name": "Probability",
+      "range": "0-1"
+    },
+    "original": "Synthetic variable",
+    "type": "Synthetic ensemble model",
+    "visualization": {
+      "legend": "Probability",
+      "colormap": "none",
+      "dictionary": {
+        "cm": "synthetic"
+      }
+    }
+  },
+  "main_mean": {
+    "name": "Predicted number of fatalities",
+    "description": "Synthetic fatality-count distractor; must never be treated as a probability.",
+    "unit": {
+      "name": "Fatalities",
+      "range": "0 - unlimited"
+    },
+    "original": "Synthetic count",
+    "type": "Synthetic count model"
+  }
+}
