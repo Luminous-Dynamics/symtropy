@@ -1064,19 +1064,44 @@ pub enum FeedbackResolutionIssue {
     EmptyCurrentRevision,
     EmptyResolutionId,
     DuplicateResolutionId(String),
-    DuplicateFeedbackResolutionForRevision { feedback_id: String, revision_id: String },
+    DuplicateFeedbackResolutionForRevision {
+        feedback_id: String,
+        revision_id: String,
+    },
     UnknownFeedback(String),
-    SourceRevisionMismatch { feedback_id: String },
-    FeedbackNotAcceptedForChange { feedback_id: String },
-    ChangeRequestMismatch { feedback_id: String },
-    StaleReviewedRevision { resolution_id: String },
-    EmptyRationale { resolution_id: String },
-    MissingChangeRequest { resolution_id: String },
-    MissingImplementationEvidence { resolution_id: String },
-    IncompleteImplementationEvidencePair { resolution_id: String },
-    InvalidImplementationEvidenceDigest { resolution_id: String },
-    MissingIndependentAssessment { resolution_id: String },
-    MissingOwnerConfirmation { resolution_id: String },
+    SourceRevisionMismatch {
+        feedback_id: String,
+    },
+    FeedbackNotAcceptedForChange {
+        feedback_id: String,
+    },
+    ChangeRequestMismatch {
+        feedback_id: String,
+    },
+    StaleReviewedRevision {
+        resolution_id: String,
+    },
+    EmptyRationale {
+        resolution_id: String,
+    },
+    MissingChangeRequest {
+        resolution_id: String,
+    },
+    MissingImplementationEvidence {
+        resolution_id: String,
+    },
+    IncompleteImplementationEvidencePair {
+        resolution_id: String,
+    },
+    InvalidImplementationEvidenceDigest {
+        resolution_id: String,
+    },
+    MissingIndependentAssessment {
+        resolution_id: String,
+    },
+    MissingOwnerConfirmation {
+        resolution_id: String,
+    },
 }
 
 /// Check the closure between occupant feedback and design decisions for one
@@ -1116,10 +1141,12 @@ pub fn validate_feedback_resolutions_for_revision(
             resolution.feedback_id.as_str(),
             resolution.reviewed_against_design_revision_id.as_str(),
         )) {
-            issues.push(FeedbackResolutionIssue::DuplicateFeedbackResolutionForRevision {
-                feedback_id: resolution.feedback_id.clone(),
-                revision_id: resolution.reviewed_against_design_revision_id.clone(),
-            });
+            issues.push(
+                FeedbackResolutionIssue::DuplicateFeedbackResolutionForRevision {
+                    feedback_id: resolution.feedback_id.clone(),
+                    revision_id: resolution.reviewed_against_design_revision_id.clone(),
+                },
+            );
         }
 
         let Some(original) = feedback_by_id.get(resolution.feedback_id.as_str()).copied() else {
@@ -1186,14 +1213,18 @@ pub fn validate_feedback_resolutions_for_revision(
                         });
                     }
                     (true, Some(_)) => {
-                        issues.push(FeedbackResolutionIssue::InvalidImplementationEvidenceDigest {
-                            resolution_id: resolution.resolution_id.clone(),
-                        });
+                        issues.push(
+                            FeedbackResolutionIssue::InvalidImplementationEvidenceDigest {
+                                resolution_id: resolution.resolution_id.clone(),
+                            },
+                        );
                     }
                     _ => {
-                        issues.push(FeedbackResolutionIssue::IncompleteImplementationEvidencePair {
-                            resolution_id: resolution.resolution_id.clone(),
-                        });
+                        issues.push(
+                            FeedbackResolutionIssue::IncompleteImplementationEvidencePair {
+                                resolution_id: resolution.resolution_id.clone(),
+                            },
+                        );
                     }
                 }
                 if matches!(
@@ -1298,9 +1329,7 @@ mod tests {
         }
     }
 
-    fn sample_resolution(
-        disposition: FeedbackResolutionDisposition,
-    ) -> FeedbackResolutionRecord {
+    fn sample_resolution(disposition: FeedbackResolutionDisposition) -> FeedbackResolutionRecord {
         FeedbackResolutionRecord {
             resolution_id: "resolution:privacy-r1-to-r2".into(),
             feedback_id: "feedback:privacy-east-window".into(),
@@ -1334,58 +1363,78 @@ mod tests {
         feedback.lifecycle = OccupantFeedbackLifecycle::AcceptedForDesignChange;
         feedback.design_change_request_id = Some("change:window-screen-v2".into());
         let resolution = sample_resolution(FeedbackResolutionDisposition::ImplementedInRevision);
-        assert!(validate_feedback_resolutions_for_revision(&[feedback], &[resolution], "house:r2")
-            .unwrap_err()
-            .contains(&FeedbackResolutionIssue::MissingIndependentAssessment {
-                resolution_id: "resolution:privacy-r1-to-r2".into(),
-            }));
+        assert!(
+            validate_feedback_resolutions_for_revision(&[feedback], &[resolution], "house:r2")
+                .unwrap_err()
+                .contains(&FeedbackResolutionIssue::MissingIndependentAssessment {
+                    resolution_id: "resolution:privacy-r1-to-r2".into(),
+                })
+        );
     }
 
     #[test]
     fn implementation_cannot_skip_acceptance_or_change_request_linkage() {
-        let feedback = vec![sample_feedback(OccupantFeedbackCategory::PersonalPreference)];
+        let feedback = vec![sample_feedback(
+            OccupantFeedbackCategory::PersonalPreference,
+        )];
         let resolution = sample_resolution(FeedbackResolutionDisposition::ImplementedInRevision);
         let issues =
             validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2")
                 .unwrap_err();
-        assert!(issues.contains(&FeedbackResolutionIssue::FeedbackNotAcceptedForChange {
-            feedback_id: "feedback:privacy-east-window".into(),
-        }));
-        assert!(issues.contains(&FeedbackResolutionIssue::ChangeRequestMismatch {
-            feedback_id: "feedback:privacy-east-window".into(),
-        }));
+        assert!(
+            issues.contains(&FeedbackResolutionIssue::FeedbackNotAcceptedForChange {
+                feedback_id: "feedback:privacy-east-window".into(),
+            })
+        );
+        assert!(
+            issues.contains(&FeedbackResolutionIssue::ChangeRequestMismatch {
+                feedback_id: "feedback:privacy-east-window".into(),
+            })
+        );
     }
 
     #[test]
     fn stale_feedback_resolution_cannot_be_applied_to_the_latest_revision() {
-        let feedback = vec![sample_feedback(OccupantFeedbackCategory::PersonalPreference)];
-        let mut resolution = sample_resolution(FeedbackResolutionDisposition::NotChangedWithRationale);
+        let feedback = vec![sample_feedback(
+            OccupantFeedbackCategory::PersonalPreference,
+        )];
+        let mut resolution =
+            sample_resolution(FeedbackResolutionDisposition::NotChangedWithRationale);
         resolution.reviewed_against_design_revision_id = "house:r1".into();
-        assert!(validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2")
-            .unwrap_err()
-            .iter()
-            .any(|issue| matches!(
-                issue,
-                FeedbackResolutionIssue::StaleReviewedRevision { resolution_id }
-                    if resolution_id == "resolution:privacy-r1-to-r2"
-            )));
+        assert!(
+            validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2")
+                .unwrap_err()
+                .iter()
+                .any(|issue| matches!(
+                    issue,
+                    FeedbackResolutionIssue::StaleReviewedRevision { resolution_id }
+                        if resolution_id == "resolution:privacy-r1-to-r2"
+                ))
+        );
     }
 
     #[test]
     fn owner_withdrawal_requires_explicit_confirmation() {
-        let feedback = vec![sample_feedback(OccupantFeedbackCategory::PersonalPreference)];
+        let feedback = vec![sample_feedback(
+            OccupantFeedbackCategory::PersonalPreference,
+        )];
         let resolution = sample_resolution(FeedbackResolutionDisposition::WithdrawnByOwner);
-        assert!(validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2")
-            .unwrap_err()
-            .contains(&FeedbackResolutionIssue::MissingOwnerConfirmation {
-                resolution_id: "resolution:privacy-r1-to-r2".into(),
-            }));
+        assert!(
+            validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2")
+                .unwrap_err()
+                .contains(&FeedbackResolutionIssue::MissingOwnerConfirmation {
+                    resolution_id: "resolution:privacy-r1-to-r2".into(),
+                })
+        );
     }
 
     #[test]
     fn non_implemented_preference_can_be_explained_without_becoming_a_code_failure() {
-        let feedback = vec![sample_feedback(OccupantFeedbackCategory::PersonalPreference)];
-        let mut resolution = sample_resolution(FeedbackResolutionDisposition::NotChangedWithRationale);
+        let feedback = vec![sample_feedback(
+            OccupantFeedbackCategory::PersonalPreference,
+        )];
+        let mut resolution =
+            sample_resolution(FeedbackResolutionDisposition::NotChangedWithRationale);
         resolution.design_change_request_id = None;
         resolution.implementation_evidence_artifact_id = None;
         resolution.implementation_evidence_sha256 = None;
@@ -1511,11 +1560,13 @@ mod tests {
         );
         binding.source_ref = Some("section:egress".into());
         binding.module_id = Some("module:ZA/JHB:current".into());
-        assert!(validate_review_annotations_for_revision(&[binding], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
-                annotation_id: "rule:egress".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[binding], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                    annotation_id: "rule:egress".into(),
+                })
+        );
     }
 
     #[test]
@@ -1528,11 +1579,13 @@ mod tests {
         );
         conflict.source_ref = Some("section:local".into());
         conflict.module_id = Some("module:local".into());
-        assert!(validate_review_annotations_for_revision(&[conflict.clone()], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::MissingConflictSources {
-                annotation_id: "conflict:window".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[conflict.clone()], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::MissingConflictSources {
+                    annotation_id: "conflict:window".into(),
+                })
+        );
 
         conflict.related_sources.push(ReviewSourceRef {
             module_id: "module:national".into(),
@@ -1552,11 +1605,13 @@ mod tests {
             ReviewAnnotationKind::EngineeringEvidence,
             ReviewAnnotationState::Satisfied,
         );
-        assert!(validate_review_annotations_for_revision(&[engineering], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::MissingResultEvidenceArtifact {
-                annotation_id: "engineering:daylight".into(),
-            }));
+        assert!(
+            validate_review_annotations_for_revision(&[engineering], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::MissingResultEvidenceArtifact {
+                    annotation_id: "engineering:daylight".into(),
+                })
+        );
     }
 
     #[test]
