@@ -47,11 +47,11 @@ pub(super) struct UncertaintyReport {
 
 #[derive(Debug, Clone)]
 pub(super) struct BootstrapPoint {
-    spatial_block_id: String,
-    target_month: i64,
-    probability: f64,
-    outcome: bool,
-    baseline_probability: Option<f64>,
+    pub(super) spatial_block_id: String,
+    pub(super) target_month: i64,
+    pub(super) probability: f64,
+    pub(super) outcome: bool,
+    pub(super) baseline_probability: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy)]
