@@ -29,7 +29,7 @@ The frozen corpus is strictly deserialized (deny_unknown_fields) and declares fo
 - candidate observation actions with mode, terms-review state, declared detection limits, exposure knowledge, effort, expected synthetic information gain and separate sound/light/sediment exposure;
 - an effort budget and one independent cap for each exposure channel.
 
-A candidate is eligible only if its mode is non-contact, its terms are reviewed, detection limits are declared, and exposure is known. Unknown exposure is excluded, not coerced to zero. Every selection step checks the total effort and all exposure channels independently.
+A candidate is eligible only if its mode is non-contact, the rights-review process is complete, use permission is explicitly `permitted`, detection limits are declared, and exposure is known. The review state and use-permission state are independent: a completed review can conclude that reuse is restricted. Unknown exposure is excluded, not coerced to zero. Every selection step checks the total effort and all exposure channels independently.
 
 ## Comparison policies and objective
 
