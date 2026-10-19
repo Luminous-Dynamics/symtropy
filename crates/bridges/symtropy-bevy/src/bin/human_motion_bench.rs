@@ -1808,6 +1808,7 @@ mod tests {
         reference.run.recording_id = Some("session-2026-01".to_owned());
 
         prediction.run.source_kind = SourceKind::ExternalModel;
+        prediction.run.split = Some("test".to_owned());
         prediction.run.git_commit = "d".repeat(40);
         prediction.run.asset_sha256 = Some("e".repeat(64));
         prediction.run.asset_license = Some("model evaluation license".to_owned());
