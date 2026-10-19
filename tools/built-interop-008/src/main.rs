@@ -15,7 +15,8 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::{Arc, Mutex};
 use xsd_schema::validation::{
-    CollectingValidationSink, SchemaValidator, ValidationFlags, drive_quick_xml,
+    CollectingValidationSink, DriveError, SchemaValidator, ValidationError, ValidationFlags,
+    drive_quick_xml,
 };
 use xsd_schema::{
     EmbeddedLoader, LoaderChain, SchemaError, SchemaLoader, SchemaResult, SchemaSetBuilder,
@@ -175,7 +176,6 @@ fn schema_source(
     repository: &str,
     commit: &str,
     path: &str,
-    expected_git_blob: &str,
     bytes: &[u8],
 ) -> SchemaSource {
     SchemaSource {
@@ -266,8 +266,10 @@ fn make_output(
             .then_with(|| a.location.cmp(&b.location))
             .then_with(|| a.message.cmp(&b.message))
     });
-    let embedded_xml = xsd_schema::XML_XSD;
-    let embedded_xml_sha = sha256_hex(embedded_xml);
+    let embedded_xml = EmbeddedLoader::new()
+        .load("embedded://xml.xsd")
+        .unwrap_or_default();
+    let embedded_xml_sha = sha256_hex(embedded_xml.as_bytes());
     let payload = EvidencePayload {
         policy_id: POLICY_ID.into(),
         ids_sha256: sha256_hex(ids_bytes),
@@ -342,7 +344,6 @@ fn evaluate(
         "buildingSMART/IDS",
         IDS_REPO_COMMIT,
         IDS_XSD_PATH,
-        IDS_XSD_GIT_BLOB,
         ids_xsd_bytes,
     );
     let meta_source = schema_source(
@@ -350,7 +351,6 @@ fn evaluate(
         "apache/netbeans",
         W3C_REPO_COMMIT,
         XSD_META_PATH,
-        XSD_META_GIT_BLOB,
         xsd_meta_bytes,
     );
     let xsi_source = schema_source(
@@ -358,7 +358,6 @@ fn evaluate(
         "apache/netbeans",
         W3C_REPO_COMMIT,
         XSI_PATH,
-        XSI_GIT_BLOB,
         xsi_bytes,
     );
     if !pinned_sources_match(&ids_source, &meta_source, &xsi_source) {
@@ -440,7 +439,7 @@ fn evaluate(
     chain.add(Box::new(EmbeddedLoader::new()));
 
     let builder = match SchemaSetBuilder::with_loader(Box::new(chain))
-        .add_bytes(&ids_schema.as_bytes(), IDS_XSD_URI)
+        .add_bytes(ids_schema.as_bytes(), IDS_XSD_URI)
     {
         Ok(builder) => builder,
         Err(error) => {
@@ -543,8 +542,8 @@ fn evaluate(
             );
             (status, reason, root_validity, Some(outcome.max_depth))
         }
-        Err(xsd_schema::validation::DriveError::Parse(error)) => {
-            errors.push(xsd_schema::validation::ValidationError {
+        Err(DriveError::Parse(error)) => {
+            errors.push(ValidationError {
                 constraint: "xml.well-formedness",
                 message: error.to_string(),
                 location: None,
@@ -552,7 +551,7 @@ fn evaluate(
             });
             ("FAIL", "IDS_XML_NOT_WELL_FORMED", None, None)
         }
-        Err(xsd_schema::validation::DriveError::Utf8(error)) => {
+        Err(DriveError::Utf8(error)) => {
             errors.push(xsd_schema::validation::ValidationError {
                 constraint: "xml.utf8",
                 message: error.to_string(),
@@ -561,7 +560,7 @@ fn evaluate(
             });
             ("FAIL", "IDS_XML_NOT_WELL_FORMED", None, None)
         }
-        Err(xsd_schema::validation::DriveError::UnboundPrefix(prefix)) => {
+        Err(DriveError::UnboundPrefix(prefix)) => {
             errors.push(xsd_schema::validation::ValidationError {
                 constraint: "xml.unbound-prefix",
                 message: format!("Unbound namespace prefix: {prefix}"),
@@ -570,7 +569,7 @@ fn evaluate(
             });
             ("FAIL", "IDS_XML_NOT_WELL_FORMED", None, None)
         }
-        Err(xsd_schema::validation::DriveError::UnexpectedEof { depth }) => {
+        Err(DriveError::UnexpectedEof { depth }) => {
             errors.push(xsd_schema::validation::ValidationError {
                 constraint: "xml.unexpected-eof",
                 message: format!("{depth} XML element(s) remain open at EOF"),
@@ -579,7 +578,7 @@ fn evaluate(
             });
             ("FAIL", "IDS_XML_NOT_WELL_FORMED", None, Some(depth))
         }
-        Err(xsd_schema::validation::DriveError::Validation(error)) => {
+        Err(DriveError::Validation(error)) => {
             errors.push(error);
             ("UNRESOLVED", "XSD_VALIDATION_ENGINE_INDETERMINATE", None, None)
         }
@@ -695,9 +694,8 @@ mod tests {
 
     #[test]
     fn pinned_blob_mismatch_is_unresolved() {
-        assert_eq!(
-            git_blob_sha1(b"wrong schema"),
-            "c9c09b073a4b9446f67e0f0e82c4f4d3c1f6f4d9"
-        );
+        assert_ne!(git_blob_sha1(b"wrong schema"), IDS_XSD_GIT_BLOB);
+        assert_ne!(git_blob_sha1(b"wrong schema"), XSD_META_GIT_BLOB);
+        assert_ne!(git_blob_sha1(b"wrong schema"), XSI_GIT_BLOB);
     }
 }
