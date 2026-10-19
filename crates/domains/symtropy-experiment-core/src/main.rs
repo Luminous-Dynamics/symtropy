@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::{collections::BTreeMap, env, fs, process};
+use std::{env, fs, process};
 use symtropy_experiment_core::ExperimentGraph;
 
 fn usage() -> ! {
