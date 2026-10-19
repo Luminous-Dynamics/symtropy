@@ -19,6 +19,9 @@ const IFC_SCHEMA_PROFILE_ID: &str = "DECLARED-IFC-SCHEMA-SUPPORTED-RULES-v0.1";
 const IFC_SCHEMA_POLICY_ID: &str = "BUILT-INTEROP-005/v0.1;step=ifc-step-0.5.0-strict;model=ifc-model-0.3.1;schema=ifc-schema-0.3.2-ifc4-only;validator=ifc-validate-0.6.0;schema-selection=declared-only;errors=FAIL;evaluation-errors-unsupported-truncated=UNRESOLVED;findings=stable-sorted;lock-sha256=cdf5e081cacba012ed1e52246b399f1062934b0e71eeeb5f6743f4f81a279c7c";
 const IFC_SCHEMA_TOOL_VERSION: &str =
     "ifc-validate=0.6.0;ifc-schema=0.3.2;ifc-model=0.3.1;ifc-step=0.5.0";
+const DELTA_PROFILE_ID: &str = "IFC4/IDS1.0/IFCWALL.Name/simpleValue-v0.1";
+const DELTA_POLICY_ID: &str = "BUILT-INTEROP-007/v0.1;match=valid-GlobalId+requirement-id+property-key;profile=IFC4-IDS1.0-IFCWALL.Name;changed-lost-dropped=FAIL;unstable-incomplete-unsupported=UNRESOLVED;additions=record-only;semantic-digest=verified";
+const DELTA_TOOL_VERSION: &str = "0.1.0";
 const PAYLOAD_POINTER: &str = "report-json-pointer:/evidence_payload";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -768,7 +771,9 @@ fn parse_gate_file(
 /// BUILT-INTEROP-005, against the exact target IFC bytes and declared profile.
 fn verify_embedded_payload(
     input: &ProducerGate,
+    source_ifc_bytes: &[u8],
     target_ifc_bytes: &[u8],
+    requirements_ids_bytes: &[u8],
     declared_schema: &str,
 ) -> Result<(), String> {
     let points_to_embedded_payload = input
@@ -825,6 +830,76 @@ fn verify_embedded_payload(
                     && tool.version == IFC_SCHEMA_TOOL_VERSION
                     && tool.config_sha256 == expected_config_sha256 => {}
             _ => return Err("IFC_SCHEMA_TOOL_PROVENANCE_MISMATCH".into()),
+        }
+    } else if input.gate.gate_id == GateId::ExchangeSemanticPreservation {
+        if payload["policy_id"] != DELTA_POLICY_ID {
+            return Err("DELTA_POLICY_ID_MISMATCH".into());
+        }
+        if payload["source_ifc_sha256"].as_str()
+            != Some(sha256_hex(source_ifc_bytes).as_str())
+            || payload["source_ifc_byte_length"].as_u64()
+                != u64::try_from(source_ifc_bytes.len()).ok()
+        {
+            return Err("DELTA_SOURCE_ARTIFACT_MISMATCH".into());
+        }
+        if payload["target_ifc_sha256"].as_str()
+            != Some(sha256_hex(target_ifc_bytes).as_str())
+            || payload["target_ifc_byte_length"].as_u64()
+                != u64::try_from(target_ifc_bytes.len()).ok()
+        {
+            return Err("DELTA_TARGET_ARTIFACT_MISMATCH".into());
+        }
+        if payload["requirements_ids_sha256"].as_str()
+            != Some(sha256_hex(requirements_ids_bytes).as_str())
+        {
+            return Err("DELTA_REQUIREMENTS_ARTIFACT_MISMATCH".into());
+        }
+        if payload["supported_profile"] != DELTA_PROFILE_ID {
+            return Err("DELTA_SUPPORTED_PROFILE_MISMATCH".into());
+        }
+        let counts = payload
+            .get("counts")
+            .and_then(Value::as_object)
+            .ok_or_else(|| "DELTA_COUNTS_INVALID".to_string())?;
+        let expected_count_keys = [
+            "compared", "preserved", "changed", "lost", "dropped", "added", "unresolved",
+        ];
+        if counts.len() != expected_count_keys.len()
+            || expected_count_keys.iter().any(|key| {
+                counts.get(*key).and_then(Value::as_u64).is_none()
+            })
+        {
+            return Err("DELTA_COUNTS_INVALID".into());
+        }
+        let compared = counts["compared"].as_u64().unwrap_or(0);
+        let changed = counts["changed"].as_u64().unwrap_or(0);
+        let lost = counts["lost"].as_u64().unwrap_or(0);
+        let dropped = counts["dropped"].as_u64().unwrap_or(0);
+        let unresolved = counts["unresolved"].as_u64().unwrap_or(0);
+        let coverage_complete = payload["comparison_coverage_complete"] == Value::Bool(true);
+        let definite_loss = changed > 0 || lost > 0 || dropped > 0;
+        let reason = payload["decision_reason"].as_str().unwrap_or("");
+        let state_consistent = match input.gate.status {
+            GateStatus::Pass => {
+                coverage_complete && compared > 0 && unresolved == 0 && !definite_loss
+                    && reason == "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS"
+            }
+            GateStatus::Fail => definite_loss && reason == "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            GateStatus::Unresolved => {
+                !definite_loss && reason == "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED"
+            }
+            GateStatus::NotRun => false,
+        };
+        if !state_consistent {
+            return Err("DELTA_STATUS_PAYLOAD_MISMATCH".into());
+        }
+        let expected_config_sha256 = sha256_hex(DELTA_POLICY_ID.as_bytes());
+        match input.gate.tool.as_ref() {
+            Some(tool)
+                if tool.name == "built-interop-semantic-delta"
+                    && tool.version == DELTA_TOOL_VERSION
+                    && tool.config_sha256 == expected_config_sha256 => {}
+            _ => return Err("DELTA_TOOL_PROVENANCE_MISMATCH".into()),
         }
     }
     Ok(())
@@ -954,7 +1029,7 @@ fn run() -> Result<i32, String> {
     let mut producer_gates = Vec::new();
     for gate_path in &args.gate_json {
         let mut input = parse_gate_file(gate_path, &target_bytes, &ids_bytes)?;
-        verify_embedded_payload(&input, &target_bytes, &args.ifc_schema)?;
+        verify_embedded_payload(\n            &input,\n            &source_bytes,\n            &target_bytes,\n            &ids_bytes,\n            &args.ifc_schema,\n        )?;
         resolve_payload_locator(&mut input)?;
         producer_gates.push(input.gate);
     }
