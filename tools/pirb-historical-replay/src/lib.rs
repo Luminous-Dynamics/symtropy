@@ -413,42 +413,46 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
         }
 
         match record.outcome {
-            Outcome::Harm => match (record.harm_occurred_at, record.outcome_available_at) {
-                (Some(harm_at), Some(available_at)) => {
-                    if harm_at <= record.decision_at {
-                        findings.push(format!(
-                            "{} harm must occur strictly after the decision time",
-                            record.case_id
-                        ));
+            Outcome::Harm => {
+                match (record.harm_occurred_at, record.outcome_available_at) {
+                    (Some(harm_at), Some(available_at)) => {
+                        if harm_at <= record.decision_at {
+                            findings.push(format!(
+                                "{} harm must occur strictly after the decision time",
+                                record.case_id
+                            ));
+                        }
+                        match record.decision_at.checked_add(split.outcome_horizon_seconds) {
+                            Some(followup_end) if harm_at > followup_end => {
+                                findings.push(format!(
+                                    "{} harm lies beyond the declared outcome horizon",
+                                    record.case_id
+                                ));
+                            }
+                            None => findings.push(format!(
+                                "{} decision time plus outcome horizon overflows the timestamp range",
+                                record.case_id
+                            )),
+                            _ => {}
+                        }
+                        if available_at <= record.decision_at || available_at < harm_at {
+                            findings.push(format!(
+                                "{} outcome label must become available after the decision and no earlier than harm",
+                                record.case_id
+                            ));
+                        }
+                        if available_at > split.evaluation_as_of {
+                            findings.push(format!(
+                                "{} outcome label was not available by evaluation_as_of",
+                                record.case_id
+                            ));
+                        }
                     }
-                    match record.decision_at.checked_add(split.outcome_horizon_seconds) {
-                        Some(followup_end) if harm_at > followup_end => findings.push(format!(
-                            "{} harm lies beyond the declared outcome horizon",
-                            record.case_id
-                        )),
-                        None => findings.push(format!(
-                            "{} decision time plus outcome horizon overflows the timestamp range",
-                            record.case_id
-                        )),
-                        _ => {}
-                    }
-                    if available_at <= record.decision_at || available_at < harm_at {
-                        findings.push(format!(
-                            "{} outcome label must become available after the decision and no earlier than harm",
-                            record.case_id
-                        ));
-                    }
-                    if available_at > split.evaluation_as_of {
-                        findings.push(format!(
-                            "{} outcome label was not available by evaluation_as_of",
-                            record.case_id
-                        ));
-                    }
+                    _ => findings.push(format!(
+                        "{} harm outcome requires harm_occurred_at and outcome_available_at",
+                        record.case_id
+                    )),
                 }
-                _ => findings.push(format!(
-                    "{} harm outcome requires harm_occurred_at and outcome_available_at",
-                    record.case_id
-                )),
             },
             Outcome::NoHarm => {
                 if record.harm_occurred_at.is_some() {
@@ -883,11 +887,9 @@ mod tests {
         let decision_at = dataset.records[1].decision_at;
         dataset.records[1].outcome_available_at =
             Some(decision_at + dataset.temporal_split.outcome_horizon_seconds - 1);
-        assert!(
-            semantic_errors(&dataset)
-                .iter()
-                .any(|finding| finding.contains("complete follow-up through the declared outcome horizon"))
-        );
+        assert!(semantic_errors(&dataset).iter().any(|finding| {
+            finding.contains("complete follow-up through the declared outcome horizon")
+        }));
     }
 
     #[test]
@@ -946,9 +948,9 @@ mod tests {
             record.harm_occurred_at = harm_at;
             record.outcome_available_at = match outcome {
                 Outcome::Harm => Some(record.decision_at + 10),
-                Outcome::NoHarm => Some(
-                    record.decision_at + dataset.temporal_split.outcome_horizon_seconds,
-                ),
+                Outcome::NoHarm => {
+                    Some(record.decision_at + dataset.temporal_split.outcome_horizon_seconds)
+                }
                 Outcome::Unknown => None,
             };
             record.alert_issued_at = if alerted {
