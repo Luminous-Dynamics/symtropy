@@ -39,16 +39,12 @@ jobs:
           path: interop-008-source
       - name: Build pinned structural diff producer
         run: cargo build --locked --manifest-path interop-008-source/tools/built-interop-008/Cargo.toml
-      # One-time bootstrap only: capture generated lock + formatter changes,
-      # then replace this step with a checksummed lock and --locked checks.
-      - name: Bootstrap campaign lockfile and show rustfmt changes
+      - name: Verify committed campaign lockfile
+        run: echo "2a144f4153adf92860cd4d2fd0f141577d12c76e56b7ccc9384c24e7fca73ac5  tools/built-interop-009/Cargo.lock" | sha256sum -c -
+      # Temporary formatter capture: remove the write step after applying the
+      # exact rustfmt suggestions; keep the strict check for subsequent runs.
+      - name: Capture rustfmt edits
         run: |
-          cargo generate-lockfile --manifest-path tools/built-interop-009/Cargo.toml
-          sha256sum tools/built-interop-009/Cargo.lock
-          echo "LOCKFILE_BASE64_BEGIN"
-          base64 -w0 tools/built-interop-009/Cargo.lock
-          echo
-          echo "LOCKFILE_BASE64_END"
           cargo fmt --manifest-path tools/built-interop-009/Cargo.toml
           git diff -- tools/built-interop-009/src/main.rs
           cargo fmt --manifest-path tools/built-interop-009/Cargo.toml -- --check
