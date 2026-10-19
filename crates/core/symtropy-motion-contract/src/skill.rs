@@ -47,7 +47,12 @@ pub enum MotionConstraintKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "value", rename_all = "snake_case", deny_unknown_fields)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
 pub enum MotionConstraintTarget {
     PositionWorldM([f64; 3]),
     OrientationWorldXyzw([f64; 4]),
