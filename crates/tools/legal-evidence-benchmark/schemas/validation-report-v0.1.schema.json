@@ -10,7 +10,8 @@
     "corpus_sha256",
     "authority_count",
     "case_count",
-    "claim_ceiling"
+    "claim_ceiling",
+    "metamorphic_pair_count"
   ],
   "properties": {
     "status": {
@@ -34,6 +35,10 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
+    },
+    "metamorphic_pair_count": {
+      "type": "integer",
+      "minimum": 1
     }
   }
 }
