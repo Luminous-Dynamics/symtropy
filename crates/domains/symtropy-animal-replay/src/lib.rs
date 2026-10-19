@@ -646,7 +646,7 @@ pub fn build_replay_receipt(
                 if interval.lower.is_finite()
                     && interval.upper.is_finite()
                     && interval.lower <= interval.upper
-                    && comparison.mean_difference.is_some_and(|mean| {
+                    && comparison.mean_difference.is_none_or(|mean| {
                         mean >= interval.lower && mean <= interval.upper
                     })
                     && interval.confidence_percent > 0
