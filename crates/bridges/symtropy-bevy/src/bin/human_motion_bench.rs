@@ -2364,6 +2364,19 @@ mod tests {
     }
 
     #[test]
+    fn rejects_non_synthetic_trace_with_synthetic_split() {
+        let mut trace = fixture();
+        trace.run.source_kind = SourceKind::LicensedAsset;
+        assert!(
+            trace
+                .validate(Path::new("mismatched-source-and-split.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("non-synthetic source_kind cannot use run.split = synthetic")
+        );
+    }
+
+    #[test]
     fn rejects_non_synthetic_trace_without_rights_or_provenance() {
         let mut trace = fixture();
         trace.run.source_kind = SourceKind::LicensedAsset;
