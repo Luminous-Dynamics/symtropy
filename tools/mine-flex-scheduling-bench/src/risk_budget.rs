@@ -177,7 +177,10 @@ fn nondominated_frontier(candidates: &[RobustCandidate]) -> Vec<FrontierPoint> {
                 let strictly_better = other.worst_case_cost_units
                     < candidate.worst_case_cost_units
                     || other.worst_case_carbon_units < candidate.worst_case_carbon_units;
-                no_worse || (strictly_better && no_worse)
+                let same_objectives = other.worst_case_cost_units
+                    == candidate.worst_case_cost_units
+                    && other.worst_case_carbon_units == candidate.worst_case_carbon_units;
+                no_worse && (strictly_better || (same_objectives && other.batches < candidate.batches))
             })
         })
         .map(|candidate| FrontierPoint {
