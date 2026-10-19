@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::env;
@@ -111,7 +111,10 @@ fn valid_utc_timestamp(value: &str) -> bool {
 
 fn equal_ids(actual: &[String], expected: &[&str]) -> bool {
     actual.len() == expected.len()
-        && actual.iter().zip(expected.iter()).all(|(actual, expected)| actual.as_str() == *expected)
+        && actual
+            .iter()
+            .zip(expected.iter())
+            .all(|(actual, expected)| actual.as_str() == *expected)
 }
 
 fn verify_truth_ids(
@@ -141,8 +144,7 @@ fn has_verified_path(records: &[Value], start: &str, end: &str) -> bool {
         if record.get("status").and_then(Value::as_str) != Some("verified")
             || record.get("evidence_type").and_then(Value::as_str)
                 == Some("pathogen_profile_comparison")
-            || record.get("evidence_type").and_then(Value::as_str)
-                == Some("outbreak_association")
+            || record.get("evidence_type").and_then(Value::as_str) == Some("outbreak_association")
         {
             continue;
         }
@@ -208,19 +210,16 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         &format!("{at}.observed_records"),
     )?;
     if entities.is_empty() || records.is_empty() {
-        return Err(format!("{at}: entities and observed_records must be non-empty"));
+        return Err(format!(
+            "{at}: entities and observed_records must be non-empty"
+        ));
     }
 
     let allowed_entity_keys = ["id", "type", "quantity", "quantity_unit"];
     let mut entity_types = BTreeMap::new();
     for (entity_index, entity) in entities.iter().enumerate() {
         let entity_at = format!("{at}.entities[{entity_index}]");
-        require_keys(
-            entity,
-            &["id", "type"],
-            &allowed_entity_keys,
-            &entity_at,
-        )?;
+        require_keys(entity, &["id", "type"], &allowed_entity_keys, &entity_at)?;
         let id = text_field(entity, "id", &entity_at)?.to_owned();
         let entity_type = text_field(entity, "type", &entity_at)?.to_owned();
         if ![
@@ -235,7 +234,10 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         {
             return Err(format!("{entity_at}: invalid entity type {entity_type}"));
         }
-        if entity_types.insert(id.clone(), entity_type.clone()).is_some() {
+        if entity_types
+            .insert(id.clone(), entity_type.clone())
+            .is_some()
+        {
             return Err(format!("{entity_at}: duplicate entity ID {id}"));
         }
 
@@ -251,7 +253,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
                 .as_f64()
                 .ok_or_else(|| format!("{entity_at}.quantity: expected number"))?;
             if !amount.is_finite() || amount <= 0.0 {
-                return Err(format!("{entity_at}.quantity: expected positive finite number"));
+                return Err(format!(
+                    "{entity_at}.quantity: expected positive finite number"
+                ));
             }
             let unit = text(
                 quantity_unit.expect("presence checked"),
@@ -264,7 +268,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
             }
         }
         if entity_type == "finished_lot" && quantity.is_none() {
-            return Err(format!("{entity_at}: finished_lot must declare its quantity and unit"));
+            return Err(format!(
+                "{entity_at}: finished_lot must declare its quantity and unit"
+            ));
         }
     }
 
@@ -313,7 +319,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         }
         let evidence_type = text_field(record, "evidence_type", &record_at)?;
         if !VALID_EVIDENCE_TYPES.contains(&evidence_type) {
-            return Err(format!("{record_at}: invalid evidence type {evidence_type}"));
+            return Err(format!(
+                "{record_at}: invalid evidence type {evidence_type}"
+            ));
         }
         let status = text_field(record, "status", &record_at)?;
         if !VALID_STATUSES.contains(&status) {
@@ -329,8 +337,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         }
         if evidence_type == "pathogen_profile_comparison" {
             if status != "screening_only"
-                || text_field(record, "scope", &record_at)?
-                    != "relatedness_only_not_custody"
+                || text_field(record, "scope", &record_at)? != "relatedness_only_not_custody"
             {
                 return Err(format!(
                     "{record_at}: pathogen-profile evidence must remain screening_only and relatedness_only_not_custody"
@@ -346,7 +353,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
             }
         }
         if status == "conflicted" && record.get("conflict_group").is_none() {
-            return Err(format!("{record_at}: conflicted record lacks conflict_group"));
+            return Err(format!(
+                "{record_at}: conflicted record lacks conflict_group"
+            ));
         }
         if record.get("note").is_some() && text_field(record, "note", &record_at).is_err() {
             return Err(format!("{record_at}.note: expected string"));
@@ -402,7 +411,11 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
     let behavior = field(case, "expected_behavior", &at)?;
     require_keys(
         behavior,
-        &["source_attribution", "containment_must_include", "trace_completeness"],
+        &[
+            "source_attribution",
+            "containment_must_include",
+            "trace_completeness",
+        ],
         &[
             "source_attribution",
             "containment_must_include",
@@ -440,7 +453,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
                     "containment_should_exclude_under_complete_coverage",
                     &format!("{at}.expected_behavior"),
                 )?,
-                &format!("{at}.expected_behavior.containment_should_exclude_under_complete_coverage"),
+                &format!(
+                    "{at}.expected_behavior.containment_should_exclude_under_complete_coverage"
+                ),
             )?;
             if !equal_ids(&exclude, &["FG-B"]) {
                 return Err(format!("{at}: expected FG-B exclusion control changed"));
@@ -465,25 +480,27 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
                         && r.get("id").and_then(Value::as_str) == Some("C3-R1")
                 })
             {
-                return Err(format!("{at}: missing-handoff fail-closed invariant changed"));
+                return Err(format!(
+                    "{at}: missing-handoff fail-closed invariant changed"
+                ));
             }
         }
         "CONFLICTED-CUSTODY-004" => {
             let conflicting: Vec<&Value> = records
                 .iter()
-                .filter(|r| {
-                    r.get("conflict_group").and_then(Value::as_str) == Some("C4-CUSTODY-1")
-                })
+                .filter(|r| r.get("conflict_group").and_then(Value::as_str) == Some("C4-CUSTODY-1"))
                 .collect();
             if !attribution.starts_with("must_abstain")
                 || trace_completeness != "incomplete_due_to_conflict"
                 || !equal_ids(&containment, &["FG-A"])
                 || conflicting.len() != 2
-                || conflicting.iter().any(|r| {
-                    r.get("status").and_then(Value::as_str) != Some("conflicted")
-                })
+                || conflicting
+                    .iter()
+                    .any(|r| r.get("status").and_then(Value::as_str) != Some("conflicted"))
             {
-                return Err(format!("{at}: conflicted-custody fail-closed invariant changed"));
+                return Err(format!(
+                    "{at}: conflicted-custody fail-closed invariant changed"
+                ));
             }
         }
         "GENOMIC-NO-ROUTE-005" => {
@@ -554,10 +571,12 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
     if statuses != expected_statuses {
         return Err("corpus: evidence status vocabulary mismatch".to_owned());
     }
-    let evidence_types: BTreeSet<String> =
-        string_array(field(corpus, "evidence_types", "corpus")?, "corpus.evidence_types")?
-            .into_iter()
-            .collect();
+    let evidence_types: BTreeSet<String> = string_array(
+        field(corpus, "evidence_types", "corpus")?,
+        "corpus.evidence_types",
+    )?
+    .into_iter()
+    .collect();
     let expected_types: BTreeSet<String> = VALID_EVIDENCE_TYPES
         .iter()
         .map(|s| (*s).to_owned())
@@ -573,8 +592,14 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
         &["input_projection", "oracle_truth_is_hidden"],
         "corpus.evaluator_boundary",
     )?;
-    if boundary.get("oracle_truth_is_hidden").and_then(Value::as_bool) != Some(true) {
-        return Err("corpus.evaluator_boundary: oracle truth must be hidden from candidates".to_owned());
+    if boundary
+        .get("oracle_truth_is_hidden")
+        .and_then(Value::as_bool)
+        != Some(true)
+    {
+        return Err(
+            "corpus.evaluator_boundary: oracle truth must be hidden from candidates".to_owned(),
+        );
     }
 
     let cases = array(field(corpus, "cases", "corpus")?, "corpus.cases")?;
@@ -584,9 +609,14 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
         .map(|(i, case)| text_field(case, "case_id", &format!("cases[{i}]")).map(str::to_owned))
         .collect::<Check<Vec<_>>>()?;
     if ids.len() != EXPECTED_CASES.len()
-        || ids.iter().zip(EXPECTED_CASES.iter()).any(|(actual, expected)| actual.as_str() != *expected)
+        || ids
+            .iter()
+            .zip(EXPECTED_CASES.iter())
+            .any(|(actual, expected)| actual.as_str() != *expected)
     {
-        return Err(format!("corpus: case inventory must equal {EXPECTED_CASES:?} in order"));
+        return Err(format!(
+            "corpus: case inventory must equal {EXPECTED_CASES:?} in order"
+        ));
     }
     if ids.iter().collect::<BTreeSet<_>>().len() != ids.len() {
         return Err("corpus: duplicate case ID".to_owned());
@@ -607,8 +637,7 @@ fn run() -> Check<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 || args[2] != "--source-commit" {
         return Err(
-            "usage: food-traceback-bench <fixture.json> --source-commit <40-hex-sha>"
-                .to_owned(),
+            "usage: food-traceback-bench <fixture.json> --source-commit <40-hex-sha>".to_owned(),
         );
     }
     let source_commit = &args[3];
@@ -630,8 +659,8 @@ fn run() -> Check<()> {
         "source_commit": source_commit,
         "scenarios": scenarios
     });
-    let serialized = serde_json::to_string(&receipt)
-        .map_err(|e| format!("serialize receipt: {e}"))?;
+    let serialized =
+        serde_json::to_string(&receipt).map_err(|e| format!("serialize receipt: {e}"))?;
     println!("{serialized}");
     Ok(())
 }
@@ -661,9 +690,11 @@ mod tests {
         let corpus = fixture();
         let scenarios = validate_corpus(&corpus).expect("frozen corpus should validate");
         assert_eq!(scenarios.len(), 5);
-        assert!(scenarios.iter().all(|scenario| {
-            scenario.get("status").and_then(Value::as_str) == Some("pass")
-        }));
+        assert!(
+            scenarios
+                .iter()
+                .all(|scenario| { scenario.get("status").and_then(Value::as_str) == Some("pass") })
+        );
     }
 
     #[test]
@@ -702,7 +733,8 @@ mod tests {
     fn rejects_unknown_transfer_without_explicit_missingness_note() {
         let mut corpus = fixture();
         corpus["cases"][2]["observed_records"][0]["note"] = json!("edge");
-        let error = validate_corpus(&corpus).expect_err("unknown transfer needs explicit semantics");
+        let error =
+            validate_corpus(&corpus).expect_err("unknown transfer needs explicit semantics");
         assert!(error.contains("does not assert that transfer occurred"));
     }
 
@@ -718,8 +750,7 @@ mod tests {
     #[test]
     fn rejects_reordered_or_omitted_scenario_inventory() {
         let mut corpus = fixture();
-        corpus["cases"].as_array_mut().expect("cases array")[0]["case_id"] =
-            json!("MIX-SPLIT-002");
+        corpus["cases"].as_array_mut().expect("cases array")[0]["case_id"] = json!("MIX-SPLIT-002");
         let error = validate_corpus(&corpus).expect_err("case inventory mutation must fail");
         assert!(error.contains("case inventory"));
     }
