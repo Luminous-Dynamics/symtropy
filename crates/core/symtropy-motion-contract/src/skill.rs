@@ -646,6 +646,19 @@ mod tests {
         }
     }
 
+    #[test]
+    fn synthetic_contract_fixture_deserializes_and_matches_the_typed_contract() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/research/fixtures/motion-skill-contract-synthetic-v1.json");
+        let text = std::fs::read_to_string(path).expect("synthetic skill contract fixture must exist");
+        let decoded: MotionSkillContract =
+            serde_json::from_str(&text).expect("synthetic skill contract fixture must deserialize");
+        assert_eq!(decoded, contract());
+        decoded
+            .validate()
+            .expect("synthetic skill contract fixture must validate");
+    }
+
     fn start_evidence(now_sec: f64) -> MotionSkillStartEvidence {
         MotionSkillStartEvidence {
             now_sec,
