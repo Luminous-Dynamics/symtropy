@@ -13,7 +13,7 @@ use symtropy_animal_replay::{
     PairedBaselineComparison, ReplayDisposition, ReplayEvaluationInput, ReplayReason, ReplayTaskSpec,
     RunIdentity, ThresholdDirection, ThresholdOutcome, build_replay_receipt,
 };
-use symtropy_fauna_core::{AnimalProfile, EvidenceClass, EvidenceState, TaxonBinding};
+use symtropy_fauna_core::{AnimalProfile, EvidenceClass};
 
 const PROFILE_FIXTURE: &str =
     include_str!("../../symtropy-fauna-core/fixtures/animal-capability-profiles-v1.json");
@@ -22,7 +22,6 @@ const ORACLE_FIXTURE: &str = include_str!("../fixtures/replay-result-oracle-v1.j
 #[derive(Debug, Deserialize)]
 struct ProfileFixture {
     synthetic_template: AnimalProfile,
-    real_template: AnimalProfile,
 }
 
 #[derive(Debug, Deserialize)]
@@ -60,10 +59,6 @@ fn profile_templates() -> ProfileFixture {
 
 fn synthetic_profile() -> AnimalProfile {
     profile_templates().synthetic_template
-}
-
-fn real_profile() -> AnimalProfile {
-    profile_templates().real_template
 }
 
 fn permission(operation: DataOperation) -> OperationPermission {
