@@ -166,6 +166,52 @@ fn print_group(title: &str, candidates: Vec<Candidate>) {
     for id in pareto_frontier(&evaluations) { println!("  {id}"); }
 }
 
+fn print_seismic_negative_controls() {
+    let basis = "SYNTHETIC-SEISMIC-NEGATIVE-CONTROLS-V1";
+    let mut active_fault = base_candidate(
+        "N1-active-fault-displacement-unknown",
+        CandidateKind::NewFreightTunnel,
+        basis,
+        ServiceBasis::FreightTonne,
+        600.0,
+        8.0,
+    );
+    active_fault.gates.active_fault_displacement = GateState::Unknown;
+
+    let mut liquefaction = base_candidate(
+        "N2-liquefaction-and-lateral-spread-failed",
+        CandidateKind::ReuseUnderground,
+        basis,
+        ServiceBasis::FreightTonne,
+        600.0,
+        11.0,
+    );
+    liquefaction.gates.liquefaction_lateral_spread_and_slope = GateState::Failed;
+
+    let mut post_event = base_candidate(
+        "N3-post-event-inspection-unknown",
+        CandidateKind::ReuseUnderground,
+        basis,
+        ServiceBasis::FreightTonne,
+        600.0,
+        11.0,
+    );
+    post_event.gates.post_event_inspection_and_recovery = GateState::Unknown;
+
+    println!("\\nSEISMIC NEGATIVE CONTROLS (synthetic gate semantics only)");
+    for candidate in [active_fault, liquefaction, post_event] {
+        let result = evaluate(&candidate);
+        println!("{}: {}", result.candidate_id, result.disposition.label());
+        for reason in &result.reasons {
+            println!("  reason={reason}");
+        }
+        assert!(
+            result.metrics.is_none(),
+            "unresolved or failed seismic control must not emit comparable cost metrics"
+        );
+    }
+}
+
 fn main() {
     println!("SUBTERRANEAN CORRIDOR BENCHMARK {}", subterranean_corridor_benchmark::BENCHMARK_VERSION);
     println!("RESEARCH ONLY — synthetic assumptions do not establish cost, safety, feasibility, or SOTA.");
