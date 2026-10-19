@@ -26,6 +26,14 @@ cargo run --offline --manifest-path crates/tools/mine-system-benchmark/Cargo.tom
 
 The package has no third-party dependencies and declares its own nested Cargo workspace so that these commands don't build the main Bevy workspace.
 
+## Cascade simulation demo
+
+Run the dependency-aware shared-failure comparison with:
+
+cargo run --offline --manifest-path crates/tools/mine-system-benchmark/Cargo.toml --example mine_cascade
+
+The demo compares two otherwise identical synthetic pumping systems: one in which redundant pumps share a power failure domain, and one with independent domains. It reports critical-service loss burden separately from final viability. All values are synthetic and demonstrate semantics, not mine performance.
+
 ## Claim ceiling
 
 The built-in example is synthetic and separately records the product mass (42,000 kg) that corresponds to its 42.0 saleable tonnes per shift. An `ELIGIBLE_SYNTHETIC` result means only that the provided synthetic values satisfy this prototype's declared gates. It is not a mine safety decision, engineering authorization, physical model validation, reserve/resource statement, economic feasibility result, or SMR approval.
