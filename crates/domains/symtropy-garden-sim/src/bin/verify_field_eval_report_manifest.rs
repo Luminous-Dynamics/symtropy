@@ -42,7 +42,10 @@ fn verify() -> Result<(), String> {
         }
         let id = columns[0];
         if id.is_empty() || !ids.insert(id) {
-            return Err(format!("row {} has an empty or duplicate case ID", index + 2));
+            return Err(format!(
+                "row {} has an empty or duplicate case ID",
+                index + 2
+            ));
         }
         if !EXPECTED_RESULTS.contains(&columns[1]) {
             return Err(format!("row {} has an unknown expected result", index + 2));
@@ -51,7 +54,9 @@ fn verify() -> Result<(), String> {
             return Err(format!("row {} has no rationale", index + 2));
         }
         if !TEST_SOURCE.contains(&format!("fn {id}(")) {
-            return Err(format!("manifest case {id} has no matching independent test function"));
+            return Err(format!(
+                "manifest case {id} has no matching independent test function"
+            ));
         }
     }
 
