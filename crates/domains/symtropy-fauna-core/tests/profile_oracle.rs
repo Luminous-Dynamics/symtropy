@@ -62,6 +62,9 @@ enum Mutation {
     RealUnknownRightsForAbsence,
     RealRestrictedRightsUnasserted,
     RealUnknownRightsUnasserted,
+    RealMissingPermissionScope,
+    RealWhitespacePermissionScope,
+    RealAttributionWhitespace,
     RealAbsentClaimValid,
     RealNotApplicableClaimValid,
     RealModeledEvidenceValid,
@@ -116,7 +119,7 @@ fn apply_mutation(mut profile: AnimalProfile, mutation: Mutation) -> AnimalProfi
         }
         Mutation::RealAttributionMissing => {
             profile.capabilities[0].evidence.permission = UsePermission::AttributionRequired;
-            profile.capabilities[0].evidence.attribution_present = false;
+            profile.capabilities[0].evidence.attribution = None;
         }
         Mutation::RealEvidenceTaxonMismatch => {
             profile.capabilities[0].evidence.taxon_id = Some("TEST:other".to_owned());
@@ -155,6 +158,16 @@ fn apply_mutation(mut profile: AnimalProfile, mutation: Mutation) -> AnimalProfi
             profile.capabilities[0].state = EvidenceState::Unknown;
             profile.capabilities[0].evidence.permission = UsePermission::Unknown;
         }
+        Mutation::RealMissingPermissionScope => {
+            profile.capabilities[0].evidence.permission_scope = None;
+        }
+        Mutation::RealWhitespacePermissionScope => {
+            profile.capabilities[0].evidence.permission_scope = Some("  ".to_owned());
+        }
+        Mutation::RealAttributionWhitespace => {
+            profile.capabilities[0].evidence.permission = UsePermission::AttributionRequired;
+            profile.capabilities[0].evidence.attribution = Some("  ".to_owned());
+        }
         Mutation::RealAbsentClaimValid => {
             profile.capabilities[0].state = EvidenceState::Absent;
         }
@@ -175,7 +188,7 @@ fn apply_mutation(mut profile: AnimalProfile, mutation: Mutation) -> AnimalProfi
         }
         Mutation::RealAttributionPresent => {
             profile.capabilities[0].evidence.permission = UsePermission::AttributionRequired;
-            profile.capabilities[0].evidence.attribution_present = true;
+            profile.capabilities[0].evidence.attribution = Some("citation:synthetic-test".to_owned());
         }
         Mutation::RealStageRequirementMatched => {
             profile.capabilities[0].stage_requirement = Some("adult".to_owned());
@@ -200,7 +213,7 @@ fn real_profile(id: &str, taxon_id: &str) -> AnimalProfile {
             taxon_id: taxon_id.to_owned(),
         }),
         stage: Some("adult".to_owned()),
-        provenance: EvidenceClass::Measured,
+        provenance: EvidenceClass::Modeled,
         capabilities: Vec::new(),
     };
     profile.capabilities.push(CapabilityClaim {
@@ -208,10 +221,11 @@ fn real_profile(id: &str, taxon_id: &str) -> AnimalProfile {
         key: "walking".to_owned(),
         state: EvidenceState::Present,
         evidence: symtropy_fauna_core::EvidenceRecord {
-            class: EvidenceClass::Measured,
-            source_ref: Some("doi:test/reference".to_owned()),
+            class: EvidenceClass::Modeled,
+            source_ref: Some("test://synthetic-validation-fixture/reference".to_owned()),
             permission: UsePermission::Granted,
-            attribution_present: false,
+            permission_scope: Some("test-fixture-only".to_owned()),
+            attribution: None,
             taxon_id: Some(taxon_id.to_owned()),
             stage: Some("adult".to_owned()),
         },
@@ -296,8 +310,8 @@ fn corpus_digest_is_order_independent_but_evidence_sensitive() {
 #[test]
 fn coverage_scope_cannot_hide_unreviewed_taxa_or_promote_invalid_profiles() {
     let scope = TaxonomyScope {
-        source: "synthetic-taxonomy".to_owned(),
-        release: "v1".to_owned(),
+        source: "test-taxonomy".to_owned(),
+        release: "test-release-1".to_owned(),
         taxon_ids: vec!["TEST:1".to_owned(), "TEST:2".to_owned()],
     };
     let declarations = vec![
