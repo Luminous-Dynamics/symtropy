@@ -242,9 +242,9 @@ fn derive_human_motion_from_intent(
 fn has_invalid_locomotion_velocity(intent: &HumanLocomotionIntent) -> bool {
     !intent.desired_planar_velocity_mps.is_finite()
         || !intent.desired_planar_velocity_mps.length().is_finite()
-        || intent.observed_planar_velocity_mps.is_some_and(|velocity| {
-            !velocity.is_finite() || !velocity.length().is_finite()
-        })
+        || intent
+            .observed_planar_velocity_mps
+            .is_some_and(|velocity| !velocity.is_finite() || !velocity.length().is_finite())
 }
 
 /// Consume an expired intent exactly once, zeroing requested movement. If measured velocity
@@ -548,7 +548,10 @@ mod tests {
         ));
         assert_eq!(intent.desired_planar_velocity_mps, Vec2::ZERO);
         assert_eq!(intent.motion_override, None);
-        assert_eq!(intent.observed_planar_velocity_mps, Some(Vec2::new(0.6, 0.0)));
+        assert_eq!(
+            intent.observed_planar_velocity_mps,
+            Some(Vec2::new(0.6, 0.0))
+        );
     }
 
     #[test]
@@ -571,12 +574,11 @@ mod tests {
 
     #[test]
     fn observed_velocity_prevents_walking_animation_when_body_is_blocked() {
-        let mut intent =
-            adapt_semantic_intent_to_locomotion_at(
-                &semantic_intent_for_test(MotionIntentKind::Locomote, Some([2.0, 0.0]), None),
-                0.5,
-            )
-            .unwrap();
+        let mut intent = adapt_semantic_intent_to_locomotion_at(
+            &semantic_intent_for_test(MotionIntentKind::Locomote, Some([2.0, 0.0]), None),
+            0.5,
+        )
+        .unwrap();
         intent.observed_planar_velocity_mps = Some(Vec2::ZERO);
         assert_eq!(
             motion_for_locomotion_intent(
@@ -590,12 +592,11 @@ mod tests {
 
     #[test]
     fn observed_velocity_can_trigger_motion_when_requested_speed_is_zero() {
-        let mut intent =
-            adapt_semantic_intent_to_locomotion_at(
-                &semantic_intent_for_test(MotionIntentKind::Locomote, Some([0.0, 0.0]), None),
-                0.5,
-            )
-            .unwrap();
+        let mut intent = adapt_semantic_intent_to_locomotion_at(
+            &semantic_intent_for_test(MotionIntentKind::Locomote, Some([0.0, 0.0]), None),
+            0.5,
+        )
+        .unwrap();
         intent.observed_planar_velocity_mps = Some(Vec2::new(0.4, 0.0));
         assert_eq!(
             motion_for_locomotion_intent(
