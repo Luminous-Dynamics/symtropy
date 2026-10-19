@@ -1,6 +1,6 @@
 # Experiment run receipts and reproducibility
 
-**Status:** Implemented prototype in \`symtropy-experiment-core\`; compile/runtime checks and performance benchmarks have not yet been executed.
+**Status:** Implemented prototype in `symtropy-experiment-core`; compile/runtime checks and performance benchmarks have not yet been executed.
 
 ## Design goal
 
@@ -8,29 +8,29 @@ Every emitted experiment result should carry a compact receipt that binds the ex
 
 ## Current implementation
 
-The \`provenance\` module uses SHA-256 and a versioned JSON receipt payload. The CLI emits receipts for arithmetic runs, graph inspection, one-variable sweeps, oscillator simulation, oscillator convergence studies, and several model-validation/execution failures.
+The `provenance` module uses SHA-256 and a versioned JSON receipt payload. The CLI emits receipts for arithmetic runs, graph inspection, one-variable sweeps, oscillator simulation, oscillator convergence studies, and several model-validation/execution failures.
 
 The receipt contains:
 
 - Receipt schema version and explicit digest algorithm.
 - Execution mode and package version.
-- Optional caller-reported source revision from \`SYMTROPY_SOURCE_REVISION\`.
+- Optional caller-reported source revision from `SYMTROPY_SOURCE_REVISION`.
 - Optional experiment ID and model schema version.
 - Unit registry version for arithmetic-graph paths; unset for the separate oscillator schema.
 - SHA-256 of the exact UTF-8 input file bytes read by the CLI.
-- SHA-256 of the parsed model's \`serde_json\` serialization.
-- SHA-256 of the result/error payload's \`serde_json\` serialization before CLI-envelope rendering.
+- SHA-256 of the parsed model's `serde_json` serialization.
+- SHA-256 of the result/error payload's `serde_json` serialization before CLI-envelope rendering.
 - Execution settings that may not be fully represented in the model, such as a sweep variable/value sequence or convergence time-step sequence.
-- Runtime OS, architecture, build profile and optional caller-reported \`SYMTROPY_RUSTC_VERSION\`.
+- Runtime OS, architecture, build profile and optional caller-reported `SYMTROPY_RUSTC_VERSION`.
 - A receipt digest over the serialized receipt payload, excluding the receipt-digest field itself.
 
 The exact input digest deliberately differs when source bytes differ (for example, formatting whitespace), even if the parsed-model digest stays the same. The parsed-model digest is an implementation-level serialization digest, **not** a cross-version canonical-JSON standard. Preserve both; do not collapse artifact identity and semantic model identity into a single field.
 
-The environment values supplied through \`SYMTROPY_SOURCE_REVISION\` and \`SYMTROPY_RUSTC_VERSION\` are claims made by the build/run environment. This prototype records them but does not independently authenticate them. No trusted timestamp, signature, build attestation, compiler binary digest, dependency-tree digest, hardware fingerprint, or process isolation guarantee is provided.
+The environment values supplied through `SYMTROPY_SOURCE_REVISION` and `SYMTROPY_RUSTC_VERSION` are claims made by the build/run environment. This prototype records them but does not independently authenticate them. No trusted timestamp, signature, build attestation, compiler binary digest, dependency-tree digest, hardware fingerprint, or process isolation guarantee is provided.
 
 ## Verification boundary
 
-\`RunReceipt::verify()\` recalculates the receipt's own payload digest. It can detect payload changes when the expected digest is retained separately. It does not re-hash an input file or output artifact that is not supplied to it, authenticate who produced the record, or prove that the represented execution actually occurred.
+`RunReceipt::verify()` recalculates the receipt's own payload digest. It can detect payload changes when the expected digest is retained separately. It does not re-hash an input file or output artifact that is not supplied to it, authenticate who produced the record, or prove that the represented execution actually occurred.
 
 A hash can bind identifiers to bytes; it cannot show that the model is correct. Receipts must therefore keep outcome labels separate: planned, rejected, executed, independently reproduced, empirically validated, and accepted for a stated purpose are not interchangeable statuses. A successful serialization or receipt verification is never itself a model-credibility pass.
 
