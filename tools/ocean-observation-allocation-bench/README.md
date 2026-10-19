@@ -24,7 +24,7 @@ The declared information score is a benchmark objective, not a biological truth 
 
 ## Fail-closed eligibility
 
-A candidate is not selectable unless it is non-contact, its data terms have been reviewed, its detection limits are declared, and all exposure channels are known. Unknown exposure is not zero. Contact actions and unresolved/restricted sources remain represented in the fixture as negative controls, but no policy may select them.
+A candidate is not selectable unless it is non-contact, the rights-review process is complete, use permission is explicitly `permitted`, detection limits are declared, and all exposure channels are known. Review completion alone does not grant permission. Unknown exposure is not zero. Contact actions and unresolved/restricted sources remain represented in the fixture as negative controls, but no policy may select them.
 
 Historical record count and effort are sampling metadata. The tool has no species-presence/absence conclusion field; no records are not evidence of no species. The synthetic targets are not an empirical biodiversity inventory, an ocean physics model, ecological damage assessment, environmental approval, vehicle actuation permission or mineral-extraction optimizer.
 
