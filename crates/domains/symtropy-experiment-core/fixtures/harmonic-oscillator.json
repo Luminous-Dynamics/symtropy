@@ -1,4 +1,5 @@
 {
+  "schema_version": "0.1",
   "id": "experiment:synthetic-harmonic-oscillator",
   "title": "Synthetic undamped harmonic oscillator",
   "mass_kg": 1.0,
