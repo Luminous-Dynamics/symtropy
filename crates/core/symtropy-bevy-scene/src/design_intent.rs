@@ -9,7 +9,7 @@
 //! cultural expression, cost, daylight and spatial character remain visible.
 //! It does not solve architecture, validate code, or certify buildability.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 fn nonblank(value: &str) -> bool {
     !value.trim().is_empty()
@@ -89,6 +89,9 @@ pub struct IntentEvaluation {
     pub evidence_ref: Option<String>,
     pub not_applicable_rationale: Option<String>,
     pub uncertainty_note: Option<String>,
+    /// Optional owner-provided 0–100 preference rating. It is subjective input,
+    /// valid only for OwnerPreference intent and never for binding requirements.
+    pub preference_rating: Option<u8>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -187,6 +190,15 @@ pub enum DesignIntentIssue {
     UnverifiedConclusionClaimedSatisfied {
         candidate_id: String,
         intent_id: String,
+    },
+    PreferenceRatingOnNonPreference {
+        candidate_id: String,
+        intent_id: String,
+    },
+    PreferenceRatingOutOfRange {
+        candidate_id: String,
+        intent_id: String,
+        rating: u8,
     },
 }
 
@@ -294,6 +306,25 @@ pub fn validate_design_comparison(
                     candidate_id: candidate.candidate_id.clone(),
                     intent_id: evaluation.intent_id.clone(),
                 });
+            }
+            if let Some(rating) = evaluation.preference_rating {
+                if rating > 100 {
+                    issues.push(DesignIntentIssue::PreferenceRatingOutOfRange {
+                        candidate_id: candidate.candidate_id.clone(),
+                        intent_id: evaluation.intent_id.clone(),
+                        rating,
+                    });
+                }
+                if intents
+                    .iter()
+                    .find(|intent| intent.intent_id == evaluation.intent_id)
+                    .is_some_and(|intent| intent.class != DesignIntentClass::OwnerPreference)
+                {
+                    issues.push(DesignIntentIssue::PreferenceRatingOnNonPreference {
+                        candidate_id: candidate.candidate_id.clone(),
+                        intent_id: evaluation.intent_id.clone(),
+                    });
+                }
             }
             let Some(intent) = intents
                 .iter()
@@ -725,6 +756,7 @@ mod tests {
             not_applicable_rationale: (outcome == IntentEvaluationOutcome::NotApplicable)
                 .then(|| "The stated scope excludes this item for this reviewed option".into()),
             uncertainty_note: None,
+            preference_rating: None,
         }
     }
 
@@ -836,6 +868,19 @@ mod tests {
                 && pair.right_candidate_id == "candidate:b"
                 && pair.relation == PreferencePairRelation::Tradeoff
         }));
+    }
+
+    #[test]
+    fn preference_rating_above_one_hundred_is_rejected() {
+        let mut comparison = preference_comparison();
+        comparison.alternatives[0].evaluations[1].preference_rating = Some(101);
+        assert!(validate_design_comparison_snapshot(&comparison)
+            .unwrap_err()
+            .contains(&DesignIntentIssue::PreferenceRatingOutOfRange {
+                candidate_id: "candidate:a".into(),
+                intent_id: "owner:privacy".into(),
+                rating: 101,
+            }));
     }
 
     #[test]
