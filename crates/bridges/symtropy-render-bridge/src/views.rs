@@ -483,9 +483,9 @@ impl OrientedProjector4D {
             let mut candidate = [0.0; 4];
             candidate[axis] = 1.0;
 
-            let normal_component = dot4(candidate, normal);
-            for (coordinate, normal_component) in candidate.iter_mut().zip(normal) {
-                *coordinate -= normal_component * normal_component;
+            let normal_projection = dot4(candidate, normal);
+            for (coordinate, normal_axis) in candidate.iter_mut().zip(normal) {
+                *coordinate -= normal_projection * normal_axis;
             }
 
             for existing in &basis {
