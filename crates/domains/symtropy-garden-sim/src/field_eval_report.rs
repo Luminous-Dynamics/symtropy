@@ -69,10 +69,6 @@ pub struct FieldEvalReportInputV1 {
     pub protocol_excluded_count: u64,
     pub outcomes: FieldEvalOutcomePartitionV1,
     pub nonacceptance_reasons: FieldEvalNonacceptanceReasonsV1,
-    /// Descriptive subset of unknown/missing cases; not added a second time
-    /// when calculating the outcome bounds.
-    #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
-    pub completed_pending_decision_count: u64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -87,6 +83,8 @@ pub struct FieldEvalOutcomePartitionV1 {
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub disputed_or_rework_count: u64,
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
+    pub completed_pending_decision_count: u64,
+    #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub outcome_unknown_count: u64,
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub follow_up_missing_count: u64,
@@ -99,6 +97,7 @@ impl FieldEvalOutcomePartitionV1 {
             self.accepted_after_window_count,
             self.known_not_accepted_count,
             self.disputed_or_rework_count,
+            self.completed_pending_decision_count,
             self.outcome_unknown_count,
             self.follow_up_missing_count,
         ]
@@ -107,7 +106,8 @@ impl FieldEvalOutcomePartitionV1 {
     }
 
     fn uncertain_count(&self) -> Option<u64> {
-        self.outcome_unknown_count
+        self.completed_pending_decision_count
+            .checked_add(self.outcome_unknown_count)?
             .checked_add(self.follow_up_missing_count)
     }
 
@@ -171,7 +171,6 @@ pub enum FieldEvalReportBlockerCodeV1 {
     ScreenedCountMismatch,
     OutcomePartitionMismatch,
     NonacceptanceReasonMismatch,
-    PendingDecisionExceedsUnknownCases,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -185,7 +184,7 @@ pub struct FieldEvalRateBoundsV1 {
     /// Confirmed within-window acceptances only.
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub lower_numerator: u64,
-    /// Confirmed in-window acceptances plus outcomes that remain unascertained.
+    /// Confirmed in-window acceptances plus pending decisions and unascertained outcomes.
     /// This is an identification bound, not a statistical confidence interval.
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub upper_numerator: u64,
@@ -311,14 +310,6 @@ pub fn assess_field_eval_report_v1(input: &FieldEvalReportInputV1) -> FieldEvalR
             &mut blockers,
             FieldEvalReportBlockerCodeV1::NonacceptanceReasonMismatch,
             "typed nonacceptance reasons must reconcile exactly to known_not_accepted_count",
-        );
-    }
-
-    if uncertain_total.is_some_and(|total| input.completed_pending_decision_count > total) {
-        push_blocker(
-            &mut blockers,
-            FieldEvalReportBlockerCodeV1::PendingDecisionExceedsUnknownCases,
-            "completed-but-pending-decision is a subset of unknown/missing outcomes and cannot exceed them",
         );
     }
 
