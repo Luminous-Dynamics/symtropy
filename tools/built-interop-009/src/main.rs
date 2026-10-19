@@ -561,19 +561,17 @@ fn run() -> Result<i32, String> {
         )?;
         // The producer's version/configuration must stay identical across the
         // entire campaign; mixed reports from different tool profiles are invalid.
-        match diff_version.as_ref() {
-            Some(value) if value != &result.diff_tool_version => {
-                return Err("DIFF_TOOL_VERSION_CHANGED_WITHIN_CAMPAIGN".into());
-            }
-            None => diff_version = Some(result.diff_tool_version.clone()),
-            _ => {}
+        if diff_version.is_none() {
+            diff_version = Some(result.diff_tool_version.clone());
         }
-        match diff_config.as_ref() {
-            Some(value) if value != &result.diff_tool_config_sha256 => {
-                return Err("DIFF_TOOL_CONFIG_CHANGED_WITHIN_CAMPAIGN".into());
-            }
-            None => diff_config = Some(result.diff_tool_config_sha256.clone()),
-            _ => {}
+        if diff_version.as_deref() != Some(result.diff_tool_version.as_str()) {
+            return Err("DIFF_TOOL_VERSION_CHANGED_WITHIN_CAMPAIGN".into());
+        }
+        if diff_config.is_none() {
+            diff_config = Some(result.diff_tool_config_sha256.clone());
+        }
+        if diff_config.as_deref() != Some(result.diff_tool_config_sha256.as_str()) {
+            return Err("DIFF_TOOL_CONFIG_CHANGED_WITHIN_CAMPAIGN".into());
         }
         results.push(result);
     }
