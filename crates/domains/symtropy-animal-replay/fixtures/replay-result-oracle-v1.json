@@ -283,6 +283,7 @@
       "expected_reason_codes": [],
       "expected_threshold_outcome": "meets_threshold",
       "expected_baseline_comparison_outcomes": [
+        "outperforms_by_margin",
         "outperforms_by_margin"
       ]
     },
