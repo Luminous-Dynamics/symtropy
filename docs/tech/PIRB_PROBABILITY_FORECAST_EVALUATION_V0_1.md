@@ -44,7 +44,7 @@ For each record:
 - Unknown labels must remain unknown and have no claimed availability month.
 - For the same unit/target month, the frozen outcome version and availability month must agree across repeated forecast vintages.
 
-To prevent label-maturity leakage, all known training outcomes must be mature by the start of calibration, and all known calibration outcomes must be mature by the start of the held-out test period. For a 36-month lead, the split gap may therefore need to include the full target horizon and outcome-publication delay. That restriction is intentional; otherwise later outcomes can determine earlier model selection.
+To prevent label-maturity leakage at monthly granularity, every known training outcome must have an availability month strictly earlier than the calibration boundary, and every known calibration outcome must have an availability month strictly earlier than the held-out test boundary. A label reported in the boundary month is ambiguous at monthly resolution and is conservatively rejected. For a 36-month lead, the split gap may therefore need to include the full target horizon and outcome-publication delay. That restriction is intentional; otherwise later outcomes can determine earlier model selection.
 
 A dataset that mixes revised outcome vintages must be separated into explicit evaluation datasets or expanded in a reviewed future contract. It must not silently overwrite the original target labels.
 
