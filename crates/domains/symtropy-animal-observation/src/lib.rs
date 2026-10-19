@@ -316,19 +316,9 @@ fn is_lowercase_sha256(digest: &str) -> bool {
 fn add_cross_split(
     group_key: String,
     role: SplitRole,
-    reason: ManifestReason,
     groups: &mut BTreeMap<String, BTreeSet<SplitRole>>,
-    violations: &mut BTreeSet<LeakageViolation>,
 ) {
-    let roles = groups.entry(group_key.clone()).or_default();
-    roles.insert(role);
-    if roles.len() > 1 {
-        violations.insert(LeakageViolation {
-            reason,
-            group_key,
-            roles: roles.iter().copied().collect(),
-        });
-    }
+    groups.entry(group_key).or_default().insert(role);
 }
 
 /// Check split leakage using study-scoped subject and track identifiers.
@@ -375,9 +365,7 @@ pub fn validate_split(
             add_cross_split(
                 format!("duplicate:{duplicate_group}"),
                 record.role,
-                ManifestReason::DuplicateObservationLeakage,
                 &mut duplicate_groups,
-                &mut violations,
             );
         }
         if !matches!(
@@ -387,9 +375,7 @@ pub fn validate_split(
             add_cross_split(
                 format!("track:{}:{}", record.study_id, record.track_id),
                 record.role,
-                ManifestReason::DuplicateObservationLeakage,
                 &mut track_groups,
-                &mut violations,
             );
         }
 
@@ -397,37 +383,48 @@ pub fn validate_split(
             GeneralizationTarget::UnseenSubject => add_cross_split(
                 format!("subject:{}:{}", record.study_id, record.subject_id),
                 record.role,
-                ManifestReason::SplitIdentityLeakage,
                 &mut subject_groups,
-                &mut violations,
             ),
             GeneralizationTarget::UnseenStudy => add_cross_split(
                 format!("study:{}", record.study_id),
                 record.role,
-                ManifestReason::SplitIdentityLeakage,
                 &mut study_groups,
-                &mut violations,
             ),
             GeneralizationTarget::UnseenSite => {
                 if let Some(site_id) = record.site_id.as_deref() {
                     add_cross_split(
                         format!("site:{site_id}"),
                         record.role,
-                        ManifestReason::SplitIdentityLeakage,
                         &mut site_groups,
-                        &mut violations,
                     );
                 }
             }
             GeneralizationTarget::UnseenTaxon => add_cross_split(
                 format!("taxon:{}", record.taxon_id),
                 record.role,
-                ManifestReason::SplitIdentityLeakage,
                 &mut taxon_groups,
-                &mut violations,
             ),
             GeneralizationTarget::FutureTime
             | GeneralizationTarget::WithinSubjectInterpolation => {}
+        }
+    }
+
+    for (groups, reason) in [
+        (&duplicate_groups, ManifestReason::DuplicateObservationLeakage),
+        (&track_groups, ManifestReason::DuplicateObservationLeakage),
+        (&subject_groups, ManifestReason::SplitIdentityLeakage),
+        (&study_groups, ManifestReason::SplitIdentityLeakage),
+        (&site_groups, ManifestReason::SplitIdentityLeakage),
+        (&taxon_groups, ManifestReason::SplitIdentityLeakage),
+    ] {
+        for (group_key, roles) in groups {
+            if roles.len() > 1 {
+                violations.insert(LeakageViolation {
+                    reason,
+                    group_key: group_key.clone(),
+                    roles: roles.iter().copied().collect(),
+                });
+            }
         }
     }
 
