@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "tool": "ev-depot-duty-audit",
+  "fleet_id": "synthetic-fleet",
+  "dataset_id": "synthetic-duty-fixture-v0.1",
+  "source_uri": "https://example.invalid/synthetic-source",
+  "source_revision": "1111111111111111111111111111111111111111",
+  "evidence_class_declared_by_caller": "synthetic",
+  "kwh_per_mile_assumption": 1.8,
+  "operation_days_input_rows": 2,
+  "operation_days_parsed_valid_rows": 2,
+  "operation_days_invalid_rows": [],
+  "schedule_input_rows": 3,
+  "schedule_parsed_valid_rows_with_known_operation_day_ids": 3,
+  "schedule_invalid_rows": [],
+  "reconciled_operation_day_count": 2,
+  "operation_day_reconciliation_issues": [],
+  "reconciled_operation_day_profiles": [
+    {
+      "operation_day_id": 1,
+      "vmt_miles": 80.0,
+      "on_shift_seconds": 32400,
+      "off_shift_seconds": 53999,
+      "first_on_shift_start_second": 28800,
+      "last_on_shift_end_second": 61200
+    },
+    {
+      "operation_day_id": 2,
+      "vmt_miles": 20.0,
+      "on_shift_seconds": 28800,
+      "off_shift_seconds": 57599,
+      "first_on_shift_start_second": 14400,
+      "last_on_shift_end_second": 64800
+    }
+  ],
+  "operation_day_csv_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "schedule_csv_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}
