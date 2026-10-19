@@ -1,7 +1,9 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use pirb_probability_forecast_eval::views_adapter::{import_views_archive, referenced_source_paths};
+use pirb_probability_forecast_eval::views_adapter::{
+    import_views_archive, referenced_source_paths,
+};
 use std::{
     collections::BTreeMap,
     env, fs,
@@ -56,8 +58,8 @@ fn run() -> Result<(), String> {
         source_files.insert(relative, bytes);
     }
 
-    let source_commit = option_value(&args, "--source-commit")?
-        .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
+    let source_commit =
+        option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
     let rustc_version = option_value(&args, "--rustc-version")?
         .unwrap_or_else(|| "UNSPECIFIED_LOCAL_TOOLCHAIN".to_owned());
     let cargo_version = option_value(&args, "--cargo-version")?
