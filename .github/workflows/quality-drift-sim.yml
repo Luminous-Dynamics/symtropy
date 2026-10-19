@@ -38,8 +38,17 @@ jobs:
         run: cargo run --locked --quiet --manifest-path tools/quality-drift-sim/Cargo.toml -- --check
       - name: Emit replayable summary
         run: cargo run --locked --quiet --manifest-path tools/quality-drift-sim/Cargo.toml > quality-drift-report.json
-      - name: Validate report JSON
-        run: jq -e . quality-drift-report.json > /dev/null
+      - name: Validate report schema and coverage
+        run: |
+          jq -e '
+            .schema_version == "0.1.0"
+            and .model_id == "QDRIFT-SYNTH-001"
+            and .evidence_class == "synthetic_reference_simulation_not_calibrated"
+            and .replications_per_scenario == 100
+            and .parts_per_replication == 500
+            and (.scenarios | length) == 4
+            and all(.scenarios[]; (.results | keys | sort) == ["condition_based", "fixed_cycle", "no_maintenance"])
+          ' quality-drift-report.json > /dev/null
       - name: Upload synthetic report
         uses: actions/upload-artifact@v4
         with:
