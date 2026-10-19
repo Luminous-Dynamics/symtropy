@@ -199,6 +199,14 @@ pub struct ViewsImportBundle {
     pub receipt: ViewsImportReceipt,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct ImportRuntime<'a> {
+    pub source_commit: &'a str,
+    pub rustc_version: &'a str,
+    pub cargo_version: &'a str,
+    pub lock_bytes: &'a [u8],
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct ArchiveReleaseCommitment {
     run_id: String,
@@ -358,12 +366,11 @@ pub fn import_views_archive(
     outcomes_bytes: &[u8],
     block_map_bytes: &[u8],
     source_files: &BTreeMap<String, Vec<u8>>,
-    source_commit: &str,
-    rustc_version: &str,
-    cargo_version: &str,
-    lock_bytes: &[u8],
+    runtime: ImportRuntime<'_>,
 ) -> Result<ViewsImportBundle, Vec<String>> {
-    if source_commit != "UNPINNED_LOCAL_RUN" && !valid_commit_sha(source_commit) {
+    if runtime.source_commit != "UNPINNED_LOCAL_RUN"
+        && !valid_commit_sha(runtime.source_commit)
+    {
         return Err(vec![
             "source commit must be a lowercase 40-character Git SHA or UNPINNED_LOCAL_RUN"
                 .to_owned(),
@@ -945,11 +952,11 @@ pub fn import_views_archive(
         receipt_version: "0.1".to_owned(),
         evaluator: "PIRB frozen VIEWS offline importer".to_owned(),
         result: "pass".to_owned(),
-        source_commit: source_commit.to_owned(),
-        source_commit_sha_valid: valid_commit_sha(source_commit),
-        rustc_version: rustc_version.to_owned(),
-        cargo_version: cargo_version.to_owned(),
-        dependency_lock_sha256: sha256_hex(lock_bytes),
+        source_commit: runtime.source_commit.to_owned(),
+        source_commit_sha_valid: valid_commit_sha(runtime.source_commit),
+        rustc_version: runtime.rustc_version.to_owned(),
+        cargo_version: runtime.cargo_version.to_owned(),
+        dependency_lock_sha256: sha256_hex(runtime.lock_bytes),
         dataset_id: manifest.dataset_id,
         evidence_class: manifest.evidence_class,
         partition: manifest.partition,
@@ -1046,16 +1053,22 @@ mod tests {
         .collect()
     }
 
+    fn runtime() -> ImportRuntime<'static> {
+        ImportRuntime {
+            source_commit: "abcdef0123456789abcdef0123456789abcdef01",
+            rustc_version: "rustc 1.96.0",
+            cargo_version: "cargo 1.96.0",
+            lock_bytes: LOCK,
+        }
+    }
+
     fn import() -> ViewsImportBundle {
         import_views_archive(
             MANIFEST,
             OUTCOMES,
             BLOCK_MAP,
             &source_map(),
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
+            runtime(),
         )
         .expect("synthetic VIEWS archive should import")
     }
@@ -1100,10 +1113,7 @@ mod tests {
             OUTCOMES,
             BLOCK_MAP,
             &source_map(),
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
+            runtime(),
         );
         assert!(result.is_err());
     }
@@ -1122,10 +1132,7 @@ mod tests {
             OUTCOMES,
             BLOCK_MAP,
             &sources,
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
+            runtime(),
         );
         assert!(
             result
@@ -1149,10 +1156,7 @@ mod tests {
             OUTCOMES,
             BLOCK_MAP,
             &sources,
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
+            runtime(),
         )
         .unwrap();
         let original = import();
@@ -1187,10 +1191,7 @@ mod tests {
             OUTCOMES,
             BLOCK_MAP,
             &sources,
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
+            runtime(),
         );
         assert!(
             result
@@ -1210,10 +1211,7 @@ mod tests {
             &bytes,
             BLOCK_MAP,
             &source_map(),
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
+            runtime(),
         );
         assert!(
             result
@@ -1233,10 +1231,7 @@ mod tests {
             OUTCOMES,
             BLOCK_MAP,
             &source_map(),
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
+            runtime(),
         );
         assert!(result.is_err());
     }
