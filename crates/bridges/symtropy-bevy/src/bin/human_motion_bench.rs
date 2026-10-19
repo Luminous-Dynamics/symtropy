@@ -72,7 +72,7 @@ fn evidence_scope(reference: &Trace, prediction: &Trace) -> &'static str {
     if reference.run.source_kind.is_synthetic() || prediction.run.source_kind.is_synthetic() {
         "synthetic_software_validation_only"
     } else if has_held_out_human_reference(reference) {
-        "held_out_human_reference"
+        "declared_held_out_human_reference"
     } else {
         "source_provenance_present_reference_not_held_out_human_verified"
     }
@@ -86,7 +86,7 @@ fn validate_human_reference_claim(
         return fail("human-reference claims require distinct reference and prediction trace IDs");
     }
     if reference.run.source_kind != SourceKind::OriginalConsentCapture {
-        return fail("human-reference claims require an original consented human-capture reference");
+        return fail("human-reference claims require a reference declared as an original consented human capture");
     }
     if reference.run.split.as_deref() != Some("test") {
         return fail("human-reference claims require reference.run.split = test");
@@ -1528,6 +1528,7 @@ fn evaluate(
         "Root-path error alone is not a full-body fidelity score; inspect named-joint trajectory metrics when the trace includes them.",
         "Root orientation is only scored for v0.2 traces with quaternion samples; a null orientation report means the v0.1 contract did not provide orientation, not that orientation error was zero.",
         "Configuration hashes may differ between methods by design; both are recorded so the comparison is auditable.",
+        "Evidence scope is derived from declared trace metadata and is not independent authentication of consent, legal rights, dataset provenance, or source-file integrity.",
     ];
     let validity = if synthetic {
         caveats.push("At least one trace is a synthetic fixture; this report is a software test, not evidence about human motion.");
