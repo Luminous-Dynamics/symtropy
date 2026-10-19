@@ -148,6 +148,7 @@ struct Summary {
     independent_audit_mismatches: usize,
     unguarded_baseline_acceptances: usize,
     unguarded_baseline_acceptances_during_shift: usize,
+    unguarded_baseline_acceptances_missing_or_stale: usize,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -488,6 +489,7 @@ fn aggregate(scenarios: &[Scenario], results: &[ScenarioResult], split: Split, k
         independent_audit_mismatches: 0,
         unguarded_baseline_acceptances: 0,
         unguarded_baseline_acceptances_during_shift: 0,
+        unguarded_baseline_acceptances_missing_or_stale: 0,
     };
 
     for (scenario, result) in scenarios.iter().zip(results) {
@@ -538,7 +540,9 @@ fn aggregate(scenarios: &[Scenario], results: &[ScenarioResult], split: Split, k
             }
             if let Some(covered) = output.interval_covered {
                 summary.observed_count += 1;
-                summary.covered_observations += usize::from(covered);
+                if covered {
+                    summary.covered_observations += 1;
+                }
             }
             if output.disposition != Disposition::RejectUnsafeInterval
                 && input.interval_lower_liters >= input.protected_minimum_liters
@@ -549,6 +553,11 @@ fn aggregate(scenarios: &[Scenario], results: &[ScenarioResult], split: Split, k
                 summary.unguarded_baseline_acceptances += 1;
                 if input.injected_shift_active {
                     summary.unguarded_baseline_acceptances_during_shift += 1;
+                }
+                if input.observed_state_liters.is_none()
+                    || input.measurement_age_periods > MAX_MEASUREMENT_AGE_PERIODS
+                {
+                    summary.unguarded_baseline_acceptances_missing_or_stale += 1;
                 }
             }
             summary.interval_width_sum_liters = summary
@@ -595,11 +604,11 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
     let shift_onsets = summaries.iter().map(|summary| summary.shift_onsets).sum::<usize>();
     let same_tick_shift_detections = summaries.iter().map(|summary| summary.same_tick_shift_detections).sum::<usize>();
     let unguarded_baseline_acceptances_during_shift = summaries.iter().map(|summary| summary.unguarded_baseline_acceptances_during_shift).sum::<usize>();
-    let observed_count = summaries.iter().map(|summary| summary.observed_count).sum::<usize>() / 2;
-    let covered_observations = summaries.iter().map(|summary| summary.covered_observations).sum::<usize>() / 2;
+    let observed_count = summaries.iter().map(|summary| summary.observed_count).sum::<usize>();
+    let covered_observations = summaries.iter().map(|summary| summary.covered_observations).sum::<usize>();
     let unguarded_baseline_missing_or_stale_acceptances = summaries
         .iter()
-        .map(|summary| summary.missing_or_stale_acceptances)
+        .map(|summary| summary.unguarded_baseline_acceptances_missing_or_stale)
         .sum::<usize>();
 
     let total_steps = scenarios.iter().map(|scenario| scenario.observations.len()).sum::<usize>();
