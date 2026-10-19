@@ -233,7 +233,7 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
     let mut ids = Vec::new();
     let mut outcomes = Vec::new();
     for line in MANIFEST.lines().skip(1).filter(|line| !line.trim().is_empty()) {
-        let fields: Vec<&str> = line.split('\t').collect();
+        let fields: Vec<&str> = line.split('\\t').collect();
         assert_eq!(fields.len(), 3, "malformed manifest line: {line}");
         assert!(!fields[1].is_empty(), "missing expected result: {line}");
         assert!(!fields[2].is_empty(), "missing rationale: {line}");
@@ -263,33 +263,6 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
         "unsafe_personal_or_url_reference_blocks_public_aggregate",
         "unknown_fields_are_rejected",
     ];
-    assert_eq!(ids.len(), expected.len());
-    assert_eq!(ids, expected);
-    let expected_outcomes = [
-        "CALCULATED",
-        "CALCULATED",
-        "CALCULATED",
-        "CALCULATED",
-        "CALCULATED",
-        "CALCULATED",
-        "CALCULATED",
-        "CALCULATED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "BLOCKED",
-        "NOT_ASSESSABLE",
-        "BLOCKED",
-        "REJECTED",
-    ];
-    assert_eq!(ids.len(), expected.len());
-    assert_eq!(ids, expected);
     let expected_outcomes = [
         "CALCULATED",
         "CALCULATED",
@@ -313,6 +286,8 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
         "BLOCKED",
         "REJECTED",
     ];
+    assert_eq!(ids.len(), expected.len());
+    assert_eq!(ids, expected);
     assert_eq!(outcomes, expected_outcomes);
     let mut unique = ids.clone();
     unique.sort_unstable();
