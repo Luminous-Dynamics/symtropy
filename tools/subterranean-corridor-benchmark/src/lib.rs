@@ -96,7 +96,10 @@ impl HardGates {
         [
             ("geotechnical", self.geotechnical),
             ("hydrogeological", self.hydrogeological),
-            ("seismic_hazard_characterization", self.seismic_hazard_characterization),
+            (
+                "seismic_hazard_characterization",
+                self.seismic_hazard_characterization,
+            ),
             ("active_fault_displacement", self.active_fault_displacement),
             (
                 "liquefaction_lateral_spread_and_slope",
@@ -338,7 +341,10 @@ fn validate(candidate: &Candidate) -> Result<(), String> {
             "access_transfer_cost_usd_per_unit",
             candidate.access_transfer_cost_usd_per_unit,
         ),
-        ("annual_external_cost_usd", candidate.annual_external_cost_usd),
+        (
+            "annual_external_cost_usd",
+            candidate.annual_external_cost_usd,
+        ),
         ("energy_kwh_per_unit_km", candidate.energy_kwh_per_unit_km),
         (
             "emissions_kg_co2e_per_unit_km",
@@ -352,7 +358,10 @@ fn validate(candidate: &Candidate) -> Result<(), String> {
             "capital_embodied_emissions_kg_co2e",
             candidate.capital_embodied_emissions_kg_co2e,
         ),
-        ("decommissioning_cost_usd", candidate.decommissioning_cost_usd),
+        (
+            "decommissioning_cost_usd",
+            candidate.decommissioning_cost_usd,
+        ),
         ("residual_value_usd", candidate.residual_value_usd),
     ] {
         finite_nonnegative(name, value)?;
@@ -385,9 +394,7 @@ fn validate(candidate: &Candidate) -> Result<(), String> {
         return Err("AVAILABILITY_OUT_OF_RANGE".to_owned());
     }
 
-    if candidate.evidence_class != EvidenceClass::Synthetic
-        && candidate.source_refs.is_empty()
-    {
+    if candidate.evidence_class != EvidenceClass::Synthetic && candidate.source_refs.is_empty() {
         return Err("DECLARED_EVIDENCE_REQUIRES_SOURCE_REFERENCES".to_owned());
     }
     let mut refs = std::collections::BTreeSet::new();
@@ -493,15 +500,16 @@ pub fn evaluate(candidate: &Candidate) -> Evaluation {
     let effective_capacity =
         candidate.annual_capacity_units * candidate.service_availability_fraction;
     if !effective_capacity.is_finite() {
-        return invalid(&candidate.candidate_id, "ARITHMETIC_OVERFLOW:EFFECTIVE_CAPACITY");
+        return invalid(
+            &candidate.candidate_id,
+            "ARITHMETIC_OVERFLOW:EFFECTIVE_CAPACITY",
+        );
     }
     if effective_capacity + EPS < candidate.annual_demand_units {
         return Evaluation {
             candidate_id: candidate.candidate_id.clone(),
             disposition: Disposition::CapacityInsufficient,
-            reasons: vec![
-                "CAPACITY_SHORTFALL_AFTER_AVAILABILITY_ADJUSTMENT".to_owned(),
-            ],
+            reasons: vec!["CAPACITY_SHORTFALL_AFTER_AVAILABILITY_ADJUSTMENT".to_owned()],
             metrics: None,
         };
     }
@@ -517,9 +525,8 @@ pub fn evaluate(candidate: &Candidate) -> Evaluation {
     let annual_variable_cost = candidate.annual_demand_units
         * (candidate.route_distance_km * candidate.variable_cost_usd_per_unit_km
             + candidate.access_transfer_cost_usd_per_unit);
-    let annual_private_cost = candidate.annual_fixed_opex_usd
-        + candidate.annual_maintenance_usd
-        + annual_variable_cost;
+    let annual_private_cost =
+        candidate.annual_fixed_opex_usd + candidate.annual_maintenance_usd + annual_variable_cost;
     let private_npv = total_capex
         + annual_private_cost * annuity_factor
         + candidate.decommissioning_cost_usd * terminal_factor
@@ -533,12 +540,11 @@ pub fn evaluate(candidate: &Candidate) -> Evaluation {
             * candidate.route_distance_km
             * candidate.energy_kwh_per_unit_km
             * years as f64;
-    let total_lifecycle_emissions_kg_co2e =
-        candidate.capital_embodied_emissions_kg_co2e
-            + candidate.annual_demand_units
-                * candidate.route_distance_km
-                * candidate.emissions_kg_co2e_per_unit_km
-                * years as f64;
+    let total_lifecycle_emissions_kg_co2e = candidate.capital_embodied_emissions_kg_co2e
+        + candidate.annual_demand_units
+            * candidate.route_distance_km
+            * candidate.emissions_kg_co2e_per_unit_km
+            * years as f64;
     let thermal = candidate.thermal_opportunity.as_ref().map(|heat| {
         let matched = heat
             .recoverable_mwh_per_year
@@ -586,9 +592,9 @@ pub fn evaluate(candidate: &Candidate) -> Evaluation {
 
     let disposition = match candidate.evidence_class {
         EvidenceClass::Synthetic => Disposition::ComparableSynthetic,
-        EvidenceClass::Sourced
-        | EvidenceClass::Measured
-        | EvidenceClass::IndependentlyReviewed => Disposition::ComparableDeclaredEvidence,
+        EvidenceClass::Sourced | EvidenceClass::Measured | EvidenceClass::IndependentlyReviewed => {
+            Disposition::ComparableDeclaredEvidence
+        }
     };
     Evaluation {
         candidate_id: candidate.candidate_id.clone(),
@@ -614,19 +620,16 @@ fn dominates_metrics(a: &Metrics, b: &Metrics) -> bool {
     if !same_comparison_contract(a, b) {
         return false;
     }
-    let no_worse = a.social_cost_per_service_unit_usd
-        <= b.social_cost_per_service_unit_usd + EPS
+    let no_worse = a.social_cost_per_service_unit_usd <= b.social_cost_per_service_unit_usd + EPS
         && a.door_to_door_hours <= b.door_to_door_hours + EPS
         && a.energy_kwh_per_service_unit <= b.energy_kwh_per_service_unit + EPS
-        && a.emissions_kg_co2e_per_service_unit
-            <= b.emissions_kg_co2e_per_service_unit + EPS
+        && a.emissions_kg_co2e_per_service_unit <= b.emissions_kg_co2e_per_service_unit + EPS
         && a.service_availability_fraction + EPS >= b.service_availability_fraction;
     let strictly_better = a.social_cost_per_service_unit_usd
         < b.social_cost_per_service_unit_usd - EPS
         || a.door_to_door_hours < b.door_to_door_hours - EPS
         || a.energy_kwh_per_service_unit < b.energy_kwh_per_service_unit - EPS
-        || a.emissions_kg_co2e_per_service_unit
-            < b.emissions_kg_co2e_per_service_unit - EPS
+        || a.emissions_kg_co2e_per_service_unit < b.emissions_kg_co2e_per_service_unit - EPS
         || a.service_availability_fraction > b.service_availability_fraction + EPS;
     no_worse && strictly_better
 }
@@ -723,7 +726,12 @@ mod tests {
         let result = evaluate(&candidate);
         assert_eq!(result.disposition, Disposition::NeedsEvidence);
         assert!(result.metrics.is_none());
-        assert!(result.reasons.iter().any(|r| r == "NEEDS_EVIDENCE:hydrogeological"));
+        assert!(
+            result
+                .reasons
+                .iter()
+                .any(|r| r == "NEEDS_EVIDENCE:hydrogeological")
+        );
     }
 
     #[test]
@@ -733,10 +741,12 @@ mod tests {
         let result = evaluate(&candidate);
         assert_eq!(result.disposition, Disposition::NeedsEvidence);
         assert!(result.metrics.is_none());
-        assert!(result
-            .reasons
-            .iter()
-            .any(|r| r == "NEEDS_EVIDENCE:seismic_hazard_characterization"));
+        assert!(
+            result
+                .reasons
+                .iter()
+                .any(|r| r == "NEEDS_EVIDENCE:seismic_hazard_characterization")
+        );
     }
 
     #[test]
@@ -746,10 +756,12 @@ mod tests {
         let result = evaluate(&candidate);
         assert_eq!(result.disposition, Disposition::Ineligible);
         assert!(result.metrics.is_none());
-        assert!(result
-            .reasons
-            .iter()
-            .any(|r| r == "GATE_FAILED:active_fault_displacement"));
+        assert!(
+            result
+                .reasons
+                .iter()
+                .any(|r| r == "GATE_FAILED:active_fault_displacement")
+        );
     }
 
     #[test]
@@ -769,8 +781,18 @@ mod tests {
         let result = evaluate(&candidate);
         assert_eq!(result.disposition, Disposition::Ineligible);
         assert!(result.metrics.is_none());
-        assert!(result.reasons.iter().any(|r| r == "GATE_FAILED:geotechnical"));
-        assert!(result.reasons.iter().any(|r| r == "NEEDS_EVIDENCE:hydrogeological"));
+        assert!(
+            result
+                .reasons
+                .iter()
+                .any(|r| r == "GATE_FAILED:geotechnical")
+        );
+        assert!(
+            result
+                .reasons
+                .iter()
+                .any(|r| r == "NEEDS_EVIDENCE:hydrogeological")
+        );
     }
 
     #[test]
@@ -829,7 +851,11 @@ mod tests {
         assert!((thermal.gate_satisfied_useful_mwh_per_year.unwrap() - 2.4).abs() < EPS);
         assert!((metrics.private_lifecycle_npv_usd - 2_420.0).abs() < EPS);
 
-        candidate.thermal_opportunity.as_mut().unwrap().source_sink_gate = GateState::Unknown;
+        candidate
+            .thermal_opportunity
+            .as_mut()
+            .unwrap()
+            .source_sink_gate = GateState::Unknown;
         let unqualified = evaluate(&candidate);
         let heat = unqualified.metrics.unwrap().thermal.unwrap();
         assert!(heat.gate_satisfied_useful_mwh_per_year.is_none());
@@ -847,7 +873,10 @@ mod tests {
         better.service_availability_fraction = 0.95;
         better.annual_capacity_units = 200.0;
         let b = evaluate(&better);
-        assert_eq!(pareto_frontier(&[a.clone(), b.clone()]), vec!["better".to_owned()]);
+        assert_eq!(
+            pareto_frontier(&[a.clone(), b.clone()]),
+            vec!["better".to_owned()]
+        );
 
         let mut unrelated = better;
         unrelated.candidate_id = "different-basis".to_owned();
@@ -878,7 +907,10 @@ mod tests {
         candidate.terminal_capex_usd = 0.0;
         candidate.fleet_capex_usd = 0.0;
         candidate.utility_capex_usd = 0.0;
-        assert_eq!(evaluate(&candidate).disposition, Disposition::ComparableSynthetic);
+        assert_eq!(
+            evaluate(&candidate).disposition,
+            Disposition::ComparableSynthetic
+        );
     }
 
     #[test]
