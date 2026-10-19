@@ -650,7 +650,11 @@ mod tests {
         value["aggregation_constraints"][0]["child_forecast_ids"] =
             json!(["fc-admin1-a-organized"]);
         let errors = audit(&value).expect_err("a listed subset cannot claim complete coverage");
-        assert!(errors.iter().any(|error| error.contains("expected_child_keys")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected_child_keys"))
+        );
     }
 
     #[test]
