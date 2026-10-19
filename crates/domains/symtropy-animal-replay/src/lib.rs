@@ -72,6 +72,8 @@ pub enum ReplayReason {
     DuplicateMetricId,
     EmptyMetricUnit,
     EmptyMetricStratum,
+    InvalidOverallStratumId,
+    TaxonStratumUnbound,
     InvalidMetricObservation,
     InvalidConfidenceInterval,
     InvalidThreshold,
@@ -397,6 +399,14 @@ pub fn build_replay_receipt(
         }
         if metric.stratum_id.trim().is_empty() {
             rejected.insert(ReplayReason::EmptyMetricStratum);
+        }
+        if metric.stratum_kind == MetricStratumKind::Overall && metric.stratum_id != "all" {
+            rejected.insert(ReplayReason::InvalidOverallStratumId);
+        }
+        if metric.stratum_kind == MetricStratumKind::Taxon
+            && !manifest.taxonomy.taxon_ids.iter().any(|id| id == &metric.stratum_id)
+        {
+            rejected.insert(ReplayReason::TaxonStratumUnbound);
         }
         if !metric_keys.insert((metric.metric_id.clone(), metric.stratum_kind, metric.stratum_id.clone())) {
             rejected.insert(ReplayReason::DuplicateMetricId);
