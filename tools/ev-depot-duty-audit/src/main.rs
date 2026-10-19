@@ -52,6 +52,16 @@ struct InvalidRow {
 }
 
 #[derive(Debug, Serialize)]
+struct ReconciledOperationDayProfile {
+    operation_day_id: u64,
+    vmt_miles: f64,
+    on_shift_seconds: u32,
+    off_shift_seconds: u32,
+    first_on_shift_start_second: Option<u32>,
+    last_on_shift_end_second: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
 struct DayIssue {
     operation_day_id: u64,
     reasons: Vec<String>,
@@ -76,6 +86,7 @@ struct Report {
     schedule_invalid_rows: Vec<InvalidRow>,
     reconciled_operation_day_count: usize,
     operation_day_reconciliation_issues: Vec<DayIssue>,
+    reconciled_operation_day_profiles: Vec<ReconciledOperationDayProfile>,
     schedule_segment_count_for_reconciled_days: usize,
     reconciled_vmt_miles_total_across_operation_day_records: f64,
     daily_vmt_miles: Distribution,
@@ -341,6 +352,7 @@ fn audit(
     }
     let mut issues = Vec::<DayIssue>::new();
     let mut reconciled = Vec::<OpDay>::new();
+    let mut reconciled_profiles = Vec::<ReconciledOperationDayProfile>::new();
     let mut segments_for_reconciled = 0_usize;
 
     for day in operation_days.values() {
@@ -392,6 +404,16 @@ fn audit(
             reasons.push(format!("vmt_mismatch:segments={schedule_vmt:.9},operation_days={:.9},tolerance={vmt_tolerance:.9}", day.vmt));
         }
         if reasons.is_empty() {
+            let first_on_shift_start_second = segments.iter().find(|segment| segment.on_shift).map(|segment| segment.start_second);
+            let last_on_shift_end_second = segments.iter().rev().find(|segment| segment.on_shift).map(|segment| segment.end_second);
+            reconciled_profiles.push(ReconciledOperationDayProfile {
+                operation_day_id: day.id,
+                vmt_miles: day.vmt,
+                on_shift_seconds: day.on_shift_seconds,
+                off_shift_seconds: day.off_shift_seconds,
+                first_on_shift_start_second,
+                last_on_shift_end_second,
+            });
             reconciled.push(day.clone());
             segments_for_reconciled += segments.len();
         } else {
@@ -438,6 +460,7 @@ fn audit(
         schedule_invalid_rows: invalid_schedule_rows,
         reconciled_operation_day_count: reconciled.len(),
         operation_day_reconciliation_issues: issues,
+        reconciled_operation_day_profiles: reconciled_profiles,
         schedule_segment_count_for_reconciled_days: segments_for_reconciled,
         reconciled_vmt_miles_total_across_operation_day_records: vmt_values.iter().sum(),
         daily_vmt_miles: distribution(&vmt_values),
@@ -575,6 +598,11 @@ mod tests {
             8
         );
         assert_eq!(report.reconciled_operation_day_count, 2);
+        assert_eq!(report.reconciled_operation_day_profiles.len(), 2);
+        assert_eq!(report.reconciled_operation_day_profiles[0].first_on_shift_start_second, Some(8 * 3600));
+        assert_eq!(report.reconciled_operation_day_profiles[0].last_on_shift_end_second, Some(17 * 3600));
+        assert_eq!(report.reconciled_operation_day_profiles[1].first_on_shift_start_second, Some(4 * 3600));
+        assert_eq!(report.reconciled_operation_day_profiles[1].last_on_shift_end_second, Some(18 * 3600));
         assert!(report.operation_day_reconciliation_issues.is_empty());
         assert_eq!(report.daily_vmt_miles.p50, Some(65.0));
         assert_eq!(report.daily_vmt_miles.p95, Some(90.0));
