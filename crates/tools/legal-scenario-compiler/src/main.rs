@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::{env, fs, process};
 
 const RULESET_JSON: &str = include_str!("../ruleset-v0.1.json");
+const GENERATOR_SOURCE: &str = include_str!("main.rs");
 const GENERATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
 const REASONING_DEPTHS: [u8; 6] = [0, 1, 2, 4, 6, 8];
 
@@ -175,6 +176,7 @@ struct GeneratedCorpus {
     schema_version: String,
     dataset_kind: String,
     generator_version: String,
+    generator_source_sha256: String,
     ruleset_id: String,
     ruleset_sha256: String,
     seed: u64,
@@ -186,6 +188,7 @@ struct GeneratedCorpus {
 struct ValidationReceipt {
     status: &'static str,
     corpus_sha256: String,
+    generator_source_sha256: String,
     ruleset_sha256: String,
     case_count: usize,
     metamorphic_pair_count: usize,
@@ -923,6 +926,7 @@ fn generate_corpus(
         schema_version: "0.1.0".to_string(),
         dataset_kind: "synthetic_only".to_string(),
         generator_version: GENERATOR_VERSION.to_string(),
+        generator_source_sha256: sha256_hex(GENERATOR_SOURCE.as_bytes()),
         ruleset_id: ruleset.id.clone(),
         ruleset_sha256: sha256_hex(ruleset_raw.as_bytes()),
         seed,
@@ -955,6 +959,9 @@ fn validate_corpus(
     }
     if corpus.ruleset_id != ruleset.id {
         return Err(format!("ruleset id mismatch: {}", corpus.ruleset_id));
+    }
+    if corpus.generator_source_sha256 != sha256_hex(GENERATOR_SOURCE.as_bytes()) {
+        return Err("generator source digest mismatch".to_string());
     }
     if corpus.ruleset_sha256 != sha256_hex(ruleset_raw.as_bytes()) {
         return Err("ruleset digest mismatch".to_string());
@@ -1055,6 +1062,7 @@ fn validation_receipt(corpus: &GeneratedCorpus, raw: &[u8]) -> ValidationReceipt
     ValidationReceipt {
         status: "VALID",
         corpus_sha256: sha256_hex(raw),
+        generator_source_sha256: corpus.generator_source_sha256.clone(),
         ruleset_sha256: corpus.ruleset_sha256.clone(),
         case_count: corpus.cases.len(),
         metamorphic_pair_count: corpus.metamorphic_pairs.len(),
@@ -1091,6 +1099,10 @@ mod tests {
         let second = generate_corpus(42, &ruleset, RULESET_JSON).expect("generation succeeds");
         assert_eq!(serialized(&first), serialized(&second));
         assert_eq!(first.ruleset_sha256, sha256_hex(RULESET_JSON.as_bytes()));
+        assert_eq!(
+            first.generator_source_sha256,
+            sha256_hex(GENERATOR_SOURCE.as_bytes())
+        );
     }
 
     #[test]
