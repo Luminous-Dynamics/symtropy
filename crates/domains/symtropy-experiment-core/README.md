@@ -17,6 +17,9 @@ From the Symtropy workspace root:
 ```sh
 cargo test -p symtropy-experiment-core
 cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- crates/domains/symtropy-experiment-core/fixtures/gear-ratio.json
+
+# Sweep a parameter without mutating the canonical model; values retain input order
+cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- sweep crates/domains/symtropy-experiment-core/fixtures/gear-ratio.json variable:n_driver 47,48,49
 ```
 
 The expected idealized result for the fixture is `theta_output = -1.9 rad` and `signed_ratio = -4`. The runner prints all supplied and derived variables as JSON strings.
