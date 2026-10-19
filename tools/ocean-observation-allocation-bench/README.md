@@ -9,7 +9,7 @@ From the repository root with Rust installed:
     cargo test -p ocean-observation-allocation-bench --locked
     cargo run --quiet -p ocean-observation-allocation-bench --locked -- --corpus docs/tech/OCEAN_OBSERVATION_ALLOCATION_CORPUS_V0_1.json --source-commit "$(git rev-parse HEAD)" --receipt target/ocean-observation-allocation-receipt.json
 
-The tool emits a deterministic receipt bound to the exact corpus bytes by SHA-256, Git source commit, schema/suite/tool version, seed, case count, policy reports and invariant outcomes. CI uses a path-filtered workflow and does not need the full Bevy application test suite.
+The tool emits a deterministic receipt bound to the exact corpus bytes by SHA-256, Git source commit, schema/suite/tool version, seed, case count, policy reports and invariant outcomes. CI uses a path-filtered workflow and does not need the full Bevy application test suite. The focused workflow uploads the machine-readable receipt as a downloadable 14-day artifact and prints per-policy coverage, information score, effort, separate exposure totals, regret and selected candidate IDs to the job log.
 
 ## Compared policies
 
