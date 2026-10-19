@@ -126,11 +126,11 @@ The receipt is evidence of what ran; it is not evidence that the model is valid.
 
 ## Next implementation stages
 
-1. Freeze this protocol and the scenario schema before selecting metrics from observed outcomes.
-2. Implement a small dependency-light Rust reference model with deterministic event order and tests.
+1. Keep this protocol and primary outcomes fixed before looking at any result that could tune model assumptions.
+2. The initial dependency-free Rust reference scaffold now lives at research/social-dynamics-reference. Run its tests and CSV experiment on a Rust-equipped host; revise any discovered model or implementation defects openly.
 3. Reproduce at least two canonical models and add negative controls before adding cognitive complexity.
-4. Add commit/evidence mechanisms as one treatment arm; run ablations.
-5. Calibrate on a permitted dataset, lock the temporal holdout, then compare baseline and treatment.
-6. Only after validity gates pass, connect the run artifacts to Symtropy, Mycelix, Symthaea, and Sol-Atlas adapters.
+4. Treat commitments/evidence as an intervention arm; measure whether it beats simpler policies and whether the effect survives ablations.
+5. Calibrate only on permitted data, lock a temporal holdout, and report uncertainty before claiming external predictive value.
+6. Only after validity gates pass, connect run artifacts to Symtropy, Mycelix, Symthaea, and Sol-Atlas adapters.
 
 **Current status:** proposal only. No simulation results, speedup, or out-of-sample improvement are claimed by this document.
