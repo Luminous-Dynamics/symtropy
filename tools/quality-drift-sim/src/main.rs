@@ -259,8 +259,8 @@ fn simulate(scenario: Scenario, policy: Policy, seed: u64, parts: u64) -> RunMet
                 -scenario.jump_magnitude
             };
         }
-        process_bias =
-            (AR_COEFFICIENT * process_bias + sample.drift_innovation).clamp(-BIAS_LIMIT, BIAS_LIMIT);
+        process_bias = (AR_COEFFICIENT * process_bias + sample.drift_innovation)
+            .clamp(-BIAS_LIMIT, BIAS_LIMIT);
         tool_wear += scenario.wear_per_part;
         age_since_service += 1;
 
@@ -274,7 +274,8 @@ fn simulate(scenario: Scenario, policy: Policy, seed: u64, parts: u64) -> RunMet
                 metrics.maintenance_downtime += scenario.fixed_downtime;
             }
             Policy::ConditionBased => {
-                let observed_offset = process_bias + tool_wear + scenario.sensor_bias + sample.sensor_noise;
+                let observed_offset =
+                    process_bias + tool_wear + scenario.sensor_bias + sample.sensor_noise;
                 if observed_offset.abs() > scenario.monitor_threshold
                     || tool_wear > scenario.wear_trigger
                 {
@@ -365,7 +366,11 @@ fn paired_delta(
         .sum::<f64>()
         / (differences.len().saturating_sub(1).max(1) as f64);
     let standard_error = variance.sqrt() / (differences.len() as f64).sqrt();
-    (avg, avg - 1.96 * standard_error, avg + 1.96 * standard_error)
+    (
+        avg,
+        avg - 1.96 * standard_error,
+        avg + 1.96 * standard_error,
+    )
 }
 
 fn healthy_run(run: &RunMetrics) -> bool {
