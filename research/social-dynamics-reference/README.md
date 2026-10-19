@@ -17,7 +17,7 @@ The executable prints one summary CSV row per treatment, including paired relati
 - no_commitments: local willingness and shared-shock urgency only;
 - static_trust: fixed initial tie-trust estimates and urgency;
 - reciprocity: previous-neighbor contribution rate and fixed trust;
-- verifiable_commitments: noisy observations with an explicit signal-tampering rate, trust updating, and explicit verification overhead.
+- evidence_based_trust: noisy observations with an explicit signal-tampering rate, trust updating, and explicit observation overhead.
 
 The rules are deliberately simple reference policies, not behaviorally calibrated mechanisms. Their ordering is an empirical question. Do not change assumptions after seeing the held-out scores and then describe the result as a preregistered prediction.
 
@@ -28,7 +28,7 @@ The rules are deliberately simple reference policies, not behaviorally calibrate
 - The model pre-draws action/noise/tampering channels each tick so treatment branches do not consume different amounts of randomness. Initial states and random channels are paired by seed.
 - Resource reserve bounds contribution feasibility; shared service capacity sets the main unmet-need outcome.
 - Recovery is counted only if capacity reaches 98% of baseline within the declared shock window.
-- The benchmark reports unmet need, peak unmet need, total contributions, recovery timing, verification overhead, and repair progress.
+- The benchmark reports unmet need, peak unmet need, total contributions, recovery timing, observation overhead, and repair progress.
 - Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, a zero-duration shock, Gini calculations, and paired-bootstrap behavior on known synthetic values (nine tests total across the library and binary).
 
 ## Known limitations
