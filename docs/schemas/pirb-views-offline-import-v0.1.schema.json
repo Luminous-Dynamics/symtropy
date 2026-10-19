@@ -46,6 +46,8 @@
         "variable_kind",
         "target_definition",
         "analysis_unit",
+        "violence_type",
+        "binary_event_threshold_brd",
         "threshold_definition",
         "codebook_required_phrase",
         "forecast_source_reference",
@@ -138,6 +140,15 @@
         "outcome_attribution": {
           "type": "string",
           "minLength": 1
+        },
+        "violence_type": {
+          "const": "sb",
+          "description": "v0.1 supports the state-based violence binary target only."
+        },
+        "binary_event_threshold_brd": {
+          "type": "integer",
+          "const": 25,
+          "description": "State-based country-month event threshold for this v0.1 adapter."
         }
       }
     },
