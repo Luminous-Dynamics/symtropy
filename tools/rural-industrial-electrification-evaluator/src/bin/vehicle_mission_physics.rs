@@ -451,6 +451,12 @@ fn validate_inputs(catalog: &Catalog, profiles: &ProfileCorpus) -> Result<(), St
                     scenario.scenario_id, segment.segment_id
                 ));
             }
+            if segment.rolling_resistance_coefficient > 0.2 {
+                return Err(format!(
+                    "scenario_{}_segment_{}_rolling_resistance_out_of_domain",
+                    scenario.scenario_id, segment.segment_id
+                ));
+            }
             if segment.distance_m == 0.0 {
                 if segment.initial_speed_mps > 1e-9 || segment.final_speed_mps > 1e-9 {
                     return Err(format!(
@@ -772,6 +778,23 @@ mod tests {
         let report = simulate(&scenario, &sample_catalog().designs[0]);
         assert!(report.total_unserved_energy_kwh > 0.0);
         assert_eq!(report.status, Status::Blocked);
+    }
+
+    #[test]
+    fn stationary_work_duration_is_not_counted_as_travel() {
+        let mut stationary = flat_segment();
+        stationary.distance_m = 0.0;
+        stationary.duration_s = 7_200.0;
+        stationary.initial_speed_mps = 0.0;
+        stationary.final_speed_mps = 0.0;
+        stationary.work_energy_demand_kwh = 1.0;
+        let mut scenario = sample_scenario(stationary);
+        scenario.segments.push(flat_segment());
+        let catalog = sample_catalog();
+        let report = simulate(&scenario, &catalog.designs[0]);
+        assert!((report.total_travel_hours - 100.0 / 3600.0).abs() < 1e-9);
+        assert!((report.total_stationary_segment_hours - 2.0).abs() < 1e-9);
+        assert!((report.total_profiled_segment_hours - (2.0 + 100.0 / 3600.0)).abs() < 1e-9);
     }
 
     #[test]
