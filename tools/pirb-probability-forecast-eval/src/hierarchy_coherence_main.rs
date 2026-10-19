@@ -735,10 +735,7 @@ mod tests {
         let node_id = |index: usize| format!("node-{index:05}");
         let mut adjacency = BTreeMap::<String, BTreeSet<String>>::new();
         for index in 0..NODE_COUNT - 1 {
-            adjacency.insert(
-                node_id(index),
-                BTreeSet::from([node_id(index + 1)]),
-            );
+            adjacency.insert(node_id(index), BTreeSet::from([node_id(index + 1)]));
         }
         adjacency.insert(node_id(NODE_COUNT - 1), BTreeSet::new());
 
