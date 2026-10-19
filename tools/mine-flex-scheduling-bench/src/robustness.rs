@@ -7,6 +7,8 @@ use super::{
 mod recourse;
 #[path = "risk_budget.rs"]
 mod risk_budget;
+#[path = "execution.rs"]
+mod execution;
 
 use serde::Serialize;
 use std::process::ExitCode;
@@ -782,6 +784,10 @@ pub(super) fn run_recourse_cli(args: &[String]) -> Check<ExitCode> {
 
 pub(super) fn run_risk_budget_cli(args: &[String]) -> Check<ExitCode> {
     risk_budget::run_cli(args)
+}
+
+pub(super) fn run_execution_cli(args: &[String]) -> Check<ExitCode> {
+    execution::run_cli(args)
 }
 
 pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {
