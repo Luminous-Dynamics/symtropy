@@ -971,6 +971,68 @@ mod tests {
     }
 
     #[test]
+    fn adversarial_age_and_residual_grid_never_admits_invalid_observations() {
+        let error_limit =
+            finite_sample_absolute_error_limit(&calibration_residuals(), 5).expect("q95");
+        let baseline = generate_scenarios()
+            .into_iter()
+            .find(|scenario| scenario.seed == 1 && scenario.kind == ScenarioKind::Nominal)
+            .expect("nominal fixture");
+
+        for age in 0..=3 {
+            for residual in -5_i64..=5_i64 {
+                let mut scenario = baseline.clone();
+                scenario.observations[0].measurement_age_periods = age;
+                scenario.observations[0].observed_state_liters =
+                    Some(scenario.observations[0].predicted_state_liters + residual);
+                let result = decide_scenario(&scenario, error_limit).expect("evaluate mutation");
+                let disposition = result.steps[0].disposition;
+                if age > MAX_MEASUREMENT_AGE_PERIODS {
+                    assert_eq!(Disposition::AbstainStaleTelemetry, disposition);
+                } else if residual.abs() > error_limit {
+                    assert_eq!(Disposition::AbstainResidualOutOfEnvelope, disposition);
+                } else {
+                    assert_eq!(Disposition::UseModel, disposition);
+                }
+            }
+
+            let mut missing = baseline.clone();
+            missing.observations[0].measurement_age_periods = age;
+            missing.observations[0].observed_state_liters = None;
+            let result = decide_scenario(&missing, error_limit).expect("evaluate missing");
+            assert_eq!(
+                Disposition::AbstainMissingObservation,
+                result.steps[0].disposition
+            );
+        }
+    }
+
+    #[test]
+    fn widening_an_interval_across_a_protected_bound_never_admits_it() {
+        let error_limit =
+            finite_sample_absolute_error_limit(&calibration_residuals(), 5).expect("q95");
+        let baseline = generate_scenarios()
+            .into_iter()
+            .find(|scenario| scenario.seed == 1 && scenario.kind == ScenarioKind::Nominal)
+            .expect("nominal fixture");
+
+        for lower in -5_i64..=0 {
+            let mut scenario = baseline.clone();
+            scenario.observations[0].interval_lower_liters = lower;
+            scenario.observations[0].interval_upper_liters = 52;
+            let result = decide_scenario(&scenario, error_limit).expect("evaluate lower bound");
+            assert_eq!(Disposition::RejectUnsafeInterval, result.steps[0].disposition);
+        }
+        for upper in 100_i64..=105 {
+            let mut scenario = baseline.clone();
+            scenario.observations[0].interval_lower_liters = 48;
+            scenario.observations[0].interval_upper_liters = upper;
+            let result = decide_scenario(&scenario, error_limit).expect("evaluate upper bound");
+            assert_eq!(Disposition::RejectUnsafeInterval, result.steps[0].disposition);
+        }
+    }
+
+    #[test]
     fn receipt_is_byte_deterministic_and_rejects_invalid_source_identity() {
         let source = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
         let first = make_receipt(source).expect("first receipt");
