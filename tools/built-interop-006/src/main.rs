@@ -2076,11 +2076,7 @@ mod tests {
         )
         .unwrap();
 
-        let supplied = vec![
-            schema_producer.gate,
-            delta_producer.gate,
-            ids_gate,
-        ];
+        let supplied = vec![schema_producer.gate, delta_producer.gate, ids_gate];
         let report = assemble_report(&fixture_args(), source, ids, target, supplied).unwrap();
 
         assert_eq!(report.overall_decision, OverallDecision::Unqualified);
@@ -2088,19 +2084,38 @@ mod tests {
         assert_eq!(report.artifacts[1].sha256, sha256_hex(ids));
         assert_eq!(report.artifacts[2].sha256, sha256_hex(target));
         assert_eq!(
-            report.gates.iter().find(|gate| gate.gate_id == GateId::IfcSchemaConformance).unwrap().status,
+            report
+                .gates
+                .iter()
+                .find(|gate| gate.gate_id == GateId::IfcSchemaConformance)
+                .unwrap()
+                .status,
             GateStatus::Pass
         );
         assert_eq!(
-            report.gates.iter().find(|gate| gate.gate_id == GateId::IdsModelConformance).unwrap().status,
+            report
+                .gates
+                .iter()
+                .find(|gate| gate.gate_id == GateId::IdsModelConformance)
+                .unwrap()
+                .status,
             GateStatus::Pass
         );
         assert_eq!(
-            report.gates.iter().find(|gate| gate.gate_id == GateId::ExchangeSemanticPreservation).unwrap().status,
+            report
+                .gates
+                .iter()
+                .find(|gate| gate.gate_id == GateId::ExchangeSemanticPreservation)
+                .unwrap()
+                .status,
             GateStatus::Pass
         );
         assert_eq!(
-            report.gates.iter().filter(|gate| gate.status == GateStatus::NotRun).count(),
+            report
+                .gates
+                .iter()
+                .filter(|gate| gate.status == GateStatus::NotRun)
+                .count(),
             5
         );
     }
@@ -2139,11 +2154,20 @@ mod tests {
         .unwrap();
         assert_eq!(report.overall_decision, OverallDecision::Blocked);
         assert_eq!(
-            report.gates.iter().find(|gate| gate.gate_id == GateId::ExchangeSemanticPreservation).unwrap().status,
+            report
+                .gates
+                .iter()
+                .find(|gate| gate.gate_id == GateId::ExchangeSemanticPreservation)
+                .unwrap()
+                .status,
             GateStatus::Fail
         );
         assert_eq!(
-            report.gates.iter().filter(|gate| gate.status == GateStatus::NotRun).count(),
+            report
+                .gates
+                .iter()
+                .filter(|gate| gate.status == GateStatus::NotRun)
+                .count(),
             7
         );
     }
