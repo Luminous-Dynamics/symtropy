@@ -268,8 +268,6 @@ pub enum ManifestReason {
     DuplicateObservationLeakage,
     TemporalLeakage,
     MissingRequiredSite,
-    MissingRequiredIndividual,
-    MissingRequiredTaxon,
     InvalidTemporalGap,
 }
 
@@ -461,7 +459,10 @@ pub fn validate_split(
         training_count: counts.get(&SplitRole::Training).copied().unwrap_or_default(),
         validation_count: counts.get(&SplitRole::Validation).copied().unwrap_or_default(),
         test_count: counts.get(&SplitRole::Test).copied().unwrap_or_default(),
-        valid: records.len() > 0 && leakage_violations.is_empty(),
+        valid: !records.is_empty()
+            && leakage_violations.is_empty()
+            && counts.get(&SplitRole::Training).copied().unwrap_or_default() > 0
+            && counts.get(&SplitRole::Test).copied().unwrap_or_default() > 0,
         leakage_violations,
     }
 }
@@ -680,17 +681,7 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         {
             indeterminate.insert(ManifestReason::MissingRequiredSite);
         }
-        if manifest.generalization == GeneralizationTarget::UnseenSubject && record.subject_id.trim().is_empty() {
-            indeterminate.insert(ManifestReason::MissingRequiredIndividual);
-        }
-        if manifest.generalization == GeneralizationTarget::UnseenTaxon && record.taxon_id.trim().is_empty() {
-            indeterminate.insert(ManifestReason::MissingRequiredTaxon);
-        }
-    }
-    if manifest.generalization == GeneralizationTarget::UnseenSubject
-        && manifest.records.iter().all(|record| record.subject_id.trim().is_empty())
-    {
-        indeterminate.insert(ManifestReason::MissingRequiredIndividual);
+
     }
 
     let split_report = validate_split(
