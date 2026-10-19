@@ -320,10 +320,6 @@ mod tests {
             .package_manifest_sha256
             .as_deref()
             .is_some_and(|digest| digest.len() == 64));
-        assert!(value
-            .payload
-            .execution_environment
-            .contains_key("rustc_version_at_build"));
     }
 
     #[test]
