@@ -79,7 +79,7 @@ fn write_run_csv(path: &str, all_results: &[(Treatment, Vec<Metrics>)]) -> Resul
         .map_err(|error| format!("cannot create run CSV {path}: {error}"))?;
     writeln!(
         file,
-        "treatment,seed,unmet_need_integral,unmet_need_inequality_gini,contribution_count,recovery_tick,verification_overhead,repair_progress_at_shock_end"
+        "treatment,seed,unmet_need_integral,unmet_need_inequality_gini,contribution_count,recovery_tick,observation_overhead,repair_progress_at_shock_end"
     )
     .map_err(|error| format!("cannot write run CSV header: {error}"))?;
 
@@ -98,7 +98,7 @@ fn write_run_csv(path: &str, all_results: &[(Treatment, Vec<Metrics>)]) -> Resul
                 metrics.unmet_need_inequality_gini,
                 metrics.contribution_count,
                 recovery_tick,
-                metrics.verification_overhead,
+                metrics.observation_overhead,
                 metrics.repair_progress_at_shock_end
             )
             .map_err(|error| format!("cannot write run CSV row: {error}"))?;
@@ -187,7 +187,7 @@ fn main() {
         .expect("Treatment::ALL must contain the declared baseline");
 
     println!(
-        "treatment,n_runs,mean_unmet_need_integral,paired_reduction_vs_no_commitments_pct,paired_reduction_ci95_low_pct,paired_reduction_ci95_high_pct,mean_unmet_need_inequality_gini,mean_contribution_count,recovery_rate,mean_recovery_tick_when_recovered,verification_overhead,mean_repair_progress_at_shock_end"
+        "treatment,n_runs,mean_unmet_need_integral,paired_reduction_vs_no_commitments_pct,paired_reduction_ci95_low_pct,paired_reduction_ci95_high_pct,mean_unmet_need_inequality_gini,mean_contribution_count,recovery_rate,mean_recovery_tick_when_recovered,observation_overhead,mean_repair_progress_at_shock_end"
     );
 
     for (treatment, results) in &all_results {
@@ -201,7 +201,7 @@ fn main() {
         let mean_contributions =
             mean(results.iter().map(|m| m.contribution_count as f64)).unwrap_or(0.0);
         let mean_overhead =
-            mean(results.iter().map(|m| m.verification_overhead)).unwrap_or(0.0);
+            mean(results.iter().map(|m| m.observation_overhead)).unwrap_or(0.0);
         let mean_repair =
             mean(results.iter().map(|m| m.repair_progress_at_shock_end)).unwrap_or(0.0);
         let recovery_rate = results
@@ -255,7 +255,7 @@ mod tests {
             unmet_need_inequality_gini: 0.0,
             contribution_count: 0,
             recovery_tick: None,
-            verification_overhead: 0.0,
+            observation_overhead: 0.0,
             repair_progress_at_shock_end: 0.0,
         }
     }
