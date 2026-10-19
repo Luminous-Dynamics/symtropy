@@ -198,6 +198,8 @@ fn valid_inputs() -> TestInputs {
         run_id: "test-run-0001".to_owned(),
         code_head: "a".repeat(40),
         config_sha256: "b".repeat(64),
+        working_tree_clean: true,
+        working_tree_sha256: None,
         evaluator_version: "animal-replay-evaluator-v1".to_owned(),
         toolchain: "rustc-test-fixture".to_owned(),
         platform: "test-platform".to_owned(),
@@ -258,6 +260,10 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "malformed_code_head" => inputs.run.code_head = "not-a-commit".to_owned(),
         "malformed_config_digest" => inputs.run.config_sha256 = "xyz".to_owned(),
+        "dirty_tree_missing_digest" => {
+            inputs.run.working_tree_clean = false;
+            inputs.run.working_tree_sha256 = None;
+        }
         "deterministic_seed_missing" => inputs.run.seed = None,
         "empty_run_id" => inputs.run.run_id.clear(),
         "run_comparison_group_mismatch" => {
@@ -305,6 +311,9 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "below_threshold" => {
             inputs.metrics[0] = metric("pose_pck", 0.6, "fraction");
+        }
+        "threshold_interval_overlaps" => {
+            inputs.metrics[0] = metric("pose_pck", 0.79, "fraction");
         }
         "no_threshold" => inputs.task.threshold = None,
         "target_taxon_absent_from_test" => {
