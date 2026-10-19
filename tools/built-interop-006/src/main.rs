@@ -177,8 +177,7 @@ struct ProducerGate {
 
 const BUILT_INTEROP_002_ID: &str = "BUILT-INTEROP-002-ifc-ids-v0.1";
 const BUILT_INTEROP_002_PROFILE: &str = "IFC4/IDS1.0/IFCWALL.Name/simpleValue-v0.1";
-const BUILT_INTEROP_002_MAPPING_POLICY: &str =
-    "BUILT-INTEROP-006/v0.2;adapter=BUILT-INTEROP-002-ifc-ids-v0.1;binding=target-ifc+requirements-ids-digest;pass=SubsetConformant-all-Preserved;fail=Blocked-with-Changed-or-Missing;otherwise=UNRESOLVED";
+const BUILT_INTEROP_002_MAPPING_POLICY: &str = "BUILT-INTEROP-006/v0.2;adapter=BUILT-INTEROP-002-ifc-ids-v0.1;binding=target-ifc+requirements-ids-digest;pass=SubsetConformant-all-Preserved;fail=Blocked-with-Changed-or-Missing;otherwise=UNRESOLVED";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 enum AdapterDecision {
@@ -635,7 +634,8 @@ fn adapt_built_interop_002_report(
     } else {
         match report.decision {
             AdapterDecision::SubsetConformant => {
-                let complete_observation_set = report.applicable_wall_count
+                let complete_observation_set = report
+                    .applicable_wall_count
                     .is_some_and(|count| count > 0 && count == report.observations.len());
                 let every_observation_preserved = report
                     .observations
@@ -697,8 +697,13 @@ fn parse_gate_file(
     if json.get("benchmark_id").and_then(Value::as_str) == Some(BUILT_INTEROP_002_ID)
         && json.get("gate").is_none()
     {
-        let adapter_report: BuiltInterop002Report = serde_json::from_value(json)
-            .map_err(|error| format!("INVALID_BUILT_INTEROP_002_REPORT:{}:{error}", path.display()))?;
+        let adapter_report: BuiltInterop002Report =
+            serde_json::from_value(json).map_err(|error| {
+                format!(
+                    "INVALID_BUILT_INTEROP_002_REPORT:{}:{error}",
+                    path.display()
+                )
+            })?;
         let gate = adapt_built_interop_002_report(
             &adapter_report,
             &bytes,
@@ -1338,13 +1343,11 @@ mod tests {
     fn typed_ids_adapter_maps_changed_or_missing_required_name_to_fail() {
         let target = b"target IFC";
         let ids = b"IDS file";
-        for outcome in [AdapterPropertyOutcome::Changed, AdapterPropertyOutcome::Missing] {
-            let report = built_interop_002_report(
-                AdapterDecision::Blocked,
-                outcome,
-                target,
-                ids,
-            );
+        for outcome in [
+            AdapterPropertyOutcome::Changed,
+            AdapterPropertyOutcome::Missing,
+        ] {
+            let report = built_interop_002_report(AdapterDecision::Blocked, outcome, target, ids);
             let gate = gate_from_adapter(&report, target, ids).unwrap();
             assert_eq!(gate.gate_id, GateId::IdsModelConformance);
             assert_eq!(gate.status, GateStatus::Fail, "outcome={outcome:?}");
@@ -1375,15 +1378,17 @@ mod tests {
             target,
             ids,
         );
-        assert!(adapt_built_interop_002_report(
-            &report,
-            &serde_json::to_vec(&report).unwrap(),
-            Path::new("adapter-report.json"),
-            b"different IFC",
-            ids,
-        )
-        .unwrap_err()
-        .starts_with("BUILT_INTEROP_002_ARTIFACT_DIGEST_MISMATCH"));
+        assert!(
+            adapt_built_interop_002_report(
+                &report,
+                &serde_json::to_vec(&report).unwrap(),
+                Path::new("adapter-report.json"),
+                b"different IFC",
+                ids,
+            )
+            .unwrap_err()
+            .starts_with("BUILT_INTEROP_002_ARTIFACT_DIGEST_MISMATCH")
+        );
     }
 
     #[test]
