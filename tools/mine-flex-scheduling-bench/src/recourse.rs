@@ -932,22 +932,25 @@ mod tests {
     }
 
     #[test]
-    fn recourse_completes_every_in_envelope_world() {
+    fn both_recourse_objectives_complete_every_in_envelope_world() {
         for case in generate_cases() {
             for world in &case.uncertainty_envelope {
-                let outcome = execute_adaptive_recourse(
-                    &model(),
-                    &case.forecast,
-                    &case.uncertainty_envelope,
-                    &world.scenario,
-                )
-                .expect("recourse execution");
-                assert!(
-                    outcome.completed_production_target,
-                    "seed {} world {}",
-                    case.seed, world.realization_id
-                );
-                assert_eq!(3, outcome.executed_batches.len());
+                for objective in [RecourseObjective::CostFirst, RecourseObjective::CarbonFirst] {
+                    let outcome = execute_adaptive_recourse(
+                        &model(),
+                        &case.forecast,
+                        &case.uncertainty_envelope,
+                        &world.scenario,
+                        objective,
+                    )
+                    .expect("recourse execution");
+                    assert!(
+                        outcome.completed_production_target,
+                        "seed {} world {} objective {:?}",
+                        case.seed, world.realization_id, objective
+                    );
+                    assert_eq!(3, outcome.executed_batches.len());
+                }
             }
         }
     }
@@ -967,6 +970,7 @@ mod tests {
             &case.uncertainty_envelope,
             &base.periods[..=0],
             &[],
+            RecourseObjective::CostFirst,
         )
         .expect("base first action");
         let changed_action = choose_recourse_action(
@@ -975,6 +979,7 @@ mod tests {
             &case.uncertainty_envelope,
             &changed.periods[..=0],
             &[],
+            RecourseObjective::CostFirst,
         )
         .expect("future-perturbed first action");
         assert_eq!(
@@ -991,16 +996,19 @@ mod tests {
     fn out_of_envelope_shocks_are_never_marked_feasible_after_an_abort() {
         for case in generate_cases() {
             for world in add_out_of_envelope_worlds(&case) {
-                let outcome = execute_adaptive_recourse(
-                    &model(),
-                    &case.forecast,
-                    &case.uncertainty_envelope,
-                    &world.scenario,
-                )
-                .expect("out-of-envelope execution records a safe disposition");
-                if !outcome.completed_production_target {
-                    assert!(outcome.rejection_reason.is_some());
-                    assert!(outcome.executed_batches.len() < world.scenario.periods.len());
+                for objective in [RecourseObjective::CostFirst, RecourseObjective::CarbonFirst] {
+                    let outcome = execute_adaptive_recourse(
+                        &model(),
+                        &case.forecast,
+                        &case.uncertainty_envelope,
+                        &world.scenario,
+                        objective,
+                    )
+                    .expect("out-of-envelope execution records a safe disposition");
+                    if !outcome.completed_production_target {
+                        assert!(outcome.rejection_reason.is_some());
+                        assert!(outcome.executed_batches.len() < world.scenario.periods.len());
+                    }
                 }
             }
         }
@@ -1023,11 +1031,16 @@ mod tests {
         assert_eq!(192, first.out_of_envelope_world_count);
         assert_eq!(512, first.total_world_count);
         assert_eq!(320, first.completed_adaptive_worlds_within_envelope);
+        assert_eq!(320, first.completed_carbon_first_worlds_within_envelope);
         assert_eq!(
             512,
             first.validation_world_count + first.held_out_world_count
         );
-        assert!(first.adaptive_aborts_outside_envelope > 0);
+        assert!(
+            first.adaptive_aborts_outside_envelope + first.carbon_first_aborts_outside_envelope
+                > 0
+        );
         assert!(first.adaptive_aborts_outside_envelope <= 192);
+        assert!(first.carbon_first_aborts_outside_envelope <= 192);
     }
 }
