@@ -803,10 +803,9 @@ impl ReviewFreeCameraController {
         self.fast_multiplier = profile.fast_multiplier;
         self.mouse_sensitivity = profile.mouse_sensitivity;
         self.max_pitch_radians = profile.max_pitch_radians;
-        self.pitch_radians = self.pitch_radians.clamp(
-            -self.max_pitch_radians,
-            self.max_pitch_radians,
-        );
+        self.pitch_radians = self
+            .pitch_radians
+            .clamp(-self.max_pitch_radians, self.max_pitch_radians);
         self.allow_vertical_translation = profile.allow_vertical_translation;
         Ok(())
     }
@@ -1739,7 +1738,9 @@ pub fn validate_design_review_session(
         issues.push(DesignReviewSessionIssue::InvalidModelDigest);
     }
     if let Err(context_issues) = session.model_context.validate() {
-        issues.push(DesignReviewSessionIssue::InvalidModelContext(context_issues));
+        issues.push(DesignReviewSessionIssue::InvalidModelContext(
+            context_issues,
+        ));
     }
     if session.viewer_build_id.trim().is_empty() {
         issues.push(DesignReviewSessionIssue::EmptyViewerBuildId);
@@ -1756,7 +1757,9 @@ pub fn validate_design_review_session(
         issues.push(DesignReviewSessionIssue::InvalidSnapshotDigest);
     }
     if let Err(profile_issues) = session.comfort_profile.validate() {
-        issues.push(DesignReviewSessionIssue::InvalidComfortProfile(profile_issues));
+        issues.push(DesignReviewSessionIssue::InvalidComfortProfile(
+            profile_issues,
+        ));
     }
     if let Some(context) = &session.jurisdiction_context {
         if let Err(context_issues) = context.validate() {
@@ -2123,7 +2126,12 @@ mod tests {
         assert_eq!(context.fidelity, ReviewModelFidelity::SyntheticGeometry);
         assert_eq!(context.source_linear_unit, ReviewLinearUnit::Metre);
         assert_eq!(context.validate(), Ok(()));
-        assert!(context.known_limitations.iter().any(|value| value.contains("not a measured")));
+        assert!(
+            context
+                .known_limitations
+                .iter()
+                .any(|value| value.contains("not a measured"))
+        );
         assert!(serde_json::from_str::<ReviewModelContext>(fixture).is_ok());
     }
 
@@ -2159,14 +2167,16 @@ mod tests {
     fn virtual_review_requires_explicit_model_fidelity_and_limitations() {
         let mut session = sample_review_session(DesignReviewMode::StaticPlan);
         session.model_context.known_limitations.clear();
-        assert!(validate_design_review_session(&session)
-            .unwrap_err()
-            .iter()
-            .any(|issue| matches!(
-                issue,
-                DesignReviewSessionIssue::InvalidModelContext(context_issues)
-                    if context_issues.contains(&ReviewModelContextIssue::MissingLimitations)
-            )));
+        assert!(
+            validate_design_review_session(&session)
+                .unwrap_err()
+                .iter()
+                .any(|issue| matches!(
+                    issue,
+                    DesignReviewSessionIssue::InvalidModelContext(context_issues)
+                        if context_issues.contains(&ReviewModelContextIssue::MissingLimitations)
+                ))
+        );
 
         session.model_context.known_limitations =
             vec!["Synthetic geometry; dimensions not verified".into()];
@@ -2208,9 +2218,11 @@ mod tests {
         binding.source_ref = Some("clause:building-regulation:egress".into());
         binding.module_id = Some("ZA/GP/Johannesburg".into());
         session.annotations.push(binding);
-        assert!(validate_design_review_session(&session)
-            .unwrap_err()
-            .contains(&DesignReviewSessionIssue::BindingAnnotationsWithoutJurisdictionContext));
+        assert!(
+            validate_design_review_session(&session)
+                .unwrap_err()
+                .contains(&DesignReviewSessionIssue::BindingAnnotationsWithoutJurisdictionContext)
+        );
 
         session.jurisdiction_context = Some(sample_jurisdiction_context());
         assert_eq!(validate_design_review_session(&session), Ok(()));
@@ -2222,16 +2234,18 @@ mod tests {
         let mut context = sample_jurisdiction_context();
         context.rule_context_sha256 = "not-a-digest".into();
         session.jurisdiction_context = Some(context);
-        assert!(validate_design_review_session(&session)
-            .unwrap_err()
-            .iter()
-            .any(|issue| matches!(
-                issue,
-                DesignReviewSessionIssue::InvalidJurisdictionContext(context_issues)
-                    if context_issues.contains(
-                        &ReviewJurisdictionContextIssue::InvalidRuleContextDigest
-                    )
-            )));
+        assert!(
+            validate_design_review_session(&session)
+                .unwrap_err()
+                .iter()
+                .any(|issue| matches!(
+                    issue,
+                    DesignReviewSessionIssue::InvalidJurisdictionContext(context_issues)
+                        if context_issues.contains(
+                            &ReviewJurisdictionContextIssue::InvalidRuleContextDigest
+                        )
+                ))
+        );
     }
 
     #[test]
@@ -2776,21 +2790,24 @@ mod tests {
         assert_eq!(profile.validate(), Ok(()));
         assert!(profile.route_playback_rate <= 1.0);
         profile.route_playback_rate = 1.5;
-        assert!(profile
-            .validate()
-            .unwrap_err()
-            .contains(&ReviewComfortProfileIssue::InvalidRoutePlaybackRate));
+        assert!(
+            profile
+                .validate()
+                .unwrap_err()
+                .contains(&ReviewComfortProfileIssue::InvalidRoutePlaybackRate)
+        );
         profile.route_playback_rate = f32::NAN;
-        assert!(profile
-            .validate()
-            .unwrap_err()
-            .contains(&ReviewComfortProfileIssue::InvalidRoutePlaybackRate));
+        assert!(
+            profile
+                .validate()
+                .unwrap_err()
+                .contains(&ReviewComfortProfileIssue::InvalidRoutePlaybackRate)
+        );
     }
 
     #[test]
     fn comfort_profile_applies_slower_camera_and_disables_vertical_motion() {
-        let transform = Transform::from_xyz(0.0, 1.6, 3.0)
-            .looking_at(Vec3::ZERO, Vec3::Y);
+        let transform = Transform::from_xyz(0.0, 1.6, 3.0).looking_at(Vec3::ZERO, Vec3::Y);
         let mut controller = ReviewFreeCameraController::from_transform(&transform);
         let mut profile = ReviewComfortProfile::default();
         profile.free_camera_speed_mps = 0.35;
