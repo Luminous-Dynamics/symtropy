@@ -9,6 +9,8 @@ mod recourse;
 mod risk_budget;
 #[path = "execution.rs"]
 mod execution;
+#[path = "robustness/pump_sump.rs"]
+mod pump_sump;
 
 use serde::Serialize;
 use std::process::ExitCode;
@@ -788,6 +790,10 @@ pub(super) fn run_risk_budget_cli(args: &[String]) -> Check<ExitCode> {
 
 pub(super) fn run_execution_cli(args: &[String]) -> Check<ExitCode> {
     execution::run_cli(args)
+}
+
+pub(super) fn run_pump_sump_cli(args: &[String]) -> Check<ExitCode> {
+    pump_sump::run_cli(args)
 }
 
 pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {
