@@ -1035,7 +1035,13 @@ fn run() -> Result<i32, String> {
     let mut producer_gates = Vec::new();
     for gate_path in &args.gate_json {
         let mut input = parse_gate_file(gate_path, &target_bytes, &ids_bytes)?;
-        verify_embedded_payload(\n            &input,\n            &source_bytes,\n            &target_bytes,\n            &ids_bytes,\n            &args.ifc_schema,\n        )?;
+        verify_embedded_payload(
+            &input,
+            &source_bytes,
+            &target_bytes,
+            &ids_bytes,
+            &args.ifc_schema,
+        )?;
         resolve_payload_locator(&mut input)?;
         producer_gates.push(input.gate);
     }
