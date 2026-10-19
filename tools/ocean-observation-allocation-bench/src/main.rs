@@ -37,10 +37,17 @@ enum ObservationMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum TermsStatus {
+enum RightsReviewStatus {
     Reviewed,
     ReviewRequired,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum UsePermission {
+    Permitted,
     Restricted,
+    Unresolved,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -87,7 +94,8 @@ struct Candidate {
     candidate_id: String,
     stratum_id: String,
     observation_mode: ObservationMode,
-    terms_status: TermsStatus,
+    rights_review_status: RightsReviewStatus,
+    use_permission: UsePermission,
     detection_limits_declared: bool,
     exposure_knowledge: ExposureKnowledge,
     effort_units: u32,
@@ -392,7 +400,8 @@ fn is_eligible(candidate: &Candidate) -> bool {
     matches!(
         candidate.observation_mode,
         ObservationMode::PassiveNonContact | ObservationMode::ActiveNonContact
-    ) && candidate.terms_status == TermsStatus::Reviewed
+    ) && candidate.rights_review_status == RightsReviewStatus::Reviewed
+        && candidate.use_permission == UsePermission::Permitted
         && candidate.detection_limits_declared
         && candidate.exposure_knowledge == ExposureKnowledge::Known
 }
@@ -725,9 +734,9 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
     );
     add_invariant(
         &mut invariants,
-        "no_contact_or_unreviewed_or_detection_limited_action_selected",
+        "no_contact_or_unpermitted_or_detection_limited_action_selected",
         no_ineligible_selected,
-        "Only reviewed, non-contact candidates with declared detection limits and known exposure can be selected.",
+        "Only reviewed-and-permitted, non-contact candidates with declared detection limits and known exposure can be selected.",
     );
     add_invariant(
         &mut invariants,
@@ -967,6 +976,42 @@ mod tests {
                 }
             }
         }
+    }
+
+
+    #[test]
+    fn rights_review_completion_and_permission_are_independent_gates() {
+        let (corpus, _) = fixture_corpus();
+        let permitted_but_unreviewed = Candidate {
+            candidate_id: "review-pending-permission-claim".into(),
+            stratum_id: "synthetic-stratum".into(),
+            observation_mode: ObservationMode::PassiveNonContact,
+            rights_review_status: RightsReviewStatus::ReviewRequired,
+            use_permission: UsePermission::Permitted,
+            detection_limits_declared: true,
+            exposure_knowledge: ExposureKnowledge::Known,
+            effort_units: 1,
+            information_gain_ppm: 100,
+            exposure: Exposure {
+                sound_units: 0,
+                light_units: 0,
+                sediment_units: 0,
+            },
+        };
+        assert!(!is_eligible(&permitted_but_unreviewed));
+
+        let (mut restricted_after_review, _) = fixture_corpus();
+        let candidate = restricted_after_review
+            .scenarios
+            .iter_mut()
+            .flat_map(|scenario| scenario.candidates.iter_mut())
+            .find(|candidate| candidate.candidate_id == "benthic-terms-restricted")
+            .expect("frozen corpus has restricted-use negative control");
+        assert_eq!(candidate.rights_review_status, RightsReviewStatus::Reviewed);
+        assert_eq!(candidate.use_permission, UsePermission::Restricted);
+        assert!(!is_eligible(candidate));
+
+        assert_eq!(corpus.evidence_class, "SyntheticAdversarial");
     }
 
     #[test]
