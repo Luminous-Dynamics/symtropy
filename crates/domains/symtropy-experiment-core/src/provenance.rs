@@ -11,12 +11,16 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-pub const RUN_RECEIPT_SCHEMA_VERSION: &str = "0.1.0";
+/// Receipt schema 0.2.0 binds digests to RFC 8785 JSON Canonicalization Scheme bytes.
+pub const RUN_RECEIPT_SCHEMA_VERSION: &str = "0.2.0";
+pub const RECEIPT_CANONICALIZATION_ALGORITHM: &str = "RFC8785-JCS";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunReceiptPayload {
     pub receipt_schema_version: String,
     pub digest_algorithm: String,
+    /// Canonical JSON byte contract used for model, output, and receipt-payload digests.
+    pub canonicalization_algorithm: String,
     pub execution_mode: String,
     pub package_version: String,
     /// Optional build provenance supplied by the caller via SYMTROPY_SOURCE_REVISION.
@@ -67,8 +71,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
     format!("{digest:x}")
 }
 
-fn deterministic_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
-    serde_json::to_vec(value).map_err(|error| format!("could not serialize receipt material: {error}"))
+/// Serialize digest inputs according to RFC 8785 (JCS), rather than a Rust-specific struct order.
+fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
+    serde_json_canonicalizer::to_vec(value)
+        .map_err(|error| format!("could not canonicalize receipt material as RFC 8785 JCS: {error}"))
 }
 
 impl RunReceipt {
@@ -83,7 +89,7 @@ impl RunReceipt {
         unit_registry_version: Option<String>,
         execution_settings: BTreeMap<String, String>,
     ) -> Result<Self, String> {
-        let model_bytes = deterministic_json_bytes(model)?;
+        let model_bytes = canonical_json_bytes(model)?;
         let output_bytes = deterministic_json_bytes(output_payload)?;
 
         let source_revision = std::env::var("SYMTROPY_SOURCE_REVISION")
@@ -109,6 +115,7 @@ impl RunReceipt {
         let payload = RunReceiptPayload {
             receipt_schema_version: RUN_RECEIPT_SCHEMA_VERSION.to_owned(),
             digest_algorithm: "sha256".to_owned(),
+            canonicalization_algorithm: RECEIPT_CANONICALIZATION_ALGORITHM.to_owned(),
             execution_mode: execution_mode.into(),
             package_version: env!("CARGO_PKG_VERSION").to_owned(),
             source_revision,
@@ -252,6 +259,10 @@ mod tests {
         let value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
         assert_eq!(value.payload.receipt_schema_version, RUN_RECEIPT_SCHEMA_VERSION);
         assert_eq!(value.payload.digest_algorithm, "sha256");
+        assert_eq!(
+            value.payload.canonicalization_algorithm,
+            RECEIPT_CANONICALIZATION_ALGORITHM
+        );
         assert_eq!(value.payload.unit_registry_version.as_deref(), Some("0.1.0"));
     }
 
@@ -307,7 +318,7 @@ mod tests {
         );
         assert_eq!(
             receipt.receipt_sha256,
-            "92ba62d9f7afe0629df173d1e9b61ba567a30e280cfe69799d711f675a3a4095"
+            "53ce783176001947e1fa3e67e30ecfbcc9af4f94cd743152851d0bc54f39f792"
         );
         assert_eq!(receipt.verify(), Ok(true));
         assert!(receipt
