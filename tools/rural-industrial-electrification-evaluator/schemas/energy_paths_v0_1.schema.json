@@ -97,7 +97,8 @@
             "required": [
               "stage_id",
               "carrier",
-              "efficiency_fraction"
+              "efficiency_fraction",
+              "max_output_kw"
             ],
             "additionalProperties": false,
             "properties": {
@@ -117,7 +118,8 @@
                 "maximum": 1
               },
               "max_output_kw": {
-                "$ref": "#/$defs/positive"
+                "type": "number",
+                "exclusiveMinimum": 0
               },
               "temperature_drop_c": {
                 "type": [
