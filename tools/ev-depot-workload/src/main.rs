@@ -188,18 +188,32 @@ fn finite_positive(name: &str, value: f64) -> Result<(), String> {
 }
 
 fn fraction(name: &str, value: f64, allow_zero: bool) -> Result<(), String> {
-    let lower_ok = if allow_zero { value >= 0.0 } else { value > 0.0 };
+    let lower_ok = if allow_zero {
+        value >= 0.0
+    } else {
+        value > 0.0
+    };
     if !value.is_finite() || !lower_ok || value > 1.0 {
-        Err(format!("{name}_must_be_finite_and_in_{}1]", if allow_zero { "[0," } else { "(0," }))
+        Err(format!(
+            "{name}_must_be_finite_and_in_{}1]",
+            if allow_zero { "[0," } else { "(0," }
+        ))
     } else {
         Ok(())
     }
 }
 
 fn parse_value<T: std::str::FromStr>(args: &[String], name: &str) -> Result<T, String> {
-    let index = args.iter().position(|arg| arg == name).ok_or_else(|| format!("{name}_required"))?;
-    let value = args.get(index + 1).ok_or_else(|| format!("{name}_requires_a_value"))?;
-    value.parse::<T>().map_err(|_| format!("{name}_has_invalid_value"))
+    let index = args
+        .iter()
+        .position(|arg| arg == name)
+        .ok_or_else(|| format!("{name}_required"))?;
+    let value = args
+        .get(index + 1)
+        .ok_or_else(|| format!("{name}_requires_a_value"))?;
+    value
+        .parse::<T>()
+        .map_err(|_| format!("{name}_has_invalid_value"))
 }
 
 fn parse_args(args: &[String]) -> Result<Options, String> {
@@ -207,12 +221,22 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         return Err("usage: ev-depot-workload --input-report audit.json --output-corpus corpus.json --output-manifest manifest.json --fleet-size N --seed N --kwh-per-mile X --pack-capacity-kwh X --initial-soc-fraction X --state-of-health-fraction X --temperature-capacity-fraction X --temperature-acceptance-fraction X --charging-efficiency-fraction X --maximum-port-input-power-kw X --maximum-battery-acceptance-kw X --charger-ports N --site-power-budget-kw X".to_string());
     }
     let known = [
-        "--input-report", "--output-corpus", "--output-manifest", "--fleet-size", "--seed",
-        "--kwh-per-mile", "--pack-capacity-kwh", "--initial-soc-fraction",
-        "--state-of-health-fraction", "--temperature-capacity-fraction",
-        "--temperature-acceptance-fraction", "--charging-efficiency-fraction",
-        "--maximum-port-input-power-kw", "--maximum-battery-acceptance-kw",
-        "--charger-ports", "--site-power-budget-kw",
+        "--input-report",
+        "--output-corpus",
+        "--output-manifest",
+        "--fleet-size",
+        "--seed",
+        "--kwh-per-mile",
+        "--pack-capacity-kwh",
+        "--initial-soc-fraction",
+        "--state-of-health-fraction",
+        "--temperature-capacity-fraction",
+        "--temperature-acceptance-fraction",
+        "--charging-efficiency-fraction",
+        "--maximum-port-input-power-kw",
+        "--maximum-battery-acceptance-kw",
+        "--charger-ports",
+        "--site-power-budget-kw",
     ];
     let mut seen = BTreeSet::new();
     let mut i = 1;
@@ -262,12 +286,34 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
     if options.initial_soc_fraction >= 1.0 {
         return Err("--initial-soc-fraction_must_be_less_than_1".to_string());
     }
-    fraction("--state-of-health-fraction", options.state_of_health_fraction, false)?;
-    fraction("--temperature-capacity-fraction", options.temperature_capacity_fraction, false)?;
-    fraction("--temperature-acceptance-fraction", options.temperature_acceptance_fraction, false)?;
-    fraction("--charging-efficiency-fraction", options.charging_efficiency_fraction, false)?;
-    finite_positive("--maximum-port-input-power-kw", options.maximum_port_input_power_kw)?;
-    finite_positive("--maximum-battery-acceptance-kw", options.maximum_battery_acceptance_kw)?;
+    fraction(
+        "--state-of-health-fraction",
+        options.state_of_health_fraction,
+        false,
+    )?;
+    fraction(
+        "--temperature-capacity-fraction",
+        options.temperature_capacity_fraction,
+        false,
+    )?;
+    fraction(
+        "--temperature-acceptance-fraction",
+        options.temperature_acceptance_fraction,
+        false,
+    )?;
+    fraction(
+        "--charging-efficiency-fraction",
+        options.charging_efficiency_fraction,
+        false,
+    )?;
+    finite_positive(
+        "--maximum-port-input-power-kw",
+        options.maximum_port_input_power_kw,
+    )?;
+    finite_positive(
+        "--maximum-battery-acceptance-kw",
+        options.maximum_battery_acceptance_kw,
+    )?;
     finite_positive("--site-power-budget-kw", options.site_power_budget_kw)?;
     if options.output_corpus == options.output_manifest {
         return Err("output_corpus_and_output_manifest_must_be_different_paths".to_string());
@@ -290,10 +336,14 @@ fn validate_audit_report(report: &AuditReport) -> Result<Vec<DutyProfile>, Strin
     if !is_sha256(&report.operation_day_csv_sha256) || !is_sha256(&report.schedule_csv_sha256) {
         return Err("source_csv_digests_must_be_64_hex_characters".to_string());
     }
-    finite_positive("audit_kwh_per_mile_assumption", report.kwh_per_mile_assumption)?;
+    finite_positive(
+        "audit_kwh_per_mile_assumption",
+        report.kwh_per_mile_assumption,
+    )?;
     if report.operation_days_input_rows != report.operation_days_parsed_valid_rows
         || !report.operation_days_invalid_rows.is_empty()
-        || report.schedule_input_rows != report.schedule_parsed_valid_rows_with_known_operation_day_ids
+        || report.schedule_input_rows
+            != report.schedule_parsed_valid_rows_with_known_operation_day_ids
         || !report.schedule_invalid_rows.is_empty()
         || !report.operation_day_reconciliation_issues.is_empty()
         || report.reconciled_operation_day_count != report.reconciled_operation_day_profiles.len()
@@ -308,21 +358,41 @@ fn validate_audit_report(report: &AuditReport) -> Result<Vec<DutyProfile>, Strin
     let mut eligible = Vec::new();
     for profile in &report.reconciled_operation_day_profiles {
         if profile.operation_day_id == 0 || !ids.insert(profile.operation_day_id) {
-            return Err("reconciled_profiles_contain_empty_or_duplicate_operation_day_id".to_string());
+            return Err(
+                "reconciled_profiles_contain_empty_or_duplicate_operation_day_id".to_string(),
+            );
         }
-        if !profile.vmt_miles.is_finite() || profile.vmt_miles < 0.0
-            || profile.on_shift_seconds.saturating_add(profile.off_shift_seconds) != DAY_SECONDS
+        if !profile.vmt_miles.is_finite()
+            || profile.vmt_miles < 0.0
+            || profile
+                .on_shift_seconds
+                .saturating_add(profile.off_shift_seconds)
+                != DAY_SECONDS
         {
-            return Err(format!("invalid_reconciled_profile:{}", profile.operation_day_id));
+            return Err(format!(
+                "invalid_reconciled_profile:{}",
+                profile.operation_day_id
+            ));
         }
-        match (profile.first_on_shift_start_second, profile.last_on_shift_end_second) {
+        match (
+            profile.first_on_shift_start_second,
+            profile.last_on_shift_end_second,
+        ) {
             (None, None) if profile.on_shift_seconds == 0 && profile.vmt_miles <= 1.0e-9 => {}
             (Some(first), Some(last))
-                if first < DAY_SECONDS && last <= DAY_SECONDS && last > first && profile.on_shift_seconds > 0 =>
+                if first < DAY_SECONDS
+                    && last <= DAY_SECONDS
+                    && last > first
+                    && profile.on_shift_seconds > 0 =>
             {
                 eligible.push(profile.clone());
             }
-            _ => return Err(format!("invalid_or_incomplete_shift_window:{}", profile.operation_day_id)),
+            _ => {
+                return Err(format!(
+                    "invalid_or_incomplete_shift_window:{}",
+                    profile.operation_day_id
+                ));
+            }
         }
     }
     if eligible.is_empty() {
@@ -332,7 +402,9 @@ fn validate_audit_report(report: &AuditReport) -> Result<Vec<DutyProfile>, Strin
 }
 
 fn next_random(state: &mut u64) -> u64 {
-    *state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+    *state = state
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1);
     *state
 }
 
@@ -349,17 +421,34 @@ fn safe_id(value: &str) -> String {
         }
     }
     let id = out.trim_matches('-').to_string();
-    if id.is_empty() { "fleet".to_string() } else { id }
+    if id.is_empty() {
+        "fleet".to_string()
+    } else {
+        id
+    }
 }
 
-fn generate(report: &AuditReport, report_bytes: &[u8], eligible: &[DutyProfile], options: &Options) -> Result<(Corpus, Manifest), String> {
+fn generate(
+    report: &AuditReport,
+    report_bytes: &[u8],
+    eligible: &[DutyProfile],
+    options: &Options,
+) -> Result<(Corpus, Manifest), String> {
     let effective_capacity = options.nominal_pack_capacity_kwh
         * options.state_of_health_fraction
         * options.temperature_capacity_fraction;
     finite_positive("effective_pack_capacity_kwh", effective_capacity)?;
     let report_digest = sha256(report_bytes);
-    let scenario_id = format!("nlr-{}-fleet-{}-seed-{}", safe_id(&report.fleet_id), options.fleet_size, options.seed);
-    let evidence_reference = format!("{}@{}; audit_report_sha256={}", report.source_uri, report.source_revision, report_digest);
+    let scenario_id = format!(
+        "nlr-{}-fleet-{}-seed-{}",
+        safe_id(&report.fleet_id),
+        options.fleet_size,
+        options.seed
+    );
+    let evidence_reference = format!(
+        "{}@{}; audit_report_sha256={}",
+        report.source_uri, report.source_revision, report_digest
+    );
     let assumption_notes = vec![
         "Each sampled NLR operation-day row represents one hypothetical vehicle's repeating daily duty profile; rows are sampled with replacement using the recorded deterministic seed.".to_string(),
         "Daily battery recharge demand is source VMT multiplied by the explicit CLI kWh-per-mile assumption; the NLR operating-summary table does not measure EV energy consumption.".to_string(),
@@ -403,7 +492,10 @@ fn generate(report: &AuditReport, report_bytes: &[u8], eligible: &[DutyProfile],
         let profile = &eligible[selection];
         let daily_energy = profile.vmt_miles * options.kwh_per_mile;
         if !daily_energy.is_finite() || daily_energy < 0.0 {
-            return Err(format!("invalid_daily_energy_for_operation_day_{}", profile.operation_day_id));
+            return Err(format!(
+                "invalid_daily_energy_for_operation_day_{}",
+                profile.operation_day_id
+            ));
         }
         let energy_headroom = effective_capacity * (1.0 - options.initial_soc_fraction);
         if daily_energy > energy_headroom + 1.0e-9 {
@@ -412,16 +504,25 @@ fn generate(report: &AuditReport, report_bytes: &[u8], eligible: &[DutyProfile],
                 profile.operation_day_id, daily_energy, energy_headroom
             ));
         }
-        let target_soc = (options.initial_soc_fraction + daily_energy / effective_capacity).min(1.0);
-        let first_start = f64::from(profile.first_on_shift_start_second.expect("eligible profile")) / 60.0;
-        let last_end = f64::from(profile.last_on_shift_end_second.expect("eligible profile")) / 60.0;
+        let target_soc =
+            (options.initial_soc_fraction + daily_energy / effective_capacity).min(1.0);
+        let first_start = f64::from(
+            profile
+                .first_on_shift_start_second
+                .expect("eligible profile"),
+        ) / 60.0;
+        let last_end =
+            f64::from(profile.last_on_shift_end_second.expect("eligible profile")) / 60.0;
         let arrival = last_end;
         let mut departure = first_start + DAY_MINUTES;
         if departure <= arrival + 1.0e-9 {
             departure += DAY_MINUTES;
         }
         if !departure.is_finite() || !arrival.is_finite() || departure <= arrival {
-            return Err(format!("invalid_overnight_charge_window_for_operation_day_{}", profile.operation_day_id));
+            return Err(format!(
+                "invalid_overnight_charge_window_for_operation_day_{}",
+                profile.operation_day_id
+            ));
         }
         let job_id = format!("vehicle-{:04}", index + 1);
         jobs.push(Job {
@@ -530,7 +631,10 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("cannot write manifest {}: {error}", options.output_manifest))?;
     println!(
         "generated estimate-only corpus: {} jobs; source_report_sha256={}; corpus={}; manifest={}",
-        manifest.fleet_size, manifest.audit_report_sha256, options.output_corpus, options.output_manifest
+        manifest.fleet_size,
+        manifest.audit_report_sha256,
+        options.output_corpus,
+        options.output_manifest
     );
     Ok(())
 }
@@ -615,7 +719,8 @@ mod tests {
     fn generated_job_window_uses_last_shift_end_until_next_first_start() {
         let r = report();
         let eligible = validate_audit_report(&r).unwrap();
-        let (corpus, manifest) = generate(&r, b"same-audit-report-bytes", &eligible, &options()).unwrap();
+        let (corpus, manifest) =
+            generate(&r, b"same-audit-report-bytes", &eligible, &options()).unwrap();
         let scenario = &corpus.scenarios[0];
         for job in &manifest.simulated_jobs {
             if job.operation_day_id == 1 {
@@ -639,8 +744,14 @@ mod tests {
         let eligible = validate_audit_report(&r).unwrap();
         let a = generate(&r, b"same-audit-report-bytes", &eligible, &options()).unwrap();
         let b = generate(&r, b"same-audit-report-bytes", &eligible, &options()).unwrap();
-        assert_eq!(serde_json::to_string(&a.0).unwrap(), serde_json::to_string(&b.0).unwrap());
-        assert_eq!(serde_json::to_string(&a.1).unwrap(), serde_json::to_string(&b.1).unwrap());
+        assert_eq!(
+            serde_json::to_string(&a.0).unwrap(),
+            serde_json::to_string(&b.0).unwrap()
+        );
+        assert_eq!(
+            serde_json::to_string(&a.1).unwrap(),
+            serde_json::to_string(&b.1).unwrap()
+        );
     }
 
     #[test]
@@ -649,14 +760,23 @@ mod tests {
         let eligible = validate_audit_report(&r).unwrap();
         let mut opts = options();
         opts.nominal_pack_capacity_kwh = 100.0;
-        assert!(generate(&r, b"report", &eligible, &opts).unwrap_err().contains("daily_energy_exceeds_soc_headroom"));
+        assert!(
+            generate(&r, b"report", &eligible, &opts)
+                .unwrap_err()
+                .contains("daily_energy_exceeds_soc_headroom")
+        );
     }
 
     #[test]
     fn unreconciled_audit_reports_are_rejected() {
         let mut r = report();
-        r.operation_day_reconciliation_issues.push(serde_json::json!({"operation_day_id": 1}));
-        assert!(validate_audit_report(&r).unwrap_err().contains("unreconciled"));
+        r.operation_day_reconciliation_issues
+            .push(serde_json::json!({"operation_day_id": 1}));
+        assert!(
+            validate_audit_report(&r)
+                .unwrap_err()
+                .contains("unreconciled")
+        );
     }
 
     #[test]
@@ -666,7 +786,10 @@ mod tests {
         let eligible = validate_audit_report(&r).unwrap();
         let (corpus, manifest) = generate(&r, b"report", &eligible, &options()).unwrap();
         assert_eq!(corpus.scenarios[0].evidence_class, "estimate");
-        assert_eq!(manifest.source_evidence_class_declared_by_caller, "synthetic");
+        assert_eq!(
+            manifest.source_evidence_class_declared_by_caller,
+            "synthetic"
+        );
         assert!(corpus.scenarios[0].evidence_note.contains("is an estimate"));
     }
 
