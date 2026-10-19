@@ -1,0 +1,197 @@
+{
+  "schema_version": "0.1.0",
+  "suite_id": "EV-CHARGE-CURVE-001",
+  "claim_ceiling": "All numeric inputs are synthetic. Curves and static derating factors are illustrative only; no vehicle manufacturer, measured charge session or physical battery performance is represented.",
+  "scenarios": [
+    {
+      "scenario_id": "passenger-ultrafast-mid-session",
+      "label": "Passenger EV from low SOC to 90% under high-power charging",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative 75 kWh passenger pack and piecewise charge taper; no production curve is implied.",
+      "nominal_pack_capacity_kwh": 75,
+      "state_of_health_fraction": 0.95,
+      "temperature_capacity_fraction": 0.9,
+      "temperature_acceptance_fraction": 1,
+      "initial_soc_fraction": 0.1,
+      "target_soc_fraction": 0.9,
+      "charging_efficiency_fraction": 0.94,
+      "port_input_power_kw": 350,
+      "site_input_power_budget_kw": 500,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.5,
+          "max_battery_acceptance_kw": 250
+        },
+        {
+          "soc_lower_fraction": 0.5,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 160
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 0.95,
+          "max_battery_acceptance_kw": 90
+        },
+        {
+          "soc_lower_fraction": 0.95,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 50
+        }
+      ]
+    },
+    {
+      "scenario_id": "light-van-managed-depot",
+      "label": "Light commercial van charging under an AC/depot power limit",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative 22 kW port and variable pack acceptance; site values are not local infrastructure data.",
+      "nominal_pack_capacity_kwh": 100,
+      "state_of_health_fraction": 0.88,
+      "temperature_capacity_fraction": 0.9,
+      "temperature_acceptance_fraction": 0.95,
+      "initial_soc_fraction": 0.2,
+      "target_soc_fraction": 0.85,
+      "charging_efficiency_fraction": 0.9,
+      "port_input_power_kw": 22,
+      "site_input_power_budget_kw": 50,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.5,
+          "max_battery_acceptance_kw": 80
+        },
+        {
+          "soc_lower_fraction": 0.5,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 45
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 0.95,
+          "max_battery_acceptance_kw": 20
+        },
+        {
+          "soc_lower_fraction": 0.95,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 12
+        }
+      ]
+    },
+    {
+      "scenario_id": "bus-terminus-opportunity",
+      "label": "City bus opportunity charge with vehicle acceptance limiting the site",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative bus pack with temperature derating and a 150 kW site input limit.",
+      "nominal_pack_capacity_kwh": 480,
+      "state_of_health_fraction": 0.95,
+      "temperature_capacity_fraction": 0.9,
+      "temperature_acceptance_fraction": 0.75,
+      "initial_soc_fraction": 0.3,
+      "target_soc_fraction": 0.85,
+      "charging_efficiency_fraction": 0.93,
+      "port_input_power_kw": 180,
+      "site_input_power_budget_kw": 150,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.6,
+          "max_battery_acceptance_kw": 300
+        },
+        {
+          "soc_lower_fraction": 0.6,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 180
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 0.9,
+          "max_battery_acceptance_kw": 90
+        },
+        {
+          "soc_lower_fraction": 0.9,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 40
+        }
+      ]
+    },
+    {
+      "scenario_id": "heavy-truck-cold-derate",
+      "label": "Heavy truck high-power session under static cold-acceptance derating",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative SOC curve and 0.55 static acceptance factor; not a cold-weather charging test.",
+      "nominal_pack_capacity_kwh": 900,
+      "state_of_health_fraction": 0.92,
+      "temperature_capacity_fraction": 0.75,
+      "temperature_acceptance_fraction": 0.55,
+      "initial_soc_fraction": 0.15,
+      "target_soc_fraction": 0.9,
+      "charging_efficiency_fraction": 0.94,
+      "port_input_power_kw": 750,
+      "site_input_power_budget_kw": 1000,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.5,
+          "max_battery_acceptance_kw": 600
+        },
+        {
+          "soc_lower_fraction": 0.5,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 400
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 0.95,
+          "max_battery_acceptance_kw": 180
+        },
+        {
+          "soc_lower_fraction": 0.95,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 80
+        }
+      ]
+    },
+    {
+      "scenario_id": "rural-weak-grid-charge",
+      "label": "Rural service vehicle under a restricted site import cap",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative 15 kW site limit; this does not represent any South African connection or tariff.",
+      "nominal_pack_capacity_kwh": 120,
+      "state_of_health_fraction": 0.9,
+      "temperature_capacity_fraction": 0.95,
+      "temperature_acceptance_fraction": 0.7,
+      "initial_soc_fraction": 0.4,
+      "target_soc_fraction": 0.95,
+      "charging_efficiency_fraction": 0.9,
+      "port_input_power_kw": 22,
+      "site_input_power_budget_kw": 15,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.5,
+          "max_battery_acceptance_kw": 100
+        },
+        {
+          "soc_lower_fraction": 0.5,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 60
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 0.95,
+          "max_battery_acceptance_kw": 25
+        },
+        {
+          "soc_lower_fraction": 0.95,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 10
+        }
+      ]
+    }
+  ]
+}
