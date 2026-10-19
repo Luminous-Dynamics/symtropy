@@ -74,6 +74,8 @@ Report these separately:
 
 Do not calculate a need-to-request conversion rate from a retrospective convenience sample and call it prospective conversion. A transition metric requires a declared prospective cohort and fixed observation window. Do not conflate “no request found” with “farmer says no request was made.” Do not collapse “no service” into “no need.”
 
+The checked-in synthetic example contains seven eligible episodes and two predeclared exclusions, including a distinct `outcome_unknown` episode alongside a distinct `follow_up_missing` episode. Their counts must not be combined or treated as known absence of need.
+
 ## Validation and claim ceiling
 
 The Rust verifier checks declared scope, opaque refs, report-basis eligibility, optional request-link consistency, no-request reason placement, compatible outcome source, and screened/eligible/exclusion reconciliation. It rejects inference from non-use and unverified relays and emits no summary when blocked.
