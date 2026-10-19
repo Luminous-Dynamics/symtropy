@@ -26,10 +26,10 @@ Key separations:
 
 The frozen corpus is strictly deserialized (deny_unknown_fields) and declares four synthetic scenarios. Each has:
 - strata with declared priority, initial synthetic uncertainty, historical record count and historical sampling effort;
-- candidate observation actions with mode, terms-review state, declared detection limits, exposure knowledge, effort, expected synthetic information gain and separate sound/light/sediment exposure;
+- candidate observation actions with mode, rights-review state, explicit use permission, a synthetic detection profile, exposure knowledge, effort, nominal synthetic information gain and separate sound/light/sediment exposure;
 - an effort budget and one independent cap for each exposure channel.
 
-A candidate is eligible only if its mode is non-contact, the rights-review process is complete, use permission is explicitly `permitted`, detection limits are declared, and exposure is known. The review state and use-permission state are independent: a completed review can conclude that reuse is restricted. Unknown exposure is excluded, not coerced to zero. Every selection step checks the total effort and all exposure channels independently.
+A candidate is eligible only if its mode is non-contact, the rights-review process is complete, use permission is explicitly `permitted`, its synthetic detection profile is complete, expected signal meets or exceeds the minimum detectable signal, detection probability is non-zero, and exposure is known. The review state and use-permission state are independent: a completed review can conclude that reuse is restricted. Unknown profile fields or below-threshold signal make the candidate ineligible. Nominal information gain is discounted by declared detection probability before applying the remaining-uncertainty cap. Signal, sensitivity and probability are all synthetic normalized ppm values—not acoustic units, species traits or sensor calibration. Unknown exposure is excluded, not coerced to zero. Every selection step checks total effort and each exposure channel independently.
 
 ## Comparison policies and objective
 
@@ -47,7 +47,7 @@ The synthetic **information score** is the sum, across selected observations, of
 The tool's receipt checks:
 - no selected contact action;
 - no selected action with unresolved/restricted terms;
-- no selected action with unknown detection limits or unknown exposure;
+- no selected action with a missing/incomplete detection profile, a signal below its declared detection threshold, zero detection probability, or unknown exposure;
 - each policy's effort and sound/light/sediment totals independently stay within limits;
 - the exact oracle has zero regret and no other policy scores above it;
 - effort-aware coverage exceeds raw-record-count coverage in the frozen access-biased scenario;
@@ -57,7 +57,7 @@ The goal is 100% deterministic replay for the same exact corpus, tool/schema ver
 
 ## Planned next stage
 
-After this benchmark passes at an exact head, add explicit replicate/temporal observations, sensitivity sweeps over stratum priorities and measurement detection probability, and Pareto reports (coverage versus information score versus effort and each exposure channel). Only later should reviewed, appropriately licensed source metadata be used; a physical observation or environmental model must be independently qualified before it may affect operational decisions.
+After this benchmark passes at an exact head, add explicit replicate/temporal observations, sensitivity sweeps over stratum-priority assumptions, minimum detectable signal and false-positive/false-negative rates, and bootstrap or simulation uncertainty bands around the synthetic policy comparisons. Only later should reviewed, appropriately licensed source metadata be used; a physical observation or environmental model must be independently qualified before it may affect operational decisions.
 
 ## Traceability and integration
 
