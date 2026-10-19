@@ -455,7 +455,7 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
                         record.case_id
                     )),
                 }
-            },
+            }
             Outcome::NoHarm => {
                 if record.harm_occurred_at.is_some() {
                     findings.push(format!(
