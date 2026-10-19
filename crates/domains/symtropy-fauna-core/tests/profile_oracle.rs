@@ -335,8 +335,8 @@ fn coverage_scope_cannot_hide_unreviewed_taxa_or_promote_invalid_profiles() {
 #[test]
 fn coverage_rejects_duplicate_and_out_of_scope_declarations() {
     let scope = TaxonomyScope {
-        source: "synthetic-taxonomy".to_owned(),
-        release: "v1".to_owned(),
+        source: "test-taxonomy".to_owned(),
+        release: "test-release-1".to_owned(),
         taxon_ids: vec!["TEST:1".to_owned()],
     };
     let duplicate = vec![
