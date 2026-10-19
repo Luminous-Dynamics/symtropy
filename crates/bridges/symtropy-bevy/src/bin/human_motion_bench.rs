@@ -437,6 +437,25 @@ struct TimeGrid {
     step_sec: f64,
     overlap_start_sec: f64,
     overlap_end_sec: f64,
+    reference_median_sample_interval_sec: f64,
+    reference_max_sample_interval_sec: f64,
+    prediction_median_sample_interval_sec: f64,
+    prediction_max_sample_interval_sec: f64,
+}
+
+fn maximum_sample_interval_sec(timestamps: &[f64]) -> Result<f64, BenchError> {
+    if timestamps.len() < 2 {
+        return fail("each input trace requires at least two timestamped samples");
+    }
+    let maximum = timestamps
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .max_by(f64::total_cmp)
+        .unwrap_or(0.0);
+    if !maximum.is_finite() || maximum <= 0.0 {
+        return fail("could not determine a finite positive maximum sample interval");
+    }
+    Ok(maximum)
 }
 
 fn build_time_grid(
@@ -444,6 +463,11 @@ fn build_time_grid(
     prediction: &[f64],
     requested_step: Option<f64>,
 ) -> Result<TimeGrid, BenchError> {
+    let reference_median_sample_interval_sec = median_sample_interval(reference)?;
+    let prediction_median_sample_interval_sec = median_sample_interval(prediction)?;
+    let reference_max_sample_interval_sec = maximum_sample_interval_sec(reference)?;
+    let prediction_max_sample_interval_sec = maximum_sample_interval_sec(prediction)?;
+
     let start = reference[0].max(prediction[0]);
     let end = reference[reference.len() - 1].min(prediction[prediction.len() - 1]);
     let duration = end - start;
@@ -458,7 +482,7 @@ fn build_time_grid(
         step
     } else {
         // The coarser median avoids inventing high-frequency detail from the lower-rate trace.
-        median_sample_interval(reference)?.max(median_sample_interval(prediction)?)
+        reference_median_sample_interval_sec.max(prediction_median_sample_interval_sec)
     };
 
     let ratio = duration / step;
@@ -498,6 +522,10 @@ fn build_time_grid(
         step_sec: step,
         overlap_start_sec: start,
         overlap_end_sec: end,
+        reference_median_sample_interval_sec,
+        reference_max_sample_interval_sec,
+        prediction_median_sample_interval_sec,
+        prediction_max_sample_interval_sec,
     })
 }
 
@@ -1148,6 +1176,10 @@ struct AlignmentReport {
     overlap_end_sec: f64,
     overlap_duration_sec: f64,
     grid_step_sec: f64,
+    reference_median_sample_interval_sec: f64,
+    reference_max_sample_interval_sec: f64,
+    prediction_median_sample_interval_sec: f64,
+    prediction_max_sample_interval_sec: f64,
     samples: usize,
     invalid_samples: usize,
 }
@@ -1439,6 +1471,10 @@ fn evaluate(
             overlap_end_sec: grid.overlap_end_sec,
             overlap_duration_sec: grid.overlap_end_sec - grid.overlap_start_sec,
             grid_step_sec: grid.step_sec,
+            reference_median_sample_interval_sec: grid.reference_median_sample_interval_sec,
+            reference_max_sample_interval_sec: grid.reference_max_sample_interval_sec,
+            prediction_median_sample_interval_sec: grid.prediction_median_sample_interval_sec,
+            prediction_max_sample_interval_sec: grid.prediction_max_sample_interval_sec,
             samples: grid.timestamps_sec.len(),
             // Invalid samples are rejected before this stage; they are never silently dropped.
             invalid_samples: 0,
@@ -1895,6 +1931,8 @@ mod tests {
 
         assert_eq!(report.touchdown.matched_events, 1);
         assert_eq!(report.liftoff.matched_events, 1);
+        assert!((report.alignment.reference_max_sample_interval_sec - 0.1).abs() < 1e-9);
+        assert!((report.alignment.prediction_max_sample_interval_sec - 0.15).abs() < 1e-9);
         assert!((report.touchdown.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
         assert!((report.liftoff.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
         assert!(
