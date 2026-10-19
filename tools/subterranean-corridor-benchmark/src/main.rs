@@ -198,7 +198,7 @@ fn print_seismic_negative_controls() {
     );
     post_event.gates.post_event_inspection_and_recovery = GateState::Unknown;
 
-    println!("\\nSEISMIC NEGATIVE CONTROLS (synthetic gate semantics only)");
+    println!("\nSEISMIC NEGATIVE CONTROLS (synthetic gate semantics only)");
     for candidate in [active_fault, liquefaction, post_event] {
         let result = evaluate(&candidate);
         println!("{}: {}", result.candidate_id, result.disposition.label());
@@ -217,5 +217,6 @@ fn main() {
     println!("RESEARCH ONLY — synthetic assumptions do not establish cost, safety, feasibility, or SOTA.");
     print_group("FREIGHT: illustrative 600 km / 100,000 tonne-year contract", freight_candidates());
     print_group("PASSENGER: illustrative 300 km / 100,000 passenger-trip-year contract", passenger_candidates());
+    print_seismic_negative_controls();
     println!("\nClaim ceiling: arithmetic demonstration only. No geography, geology, price, demand, emissions factor, thermal source, permit, or operational claim was independently validated.");
 }
