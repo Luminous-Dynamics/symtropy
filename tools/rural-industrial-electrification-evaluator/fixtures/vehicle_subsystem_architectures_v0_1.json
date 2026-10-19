@@ -1,0 +1,1068 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "EV-PLATFORM-001",
+  "claim_ceiling": "Conceptual subsystem architecture tree for design review. Not a parts list, CAD, circuit/harness definition, supplier bill of materials, safety case or production/build authorization.",
+  "voltage_policy": "No vehicle system voltage or connector compatibility is selected by this architecture catalogue; those decisions require mission-based current, thermal, protection, standards and service analysis.",
+  "architecture_patterns": [
+    {
+      "pattern_id": "assist-drive",
+      "label": "Light electric assist",
+      "energy_path": "Low-energy pack -> protected assist controller -> motor/reduction -> chain or final drive; independent mechanical braking.",
+      "voltage_decision": "Voltage class is not selected in v0.1; choose only after current, thermal, regional rules, and service constraints are specified.",
+      "primary_gates": [
+        "loaded handling and braking",
+        "pack retention and water ingress",
+        "controller/drive thermal duty",
+        "human override and safe fault state"
+      ]
+    },
+    {
+      "pattern_id": "road-electric-drive",
+      "label": "Road passenger battery electric",
+      "energy_path": "Pack -> fuse/contactors/pre-charge/isolation monitoring -> traction DC link -> inverter -> e-drive/reduction/axle; DC/DC serves low-voltage consumers; onboard AC charging and any DC fast-charge path are explicit interfaces.",
+      "voltage_decision": "Vehicle voltage class is unselected; rate current paths, insulation, contactors, connectors, protection and thermal design from the actual power envelope.",
+      "primary_gates": [
+        "crash/retention and axle loads",
+        "friction braking with regeneration unavailable",
+        "charge inlet interoperability and thermal limit",
+        "HV safe service and fault isolation"
+      ]
+    },
+    {
+      "pattern_id": "accessible-transit-electric",
+      "label": "Accessible transit electric",
+      "energy_path": "Protected pack -> HV distribution -> rear e-axle or approved drive axle; independently metered HVAC, doors, ramp/lift and low-voltage/accessibility branches.",
+      "voltage_decision": "Voltage classes and interfaces are not asserted. Access systems require safe degraded behavior under vehicle and auxiliary faults.",
+      "primary_gates": [
+        "accessible boarding and securement",
+        "door/ramp/lift fault detection and recovery",
+        "passenger HVAC and route reserve",
+        "emergency egress and fire response"
+      ]
+    },
+    {
+      "pattern_id": "work-vehicle-electric",
+      "label": "Electric work vehicle",
+      "energy_path": "Protected pack and HV distribution branch to traction and a separately metered work-tool bus (electric pump, PTO substitute, hoist, refrigeration or implement power as fitted).",
+      "voltage_decision": "Each traction/work branch must be rated to simultaneous loads; connector, hydraulic and isolation requirements remain machine-specific.",
+      "primary_gates": [
+        "continuous low-speed torque and thermal duty",
+        "work/traction simultaneous peak",
+        "tool interlocks and dual-domain lockout",
+        "repair and emergency recovery"
+      ]
+    },
+    {
+      "pattern_id": "bidirectional-export-electric",
+      "label": "Road EV with qualified stationary power export",
+      "energy_path": "Road traction path plus a separate bidirectional converter and isolated output path with protection, grounding/bonding and mode interlocks.",
+      "voltage_decision": "No grid-forming, building connection, island operation or backfeed is enabled by architecture alone; only qualified export modes may be implemented.",
+      "primary_gates": [
+        "anti-islanding/backfeed protection where relevant",
+        "drive reserve after export",
+        "electrical isolation and operator procedure",
+        "fault-safe transfer and disconnect"
+      ]
+    },
+    {
+      "pattern_id": "heavy-road-electric",
+      "label": "Heavy road / terminal battery electric",
+      "energy_path": "Protected high-energy pack(s) -> protected DC link -> one or more high-torque e-drives/drive axles; friction braking and qualified retarding remain independent; charging/site power is co-designed.",
+      "voltage_decision": "No pack voltage, axle or MCS acceptance is assumed. Current path, connector, cooling, rest-window and site acceptance must be verified together.",
+      "primary_gates": [
+        "gross/axle/tire limits with pack mass",
+        "grade endurance and brake thermal limits",
+        "charge taper and connector cooling",
+        "fault recovery and payload retained"
+      ]
+    },
+    {
+      "pattern_id": "trolley-battery-electric",
+      "label": "Trolley plus off-wire battery",
+      "energy_path": "Qualified trolley collector and protective interface feeds the traction DC bus on covered corridors; a controlled bidirectional DC/DC or equivalent safe interface manages off-wire battery reserve.",
+      "voltage_decision": "Trolley voltage/current, collection equipment and battery interface are site/system-specific; isolation and transition behavior require qualification.",
+      "primary_gates": [
+        "corridor availability and route coverage",
+        "loss of trolley and safe transition",
+        "off-wire reserve across gradients",
+        "electrical clearance and recovery"
+      ]
+    },
+    {
+      "pattern_id": "track-work-electric",
+      "label": "Tracked electric work machine",
+      "energy_path": "Protected pack -> traction inverter(s) -> track drive; separately metered electric motor/pump feeds hydraulic work circuit, with mechanical and electrical safe-service states coordinated.",
+      "voltage_decision": "Drive, pump, hydraulic and pack thermal limits are independently defined; no universal pump or battery module is assumed.",
+      "primary_gates": [
+        "lifting/digging cycle stability",
+        "hydraulic emergency lowering",
+        "low-travel-speed heat rejection",
+        "combined propulsion/work peak"
+      ]
+    },
+    {
+      "pattern_id": "autonomous-yard-electric",
+      "label": "Autonomous yard/material carrier",
+      "energy_path": "Protected pack -> drive/stopping actuators and supervisory controller; controlled automatic docking/charge interface, safety controller and independent emergency-stop path.",
+      "voltage_decision": "Drive/sensor/safety-controller supply and charging interface are not specified as interchangeable. Brownout and communications-loss states require tests.",
+      "primary_gates": [
+        "protective-field and safe-stop verification",
+        "localization/sensor/network fault response",
+        "blocked-route and manual recovery",
+        "auto-charge alignment and queuing"
+      ]
+    }
+  ],
+  "designs": [
+    {
+      "design_id": "cargo-micro-mobility",
+      "platform_family_id": "micro-mobility",
+      "architecture_pattern_id": "assist-drive",
+      "layout_concept": "Cargo frame with low-mounted protected pack; deck/box load path and wheel/brake access remain explicit.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Cargo frame with low-mounted protected pack; deck/box load path and wheel/brake access remain explicit.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Mid-drive assist motor with reduction/chain is the baseline concept; keep manual braking effective after controller failure.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Small, removable only if handling and connector safety are proven; pack chemistry and voltage are not selected.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Separate controller/motor thermal path; water/road grit exposure must be tested.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Low-energy protected charger; interoperability and pack handling are open decisions.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Human assist, loaded stability and safe-stop/braking are primary; do not count regeneration for stopping.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "compact-passenger-ev",
+      "platform_family_id": "passenger-road",
+      "architecture_pattern_id": "road-electric-drive",
+      "layout_concept": "Compact body, short overhangs, battery mass low between axles where crash and axle constraints permit.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Compact body, short overhangs, battery mass low between axles where crash and axle constraints permit.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Single-drive-unit e-axle baseline to minimize parts; AWD remains a separately justified variant.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Underfloor protected pack; cell chemistry, voltage and segmentation are decisions for sourced design inputs.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Battery/inverter/motor and cabin thermal loads instrumented; do not assume shared coolant loop.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Home/depot AC baseline, optional DC interface subject to battery charge curve and repeated-session thermal validation.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Friction brakes remain sufficient with cold/full/hot battery and unavailable regen.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "family-passenger-ev",
+      "platform_family_id": "passenger-road",
+      "architecture_pattern_id": "road-electric-drive",
+      "layout_concept": "Family cabin and luggage envelope, restraint/child-seat access, cargo retention and thermal comfort prioritized.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Family cabin and luggage envelope, restraint/child-seat access, cargo retention and thermal comfort prioritized.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Single e-axle baseline; second axle/motor only if traction requirements justify added mass/cost.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Underfloor protected pack while preserving passenger/cargo and crash envelopes.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Dedicated pack and drive cooling; cabin preconditioning and hot/cold auxiliaries explicitly metered.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "AC home/depot baseline plus qualified public DC option where demand supports it.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Occupant protection, child access, cargo securement, egress and HV safe service have class-specific hazards.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "accessible-shuttle",
+      "platform_family_id": "accessible-transit",
+      "architecture_pattern_id": "accessible-transit-electric",
+      "layout_concept": "Low-floor body and boarding path with engineered ramp/lift/securement; pack zones selected after floor, axle and CG studies.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Low-floor body and boarding path with engineered ramp/lift/securement; pack zones selected after floor, axle and CG studies.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Rear drive axle baseline to preserve a serviceable transit layout; final axle depends on boarding floor and loading study.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Protected modules placed to preserve axle limits, boarding path, egress and centre of gravity; underfloor/roof trade study required.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Separate and meter HVAC, doors, ramp/lift and traction thermal demand.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Depot AC/DC and terminus opportunity-charge comparison tied to the actual timetable and dwell reliability.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Ramp/lift faults, emergency boarding recovery, passenger egress and securement require specialist validation.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "light-commercial-van",
+      "platform_family_id": "light-commercial-utility",
+      "architecture_pattern_id": "work-vehicle-electric",
+      "layout_concept": "Cab/front drive assembly plus body/upfit interface with cargo load paths and volume ledger.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Cab/front drive assembly plus body/upfit interface with cargo load paths and volume ledger.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "E-axle baseline; design body and accessory interfaces around declared payload, not unused nominal pack volume.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Protected underfloor/frame battery candidate subject to payload/axle structure validation.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Separate cargo cooling/refrigeration and traction load meters; heat rejection validated at low speed.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Managed depot DC/AC according to fleet window; connector power isn't assumed to equal pack intake.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Cargo retention, upfit mass, axle limits, pedestrian visibility and HV isolation are explicit gates.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "rural-all-terrain-utility",
+      "platform_family_id": "light-commercial-utility",
+      "architecture_pattern_id": "road-electric-drive",
+      "layout_concept": "Protected central pack enclosure, replaceable skid protection, tow/recovery points and field-service access.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Protected central pack enclosure, replaceable skid protection, tow/recovery points and field-service access.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Front and rear e-drive baseline for 4x4 traction; torque control and mechanical recovery remain available in degraded mode.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Fixed protected pack between axles where ground clearance and intrusion study allow; no roof solar propulsion credit.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Dust/mud/water and low-speed thermal soak need separate validation; modular cooling hardware is not assumed interchangeable.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Depot AC plus site DC/stationary buffer; off-grid charge is a site system, not free vehicle power.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Recovery, water ingress, steering/braking on rough surfaces, pack isolation and field repair are first-class gates.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "emergency-resilience-vehicle",
+      "platform_family_id": "light-commercial-utility",
+      "architecture_pattern_id": "bidirectional-export-electric",
+      "layout_concept": "Response body with defined load restraints and physically separated traction/service/export boundaries.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Response body with defined load restraints and physically separated traction/service/export boundaries.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Single e-drive baseline; stronger off-road response variant is a different configuration if required.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Protected pack with explicit driving reserve that export cannot consume; pack segmentation is specialist decision.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Drive and export inverter thermal loads and stationary response duration are instrumented separately.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Managed depot DC/AC plus a dedicated bidirectional export converter and isolated output interface.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Export is disabled unless isolation/grounding/protection/mode interlocks are qualified; no casual backfeed or islanding assumption.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "municipal-work-truck",
+      "platform_family_id": "commercial-and-municipal-trucks",
+      "architecture_pattern_id": "work-vehicle-electric",
+      "layout_concept": "Commercial chassis and configuration-controlled body; body mass/centre of gravity/axle ledger remains part of build.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Commercial chassis and configuration-controlled body; body mass/centre of gravity/axle ledger remains part of build.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "E-axle for travel plus separate variable-speed pump/motor for sweeper, hoist, compactor or utility tools as fitted.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Frame-integrated protected pack within axle and body constraints; no universal removable module assumption.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Work pump, traction and auxiliary heat are instrumented independently and combined for simultaneous peaks.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Managed depot DC; size site import and charging windows for multiple fleet units and body loads.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Tool interlocks, body access, manual recovery and electrical/hydraulic lockout must be validated per upfit.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "smallholder-tractor-carrier",
+      "platform_family_id": "agricultural-work",
+      "architecture_pattern_id": "work-vehicle-electric",
+      "layout_concept": "Compact agricultural frame with tool mounts, controlled ballast and serviceable protected enclosure.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Compact agricultural frame with tool mounts, controlled ballast and serviceable protected enclosure.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Low-speed high-torque traction reduction plus independent electric PTO/hydraulic pump as the implement requires.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Fixed protected pack baseline; exchange option remains a cost/safety trade, not a requirement.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Traction and implement cooling assessed during stationary/high-torque work in dust and wash-down conditions.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Farm depot AC or a correctly sized shared site buffer; seasonal charging access must be modeled.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Rollover protection, implement entanglement, operator egress, PTO/task interlocks and local recovery are gates.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "medium-row-crop-tractor",
+      "platform_family_id": "agricultural-work",
+      "architecture_pattern_id": "work-vehicle-electric",
+      "layout_concept": "Higher-capacity tractor chassis with validated front/rear axle loads and implement-specific configuration IDs.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Higher-capacity tractor chassis with validated front/rear axle loads and implement-specific configuration IDs.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "High-continuous-power traction reduction with separately metered implement drive/hydraulic circuits.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Protected pack and ballast envelope optimized with mounted implements; size only against seasonal measured cycles.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Continuous traction and implement heat rejection need a full-cycle thermal map, not a single efficiency value.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "High-power depot or managed task-corridor supply comparison; pack swap only with a complete spare-pack model.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Seasonal availability, rollover/egress, implement disengagement and safe lockout must be class-qualified.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "compact-electric-excavator",
+      "platform_family_id": "construction-equipment",
+      "architecture_pattern_id": "track-work-electric",
+      "layout_concept": "Tracked frame, lifting geometry and protected pack placed with centre-of-gravity and service isolation constraints.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Tracked frame, lifting geometry and protected pack placed with centre-of-gravity and service isolation constraints.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Independent track drives plus electric motor/pump for hydraulic work; emergency lowering remains separately engineered.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Fixed protected pack; battery/traction and hydraulic modules need safe independent isolation.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Separate motor, inverter, pump, hydraulic fluid and pack thermal instrumentation for stationary work cycles.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Site DC/managed charging; exchange only after handling, inventory and isolation case is demonstrated.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Lifting stability, hydraulic pressure release, emergency lowering and dual-domain lockout are mandatory validation targets.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "urban-distribution-truck",
+      "platform_family_id": "commercial-and-municipal-trucks",
+      "architecture_pattern_id": "heavy-road-electric",
+      "layout_concept": "Commercial rigid chassis and cargo body with payload, axle and delivery-access constraints.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Commercial rigid chassis and cargo body with payload, axle and delivery-access constraints.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "E-axle or validated rear-drive arrangement; regen limits and friction brakes explicitly paired.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Frame/underfloor pack with axle-load and cargo-space verification.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Meter traction, refrigeration/auxiliary systems and cabin heat; stop-start cooling strategy measured.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Managed depot DC; public high-power fallback only where compatible charge curve and routes justify it.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Pedestrian warning, cargo retention, route recovery and service-access exposure are separate gates.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "city-bus",
+      "platform_family_id": "accessible-transit",
+      "architecture_pattern_id": "accessible-transit-electric",
+      "layout_concept": "Passenger shell with low-floor/egress/accessibility system and HVAC/door mass in gross-load ledger.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Passenger shell with low-floor/egress/accessibility system and HVAC/door mass in gross-load ledger.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Rear traction axle baseline with independent friction brake and route-specific regen calibration.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Underfloor/roof pack zones compared with axle load, CG, egress and thermal event plan.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "HVAC/defrost, doors and traction loads measured across hot/cold passenger schedules.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Depot plus terminus opportunity charging compared against duty timetable, queues and missed dwell.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Passenger evacuation, accessibility, battery thermal-event response and service continuity require specialist review.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "long-haul-heavy-truck",
+      "platform_family_id": "heavy-road-and-yard",
+      "architecture_pattern_id": "heavy-road-electric",
+      "layout_concept": "Heavy frame/trailer interface with payload, battery placement, axle, tire and retarder limits.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Heavy frame/trailer interface with payload, battery placement, axle, tire and retarder limits.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "High-torque heavy-duty traction axles with qualified retarding/friction brake strategy for long descents.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Frame-integrated pack sized from grade/wind/payload route and reserve; pack mass remains in payload calculation.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Sustained grade heat rejection and charge-inlet cable/connector cooling validated at vehicle limit.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "MCS-class conductive charging candidate only after vehicle/charger/interface and actual charge-curve validation.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Highway braking, connector interaction, HV isolation, breakdown recovery and fatigue/durability are independent gates.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "port-yard-terminal-tractor",
+      "platform_family_id": "heavy-road-and-yard",
+      "architecture_pattern_id": "heavy-road-electric",
+      "layout_concept": "Low-speed tractor/hitch chassis and trailer-movement envelope, corrosion/sealing and operator visibility.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Low-speed tractor/hitch chassis and trailer-movement envelope, corrosion/sealing and operator visibility.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "High-torque drive axle(s) optimized for frequent starts and hitch work; exact axle rating requires duty trace.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Protected frame pack sized for move cadence and charging dwell; swap is an alternative only with a complete fleet-cost model.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Frequent-start traction and hitch/work-system thermal load measured separately.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Opportunity DC/depot charge compared with route queues and site power limit.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Hitch/load integrity, human interaction, corrosion, night operation and manual recovery require port-specific review.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "underground-mine-mobile-unit",
+      "platform_family_id": "mine-mobile-equipment",
+      "architecture_pattern_id": "work-vehicle-electric",
+      "layout_concept": "Mine-qualified machine envelope with route/clearance, service zone and emergency egress constraints.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Mine-qualified machine envelope with route/clearance, service zone and emergency egress constraints.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "High-torque electric traction with appropriate reduction and work circuit for the selected machine task.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Qualified enclosure/pack layout; no underground deployment or fire qualification is implied.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Battery, drive, work system and mine ventilation/cooling interactions modeled together at site level.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Qualified mine charge or opportunity interface; no surface-road connector assumptions transfer by default.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Mine fire/thermal response, egress, ventilation, isolation, fault communications and recovery need specialist mine safety review.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "open-pit-haul-battery-only-control",
+      "platform_family_id": "mine-mobile-equipment",
+      "architecture_pattern_id": "heavy-road-electric",
+      "layout_concept": "Haul frame, gross/axle/tire and battery mass ledger; retained payload is a key feasibility variable.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Haul frame, gross/axle/tire and battery mass ledger; retained payload is a key feasibility variable.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Multiple high-power drive motors/axle or wheel drives per qualified haul architecture; topology requires specialist vehicle data.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Large protected battery blocks sized from actual haul cycles and payload constraints; this synthetic control intentionally fails energy gate.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "High-power drive/pack cooling and retarding duties evaluated over loaded uphill and return cycles.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Dedicated high-power charging and site buffer/grid requirements require a haul-fleet schedule.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Haul-road braking, tire, fire, recovery and mine-site procedures are outside the arithmetic screen.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "open-pit-haul-trolley-battery",
+      "platform_family_id": "mine-mobile-equipment",
+      "architecture_pattern_id": "trolley-battery-electric",
+      "layout_concept": "Haul frame with trolley collector envelope, line clearance and safe contact/transition geometry.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Haul frame with trolley collector envelope, line clearance and safe contact/transition geometry.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Multiple high-power traction drives fed from protected DC bus; current collector and battery off-wire path independently supervised.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Protected battery sized for declared off-wire reserve, not total trolley-served traction energy.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Drive, collector and pack cooling need to be tested during line operation and off-wire transitions.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Qualified trolley corridor supply plus depot/opportunity charging for off-wire reserve; track coverage is an explicit model input.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Collector fault, line loss, clearance, isolation, safe transition and off-wire recovery require mine electrical review.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    },
+    {
+      "design_id": "warehouse-autonomous-carrier",
+      "platform_family_id": "autonomous-material-handling",
+      "architecture_pattern_id": "autonomous-yard-electric",
+      "layout_concept": "Compact load frame with payload geometry, docking targets, service access and protective sensor placement.",
+      "subsystems": [
+        {
+          "subsystem_id": "structure_mission_body",
+          "role": "structure_and_task",
+          "reference_architecture": "Compact load frame with payload geometry, docking targets, service access and protective sensor placement.",
+          "status": "conceptual",
+          "qualification_gate": "mass, load paths, axle/track loads, body/implement interfaces and intended use"
+        },
+        {
+          "subsystem_id": "traction_drive",
+          "role": "propulsion",
+          "reference_architecture": "Low-speed electric drive/steering with power allocated to braking or stopping actuators as required by selected safety design.",
+          "status": "conceptual",
+          "qualification_gate": "continuous/peak torque, efficiency maps, fault handling, braking and grade endurance"
+        },
+        {
+          "subsystem_id": "energy_storage_protection",
+          "role": "battery_and_HV",
+          "reference_architecture": "Protected pack sized for task cadence and safe return/recovery reserve.",
+          "status": "conceptual",
+          "qualification_gate": "pack cell/structure, voltage/current, isolation, intrusion/fire strategy, reserve and repair"
+        },
+        {
+          "subsystem_id": "thermal_management",
+          "role": "battery_drive_and_work_heat",
+          "reference_architecture": "Drive and compute/sensor thermal loads measured through full shifts and warm ambient conditions.",
+          "status": "conceptual",
+          "qualification_gate": "instrumented repeated duty at declared ambient/load, derating and worst-case steady state"
+        },
+        {
+          "subsystem_id": "charging_energy_interface",
+          "role": "grid_site_or_direct_supply",
+          "reference_architecture": "Automatic charge/dock candidate with alignment feedback; schedule must account for fleet queues and failed docking.",
+          "status": "conceptual",
+          "qualification_gate": "vehicle/charger interoperability, power curve, thermal limits, site availability and safe disconnect"
+        },
+        {
+          "subsystem_id": "controls_safety_and_service",
+          "role": "vehicle_control_hazard_recovery_provenance",
+          "reference_architecture": "Safety controller, safe stop, sensor/localization/network faults, human sharing and manual recovery require facility-specific verification.",
+          "status": "conceptual",
+          "qualification_gate": "hazard analysis, fault injection, service isolation, recovery, secure update and class-specific compliance"
+        }
+      ]
+    }
+  ]
+}
