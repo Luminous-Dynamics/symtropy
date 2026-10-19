@@ -10,8 +10,9 @@
 
 pub mod dynamics;
 pub use dynamics::{
-    HarmonicOscillatorResult, HarmonicOscillatorSpec, OscillatorIntegrator, OscillatorSample,
-    simulate_harmonic_oscillator, OSCILLATOR_SCHEMA_VERSION,
+    analyze_harmonic_oscillator_convergence, simulate_harmonic_oscillator, ConvergenceOrderEstimate,
+    ConvergencePoint, HarmonicOscillatorResult, HarmonicOscillatorSpec, OscillatorConvergenceReport,
+    OscillatorIntegrator, OscillatorSample, OSCILLATOR_SCHEMA_VERSION,
 };
 
 use serde::{Deserialize, Serialize};
