@@ -41,7 +41,7 @@ cargo run --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml -- val
 cargo test --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml
 \`\`\`
 
-The output receipt includes the exact corpus SHA-256, ruleset SHA-256, seed, case/pair counts, and train/dev/test case counts. Generation and validation perform no network requests.
+The output receipt includes the exact corpus SHA-256, ruleset SHA-256, seed, case/pair counts, and train/dev/test case counts. Generation and validation perform no network requests. The generated corpus contract is also published as `schemas/generated-corpus-v0.1.schema.json`; tests verify its local references and required fields against real generated output.
 
 ## Reproducibility and split rules
 
