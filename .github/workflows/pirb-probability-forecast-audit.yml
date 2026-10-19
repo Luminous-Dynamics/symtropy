@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "docs/schemas/pirb-probability-forecast-v0.1.schema.json"
+      - "docs/schemas/pirb-views-offline-import-v0.1.schema.json"
       - "docs/fixtures/pirb-probability-forecast-v0.1.json"
       - "docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json"
       - "docs/fixtures/views-import-manifest-synthetic-v0.1.json"
@@ -173,10 +174,11 @@ jobs:
             --output pirb-views-normalized.json --receipt pirb-views-import-receipt.json \
             --source-commit "$source_commit" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
 
+          expected_normalized_sha="$(sha256sum pirb-views-normalized.json | awk '{print $1}')"
           jq -e --arg source_commit "$source_commit" --arg manifest_sha "$expected_manifest_sha" \
             --arg outcomes_sha "$expected_outcomes_sha" --arg block_map_sha "$expected_block_map_sha" \
             --arg codebook_sha "$expected_codebook_sha" --arg lock_sha "$expected_lock_sha" \
-            --argjson expected_pages "$expected_pages" \
+            --arg normalized_sha "$expected_normalized_sha" --argjson expected_pages "$expected_pages" \
             '
               .result == "pass"
               and .evaluator == "PIRB frozen VIEWS offline importer"
@@ -197,13 +199,13 @@ jobs:
               and .partition == "eval"
               and ([.releases[].response_page_sha256[]] == $expected_pages)
               and ([.releases[].codebook_sha256] | all(. == $codebook_sha))
-              and .normalized_dataset_sha256 != ""
+              and .normalized_dataset_sha256 == $normalized_sha
             ' pirb-views-import-receipt.json
 
-          expected_normalized_sha="$(sha256sum pirb-views-normalized.json | awk '{print $1}')"
           jq -e --arg dataset_sha "$expected_normalized_sha" \
-            '.dataset_id == "pirb-probability-views-offline-synthetic" and .schema_version == "0.1" and .evidence_class == "synthetic" and .source.forecast_archive_sha256 != "" and .source.outcome_release_sha256 != "" and .records | length == 28' \
+            '.dataset_id == "pirb-probability-views-offline-synthetic" and .schema_version == "0.1" and .evidence_class == "synthetic" and .source.forecast_archive_sha256 != "" and .source.outcome_release_sha256 != "" and (.records | length == 28)' \
             pirb-views-normalized.json
+          test "$(sha256sum pirb-views-normalized.json | awk '{print $1}')" = "$expected_normalized_sha"
           cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-probability-forecast-eval -- \
             --input pirb-views-normalized.json --source-commit "$source_commit" \
             --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)" \
@@ -219,6 +221,14 @@ jobs:
           name: pirb-probability-forecast-synthetic-receipt
           path: |
             pirb-probability-forecast-receipt.json
+            pirb-views-import-receipt.json
+            pirb-views-normalized.json
+            pirb-views-score-receipt.json
+            docs/fixtures/views-import-manifest-synthetic-v0.1.json
+            docs/fixtures/views-outcomes-synthetic-v0.1.json
+            docs/fixtures/views-spatial-block-map-synthetic-v0.1.json
+            docs/fixtures/views-codebook-synthetic-v0.1.json
+            docs/fixtures/views-api-response-synthetic-*.json
             pirb-outcome-vintage-sensitivity-receipt.json
             tools/pirb-probability-forecast-eval/Cargo.lock
             docs/fixtures/pirb-probability-forecast-v0.1.json
