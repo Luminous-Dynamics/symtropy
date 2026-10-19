@@ -99,6 +99,11 @@ pub struct FieldProvenance {
 }
 
 impl FieldProvenance {
+    pub const fn is_uncalibrated_measurement(&self) -> bool {
+        matches!(self.source_kind, FieldSourceKind::MeasuredSensor)
+            && matches!(self.calibration_state, CalibrationState::Uncalibrated)
+    }
+
     pub fn validate(&self) -> Result<(), FieldValidationError> {
         if self.source_id.trim().is_empty() {
             return Err(FieldValidationError::MissingSourceId);
@@ -631,9 +636,7 @@ fn draw_field_views(
     if config.show_scalar_fields
         && let Some(frame) = scalar_frame.as_deref()
     {
-        status.scalar_is_uncalibrated_measurement = frame.provenance.source_kind
-            == FieldSourceKind::MeasuredSensor
-            && frame.provenance.calibration_state == CalibrationState::Uncalibrated;
+        status.scalar_is_uncalibrated_measurement = frame.provenance.is_uncalibrated_measurement();
         match extract_scalar_glyphs(frame, config.max_scalar_samples) {
             Ok(glyphs) => {
                 status.scalar_glyph_count = glyphs.len();
@@ -768,6 +771,17 @@ mod tests {
             spectral_band: None,
             provenance: simulation_provenance(),
         }
+    }
+
+    #[test]
+    fn provenance_distinguishes_uncalibrated_sensor_data_from_simulations() {
+        let mut provenance = simulation_provenance();
+        assert!(!provenance.is_uncalibrated_measurement());
+        provenance.source_kind = FieldSourceKind::MeasuredSensor;
+        provenance.calibration_state = CalibrationState::Uncalibrated;
+        assert!(provenance.is_uncalibrated_measurement());
+        provenance.calibration_state = CalibrationState::Calibrated;
+        assert!(!provenance.is_uncalibrated_measurement());
     }
 
     #[test]
