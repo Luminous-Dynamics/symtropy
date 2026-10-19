@@ -751,6 +751,18 @@
       "expected_baseline_comparison_outcomes": [
         "not_assessed"
       ]
+    },
+    {
+      "id": "reported_metric_requires_uncertainty_interval",
+      "mutation": "missing_metric_interval",
+      "expected_disposition": "incomplete",
+      "expected_reason_codes": [
+        "incomplete_metric_observation"
+      ],
+      "expected_threshold_outcome": "not_assessed",
+      "expected_baseline_comparison_outcomes": [
+        "not_assessed"
+      ]
     }
   ]
 }
