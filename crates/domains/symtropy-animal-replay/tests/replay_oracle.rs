@@ -9,10 +9,10 @@ use symtropy_animal_observation::{
 };
 use symtropy_animal_replay::{
     BaselineComparisonOutcome, BaselineReference, ComparisonBudgetPolicy, ConfidenceInterval,
-    DecisionThreshold,
-    EvaluationMode, MetricObjective, MetricObservation, MetricState, MetricStratumKind,
-    PairedBaselineComparison, ReplayDisposition, ReplayEvaluationInput, ReplayReason,
-    ReplayTaskSpec, RunIdentity, ThresholdDirection, ThresholdOutcome, build_replay_receipt,
+    DecisionThreshold, EvaluationMode, MetricObjective, MetricObservation, MetricState,
+    MetricStratumKind, PairedBaselineComparison, ReplayDisposition, ReplayEvaluationInput,
+    ReplayReason, ReplayTaskSpec, RunIdentity, ThresholdDirection, ThresholdOutcome,
+    build_replay_receipt,
 };
 use symtropy_fauna_core::{AnimalProfile, EvidenceClass, TaxonBinding};
 
@@ -263,7 +263,7 @@ fn valid_inputs() -> TestInputs {
             independent_unit_count: 10,
             mean_difference: Some(0.5),
             difference_interval: Some(ConfidenceInterval {
-            method_id: "synthetic-test-interval-v1".to_owned(),
+                method_id: "synthetic-test-interval-v1".to_owned(),
                 confidence_percent: 90,
                 lower: 0.35,
                 upper: 0.65,
@@ -344,26 +344,28 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
                 MetricStratumKind::Taxon,
                 "TEST:1",
             ));
-            inputs.baselines[0].additional_metrics.push(metric_for_stratum(
-                "pose_pck",
-                0.5,
-                "fraction",
-                MetricStratumKind::Taxon,
-                "TEST:1",
-            ));
+            inputs.baselines[0]
+                .additional_metrics
+                .push(metric_for_stratum(
+                    "pose_pck",
+                    0.5,
+                    "fraction",
+                    MetricStratumKind::Taxon,
+                    "TEST:1",
+                ));
             inputs.paired_comparisons.push(PairedBaselineComparison {
                 baseline_id: "persistence".to_owned(),
                 metric_id: "pose_pck".to_owned(),
                 stratum_kind: MetricStratumKind::Taxon,
                 stratum_id: "TEST:1".to_owned(),
                 comparison_group: "synthetic-protocol-v1".to_owned(),
-            paired_unit_manifest_sha256: "e".repeat(64),
+                paired_unit_manifest_sha256: "e".repeat(64),
                 objective: MetricObjective::HigherIsBetter,
                 pairing_unit: "animal".to_owned(),
                 independent_unit_count: 10,
                 mean_difference: Some(0.2),
                 difference_interval: Some(ConfidenceInterval {
-            method_id: "synthetic-test-interval-v1".to_owned(),
+                    method_id: "synthetic-test-interval-v1".to_owned(),
                     confidence_percent: 90,
                     lower: 0.15,
                     upper: 0.25,
@@ -371,7 +373,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
                 minimum_effect_size: 0.1,
                 non_inferiority_margin: 0.05,
             });
-        },
+        }
         "baseline_stratum_mismatch" => {
             inputs.baselines[0].primary_metric = metric_for_stratum(
                 "pose_pck",
@@ -383,7 +385,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "invalid_interval_bounds" => {
             inputs.metrics[0].interval = Some(ConfidenceInterval {
-            method_id: "synthetic-test-interval-v1".to_owned(),
+                method_id: "synthetic-test-interval-v1".to_owned(),
                 confidence_percent: 90,
                 lower: 0.95,
                 upper: 0.8,
@@ -397,7 +399,11 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "empty_uncertainty_method" => inputs.task.paired_comparison_method_id.clear(),
         "metric_confidence_protocol_mismatch" => {
-            inputs.metrics[0].interval.as_mut().unwrap().confidence_percent = 95;
+            inputs.metrics[0]
+                .interval
+                .as_mut()
+                .unwrap()
+                .confidence_percent = 95;
         }
         "paired_confidence_protocol_mismatch" => {
             inputs.paired_comparisons[0]
@@ -407,12 +413,17 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
                 .confidence_percent = 95;
         }
         "paired_interval_method_mismatch" => {
-            inputs.paired_comparisons[0].difference_interval.as_mut().unwrap().method_id =
-                "unregistered-paired-method".to_owned();
+            inputs.paired_comparisons[0]
+                .difference_interval
+                .as_mut()
+                .unwrap()
+                .method_id = "unregistered-paired-method".to_owned();
         }
         "missing_paired_comparison" => inputs.paired_comparisons.clear(),
         "duplicate_paired_comparison" => {
-            inputs.paired_comparisons.push(inputs.paired_comparisons[0].clone());
+            inputs
+                .paired_comparisons
+                .push(inputs.paired_comparisons[0].clone());
         }
         "unknown_baseline_comparison" => {
             inputs.paired_comparisons[0].baseline_id = "missing-baseline".to_owned();
@@ -542,8 +553,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "baseline_invalid_code_head" => inputs.baselines[0].code_head = "not-a-commit".to_owned(),
         "baseline_invalid_config_digest" => inputs.baselines[0].config_sha256 = "bad".to_owned(),
         "baseline_training_scope_mismatch" => {
-            inputs.baselines[0].training_data_scope =
-                "different-training-data".to_owned();
+            inputs.baselines[0].training_data_scope = "different-training-data".to_owned();
         }
         "baseline_compute_budget_mismatch" => {
             inputs.baselines[0].compute_budget = "larger-budget".to_owned();
@@ -592,20 +602,17 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
         apply_mutation(&mut inputs, &case.mutation);
         let receipt = build(inputs);
         assert_eq!(
-            receipt.payload.assessment.disposition,
-            case.expected_disposition,
+            receipt.payload.assessment.disposition, case.expected_disposition,
             "case {}",
             case.id
         );
         assert_eq!(
-            receipt.payload.assessment.reason_codes,
-            case.expected_reason_codes,
+            receipt.payload.assessment.reason_codes, case.expected_reason_codes,
             "case {}",
             case.id
         );
         assert_eq!(
-            receipt.payload.threshold_outcome,
-            case.expected_threshold_outcome,
+            receipt.payload.threshold_outcome, case.expected_threshold_outcome,
             "case {}",
             case.id
         );
@@ -628,7 +635,9 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
 #[test]
 fn receipt_digest_is_invariant_to_input_vector_order() {
     let mut first = valid_inputs();
-    first.metrics.push(metric("turn_rate", 0.3, "rad_per_second"));
+    first
+        .metrics
+        .push(metric("turn_rate", 0.3, "rad_per_second"));
     first.baselines.push(BaselineReference {
         baseline_id: "constant-velocity".to_owned(),
         revision: "v1".to_owned(),
@@ -642,7 +651,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         training_data_scope: "synthetic-fixture-only".to_owned(),
         compute_budget: "unit-test".to_owned(),
         primary_metric: metric("pose_pck", 0.5, "fraction"),
-            additional_metrics: Vec::new(),
+        additional_metrics: Vec::new(),
     });
     first.paired_comparisons.push(PairedBaselineComparison {
         baseline_id: "constant-velocity".to_owned(),
@@ -650,7 +659,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         stratum_kind: MetricStratumKind::Overall,
         stratum_id: "all".to_owned(),
         comparison_group: "synthetic-protocol-v1".to_owned(),
-            paired_unit_manifest_sha256: "e".repeat(64),
+        paired_unit_manifest_sha256: "e".repeat(64),
         objective: MetricObjective::HigherIsBetter,
         pairing_unit: "animal".to_owned(),
         independent_unit_count: 10,
@@ -667,7 +676,9 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
     let expected = build(first);
 
     let mut second = valid_inputs();
-    second.metrics.push(metric("turn_rate", 0.3, "rad_per_second"));
+    second
+        .metrics
+        .push(metric("turn_rate", 0.3, "rad_per_second"));
     second.baselines.push(BaselineReference {
         baseline_id: "constant-velocity".to_owned(),
         revision: "v1".to_owned(),
@@ -681,7 +692,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         training_data_scope: "synthetic-fixture-only".to_owned(),
         compute_budget: "unit-test".to_owned(),
         primary_metric: metric("pose_pck", 0.5, "fraction"),
-            additional_metrics: Vec::new(),
+        additional_metrics: Vec::new(),
     });
     second.paired_comparisons.push(PairedBaselineComparison {
         baseline_id: "constant-velocity".to_owned(),
@@ -689,7 +700,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         stratum_kind: MetricStratumKind::Overall,
         stratum_id: "all".to_owned(),
         comparison_group: "synthetic-protocol-v1".to_owned(),
-            paired_unit_manifest_sha256: "e".repeat(64),
+        paired_unit_manifest_sha256: "e".repeat(64),
         objective: MetricObjective::HigherIsBetter,
         pairing_unit: "animal".to_owned(),
         independent_unit_count: 10,
@@ -714,7 +725,10 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
     let actual = build(second);
 
     assert_eq!(expected.receipt_sha256, actual.receipt_sha256);
-    assert_eq!(expected.payload.manifest_sha256, actual.payload.manifest_sha256);
+    assert_eq!(
+        expected.payload.manifest_sha256,
+        actual.payload.manifest_sha256
+    );
     assert_eq!(expected.payload.split_sha256, actual.payload.split_sha256);
 }
 
@@ -731,7 +745,10 @@ fn receipt_digest_binds_metrics_seed_and_permission_scope() {
         lower: 0.4,
         upper: 0.5,
     });
-    assert_ne!(original.receipt_sha256, build(changed_metric).receipt_sha256);
+    assert_ne!(
+        original.receipt_sha256,
+        build(changed_metric).receipt_sha256
+    );
 
     let mut changed_seed = valid_inputs();
     changed_seed.run.seed = Some(2);
@@ -741,7 +758,10 @@ fn receipt_digest_binds_metrics_seed_and_permission_scope() {
     changed_scope.manifest.permissions[0].scope_ref =
         Some("test://scope/different-operation".to_owned());
     let changed_scope_receipt = build(changed_scope);
-    assert_ne!(original.receipt_sha256, changed_scope_receipt.receipt_sha256);
+    assert_ne!(
+        original.receipt_sha256,
+        changed_scope_receipt.receipt_sha256
+    );
     assert_ne!(
         original.payload.manifest_sha256,
         changed_scope_receipt.payload.manifest_sha256
@@ -751,10 +771,7 @@ fn receipt_digest_binds_metrics_seed_and_permission_scope() {
 #[test]
 fn synthetic_receipt_never_claims_empirical_qualification() {
     let receipt = build(valid_inputs());
-    assert_eq!(
-        receipt.payload.qualification_scope,
-        "synthetic_oracle_only"
-    );
+    assert_eq!(receipt.payload.qualification_scope, "synthetic_oracle_only");
     assert_ne!(
         receipt.payload.qualification_scope,
         "empirical_reference_evaluation"
