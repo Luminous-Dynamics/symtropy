@@ -319,11 +319,11 @@ pub fn integrate_spectral_response(
         return Err(SpectralResponseError::NonFiniteIntegrationResult);
     }
 
-    let standard_uncertainty = if signal
-        .samples
+    let uncertainty_available = signal_weights
         .iter()
-        .all(|sample| sample.standard_uncertainty.is_some())
-    {
+        .zip(&signal.samples)
+        .all(|(weight, sample)| *weight == 0.0 || sample.standard_uncertainty.is_some());
+    let standard_uncertainty = if uncertainty_available {
         let variance = signal_weights
             .iter()
             .zip(&signal.samples)
@@ -521,6 +521,28 @@ mod tests {
         let response = response(&[(400.0, 0.0), (600.0, 1.0)]);
         let observation = integrate_spectral_response(&spectrum, &response).unwrap();
         assert_eq!(observation.standard_uncertainty, None);
+    }
+
+    #[test]
+    fn missing_uncertainty_on_zero_weight_samples_does_not_hide_result_uncertainty() {
+        let spectrum = signal(
+            SpectralSignalQuantity::SpectralRadianceWPerSrM2Um,
+            &[
+                (200.0, 0.1, None),
+                (250.0, 0.1, None),
+                (300.0, 0.1, None),
+                (390.0, 0.2, Some(0.01)),
+                (450.0, 0.3, Some(0.02)),
+                (500.0, 0.4, Some(0.03)),
+                (600.0, 0.5, Some(0.04)),
+                (650.0, 0.6, None),
+                (700.0, 0.7, None),
+            ],
+        );
+        let response = response(&[(400.0, 0.0), (500.0, 1.0), (600.0, 0.0)]);
+
+        let observation = integrate_spectral_response(&spectrum, &response).unwrap();
+        assert!(observation.standard_uncertainty.is_some());
     }
 
     #[test]
