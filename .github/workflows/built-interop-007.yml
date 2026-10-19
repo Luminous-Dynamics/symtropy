@@ -1,0 +1,49 @@
+name: BUILT-INTEROP-007 IFC Semantic Diff
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-007/**"
+      - ".github/workflows/built-interop-007.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-007/**"
+      - ".github/workflows/built-interop-007.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-interop-007-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semantic-diff:
+    name: Build and mutation-test IFC semantic diff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      # One-time bootstrap: print the lock and formatter diff for commit. This
+      # is replaced by a lock checksum and fmt --check after first resolution.
+      - name: Bootstrap dependency lock and show formatter diff
+        run: |
+          cargo generate-lockfile --manifest-path tools/built-interop-007/Cargo.toml
+          sha256sum tools/built-interop-007/Cargo.lock
+          echo "LOCKFILE_BASE64_BEGIN"
+          base64 -w0 tools/built-interop-007/Cargo.lock
+          echo
+          echo "LOCKFILE_BASE64_END"
+          cargo fmt --manifest-path tools/built-interop-007/Cargo.toml
+          git diff -- tools/built-interop-007/src/main.rs
+      - name: Run semantic mutation tests
+        run: cargo test --locked --manifest-path tools/built-interop-007/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/built-interop-007/Cargo.toml --all-targets -- -D warnings
