@@ -983,7 +983,9 @@ mod tests {
     #[test]
     fn zero_records_are_never_exposed_as_species_absence() {
         let (corpus, _) = fixture_corpus();
-        assert!(corpus.claim_ceiling.contains("No species abundance, absence"));
+        assert!(corpus
+            .claim_ceiling
+            .contains("No species abundance, absence"));
         let serialized = serde_json::to_value(&corpus).unwrap();
         let top = serialized.as_object().unwrap();
         assert!(!top.contains_key("species_absence"));
