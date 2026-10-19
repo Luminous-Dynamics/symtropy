@@ -668,6 +668,13 @@ fn run() -> Check<ExitCode> {
     {
         return robustness::run_execution_cli(&args[1..]);
     }
+
+    if args
+        .first()
+        .is_some_and(|argument| argument == "--pump-sump")
+    {
+        return robustness::run_pump_sump_cli(&args[1..]);
+    }
     if args
         .first()
         .is_some_and(|argument| argument == "--risk-budget")
