@@ -110,8 +110,10 @@ pub use architectural_review::{
     validate_review_annotations_for_revision, validate_review_route,
 };
 pub use design_intent::{
-    AlternativeDisposition, DesignAlternative, DesignIntent, DesignIntentClass, DesignIntentIssue,
-    IntentEvaluation, IntentEvaluationOutcome, IntentOrigin, IntentPriority,
+    AlternativeDisposition, DesignAlternative, DesignComparison, DesignIntent, DesignIntentClass,
+    DesignIntentIssue, FrontierExclusion, FrontierExclusionReason, IntentEvaluation,
+    IntentEvaluationOutcome, IntentOrigin, IntentPriority, PreferenceFrontierReport,
+    PreferencePairComparison, PreferencePairRelation, compute_owner_preference_frontier,
     validate_design_comparison, validate_design_comparison_snapshot,
 };
 pub use loader::{SymtropyScene, SymtropySceneLoader};
