@@ -470,6 +470,21 @@ mod tests {
     }
 
     #[test]
+    fn response_knots_inside_one_signal_segment_preserve_linear_spectra() {
+        // The spectrum is linear from 0 at 390 nm to 1 at 610 nm. The asymmetric
+        // triangular response has a weighted wavelength centroid at 483 1/3 nm,
+        // so the expected response-weighted value is (483 1/3 - 390) / 220.
+        let spectrum = signal(
+            SpectralSignalQuantity::ReflectanceFraction,
+            &[(390.0, 0.0, None), (610.0, 1.0, None)],
+        );
+        let response = response(&[(400.0, 0.0), (450.0, 1.0), (600.0, 0.0)]);
+
+        let observation = integrate_spectral_response(&spectrum, &response).unwrap();
+        approx_eq(observation.value, 0.42424242424242425, 1e-12);
+    }
+
+    #[test]
     fn independent_sample_uncertainty_is_propagated_with_integration_weights() {
         let spectrum = signal(
             SpectralSignalQuantity::SpectralRadianceWPerSrM2Um,
