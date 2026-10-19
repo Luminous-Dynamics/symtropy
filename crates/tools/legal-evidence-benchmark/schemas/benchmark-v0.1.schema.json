@@ -9,7 +9,8 @@
     "dataset_kind",
     "description",
     "authorities",
-    "cases"
+    "cases",
+    "metamorphic_pairs"
   ],
   "properties": {
     "schema_version": {
@@ -34,6 +35,13 @@
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/case"
+      }
+    },
+    "metamorphic_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/metamorphicPair"
       }
     }
   },
@@ -235,6 +243,44 @@
             "minLength": 1
           },
           "uniqueItems": true
+        }
+      }
+    },
+    "metamorphicPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_case_id",
+        "target_case_id",
+        "relation",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "action_must_change",
+            "action_must_match",
+            "evidence_must_change",
+            "output_must_match"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
