@@ -18,7 +18,7 @@ The input case declares an interval for inflow and required head in every period
 
 ## State and execution contract
 
-For every period, the evaluator calculates a bounded sump-state interval from the previous state, inflow interval, and pump-flow interval. It checks lower and upper sump limits, energy budgets, required head against the declared maximum head, startup delay, and minimum on/off times. Unknown or malformed units and invalid time grids are rejected.
+For every period, the evaluator calculates a bounded sump-state interval from the previous state, inflow interval, and pump-flow interval. It checks lower and upper sump limits, energy budgets, required head against the declared maximum head, startup delay, and minimum on/off times. Unit semantics are encoded in typed field names, with no implicit unit conversion; malformed numeric bounds and invalid time grids are rejected.
 
 A separate conservation recomputation reconstructs the sump interval from the original inputs and each emitted flow interval. The receipt is deterministic and binds the exact source commit and generated case-set digest.
 
