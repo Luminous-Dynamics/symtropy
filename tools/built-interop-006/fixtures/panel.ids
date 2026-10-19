@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ids xmlns="http://standards.buildingsmart.org/IDS"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://standards.buildingsmart.org/IDS https://standards.buildingsmart.org/IDS/1.0/ids.xsd">
+  <info>
+    <title>BUILT-INTEROP-006 synthetic panel requirement</title>
+    <description>Synthetic only: require a literal Name for IFC4 walls.</description>
+  </info>
+  <specifications>
+    <specification name="Panel wall name is preserved" ifcVersion="IFC4">
+      <applicability minOccurs="1" maxOccurs="unbounded">
+        <entity>
+          <name>
+            <simpleValue>IFCWALL</simpleValue>
+          </name>
+        </entity>
+      </applicability>
+      <requirements>
+        <attribute cardinality="required">
+          <name>
+            <simpleValue>Name</simpleValue>
+          </name>
+          <value>
+            <simpleValue>Panel 001</simpleValue>
+          </value>
+        </attribute>
+      </requirements>
+    </specification>
+  </specifications>
+</ids>
