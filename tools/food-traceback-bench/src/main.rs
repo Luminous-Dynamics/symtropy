@@ -109,6 +109,11 @@ fn valid_utc_timestamp(value: &str) -> bool {
         .all(|index| bytes[*index].is_ascii_digit())
 }
 
+fn equal_ids(actual: &[String], expected: &[&str]) -> bool {
+    actual.len() == expected.len()
+        && actual.iter().zip(expected.iter()).all(|(actual, expected)| actual.as_str() == *expected)
+}
+
 fn verify_truth_ids(
     truth: &Value,
     key: &str,
@@ -420,9 +425,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
 
     match case_id.as_str() {
         "CLEAN-001" => {
-            if truth_sources != ["ING-A"]
-                || truth_affected != ["FG-A"]
-                || containment != ["FG-A"]
+            if !equal_ids(&truth_sources, &["ING-A"])
+                || !equal_ids(&truth_affected, &["FG-A"])
+                || !equal_ids(&containment, &["FG-A"])
                 || trace_completeness != "complete_for_fixture_scope"
                 || !has_verified_path(records, "ING-A", "FG-A")
                 || has_verified_path(records, "ING-B", "FG-A")
@@ -437,14 +442,14 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
                 )?,
                 &format!("{at}.expected_behavior.containment_should_exclude_under_complete_coverage"),
             )?;
-            if exclude != ["FG-B"] {
+            if !equal_ids(&exclude, &["FG-B"]) {
                 return Err(format!("{at}: expected FG-B exclusion control changed"));
             }
         }
         "MIX-SPLIT-002" => {
-            if truth_sources != ["ING-A"]
-                || truth_affected != ["FG-A", "FG-C"]
-                || containment != ["FG-A", "FG-C"]
+            if !equal_ids(&truth_sources, &["ING-A"])
+                || !equal_ids(&truth_affected, &["FG-A", "FG-C"])
+                || !equal_ids(&containment, &["FG-A", "FG-C"])
                 || !has_verified_path(records, "ING-A", "FG-A")
                 || !has_verified_path(records, "ING-A", "FG-C")
             {
@@ -454,7 +459,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         "MISSING-HANDOFF-003" => {
             if !attribution.starts_with("must_abstain")
                 || trace_completeness != "incomplete"
-                || containment != ["FG-A"]
+                || !equal_ids(&containment, &["FG-A"])
                 || !records.iter().any(|r| {
                     r.get("status").and_then(Value::as_str) == Some("unknown")
                         && r.get("id").and_then(Value::as_str) == Some("C3-R1")
@@ -472,7 +477,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
                 .collect();
             if !attribution.starts_with("must_abstain")
                 || trace_completeness != "incomplete_due_to_conflict"
-                || containment != ["FG-A"]
+                || !equal_ids(&containment, &["FG-A"])
                 || conflicting.len() != 2
                 || conflicting.iter().any(|r| {
                     r.get("status").and_then(Value::as_str) != Some("conflicted")
@@ -484,7 +489,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         "GENOMIC-NO-ROUTE-005" => {
             if !attribution.starts_with("must_not_attribute")
                 || trace_completeness != "upstream_incomplete"
-                || containment != ["FG-A"]
+                || !equal_ids(&containment, &["FG-A"])
                 || has_verified_path(records, "ING-B", "FG-A")
             {
                 return Err(format!("{at}: genomic-without-route invariant changed"));
@@ -493,7 +498,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         _ => return Err(format!("{at}: unexpected case ID {case_id}")),
     }
 
-    let mut projected = candidate_projection(case);
+    let projected = candidate_projection(case);
     if projected.get("oracle_truth").is_some() || projected.get("expected_behavior").is_some() {
         return Err(format!("{at}: evaluator projection leaked oracle labels"));
     }
@@ -578,7 +583,9 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
         .enumerate()
         .map(|(i, case)| text_field(case, "case_id", &format!("cases[{i}]")).map(str::to_owned))
         .collect::<Check<Vec<_>>>()?;
-    if ids.iter().map(String::as_str).collect::<Vec<_>>() != EXPECTED_CASES {
+    if ids.len() != EXPECTED_CASES.len()
+        || ids.iter().zip(EXPECTED_CASES.iter()).any(|(actual, expected)| actual.as_str() != *expected)
+    {
         return Err(format!("corpus: case inventory must equal {EXPECTED_CASES:?} in order"));
     }
     if ids.iter().collect::<BTreeSet<_>>().len() != ids.len() {
