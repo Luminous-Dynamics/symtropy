@@ -89,7 +89,7 @@ fn main() -> ExitCode {
     match envelope.assessment.disposition {
         FieldEvalReportDispositionV1::Calculated | FieldEvalReportDispositionV1::NotAssessable => {
             ExitCode::SUCCESS
-        },
+        }
         FieldEvalReportDispositionV1::Blocked => ExitCode::FAILURE,
     }
 }
