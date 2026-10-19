@@ -48,3 +48,27 @@ The generated corpus matches the input contract of `tools/ev-fleet-resilience`. 
 - The output cannot establish the performance of a real NLR fleet, commercial vehicle or South African deployment. It is a transparent workload generator for controlled simulation and should be followed by measured/local validation.
 
 The embedded source revision and report SHA-256 help reproduce the inputs; declared metadata is not cryptographically authenticated by this utility.
+
+## Industry comparison plan: what constitutes a real improvement?
+
+Use the following as separate, scope-labelled benchmark anchors:
+
+- **NLR 2021 profile benchmark:** 81 modeled 24-hour, 15-minute-resolution profiles across beverage-delivery, warehouse-delivery and food-delivery fleets; fleet sizes 10, 50 and 100; immediate 100 kW, delayed 100 kW and minimum-power strategies; average, minimum and peak days. This is the natural first external profile-comparison target, but it is modeled aggregate demand derived from operating schedules, not measured individual charge sessions. Dataset: https://data.nlr.gov/submissions/162 ; paper: https://doi.org/10.1038/s41560-021-00855-0.
+- **NLR 2024 national operating summaries:** broader medium/heavy-duty duty patterns, dwell, and normalized charging curves spanning depot-centric vocational fleets as well as transit and school buses. Import this next to broaden the source population beyond one beverage-delivery fleet: https://data.nlr.gov/submissions/231 ; report: https://doi.org/10.2172/2319200.
+- **Applied Energy 2025 grid-capacity-reduction study:** compares low-capital-cost depot management strategies and reports that vehicle valets can reduce required grid capacity by up to 64% in its large 30-vehicle depot case. Treat this as a case-specific reference, not a universal target. A valid reproduction needs the same operating assumptions, cost boundary, service constraints and infrastructure model: https://doi.org/10.1016/j.apenergy.2025.126563.
+- **2026 real-world-operation preprint:** reports an analysis using data from more than 400 heavy trucks and nearly 40,000 tours across nine depots, with measured building loads and site-specific grid capacities over more than three months. As of October 2026 this is a recent SSRN preprint, not a peer-reviewed benchmark release; first inspect methods, accessible data, inclusion criteria and uncertainty before using it as a challenge set: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7543981.
+- **Interoperability boundary:** SAE J3271:2025 covers MCS couplers, communication/control, cable handling/cooling, grid interconnection and interoperability testing; IEC 61851-23-3:2026 defines requirements for MCS DC supply equipment within its scope. Simulated power feasibility does not establish standards compliance or field interoperability: https://saemobilus.sae.org/standards/j3271_202503-sae-megawatt-charging-system-electric-vehicles ; https://webstore.iec.ch/en/publication/69016.
+
+## Proposed metric contract for matched comparisons
+
+For each matched workload and controller, preserve:
+- grid capacity required to meet a declared mission/service target (kW and kW/vehicle);
+- on-time mission/departure fraction and unserved battery kWh;
+- 15-minute site-load trace error against an external profile when a genuine comparable profile exists (MAE/RMSE in kW, energy integral residual and peak-demand error);
+- p50/p95 waiting and charge-window slack;
+- total energy losses, explicit cost boundary and curtailment; and
+- wall-clock/solver status, feasibility, hard-constraint violations and all failed scenarios.
+
+Compare FCFS/greedy, deadline-aware charging and a constrained optimization reference on identical jobs. Add immediate/delayed/minimum-power profile references before claiming an improvement over NLR; a valet/repositioning strategy is not implemented in this model and must not be credited to it. Run fleet sizes 10, 50 and 100, at least three vocations, average/peak-day workloads, and feeder/charger contingencies. For this current adapter, the six-vehicle result is a pipeline smoke/feasibility test—not a head-to-head industry result.
+
+**Improvement threshold:** do not choose a universal headline percentage in advance. Reproduce the reference first, measure variance, define a materially useful improvement for each metric, and then preregister the comparison. The 2025 paper's 64% case-specific grid-capacity reduction is a useful external validation target only after its assumptions can be matched; it is not evidence that the current six-vehicle run has achieved 64%.
