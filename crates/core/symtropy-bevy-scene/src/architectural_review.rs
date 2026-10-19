@@ -2154,7 +2154,8 @@ mod tests {
                     if context_issues.contains(&ReviewModelContextIssue::MissingLimitations)
             )));
 
-        session.model_context.known_limitations = vec!["Synthetic geometry; dimensions not verified".into()];
+        session.model_context.known_limitations =
+            vec!["Synthetic geometry; dimensions not verified".into()];
         session.model_context.fidelity = ReviewModelFidelity::SurveyedAsBuiltGeometry;
         assert!(validate_design_review_session(&session)
             .unwrap_err()
@@ -2176,7 +2177,8 @@ mod tests {
             issue,
             DesignReviewSessionIssue::InvalidModelContext(context_issues)
                 if context_issues.contains(&ReviewModelContextIssue::EmptyCoordinateFrameId)
-                    && context_issues.contains(&ReviewModelContextIssue::BlankLimitation { index: 0 })
+                    && context_issues
+                        .contains(&ReviewModelContextIssue::BlankLimitation { index: 0 })
         )));
     }
 
@@ -2660,7 +2662,10 @@ mod tests {
         let mut route = sample_route_fixture();
         route.waypoints[1].arrival_seconds = 1.0;
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
-            matches!(issue, ReviewRouteIssue::TimelineOverlap { waypoint_id } if waypoint_id == "kitchen")
+            matches!(
+                issue,
+                ReviewRouteIssue::TimelineOverlap { waypoint_id } if waypoint_id == "kitchen"
+            )
         }));
     }
 
@@ -2669,7 +2674,10 @@ mod tests {
         let mut route = sample_route_fixture();
         route.waypoints[1].look_at_m = route.waypoints[1].position_m;
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
-            matches!(issue, ReviewRouteIssue::DegenerateLookDirection { waypoint_id } if waypoint_id == "kitchen")
+            matches!(
+                issue,
+                ReviewRouteIssue::DegenerateLookDirection { waypoint_id } if waypoint_id == "kitchen"
+            )
         }));
     }
 
