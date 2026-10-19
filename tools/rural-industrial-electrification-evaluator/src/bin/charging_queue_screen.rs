@@ -60,6 +60,11 @@ struct JobResult {
     delivered_battery_energy_kwh: f64,
     site_input_energy_kwh: f64,
     conversion_loss_kwh: f64,
+    charging_efficiency_fraction: f64,
+    vehicle_max_acceptance_kw: f64,
+    port_power_kw: f64,
+    maximum_allowed_site_input_power_kw: f64,
+    maximum_site_input_power_kw: f64,
     queue_wait_minutes: f64,
     started: bool,
     start_minute: Option<f64>,
@@ -117,6 +122,7 @@ struct JobState {
     job: Job,
     remaining_site_energy_kwh: f64,
     site_energy_delivered_kwh: f64,
+    maximum_site_input_power_kw: f64,
     start_minute: Option<f64>,
     completion_minute: Option<f64>,
     deadline_recorded: bool,
@@ -272,6 +278,7 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
                 / job.charging_efficiency_fraction,
             job,
             site_energy_delivered_kwh: 0.0,
+            maximum_site_input_power_kw: 0.0,
             start_minute: None,
             completion_minute: None,
             deadline_recorded: false,
@@ -411,6 +418,8 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
         let elapsed_hours = elapsed_minutes / 60.0;
         active_port_minutes += active.len() as f64 * elapsed_minutes;
         for (slot, index) in active.iter().enumerate() {
+            states[*index].maximum_site_input_power_kw =
+                states[*index].maximum_site_input_power_kw.max(allocations[slot]);
             let delivered_site_kwh = allocations[slot] * elapsed_hours;
             states[*index].site_energy_delivered_kwh += delivered_site_kwh;
             states[*index].remaining_site_energy_kwh =
@@ -449,6 +458,13 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
                 delivered_battery_energy_kwh: delivered_battery,
                 site_input_energy_kwh: state.site_energy_delivered_kwh,
                 conversion_loss_kwh: state.site_energy_delivered_kwh - delivered_battery,
+                charging_efficiency_fraction: state.job.charging_efficiency_fraction,
+                vehicle_max_acceptance_kw: state.job.vehicle_max_acceptance_kw,
+                port_power_kw: scenario.port_power_kw,
+                maximum_allowed_site_input_power_kw: scenario.port_power_kw.min(
+                    state.job.vehicle_max_acceptance_kw / state.job.charging_efficiency_fraction,
+                ),
+                maximum_site_input_power_kw: state.maximum_site_input_power_kw,
                 queue_wait_minutes: queue_wait,
                 started: state.start_minute.is_some(),
                 start_minute: state.start_minute,
