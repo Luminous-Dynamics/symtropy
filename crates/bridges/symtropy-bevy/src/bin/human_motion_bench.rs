@@ -62,6 +62,22 @@ impl SourceKind {
 fn has_held_out_human_reference(trace: &Trace) -> bool {
     trace.run.source_kind == SourceKind::OriginalConsentCapture
         && trace.run.split.as_deref() == Some("test")
+        && is_hex_digest(&trace.run.git_commit, 40)
+        && trace
+            .run
+            .asset_sha256
+            .as_deref()
+            .is_some_and(|value| is_hex_digest(value, 64))
+        && trace
+            .run
+            .asset_license
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && trace
+            .retarget_map_sha256
+            .0
+            .as_deref()
+            .is_some_and(|value| is_hex_digest(value, 64))
         && trace.run.dataset_id.as_deref().is_some_and(|value| !value.trim().is_empty())
         && trace.run.dataset_version.as_deref().is_some_and(|value| !value.trim().is_empty())
         && trace.run.actor_pseudonym.as_deref().is_some_and(|value| !value.trim().is_empty())
