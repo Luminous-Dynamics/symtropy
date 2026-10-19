@@ -308,7 +308,9 @@ fn parse_contract(bytes: &[u8]) -> Check<Contract> {
             exact_keys(event_value, &["at_tick", "kind"], &event_at)?;
             let at_tick = u32_field(event_value, "at_tick", &event_at)?;
             if previous_tick.is_some_and(|previous| at_tick < previous) {
-                return Err(format!("{event_at}: events must be ordered by nondecreasing tick"));
+                return Err(format!(
+                    "{event_at}: events must be ordered by nondecreasing tick"
+                ));
             }
             previous_tick = Some(at_tick);
 
@@ -494,10 +496,18 @@ fn oracle_scenario_loss(design: Design, scenario: &ScenarioContract) -> u32 {
                 }
             }
             FaultKind::InterfaceMismatch => {
-                if design.standardized_interfaces { 1 } else { 7 }
+                if design.standardized_interfaces {
+                    1
+                } else {
+                    7
+                }
             }
             FaultKind::PowerDomainFailure => {
-                if design.isolated_power_domains { 1 } else { 8 }
+                if design.isolated_power_domains {
+                    1
+                } else {
+                    8
+                }
             }
             FaultKind::ResupplyDelay => {
                 if spares == 0 {
@@ -508,7 +518,11 @@ fn oracle_scenario_loss(design: Design, scenario: &ScenarioContract) -> u32 {
                 }
             }
             FaultKind::CommonCausePowerFailure => {
-                if design.isolated_power_domains { 3 } else { 8 }
+                if design.isolated_power_domains {
+                    3
+                } else {
+                    8
+                }
             }
         };
         total += loss;
@@ -517,19 +531,18 @@ fn oracle_scenario_loss(design: Design, scenario: &ScenarioContract) -> u32 {
 }
 
 fn oracle_metrics(design: Design, contract: &Contract) -> Metrics {
-    let launch_mass_smu =
-        100 + 8 * (design.standardized_interfaces as u32)
-            + 18 * (design.isolated_power_domains as u32)
-            + 12 * (design.spare_pack as u32)
-            + 5 * (design.end_of_life_plan as u32);
+    let launch_mass_smu = 100
+        + 8 * (design.standardized_interfaces as u32)
+        + 18 * (design.isolated_power_domains as u32)
+        + 12 * (design.spare_pack as u32)
+        + 5 * (design.end_of_life_plan as u32);
     let assembly_ticks = 12 - 2 * u32::from(design.standardized_interfaces)
         + 2 * u32::from(design.isolated_power_domains)
         + u32::from(design.spare_pack)
         + u32::from(design.end_of_life_plan);
 
-    let scenario_loss_ticks: [u32; 5] = std::array::from_fn(|index| {
-        oracle_scenario_loss(design, &contract.scenarios[index])
-    });
+    let scenario_loss_ticks: [u32; 5] =
+        std::array::from_fn(|index| oracle_scenario_loss(design, &contract.scenarios[index]));
     let sum_service_loss_ticks_across_scenarios = scenario_loss_ticks.iter().sum();
     let worst_case_service_loss_ticks = scenario_loss_ticks.iter().copied().max().unwrap_or(0);
     let end_of_life_plan_declared = design.end_of_life_plan;
@@ -649,7 +662,11 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
     let mut candidate_reports = Vec::with_capacity(rows.len());
     for row in &rows {
         let mut scenario_reports = Vec::with_capacity(contract.scenarios.len());
-        for (scenario, expected_loss) in contract.scenarios.iter().zip(row.metrics.scenario_loss_ticks) {
+        for (scenario, expected_loss) in contract
+            .scenarios
+            .iter()
+            .zip(row.metrics.scenario_loss_ticks)
+        {
             let simulation = simulate_scenario(row.design, scenario)?;
             if simulation.service_loss_ticks != expected_loss {
                 return Err(format!("{}: event trace and metric disagree", scenario.id));
@@ -932,12 +949,16 @@ mod tests {
         );
         let frontier = pareto_frontier(&rows);
         assert_eq!(frontier.len(), 4);
-        assert!(frontier
-            .iter()
-            .any(|id| id.as_str() == "std=1|power_isolated=1|spares=1|eol_plan=1"));
-        assert!(frontier
-            .iter()
-            .any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1"));
+        assert!(
+            frontier
+                .iter()
+                .any(|id| id.as_str() == "std=1|power_isolated=1|spares=1|eol_plan=1")
+        );
+        assert!(
+            frontier
+                .iter()
+                .any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1")
+        );
     }
 
     #[test]
