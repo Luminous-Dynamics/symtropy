@@ -242,6 +242,7 @@ fn valid_inputs() -> TestInputs {
             training_data_scope: "synthetic-fixture-only".to_owned(),
             compute_budget: "unit-test".to_owned(),
             primary_metric: metric("pose_pck", 0.4, "fraction"),
+            additional_metrics: Vec::new(),
         }],
         paired_comparisons: vec![PairedBaselineComparison {
             baseline_id: "persistence".to_owned(),
@@ -505,6 +506,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         training_data_scope: "synthetic-fixture-only".to_owned(),
         compute_budget: "unit-test".to_owned(),
         primary_metric: metric("pose_pck", 0.5, "fraction"),
+            additional_metrics: Vec::new(),
     });
     let expected = build(first);
 
@@ -517,6 +519,7 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         training_data_scope: "synthetic-fixture-only".to_owned(),
         compute_budget: "unit-test".to_owned(),
         primary_metric: metric("pose_pck", 0.5, "fraction"),
+            additional_metrics: Vec::new(),
     });
     second.metrics.reverse();
     second.baselines.reverse();
