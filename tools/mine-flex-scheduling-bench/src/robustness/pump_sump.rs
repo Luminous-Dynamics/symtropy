@@ -96,12 +96,20 @@ struct Receipt {
     claim_ceiling: String,
 }
 
-fn violation(code: &str, period_index: Option<usize>, observed: Option<i64>, limit: Option<i64>) -> Violation {
+fn violation(
+    code: &str,
+    period_index: Option<usize>,
+    observed: Option<i64>,
+    limit: Option<i64>,
+) -> Violation {
     Violation { code: code.to_owned(), period_index, observed, limit }
 }
 
 fn validate_case_shape(case: &Case) -> Check<()> {
-    if case.case_id.trim().is_empty() || case.periods.is_empty() || case.periods.len() != case.commands_on.len() {
+    if case.case_id.trim().is_empty()
+        || case.periods.is_empty()
+        || case.periods.len() != case.commands_on.len()
+    {
         return Err(format!("{}: blank identity or mismatched/empty time grid", case.case_id));
     }
     if case.initial_sump_liters.minimum > case.initial_sump_liters.maximum
@@ -112,7 +120,8 @@ fn validate_case_shape(case: &Case) -> Check<()> {
         return Err(format!("{}: malformed initial sump bounds", case.case_id));
     }
     if case.envelope.minimum_flow_liters_per_period == 0
-        || case.envelope.minimum_flow_liters_per_period > case.envelope.maximum_flow_liters_per_period
+        || case.envelope.minimum_flow_liters_per_period
+            > case.envelope.maximum_flow_liters_per_period
         || case.envelope.maximum_head_kpa == 0
         || case.envelope.minimum_on_periods == 0
     {
@@ -186,7 +195,9 @@ fn evaluate_case(case: &Case) -> Check<CaseResult> {
         let command_on = case.commands_on[index];
         let start_index = start_indices.iter().copied().take_while(|start| *start <= index).last();
         let operating = command_on
-            && start_index.is_some_and(|start| index.saturating_sub(start) >= case.envelope.startup_delay_periods);
+            && start_index.is_some_and(|start| {
+                index.saturating_sub(start) >= case.envelope.startup_delay_periods
+            });
         let started_this_period = command_on && (index == 0 || !case.commands_on[index - 1]);
 
         let flow = if operating {
@@ -220,8 +231,10 @@ fn evaluate_case(case: &Case) -> Check<CaseResult> {
             ));
         }
 
-        let next_min = state_min + i64::from(period.inflow_liters.minimum) - i64::from(flow.maximum);
-        let next_max = state_max + i64::from(period.inflow_liters.maximum) - i64::from(flow.minimum);
+        let next_min =
+            state_min + i64::from(period.inflow_liters.minimum) - i64::from(flow.maximum);
+        let next_max =
+            state_max + i64::from(period.inflow_liters.maximum) - i64::from(flow.minimum);
         if next_min < i64::from(case.minimum_sump_liters) {
             violations.push(violation(
                 "SUMP_LOW_BOUND_VIOLATION",
@@ -402,10 +415,18 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
 
     for input in &inputs {
         let output = evaluate_case(input)?;
-        expected_controls_matched += usize::from(output.executable == output.expected_executable);
-        accepted_cases += usize::from(output.executable);
-        rejected_cases += usize::from(!output.executable);
-        hard_violations_in_accepted_cases += usize::from(output.executable && !output.violations.is_empty());
+        if output.executable == output.expected_executable {
+            expected_controls_matched += 1;
+        }
+        if output.executable {
+            accepted_cases += 1;
+        }
+        if !output.executable {
+            rejected_cases += 1;
+        }
+        if output.executable && !output.violations.is_empty() {
+            hard_violations_in_accepted_cases += 1;
+        }
         conservation_mismatches += independent_conservation_mismatches(input, &output);
         period_count += output.trajectory.len();
         outputs.push(output);
@@ -435,13 +456,17 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         hard_violations_in_accepted_cases,
         conservation_mismatches,
         cases: outputs,
-        claim_ceiling: "finite synthetic pump/sump trajectory contract; not site-calibrated equipment capability or a safety case".to_owned(),
+        claim_ceiling: "finite synthetic pump/sump trajectory contract; not site-calibrated "
+            .to_owned() + "equipment capability or a safety case",
     })
 }
 
 pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {
     if args.len() != 2 || args[0] != "--source-commit" {
-        return Err("usage: mine-flex-scheduling-bench --pump-sump --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: mine-flex-scheduling-bench --pump-sump --source-commit <40-hex-sha>"
+                .to_owned(),
+        );
     }
     let receipt = make_receipt(&args[1])?;
     println!(
