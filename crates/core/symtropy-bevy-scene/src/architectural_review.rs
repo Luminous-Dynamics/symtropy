@@ -757,7 +757,7 @@ impl ReviewFreeCameraController {
     pub fn from_transform(transform: &Transform) -> Self {
         let forward = transform.forward().as_vec3();
         let yaw_radians = (-forward.x).atan2(-forward.z);
-        let max_pitch_radians = 1.45;
+        let max_pitch_radians = 1.2;
         let pitch_radians = forward
             .y
             .clamp(-1.0, 1.0)
@@ -770,7 +770,7 @@ impl ReviewFreeCameraController {
             speed_mps: 0.8,
             fast_multiplier: 1.0,
             mouse_sensitivity: 0.001,
-            max_pitch_radians: 1.2,
+            max_pitch_radians,
             allow_vertical_translation: false,
         }
     }
