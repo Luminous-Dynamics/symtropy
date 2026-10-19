@@ -246,7 +246,7 @@ fn run() -> Result<(), String> {
 }
 
 fn read_report(path: &Path) -> Result<LoadedReport, String> {
-    let mut file =
+    let file =
         File::open(path).map_err(|error| format!("cannot open {}: {error}", path.display()))?;
     let length = file
         .metadata()
