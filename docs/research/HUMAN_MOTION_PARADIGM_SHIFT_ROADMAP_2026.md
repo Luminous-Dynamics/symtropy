@@ -93,14 +93,14 @@ These gates are not universal biomechanical standards. Calibrate them on measure
 
 ### P0 — Make the existing baseline green and auditable
 
-1. Apply the exact rustfmt --check diff, then require formatting, workspace invariants, clippy and relevant tests to complete on the exact head.
+1. Apply the exact rustfmt --check diff, then require formatting, workspace invariants, clippy and relevant tests to complete on the exact head. Earlier formatter-reported hunks and a Clippy non-minimal-boolean fix have been applied; latest skill-contract format corrections are committed, with exact-head verification pending.
 2. Validate the emitted v2 report against human-motion-benchmark-report-v2.schema.json; add schema validation to automated tests once a Rust-native validator/dependency policy is chosen.
 3. Run synthetic positive and negative controls; clearly label those reports software-validation-only.
 4. Execute an asset-backed visual smoke test only after rechecking the asset's current license and logging hash, clip names, machine and frame-time measurements.
 
 ### P1 — Motion skill contract (small Rust-first slice)
 
-Add pure, engine-independent types to symtropy-motion-contract for a skill identifier/version, typed preconditions, hard/soft constraints with explicit priority, task deadline, expected postconditions, and reason-coded outcomes (completed, infeasible, expired, interrupted, capability_missing, execution_failed). Keep continuous control, physics and renderer types behind adapters. Do not add a learned-model dependency.
+**First contract slice now exists in source** in `crates/core/symtropy-motion-contract/src/skill.rs`, exposed by `pub mod skill`: versioned contract, preconditions, hard/soft constraints with explicit precedence, runtime-supplied feasibility evidence, postconditions, and reason-coded outcomes (`ready`, `completed`, `infeasible`, `expired`, `interrupted`, `capability_missing`, `execution_failed`). The matching [motion-skill-contract-v1.schema.json](motion-skill-contract-v1.schema.json) defines the JSON shape. Keep continuous control, physics and renderer types behind adapters. This source is not yet wired into the live Bevy/physics execution loop, and its tests remain pending exact-head CI verification.
 
 Acceptance tests should prove: (a) expired intent cannot start a skill; (b) a hard safety/physics constraint cannot be silently overridden by style; (c) incompatible hard constraints return infeasible; (d) completion requires postcondition verification; (e) interrupted skills return an explicit status and may request recovery; and (f) serialized contracts reject unknown schema versions. All tests must run on the exact PR head before claiming completion.
 
