@@ -35,7 +35,7 @@ A design walkthrough can reveal a perceived issue; it cannot prove real dimensio
 
 ## Link to composable rules and homeowner freedom
 
-The viewer should overlay constraints rather than hide them. The new `ReviewAnnotation` type makes the distinction machine-readable and ties each annotation to an exact design revision. The validator forbids labeling an owner preference as a binding failure, requires source/module provenance for binding findings, and keeps guidance and code-reform proposals informational. A stale annotation from a previous revision is rejected. It validates presentation contracts and digest syntax only; a trusted evidence and legal-status pipeline must provide the underlying determinations.
+The viewer should overlay constraints rather than hide them. The new `ReviewAnnotation` type makes the distinction machine-readable and ties each annotation to an exact design revision. The validator forbids labeling an owner preference as a binding failure, requires source/module provenance for binding findings, and keeps guidance and code-reform proposals informational. A stale annotation from a previous revision is rejected. Any session showing a binding requirement, binding conflict, or required-evidence overlay must also pin a `ReviewJurisdictionContext` containing a jurisdiction-profile ID and the exact composed-rule artifact ID/digest. A purely creative review may omit that context, but must not present legal overlays. These checks validate presentation contracts and digest syntax only; trusted evidence and legal-status adapters must establish the underlying determinations and verify the artifact bytes.
 
 Each overlay distinguishes:
 - binding requirement verified for the selected jurisdiction and code edition;
@@ -121,6 +121,6 @@ These are targets, not measured results.
 4. Accessible teleport input with explicit confirmation and safe fallback.
 5. One optional XR backend, kept separate from the permissive scene core.
 6. Benchmark usability and issue detection against static plans and non-VR modes.
-7. Connect the route review to Mycelix's immutable artifact/version evidence and to the global, jurisdiction-specific compliance pipeline.
+7. Connect the route review to Mycelix's immutable artifact/version evidence and to the global, jurisdiction-specific compliance pipeline; require the session's jurisdiction-context snapshot to match the composition result used to prepare binding overlays.
 
 Until those stages are implemented and tested, this contract describes the target architecture, not delivered XR functionality.
