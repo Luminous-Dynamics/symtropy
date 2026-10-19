@@ -123,7 +123,7 @@ fn write_run_csv(path: &str, all_results: &[ScenarioResults]) -> Result<(), Stri
         .map_err(|error| format!("cannot create run CSV {path}: {error}"))?;
     writeln!(
         file,
-        "scenario_id,treatment,seed,population,ticks,observation_noise,observation_cost,attestation_tampering_rate,shock_capacity,unmet_need_integral,unmet_need_inequality_gini,contribution_count,recovery_tick,observation_overhead,repair_progress_at_shock_end"
+        "scenario_id,treatment,seed,population,ticks,observation_noise,observation_cost,attestation_tampering_rate,shock_capacity,unmet_need_integral,peak_unmet_need,unmet_need_inequality_gini,contribution_count,recovery_tick,observation_overhead,repair_progress_at_shock_end"
     )
     .map_err(|error| format!("cannot write run CSV header: {error}"))?;
 
@@ -136,7 +136,7 @@ fn write_run_csv(path: &str, all_results: &[ScenarioResults]) -> Result<(), Stri
                     .unwrap_or_else(|| "NA".to_owned());
                 writeln!(
                     file,
-                    "{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.6},{:.6},{},{},{:.4},{:.6}",
+                    "{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.6},{:.6},{:.6},{},{},{:.4},{:.6}",
                     scenario.id,
                     treatment.as_str(),
                     seed,
@@ -147,6 +147,7 @@ fn write_run_csv(path: &str, all_results: &[ScenarioResults]) -> Result<(), Stri
                     scenario.config.attestation_tampering_rate,
                     scenario.config.shock_capacity,
                     metrics.unmet_need_integral,
+                    metrics.peak_unmet_need,
                     metrics.unmet_need_inequality_gini,
                     metrics.contribution_count,
                     recovery_tick,
@@ -245,7 +246,7 @@ fn main() {
     }
 
     println!(
-        "scenario_id,treatment,n_runs,mean_unmet_need_integral,paired_reduction_vs_no_commitments_pct,paired_reduction_ci95_low_pct,paired_reduction_ci95_high_pct,mean_unmet_need_inequality_gini,mean_contribution_count,recovery_rate,mean_recovery_tick_when_recovered,mean_observation_overhead,mean_repair_progress_at_shock_end"
+        "scenario_id,treatment,n_runs,mean_unmet_need_integral,mean_peak_unmet_need,paired_reduction_vs_no_commitments_pct,paired_reduction_ci95_low_pct,paired_reduction_ci95_high_pct,mean_unmet_need_inequality_gini,mean_contribution_count,recovery_rate,mean_recovery_tick_when_recovered,mean_observation_overhead,mean_repair_progress_at_shock_end"
     );
 
     for (scenario_index, scenario) in all_results.iter().enumerate() {
@@ -263,6 +264,8 @@ fn main() {
                 .collect();
             let mean_unmet =
                 mean(results.iter().map(|m| m.unmet_need_integral)).unwrap_or(0.0);
+            let mean_peak =
+                mean(results.iter().map(|m| m.peak_unmet_need)).unwrap_or(0.0);
             let mean_inequality =
                 mean(results.iter().map(|m| m.unmet_need_inequality_gini)).unwrap_or(0.0);
             let mean_contributions =
@@ -289,11 +292,12 @@ fn main() {
             };
 
             println!(
-                "{},{},{},{:.6},{},{},{},{:.6},{:.4},{:.4},{},{:.4},{:.6}",
+                "{},{},{},{:.6},{:.6},{},{},{},{:.6},{:.4},{:.4},{},{:.4},{:.6}",
                 scenario.id,
                 treatment.as_str(),
                 results.len(),
                 mean_unmet,
+                mean_peak,
                 format_optional(reduction.map(|r| r.0)),
                 format_optional(reduction.map(|r| r.1)),
                 format_optional(reduction.map(|r| r.2)),
