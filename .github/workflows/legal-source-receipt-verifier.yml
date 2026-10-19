@@ -1,0 +1,41 @@
+name: Mycelix Source Receipt Verifier
+
+on:
+  pull_request:
+    paths:
+      - "crates/tools/legal-source-receipt-verifier/**"
+      - ".github/workflows/legal-source-receipt-verifier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/tools/legal-source-receipt-verifier/**"
+      - ".github/workflows/legal-source-receipt-verifier.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legal-source-receipt-verifier-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Verify Mycelix Receipt Bindings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/legal-source-receipt-verifier/Cargo.toml -- --check
+
+      - name: Unit tests
+        run: cargo test --manifest-path crates/tools/legal-source-receipt-verifier/Cargo.toml
