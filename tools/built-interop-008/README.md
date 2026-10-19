@@ -34,7 +34,7 @@ A source/target pair with valid parse and same schema is not automatically equal
 
 ## Included tests
 
-The synthetic IFC4 fixture and Rust tests cover identical structural input, header-only byte changes, named attribute loss/change, GlobalId changes without guessed pairing, duplicate IDs, unsupported schemas, malformed STEP, attribute arity mismatch, GUID-based reference canonicalization, schema-defined SET/BAG versus LIST ordering, and deterministic result digests.
+The synthetic IFC4 fixture and Rust tests cover identical structural input, header-only byte changes, reordered DATA records and STEP-ID renumbering with stable GlobalIds, named attribute loss/change, GlobalId changes without guessed pairing, invalid/duplicate IDs, unsupported schemas, malformed STEP, attribute arity mismatch, GUID-based reference canonicalization, schema-defined SET/BAG versus LIST ordering, and deterministic result digests. Coverage issues are sorted before report hashing so input record order cannot reorder diagnostics.
 
 ## Benchmarks
 
