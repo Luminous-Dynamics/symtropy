@@ -1,0 +1,43 @@
+name: Rural and Industrial Electrification Screen
+
+on:
+  pull_request:
+    paths:
+      - "tools/rural-industrial-electrification-evaluator/**"
+      - ".github/workflows/rural-industrial-electrification.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/rural-industrial-electrification-evaluator/**"
+      - ".github/workflows/rural-industrial-electrification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --all -- --check
+      - name: Run all evaluator tests
+        run: cargo test --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --all-targets
+      - name: Run shift energy screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+            --bin rural-industrial-electrification-evaluator -- \
+            tools/rural-industrial-electrification-evaluator/fixtures/benchmark_v0_1.json > shift-report.json
+          jq -e '.results | length == 5' shift-report.json
+      - name: Run industrial and mobile energy-path screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+            --bin energy_path_screen -- \
+            tools/rural-industrial-electrification-evaluator/fixtures/energy_paths_v0_1.json > path-report.json
+          jq -e '.results | length == 8' path-report.json
