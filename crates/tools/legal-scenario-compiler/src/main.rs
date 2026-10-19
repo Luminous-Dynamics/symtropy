@@ -286,6 +286,45 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
         );
     }
 
+    let mut mapping_keys = BTreeSet::new();
+    let mut known_facts = BTreeSet::new();
+    for mapping in &ruleset.fact_mappings {
+        let value_is_valid = match mapping.scenario_field.as_str() {
+            "source_permission" => ["allowed", "denied", "unknown"].contains(&mapping.value.as_str()),
+            "competence_confirmed"
+            | "current_authority_available"
+            | "required_fact_present"
+            | "authority_conflict" => ["true", "false"].contains(&mapping.value.as_str()),
+            _ => false,
+        };
+        if !value_is_valid {
+            errors.push(format!(
+                "unsupported scenario field/value mapping: {}={}",
+                mapping.scenario_field, mapping.value
+            ));
+        }
+        if !mapping_keys.insert((mapping.scenario_field.as_str(), mapping.value.as_str())) {
+            errors.push(format!(
+                "duplicate scenario mapping: {}={}",
+                mapping.scenario_field, mapping.value
+            ));
+        }
+        if mapping.facts.is_empty() || mapping.facts.iter().any(|fact| fact.trim().is_empty()) {
+            errors.push(format!(
+                "scenario mapping {}={} must produce nonempty facts",
+                mapping.scenario_field, mapping.value
+            ));
+        }
+        let unique_facts: BTreeSet<&str> = mapping.facts.iter().map(String::as_str).collect();
+        if unique_facts.len() != mapping.facts.len() {
+            errors.push(format!(
+                "scenario mapping {}={} repeats a fact",
+                mapping.scenario_field, mapping.value
+            ));
+        }
+        known_facts.extend(mapping.facts.iter().cloned());
+    }
+
     let mut ids = BTreeSet::new();
     for rule in &ruleset.rules {
         if rule.id.trim().is_empty() || !ids.insert(rule.id.as_str()) {
@@ -300,7 +339,31 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
         if rule.rationale.trim().is_empty() {
             errors.push(format!("inference rule {} has empty rationale", rule.id));
         }
+        if rule.requires.iter().any(|fact| fact.trim().is_empty())
+            || rule.produces.iter().any(|fact| fact.trim().is_empty())
+        {
+            errors.push(format!(
+                "inference rule {} contains an empty fact name",
+                rule.id
+            ));
+        }
+        known_facts.extend(rule.produces.iter().cloned());
     }
+    known_facts.insert("reasoning_chain_complete".to_string());
+    for depth in 1..=8 {
+        known_facts.insert(format!("reasoning_chain_stage_{depth}"));
+    }
+    for rule in &ruleset.rules {
+        for required in &rule.requires {
+            if !known_facts.contains(required) {
+                errors.push(format!(
+                    "inference rule {} requires an undeclared fact {}",
+                    rule.id, required
+                ));
+            }
+        }
+    }
+
     for decision in &ruleset.decisions {
         if decision.id.trim().is_empty() || !ids.insert(decision.id.as_str()) {
             errors.push(format!(
@@ -314,17 +377,39 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
                 decision.id
             ));
         }
+        if !known_facts.contains(&decision.when_fact) {
+            errors.push(format!(
+                "decision rule {} uses undeclared condition fact {}",
+                decision.id, decision.when_fact
+            ));
+        }
         if decision.rationale.trim().is_empty() {
             errors.push(format!("decision rule {} has empty rationale", decision.id));
         }
-        if decision.action == Action::Answer && decision.claim_code.is_none() {
+        if decision.action == Action::Answer
+            && (decision.claim_code.as_deref().is_none_or(str::is_empty)
+                || decision.citations.is_empty())
+        {
             errors.push(format!(
-                "answer decision {} must carry a claim code",
+                "answer decision {} must carry a claim code and citation",
+                decision.id
+            ));
+        }
+        if decision.action != Action::Answer
+            && (decision.claim_code.is_some() || !decision.citations.is_empty())
+        {
+            errors.push(format!(
+                "non-answer decision {} must not assert claims or citations",
                 decision.id
             ));
         }
     }
+
     let mut authority_ids = BTreeSet::new();
+    let mut authority_map = BTreeMap::new();
+    if ruleset.authorities.is_empty() {
+        errors.push("at least one synthetic authority is required".to_string());
+    }
     for authority in &ruleset.authorities {
         if authority.id.trim().is_empty() || !authority_ids.insert(authority.id.as_str()) {
             errors.push(format!(
@@ -332,7 +417,74 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
                 authority.id
             ));
         }
+        if !authority.jurisdiction.starts_with("fictional:") {
+            errors.push(format!(
+                "authority {} is outside the fictional-only ruleset",
+                authority.id
+            ));
+        }
+        if authority.validity != "synthetic_only"
+            || authority.permitted_use != "synthetic_benchmark_only"
+        {
+            errors.push(format!(
+                "authority {} must be explicitly synthetic-only and benchmark-only",
+                authority.id
+            ));
+        }
+        if authority.kind.trim().is_empty() || authority.span_ids.is_empty() {
+            errors.push(format!(
+                "authority {} needs a kind and at least one span",
+                authority.id
+            ));
+        }
+        let unique_spans: BTreeSet<&str> =
+            authority.span_ids.iter().map(String::as_str).collect();
+        if unique_spans.len() != authority.span_ids.len() {
+            errors.push(format!("authority {} repeats a span id", authority.id));
+        }
+        for span in &authority.span_ids {
+            if span.trim().is_empty() || !ids.contains(span.as_str()) {
+                errors.push(format!(
+                    "authority {} references an unknown or empty span {}",
+                    authority.id, span
+                ));
+            }
+        }
+        authority_map.insert(authority.id.as_str(), authority);
     }
+
+    const ALLOWED_CITATION_ROLES: [&str; 5] = [
+        "binding_in_scope",
+        "persuasive_only",
+        "policy_only",
+        "metadata_only",
+        "unverified",
+    ];
+    for decision in &ruleset.decisions {
+        for citation in &decision.citations {
+            if !ALLOWED_CITATION_ROLES.contains(&citation.role.as_str()) {
+                errors.push(format!(
+                    "decision {} uses unsupported citation role {}",
+                    decision.id, citation.role
+                ));
+            }
+            match authority_map.get(citation.authority_id.as_str()) {
+                None => errors.push(format!(
+                    "decision {} cites undeclared authority {}",
+                    decision.id, citation.authority_id
+                )),
+                Some(authority) => {
+                    if !authority.span_ids.iter().any(|span| span == &citation.span_id) {
+                        errors.push(format!(
+                            "decision {} cites undeclared span {} on authority {}",
+                            decision.id, citation.span_id, citation.authority_id
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
     if errors.is_empty() {
         Ok(())
     } else {
@@ -1105,6 +1257,32 @@ mod tests {
 
     fn serialized(corpus: &GeneratedCorpus) -> Vec<u8> {
         serialize_corpus(corpus).expect("corpus serializes")
+    }
+
+    #[test]
+    fn ruleset_rejects_nonfictional_authority() {
+        let mut ruleset = ruleset();
+        ruleset.authorities[0].jurisdiction = "South Africa".to_string();
+        assert!(validate_ruleset(&ruleset).is_err());
+    }
+
+    #[test]
+    fn ruleset_rejects_citation_to_undeclared_span() {
+        let mut ruleset = ruleset();
+        let decision = ruleset
+            .decisions
+            .iter_mut()
+            .find(|decision| decision.id == "SYN-DECISION-ANSWER-001")
+            .expect("answer decision exists");
+        decision.citations[0].span_id = "UNKNOWN-SPAN".to_string();
+        assert!(validate_ruleset(&ruleset).is_err());
+    }
+
+    #[test]
+    fn ruleset_rejects_broad_or_unknown_source_use_grants() {
+        let mut ruleset = ruleset();
+        ruleset.authorities[0].permitted_use = "all_ai_training_and_evaluation".to_string();
+        assert!(validate_ruleset(&ruleset).is_err());
     }
 
     #[test]
