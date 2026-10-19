@@ -1,6 +1,7 @@
 use super::{
     candidate_schedules, enumerate_vectors, evaluate_schedule, independently_reconstruct_score,
-    is_lower_hex, sha256, Check, GeneratedCase, ProcessModel, ScheduleScore, Split, generate_cases,
+    is_lower_hex, sha256, Check, GeneratedCase, ProcessModel, ScheduleScore, Split,
+    WORLDS_PER_SEED, generate_cases,
 };
 use serde::Serialize;
 use std::process::ExitCode;
@@ -437,7 +438,7 @@ fn make_receipt(source_commit: &str) -> Check<RiskBudgetReceipt> {
                     .iter()
                     .filter(|decision| decision.chosen_schedule_batches.is_none())
                     .count(),
-                worlds_expected: case_decisions.len() * 5,
+                worlds_expected: case_decisions.len() * WORLDS_PER_SEED,
                 worlds_evaluated: worlds.len(),
                 feasible_worlds,
                 feasibility_rate_basis_points: if worlds.is_empty() {
@@ -483,7 +484,7 @@ fn make_receipt(source_commit: &str) -> Check<RiskBudgetReceipt> {
 
     let expected_case_count = cases.len();
     let expected_decision_count = cases.len() * CARBON_HEADROOM_BPS.len();
-    let expected_world_count = expected_decision_count * 5;
+    let expected_world_count = expected_decision_count * WORLDS_PER_SEED;
     let all_worlds_feasible = world_evaluations.len() == expected_world_count
         && world_evaluations.iter().all(|world| world.feasible);
     let all_summaries_consistent = summaries.iter().all(|summary| {
