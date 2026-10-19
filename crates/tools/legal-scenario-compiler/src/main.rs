@@ -6,6 +6,7 @@ use std::{env, fs, process};
 
 const RULESET_JSON: &str = include_str!("../ruleset-v0.1.json");
 const GENERATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
+const REASONING_DEPTHS: [u8; 6] = [0, 1, 2, 4, 6, 8];
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -121,6 +122,7 @@ struct Scenario {
     current_authority_available: bool,
     required_fact_present: bool,
     authority_conflict: bool,
+    reasoning_depth: u8,
     wording_variant: bool,
 }
 
@@ -385,9 +387,11 @@ fn derive_facts(
 ) -> Result<(BTreeSet<String>, Vec<String>), String> {
     let mut facts = initial_facts(scenario, ruleset)?;
     let mut trace = Vec::new();
+    let mut compiled_rules = ruleset.rules.clone();
+    compiled_rules.extend(depth_rules(scenario.reasoning_depth));
     for _ in 0..ruleset.max_forward_chaining_steps {
         let mut new_facts = BTreeSet::new();
-        for rule in &ruleset.rules {
+        for rule in &compiled_rules {
             if rule.requires.iter().all(|fact| facts.contains(fact)) {
                 for fact in &rule.produces {
                     if !facts.contains(fact) {
@@ -405,6 +409,39 @@ fn derive_facts(
         facts.extend(new_facts);
     }
     Err("forward chaining exceeded max_forward_chaining_steps".to_string())
+}
+
+fn depth_rules(depth: u8) -> Vec<InferenceRule> {
+    let mut rules = Vec::new();
+    let mut previous_fact = "procedural_prerequisites_satisfied".to_string();
+
+    if depth == 0 {
+        rules.push(InferenceRule {
+            id: "SYN-RULE-DEPTH-000".to_string(),
+            requires: vec![previous_fact],
+            produces: vec!["reasoning_chain_complete".to_string()],
+            rationale: "Zero additional inference steps preserve the prerequisite fact.".to_string(),
+        });
+        return rules;
+    }
+
+    for stage in 1..=depth {
+        let fact = format!("reasoning_chain_stage_{stage}");
+        rules.push(InferenceRule {
+            id: format!("SYN-RULE-DEPTH-{stage:03}"),
+            requires: vec![previous_fact],
+            produces: vec![fact.clone()],
+            rationale: format!("Synthetic inference stage {stage} of requested depth {depth}."),
+        });
+        previous_fact = fact;
+    }
+    rules.push(InferenceRule {
+        id: format!("SYN-RULE-DEPTH-{depth:03}-COMPLETE"),
+        requires: vec![previous_fact],
+        produces: vec!["reasoning_chain_complete".to_string()],
+        rationale: format!("Close the synthetic dependency chain at requested depth {depth}."),
+    });
+    rules
 }
 
 fn evaluate_scenario(scenario: &Scenario, ruleset: &RuleSet) -> Result<ExpectedResult, String> {
@@ -506,7 +543,8 @@ fn oracle_evaluate(scenario: &Scenario, ruleset: &RuleSet) -> ExpectedResult {
 
 fn case_id(scenario: &Scenario) -> String {
     format!(
-        "GEN-P{}-C{}-A{}-F{}-X{}-W{}",
+        "GEN-D{}-P{}-C{}-A{}-F{}-X{}-W{}",
+        scenario.reasoning_depth,
         scenario.source_permission.code(),
         u8::from(scenario.competence_confirmed),
         u8::from(scenario.current_authority_available),
@@ -609,34 +647,37 @@ fn build_cases(ruleset: &RuleSet) -> Result<Vec<GeneratedCase>, String> {
             for current_authority_available in [false, true] {
                 for required_fact_present in [false, true] {
                     for authority_conflict in [false, true] {
-                        for wording_variant in [false, true] {
-                            let scenario = Scenario {
-                                source_permission: permission.clone(),
-                                competence_confirmed,
-                                current_authority_available,
-                                required_fact_present,
-                                authority_conflict,
-                                wording_variant,
-                            };
-                            let expected = evaluate_scenario(&scenario, ruleset)?;
-                            let oracle = oracle_evaluate(&scenario, ruleset);
-                            if expected.action != oracle.action
-                                || expected.claim_codes != oracle.claim_codes
-                                || expected.citations != oracle.citations
-                            {
-                                return Err(format!(
-                                    "symbolic evaluator disagrees with independent oracle for {}",
-                                    case_id(&scenario)
-                                ));
+                        for reasoning_depth in REASONING_DEPTHS {
+                            for wording_variant in [false, true] {
+                                let scenario = Scenario {
+                                    source_permission: permission.clone(),
+                                    competence_confirmed,
+                                    current_authority_available,
+                                    required_fact_present,
+                                    authority_conflict,
+                                    reasoning_depth,
+                                    wording_variant,
+                                };
+                                let expected = evaluate_scenario(&scenario, ruleset)?;
+                                let oracle = oracle_evaluate(&scenario, ruleset);
+                                if expected.action != oracle.action
+                                    || expected.claim_codes != oracle.claim_codes
+                                    || expected.citations != oracle.citations
+                                {
+                                    return Err(format!(
+                                        "symbolic evaluator disagrees with independent oracle for {}",
+                                        case_id(&scenario)
+                                    ));
+                                }
+                                cases.push(GeneratedCase {
+                                    id: case_id(&scenario),
+                                    family: "fictional_jurisdiction_source_use_depth".to_string(),
+                                    partition: String::new(),
+                                    prompt: synthetic_prompt(&scenario),
+                                    scenario,
+                                    expected,
+                                });
                             }
-                            cases.push(GeneratedCase {
-                                id: case_id(&scenario),
-                                family: "fictional_jurisdiction_and_source_use".to_string(),
-                                partition: String::new(),
-                                prompt: synthetic_prompt(&scenario),
-                                scenario,
-                                expected,
-                            });
                         }
                     }
                 }
@@ -660,9 +701,10 @@ fn build_pairs(cases: &[GeneratedCase]) -> Result<Vec<MetamorphicPair>, String> 
         if case.scenario.wording_variant {
             continue;
         }
-        let mut alternate = case.scenario.clone();
-        alternate.wording_variant = true;
-        let alternate_id = case_id(&alternate);
+
+        let mut alternate_wording = case.scenario.clone();
+        alternate_wording.wording_variant = true;
+        let alternate_id = case_id(&alternate_wording);
         if !by_id.contains_key(alternate_id.as_str()) {
             return Err(format!("missing wording counterfactual {alternate_id}"));
         }
@@ -671,10 +713,35 @@ fn build_pairs(cases: &[GeneratedCase]) -> Result<Vec<MetamorphicPair>, String> 
             source_case_id: case.id.clone(),
             target_case_id: alternate_id,
             relation: MetamorphicRelation::OutputMustMatch,
-            rationale: "Wording changes while all modeled material facts remain identical."
+            rationale: "Wording changes while all modeled material facts and reasoning depth remain identical."
                 .to_string(),
         });
         index += 1;
+
+        if let Some(position) = REASONING_DEPTHS
+            .iter()
+            .position(|depth| *depth == case.scenario.reasoning_depth)
+        {
+            if let Some(next_depth) = REASONING_DEPTHS.get(position + 1) {
+                let mut alternate_depth = case.scenario.clone();
+                alternate_depth.reasoning_depth = *next_depth;
+                let alternate_depth_id = case_id(&alternate_depth);
+                if !by_id.contains_key(alternate_depth_id.as_str()) {
+                    return Err(format!("missing depth variant {alternate_depth_id}"));
+                }
+                pairs.push(MetamorphicPair {
+                    id: pair_id("DEPTH", index),
+                    source_case_id: case.id.clone(),
+                    target_case_id: alternate_depth_id,
+                    relation: MetamorphicRelation::OutputMustMatch,
+                    rationale: format!(
+                        "Changing synthetic dependency depth from {} to {} must preserve legal action and evidence while increasing the recorded inference trace.",
+                        case.scenario.reasoning_depth, next_depth
+                    ),
+                });
+                index += 1;
+            }
+        }
     }
 
     let baseline = Scenario {
@@ -683,6 +750,7 @@ fn build_pairs(cases: &[GeneratedCase]) -> Result<Vec<MetamorphicPair>, String> 
         current_authority_available: true,
         required_fact_present: true,
         authority_conflict: false,
+        reasoning_depth: 0,
         wording_variant: false,
     };
     let baseline_id = case_id(&baseline);
