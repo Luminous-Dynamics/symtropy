@@ -978,7 +978,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn rights_review_completion_and_permission_are_independent_gates() {
         let (corpus, _) = fixture_corpus();
