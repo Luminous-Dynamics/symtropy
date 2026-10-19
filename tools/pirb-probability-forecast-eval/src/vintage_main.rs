@@ -24,7 +24,9 @@ fn repeated_values(args: &[String], name: &str) -> Result<Vec<String>, String> {
                 return Err(format!("argument {name} requires a value"));
             };
             if value.starts_with("--") {
-                return Err(format!("argument {name} requires a file path before the next flag"));
+                return Err(format!(
+                    "argument {name} requires a file path before the next flag"
+                ));
             }
             values.push(value.clone());
             index += 2;
@@ -33,7 +35,10 @@ fn repeated_values(args: &[String], name: &str) -> Result<Vec<String>, String> {
         }
     }
     if !(2..=20).contains(&values.len()) {
-        return Err("provide between 2 and 20 frozen datasets with repeated --input PATH arguments".to_owned());
+        return Err(
+            "provide between 2 and 20 frozen datasets with repeated --input PATH arguments"
+                .to_owned(),
+        );
     }
     Ok(values)
 }
@@ -43,13 +48,12 @@ fn run() -> Result<(), String> {
     let input_paths = repeated_values(&args, "--input")?;
     let mut input_bytes = Vec::with_capacity(input_paths.len());
     for path in &input_paths {
-        input_bytes.push(
-            fs::read(path).map_err(|error| format!("cannot read input {path}: {error}"))?,
-        );
+        input_bytes
+            .push(fs::read(path).map_err(|error| format!("cannot read input {path}: {error}"))?);
     }
     let input_refs: Vec<&[u8]> = input_bytes.iter().map(Vec::as_slice).collect();
-    let source_commit = option_value(&args, "--source-commit")?
-        .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
+    let source_commit =
+        option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
     let rustc_version = option_value(&args, "--rustc-version")?
         .unwrap_or_else(|| "UNSPECIFIED_LOCAL_TOOLCHAIN".to_owned());
     let cargo_version = option_value(&args, "--cargo-version")?
@@ -68,8 +72,9 @@ fn run() -> Result<(), String> {
     .map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
-        serde_json::to_string_pretty(&receipt)
-            .map_err(|error| format!("cannot serialize outcome-vintage sensitivity receipt: {error}"))?
+        serde_json::to_string_pretty(&receipt).map_err(|error| format!(
+            "cannot serialize outcome-vintage sensitivity receipt: {error}"
+        ))?
     );
     Ok(())
 }
