@@ -410,13 +410,12 @@ mod tests {
     }
 
     #[test]
-    fn paired_seed_initial_conditions_do_not_depend_on_treatment() {
-        // The contract is that all arms use treatment-independent initial
-        // conditions and pre-draw all per-tick random channels. This is covered
-        // structurally here by comparing deterministic runs from each arm.
+    fn all_treatment_arms_are_replayable_for_a_fixed_seed() {
         let scenario = Scenario::default();
-        let a = simulate(&scenario, 99, Treatment::NoCommitments).unwrap();
-        let b = simulate(&scenario, 99, Treatment::NoCommitments).unwrap();
-        assert_eq!(a, b);
+        for treatment in Treatment::ALL {
+            let first = simulate(&scenario, 99, treatment).unwrap();
+            let second = simulate(&scenario, 99, treatment).unwrap();
+            assert_eq!(first, second, "treatment {:?} did not replay", treatment);
+        }
     }
 }
