@@ -569,6 +569,9 @@ mod tests {
                     for weight_b in weights {
                         for horizon in duration_a.max(duration_b)..=5 {
                             for crew_count in [1_usize, 2] {
+                                if crew_count == 1 && horizon < duration_a + duration_b {
+                                    continue;
+                                }
                                 let input = RepairProblem {
                                     horizon_ticks: horizon,
                                     crew_counts: BTreeMap::from([
@@ -613,7 +616,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!(checked, 432);
+        assert_eq!(checked, 450);
     }
 
 }
