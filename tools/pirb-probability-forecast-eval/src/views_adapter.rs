@@ -7,9 +7,9 @@
 //! block map. Numeric values are never presumed to be probabilities.
 
 use super::{
-    sha256_hex, valid_commit_sha, validate_dataset_json, AnalysisUnit, EvidenceClass,
-    ForecastDataset, ForecastOutcome, ForecastRecord, PrivacyPolicy, ResamplingPolicy,
-    SourceContract, TemporalSplit,
+    AnalysisUnit, EvidenceClass, ForecastDataset, ForecastOutcome, ForecastRecord, PrivacyPolicy,
+    ResamplingPolicy, SourceContract, TemporalSplit, sha256_hex, valid_commit_sha,
+    validate_dataset_json,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -294,9 +294,7 @@ fn parse_run_id(run_id: &str, model_prefix: &str) -> Result<(i64, i64), String> 
     })?;
     let fields: Vec<&str> = suffix.split('_').collect();
     if fields.len() != 3 {
-        return Err(format!(
-            "run ID {run_id:?} must end with YEAR_MONTH_tNN"
-        ));
+        return Err(format!("run ID {run_id:?} must end with YEAR_MONTH_tNN"));
     }
     let year: i64 = fields[0]
         .parse()
@@ -320,9 +318,7 @@ fn parse_run_id(run_id: &str, model_prefix: &str) -> Result<(i64, i64), String> 
 
 fn raw_cell<'a>(row: &'a [Value], index: usize, run_id: &str) -> Result<&'a Value, String> {
     row.get(index).ok_or_else(|| {
-        format!(
-            "run {run_id:?} data row is shorter than declared column index {index}"
-        )
+        format!("run {run_id:?} data row is shorter than declared column index {index}")
     })
 }
 
@@ -375,7 +371,9 @@ pub fn import_views_archive(
     }
     let manifest = parse_manifest(manifest_bytes)?;
     if manifest.schema_version != "0.1" {
-        return Err(vec!["import manifest schema_version must be 0.1".to_owned()]);
+        return Err(vec![
+            "import manifest schema_version must be 0.1".to_owned(),
+        ]);
     }
     if manifest.source.codebook_variable_key != "main_dich"
         || manifest.source.variable_kind != VariableKind::BinaryEventProbability
@@ -385,9 +383,7 @@ pub fn import_views_archive(
         ]);
     }
     if !matches!(manifest.partition.as_str(), "predict" | "eval" | "calib") {
-        return Err(vec![
-            "partition must be predict, eval, or calib".to_owned(),
-        ]);
+        return Err(vec!["partition must be predict, eval, or calib".to_owned()]);
     }
     if manifest.evidence_class == EvidenceClass::AuthorizedHistorical
         && [
@@ -450,7 +446,9 @@ pub fn import_views_archive(
         ]);
     }
     if manifest.releases.is_empty() {
-        return Err(vec!["manifest must include at least one frozen release".to_owned()]);
+        return Err(vec![
+            "manifest must include at least one frozen release".to_owned(),
+        ]);
     }
 
     let manifest_sha256 = sha256_hex(manifest_bytes);
@@ -460,7 +458,9 @@ pub fn import_views_archive(
     let outcomes: OutcomeSnapshot = serde_json::from_slice(outcomes_bytes)
         .map_err(|error| vec![format!("outcome snapshot JSON is invalid: {error}")])?;
     if outcomes.schema_version != "0.1" {
-        return Err(vec!["outcome snapshot schema_version must be 0.1".to_owned()]);
+        return Err(vec![
+            "outcome snapshot schema_version must be 0.1".to_owned(),
+        ]);
     }
     let mut outcome_by_key = BTreeMap::new();
     for row in outcomes.rows {
@@ -491,7 +491,9 @@ pub fn import_views_archive(
     let blocks: SpatialBlockMap = serde_json::from_slice(block_map_bytes)
         .map_err(|error| vec![format!("spatial block-map JSON is invalid: {error}")])?;
     if blocks.schema_version != "0.1" {
-        return Err(vec!["spatial block-map schema_version must be 0.1".to_owned()]);
+        return Err(vec![
+            "spatial block-map schema_version must be 0.1".to_owned(),
+        ]);
     }
     let mut block_by_unit = BTreeMap::new();
     for entry in blocks.entries {
@@ -521,7 +523,10 @@ pub fn import_views_archive(
         ]);
     }
 
-    let model_prefix = format!("{}{}", manifest.source.model_id, manifest.source.model_version);
+    let model_prefix = format!(
+        "{}{}",
+        manifest.source.model_id, manifest.source.model_version
+    );
     let required_unit_path = match manifest.source.analysis_unit {
         AnalysisUnit::CountryMonth => "/cm/",
         AnalysisUnit::PrioGridMonth => "/pgm/",
@@ -538,7 +543,10 @@ pub fn import_views_archive(
 
     for release in &manifest.releases {
         if !seen_run_ids.insert(release.run_id.clone()) {
-            return Err(vec![format!("duplicate release run ID {:?}", release.run_id)]);
+            return Err(vec![format!(
+                "duplicate release run ID {:?}",
+                release.run_id
+            )]);
         }
         let (input_cutoff_month, forecast_origin_month) =
             parse_run_id(&release.run_id, &model_prefix).map_err(|error| vec![error])?;
@@ -566,14 +574,12 @@ pub fn import_views_archive(
 
         validate_relative_path(&release.codebook_path)?;
         source_paths_used.insert(release.codebook_path.clone());
-        let codebook_bytes = source_files
-            .get(&release.codebook_path)
-            .ok_or_else(|| {
-                vec![format!(
-                    "missing archived codebook file {:?}",
-                    release.codebook_path
-                )]
-            })?;
+        let codebook_bytes = source_files.get(&release.codebook_path).ok_or_else(|| {
+            vec![format!(
+                "missing archived codebook file {:?}",
+                release.codebook_path
+            )]
+        })?;
         let codebook_sha256 = sha256_hex(codebook_bytes);
         let codebook: Value = serde_json::from_slice(codebook_bytes)
             .map_err(|error| vec![format!("invalid codebook JSON: {error}")])?;
@@ -624,9 +630,9 @@ pub fn import_views_archive(
         for path in &release.response_paths {
             validate_relative_path(path)?;
             source_paths_used.insert(path.clone());
-            let bytes = source_files.get(path).ok_or_else(|| {
-                vec![format!("missing archived API response file {path:?}")]
-            })?;
+            let bytes = source_files
+                .get(path)
+                .ok_or_else(|| vec![format!("missing archived API response file {path:?}")])?;
             let page: ApiPage = serde_json::from_slice(bytes).map_err(|error| {
                 vec![format!(
                     "API response {path:?} is not a supported metadata/data envelope: {error}"
@@ -704,7 +710,9 @@ pub fn import_views_archive(
         pages.sort_by_key(|(page_number, _, _)| *page_number);
         let page_hashes: Vec<String> = pages
             .iter()
-            .map(|(_, path, _)| sha256_hex(source_files.get(path).expect("page path was validated")))
+            .map(|(_, path, _)| {
+                sha256_hex(source_files.get(path).expect("page path was validated"))
+            })
             .collect();
         let actual_rows: usize = pages.iter().map(|(_, _, page)| page.data.len()).sum();
         if actual_rows != row_count {
@@ -732,9 +740,12 @@ pub fn import_views_archive(
                 }
                 let expected_api_month = api_month_id(year, month).map_err(|error| vec![error])?;
                 let expected_filter = format!("month={expected_api_month}");
-                if !release.query_uri.split('?').nth(1).is_some_and(|query| {
-                    query.split('&').any(|field| field == expected_filter)
-                }) {
+                if !release
+                    .query_uri
+                    .split('?')
+                    .nth(1)
+                    .is_some_and(|query| query.split('&').any(|field| field == expected_filter))
+                {
                     return Err(vec![format!(
                         "query URI for {:?} is not pinned to the exact target month ({expected_filter})",
                         release.run_id
@@ -752,7 +763,9 @@ pub fn import_views_archive(
                     ]);
                 }
                 let block_id = block_by_unit.get(&unit_id).ok_or_else(|| {
-                    vec![format!("unit {unit_id:?} has no governed spatial-block mapping")]
+                    vec![format!(
+                        "unit {unit_id:?} has no governed spatial-block mapping"
+                    )]
                 })?;
                 let probability = raw_cell(raw, mapping.probability_index, &release.run_id)
                     .map_err(|error| vec![error])?
@@ -786,7 +799,9 @@ pub fn import_views_archive(
                     unit_id.strip_prefix("unit-").unwrap_or(&unit_id)
                 );
                 if !used_forecast_ids.insert(forecast_id.clone()) {
-                    return Err(vec![format!("duplicate generated forecast ID {forecast_id:?}")]);
+                    return Err(vec![format!(
+                        "duplicate generated forecast ID {forecast_id:?}"
+                    )]);
                 }
                 let forecast_key = (unit_id.clone(), target_month, manifest.lead_months);
                 if !used_forecast_keys.insert(forecast_key) {
@@ -843,8 +858,10 @@ pub fn import_views_archive(
     }
     records.sort_by(|left, right| left.forecast_id.cmp(&right.forecast_id));
     let forecast_record_count = records.len();
-    let unique_units: BTreeSet<String> =
-        records.iter().map(|record| record.unit_id.clone()).collect();
+    let unique_units: BTreeSet<String> = records
+        .iter()
+        .map(|record| record.unit_id.clone())
+        .collect();
     let unknown_outcome_count = records
         .iter()
         .filter(|record| record.outcome == ForecastOutcome::Unknown)
@@ -890,8 +907,7 @@ pub fn import_views_archive(
             ),
             attribution: format!(
                 "{}; outcome-attribution={}",
-                manifest.source.forecast_attribution,
-                manifest.source.outcome_attribution
+                manifest.source.forecast_attribution, manifest.source.outcome_attribution
             ),
         },
         privacy: manifest.privacy,
@@ -996,13 +1012,34 @@ mod tests {
     fn source_map() -> BTreeMap<String, Vec<u8>> {
         [
             ("views-codebook-synthetic-v0.1.json", CODEBOOK),
-            ("views-api-response-synthetic-2020-03.json", RESPONSE_2020_03),
-            ("views-api-response-synthetic-2020-04.json", RESPONSE_2020_04),
-            ("views-api-response-synthetic-2020-05.json", RESPONSE_2020_05),
-            ("views-api-response-synthetic-2020-07.json", RESPONSE_2020_07),
-            ("views-api-response-synthetic-2020-08.json", RESPONSE_2020_08),
-            ("views-api-response-synthetic-2020-10.json", RESPONSE_2020_10),
-            ("views-api-response-synthetic-2020-11.json", RESPONSE_2020_11),
+            (
+                "views-api-response-synthetic-2020-03.json",
+                RESPONSE_2020_03,
+            ),
+            (
+                "views-api-response-synthetic-2020-04.json",
+                RESPONSE_2020_04,
+            ),
+            (
+                "views-api-response-synthetic-2020-05.json",
+                RESPONSE_2020_05,
+            ),
+            (
+                "views-api-response-synthetic-2020-07.json",
+                RESPONSE_2020_07,
+            ),
+            (
+                "views-api-response-synthetic-2020-08.json",
+                RESPONSE_2020_08,
+            ),
+            (
+                "views-api-response-synthetic-2020-10.json",
+                RESPONSE_2020_10,
+            ),
+            (
+                "views-api-response-synthetic-2020-11.json",
+                RESPONSE_2020_11,
+            ),
         ]
         .into_iter()
         .map(|(path, bytes)| (path.to_owned(), bytes.to_vec()))
