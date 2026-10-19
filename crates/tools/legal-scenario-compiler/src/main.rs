@@ -124,7 +124,7 @@ struct Scenario {
     wording_variant: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ExpectedResult {
     action: Action,
@@ -852,9 +852,7 @@ fn validate_corpus(corpus: &GeneratedCorpus, ruleset: &RuleSet, ruleset_raw: &st
         }
         let recomputed = evaluate_scenario(&case.scenario, ruleset)?;
         let oracle = oracle_evaluate(&case.scenario, ruleset);
-        if case.expected.action != recomputed.action
-            || case.expected.claim_codes != recomputed.claim_codes
-            || case.expected.citations != recomputed.citations
+        if case.expected != recomputed
             || case.expected.action != oracle.action
             || case.expected.claim_codes != oracle.claim_codes
             || case.expected.citations != oracle.citations
@@ -1016,21 +1014,19 @@ mod tests {
 
     #[test]
     fn unresolved_conflicts_never_silently_select_a_rule() {
-        let raw = RULESET_JSON.replace(
-            "\"priority\": 90",
-            "\"priority\": 100",
-        );
+        let raw = RULESET_JSON.replace("\"priority\": 80", "\"priority\": 90");
         let ruleset: RuleSet = serde_json::from_str(&raw).expect("mutated ruleset parses");
         let scenario = Scenario {
             source_permission: SourcePermission::Allowed,
             competence_confirmed: true,
             current_authority_available: true,
-            required_fact_present: true,
+            required_fact_present: false,
             authority_conflict: true,
             wording_variant: false,
         };
         let result = evaluate_scenario(&scenario, &ruleset).expect("scenario evaluates");
         assert_eq!(result.action, Action::Abstain);
+        assert_eq!(result.reason_code, "decision_mapping_conflict");
     }
 
     #[test]
