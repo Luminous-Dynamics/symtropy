@@ -157,7 +157,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             {
                 return Err(RapierBridgeStepError::NonFiniteModulatedForce);
             }
-            modulated_forces.push((*handle, force));
+            modulated_forces.push((handle, force));
         }
 
         for (handle, force) in modulated_forces {
@@ -203,7 +203,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
                 let angular_velocity = body.angvel();
 
                 RapierBodyState {
-                    handle: *handle,
+                    handle,
                     translation: [translation.x, translation.y, translation.z],
                     rotation_wijk: [rotation.w, rotation.i, rotation.j, rotation.k],
                     linear_velocity: [
