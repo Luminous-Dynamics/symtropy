@@ -66,6 +66,7 @@ pub enum PlannerFault {
     InvalidHypervectorDimension,
     InvalidGain,
     NonFiniteObservation,
+    ObservationEncodingFailed,
     BridgeReportedFailure,
     InvalidBridgeOutput,
 }
@@ -263,9 +264,12 @@ impl MotorPlanner for EmbodimentPlanner {
 
         let thought_hv = match &self.observation_encoder {
             ObservationEncoding::LegacyTiled => encode_observation(observation, self.hv_dim),
-            ObservationEncoding::SemanticHdc(encoder) => encoder.encode(observation).expect(
-                "validated semantic observation encoder cannot fail on finite-clamped input",
-            ),
+            ObservationEncoding::SemanticHdc(encoder) => match encoder.encode(observation) {
+                Ok(encoded) => encoded,
+                Err(_) => {
+                    return self.reject(PlannerFault::ObservationEncodingFailed, num_actuators);
+                }
+            },
         };
         let result = self.bridge.step(&thought_hv, self.dt, gain);
 
@@ -284,7 +288,6 @@ impl MotorPlanner for EmbodimentPlanner {
             || !(0.0..=1.0).contains(&bridge_gain)
             || !effort.is_finite()
             || !prediction_error.is_finite()
-            || prediction_error < 0.0
             || !observation_confidence.is_finite()
             || !(0.0..=1.0).contains(&observation_confidence)
         {
