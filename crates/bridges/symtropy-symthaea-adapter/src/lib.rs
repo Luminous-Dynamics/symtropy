@@ -362,6 +362,7 @@ mod tests {
         result_effort: f32,
         result_success: bool,
         result_confidence: f32,
+        result_num_actuators: Option<usize>,
         num_actuators: usize,
         safety_override: Option<MotorSafetyLevel>,
     }
@@ -377,6 +378,7 @@ mod tests {
                 result_effort: 1.0,
                 result_success: true,
                 result_confidence: 0.9,
+                result_num_actuators: None,
                 num_actuators: 21,
                 safety_override: None,
             }
@@ -390,7 +392,7 @@ mod tests {
             self.last_dt = dt;
             self.last_phi = phi;
             EmbodimentResult {
-                num_actuators: self.num_actuators,
+                num_actuators: self.result_num_actuators.unwrap_or(self.num_actuators),
                 control_effort: self.result_effort,
                 success: self.result_success,
                 prediction_error: 0.1,
@@ -552,7 +554,8 @@ mod tests {
     #[test]
     fn invalid_timestep_fails_closed() {
         for dt in [f32::NAN, 0.0, -0.01] {
-            let mut planner = EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(dt);
+            let mut planner =
+                EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(dt);
             let commands = planner.plan(&[0.5], 0.5, 4);
             assert_eq!(commands, vec![0.0; 4]);
             assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidTimestep));
@@ -575,6 +578,7 @@ mod tests {
     #[test]
     fn bridge_failure_fails_closed() {
         let mut bridge = MockBridge::new();
+        bridge.num_actuators = 4;
         bridge.result_success = false;
         let mut planner = EmbodimentPlanner::new(Box::new(bridge));
         assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
@@ -584,6 +588,7 @@ mod tests {
     #[test]
     fn non_finite_bridge_effort_fails_closed() {
         let mut bridge = MockBridge::new();
+        bridge.num_actuators = 4;
         bridge.result_effort = f32::NAN;
         let mut planner = EmbodimentPlanner::new(Box::new(bridge));
         assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
@@ -591,9 +596,35 @@ mod tests {
     }
 
     #[test]
+    fn requested_actuator_count_mismatch_rejects_before_stepping() {
+        let mut planner = make_planner_with_actuators(21);
+        let commands = planner.plan(&[0.5], 0.5, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(
+            planner.last_fault(),
+            Some(PlannerFault::RequestedActuatorCountMismatch)
+        );
+        assert_eq!(planner.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn bridge_result_actuator_count_mismatch_fails_closed() {
+        let mut bridge = MockBridge::new();
+        bridge.num_actuators = 4;
+        bridge.result_num_actuators = Some(3);
+        let mut planner = EmbodimentPlanner::new(Box::new(bridge));
+        assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
+        assert_eq!(
+            planner.last_fault(),
+            Some(PlannerFault::BridgeActuatorCountMismatch)
+        );
+    }
+
+    #[test]
     fn invalid_bridge_confidence_fails_closed() {
         for confidence in [f32::NAN, f32::INFINITY, -0.01, 1.01] {
             let mut bridge = MockBridge::new();
+            bridge.num_actuators = 4;
             bridge.result_confidence = confidence;
             let mut planner = EmbodimentPlanner::new(Box::new(bridge));
             assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
@@ -629,14 +660,10 @@ mod tests {
 
     #[test]
     fn plan_forwards_gain_as_phi() {
-        let mut p = make_planner();
-        let _ = p.plan(&[0.5], 0.42, 21);
-        // We can't see phi from the trait, but we can observe that a lower
-        // gain cap is respected in the output (Green × 1.0 = 1.0, capped to
-        // 0.42).
+        let mut p = make_planner_with_actuators(4);
         let cmds = p.plan(&[0.5], 0.42, 4);
         for c in &cmds {
-            assert!(*c <= 0.42 + 1e-12, "gain cap violated: {c} > 0.42");
+            assert!((c - 0.42).abs() < 1e-12, "gain cap not respected: {c}");
         }
     }
 
@@ -654,6 +681,7 @@ mod tests {
     #[test]
     fn yellow_safety_scales_output() {
         let mut bridge = MockBridge::new();
+        bridge.num_actuators = 4;
         bridge.result_safety = MotorSafetyLevel::Yellow;
         bridge.result_effort = 1.0;
         let mut p = EmbodimentPlanner::new(Box::new(bridge));
@@ -723,6 +751,7 @@ mod tests {
     #[test]
     fn control_effort_modulates_output() {
         let mut bridge = MockBridge::new();
+        bridge.num_actuators = 4;
         bridge.result_safety = MotorSafetyLevel::Green;
         bridge.result_effort = 0.5;
         let mut p = EmbodimentPlanner::new(Box::new(bridge));
@@ -736,6 +765,7 @@ mod tests {
     #[test]
     fn gain_cap_binds_even_when_bridge_authority_is_full() {
         let mut bridge = MockBridge::new();
+        bridge.num_actuators = 4;
         bridge.result_safety = MotorSafetyLevel::Green;
         bridge.result_effort = 1.0;
         let mut p = EmbodimentPlanner::new(Box::new(bridge));
@@ -749,6 +779,7 @@ mod tests {
     #[test]
     fn negative_control_effort_is_abs_valued() {
         let mut bridge = MockBridge::new();
+        bridge.num_actuators = 4;
         bridge.result_safety = MotorSafetyLevel::Green;
         bridge.result_effort = -0.8;
         let mut p = EmbodimentPlanner::new(Box::new(bridge));
