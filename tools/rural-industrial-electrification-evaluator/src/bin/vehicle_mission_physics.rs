@@ -395,6 +395,7 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
     let mut max_avg_traction_power = 0.0;
 
     for segment in &scenario.segments {
+        let soc_start = soc;
         let dt_h = segment.duration_s / 3600.0;
         let average_speed = segment.distance_m / segment.duration_s;
         let cos_grade = 1.0 / (1.0 + segment.grade_fraction * segment.grade_fraction).sqrt();
@@ -462,7 +463,7 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
             regen_energy_curtailed_kwh: regen_curtailed,
             segment_demand_before_regen_kwh: before_regen_demand,
             unserved_energy_kwh: unserved,
-            usable_soc_start_kwh: soc + regen_capture - (0.0),
+            usable_soc_start_kwh: soc_start,
             usable_soc_end_kwh: soc,
             average_traction_power_kw: avg_traction_power,
         });
