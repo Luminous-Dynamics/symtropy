@@ -12,6 +12,37 @@ enum WorldClass {
     OutOfEnvelope,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum RecourseObjective {
+    CostFirst,
+    CarbonFirst,
+}
+
+impl RecourseObjective {
+    fn policy_id(self) -> &'static str {
+        match self {
+            Self::CostFirst => "causal_adaptive_recourse",
+            Self::CarbonFirst => "causal_adaptive_carbon_first",
+        }
+    }
+}
+
+fn continuation_order(
+    left: &ScheduleScore,
+    right: &ScheduleScore,
+    objective: RecourseObjective,
+) -> std::cmp::Ordering {
+    match objective {
+        RecourseObjective::CostFirst => score_order(left, right),
+        RecourseObjective::CarbonFirst => left
+            .total_grid_carbon_units
+            .cmp(&right.total_grid_carbon_units)
+            .then_with(|| left.total_grid_cost_units.cmp(&right.total_grid_cost_units))
+            .then_with(|| left.batches.cmp(&right.batches)),
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct EvaluationWorld {
     realization_id: String,
@@ -21,6 +52,7 @@ struct EvaluationWorld {
 
 #[derive(Debug, Clone, Serialize)]
 struct RecourseDecision {
+    policy_id: String,
     epoch: usize,
     observation_prefix_sha256: String,
     chosen_batches_this_period: u32,
@@ -52,6 +84,8 @@ struct RecourseWorldResult {
     static_robust_policy: PolicyEvaluation,
     adaptive_recourse: PolicyEvaluation,
     adaptive_execution: RecourseExecution,
+    carbon_aware_recourse: PolicyEvaluation,
+    carbon_aware_execution: RecourseExecution,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -89,6 +123,8 @@ struct RecourseReceipt {
     held_out_world_count: usize,
     completed_adaptive_worlds_within_envelope: usize,
     adaptive_aborts_outside_envelope: usize,
+    completed_carbon_first_worlds_within_envelope: usize,
+    carbon_first_aborts_outside_envelope: usize,
     causal_nonanticipativity_violations: usize,
     independent_hard_constraint_violations: usize,
     summaries: Vec<RecourseSummary>,
@@ -129,6 +165,7 @@ fn choose_recourse_action(
     envelope: &[GeneratedWorld],
     observed_prefix: &[PeriodInput],
     executed_batches: &[u32],
+    objective: RecourseObjective,
 ) -> Check<RecourseDecision> {
     if observed_prefix.is_empty()
         || observed_prefix.len() > forecast.periods.len()
@@ -191,10 +228,9 @@ fn choose_recourse_action(
                     if reconstructed != score {
                         return Err("recourse continuation disagrees with independent resource reconstruction".to_owned());
                     }
-                    if best_completion
-                        .as_ref()
-                        .is_none_or(|current| score_order(&score, current).is_lt())
-                    {
+                    if best_completion.as_ref().is_none_or(|current| {
+                        continuation_order(&score, current, objective).is_lt()
+                    }) {
                         best_completion = Some(score);
                     }
                 }
@@ -209,7 +245,14 @@ fn choose_recourse_action(
 
         if viable_everywhere {
             viable_actions_considered += 1;
-            let candidate = (worst_recourse_cost, worst_recourse_carbon, chosen_now);
+            let candidate = match objective {
+                RecourseObjective::CostFirst => {
+                    (worst_recourse_cost, worst_recourse_carbon, chosen_now)
+                }
+                RecourseObjective::CarbonFirst => {
+                    (worst_recourse_carbon, worst_recourse_cost, chosen_now)
+                }
+            };
             let replace = best.as_ref().is_none_or(|current| candidate < *current);
             if replace {
                 best = Some(candidate);
@@ -226,6 +269,7 @@ fn choose_recourse_action(
     let prefix_bytes = serde_json::to_vec(observed_prefix)
         .map_err(|error| format!("cannot serialize observed prefix: {error}"))?;
     Ok(RecourseDecision {
+        policy_id: objective.policy_id().to_owned(),
         epoch,
         observation_prefix_sha256: sha256(&prefix_bytes),
         chosen_batches_this_period,
@@ -283,6 +327,7 @@ fn execute_adaptive_recourse(
     forecast: &ScenarioInput,
     envelope: &[GeneratedWorld],
     realized: &ScenarioInput,
+    objective: RecourseObjective,
 ) -> Check<RecourseExecution> {
     let mut executed_batches = Vec::new();
     let mut decisions = Vec::new();
@@ -295,6 +340,7 @@ fn execute_adaptive_recourse(
             envelope,
             observed_prefix,
             &executed_batches,
+            objective,
         ) {
             Ok(decision) => {
                 executed_batches.push(decision.chosen_batches_this_period);
