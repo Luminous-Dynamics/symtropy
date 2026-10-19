@@ -651,12 +651,18 @@ fn quaternion_angular_error_rad(a: [f64; 4], b: [f64; 4]) -> Result<f64, BenchEr
 
 /// Extract the Y-up yaw component from an XYZW quaternion. Full geodesic rotation
 /// error remains the primary metric because yaw alone does not capture pitch or roll.
-fn quaternion_yaw_rad(q: [f64; 4]) -> Result<f64, BenchError> {
+fn quaternion_yaw_rad(q: [f64; 4]) -> Result<Option<f64>, BenchError> {
     let q = normalize_quaternion(q)?;
     let [x, y, z, w] = q;
-    let yaw = (2.0 * (w * y + x * z)).atan2(1.0 - 2.0 * (y * y + x * x));
+    let projected_forward_x = 2.0 * (w * y + x * z);
+    let projected_forward_z = 1.0 - 2.0 * (y * y + x * x);
+    if projected_forward_x.hypot(projected_forward_z) <= 1.0e-6 {
+        // Heading is undefined when the character's forward vector is vertical.
+        return Ok(None);
+    }
+    let yaw = projected_forward_x.atan2(projected_forward_z);
     if yaw.is_finite() {
-        Ok(yaw)
+        Ok(Some(yaw))
     } else {
         fail("quaternion yaw is not finite")
     }
@@ -1027,18 +1033,20 @@ struct RootOrientationReport {
     p95_angular_error_deg: f64,
     max_angular_error_rad: f64,
     max_angular_error_deg: f64,
-    mean_signed_yaw_error_rad: f64,
-    mean_signed_yaw_error_deg: f64,
-    mean_absolute_yaw_error_rad: f64,
-    mean_absolute_yaw_error_deg: f64,
-    final_signed_yaw_error_rad: f64,
-    final_signed_yaw_error_deg: f64,
-    final_absolute_yaw_error_rad: f64,
-    final_absolute_yaw_error_deg: f64,
-    p95_absolute_yaw_error_rad: f64,
-    p95_absolute_yaw_error_deg: f64,
-    max_absolute_yaw_error_rad: f64,
-    max_absolute_yaw_error_deg: f64,
+    yaw_samples_scored: usize,
+    yaw_samples_undefined: usize,
+    mean_signed_yaw_error_rad: Option<f64>,
+    mean_signed_yaw_error_deg: Option<f64>,
+    mean_absolute_yaw_error_rad: Option<f64>,
+    mean_absolute_yaw_error_deg: Option<f64>,
+    final_signed_yaw_error_rad: Option<f64>,
+    final_signed_yaw_error_deg: Option<f64>,
+    final_absolute_yaw_error_rad: Option<f64>,
+    final_absolute_yaw_error_deg: Option<f64>,
+    p95_absolute_yaw_error_rad: Option<f64>,
+    p95_absolute_yaw_error_deg: Option<f64>,
+    max_absolute_yaw_error_rad: Option<f64>,
+    max_absolute_yaw_error_deg: Option<f64>,
 }
 
 fn evaluate_root_orientation(
@@ -1058,9 +1066,11 @@ fn evaluate_root_orientation(
     let mut yaw_errors_rad = Vec::with_capacity(grid_times.len());
     for (reference, prediction) in reference_aligned.iter().zip(&prediction_aligned) {
         errors_rad.push(quaternion_angular_error_rad(*prediction, *reference)?);
-        let reference_yaw = quaternion_yaw_rad(*reference)?;
-        let prediction_yaw = quaternion_yaw_rad(*prediction)?;
-        yaw_errors_rad.push(wrapped_angle_difference_rad(prediction_yaw, reference_yaw));
+        if let (Some(reference_yaw), Some(prediction_yaw)) =
+            (quaternion_yaw_rad(*reference)?, quaternion_yaw_rad(*prediction)?)
+        {
+            yaw_errors_rad.push(wrapped_angle_difference_rad(prediction_yaw, reference_yaw));
+        }
     }
     if errors_rad.is_empty() {
         return fail("root orientation evaluation requires at least one aligned sample");
@@ -1072,8 +1082,12 @@ fn evaluate_root_orientation(
         return fail("root orientation error aggregation overflowed");
     }
     let mean_error_rad = error_sum / errors_rad.len() as f64;
-    let mean_signed_yaw_error_rad = yaw_error_sum / yaw_errors_rad.len() as f64;
-    let mean_absolute_yaw_error_rad = yaw_absolute_sum / yaw_errors_rad.len() as f64;
+    let yaw_samples_scored = yaw_errors_rad.len();
+    let yaw_samples_undefined = grid_times.len().saturating_sub(yaw_samples_scored);
+    let mean_signed_yaw_error_rad = (yaw_samples_scored > 0)
+        .then_some(yaw_error_sum / yaw_samples_scored as f64);
+    let mean_absolute_yaw_error_rad = (yaw_samples_scored > 0)
+        .then_some(yaw_absolute_sum / yaw_samples_scored as f64);
     let mut ordered_errors = errors_rad;
     ordered_errors.sort_by(f64::total_cmp);
     let p95_error_rad = percentile_nearest_rank(&ordered_errors, 0.95)
@@ -1081,8 +1095,7 @@ fn evaluate_root_orientation(
     let mut ordered_yaw_errors: Vec<f64> =
         yaw_errors_rad.iter().map(|error| error.abs()).collect();
     ordered_yaw_errors.sort_by(f64::total_cmp);
-    let p95_absolute_yaw_error_rad = percentile_nearest_rank(&ordered_yaw_errors, 0.95)
-        .ok_or_else(|| BenchError("could not compute root yaw P95".to_owned()))?;
+    let p95_absolute_yaw_error_rad = percentile_nearest_rank(&ordered_yaw_errors, 0.95);
 
     let reference_endpoint =
         interpolate_quaternion(reference_times, reference_rotations, overlap_end_sec)?;
@@ -1092,10 +1105,14 @@ fn evaluate_root_orientation(
         quaternion_angular_error_rad(prediction_endpoint, reference_endpoint)?;
     let final_reference_yaw = quaternion_yaw_rad(reference_endpoint)?;
     let final_prediction_yaw = quaternion_yaw_rad(prediction_endpoint)?;
-    let final_signed_yaw_error_rad =
-        wrapped_angle_difference_rad(final_prediction_yaw, final_reference_yaw);
+    let final_signed_yaw_error_rad = match (final_prediction_yaw, final_reference_yaw) {
+        (Some(prediction_yaw), Some(reference_yaw)) => {
+            Some(wrapped_angle_difference_rad(prediction_yaw, reference_yaw))
+        }
+        _ => None,
+    };
     let max_error_rad = ordered_errors.last().copied().unwrap_or(0.0);
-    let max_absolute_yaw_error_rad = ordered_yaw_errors.last().copied().unwrap_or(0.0);
+    let max_absolute_yaw_error_rad = ordered_yaw_errors.last().copied();
     const RAD_TO_DEG: f64 = 180.0 / std::f64::consts::PI;
 
     Ok(RootOrientationReport {
@@ -1108,18 +1125,21 @@ fn evaluate_root_orientation(
         p95_angular_error_deg: p95_error_rad * RAD_TO_DEG,
         max_angular_error_rad: max_error_rad,
         max_angular_error_deg: max_error_rad * RAD_TO_DEG,
+        yaw_samples_scored,
+        yaw_samples_undefined,
         mean_signed_yaw_error_rad,
-        mean_signed_yaw_error_deg: mean_signed_yaw_error_rad * RAD_TO_DEG,
+        mean_signed_yaw_error_deg: mean_signed_yaw_error_rad.map(|error| error * RAD_TO_DEG),
         mean_absolute_yaw_error_rad,
-        mean_absolute_yaw_error_deg: mean_absolute_yaw_error_rad * RAD_TO_DEG,
+        mean_absolute_yaw_error_deg: mean_absolute_yaw_error_rad.map(|error| error * RAD_TO_DEG),
         final_signed_yaw_error_rad,
-        final_signed_yaw_error_deg: final_signed_yaw_error_rad * RAD_TO_DEG,
-        final_absolute_yaw_error_rad: final_signed_yaw_error_rad.abs(),
-        final_absolute_yaw_error_deg: final_signed_yaw_error_rad.abs() * RAD_TO_DEG,
+        final_signed_yaw_error_deg: final_signed_yaw_error_rad.map(|error| error * RAD_TO_DEG),
+        final_absolute_yaw_error_rad: final_signed_yaw_error_rad.map(f64::abs),
+        final_absolute_yaw_error_deg: final_signed_yaw_error_rad
+            .map(|error| error.abs() * RAD_TO_DEG),
         p95_absolute_yaw_error_rad,
-        p95_absolute_yaw_error_deg: p95_absolute_yaw_error_rad * RAD_TO_DEG,
+        p95_absolute_yaw_error_deg: p95_absolute_yaw_error_rad.map(|error| error * RAD_TO_DEG),
         max_absolute_yaw_error_rad,
-        max_absolute_yaw_error_deg: max_absolute_yaw_error_rad * RAD_TO_DEG,
+        max_absolute_yaw_error_deg: max_absolute_yaw_error_rad.map(|error| error * RAD_TO_DEG),
     })
 }
 
@@ -1650,17 +1670,13 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         report
             .root_orientation_error
             .as_ref()
-            .map_or_else(
-                || "n/a".to_owned(),
-                |value| format!("{:.2}", value.p95_absolute_yaw_error_rad),
-            ),
+            .and_then(|value| value.p95_absolute_yaw_error_rad)
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.2}")),
         report
             .root_orientation_error
             .as_ref()
-            .map_or_else(
-                || "n/a".to_owned(),
-                |value| format!("{:.2}", value.p95_absolute_yaw_error_deg),
-            ),
+            .and_then(|value| value.p95_absolute_yaw_error_deg)
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.2}")),
         report.prediction_root_mean_squared_jerk_m2_s6
     );
 
@@ -1728,8 +1744,39 @@ mod tests {
         assert!((orientation.mean_angular_error_rad - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
         assert!((orientation.p95_angular_error_deg - 90.0).abs() < 1e-7);
         assert!((orientation.max_angular_error_deg - 90.0).abs() < 1e-7);
-        assert!((orientation.mean_absolute_yaw_error_deg - 90.0).abs() < 1e-7);
-        assert!((orientation.final_absolute_yaw_error_deg - 90.0).abs() < 1e-7);
+        assert!(
+            (orientation.mean_absolute_yaw_error_deg.unwrap() - 90.0).abs() < 1e-7
+        );
+        assert!(
+            (orientation.final_absolute_yaw_error_deg.unwrap() - 90.0).abs() < 1e-7
+        );
+    }
+
+    #[test]
+    fn yaw_difference_wraps_across_the_pi_boundary_and_vertical_heading_is_undefined() {
+        let degrees = std::f64::consts::PI / 180.0;
+        let yaw_179 = quaternion_yaw_rad([
+            0.0,
+            (179.0 * degrees / 2.0).sin(),
+            0.0,
+            (179.0 * degrees / 2.0).cos(),
+        ])
+        .unwrap()
+        .unwrap();
+        let yaw_minus_179 = quaternion_yaw_rad([
+            0.0,
+            (-179.0 * degrees / 2.0).sin(),
+            0.0,
+            (-179.0 * degrees / 2.0).cos(),
+        ])
+        .unwrap()
+        .unwrap();
+        let wrapped = wrapped_angle_difference_rad(yaw_179, yaw_minus_179);
+        assert!((wrapped.abs() / degrees - 2.0).abs() < 1e-7);
+
+        let half_angle = std::f64::consts::FRAC_PI_4;
+        let forward_vertical = [half_angle.sin(), 0.0, 0.0, half_angle.cos()];
+        assert_eq!(quaternion_yaw_rad(forward_vertical).unwrap(), None);
     }
 
     #[test]
@@ -1763,7 +1810,7 @@ mod tests {
         assert_eq!(report.alignment.samples, 4);
         assert_eq!(orientation.mean_angular_error_rad, 0.0);
         assert!((orientation.final_angular_error_deg - 90.0).abs() < 1e-7);
-        assert!((orientation.final_absolute_yaw_error_deg - 90.0).abs() < 1e-7);
+        assert!((orientation.final_absolute_yaw_error_deg.unwrap() - 90.0).abs() < 1e-7);
         assert_eq!(orientation.max_angular_error_deg, 0.0);
     }
 
