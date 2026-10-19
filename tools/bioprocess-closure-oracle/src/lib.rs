@@ -293,7 +293,7 @@ fn evaluate_case(value: &Value) -> Evaluation {
         let entry = stage_coverage
             .iter()
             .find(|entry| text(entry, &["stage"]) == Some(name));
-        if !entry.is_some_and(|entry| text(entry, &["state"]) == Some("accounted")) {
+        if entry.is_none_or(|entry| text(entry, &["state"]) != Some("accounted")) {
             return result(case_id, Disposition::Indeterminate, "PROCESS_STAGE_MISSING");
         }
     }
