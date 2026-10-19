@@ -365,6 +365,15 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "missing_paired_interval" => inputs.paired_comparisons[0].difference_interval = None,
         "invalid_paired_interval" => inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: 0.8, upper: 0.2 }),
         "invalid_effect_margins" => inputs.paired_comparisons[0].minimum_effect_size = -0.1,
+        "paired_difference_does_not_match_scores" => {
+            inputs.paired_comparisons[0].mean_difference = Some(0.2);
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { confidence_percent: 90, lower: 0.15, upper: 0.25 });
+        }
+        "paired_samples_exceed_available" => inputs.paired_comparisons[0].independent_unit_count = 11,
+        "comparison_stratum_missing" => {
+            inputs.paired_comparisons[0].stratum_kind = MetricStratumKind::Taxon;
+            inputs.paired_comparisons[0].stratum_id = "TEST:404".to_owned();
+        }
         "uncertain_paired_effect" => {
             inputs.metrics[0] = metric("pose_pck", 0.45, "fraction");
             inputs.paired_comparisons[0].mean_difference = Some(0.05);
@@ -451,7 +460,7 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
     let corpus: OracleCorpus = serde_json::from_str(ORACLE_FIXTURE).unwrap();
     assert_eq!(corpus.schema_version, "ANIMAL-REPLAY-RESULT-ORACLE-V1");
     assert!(corpus.note.contains("synthetic"));
-    assert_eq!(corpus.cases.len(), 43);
+    assert_eq!(corpus.cases.len(), 60);
     for case in corpus.cases {
         let mut inputs = valid_inputs();
         apply_mutation(&mut inputs, &case.mutation);
