@@ -37,6 +37,8 @@ jobs:
         run: echo "53188541833a33eebdf9b51a0c969826058812f72b401e10791fae05bd1a3b0a  tools/built-interop-006/Cargo.lock" | sha256sum -c -
       - name: Check formatting
         run: cargo fmt --manifest-path tools/built-interop-006/Cargo.toml -- --check
+      - name: Check integration shell syntax
+        run: bash -n tools/built-interop-006/test-pipeline.sh
       - name: Run typed-report adversarial tests
         run: cargo test --locked --manifest-path tools/built-interop-006/Cargo.toml
       - name: Run IFC schema gate to report assembler integration
