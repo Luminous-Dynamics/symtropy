@@ -343,8 +343,6 @@ fn mean_floor(values: &[u64]) -> Option<u64> {
 fn realized_outcome(
     process: &ProcessModel,
     world: &super::GeneratedWorld,
-    seed: u64,
-    split: Split,
     candidate: &RobustCandidate,
     policy_id: &str,
     execution_profile: &ExecutionEnvelope,
@@ -515,9 +513,18 @@ fn make_receipt(source_commit: &str) -> Check<ExecutionReceipt> {
     let all_summaries_consistent = summaries.iter().all(|summary| {
         summary.evaluated_worlds == 32 * WORLDS_PER_SEED
             && summary.resource_feasible_worlds == summary.evaluated_worlds
-            && summary.physically_executable_worlds == summary.evaluated_worlds
-            && summary.execution_violation_worlds == 0
-    });
+            && summary.physically_executable_worlds + summary.execution_violation_worlds
+                == summary.evaluated_worlds
+            && summary.feasibility_rate_basis_points
+                == ((summary.physically_executable_worlds as u128 * 10_000)
+                    / summary.evaluated_worlds as u128) as u32
+    }) && summaries
+        .iter()
+        .filter(|summary| summary.policy_id == "execution_constrained_robust_min_cost")
+        .all(|summary| {
+            summary.physically_executable_worlds == summary.evaluated_worlds
+                && summary.execution_violation_worlds == 0
+        });
     let result = if cases.len() == 64
         && worlds.len() == expected_worlds
         && resource_only_optimum_rejected_by_execution_cases > 0
