@@ -350,6 +350,14 @@ pub fn build_replay_receipt(
     if task.primary_metric_id.trim().is_empty() {
         rejected.insert(ReplayReason::MissingPrimaryMetric);
     }
+    if task.required_confidence_percent == 0 || task.required_confidence_percent >= 100 {
+        rejected.insert(ReplayReason::InvalidRequiredConfidenceLevel);
+    }
+    if task.metric_uncertainty_method_id.trim().is_empty()
+        || task.paired_comparison_method_id.trim().is_empty()
+    {
+        rejected.insert(ReplayReason::MissingUncertaintyMethod);
+    }
     if task.claim_ceiling.trim().is_empty() {
         rejected.insert(ReplayReason::EmptyClaimCeiling);
     }
@@ -507,6 +515,12 @@ pub fn build_replay_receipt(
                 incomplete.insert(ReplayReason::IncompleteMetricObservation);
             }
         }
+        if let Some(interval) = metric.interval.as_ref()
+            && (interval.confidence_percent != task.required_confidence_percent
+                || interval.method_id != task.metric_uncertainty_method_id)
+        {
+            rejected.insert(ReplayReason::UncertaintyProtocolMismatch);
+        }
     }
 
     let primary_metric = metrics.iter().find(|metric| {
@@ -563,6 +577,12 @@ pub fn build_replay_receipt(
             } else if matches!(validate_metric(metric), MetricValidation::Incomplete) {
                 incomplete.insert(ReplayReason::BaselineMetricNotReported);
             }
+            if let Some(interval) = metric.interval.as_ref()
+                && (interval.confidence_percent != task.required_confidence_percent
+                    || interval.method_id != task.metric_uncertainty_method_id)
+            {
+                rejected.insert(ReplayReason::UncertaintyProtocolMismatch);
+            }
         }
         if baseline.baseline_id.trim().is_empty() {
             rejected.insert(ReplayReason::EmptyBaselineId);
@@ -601,6 +621,12 @@ pub fn build_replay_receipt(
             MetricValidation::Incomplete => {
                 incomplete.insert(ReplayReason::BaselineMetricNotReported);
             }
+        }
+        if let Some(interval) = baseline.primary_metric.interval.as_ref()
+            && (interval.confidence_percent != task.required_confidence_percent
+                || interval.method_id != task.metric_uncertainty_method_id)
+        {
+            rejected.insert(ReplayReason::UncertaintyProtocolMismatch);
         }
     }
 
@@ -698,6 +724,12 @@ pub fn build_replay_receipt(
             None => {
                 incomplete.insert(ReplayReason::MissingPairedDifference);
             }
+        }
+        if let Some(interval) = comparison.difference_interval.as_ref()
+            && (interval.confidence_percent != task.required_confidence_percent
+                || interval.method_id != task.paired_comparison_method_id)
+        {
+            rejected.insert(ReplayReason::UncertaintyProtocolMismatch);
         }
         match comparison.difference_interval.as_ref() {
             Some(interval)
@@ -914,6 +946,7 @@ fn validate_metric(metric: &MetricObservation) -> MetricValidation {
                     || interval.lower > interval.upper
                     || value < interval.lower
                     || value > interval.upper
+                    || interval.method_id.trim().is_empty()
                     || interval.confidence_percent == 0
                     || interval.confidence_percent >= 100)
             {
