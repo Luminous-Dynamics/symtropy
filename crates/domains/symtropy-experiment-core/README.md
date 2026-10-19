@@ -5,6 +5,7 @@ A renderer-independent first step toward executable, visually navigable experime
 ## What exists in this prototype
 
 - A versioned JSON representation of variables, units/dimensions, equation nodes, evidence anchors, equation basis, and limitations.
+- A renderer-neutral visual-math projection that preserves canonical variable/equation/evidence IDs and derives equation labels from the executable operators; incomplete models remain inspectable even when baseline execution fails.
 - Structural checks for record IDs, variable references, operator arity, source/evidence links, output roles, dimensional compatibility, duplicate equation outputs, and dependency cycles.
 - A small arithmetic DAG interpreter for add, subtract, multiply, divide, and negate.
 - Canonical equation labels are generated from operator and variable IDs, avoiding a separate hand-written formula that can drift from the executed calculation.
@@ -20,6 +21,7 @@ From the Symtropy workspace root:
 
 ```sh
 cargo test -p symtropy-experiment-core
+cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- inspect crates/domains/symtropy-experiment-core/fixtures/gear-ratio.json
 cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- crates/domains/symtropy-experiment-core/fixtures/gear-ratio.json
 
 # Sweep a parameter without mutating the canonical model; values retain input order
@@ -32,7 +34,7 @@ cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- oscillato
 cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- oscillator-convergence crates/domains/symtropy-experiment-core/fixtures/harmonic-oscillator.json 0.04,0.02,0.01,0.005
 ```
 
-The oscillator fixture uses mass 1 kg, stiffness 4 N/m, initial position 1 m and a 10 s horizon at 0.01 s steps. The angular frequency is 2 rad/s. It compares numerical samples with the analytical solution and reports integration error and relative energy deviation; these are synthetic code-verification diagnostics, not experimental measurement error. The expected idealized gear result is `theta_output = -1.9 rad` and `signed_ratio = -4`. The runner prints all supplied and derived variables as JSON strings. The sweep command reports scenario outputs in the exact order requested; a sweep is deterministic scenario exploration, not a probability distribution, global sensitivity index or physical validation.
+The `inspect` command emits the canonical graph projection plus a baseline evaluation result or an explicit evaluation error; structural validity does not require that every possible model already has enough inputs to execute. The oscillator convergence mode compares the sequence `0.04,0.02,0.01,0.005` seconds and estimates observed pairwise order. The oscillator fixture uses mass 1 kg, stiffness 4 N/m, initial position 1 m and a 10 s horizon at 0.01 s steps. The angular frequency is 2 rad/s. It compares numerical samples with the analytical solution and reports integration error and relative energy deviation; these are synthetic code-verification diagnostics, not experimental measurement error. The expected idealized gear result is `theta_output = -1.9 rad` and `signed_ratio = -4`. The runner prints all supplied and derived variables as JSON strings. The sweep command reports scenario outputs in the exact order requested; a sweep is deterministic scenario exploration, not a probability distribution, global sensitivity index or physical validation.
 
 ## Important boundary
 
