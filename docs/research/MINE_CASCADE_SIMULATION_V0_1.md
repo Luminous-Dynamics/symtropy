@@ -84,6 +84,35 @@ Industry packages already handle important point solutions. Our plausible differ
 
 E0/E1 results demonstrate software semantics only. The 144-state exhaustive oracle fixture is authored but not yet executed in this environment; it is not a test pass. Do not claim any percentage performance improvement until the named baselines, data and holdout protocol are frozen.
 
+## Updated competitive benchmark map (19 Oct 2026)
+
+### Decision-policy baselines
+
+- **Static / stochastic / rolling-horizon planning:** Armstrong et al. (2021) compare rolling-horizon mine planning with a two-stage method under geologic uncertainty; the reported advantage depends on sampling-grid conditions, so do not assume adaptive planning always wins: https://doi.org/10.1016/j.resourpol.2021.102086
+- **Partially observed sequential planning:** the 2026 POMDP mine-planning preprint reports large improvements over one-shot planning in its copper-gold case, while explicitly investigating prior misspecification. Reproduce its baseline only where case assumptions and code/data permit; treat reported preprint results as a hypothesis, not a generic target: https://arxiv.org/abs/2605.13702
+- **Resource-constrained underground scheduling:** Hill et al. (2022) evaluate mathematical / constraint-programming strategies and report several difficult practical instances solved to within about 5% of optimality after hours of computation. This is a stronger scheduling comparator than a hand-built priority rule, but it does not directly score this service-viability contract: https://doi.org/10.1287/ijoc.2022.1222
+- **Truck-dispatch RL:** an October 2026 *Computers & Industrial Engineering* study reports 15–17% relative improvement in productive hauling time and roughly 27% lower average queue waiting than a greedy baseline across six simulation scenarios. Use the published scenario definitions where available and attempt an apples-to-apples reproduction; do not lift those gains as expected outcomes for a different environment: https://doi.org/10.1016/j.cie.2026.112378
+- **Configurable dispatch benchmark:** *Mining-gym* (Applied Soft Computing, available online 1 August 2026) describes a configurable discrete-event truck-dispatch environment with stochastic equipment behavior and failures. Investigate compatibility and shared scenario semantics before building another truck-dispatch RL simulator: https://doi.org/10.1016/j.asoc.2026.116153
+- **Simulator-guided language-model scheduler:** the June 2026 Sim2Schedule preprint reports 94–99% of MILP-optimal NPV in its evaluated open-pit instances. It is a preprint comparator, not a verified performance claim for this repo, and any language-model policy must remain subordinate to an independent hard-constraint verifier: https://arxiv.org/abs/2606.10286
+
+### Qualified physical model interfaces
+
+- **NIOSH MFIRE** is established software for transient underground mine-fire and contaminant-spread effects on ventilation. Investigate it as an external qualified model / reference case for the relevant fire scenarios rather than writing a competing, unvalidated fire-physics model: https://www.cdc.gov/niosh/mining/tools/mfire.html
+- Ventilation digital twins have published uncertainty analyses showing that airflow confidence-interval coverage and interval width depend on resistance estimation methods; therefore compare model error, interval coverage, sharpness and operational decision flips, not average airflow error alone: https://www.nature.com/articles/s41598-024-77978-3
+- OMF 2.0-beta is a 3D mining-data interchange format. Use the Sol-Atlas spatial owner for any future adapter and retain the distinction between geometry interchange and service-dependency semantics: https://gmggroup.org/omf/
+
+### Evidence hygiene
+
+Search results identify the 2025 Scientific Reports article “Digital twin-driven deep learning prediction and adaptive control for coal mine ventilation systems” (DOI 10.1038/s41598-025-30513-4) as **retracted**. Do not use its reported accuracy, energy savings or response-time claims as supporting evidence or a benchmark target. Always check article status and correction/retraction notices before importing headline numbers into benchmark contracts: https://pubmed.ncbi.nlm.nih.gov/41345224/
+
+### What “better than state of the art” means here
+
+Do not compare this E0/E1 service simulator directly with a physical digital twin's percentage prediction error, a mining schedule's NPV gap, or an RL dispatch policy's hauling-time gain. These are different tasks and evidence levels.
+
+A valid comparative claim must specify: task and decision boundary; input / event trace; source and holdout split; hard constraints and objective; policy-visible information; runtime/hardware; reference/oracle status; metrics and uncertainty; and whether the evidence is synthetic, calibrated simulation, retrospective site data or prospective shadow operation.
+
+For this simulator, first target exact semantic agreement on tiny instances and zero false-viable results in its frozen adversarial cases. For the future repair-policy layer, target exact optimum on tiny cases, then measure regret, critical-service loss and feasibility against fixed, dependency-aware, and resource-constrained optimisation baselines on paired held-out traces. For physical submodels, compare only against validated domain references and qualified measurements.
+
 ## Next model layer
 
 Add repair crews, spares, access-constrained repair precedence, restoration delays and policy decisions limited to observations delivered by the current tick. Integrate by references/adapters to existing communication-timeline and flood-egress benchmarks, not by duplicating their physics or receipt schemas.
