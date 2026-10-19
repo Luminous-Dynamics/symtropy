@@ -11,12 +11,13 @@
 
 use bevy::input::mouse::{AccumulatedMouseMotion, MouseButton};
 use bevy::prelude::{ButtonInput, Component, KeyCode, Quat, Res, Time, Transform, Vec3};
+use serde::{Deserialize, Serialize};
 
 const POSE_EPSILON: f32 = 1.0e-4;
 
 /// Presentation style for a review route. This selects interaction intent; it
 /// does not imply the renderer or headset runtime for a given mode exists.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ReviewRig {
     /// Human-height camera route; the consumer must supply collision handling.
     GuidedWalkthrough,
@@ -32,7 +33,7 @@ pub enum ReviewRig {
 
 /// A named stop on a camera route. Positions are in metres in the model's
 /// declared coordinate frame; the route does not establish georeferencing.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ReviewWaypoint {
     pub waypoint_id: String,
     pub label: String,
@@ -45,7 +46,7 @@ pub struct ReviewWaypoint {
 }
 
 /// A user-visible camera route associated with a design revision.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ArchitecturalReviewRoute {
     pub route_id: String,
     pub design_revision_id: String,
@@ -59,7 +60,7 @@ pub struct ArchitecturalReviewRoute {
 /// Information category displayed over a design. The category is supplied by a
 /// separately reviewed rule/evidence pipeline; the viewer does not decide legal
 /// applicability or the truth of engineering claims by drawing an overlay.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ReviewAnnotationKind {
     /// Requirement identified as binding by the selected jurisdiction adapter.
     BindingRequirement,
@@ -82,7 +83,7 @@ pub enum ReviewAnnotationKind {
 /// A display disposition with semantics that prevent taste from becoming a
 /// pretend code violation. The viewer must retain the kind and source when
 /// filtering, sorting, or styling annotations.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ReviewAnnotationState {
     Satisfied,
     Failed,
@@ -95,7 +96,7 @@ pub enum ReviewAnnotationState {
 
 /// One source attached to a conflict overlay. Multiple incompatible sources
 /// must remain visible together.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ReviewSourceRef {
     pub module_id: String,
     pub source_ref: String,
@@ -103,7 +104,7 @@ pub struct ReviewSourceRef {
 
 /// Revision-pinned annotation for a plan, room, component, or camera stop.
 /// Evidence hashes are metadata until an artifact verifier checks actual bytes.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ReviewAnnotation {
     pub annotation_id: String,
     pub design_revision_id: String,
@@ -823,7 +824,7 @@ pub fn advance_architectural_review_routes(
 /// proof of an engineering defect. Historical records should remain attached
 /// to their original revision; this validator is for presenting/merging them
 /// into a currently displayed review.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum OccupantFeedbackCategory {
     PersonalPreference,
     SpatialComfort,
@@ -837,7 +838,7 @@ pub enum OccupantFeedbackCategory {
     Other,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum OccupantFeedbackPriority {
     NiceToHave,
     Important,
@@ -846,14 +847,14 @@ pub enum OccupantFeedbackPriority {
 
 /// Share scope is explicit. Feedback is private by default when created by a
 /// consumer; public case studies require a separate explicit consent flag.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum OccupantFeedbackShareScope {
     Private,
     ProjectTeam,
     PublicCaseStudy,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum OccupantFeedbackLifecycle {
     Captured,
     NeedsDesignIteration,
@@ -863,7 +864,7 @@ pub enum OccupantFeedbackLifecycle {
     Resolved,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OccupantReviewFeedback {
     pub feedback_id: String,
     pub design_revision_id: String,
@@ -1049,7 +1050,7 @@ pub fn validate_occupant_feedback_for_review(
 /// A disposition for feedback after a design iteration. These outcomes
 /// describe the product workflow, not building-code compliance or proof that a
 /// physical issue was fixed.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum FeedbackResolutionDisposition {
     ImplementedInRevision,
     NotChangedWithRationale,
@@ -1061,7 +1062,7 @@ pub enum FeedbackResolutionDisposition {
 /// Append-only resolution record tying occupant feedback to the exact revision
 /// against which it was reviewed. A redesign does not erase what the person saw
 /// previously; implementation evidence belongs to the new revision.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct FeedbackResolutionRecord {
     pub resolution_id: String,
     pub feedback_id: String,
@@ -1298,7 +1299,7 @@ pub fn validate_feedback_resolutions_for_revision(
 /// Presentation mode used for one design-review session. Static plans are a
 /// first-class mode, not a fallback error. HeadTrackedVrReference remains an
 /// adapter declaration; this value does not prove headset support exists.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DesignReviewMode {
     StaticPlan,
     FloatingCamera,
@@ -1321,13 +1322,17 @@ impl DesignReviewMode {
     }
 }
 
+/// Current serialized review-session manifest schema. Bump this on breaking changes.
+pub const DESIGN_REVIEW_SESSION_SCHEMA_VERSION: u32 = 1;
+
 /// Review manifest tied to the exact homeowner brief and model artifact.
 ///
 /// The snapshot digest should cover a canonical manifest representation that
 /// excludes the digest field itself. The validator checks digest syntax and
 /// reference consistency, not actual artifact bytes or immutable storage.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DesignReviewSession {
+    pub schema_version: u32,
     pub session_id: String,
     pub owner_brief_revision_id: String,
     pub design_revision_id: String,
@@ -1352,6 +1357,7 @@ pub enum DesignReviewSessionIssue {
     EmptyViewerBuildId,
     EmptySnapshotManifestArtifactId,
     InvalidSnapshotDigest,
+    UnsupportedSchemaVersion { found: u32 },
     StaticPlanMustNotHaveRoute,
     ModeRequiresRoute {
         mode: DesignReviewMode,
@@ -1374,6 +1380,11 @@ pub fn validate_design_review_session(
     session: &DesignReviewSession,
 ) -> Result<(), Vec<DesignReviewSessionIssue>> {
     let mut issues = Vec::new();
+    if session.schema_version != DESIGN_REVIEW_SESSION_SCHEMA_VERSION {
+        issues.push(DesignReviewSessionIssue::UnsupportedSchemaVersion {
+            found: session.schema_version,
+        });
+    }
     if session.session_id.trim().is_empty() {
         issues.push(DesignReviewSessionIssue::EmptySessionId);
     }
@@ -1453,6 +1464,18 @@ pub fn validate_design_review_session(
     } else {
         Err(issues)
     }
+}
+
+/// Produce compact JSON bytes for a review-session manifest with its own digest
+/// field blanked, avoiding a self-referential hash. Hash/store these bytes with a
+/// trusted evidence adapter. This versioned field-order encoding is deterministic
+/// for this schema but does not claim RFC 8785 canonical JSON conformance.
+pub fn review_session_manifest_bytes(
+    session: &DesignReviewSession,
+) -> Result<Vec<u8>, serde_json::Error> {
+    let mut payload = session.clone();
+    payload.snapshot_sha256.clear();
+    serde_json::to_vec(&payload)
 }
 
 #[cfg(test)]
@@ -1633,6 +1656,7 @@ mod tests {
             route
         });
         DesignReviewSession {
+            schema_version: DESIGN_REVIEW_SESSION_SCHEMA_VERSION,
             session_id: "review-session:house-r1".into(),
             owner_brief_revision_id: "owner-brief:r4".into(),
             design_revision_id: "house:r1".into(),
