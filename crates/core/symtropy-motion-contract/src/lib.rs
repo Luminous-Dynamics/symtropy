@@ -11,6 +11,8 @@
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 
+pub mod skill;
+
 pub const HUMAN_MOTION_INTENT_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
