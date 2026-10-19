@@ -4,7 +4,7 @@
 
 ## Design goal
 
-Every emitted experiment result should carry a compact receipt that binds the exact source bytes, the parsed model representation, the output payload, and the settings that affect execution. The receipt is a reproducibility and accidental-tampering aid, not a scientific-validity claim or an authenticated attestation.
+Every emitted experiment result should carry a compact receipt that binds the exact source bytes, the parsed model representation, the output payload, and the settings that affect execution. The receipt is a reproducibility and accidental-tampering aid, not a scientific-validity claim or an authenticated attestation. A static known-answer fixture fixes the exact raw input bytes, parsed model/output serialization, intermediate SHA-256 values, and final receipt digest; the expected values were computed outside Rust with Python `hashlib.sha256`.
 
 ## Current implementation
 
@@ -33,6 +33,10 @@ The environment values supplied through `SYMTROPY_SOURCE_REVISION` and `SYMTROPY
 `RunReceipt::verify()` recalculates the receipt's own payload digest. `verify_artifact_bytes()` additionally checks exact input bytes, the caller-supplied serialized parsed model, and the caller-supplied serialized output payload. The CLI verifier parses the saved result envelope, reconstructs the corresponding typed payload, rereads the original input artifact, checks experiment/model-schema metadata against the parsed model, and reports each digest link separately. It does not authenticate who produced the record, prove that the represented execution actually occurred, or validate scientific correctness.
 
 A hash can bind identifiers to bytes; it cannot show that the model is correct. Receipts must therefore keep outcome labels separate: planned, rejected, executed, independently reproduced, empirically validated, and accepted for a stated purpose are not interchangeable statuses. A successful serialization or receipt verification is never itself a model-credibility pass.
+
+## Independent known-answer fixture
+
+The static fixture files are [the raw input](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer-input.json), [the raw output example](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer-output.json), [the expected receipt](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer.json), and [fixture methodology](../../crates/domains/symtropy-experiment-core/fixtures/RECEIPT_KNOWN_ANSWER.md). The test compares four fixed digest strings produced with Python `hashlib` against the Rust receipt parser/verifier, validates all artifact links, and proves that a formatting-only edit changes the raw input digest while leaving the parsed-model digest unchanged. These are authored tests; the Rust test suite has not yet run here.
 
 ## External standards and integration path
 
