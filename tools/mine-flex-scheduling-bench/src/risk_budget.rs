@@ -180,7 +180,9 @@ fn nondominated_frontier(candidates: &[RobustCandidate]) -> Vec<FrontierPoint> {
                 let same_objectives = other.worst_case_cost_units
                     == candidate.worst_case_cost_units
                     && other.worst_case_carbon_units == candidate.worst_case_carbon_units;
-                no_worse && (strictly_better || (same_objectives && other.batches < candidate.batches))
+                no_worse
+                    && (strictly_better
+                        || (same_objectives && other.batches < candidate.batches))
             })
         })
         .map(|candidate| FrontierPoint {
@@ -223,7 +225,10 @@ fn mean_floor(values: &[u64]) -> Option<u64> {
     if values.is_empty() {
         return None;
     }
-    Some((values.iter().map(|value| u128::from(*value)).sum::<u128>() / values.len() as u128) as u64)
+    Some(
+        (values.iter().map(|value| u128::from(*value)).sum::<u128>() / values.len() as u128)
+            as u64,
+    )
 }
 
 fn select_under_cap<'a>(
@@ -241,8 +246,8 @@ fn make_receipt(source_commit: &str) -> Check<RiskBudgetReceipt> {
         return Err("source commit must be a lowercase 40-character hex SHA".to_owned());
     }
     let cases = generate_cases();
-    let manifest_bytes =
-        serde_json::to_vec(&cases).map_err(|error| format!("cannot serialize case manifest: {error}"))?;
+    let manifest_bytes = serde_json::to_vec(&cases)
+        .map_err(|error| format!("cannot serialize case manifest: {error}"))?;
     let process = model();
     let mut case_frontiers = Vec::new();
     let mut decisions = Vec::new();
@@ -301,7 +306,11 @@ fn make_receipt(source_commit: &str) -> Check<RiskBudgetReceipt> {
                 continue;
             };
             for world in &case.uncertainty_envelope {
-                let evaluation = match evaluate_schedule(&process, &world.scenario, &selected.batches)
+                let evaluation = match evaluate_schedule(
+                    &process,
+                    &world.scenario,
+                    &selected.batches,
+                )
                 {
                     Ok(score) => {
                         let reconstructed = independently_reconstruct_score(
@@ -352,7 +361,9 @@ fn make_receipt(source_commit: &str) -> Check<RiskBudgetReceipt> {
                             carbon_headroom_basis_points: headroom_bps,
                             selected_schedule_batches: Some(selected.batches.clone()),
                             feasible: false,
-                            rejection_reason: Some("ROBUST_SCHEDULE_FAILED_REALIZED_WORLD".to_owned()),
+                            rejection_reason: Some(
+                                "ROBUST_SCHEDULE_FAILED_REALIZED_WORLD".to_owned(),
+                            ),
                             realized_grid_cost_units: None,
                             realized_grid_carbon_units: None,
                             evaluator_oracle_grid_cost_units: None,
