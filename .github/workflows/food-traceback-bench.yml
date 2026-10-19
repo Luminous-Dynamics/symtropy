@@ -55,12 +55,13 @@ jobs:
           cargo run --quiet --manifest-path tools/food-traceback-bench/Cargo.toml -- \
             benchmarks/fixtures/FOOD_TRACEBACK_V0_1.json \
             --source-commit "$source_commit" > food-traceback-reference-receipt.json
+          export SOURCE_COMMIT="$source_commit"
           jq -e '
             .result == "pass"
             and .benchmark_id == "FOOD-TRACEBACK-001"
             and .scenario_count == 5
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
-            and (.source_commit == env.GITHUB_SHA or (.source_commit | test("^[0-9a-f]{40}$")))
+            and (.source_commit == env.SOURCE_COMMIT)
             and (.scenarios | length == 5)
             and (.scenarios | all(.status == "pass"))
           ' food-traceback-reference-receipt.json
