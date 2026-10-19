@@ -315,6 +315,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "missing_primary_metric" => inputs.metrics.clear(),
         "duplicate_metric_id" => inputs.metrics.push(inputs.metrics[0].clone()),
         "nonfinite_metric_value" => inputs.metrics[0].value = Some(f64::NAN),
+        "missing_metric_interval" => inputs.metrics[0].interval = None,
         "metric_missing_state" => {
             let primary = &mut inputs.metrics[0];
             primary.state = MetricState::Missing;
@@ -506,7 +507,7 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
     let corpus: OracleCorpus = serde_json::from_str(ORACLE_FIXTURE).unwrap();
     assert_eq!(corpus.schema_version, "ANIMAL-REPLAY-RESULT-ORACLE-V1");
     assert!(corpus.note.contains("synthetic"));
-    assert_eq!(corpus.cases.len(), 64);
+    assert_eq!(corpus.cases.len(), 65);
     for case in corpus.cases {
         let mut inputs = valid_inputs();
         apply_mutation(&mut inputs, &case.mutation);
