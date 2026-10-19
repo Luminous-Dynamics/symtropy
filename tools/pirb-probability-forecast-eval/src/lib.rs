@@ -1002,8 +1002,7 @@ mod tests {
     #[test]
     fn training_labels_must_mature_before_calibration() {
         let mut d = dataset();
-        d.records[0].outcome_available_month =
-            Some(d.temporal_split.training_end_exclusive_month);
+        d.records[0].outcome_available_month = Some(d.temporal_split.training_end_exclusive_month);
         assert!(
             semantic_errors(&d)
                 .iter()
