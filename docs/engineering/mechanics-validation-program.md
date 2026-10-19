@@ -7,6 +7,8 @@
 
 Symtropy already has an analytical free-fall convergence example, an orientation-aware collision validation example, invariant snapshots/drift diagnostics, and Criterion performance benchmarks. These are useful foundations. The next leverage point is to turn individual examples into an explicit, layered contract for what “mechanically valid” means, which cases are supported, and what evidence must accompany a result.
 
+This cross-stack roadmap **complements rather than replaces** the crate-level [Research Validation Protocol](../../crates/core/symtropy-physics/RESEARCH_VALIDATION.md) and [Orientation-Aware Collision Validation](../../crates/core/symtropy-physics/ORIENTED_COLLISION_VALIDATION.md). Keep those documents canonical for the physics crate’s current validity envelope and solver-specific acceptance criteria. The workstreams below focus on connecting that physics evidence to maintenance decisions, provenance, asset context, and lifecycle outcomes across the four systems.
+
 This program deliberately separates four claims that are often conflated:
 
 1. **Implementation correctness:** the code follows the stated algorithm and does not violate internal invariants.
@@ -48,13 +50,13 @@ The ladder is incremental. It does not claim the current engine supports every c
 
 | Tier | Benchmark family | Reference and measures | Gate / interpretation |
 |---|---|---|---|
-| M0 | State and dimensional invariants | Finite values, proper rotations, dimensional consistency, declared units, stable handles/replay | Zero silent unit substitution; invalid or missing required inputs fail closed. Record invariant residuals and all non-finite states. |
-| M1 | Analytical free motion | Existing free-fall example; add constant-velocity and constant-acceleration cases where supported | Report position/velocity error at matched physical times across time steps. Check the expected convergence trend for the selected integrator; do not impose one universal percentage on every case. |
-| M2 | Isolated collision and contact | Orientation-aware GJK/EPA cases; separated/touching/penetrating primitives; normal and tangential contact | Report classification accuracy, penetration depth, impulse/residual behavior, finite-state health, and sensitivity to orientation/scale. Contact assumptions and restitution/friction settings must be explicit. |
-| M3 | Multi-body mechanisms | Begin with simple link/joint systems once the corresponding joint constraints are implemented and independently checked | Compare position, velocity, reaction-force trends and constraint residuals against analytic cases or a pinned independent multibody reference. Require step-size and constraint-tolerance sweeps. |
-| M4 | Structural / thermal / fatigue interfaces | Separate validated FEA or domain-specific solvers; applicable NAFEMS/ASME V&V references | Require mesh/time-step convergence, boundary-condition disclosure, error measures, and verification/validation evidence. Do not infer structural adequacy from rigid-body simulation. |
-| M5 | Asset health and prognosis | Public bearing/run-to-failure datasets, beginning with NASA IMS bearing data | Split by full run/machine and preserve chronology. Report PR-AUC and false alarms, lead time, calibration, confidence intervals, and domain-shift results against simple baselines. |
-| M6 | Lifecycle / whole-system decisions | Asset graph, energy/resources, repair time, spares, downtime, end-of-life recovery | Compare total lifecycle outcomes against a documented baseline. Report trade-offs, uncertainty, and the evidence gaps that could reverse the decision. |
+| W0 | State and dimensional invariants | Finite values, proper rotations, dimensional consistency, declared units, stable handles/replay | Zero silent unit substitution; invalid or missing required inputs fail closed. Record invariant residuals and all non-finite states. |
+| W1 | Analytical free motion | Existing free-fall example; add constant-velocity and constant-acceleration cases where supported | Report position/velocity error at matched physical times across time steps. Check the expected convergence trend for the selected integrator; do not impose one universal percentage on every case. |
+| W2 | Isolated collision and contact | Orientation-aware GJK/EPA cases; separated/touching/penetrating primitives; normal and tangential contact | Report classification accuracy, penetration depth, impulse/residual behavior, finite-state health, and sensitivity to orientation/scale. Contact assumptions and restitution/friction settings must be explicit. |
+| W3 | Multi-body mechanisms | Begin with simple link/joint systems once the corresponding joint constraints are implemented and independently checked | Compare position, velocity, reaction-force trends and constraint residuals against analytic cases or a pinned independent multibody reference. Require step-size and constraint-tolerance sweeps. |
+| W4 | Structural / thermal / fatigue interfaces | Separate validated FEA or domain-specific solvers; applicable NAFEMS/ASME V&V references | Require mesh/time-step convergence, boundary-condition disclosure, error measures, and verification/validation evidence. Do not infer structural adequacy from rigid-body simulation. |
+| W5 | Asset health and prognosis | Public bearing/run-to-failure datasets, beginning with NASA IMS bearing data | Split by full run/machine and preserve chronology. Report PR-AUC and false alarms, lead time, calibration, confidence intervals, and domain-shift results against simple baselines. |
+| W6 | Lifecycle / whole-system decisions | Asset graph, energy/resources, repair time, spares, downtime, end-of-life recovery | Compare total lifecycle outcomes against a documented baseline. Report trade-offs, uncertainty, and the evidence gaps that could reverse the decision. |
 
 ### How to set numeric thresholds responsibly
 
@@ -145,7 +147,7 @@ A digest establishes identity/integrity relative to the digested bytes, not the 
 
 ## CI and evidence policy
 
-- Small deterministic M0/M1 regressions should run quickly on every relevant change.
+- Small deterministic W0/W1 regressions should run quickly on every relevant change.
 - Longer differential, dataset and stress suites can run separately, but their status must be explicit.
 - queued, in_progress, absent checks, and timed-out runners are **not passes**. Record local test commands and outputs, pinned to the exact tested commit.
 - A change to a baseline, tolerance, dataset split or expected result requires a visible rationale and a negative-control review.
