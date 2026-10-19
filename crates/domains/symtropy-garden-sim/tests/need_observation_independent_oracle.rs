@@ -209,6 +209,7 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
     let expected = [
         "valid_mixed_need_and_request_denominators_are_separate",
         "prospective_retrospective_and_relay_basis_remain_distinct",
+        "a_farmer_confirmed_no_request_has_no_invented_request_reference",
         "farmer_reported_off_platform_service_never_becomes_canonical_attainment",
         "open_deferred_and_missing_outcomes_stay_distinct",
         "request_presence_link_requires_real_opaque_request_ref",
