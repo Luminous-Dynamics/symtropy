@@ -7,13 +7,13 @@
 //! Run from the workspace root:
 //!   cargo run -p symtropy-bevy-scene --example architectural_review_room
 //!
-//! Press Space to pause/resume the route. This demo has no collision adapter,
+//! Route starts paused; press Space to start/pause and R to restart. This demo has no collision adapter,
 //! IFC loader, engineering simulation, or VR runtime.
 
 use bevy::prelude::*;
 use symtropy_bevy_scene::{
-    ArchitecturalReviewRoute, ReviewFreeCameraController, ReviewRig, ReviewRoutePlayback,
-    ReviewWaypoint, SymtropyScenePlugin,
+    ArchitecturalReviewRoute, ReviewComfortProfile, ReviewFreeCameraController, ReviewRig,
+    ReviewRoutePlayback, ReviewWaypoint, SymtropyScenePlugin,
 };
 
 fn main() {
@@ -155,13 +155,16 @@ fn setup(
 
     let camera_pose =
         Transform::from_xyz(0.0, 1.6, 3.0).looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
-    let playback =
-        ReviewRoutePlayback::new(route).expect("the example route must satisfy route validation");
+    let playback = ReviewRoutePlayback::new_with_comfort_profile(
+        route,
+        ReviewComfortProfile::default(),
+    )
+    .expect("the example route and comfort profile must validate");
     let free_camera = ReviewFreeCameraController::from_transform(&camera_pose);
     commands.spawn((Camera3d::default(), camera_pose, playback, free_camera));
 
     info!("Synthetic architectural review scene; not a real plan or compliance model.");
-    info!("Space: pause/resume route. R: restart route. F: toggle free camera.");
+    info!("Route starts paused. Space: start/pause. R: restart. F: toggle free camera.");
     info!(
         "Free camera: hold right mouse to look, WASD to move, E/Q to rise/descend, Shift to move faster."
     );
