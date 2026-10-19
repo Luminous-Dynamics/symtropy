@@ -2033,6 +2033,122 @@ mod tests {
     }
 
     #[test]
+    fn schema_ids_and_preservation_producers_compose_into_one_unqualified_report() {
+        let source = b"source exchange model bytes";
+        let target = b"target exchange model bytes";
+        let ids = b"exact IDS requirements bytes";
+
+        let schema_producer = schema_gate_producer(target);
+        verify_embedded_payload(&schema_producer, source, target, ids, "IFC4").unwrap();
+
+        let delta_producer = delta_gate_producer(
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Pass,
+                profile_confirmed: true,
+                coverage_complete: true,
+                compared: 1,
+                preserved: 1,
+                changed: 0,
+                lost: 0,
+                dropped: 0,
+                unresolved: 0,
+                reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            },
+        );
+        verify_embedded_payload(&delta_producer, source, target, ids, "IFC4").unwrap();
+
+        let adapter_report = built_interop_002_report(
+            AdapterDecision::SubsetConformant,
+            AdapterPropertyOutcome::Preserved,
+            target,
+            ids,
+        );
+        let adapter_bytes = serde_json::to_vec(&adapter_report).unwrap();
+        let ids_gate = adapt_built_interop_002_report(
+            &adapter_report,
+            &adapter_bytes,
+            Path::new("adapter-report.json"),
+            target,
+            ids,
+        )
+        .unwrap();
+
+        let supplied = vec![
+            schema_producer.gate,
+            delta_producer.gate,
+            ids_gate,
+        ];
+        let report = assemble_report(&fixture_args(), source, ids, target, supplied).unwrap();
+
+        assert_eq!(report.overall_decision, OverallDecision::Unqualified);
+        assert_eq!(report.artifacts[0].sha256, sha256_hex(source));
+        assert_eq!(report.artifacts[1].sha256, sha256_hex(ids));
+        assert_eq!(report.artifacts[2].sha256, sha256_hex(target));
+        assert_eq!(
+            report.gates.iter().find(|gate| gate.gate_id == GateId::IfcSchemaConformance).unwrap().status,
+            GateStatus::Pass
+        );
+        assert_eq!(
+            report.gates.iter().find(|gate| gate.gate_id == GateId::IdsModelConformance).unwrap().status,
+            GateStatus::Pass
+        );
+        assert_eq!(
+            report.gates.iter().find(|gate| gate.gate_id == GateId::ExchangeSemanticPreservation).unwrap().status,
+            GateStatus::Pass
+        );
+        assert_eq!(
+            report.gates.iter().filter(|gate| gate.status == GateStatus::NotRun).count(),
+            5
+        );
+    }
+
+    #[test]
+    fn one_confirmed_preservation_failure_blocks_composed_report() {
+        let source = b"source exchange model bytes";
+        let target = b"target exchange model bytes";
+        let ids = b"exact IDS requirements bytes";
+        let delta_producer = delta_gate_producer(
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Fail,
+                profile_confirmed: true,
+                coverage_complete: false,
+                compared: 1,
+                preserved: 0,
+                changed: 1,
+                lost: 0,
+                dropped: 0,
+                unresolved: 1,
+                reason: "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            },
+        );
+        verify_embedded_payload(&delta_producer, source, target, ids, "IFC4").unwrap();
+
+        let report = assemble_report(
+            &fixture_args(),
+            source,
+            ids,
+            target,
+            vec![delta_producer.gate],
+        )
+        .unwrap();
+        assert_eq!(report.overall_decision, OverallDecision::Blocked);
+        assert_eq!(
+            report.gates.iter().find(|gate| gate.gate_id == GateId::ExchangeSemanticPreservation).unwrap().status,
+            GateStatus::Fail
+        );
+        assert_eq!(
+            report.gates.iter().filter(|gate| gate.status == GateStatus::NotRun).count(),
+            7
+        );
+    }
+
+    #[test]
     fn report_matches_closed_contract_shape() {
         let report = assemble(Vec::new()).unwrap();
         let json = serde_json::to_value(report).unwrap();
