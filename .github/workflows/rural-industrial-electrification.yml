@@ -35,6 +35,12 @@ jobs:
           components: rustfmt
       - name: Check formatting
         run: cargo fmt --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --all -- --check
+      - name: Check schema documents are valid JSON
+        run: |
+          jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json
+          jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json
+          jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json
+          jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json
       - name: Run all evaluator tests
         run: cargo test --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --all-targets
       - name: Run shift energy screen
@@ -92,7 +98,7 @@ jobs:
              $contracts == $used and $refs_ok)
           '
       - name: Hash deterministic screen reports and inputs
-        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json > screen-report.sha256
+        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md > screen-report.sha256
       - name: Upload reproducible screen reports
         uses: actions/upload-artifact@v4
         with:
@@ -112,5 +118,9 @@ jobs:
             tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json
             tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json
+            docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md
+            docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md
+            docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md
+            docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md
           if-no-files-found: error
           retention-days: 14
