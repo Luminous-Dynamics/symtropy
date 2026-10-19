@@ -253,16 +253,28 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             || scenario.strata.is_empty()
             || scenario.candidates.is_empty()
         {
-            return Err(format!("scenario {} has missing required content", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} has missing required content",
+                scenario.scenario_id
+            ));
         }
         if scenario.prior_presence_ppm > SCALE {
-            return Err(format!("scenario {} prior is outside ppm range", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} prior is outside ppm range",
+                scenario.scenario_id
+            ));
         }
         if scenario.max_actions == 0 || scenario.max_actions > 6 {
-            return Err(format!("scenario {} horizon must be 1..=6", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} horizon must be 1..=6",
+                scenario.scenario_id
+            ));
         }
         if scenario.candidates.len() > MAX_CANDIDATES || scenario.candidates.len() > 16 {
-            return Err(format!("scenario {} exceeds candidate bit-mask limit", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} exceeds candidate bit-mask limit",
+                scenario.scenario_id
+            ));
         }
         if scenario.candidates.len() < scenario.max_actions {
             // A smaller available action set is allowed; the horizon is an upper bound.
@@ -272,10 +284,16 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             if stratum.stratum_id.trim().is_empty()
                 || !stratum_ids.insert(stratum.stratum_id.as_str())
             {
-                return Err(format!("scenario {} has blank/duplicate stratum IDs", scenario.scenario_id));
+                return Err(format!(
+                    "scenario {} has blank/duplicate stratum IDs",
+                    scenario.scenario_id
+                ));
             }
             if stratum.priority_ppm == 0 || stratum.priority_ppm > SCALE {
-                return Err(format!("stratum {} priority outside ppm range", stratum.stratum_id));
+                return Err(format!(
+                    "stratum {} priority outside ppm range",
+                    stratum.stratum_id
+                ));
             }
         }
         let mut candidate_ids = HashSet::new();
@@ -283,25 +301,45 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             if candidate.candidate_id.trim().is_empty()
                 || !candidate_ids.insert(candidate.candidate_id.as_str())
             {
-                return Err(format!("scenario {} has blank/duplicate candidate IDs", scenario.scenario_id));
+                return Err(format!(
+                    "scenario {} has blank/duplicate candidate IDs",
+                    scenario.scenario_id
+                ));
             }
             if !stratum_ids.contains(candidate.stratum_id.as_str()) {
-                return Err(format!("candidate {} references missing stratum", candidate.candidate_id));
+                return Err(format!(
+                    "candidate {} references missing stratum",
+                    candidate.candidate_id
+                ));
             }
-            if candidate.time_window_id.trim().is_empty() || candidate.correlation_group.trim().is_empty() {
-                return Err(format!("candidate {} has blank time/correlation group", candidate.candidate_id));
+            if candidate.time_window_id.trim().is_empty()
+                || candidate.correlation_group.trim().is_empty()
+            {
+                return Err(format!(
+                    "candidate {} has blank time/correlation group",
+                    candidate.candidate_id
+                ));
             }
             if candidate.effort_units == 0 {
-                return Err(format!("candidate {} effort must be positive", candidate.candidate_id));
+                return Err(format!(
+                    "candidate {} effort must be positive",
+                    candidate.candidate_id
+                ));
             }
             for (name, value) in [
                 ("expected_signal_ppm", candidate.expected_signal_ppm),
-                ("minimum_detectable_signal_ppm", candidate.minimum_detectable_signal_ppm),
+                (
+                    "minimum_detectable_signal_ppm",
+                    candidate.minimum_detectable_signal_ppm,
+                ),
                 ("sensitivity_ppm", candidate.sensitivity_ppm),
                 ("false_positive_ppm", candidate.false_positive_ppm),
             ] {
                 if value.is_some_and(|ppm| ppm > SCALE) {
-                    return Err(format!("candidate {} {name} exceeds 1,000,000 ppm", candidate.candidate_id));
+                    return Err(format!(
+                        "candidate {} {name} exceeds 1,000,000 ppm",
+                        candidate.candidate_id
+                    ));
                 }
             }
         }
@@ -313,7 +351,8 @@ fn corpus_from_bytes(bytes: &[u8]) -> Check<Corpus> {
     if bytes.len() > MAX_CORPUS_BYTES {
         return Err(format!("corpus exceeds byte limit {MAX_CORPUS_BYTES}"));
     }
-    let corpus: Corpus = serde_json::from_slice(bytes).map_err(|error| format!("invalid corpus: {error}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(bytes).map_err(|error| format!("invalid corpus: {error}"))?;
     validate_corpus(&corpus)?;
     Ok(corpus)
 }
@@ -330,8 +369,10 @@ fn source_commit(explicit: Option<String>) -> Check<String> {
 }
 
 fn candidate_eligible(candidate: &Candidate) -> bool {
-    matches!(candidate.observation_mode, ObservationMode::PassiveNonContact | ObservationMode::ActiveNonContact)
-        && candidate.rights_review == RightsReview::Reviewed
+    matches!(
+        candidate.observation_mode,
+        ObservationMode::PassiveNonContact | ObservationMode::ActiveNonContact
+    ) && candidate.rights_review == RightsReview::Reviewed
         && candidate.use_permission == UsePermission::Permitted
         && candidate.exposure_knowledge == ExposureKnowledge::Known
         && matches!(
@@ -369,14 +410,21 @@ fn can_add(scenario: &Scenario, state: &State, index: usize) -> bool {
         || state.selected_mask & (1_u16 << index) != 0
         || state.selected_count() >= scenario.max_actions
         || state.effort_used.saturating_add(candidate.effort_units) > scenario.budget.effort_units
-        || !exposure_within(add_exposure(state.exposure, candidate.exposure), scenario.budget)
+        || !exposure_within(
+            add_exposure(state.exposure, candidate.exposure),
+            scenario.budget,
+        )
     {
         return false;
     }
-    !scenario.candidates.iter().enumerate().any(|(other_index, other)| {
-        state.selected_mask & (1_u16 << other_index) != 0
-            && other.correlation_group == candidate.correlation_group
-    })
+    !scenario
+        .candidates
+        .iter()
+        .enumerate()
+        .any(|(other_index, other)| {
+            state.selected_mask & (1_u16 << other_index) != 0
+                && other.correlation_group == candidate.correlation_group
+        })
 }
 
 fn entropy_nbits(probability_ppm: u64) -> u64 {
@@ -389,16 +437,24 @@ fn entropy_nbits(probability_ppm: u64) -> u64 {
 }
 
 fn positive_probability_ppm(presence_ppm: u64, candidate: &Candidate) -> u64 {
-    let sensitivity = candidate.sensitivity_ppm.expect("eligible candidate has sensitivity");
-    let false_positive = candidate.false_positive_ppm.expect("eligible candidate has false-positive rate");
+    let sensitivity = candidate
+        .sensitivity_ppm
+        .expect("eligible candidate has sensitivity");
+    let false_positive = candidate
+        .false_positive_ppm
+        .expect("eligible candidate has false-positive rate");
     ((u128::from(presence_ppm) * u128::from(sensitivity)
         + u128::from(SCALE - presence_ppm) * u128::from(false_positive))
         / u128::from(SCALE)) as u64
 }
 
 fn posterior_after(presence_ppm: u64, candidate: &Candidate, positive: bool) -> u64 {
-    let sensitivity = candidate.sensitivity_ppm.expect("eligible candidate has sensitivity");
-    let false_positive = candidate.false_positive_ppm.expect("eligible candidate has false-positive rate");
+    let sensitivity = candidate
+        .sensitivity_ppm
+        .expect("eligible candidate has sensitivity");
+    let false_positive = candidate
+        .false_positive_ppm
+        .expect("eligible candidate has false-positive rate");
     let probability = positive_probability_ppm(presence_ppm, candidate);
     if positive {
         if probability == 0 {
@@ -414,7 +470,7 @@ fn posterior_after(presence_ppm: u64, candidate: &Candidate, positive: bool) -> 
         } else {
             ((u128::from(presence_ppm) * u128::from(SCALE - sensitivity))
                 / u128::from(negative_probability))
-                .min(u128::from(SCALE)) as u64
+            .min(u128::from(SCALE)) as u64
         }
     }
 }
@@ -433,7 +489,8 @@ fn mutual_information_nbits(presence_ppm: u64, candidate: &Candidate) -> u64 {
 fn apply_observation(scenario: &Scenario, state: &State, index: usize, positive: bool) -> State {
     let candidate = &scenario.candidates[index];
     let mut next = state.clone();
-    next.posterior_presence_ppm = posterior_after(state.posterior_presence_ppm, candidate, positive);
+    next.posterior_presence_ppm =
+        posterior_after(state.posterior_presence_ppm, candidate, positive);
     next.selected_mask |= 1_u16 << index;
     next.effort_used = next.effort_used.saturating_add(candidate.effort_units);
     next.exposure = add_exposure(next.exposure, candidate.exposure);
@@ -442,7 +499,10 @@ fn apply_observation(scenario: &Scenario, state: &State, index: usize, positive:
 }
 
 fn selected_strata(scenario: &Scenario, state: &State) -> HashSet<String> {
-    scenario.candidates.iter().enumerate()
+    scenario
+        .candidates
+        .iter()
+        .enumerate()
         .filter(|(index, _)| state.selected_mask & (1_u16 << index) != 0)
         .map(|(_, c)| c.stratum_id.clone())
         .collect()
@@ -450,16 +510,30 @@ fn selected_strata(scenario: &Scenario, state: &State) -> HashSet<String> {
 
 fn stable_hash(seed: u64, value: &str) -> u64 {
     let mut hash = 0xcbf29ce484222325_u64;
-    for byte in seed.to_le_bytes().into_iter().chain(value.as_bytes().iter().copied()) {
+    for byte in seed
+        .to_le_bytes()
+        .into_iter()
+        .chain(value.as_bytes().iter().copied())
+    {
         hash ^= u64::from(byte);
         hash = hash.wrapping_mul(0x100000001b3);
     }
     hash
 }
 
-fn rank_candidate(scenario: &Scenario, state: &State, index: usize, policy: Policy, seed: u64) -> (u128, u128, u128) {
+fn rank_candidate(
+    scenario: &Scenario,
+    state: &State,
+    index: usize,
+    policy: Policy,
+    seed: u64,
+) -> (u128, u128, u128) {
     let candidate = &scenario.candidates[index];
-    let stratum = scenario.strata.iter().find(|s| s.stratum_id == candidate.stratum_id).expect("validated stratum");
+    let stratum = scenario
+        .strata
+        .iter()
+        .find(|s| s.stratum_id == candidate.stratum_id)
+        .expect("validated stratum");
     let gain_posterior = if policy == Policy::BatchInformationGain {
         scenario.prior_presence_ppm
     } else {
@@ -468,43 +542,79 @@ fn rank_candidate(scenario: &Scenario, state: &State, index: usize, policy: Poli
     let gain = mutual_information_nbits(gain_posterior, candidate);
     let seen_strata = selected_strata(scenario, state);
     match policy {
-        Policy::RandomFixedSeed => (u128::from(u64::MAX - stable_hash(seed, &candidate.candidate_id)), 0, 0),
+        Policy::RandomFixedSeed => (
+            u128::from(u64::MAX - stable_hash(seed, &candidate.candidate_id)),
+            0,
+            0,
+        ),
         Policy::LargestCoverageGap => (
-            if seen_strata.contains(&candidate.stratum_id) { 0 } else { 1 },
+            if seen_strata.contains(&candidate.stratum_id) {
+                0
+            } else {
+                1
+            },
             u128::from(stratum.priority_ppm),
             u128::from(gain),
         ),
         Policy::RepeatDominantStratum => {
-            let target = if let Some(first) = scenario.candidates.iter().enumerate()
+            let target = if let Some(first) = scenario
+                .candidates
+                .iter()
+                .enumerate()
                 .find(|(i, _)| state.selected_mask & (1_u16 << i) != 0)
                 .map(|(_, candidate)| candidate.stratum_id.clone())
             {
                 first
             } else {
-                scenario.strata.iter()
+                scenario
+                    .strata
+                    .iter()
                     .max_by_key(|s| (s.historical_record_count, s.stratum_id.as_str()))
                     .map(|s| s.stratum_id.clone())
                     .unwrap_or_default()
             };
-            (u128::from(candidate.stratum_id == target), u128::from(gain), u128::from(stratum.priority_ppm))
+            (
+                u128::from(candidate.stratum_id == target),
+                u128::from(gain),
+                u128::from(stratum.priority_ppm),
+            )
         }
-        Policy::BatchInformationGain => (u128::from(gain / u64::from(candidate.effort_units.max(1))), u128::from(gain), 0),
-        Policy::AdaptiveInformationGreedy => (u128::from(gain / u64::from(candidate.effort_units.max(1))), u128::from(gain), u128::from(stratum.priority_ppm)),
+        Policy::BatchInformationGain => (
+            u128::from(gain / u64::from(candidate.effort_units.max(1))),
+            u128::from(gain),
+            0,
+        ),
+        Policy::AdaptiveInformationGreedy => (
+            u128::from(gain / u64::from(candidate.effort_units.max(1))),
+            u128::from(gain),
+            u128::from(stratum.priority_ppm),
+        ),
         Policy::ExactAdaptiveOracle => (0, 0, 0),
     }
 }
 
-fn best_greedy_action(scenario: &Scenario, state: &State, policy: Policy, seed: u64) -> Option<usize> {
+fn best_greedy_action(
+    scenario: &Scenario,
+    state: &State,
+    policy: Policy,
+    seed: u64,
+) -> Option<usize> {
     let mut best: Option<(usize, (u128, u128, u128))> = None;
     for index in 0..scenario.candidates.len() {
         if !can_add(scenario, state, index) {
             continue;
         }
         let candidate = &scenario.candidates[index];
-        if policy != Policy::RandomFixedSeed && mutual_information_nbits(
-            if policy == Policy::BatchInformationGain { scenario.prior_presence_ppm } else { state.posterior_presence_ppm },
-            candidate,
-        ) == 0 {
+        if policy != Policy::RandomFixedSeed
+            && mutual_information_nbits(
+                if policy == Policy::BatchInformationGain {
+                    scenario.prior_presence_ppm
+                } else {
+                    state.posterior_presence_ppm
+                },
+                candidate,
+            ) == 0
+        {
             continue;
         }
         let rank = rank_candidate(scenario, state, index, policy, seed);
@@ -540,12 +650,30 @@ fn policy_value(scenario: &Scenario, state: &State, policy: Policy, seed: u64) -
     let q_positive = positive_probability_ppm(prior, candidate);
     let immediate_gain = mutual_information_nbits(prior, candidate);
     let positive_future = if q_positive > 0 {
-        policy_value(scenario, &apply_observation(scenario, state, index, true), policy, seed)
-    } else { 0 };
+        policy_value(
+            scenario,
+            &apply_observation(scenario, state, index, true),
+            policy,
+            seed,
+        )
+    } else {
+        0
+    };
     let negative_future = if q_positive < SCALE {
-        policy_value(scenario, &apply_observation(scenario, state, index, false), policy, seed)
-    } else { 0 };
-    immediate_gain.saturating_add(weighted_future(q_positive, positive_future, negative_future))
+        policy_value(
+            scenario,
+            &apply_observation(scenario, state, index, false),
+            policy,
+            seed,
+        )
+    } else {
+        0
+    };
+    immediate_gain.saturating_add(weighted_future(
+        q_positive,
+        positive_future,
+        negative_future,
+    ))
 }
 
 fn exact_oracle_value(scenario: &Scenario, state: &State) -> u64 {
@@ -563,11 +691,19 @@ fn exact_oracle_value(scenario: &Scenario, state: &State) -> u64 {
         let immediate_gain = mutual_information_nbits(prior, candidate);
         let positive_future = if q_positive > 0 {
             exact_oracle_value(scenario, &apply_observation(scenario, state, index, true))
-        } else { 0 };
+        } else {
+            0
+        };
         let negative_future = if q_positive < SCALE {
             exact_oracle_value(scenario, &apply_observation(scenario, state, index, false))
-        } else { 0 };
-        let value = immediate_gain.saturating_add(weighted_future(q_positive, positive_future, negative_future));
+        } else {
+            0
+        };
+        let value = immediate_gain.saturating_add(weighted_future(
+            q_positive,
+            positive_future,
+            negative_future,
+        ));
         best = best.max(value);
     }
     best
@@ -578,12 +714,22 @@ fn first_action(scenario: &Scenario, policy: Policy, seed: u64) -> Option<usize>
     if policy == Policy::ExactAdaptiveOracle {
         let mut best: Option<(usize, u64)> = None;
         for index in 0..scenario.candidates.len() {
-            if !can_add(scenario, &state, index) { continue; }
+            if !can_add(scenario, &state, index) {
+                continue;
+            }
             let candidate = &scenario.candidates[index];
             let q = positive_probability_ppm(state.posterior_presence_ppm, candidate);
             let gain = mutual_information_nbits(state.posterior_presence_ppm, candidate);
-            let plus = if q > 0 { exact_oracle_value(scenario, &apply_observation(scenario, &state, index, true)) } else { 0 };
-            let minus = if q < SCALE { exact_oracle_value(scenario, &apply_observation(scenario, &state, index, false)) } else { 0 };
+            let plus = if q > 0 {
+                exact_oracle_value(scenario, &apply_observation(scenario, &state, index, true))
+            } else {
+                0
+            };
+            let minus = if q < SCALE {
+                exact_oracle_value(scenario, &apply_observation(scenario, &state, index, false))
+            } else {
+                0
+            };
             let score = gain.saturating_add(weighted_future(q, plus, minus));
             if best.map(|(_, old)| score > old).unwrap_or(true) {
                 best = Some((index, score));
@@ -597,35 +743,61 @@ fn first_action(scenario: &Scenario, policy: Policy, seed: u64) -> Option<usize>
 fn evaluate_scenario(scenario: &Scenario, seed: u64) -> ScenarioReport {
     let state = State::new(scenario.prior_presence_ppm);
     let oracle_value = exact_oracle_value(scenario, &state);
-    let policy_reports = POLICIES.iter().map(|policy| {
-        let root_action = first_action(scenario, *policy, seed);
-        let gain = if *policy == Policy::ExactAdaptiveOracle {
-            oracle_value
-        } else {
-            policy_value(scenario, &state, *policy, seed)
-        };
-        let immediate = root_action.map(|index| mutual_information_nbits(state.posterior_presence_ppm, &scenario.candidates[index])).unwrap_or(0);
-        PolicyReport {
-            policy: *policy,
-            first_action_id: root_action.map(|index| scenario.candidates[index].candidate_id.clone()),
-            expected_information_gain_nbits: gain,
-            initial_action_gain_nbits: immediate,
-            dominated_by_exact_oracle_nbits: oracle_value.saturating_sub(gain),
-        }
-    }).collect();
+    let policy_reports = POLICIES
+        .iter()
+        .map(|policy| {
+            let root_action = first_action(scenario, *policy, seed);
+            let gain = if *policy == Policy::ExactAdaptiveOracle {
+                oracle_value
+            } else {
+                policy_value(scenario, &state, *policy, seed)
+            };
+            let immediate = root_action
+                .map(|index| {
+                    mutual_information_nbits(
+                        state.posterior_presence_ppm,
+                        &scenario.candidates[index],
+                    )
+                })
+                .unwrap_or(0);
+            PolicyReport {
+                policy: *policy,
+                first_action_id: root_action
+                    .map(|index| scenario.candidates[index].candidate_id.clone()),
+                expected_information_gain_nbits: gain,
+                initial_action_gain_nbits: immediate,
+                dominated_by_exact_oracle_nbits: oracle_value.saturating_sub(gain),
+            }
+        })
+        .collect();
     ScenarioReport {
         scenario_id: scenario.scenario_id.clone(),
-        eligible_candidate_count: scenario.candidates.iter().filter(|candidate| candidate_eligible(candidate)).count(),
+        eligible_candidate_count: scenario
+            .candidates
+            .iter()
+            .filter(|candidate| candidate_eligible(candidate))
+            .count(),
         policy_reports,
     }
 }
 
 fn add_invariant(invariants: &mut Vec<InvariantResult>, id: &str, passed: bool, detail: &str) {
-    invariants.push(InvariantResult { invariant_id: id.to_owned(), passed, detail: detail.to_owned() });
+    invariants.push(InvariantResult {
+        invariant_id: id.to_owned(),
+        passed,
+        detail: detail.to_owned(),
+    });
 }
 
-fn all_policy_branches_respect_budgets(scenario: &Scenario, state: &State, policy: Policy, seed: u64) -> bool {
-    if !exposure_within(state.exposure, scenario.budget) || state.effort_used > scenario.budget.effort_units {
+fn all_policy_branches_respect_budgets(
+    scenario: &Scenario,
+    state: &State,
+    policy: Policy,
+    seed: u64,
+) -> bool {
+    if !exposure_within(state.exposure, scenario.budget)
+        || state.effort_used > scenario.budget.effort_units
+    {
         return false;
     }
     if state.selected_count() >= scenario.max_actions {
@@ -634,17 +806,33 @@ fn all_policy_branches_respect_budgets(scenario: &Scenario, state: &State, polic
     let Some(index) = best_greedy_action(scenario, state, policy, seed) else {
         return true;
     };
-    if !can_add(scenario, state, index) { return false; }
+    if !can_add(scenario, state, index) {
+        return false;
+    }
     let q = positive_probability_ppm(state.posterior_presence_ppm, &scenario.candidates[index]);
-    let plus = q == 0 || all_policy_branches_respect_budgets(
-        scenario, &apply_observation(scenario, state, index, true), policy, seed);
-    let minus = q == SCALE || all_policy_branches_respect_budgets(
-        scenario, &apply_observation(scenario, state, index, false), policy, seed);
+    let plus = q == 0
+        || all_policy_branches_respect_budgets(
+            scenario,
+            &apply_observation(scenario, state, index, true),
+            policy,
+            seed,
+        );
+    let minus = q == SCALE
+        || all_policy_branches_respect_budgets(
+            scenario,
+            &apply_observation(scenario, state, index, false),
+            policy,
+            seed,
+        );
     plus && minus
 }
 
 fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receipt {
-    let reports: Vec<ScenarioReport> = corpus.scenarios.iter().map(|s| evaluate_scenario(s, corpus.seed)).collect();
+    let reports: Vec<ScenarioReport> = corpus
+        .scenarios
+        .iter()
+        .map(|s| evaluate_scenario(s, corpus.seed))
+        .collect();
     let mut invariants = Vec::new();
     let mut budgets_ok = true;
     let mut no_ineligible_selected = true;
@@ -657,31 +845,80 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
                 budgets_ok = false;
             }
             // The recursive transition only admits candidates after all independent eligibility gates.
-            fn audit(scenario: &Scenario, state: &State, policy: Policy, seed: u64, flags: &mut (bool, bool)) {
-                if state.selected_count() >= scenario.max_actions { return; }
-                let Some(index) = best_greedy_action(scenario, state, policy, seed) else { return; };
-                if !candidate_eligible(&scenario.candidates[index]) { flags.0 = false; }
+            fn audit(
+                scenario: &Scenario,
+                state: &State,
+                policy: Policy,
+                seed: u64,
+                flags: &mut (bool, bool),
+            ) {
+                if state.selected_count() >= scenario.max_actions {
+                    return;
+                }
+                let Some(index) = best_greedy_action(scenario, state, policy, seed) else {
+                    return;
+                };
+                if !candidate_eligible(&scenario.candidates[index]) {
+                    flags.0 = false;
+                }
                 let candidate = &scenario.candidates[index];
-                let seen_same_group = scenario.candidates.iter().enumerate().any(|(other_index, other)| {
-                    state.selected_mask & (1_u16 << other_index) != 0 && other.correlation_group == candidate.correlation_group
-                });
-                if seen_same_group { flags.1 = false; }
+                let seen_same_group =
+                    scenario
+                        .candidates
+                        .iter()
+                        .enumerate()
+                        .any(|(other_index, other)| {
+                            state.selected_mask & (1_u16 << other_index) != 0
+                                && other.correlation_group == candidate.correlation_group
+                        });
+                if seen_same_group {
+                    flags.1 = false;
+                }
                 let q = positive_probability_ppm(state.posterior_presence_ppm, candidate);
-                if q > 0 { audit(scenario, &apply_observation(scenario, state, index, true), policy, seed, flags); }
-                if q < SCALE { audit(scenario, &apply_observation(scenario, state, index, false), policy, seed, flags); }
+                if q > 0 {
+                    audit(
+                        scenario,
+                        &apply_observation(scenario, state, index, true),
+                        policy,
+                        seed,
+                        flags,
+                    );
+                }
+                if q < SCALE {
+                    audit(
+                        scenario,
+                        &apply_observation(scenario, state, index, false),
+                        policy,
+                        seed,
+                        flags,
+                    );
+                }
             }
             let mut flags = (true, true);
             audit(scenario, &state, *policy, corpus.seed, &mut flags);
             no_ineligible_selected &= flags.0;
             correlations_respected &= flags.1;
         }
-        let report = reports.iter().find(|item| item.scenario_id == scenario.scenario_id).expect("one report per scenario");
-        let oracle = report.policy_reports.iter().find(|item| item.policy == Policy::ExactAdaptiveOracle).expect("oracle report");
+        let report = reports
+            .iter()
+            .find(|item| item.scenario_id == scenario.scenario_id)
+            .expect("one report per scenario");
+        let oracle = report
+            .policy_reports
+            .iter()
+            .find(|item| item.policy == Policy::ExactAdaptiveOracle)
+            .expect("oracle report");
         oracle_ok &= oracle.dominated_by_exact_oracle_nbits == 0
-            && report.policy_reports.iter().all(|p| p.expected_information_gain_nbits <= oracle.expected_information_gain_nbits);
+            && report.policy_reports.iter().all(|p| {
+                p.expected_information_gain_nbits <= oracle.expected_information_gain_nbits
+            });
     }
-    add_invariant(&mut invariants, "cumulative_effort_and_exposure_budget", budgets_ok,
-        "All branches of every policy respect cumulative effort, sound, light and sediment limits.");
+    add_invariant(
+        &mut invariants,
+        "cumulative_effort_and_exposure_budget",
+        budgets_ok,
+        "All branches of every policy respect cumulative effort, sound, light and sediment limits.",
+    );
     add_invariant(&mut invariants, "rights_and_detection_gates", no_ineligible_selected,
         "Selected actions require non-contact mode, completed rights review, explicit permitted use, and an adequate detection profile.");
     add_invariant(&mut invariants, "perfectly_correlated_repeats_not_double_counted", correlations_respected,
@@ -690,8 +927,12 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
         "The exhaustive adaptive decision-tree oracle is at least as good as every heuristic under the same likelihoods and constraints.");
     add_invariant(&mut invariants, "no_single_non_detection_absence_claim", true,
         "The benchmark models latent target probability separately from observation results and has no absence conclusion field.");
-    add_invariant(&mut invariants, "deterministic_inputs_bound_receipt", !sha256_hex(bytes).is_empty() && !source_commit.is_empty(),
-        "Receipt binds exact corpus bytes, seed, suite/schema and source commit.");
+    add_invariant(
+        &mut invariants,
+        "deterministic_inputs_bound_receipt",
+        !sha256_hex(bytes).is_empty() && !source_commit.is_empty(),
+        "Receipt binds exact corpus bytes, seed, suite/schema and source commit.",
+    );
 
     let passed = invariants.iter().filter(|i| i.passed).count();
     let failed = invariants.len() - passed;
@@ -722,45 +963,81 @@ fn run() -> Check<ExitCode> {
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
-            "--corpus" => { i += 1; corpus_path = PathBuf::from(args.get(i).ok_or("--corpus requires a path")?); }
-            "--receipt" => { i += 1; receipt_path = Some(PathBuf::from(args.get(i).ok_or("--receipt requires a path")?)); }
-            "--source-commit" => { i += 1; explicit_commit = Some(args.get(i).ok_or("--source-commit requires an ID")?.clone()); }
+            "--corpus" => {
+                i += 1;
+                corpus_path = PathBuf::from(args.get(i).ok_or("--corpus requires a path")?);
+            }
+            "--receipt" => {
+                i += 1;
+                receipt_path = Some(PathBuf::from(
+                    args.get(i).ok_or("--receipt requires a path")?,
+                ));
+            }
+            "--source-commit" => {
+                i += 1;
+                explicit_commit =
+                    Some(args.get(i).ok_or("--source-commit requires an ID")?.clone());
+            }
             other => return Err(format!("unknown argument: {other}")),
         }
         i += 1;
     }
-    let bytes = fs::read(&corpus_path).map_err(|e| format!("cannot read corpus {}: {e}", corpus_path.display()))?;
+    let bytes = fs::read(&corpus_path)
+        .map_err(|e| format!("cannot read corpus {}: {e}", corpus_path.display()))?;
     let corpus = corpus_from_bytes(&bytes)?;
     let commit = source_commit(explicit_commit)?;
     let receipt = build_receipt(&corpus, &bytes, commit);
-    let serialized = serde_json::to_vec_pretty(&receipt).map_err(|e| format!("cannot encode receipt: {e}"))?;
+    let serialized =
+        serde_json::to_vec_pretty(&receipt).map_err(|e| format!("cannot encode receipt: {e}"))?;
     if let Some(path) = receipt_path {
         if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
-            fs::create_dir_all(parent).map_err(|e| format!("cannot create receipt directory: {e}"))?;
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("cannot create receipt directory: {e}"))?;
         }
         fs::write(&path, &serialized).map_err(|e| format!("cannot write receipt: {e}"))?;
     }
-    println!("suite={} corpus_sha256={} scenarios={} invariants={}/{} result={}",
-        receipt.suite_id, receipt.corpus_sha256, receipt.scenario_count,
-        receipt.passed_invariant_count, receipt.passed_invariant_count + receipt.failed_invariant_count, receipt.result);
+    println!(
+        "suite={} corpus_sha256={} scenarios={} invariants={}/{} result={}",
+        receipt.suite_id,
+        receipt.corpus_sha256,
+        receipt.scenario_count,
+        receipt.passed_invariant_count,
+        receipt.passed_invariant_count + receipt.failed_invariant_count,
+        receipt.result
+    );
     for invariant in &receipt.invariants {
-        println!("invariant={} result={} detail={}", invariant.invariant_id, if invariant.passed { "PASS" } else { "FAIL" }, invariant.detail);
+        println!(
+            "invariant={} result={} detail={}",
+            invariant.invariant_id,
+            if invariant.passed { "PASS" } else { "FAIL" },
+            invariant.detail
+        );
     }
     for scenario in &receipt.scenarios {
-        println!("scenario={} eligible_candidates={}", scenario.scenario_id, scenario.eligible_candidate_count);
+        println!(
+            "scenario={} eligible_candidates={}",
+            scenario.scenario_id, scenario.eligible_candidate_count
+        );
         for policy in &scenario.policy_reports {
             println!("policy={:?} first_action={:?} expected_gain_nbits={} first_gain_nbits={} oracle_gap_nbits={}",
                 policy.policy, policy.first_action_id, policy.expected_information_gain_nbits,
                 policy.initial_action_gain_nbits, policy.dominated_by_exact_oracle_nbits);
         }
     }
-    Ok(if receipt.result == "PASS" { ExitCode::SUCCESS } else { ExitCode::FAILURE })
+    Ok(if receipt.result == "PASS" {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    })
 }
 
 fn main() -> ExitCode {
     match run() {
         Ok(code) => code,
-        Err(error) => { eprintln!("ocean-sequential-design-bench: {error}"); ExitCode::FAILURE }
+        Err(error) => {
+            eprintln!("ocean-sequential-design-bench: {error}");
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -769,7 +1046,8 @@ mod tests {
     use super::*;
 
     fn corpus() -> (Corpus, Vec<u8>) {
-        let bytes = include_bytes!("../../../docs/tech/OCEAN_SEQUENTIAL_DESIGN_CORPUS_V0_1.json").to_vec();
+        let bytes =
+            include_bytes!("../../../docs/tech/OCEAN_SEQUENTIAL_DESIGN_CORPUS_V0_1.json").to_vec();
         let corpus = corpus_from_bytes(&bytes).expect("frozen synthetic sequence corpus parses");
         (corpus, bytes)
     }
@@ -804,8 +1082,16 @@ mod tests {
         let (corpus, _) = corpus();
         let scenario = &corpus.scenarios[0];
         let mut state = State::new(scenario.prior_presence_ppm);
-        let a = scenario.candidates.iter().position(|c| c.candidate_id == "reef-window1-primary").unwrap();
-        let b = scenario.candidates.iter().position(|c| c.candidate_id == "reef-window1-correlated-repeat").unwrap();
+        let a = scenario
+            .candidates
+            .iter()
+            .position(|c| c.candidate_id == "reef-window1-primary")
+            .unwrap();
+        let b = scenario
+            .candidates
+            .iter()
+            .position(|c| c.candidate_id == "reef-window1-correlated-repeat")
+            .unwrap();
         assert!(can_add(scenario, &state, a));
         state = apply_observation(scenario, &state, a, true);
         assert!(!can_add(scenario, &state, b));
@@ -815,18 +1101,33 @@ mod tests {
     fn false_positive_rate_limits_evidence_from_a_positive() {
         let (corpus, _) = corpus();
         let scenario = &corpus.scenarios[1];
-        let candidate = scenario.candidates.iter().find(|c| c.candidate_id == "noisy-sensor-high-false-positive").unwrap();
+        let candidate = scenario
+            .candidates
+            .iter()
+            .find(|c| c.candidate_id == "noisy-sensor-high-false-positive")
+            .unwrap();
         let prior = 50_000;
         let positive_posterior = posterior_after(prior, candidate, true);
-        assert!(positive_posterior < 500_000, "large false-positive rate must not make one positive near-certain");
+        assert!(
+            positive_posterior < 500_000,
+            "large false-positive rate must not make one positive near-certain"
+        );
     }
 
     #[test]
     fn inadequate_detection_and_unpermitted_actions_are_ineligible() {
         let (corpus, _) = corpus();
-        let low_signal = corpus.scenarios[2].candidates.iter().find(|c| c.candidate_id == "deep-low-signal-negative-control").unwrap();
+        let low_signal = corpus.scenarios[2]
+            .candidates
+            .iter()
+            .find(|c| c.candidate_id == "deep-low-signal-negative-control")
+            .unwrap();
         assert!(!candidate_eligible(low_signal));
-        let restricted = corpus.scenarios[2].candidates.iter().find(|c| c.candidate_id == "restricted-use").unwrap();
+        let restricted = corpus.scenarios[2]
+            .candidates
+            .iter()
+            .find(|c| c.candidate_id == "restricted-use")
+            .unwrap();
         assert!(!candidate_eligible(restricted));
     }
 
@@ -835,10 +1136,20 @@ mod tests {
         let (corpus, _) = corpus();
         for scenario in &corpus.scenarios {
             let report = evaluate_scenario(scenario, corpus.seed);
-            let oracle = report.policy_reports.iter().find(|p| p.policy == Policy::ExactAdaptiveOracle).unwrap();
+            let oracle = report
+                .policy_reports
+                .iter()
+                .find(|p| p.policy == Policy::ExactAdaptiveOracle)
+                .unwrap();
             for policy in &report.policy_reports {
-                assert!(policy.expected_information_gain_nbits <= oracle.expected_information_gain_nbits);
-                assert_eq!(policy.dominated_by_exact_oracle_nbits, oracle.expected_information_gain_nbits - policy.expected_information_gain_nbits);
+                assert!(
+                    policy.expected_information_gain_nbits
+                        <= oracle.expected_information_gain_nbits
+                );
+                assert_eq!(
+                    policy.dominated_by_exact_oracle_nbits,
+                    oracle.expected_information_gain_nbits - policy.expected_information_gain_nbits
+                );
             }
         }
     }
@@ -848,7 +1159,12 @@ mod tests {
         let (corpus, _) = corpus();
         for scenario in &corpus.scenarios {
             for policy in POLICIES {
-                assert!(all_policy_branches_respect_budgets(scenario, &State::new(scenario.prior_presence_ppm), *policy, corpus.seed));
+                assert!(all_policy_branches_respect_budgets(
+                    scenario,
+                    &State::new(scenario.prior_presence_ppm),
+                    *policy,
+                    corpus.seed
+                ));
             }
         }
     }
@@ -866,7 +1182,11 @@ mod tests {
         let (_, bytes) = corpus();
         let text = String::from_utf8(bytes).unwrap();
         assert!(corpus_from_bytes(text.replace(SCHEMA_VERSION, "99.0.0").as_bytes()).is_err());
-        assert!(corpus_from_bytes(text.replacen("\"seed\":", "\"owner\":\"claimed\",\n  \"seed\":", 1).as_bytes()).is_err());
+        assert!(corpus_from_bytes(
+            text.replacen("\"seed\":", "\"owner\":\"claimed\",\n  \"seed\":", 1)
+                .as_bytes()
+        )
+        .is_err());
     }
 
     #[test]
