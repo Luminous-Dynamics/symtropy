@@ -1874,15 +1874,16 @@ mod tests {
             ReviewAnnotationKind::SiteUnknown,
             ReviewAnnotationState::Unknown,
         );
-        assert!(validate_review_annotations_for_revision(&[site.clone()], "house:r1")
-            .unwrap_err()
-            .contains(&ReviewAnnotationIssue::MissingUncertaintyNote {
-                annotation_id: "site:flood-level".into(),
-            }));
-
-        site.uncertainty_note = Some(
-            "No dated parcel-specific flood assessment is in the evidence set".into(),
+        assert!(
+            validate_review_annotations_for_revision(&[site.clone()], "house:r1")
+                .unwrap_err()
+                .contains(&ReviewAnnotationIssue::MissingUncertaintyNote {
+                    annotation_id: "site:flood-level".into(),
+                })
         );
+
+        site.uncertainty_note =
+            Some("No dated parcel-specific flood assessment is in the evidence set".into());
         assert_eq!(
             validate_review_annotations_for_revision(&[site], "house:r1"),
             Ok(())
