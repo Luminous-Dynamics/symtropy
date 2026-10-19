@@ -265,7 +265,10 @@ fn usage() -> String {
 fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
     let mut errors = Vec::new();
     if ruleset.schema_version != "0.1.0" {
-        errors.push(format!("unsupported ruleset schema version {}", ruleset.schema_version));
+        errors.push(format!(
+            "unsupported ruleset schema version {}",
+            ruleset.schema_version
+        ));
     }
     if ruleset.id.trim().is_empty() || ruleset.description.trim().is_empty() {
         errors.push("ruleset id and description must not be empty".to_string());
@@ -280,7 +283,10 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
             errors.push(format!("empty or duplicate inference rule id: {}", rule.id));
         }
         if rule.requires.is_empty() || rule.produces.is_empty() {
-            errors.push(format!("inference rule {} needs requires and produces", rule.id));
+            errors.push(format!(
+                "inference rule {} needs requires and produces",
+                rule.id
+            ));
         }
         if rule.rationale.trim().is_empty() {
             errors.push(format!("inference rule {} has empty rationale", rule.id));
@@ -288,38 +294,69 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
     }
     for decision in &ruleset.decisions {
         if decision.id.trim().is_empty() || !ids.insert(decision.id.as_str()) {
-            errors.push(format!("empty or duplicate rule/decision id: {}", decision.id));
+            errors.push(format!(
+                "empty or duplicate rule/decision id: {}",
+                decision.id
+            ));
         }
         if decision.when_fact.trim().is_empty() || decision.reason_code.trim().is_empty() {
-            errors.push(format!("decision rule {} needs a condition and reason code", decision.id));
+            errors.push(format!(
+                "decision rule {} needs a condition and reason code",
+                decision.id
+            ));
         }
         if decision.rationale.trim().is_empty() {
             errors.push(format!("decision rule {} has empty rationale", decision.id));
         }
         if decision.action == Action::Answer && decision.claim_code.is_none() {
-            errors.push(format!("answer decision {} must carry a claim code", decision.id));
+            errors.push(format!(
+                "answer decision {} must carry a claim code",
+                decision.id
+            ));
         }
     }
     let mut authority_ids = BTreeSet::new();
     for authority in &ruleset.authorities {
         if authority.id.trim().is_empty() || !authority_ids.insert(authority.id.as_str()) {
-            errors.push(format!("empty or duplicate synthetic authority id: {}", authority.id));
+            errors.push(format!(
+                "empty or duplicate synthetic authority id: {}",
+                authority.id
+            ));
         }
     }
     if errors.is_empty() {
         Ok(())
     } else {
-        Err(format!("ruleset validation failed:\n - {}", errors.join("\n - ")))
+        Err(format!(
+            "ruleset validation failed:\n - {}",
+            errors.join("\n - ")
+        ))
     }
 }
 
 fn scenario_value(scenario: &Scenario, field: &str) -> Option<&'static str> {
     match field {
         "source_permission" => Some(scenario.source_permission.as_str()),
-        "competence_confirmed" => Some(if scenario.competence_confirmed { "true" } else { "false" }),
-        "current_authority_available" => Some(if scenario.current_authority_available { "true" } else { "false" }),
-        "required_fact_present" => Some(if scenario.required_fact_present { "true" } else { "false" }),
-        "authority_conflict" => Some(if scenario.authority_conflict { "true" } else { "false" }),
+        "competence_confirmed" => Some(if scenario.competence_confirmed {
+            "true"
+        } else {
+            "false"
+        }),
+        "current_authority_available" => Some(if scenario.current_authority_available {
+            "true"
+        } else {
+            "false"
+        }),
+        "required_fact_present" => Some(if scenario.required_fact_present {
+            "true"
+        } else {
+            "false"
+        }),
+        "authority_conflict" => Some(if scenario.authority_conflict {
+            "true"
+        } else {
+            "false"
+        }),
         _ => None,
     }
 }
@@ -328,7 +365,10 @@ fn initial_facts(scenario: &Scenario, ruleset: &RuleSet) -> Result<BTreeSet<Stri
     let mut facts = BTreeSet::new();
     for mapping in &ruleset.fact_mappings {
         let value = scenario_value(scenario, &mapping.scenario_field).ok_or_else(|| {
-            format!("unknown scenario field in ruleset mapping: {}", mapping.scenario_field)
+            format!(
+                "unknown scenario field in ruleset mapping: {}",
+                mapping.scenario_field
+            )
         })?;
         if value == mapping.value {
             for fact in &mapping.facts {
@@ -367,10 +407,7 @@ fn derive_facts(
     Err("forward chaining exceeded max_forward_chaining_steps".to_string())
 }
 
-fn evaluate_scenario(
-    scenario: &Scenario,
-    ruleset: &RuleSet,
-) -> Result<ExpectedResult, String> {
+fn evaluate_scenario(scenario: &Scenario, ruleset: &RuleSet) -> Result<ExpectedResult, String> {
     let (facts, inference_trace) = derive_facts(scenario, ruleset)?;
     let mut eligible: Vec<&DecisionRule> = ruleset
         .decisions
@@ -426,7 +463,12 @@ fn oracle_evaluate(scenario: &Scenario, ruleset: &RuleSet) -> ExpectedResult {
         } else if scenario.source_permission == SourcePermission::Unknown {
             (Action::Abstain, "source_permission_unknown", vec![], vec![])
         } else if scenario.authority_conflict {
-            (Action::Abstain, "authority_conflict_unresolved", vec![], vec![])
+            (
+                Action::Abstain,
+                "authority_conflict_unresolved",
+                vec![],
+                vec![],
+            )
         } else if !scenario.required_fact_present {
             (Action::Clarify, "required_fact_missing", vec![], vec![])
         } else if !scenario.competence_confirmed {
@@ -629,7 +671,8 @@ fn build_pairs(cases: &[GeneratedCase]) -> Result<Vec<MetamorphicPair>, String> 
             source_case_id: case.id.clone(),
             target_case_id: alternate_id,
             relation: MetamorphicRelation::OutputMustMatch,
-            rationale: "Wording changes while all modeled material facts remain identical.".to_string(),
+            rationale: "Wording changes while all modeled material facts remain identical."
+                .to_string(),
         });
         index += 1;
     }
@@ -776,7 +819,11 @@ fn assign_partitions(cases: &mut [GeneratedCase], pairs: &[MetamorphicPair], see
     }
 }
 
-fn relation_holds(relation: &MetamorphicRelation, source: &ExpectedResult, target: &ExpectedResult) -> bool {
+fn relation_holds(
+    relation: &MetamorphicRelation,
+    source: &ExpectedResult,
+    target: &ExpectedResult,
+) -> bool {
     let claims_match = source.claim_codes.iter().collect::<BTreeSet<_>>()
         == target.claim_codes.iter().collect::<BTreeSet<_>>();
     let citations_match = source.citations.iter().collect::<BTreeSet<_>>()
@@ -791,7 +838,11 @@ fn relation_holds(relation: &MetamorphicRelation, source: &ExpectedResult, targe
     }
 }
 
-fn generate_corpus(seed: u64, ruleset: &RuleSet, ruleset_raw: &str) -> Result<GeneratedCorpus, String> {
+fn generate_corpus(
+    seed: u64,
+    ruleset: &RuleSet,
+    ruleset_raw: &str,
+) -> Result<GeneratedCorpus, String> {
     let mut cases = build_cases(ruleset)?;
     let pairs = build_pairs(&cases)?;
     assign_partitions(&mut cases, &pairs, seed);
@@ -811,15 +862,25 @@ fn generate_corpus(seed: u64, ruleset: &RuleSet, ruleset_raw: &str) -> Result<Ge
     Ok(corpus)
 }
 
-fn validate_corpus(corpus: &GeneratedCorpus, ruleset: &RuleSet, ruleset_raw: &str) -> Result<(), String> {
+fn validate_corpus(
+    corpus: &GeneratedCorpus,
+    ruleset: &RuleSet,
+    ruleset_raw: &str,
+) -> Result<(), String> {
     if corpus.schema_version != "0.1.0" {
-        return Err(format!("unsupported corpus schema version {}", corpus.schema_version));
+        return Err(format!(
+            "unsupported corpus schema version {}",
+            corpus.schema_version
+        ));
     }
     if corpus.dataset_kind != "synthetic_only" {
         return Err("dataset_kind must be synthetic_only".to_string());
     }
     if corpus.generator_version != GENERATOR_VERSION {
-        return Err(format!("generator version mismatch: {}", corpus.generator_version));
+        return Err(format!(
+            "generator version mismatch: {}",
+            corpus.generator_version
+        ));
     }
     if corpus.ruleset_id != ruleset.id {
         return Err(format!("ruleset id mismatch: {}", corpus.ruleset_id));
@@ -828,7 +889,10 @@ fn validate_corpus(corpus: &GeneratedCorpus, ruleset: &RuleSet, ruleset_raw: &st
         return Err("ruleset digest mismatch".to_string());
     }
     if corpus.cases.len() != 96 {
-        return Err(format!("expected 96 generated cases, got {}", corpus.cases.len()));
+        return Err(format!(
+            "expected 96 generated cases, got {}",
+            corpus.cases.len()
+        ));
     }
     if corpus.metamorphic_pairs.len() != 54 {
         return Err(format!(
@@ -845,7 +909,10 @@ fn validate_corpus(corpus: &GeneratedCorpus, ruleset: &RuleSet, ruleset_raw: &st
             return Err(format!("duplicate case id: {}", case.id));
         }
         if !["train", "dev", "test"].contains(&case.partition.as_str()) {
-            return Err(format!("unsupported partition {} for {}", case.partition, case.id));
+            return Err(format!(
+                "unsupported partition {} for {}",
+                case.partition, case.id
+            ));
         }
         if case.id != case_id(&case.scenario) {
             return Err(format!("scenario/id mismatch for {}", case.id));
@@ -881,10 +948,16 @@ fn validate_corpus(corpus: &GeneratedCorpus, ruleset: &RuleSet, ruleset_raw: &st
             .get(pair.target_case_id.as_str())
             .ok_or_else(|| format!("unknown target case in pair {}", pair.id))?;
         if source.partition != target.partition {
-            return Err(format!("metamorphic pair {} crosses data partitions", pair.id));
+            return Err(format!(
+                "metamorphic pair {} crosses data partitions",
+                pair.id
+            ));
         }
         if !relation_holds(&pair.relation, &source.expected, &target.expected) {
-            return Err(format!("metamorphic pair {} contradicts expected results", pair.id));
+            return Err(format!(
+                "metamorphic pair {} contradicts expected results",
+                pair.id
+            ));
         }
     }
     Ok(())
@@ -925,8 +998,7 @@ mod tests {
     use super::*;
 
     fn ruleset() -> RuleSet {
-        let ruleset: RuleSet =
-            serde_json::from_str(RULESET_JSON).expect("embedded ruleset parses");
+        let ruleset: RuleSet = serde_json::from_str(RULESET_JSON).expect("embedded ruleset parses");
         validate_ruleset(&ruleset).expect("embedded ruleset validates");
         ruleset
     }
@@ -949,7 +1021,15 @@ mod tests {
         let corpus = generate_corpus(7, &ruleset(), RULESET_JSON).expect("generation succeeds");
         assert_eq!(corpus.cases.len(), 96);
         assert_eq!(corpus.metamorphic_pairs.len(), 54);
-        assert_eq!(corpus.cases.iter().map(|case| case.id.as_str()).collect::<BTreeSet<_>>().len(), 96);
+        assert_eq!(
+            corpus
+                .cases
+                .iter()
+                .map(|case| case.id.as_str())
+                .collect::<BTreeSet<_>>()
+                .len(),
+            96
+        );
     }
 
     #[test]
@@ -968,20 +1048,31 @@ mod tests {
     #[test]
     fn generated_metamorphic_pairs_are_satisfied_and_partition_safe() {
         let corpus = generate_corpus(12, &ruleset(), RULESET_JSON).expect("generation succeeds");
-        let by_id: BTreeMap<&str, &GeneratedCase> =
-            corpus.cases.iter().map(|case| (case.id.as_str(), case)).collect();
+        let by_id: BTreeMap<&str, &GeneratedCase> = corpus
+            .cases
+            .iter()
+            .map(|case| (case.id.as_str(), case))
+            .collect();
         for pair in &corpus.metamorphic_pairs {
             let source = by_id[pair.source_case_id.as_str()];
             let target = by_id[pair.target_case_id.as_str()];
             assert_eq!(source.partition, target.partition, "{}", pair.id);
-            assert!(relation_holds(&pair.relation, &source.expected, &target.expected), "{}", pair.id);
+            assert!(
+                relation_holds(&pair.relation, &source.expected, &target.expected),
+                "{}",
+                pair.id
+            );
         }
     }
 
     #[test]
     fn partitions_are_populated_without_splitting_wording_pairs() {
         let corpus = generate_corpus(1, &ruleset(), RULESET_JSON).expect("generation succeeds");
-        let partitions: BTreeSet<&str> = corpus.cases.iter().map(|case| case.partition.as_str()).collect();
+        let partitions: BTreeSet<&str> = corpus
+            .cases
+            .iter()
+            .map(|case| case.partition.as_str())
+            .collect();
         assert!(partitions.len() >= 2);
         let by_id: BTreeMap<&str, &GeneratedCase> =
             corpus.cases.iter().map(|case| (case.id.as_str(), case)).collect();
