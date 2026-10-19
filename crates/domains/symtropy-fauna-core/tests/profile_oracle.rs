@@ -347,3 +347,32 @@ fn coverage_rejects_duplicate_and_out_of_scope_declarations() {
     let outside = vec![CoverageDeclaration { taxon_id: "TEST:outside".to_owned(), state: CoverageState::Covered }];
     assert_eq!(coverage_report(&scope, &outside, &[]), Err(CoverageError::DeclarationOutsideScope));
 }
+
+#[test]
+fn coverage_rejects_profiles_from_a_different_taxonomy_source_or_release() {
+    let declarations = vec![CoverageDeclaration {
+        taxon_id: "TEST:1".to_owned(),
+        state: CoverageState::Covered,
+    }];
+    let profiles = vec![real_profile("real/1", "TEST:1")];
+
+    let wrong_source = TaxonomyScope {
+        source: "another-taxonomy".to_owned(),
+        release: "test-release-1".to_owned(),
+        taxon_ids: vec!["TEST:1".to_owned()],
+    };
+    assert_eq!(
+        coverage_report(&wrong_source, &declarations, &profiles),
+        Err(CoverageError::CoveredWithoutEligibleProfile)
+    );
+
+    let wrong_release = TaxonomyScope {
+        source: "test-taxonomy".to_owned(),
+        release: "another-release".to_owned(),
+        taxon_ids: vec!["TEST:1".to_owned()],
+    };
+    assert_eq!(
+        coverage_report(&wrong_release, &declarations, &profiles),
+        Err(CoverageError::CoveredWithoutEligibleProfile)
+    );
+}
