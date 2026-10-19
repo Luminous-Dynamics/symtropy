@@ -152,11 +152,12 @@ jobs:
             and .validation_world_count == 256
             and .held_out_world_count == 256
             and .completed_adaptive_worlds_within_envelope == 320
-            and .adaptive_aborts_outside_envelope > 0
+            and .completed_carbon_first_worlds_within_envelope == 320
+            and (.adaptive_aborts_outside_envelope + .carbon_first_aborts_outside_envelope) > 0
             and .causal_nonanticipativity_violations == 0
             and .independent_hard_constraint_violations == 0
-            and ([.summaries[] | select(.policy_id == "causal_adaptive_recourse" and .world_class == "in_envelope").feasible_rate_basis_points] | all(. == 10000))
-            and ([.summaries[] | select(.policy_id == "causal_adaptive_recourse" and .world_class == "out_of_envelope") | .evaluated_worlds] | all(. == 96))
+            and ([.summaries[] | select((.policy_id == "causal_adaptive_recourse" or .policy_id == "causal_adaptive_carbon_first") and .world_class == "in_envelope").feasible_rate_basis_points] | all(. == 10000))
+            and ([.summaries[] | select((.policy_id == "causal_adaptive_recourse" or .policy_id == "causal_adaptive_carbon_first") and .world_class == "out_of_envelope") | .evaluated_worlds] | all(. == 96))
             and (.generated_evaluation_set_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
             and ([.world_results[] | select(.adaptive_execution.completed_production_target == false and .adaptive_recourse.feasible == true)] | length == 0)
@@ -181,6 +182,10 @@ jobs:
               adaptive_feasible: .adaptive_recourse.feasible,
               adaptive_schedule: .adaptive_recourse.schedule_batches,
               adaptive_rejection: .adaptive_recourse.rejection_reason,
-              adaptive_incurred_cost: .adaptive_execution.incurred_grid_cost_units
+              adaptive_incurred_cost: .adaptive_execution.incurred_grid_cost_units,
+              carbon_first_feasible: .carbon_aware_recourse.feasible,
+              carbon_first_schedule: .carbon_aware_recourse.schedule_batches,
+              carbon_first_rejection: .carbon_aware_recourse.rejection_reason,
+              carbon_first_incurred_cost: .carbon_aware_execution.incurred_grid_cost_units
             }]
           }' mine-flex-recourse-receipt.json
