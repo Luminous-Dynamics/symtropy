@@ -96,6 +96,7 @@ impl SymtropyScenePlugin {
 }
 
 pub mod architectural_review;
+pub mod design_intent;
 pub mod loader;
 
 pub use architectural_review::{
@@ -107,6 +108,11 @@ pub use architectural_review::{
     drive_free_review_camera, manage_architectural_review_controls, review_waypoint_transform,
     sample_review_route, validate_occupant_feedback_for_review,
     validate_review_annotations_for_revision, validate_review_route,
+};
+pub use design_intent::{
+    AlternativeDisposition, DesignAlternative, DesignIntent, DesignIntentClass, DesignIntentIssue,
+    IntentEvaluation, IntentEvaluationOutcome, IntentOrigin, IntentPriority,
+    validate_design_comparison,
 };
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
