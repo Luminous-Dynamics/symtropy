@@ -1644,8 +1644,11 @@ mod tests {
         let target = b"target exact bytes";
         let ids = b"requirements exact bytes";
         let producer = delta_gate_producer(
-            source, target, ids, GateStatus::Pass, true, 1, 1, 0, 0, 0, 0,
-            "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            source, target, ids, DeltaTestConfig {
+                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 1,
+                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+                reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            },
         );
         assert!(verify_embedded_payload(&producer, source, target, ids, "IFC4").is_ok());
 
@@ -1708,8 +1711,11 @@ mod tests {
         let target = b"target";
         let ids = b"ids";
         let mut producer = delta_gate_producer(
-            source, target, ids, GateStatus::Pass, true, 1, 1, 0, 0, 0, 0,
-            "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            source, target, ids, DeltaTestConfig {
+                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 1,
+                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+                reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            },
         );
         producer.gate.tool.as_mut().unwrap().config_sha256 = "0".repeat(64);
         assert_eq!(
