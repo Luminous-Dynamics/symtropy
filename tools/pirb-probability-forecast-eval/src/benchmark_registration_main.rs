@@ -114,11 +114,10 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
 
         if object_string_at(registration, "governance", "data_authority_status")
             == Some("authorized")
-            && string_at(provider, "independent_source_capture_verified") != Some("true")
-            && !provider
+            && provider
                 .get("independent_source_capture_verified")
                 .and_then(Value::as_bool)
-                .unwrap_or(false)
+                != Some(true)
         {
             errors.push(format!(
                 "provider {} lacks independent source-capture verification for authorized historical evidence",
@@ -140,7 +139,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     }
 
     let evidence_scope = string_at(registration, "evidence_scope").unwrap_or_default();
-    let governance = registration.get("governance").unwrap_or(&Value::Null);
+    let governance = registration
+        .get("governance")
+        .expect("schema validation requires governance");
     if evidence_scope == "authorized_historical_evaluation" {
         if string_at(governance, "data_authority_status") != Some("authorized") {
             errors.push("authorized_historical_evaluation requires data_authority_status=authorized".to_owned());
@@ -317,12 +318,15 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
         .map_err(|error| vec![format!("input is not valid JSON: {error}")])?;
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
         .map_err(|error| vec![format!("embedded schema is not valid JSON: {error}")])?;
-    let validator = jsonschema::validator_for(&schema)
-        .map_err(|error| vec![format!("cannot compile embedded schema: {error}")])?;
+    jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
+        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+    })?;
+    let validator = jsonschema::draft202012::new(&schema)
+        .map_err(|error| vec![format!("cannot build registration schema validator: {error}")])?;
 
     let mut errors = validator
         .iter_errors(&registration)
-        .map(|error| error.to_string())
+        .map(|error| format!("{} at {}", error, error.instance_path()))
         .collect::<Vec<_>>();
     if !errors.is_empty() {
         errors.sort();
