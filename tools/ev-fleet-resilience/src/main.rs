@@ -211,7 +211,11 @@ fn main() {
             match simulate_scenario(&templates, scenario, policy) {
                 Ok(result) => results.push(result),
                 Err(error) => {
-                    eprintln!("simulation failed for {} / {}: {error}", scenario.scenario_id, policy.as_str());
+                    eprintln!(
+                        "simulation failed for {} / {}: {error}",
+                        scenario.scenario_id,
+                        policy.as_str()
+                    );
                     process::exit(2);
                 }
             }
@@ -253,7 +257,8 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         if !template_ids.insert(template.template_id.clone()) {
             return Err(format!("duplicate_template_id: {}", template.template_id));
         }
-        validate_template(template).map_err(|error| format!("{}: {error}", template.template_id))?;
+        validate_template(template)
+            .map_err(|error| format!("{}: {error}", template.template_id))?;
     }
     let mut scenario_ids = BTreeSet::new();
     for scenario in &corpus.scenarios {
@@ -267,8 +272,15 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
 }
 
 fn validate_evidence(class: &str, reference: &str, note: &str) -> Result<(), String> {
-    if !["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"]
-        .contains(&class)
+    if ![
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+        "unknown",
+    ]
+    .contains(&class)
     {
         return Err("unsupported_evidence_class".to_string());
     }
@@ -291,18 +303,36 @@ fn validate_template(template: &VehicleTemplate) -> Result<(), String> {
         &template.evidence_note,
     )?;
     for (name, value) in [
-        ("nominal_pack_capacity_kwh", template.nominal_pack_capacity_kwh),
-        ("maximum_port_input_power_kw", template.maximum_port_input_power_kw),
+        (
+            "nominal_pack_capacity_kwh",
+            template.nominal_pack_capacity_kwh,
+        ),
+        (
+            "maximum_port_input_power_kw",
+            template.maximum_port_input_power_kw,
+        ),
     ] {
         if !value.is_finite() || value <= 0.0 {
             return Err(format!("{name}_must_be_finite_and_positive"));
         }
     }
     for (name, value) in [
-        ("state_of_health_fraction", template.state_of_health_fraction),
-        ("temperature_capacity_fraction", template.temperature_capacity_fraction),
-        ("temperature_acceptance_fraction", template.temperature_acceptance_fraction),
-        ("charging_efficiency_fraction", template.charging_efficiency_fraction),
+        (
+            "state_of_health_fraction",
+            template.state_of_health_fraction,
+        ),
+        (
+            "temperature_capacity_fraction",
+            template.temperature_capacity_fraction,
+        ),
+        (
+            "temperature_acceptance_fraction",
+            template.temperature_acceptance_fraction,
+        ),
+        (
+            "charging_efficiency_fraction",
+            template.charging_efficiency_fraction,
+        ),
     ] {
         if !value.is_finite() || value <= 0.0 || value > 1.0 {
             return Err(format!("{name}_must_be_finite_and_in_(0,1]"));
@@ -344,10 +374,7 @@ fn validate_curve(curve: &[CurveBand]) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_scenario(
-    scenario: &Scenario,
-    template_ids: &BTreeSet<String>,
-) -> Result<(), String> {
+fn validate_scenario(scenario: &Scenario, template_ids: &BTreeSet<String>) -> Result<(), String> {
     if scenario.scenario_id.trim().is_empty() || scenario.label.trim().is_empty() {
         return Err("scenario_id_and_label_must_be_nonempty".to_string());
     }
@@ -375,7 +402,10 @@ fn validate_scenario(
             || job.arrival_minute < 0.0
             || job.departure_minute <= job.arrival_minute
         {
-            return Err(format!("invalid_arrival_or_departure_for_job_{}", job.job_id));
+            return Err(format!(
+                "invalid_arrival_or_departure_for_job_{}",
+                job.job_id
+            ));
         }
         if !job.initial_soc_fraction.is_finite()
             || !job.target_soc_fraction.is_finite()
@@ -392,7 +422,11 @@ fn validate_scenario(
         a.start_minute
             .partial_cmp(&b.start_minute)
             .unwrap_or(Ordering::Equal)
-            .then_with(|| a.end_minute.partial_cmp(&b.end_minute).unwrap_or(Ordering::Equal))
+            .then_with(|| {
+                a.end_minute
+                    .partial_cmp(&b.end_minute)
+                    .unwrap_or(Ordering::Equal)
+            })
     });
     let mut previous_end = 0.0;
     for (index, event) in events.iter().enumerate() {
@@ -403,12 +437,16 @@ fn validate_scenario(
             || event.end_minute <= event.start_minute
             || event.site_power_budget_kw < 0.0
         {
-            return Err(format!("capacity_event_{index}_has_invalid_bounds_or_budget"));
+            return Err(format!(
+                "capacity_event_{index}_has_invalid_bounds_or_budget"
+            ));
         }
         if event.site_power_budget_kw > scenario.site_power_budget_kw + EPSILON
             || event.available_port_count > scenario.charger_port_count
         {
-            return Err(format!("capacity_event_{index}_exceeds_declared_base_capacity"));
+            return Err(format!(
+                "capacity_event_{index}_exceeds_declared_base_capacity"
+            ));
         }
         if index > 0 && event.start_minute < previous_end - EPSILON {
             return Err(format!("capacity_event_{index}_overlaps_previous_event"));
@@ -483,7 +521,10 @@ fn simulate_scenario(
             active.remove(&index);
         }
 
-        if states.iter().all(|state| state.completion_minute.is_some() || state.expired) {
+        if states
+            .iter()
+            .all(|state| state.completion_minute.is_some() || state.expired)
+        {
             break;
         }
 
@@ -523,10 +564,13 @@ fn simulate_scenario(
                 .ok_or_else(|| format!("unknown_template_id: {}", state.job.template_id))?;
             let battery_acceptance_kw = acceptance_power_at(template, state.current_soc_fraction)
                 * template.temperature_acceptance_fraction;
-            let acceptance_input_cap = battery_acceptance_kw / template.charging_efficiency_fraction;
+            let acceptance_input_cap =
+                battery_acceptance_kw / template.charging_efficiency_fraction;
             caps.push((
                 index,
-                template.maximum_port_input_power_kw.min(acceptance_input_cap),
+                template
+                    .maximum_port_input_power_kw
+                    .min(acceptance_input_cap),
             ));
         }
         let allocations = water_fill(&caps, site_budget_kw);
@@ -554,15 +598,18 @@ fn simulate_scenario(
                 next_time = Some(next_time.map_or(event_time, |value| value.min(event_time)));
             }
             if battery_kw > EPSILON {
-                if let Some(boundary) =
-                    next_curve_boundary(template, state.current_soc_fraction, state.job.target_soc_fraction)
-                {
-                    let energy_to_boundary =
-                        (boundary - state.current_soc_fraction).max(0.0) * state.effective_capacity_kwh;
+                if let Some(boundary) = next_curve_boundary(
+                    template,
+                    state.current_soc_fraction,
+                    state.job.target_soc_fraction,
+                ) {
+                    let energy_to_boundary = (boundary - state.current_soc_fraction).max(0.0)
+                        * state.effective_capacity_kwh;
                     let minutes_to_boundary = energy_to_boundary / battery_kw * 60.0;
                     if minutes_to_boundary > EPSILON {
                         let event_time = now + minutes_to_boundary;
-                        next_time = Some(next_time.map_or(event_time, |value| value.min(event_time)));
+                        next_time =
+                            Some(next_time.map_or(event_time, |value| value.min(event_time)));
                     }
                 }
             }
@@ -623,16 +670,21 @@ fn simulate_scenario(
                     >= state.requested_battery_energy_kwh
                 && state.job.arrival_minute <= now + EPSILON
             {
-                state.delivered_battery_energy_kwh =
-                    state.delivered_battery_energy_kwh.min(state.requested_battery_energy_kwh);
+                state.delivered_battery_energy_kwh = state
+                    .delivered_battery_energy_kwh
+                    .min(state.requested_battery_energy_kwh);
                 state.current_soc_fraction = state.job.target_soc_fraction;
                 state.completion_minute = Some(now);
             }
         }
-        active.retain(|index| states[*index].completion_minute.is_none() && !states[*index].expired);
+        active
+            .retain(|index| states[*index].completion_minute.is_none() && !states[*index].expired);
     }
 
-    if states.iter().any(|state| state.completion_minute.is_none() && !state.expired) {
+    if states
+        .iter()
+        .any(|state| state.completion_minute.is_none() && !state.expired)
+    {
         return Err(format!("event_limit_exceeded_{MAX_EVENTS}"));
     }
 
@@ -641,8 +693,8 @@ fn simulate_scenario(
         let template = templates
             .get(&state.job.template_id)
             .ok_or_else(|| format!("unknown_template_id: {}", state.job.template_id))?;
-        let unserved = (state.requested_battery_energy_kwh - state.delivered_battery_energy_kwh)
-            .max(0.0);
+        let unserved =
+            (state.requested_battery_energy_kwh - state.delivered_battery_energy_kwh).max(0.0);
         let loss = (state.site_input_energy_kwh - state.delivered_battery_energy_kwh).max(0.0);
         let queue_wait = state
             .first_start_minute
@@ -688,10 +740,14 @@ fn simulate_scenario(
     let job_count = jobs.len();
     let completed_by_deadline_count = jobs.iter().filter(|job| job.completed_by_deadline).count();
     let missed_deadline_count = jobs.iter().filter(|job| job.missed_deadline).count();
-    let requested_battery_energy_kwh: f64 =
-        jobs.iter().map(|job| job.requested_battery_energy_kwh).sum();
-    let delivered_battery_energy_kwh: f64 =
-        jobs.iter().map(|job| job.delivered_battery_energy_kwh).sum();
+    let requested_battery_energy_kwh: f64 = jobs
+        .iter()
+        .map(|job| job.requested_battery_energy_kwh)
+        .sum();
+    let delivered_battery_energy_kwh: f64 = jobs
+        .iter()
+        .map(|job| job.delivered_battery_energy_kwh)
+        .sum();
     let unserved_battery_energy_kwh: f64 =
         jobs.iter().map(|job| job.unserved_battery_energy_kwh).sum();
     let site_input_energy_kwh: f64 = jobs.iter().map(|job| job.site_input_energy_kwh).sum();
@@ -770,10 +826,7 @@ fn capacity_at(scenario: &Scenario, minute: f64) -> (usize, f64) {
     scenario
         .capacity_events
         .iter()
-        .find(|event| {
-            event.start_minute <= minute + EPSILON
-                && minute < event.end_minute - EPSILON
-        })
+        .find(|event| event.start_minute <= minute + EPSILON && minute < event.end_minute - EPSILON)
         .map(|event| (event.available_port_count, event.site_power_budget_kw))
         .unwrap_or((scenario.charger_port_count, scenario.site_power_budget_kw))
 }
@@ -803,8 +856,7 @@ fn acceptance_power_at(template: &VehicleTemplate, soc: f64) -> f64 {
         .acceptance_curve
         .iter()
         .find(|band| {
-            soc >= band.soc_lower_fraction - EPSILON
-                && soc < band.soc_upper_fraction - EPSILON
+            soc >= band.soc_lower_fraction - EPSILON && soc < band.soc_upper_fraction - EPSILON
         })
         .or_else(|| template.acceptance_curve.last())
         .map_or(0.0, |band| band.max_battery_acceptance_kw)
@@ -861,7 +913,12 @@ fn percentile_nearest_rank(values: &[f64], percentile: f64) -> f64 {
 mod tests {
     use super::*;
 
-    fn template(capacity_kwh: f64, efficiency: f64, port_kw: f64, curve: Vec<CurveBand>) -> VehicleTemplate {
+    fn template(
+        capacity_kwh: f64,
+        efficiency: f64,
+        port_kw: f64,
+        curve: Vec<CurveBand>,
+    ) -> VehicleTemplate {
         VehicleTemplate {
             template_id: "test-template".to_string(),
             label: "test".to_string(),
@@ -897,7 +954,12 @@ mod tests {
         }
     }
 
-    fn scenario(jobs: Vec<Job>, port_count: usize, site_kw: f64, events: Vec<CapacityEvent>) -> Scenario {
+    fn scenario(
+        jobs: Vec<Job>,
+        port_count: usize,
+        site_kw: f64,
+        events: Vec<CapacityEvent>,
+    ) -> Scenario {
         Scenario {
             scenario_id: "test-scenario".to_string(),
             label: "test".to_string(),
@@ -912,7 +974,9 @@ mod tests {
     }
 
     fn templates(template: VehicleTemplate) -> BTreeMap<String, VehicleTemplate> {
-        [(template.template_id.clone(), template)].into_iter().collect()
+        [(template.template_id.clone(), template)]
+            .into_iter()
+            .collect()
     }
 
     #[test]
@@ -920,7 +984,8 @@ mod tests {
         let template = template(10.0, 0.9, 10.0, constant_curve(100.0));
         let templates = templates(template);
         let scenario = scenario(vec![job("a", 0.0, 90.0, 0.0, 0.9)], 1, 10.0, vec![]);
-        let result = simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
+        let result =
+            simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
         let job = &result.jobs[0];
         assert_eq!(result.completed_by_deadline_count, 1);
         assert!((job.requested_battery_energy_kwh - 9.0).abs() < 1.0e-8);
@@ -938,13 +1003,22 @@ mod tests {
             1.0,
             100.0,
             vec![
-                CurveBand { soc_lower_fraction: 0.0, soc_upper_fraction: 0.5, max_battery_acceptance_kw: 10.0 },
-                CurveBand { soc_lower_fraction: 0.5, soc_upper_fraction: 1.0, max_battery_acceptance_kw: 5.0 },
+                CurveBand {
+                    soc_lower_fraction: 0.0,
+                    soc_upper_fraction: 0.5,
+                    max_battery_acceptance_kw: 10.0,
+                },
+                CurveBand {
+                    soc_lower_fraction: 0.5,
+                    soc_upper_fraction: 1.0,
+                    max_battery_acceptance_kw: 5.0,
+                },
             ],
         );
         let templates = templates(template);
         let scenario = scenario(vec![job("a", 0.0, 120.0, 0.4, 0.8)], 1, 100.0, vec![]);
-        let result = simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
+        let result =
+            simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
         assert!((result.jobs[0].completion_minute.unwrap() - 84.0).abs() < 1.0e-7);
         assert!((result.jobs[0].site_input_energy_kwh - 8.0).abs() < 1.0e-8);
         assert!((result.maximum_site_input_power_kw - 10.0).abs() < 1.0e-8);
@@ -955,16 +1029,25 @@ mod tests {
         let template = template(100.0, 1.0, 10.0, constant_curve(10.0));
         let templates = templates(template);
         let scenario = scenario(
-            vec![job("a", 0.0, 130.0, 0.0, 0.1), job("b", 0.0, 130.0, 0.0, 0.1)],
+            vec![
+                job("a", 0.0, 130.0, 0.0, 0.1),
+                job("b", 0.0, 130.0, 0.0, 0.1),
+            ],
             2,
             10.0,
             vec![],
         );
-        let result = simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
+        let result =
+            simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
         assert_eq!(result.completed_by_deadline_count, 2);
         assert!(result.site_power_limit_respected);
         assert!(result.maximum_site_input_power_kw <= 10.0 + 1.0e-8);
-        assert!(result.jobs.iter().all(|job| job.maximum_observed_input_power_kw <= 10.0 + 1.0e-8));
+        assert!(
+            result
+                .jobs
+                .iter()
+                .all(|job| job.maximum_observed_input_power_kw <= 10.0 + 1.0e-8)
+        );
     }
 
     #[test]
@@ -978,7 +1061,8 @@ mod tests {
             available_port_count: 0,
         };
         let scenario = scenario(vec![job("a", 0.0, 150.0, 0.0, 0.5)], 1, 10.0, vec![event]);
-        let result = simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
+        let result =
+            simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
         assert_eq!(result.completed_by_deadline_count, 1);
         assert!((result.jobs[0].completion_minute.unwrap() - 120.0).abs() < 1.0e-7);
         assert!((result.jobs[0].delivered_battery_energy_kwh - 10.0).abs() < 1.0e-8);
@@ -990,7 +1074,8 @@ mod tests {
         let template = template(10.0, 0.9, 10.0, constant_curve(100.0));
         let templates = templates(template);
         let scenario = scenario(vec![job("a", 0.0, 60.0, 0.0, 0.9)], 1, 10.0, vec![]);
-        let result = simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
+        let result =
+            simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
         assert_eq!(result.completed_by_deadline_count, 1);
         assert_eq!(result.missed_deadline_count, 0);
         assert!((result.jobs[0].completion_minute.unwrap() - 60.0).abs() < 1.0e-7);
@@ -1001,7 +1086,10 @@ mod tests {
         let template = template(100.0, 1.0, 10.0, constant_curve(100.0));
         let templates = templates(template);
         let scenario = scenario(
-            vec![job("a-long", 0.0, 120.0, 0.0, 0.1), job("b-short", 0.0, 20.0, 0.0, 0.03)],
+            vec![
+                job("a-long", 0.0, 120.0, 0.0, 0.1),
+                job("b-short", 0.0, 20.0, 0.0, 0.03),
+            ],
             1,
             10.0,
             vec![],
@@ -1018,7 +1106,8 @@ mod tests {
         let template = template(10.0, 0.9, 10.0, constant_curve(100.0));
         let templates = templates(template);
         let scenario = scenario(vec![job("a", 0.0, 5.0, 0.0, 0.9)], 1, 10.0, vec![]);
-        let result = simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
+        let result =
+            simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
         assert_eq!(result.job_count, 1);
         assert_eq!(result.missed_deadline_count, 1);
         assert!((result.unserved_battery_energy_kwh - 8.25).abs() < 1.0e-7);
@@ -1029,7 +1118,8 @@ mod tests {
         let template = template(10.0, 0.9, 10.0, constant_curve(100.0));
         let templates = templates(template);
         let scenario = scenario(vec![job("a", 10.0, 20.0, 0.5, 0.5)], 0, 0.0, vec![]);
-        let result = simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
+        let result =
+            simulate_scenario(&templates, &scenario, Policy::FirstComeFirstServed).unwrap();
         assert_eq!(result.job_count, 1);
         assert_eq!(result.completed_by_deadline_count, 1);
         assert_eq!(result.jobs[0].delivered_battery_energy_kwh, 0.0);
@@ -1042,8 +1132,16 @@ mod tests {
             1.0,
             10.0,
             vec![
-                CurveBand { soc_lower_fraction: 0.0, soc_upper_fraction: 0.4, max_battery_acceptance_kw: 10.0 },
-                CurveBand { soc_lower_fraction: 0.5, soc_upper_fraction: 1.0, max_battery_acceptance_kw: 5.0 },
+                CurveBand {
+                    soc_lower_fraction: 0.0,
+                    soc_upper_fraction: 0.4,
+                    max_battery_acceptance_kw: 10.0,
+                },
+                CurveBand {
+                    soc_lower_fraction: 0.5,
+                    soc_upper_fraction: 1.0,
+                    max_battery_acceptance_kw: 5.0,
+                },
             ],
         );
         assert_eq!(
@@ -1059,8 +1157,18 @@ mod tests {
         let templates = templates(template(10.0, 1.0, 10.0, constant_curve(100.0)));
         let mut scenario = scenario(vec![job("a", 0.0, 20.0, 0.0, 0.1)], 1, 10.0, vec![]);
         scenario.capacity_events = vec![
-            CapacityEvent { start_minute: 10.0, end_minute: 30.0, site_power_budget_kw: 0.0, available_port_count: 0 },
-            CapacityEvent { start_minute: 20.0, end_minute: 40.0, site_power_budget_kw: 5.0, available_port_count: 1 },
+            CapacityEvent {
+                start_minute: 10.0,
+                end_minute: 30.0,
+                site_power_budget_kw: 0.0,
+                available_port_count: 0,
+            },
+            CapacityEvent {
+                start_minute: 20.0,
+                end_minute: 40.0,
+                site_power_budget_kw: 5.0,
+                available_port_count: 1,
+            },
         ];
         assert!(validate_scenario(&scenario, &templates.keys().cloned().collect()).is_err());
     }
@@ -1184,10 +1292,18 @@ mod tests {
         let edf = simulate_scenario(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
         assert_eq!(fcfs.job_count, case.jobs.len());
         assert_eq!(edf.job_count, case.jobs.len());
-        assert!((fcfs.requested_battery_energy_kwh - edf.requested_battery_energy_kwh).abs() < EPSILON);
+        assert!(
+            (fcfs.requested_battery_energy_kwh - edf.requested_battery_energy_kwh).abs() < EPSILON
+        );
         assert_eq!(
-            fcfs.jobs.iter().map(|j| j.job_id.as_str()).collect::<Vec<_>>(),
-            edf.jobs.iter().map(|j| j.job_id.as_str()).collect::<Vec<_>>()
+            fcfs.jobs
+                .iter()
+                .map(|j| j.job_id.as_str())
+                .collect::<Vec<_>>(),
+            edf.jobs
+                .iter()
+                .map(|j| j.job_id.as_str())
+                .collect::<Vec<_>>()
         );
     }
 
