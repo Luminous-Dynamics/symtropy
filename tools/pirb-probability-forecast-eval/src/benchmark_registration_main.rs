@@ -4,12 +4,11 @@
 // Validates the cross-provider benchmark registration contract. This tool does
 // not load provider forecast rows or calculate a forecast/impact score.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env, fs,
-    process,
+    env, fs, process,
 };
 
 const SCHEMA_BYTES: &[u8] =
@@ -127,8 +126,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
 
         let digest = string_at(provider, "artifact_digest").unwrap_or_default();
         if digest.chars().all(|ch| ch == '0') || digest.chars().all(|ch| ch == '1') {
-            if string_at(registration, "evidence_scope")
-                == Some("authorized_historical_evaluation")
+            if string_at(registration, "evidence_scope") == Some("authorized_historical_evaluation")
             {
                 errors.push(format!(
                     "provider {} uses a placeholder artifact digest for historical evidence",
@@ -144,23 +142,36 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         .expect("schema validation requires governance");
     if evidence_scope == "authorized_historical_evaluation" {
         if string_at(governance, "data_authority_status") != Some("authorized") {
-            errors.push("authorized_historical_evaluation requires data_authority_status=authorized".to_owned());
+            errors.push(
+                "authorized_historical_evaluation requires data_authority_status=authorized"
+                    .to_owned(),
+            );
         }
         if string_at(governance, "disclosure_review_status") != Some("approved") {
-            errors.push("authorized_historical_evaluation requires disclosure_review_status=approved".to_owned());
+            errors.push(
+                "authorized_historical_evaluation requires disclosure_review_status=approved"
+                    .to_owned(),
+            );
         }
         if string_at(governance, "data_authority_reference").is_none_or(str::is_empty) {
-            errors.push("authorized historical evidence requires data_authority_reference".to_owned());
+            errors.push(
+                "authorized historical evidence requires data_authority_reference".to_owned(),
+            );
         }
         if string_at(governance, "disclosure_review_reference").is_none_or(str::is_empty) {
-            errors.push("authorized historical evidence requires disclosure_review_reference".to_owned());
+            errors.push(
+                "authorized historical evidence requires disclosure_review_reference".to_owned(),
+            );
         }
         if registration
             .get("outcome")
             .and_then(|v| v.get("release_sha256"))
             .is_none_or(Value::is_null)
         {
-            errors.push("authorized historical evidence requires a frozen outcome release digest".to_owned());
+            errors.push(
+                "authorized historical evidence requires a frozen outcome release digest"
+                    .to_owned(),
+            );
         }
         for provider in providers {
             if provider
@@ -238,8 +249,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                     "forecast_horizon",
                     "output_type",
                 ] {
-                    if left
-                        .and_then(|provider| string_at(provider, field))
+                    if left.and_then(|provider| string_at(provider, field))
                         != right.and_then(|provider| string_at(provider, field))
                     {
                         errors.push(format!(
@@ -263,7 +273,11 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                     if string_at(left, "temporal_aggregation")
                         != object_string_at(registration, "shared_estimand", "temporal_aggregation")
                         || string_at(right, "temporal_aggregation")
-                            != object_string_at(registration, "shared_estimand", "temporal_aggregation")
+                            != object_string_at(
+                                registration,
+                                "shared_estimand",
+                                "temporal_aggregation",
+                            )
                     {
                         errors.push(format!(
                             "direct comparison {} does not match the registered shared temporal aggregation",
@@ -273,16 +287,19 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                 }
             }
             "comparable_after_predeclared_mapping" => {
-                let mapping_pinned = object_string_at(
-                    registration,
-                    "shared_estimand",
-                    "mapping_policy_reference",
-                )
-                .is_some_and(|reference| !reference.is_empty())
-                    && object_string_at(registration, "shared_estimand", "mapping_policy_sha256")
+                let mapping_pinned =
+                    object_string_at(registration, "shared_estimand", "mapping_policy_reference")
+                        .is_some_and(|reference| !reference.is_empty())
+                        && object_string_at(
+                            registration,
+                            "shared_estimand",
+                            "mapping_policy_sha256",
+                        )
                         .is_some_and(|digest| {
                             digest.len() == 64
-                                && digest.chars().all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
+                                && digest
+                                    .chars()
+                                    .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
                         });
                 let mapping_verified = comparison
                     .get("mapping")
@@ -331,10 +348,15 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
         .map_err(|error| vec![format!("embedded schema is not valid JSON: {error}")])?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
     })?;
-    let validator = jsonschema::draft202012::new(&schema)
-        .map_err(|error| vec![format!("cannot build registration schema validator: {error}")])?;
+    let validator = jsonschema::draft202012::new(&schema).map_err(|error| {
+        vec![format!(
+            "cannot build registration schema validator: {error}"
+        )]
+    })?;
 
     let mut errors = validator
         .iter_errors(&registration)
@@ -412,8 +434,7 @@ fn run() -> Result<(), String> {
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
 
-    let receipt = validate_contract(&input, &source_commit)
-        .map_err(|errors| errors.join("\n"))?;
+    let receipt = validate_contract(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -448,10 +469,7 @@ mod tests {
     fn incompatible_provider_pair_validates_without_scoring() {
         let receipt = validate(&example()).expect("metadata-only rejection example is valid");
         assert_eq!(receipt["scoring_performed"], false);
-        assert_eq!(
-            receipt["comparisons"][0]["status"],
-            "not_comparable"
-        );
+        assert_eq!(receipt["comparisons"][0]["status"], "not_comparable");
         assert_eq!(
             receipt["comparisons"][0]["forecast_skill_comparison_permitted"],
             false
@@ -471,7 +489,11 @@ mod tests {
         let errors = validate(&value).expect_err("mismatched provider claims must fail closed");
         assert!(errors.iter().any(|error| error.contains("original_target")));
         assert!(errors.iter().any(|error| error.contains("analysis_unit")));
-        assert!(errors.iter().any(|error| error.contains("temporal_aggregation")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("temporal_aggregation"))
+        );
     }
 
     #[test]
@@ -479,7 +501,11 @@ mod tests {
         let mut value = example();
         value["comparisons"][0]["right_provider_id"] = json!("provider-does-not-exist");
         let errors = validate(&value).expect_err("dangling provider reference must fail closed");
-        assert!(errors.iter().any(|error| error.contains("unknown right provider")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown right provider"))
+        );
     }
 
     #[test]
@@ -487,8 +513,13 @@ mod tests {
         let mut value = example();
         value["preregistration"]["primary_metrics_by_output_type"]["event_count"][0] =
             json!("Brier score");
-        let errors = validate(&value).expect_err("count forecast must not be scored as probability");
-        assert!(errors.iter().any(|error| error.contains("binary-probability metric")));
+        let errors =
+            validate(&value).expect_err("count forecast must not be scored as probability");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("binary-probability metric"))
+        );
     }
 
     #[test]
@@ -496,9 +527,21 @@ mod tests {
         let mut value = example();
         value["evidence_scope"] = json!("authorized_historical_evaluation");
         let errors = validate(&value).expect_err("historical data needs governance clearance");
-        assert!(errors.iter().any(|error| error.contains("data_authority_status=authorized")));
-        assert!(errors.iter().any(|error| error.contains("disclosure_review_status=approved")));
-        assert!(errors.iter().any(|error| error.contains("frozen outcome release digest")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("data_authority_status=authorized"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("disclosure_review_status=approved"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("frozen outcome release digest"))
+        );
     }
 
     #[test]
@@ -515,6 +558,10 @@ mod tests {
             "review_reference": "independent-review-record"
         });
         let errors = validate(&value).expect_err("global mapping pin must be required");
-        assert!(errors.iter().any(|error| error.contains("pinned global mapping")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("pinned global mapping"))
+        );
     }
 }
