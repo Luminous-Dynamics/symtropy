@@ -8,9 +8,16 @@ From the repository root:
 
     cargo test --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
     cargo run --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json
+    cargo run --bin pirb-outcome-vintage-sensitivity --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --input docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json
     cargo run --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
+
+## Outcome-vintage sensitivity
+
+The separate `pirb-outcome-vintage-sensitivity` binary compares 2–20 frozen datasets whose forecast archives and every issued prediction remain identical but whose outcome release IDs/digests differ. It rejects changed probabilities, prediction cutoffs/horizons, unit mappings, outcome source/definition, split, privacy, or resampling policy. It reports how many held-out labels changed against the designated first/reference release and the min/max/spread of descriptive score values across releases. It does **not** decide which vintage is correct, average incompatible labels, or turn the observed score range into a confidence interval. For reproducibility, input order defines the reference outcome release.
+
+Run it with repeated `--input PATH` arguments. Do not place protected data or raw release files in public CI; a sensitivity receipt includes input and outcome digests and should follow the data controller's publication/access policy.
 
 ## Normalized input contract
 
