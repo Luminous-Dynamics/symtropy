@@ -314,6 +314,18 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
 }
 
 fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<String>> {
+    if source_commit != "UNPINNED_LOCAL_RUN"
+        && (source_commit.len() != 40
+            || !source_commit
+                .chars()
+                .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase()))
+    {
+        return Err(vec![
+            "source commit must be a 40-character lowercase Git SHA or UNPINNED_LOCAL_RUN"
+                .to_owned(),
+        ]);
+    }
+
     let registration: Value = serde_json::from_slice(input)
         .map_err(|error| vec![format!("input is not valid JSON: {error}")])?;
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
