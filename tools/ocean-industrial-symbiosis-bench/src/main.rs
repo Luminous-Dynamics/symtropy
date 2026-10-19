@@ -387,6 +387,16 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
     Ok(())
 }
 
+fn corpus_from_bytes(bytes: &[u8]) -> Check<Corpus> {
+    if bytes.len() > MAX_CORPUS_BYTES {
+        return Err(format!("corpus exceeds byte limit {MAX_CORPUS_BYTES}"));
+    }
+    let corpus: Corpus =
+        serde_json::from_slice(bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
+    validate_corpus(&corpus)?;
+    Ok(corpus)
+}
+
 fn port<'a>(scenario: &'a Scenario, port_id: &str) -> Option<&'a Port> {
     scenario.ports.iter().find(|port| port.port_id == port_id)
 }
@@ -777,9 +787,7 @@ fn run() -> Check<ExitCode> {
     }
     let bytes = fs::read(&corpus_path)
         .map_err(|error| format!("cannot read corpus {}: {error}", corpus_path.display()))?;
-    let corpus: Corpus =
-        serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
-    validate_corpus(&corpus)?;
+    let corpus = corpus_from_bytes(&bytes)?;
     let source_commit = source_commit(commit)?;
     let receipt = build_receipt(&corpus, &bytes, source_commit);
     let encoded = serde_json::to_vec_pretty(&receipt)
@@ -852,8 +860,8 @@ mod tests {
         let bytes =
             include_bytes!("../../../docs/tech/OCEAN_INDUSTRIAL_SYMBIOSIS_CORPUS_V0_1.json")
                 .to_vec();
-        let corpus: Corpus = serde_json::from_slice(&bytes).expect("synthetic corpus parses");
-        validate_corpus(&corpus).expect("synthetic corpus passes schema gate");
+        let corpus =
+            corpus_from_bytes(&bytes).expect("synthetic corpus parses and passes schema gate");
         (corpus, bytes)
     }
 
@@ -1021,11 +1029,9 @@ mod tests {
     fn unsupported_schema_and_unknown_fields_fail_closed() {
         let (_, bytes) = fixture();
         let text = String::from_utf8(bytes).unwrap();
-        assert!(
-            serde_json::from_str::<Corpus>(&text.replace(SCHEMA_VERSION, "99.0.0"))
-                .map_or(true, |corpus| validate_corpus(&corpus).is_err())
-        );
+        assert!(corpus_from_bytes(text.replace(SCHEMA_VERSION, "99.0.0").as_bytes()).is_err());
         let unknown = text.replacen("\"seed\":", "\"owner\":\"claimed\",\n  \"seed\":", 1);
-        assert!(serde_json::from_str::<Corpus>(&unknown).is_err());
+        assert!(corpus_from_bytes(unknown.as_bytes()).is_err());
+        assert!(corpus_from_bytes(&vec![b'x'; MAX_CORPUS_BYTES + 1]).is_err());
     }
 }
