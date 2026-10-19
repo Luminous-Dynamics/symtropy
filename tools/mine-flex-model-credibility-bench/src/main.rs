@@ -511,6 +511,7 @@ fn aggregate(
     results: &[ScenarioResult],
     split: Split,
     kind: ScenarioKind,
+    error_limit: i64,
 ) -> Summary {
     let mut summary = Summary {
         split,
@@ -619,7 +620,7 @@ fn aggregate(
                 summary.freshness_only_acceptances_missing_or_stale += 1;
             }
 
-            let residual_only = residual_only_disposition(input, PREDICTION_ERROR_LIMIT);
+            let residual_only = residual_only_disposition(input, error_limit);
             if residual_only == Disposition::UseModel {
                 summary.residual_only_acceptances += 1;
                 if input.injected_shift_active {
@@ -680,7 +681,7 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
     let mut summaries = Vec::new();
     for split in [Split::Validation, Split::HeldOut] {
         for kind in ScenarioKind::all() {
-            summaries.push(aggregate(&scenarios, &results, split, kind));
+            summaries.push(aggregate(&scenarios, &results, split, kind, error_limit));
         }
     }
 
