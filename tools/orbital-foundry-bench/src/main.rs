@@ -177,7 +177,7 @@ fn parse_contract(bytes: &[u8]) -> Check<Contract> {
     let max_worst_case_service_loss_ticks =
         u32_field(gates, "max_worst_case_service_loss_ticks", "hard_gates")?;
     let end_of_life_plan_required = bool_field(gates, "end_of_life_plan_required", "hard_gates")?;
-    if max_worst_case_service_loss_ticks == 0 || !end_of_life_plan_required {
+    if max_worst_case_service_loss_ticks != 12 || !end_of_life_plan_required {
         return Err("hard_gates: unsupported or weakened synthetic contract".to_string());
     }
 
@@ -590,6 +590,13 @@ mod tests {
             .as_object_mut()
             .unwrap()
             .insert("quietly_weakened".to_string(), json!(true));
+        assert!(parse_contract(&serde_json::to_vec(&value).unwrap()).is_err());
+    }
+
+    #[test]
+    fn weakened_service_floor_contract_fails_closed() {
+        let mut value: Value = serde_json::from_slice(FIXTURE_BYTES).unwrap();
+        value["hard_gates"]["max_worst_case_service_loss_ticks"] = json!(13);
         assert!(parse_contract(&serde_json::to_vec(&value).unwrap()).is_err());
     }
 
