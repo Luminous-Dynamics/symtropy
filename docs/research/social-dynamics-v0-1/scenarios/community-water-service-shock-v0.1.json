@@ -30,9 +30,9 @@
     "capacity_during_shock": "shock_capacity + (baseline_capacity - shock_capacity) * repair_progress"
   },
   "treatment_arms": [
-    "no_explicit_commitments",
+    "no_commitments",
     "static_trust",
-    "reciprocity_heuristic",
+    "reciprocity",
     "verifiable_commitments"
   ],
   "factors_to_sweep": [
