@@ -220,18 +220,22 @@ pub fn simulate(
         // Pre-draw all randomness independently of treatment. This supports
         // paired-seed comparisons without branch-dependent RNG stream drift.
         let action_draws: Vec<f64> = (0..n).map(|_| rng.unit_f64()).collect();
-        let mut noise_draws: Vec<Vec<f64>> = Vec::with_capacity(n);
-        let mut capture_draws: Vec<Vec<f64>> = Vec::with_capacity(n);
+        let mut decision_noise_draws: Vec<Vec<f64>> = Vec::with_capacity(n);
+        let mut decision_capture_draws: Vec<Vec<f64>> = Vec::with_capacity(n);
+        let mut update_noise_draws: Vec<Vec<f64>> = Vec::with_capacity(n);
+        let mut update_capture_draws: Vec<Vec<f64>> = Vec::with_capacity(n);
         for agent in &agents {
-            noise_draws.push(
-                (0..agent.neighbors.len())
-                    .map(|_| rng.unit_f64())
-                    .collect(),
+            decision_noise_draws.push(
+                (0..agent.neighbors.len()).map(|_| rng.unit_f64()).collect(),
             );
-            capture_draws.push(
-                (0..agent.neighbors.len())
-                    .map(|_| rng.unit_f64())
-                    .collect(),
+            decision_capture_draws.push(
+                (0..agent.neighbors.len()).map(|_| rng.unit_f64()).collect(),
+            );
+            update_noise_draws.push(
+                (0..agent.neighbors.len()).map(|_| rng.unit_f64()).collect(),
+            );
+            update_capture_draws.push(
+                (0..agent.neighbors.len()).map(|_| rng.unit_f64()).collect(),
             );
         }
 
@@ -256,10 +260,10 @@ pub fn simulate(
                 if treatment == Treatment::VerifiableCommitments {
                     for (edge, neighbor) in agent.neighbors.iter().copied().enumerate() {
                         let mut observed = if previous_actions[neighbor] { 1.0 } else { 0.0 };
-                        if noise_draws[i][edge] < scenario.observation_noise {
+                        if decision_noise_draws[i][edge] < scenario.observation_noise {
                             observed = 1.0 - observed;
                         }
-                        if capture_draws[i][edge] < scenario.capture_rate {
+                        if decision_capture_draws[i][edge] < scenario.capture_rate {
                             observed = 1.0 - observed;
                         }
                         evidence_rate += observed / agent.neighbors.len() as f64;
@@ -325,10 +329,10 @@ pub fn simulate(
                 for edge in 0..agents[i].neighbors.len() {
                     let neighbor = agents[i].neighbors[edge];
                     let mut observed = if actions[neighbor] { 1.0 } else { 0.0 };
-                    if noise_draws[i][edge] < scenario.observation_noise {
+                    if update_noise_draws[i][edge] < scenario.observation_noise {
                         observed = 1.0 - observed;
                     }
-                    if capture_draws[i][edge] < scenario.capture_rate {
+                    if update_capture_draws[i][edge] < scenario.capture_rate {
                         observed = 1.0 - observed;
                     }
                     let old_trust = agents[i].trust[edge];
