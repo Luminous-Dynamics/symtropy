@@ -1081,6 +1081,68 @@ mod tests {
     }
 
     #[test]
+    fn detection_profile_must_be_complete_and_signal_must_exceed_sensor_limit() {
+        let (corpus, _) = fixture_corpus();
+        let base = corpus.scenarios[0]
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "abyssal-passive-01")
+            .expect("fixture contains calibrated positive control")
+            .clone();
+        assert!(is_eligible(&base));
+
+        let mut missing = base.clone();
+        missing.detection_profile = None;
+        assert!(!is_eligible(&missing));
+
+        let mut incomplete = base.clone();
+        incomplete
+            .detection_profile
+            .as_mut()
+            .unwrap()
+            .expected_signal_ppm = None;
+        assert!(!is_eligible(&incomplete));
+
+        let mut below_sensor_limit = base.clone();
+        let profile = below_sensor_limit.detection_profile.as_mut().unwrap();
+        profile.minimum_detectable_signal_ppm = Some(300_000);
+        profile.expected_signal_ppm = Some(200_000);
+        assert!(!is_eligible(&below_sensor_limit));
+
+        let mut zero_detection_probability = base.clone();
+        zero_detection_probability
+            .detection_profile
+            .as_mut()
+            .unwrap()
+            .detection_probability_ppm = Some(0);
+        assert!(!is_eligible(&zero_detection_probability));
+
+        let underpowered_fixture = corpus.scenarios[0]
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "abyssal-low-signal-under-sensitivity")
+            .expect("fixture contains inadequate-sensitivity negative control");
+        assert!(!is_eligible(underpowered_fixture));
+
+        let mut bad_range = corpus;
+        bad_range.scenarios[0].candidates[0]
+            .detection_profile
+            .as_mut()
+            .unwrap()
+            .detection_probability_ppm = Some(SCALE_PPM + 1);
+        assert!(validate_corpus(&bad_range).is_err());
+
+        let mut calibrated = base;
+        calibrated.information_gain_ppm = 200_000;
+        calibrated
+            .detection_profile
+            .as_mut()
+            .unwrap()
+            .detection_probability_ppm = Some(500_000);
+        assert_eq!(expected_information_gain_ppm(&calibrated), 100_000);
+    }
+
+    #[test]
     fn rights_review_completion_and_permission_are_independent_gates() {
         let (corpus, _) = fixture_corpus();
         let permitted_but_unreviewed = Candidate {
