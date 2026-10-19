@@ -222,7 +222,6 @@ struct ArchiveReleaseCommitment {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[derive(Debug, Clone, Serialize)]
 struct ForecastArchiveDescriptor {
     provider: String,
     forecast_archive_id: String,
@@ -1154,12 +1153,20 @@ mod tests {
     #[test]
     fn query_uri_must_not_invent_partition_path_segment() {
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
-        let query = manifest["releases"][0]["query_uri"].as_str().unwrap().to_owned();
+        let query = manifest["releases"][0]["query_uri"]
+            .as_str()
+            .unwrap()
+            .to_owned();
         manifest["releases"][0]["query_uri"] =
             Value::String(query.replace("/sc_cm_sb_dich_main?", "/sc_cm_sb_dich_main/eval?"));
         let bytes = serde_json::to_vec(&manifest).unwrap();
         let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
-        assert!(result.unwrap_err().iter().any(|error| error.contains("partition is not a VIEWS route segment")));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("partition is not a VIEWS route segment"))
+        );
     }
 
     #[test]
@@ -1241,8 +1248,9 @@ mod tests {
         let original = import();
         let mut changed_outcomes: Value = serde_json::from_slice(OUTCOMES).unwrap();
         changed_outcomes["rows"][0]["outcome"] = Value::String("event".to_owned());
-        let revised_target_month =
-            changed_outcomes["rows"][0]["target_month"].as_i64().unwrap();
+        let revised_target_month = changed_outcomes["rows"][0]["target_month"]
+            .as_i64()
+            .unwrap();
         changed_outcomes["rows"][0]["outcome_available_month"] =
             Value::from(revised_target_month + 2);
         let changed_bytes = serde_json::to_vec(&changed_outcomes).unwrap();
@@ -1272,8 +1280,7 @@ mod tests {
     #[test]
     fn manifest_cannot_relabel_a_different_forecast_variable_as_main_dich() {
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
-        manifest["source"]["forecast_variable"] =
-            Value::String("sc_cm_sb_main".to_owned());
+        manifest["source"]["forecast_variable"] = Value::String("sc_cm_sb_main".to_owned());
         let bytes = serde_json::to_vec(&manifest).unwrap();
         let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
         assert!(result.is_err());
@@ -1354,14 +1361,9 @@ mod tests {
             serde_json::to_vec(&second_page).unwrap(),
         );
 
-        let bundle = import_views_archive(
-            &manifest_bytes,
-            OUTCOMES,
-            BLOCK_MAP,
-            &sources,
-            runtime(),
-        )
-        .expect("complete paginated response should import");
+        let bundle =
+            import_views_archive(&manifest_bytes, OUTCOMES, BLOCK_MAP, &sources, runtime())
+                .expect("complete paginated response should import");
         assert_eq!(bundle.receipt.forecast_record_count, 28);
         assert_eq!(bundle.receipt.releases[0].response_page_count, 2);
         assert_eq!(bundle.receipt.releases[0].response_page_sha256.len(), 2);
