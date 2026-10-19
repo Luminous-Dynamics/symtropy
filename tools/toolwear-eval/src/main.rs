@@ -113,7 +113,8 @@ impl TransferAccumulator {
         self.pooled.absolute_error_sum += result.pooled.mae * result.pooled.rows as f64;
         self.pooled.squared_error_sum +=
             result.pooled.rmse * result.pooled.rmse * result.pooled.rows as f64;
-        if !self.pooled.absolute_error_sum.is_finite() || !self.pooled.squared_error_sum.is_finite() {
+        if !self.pooled.absolute_error_sum.is_finite() || !self.pooled.squared_error_sum.is_finite()
+        {
             return Err("transfer metric aggregation became non-finite".to_owned());
         }
         Ok(())
@@ -1037,12 +1038,14 @@ mod tests {
         let after = fit_leave_one_tool_out(&dataset).unwrap();
         let after_assignment: Vec<(u32, BTreeSet<u32>, usize, usize)> = after
             .iter()
-            .map(|fold| (
-                fold.held_out_tool,
-                fold.training_tools.clone(),
-                fold.training_rows,
-                fold.test_rows,
-            ))
+            .map(|fold| {
+                (
+                    fold.held_out_tool,
+                    fold.training_tools.clone(),
+                    fold.training_rows,
+                    fold.test_rows,
+                )
+            })
             .collect();
         assert_eq!(before_assignment, after_assignment);
     }
