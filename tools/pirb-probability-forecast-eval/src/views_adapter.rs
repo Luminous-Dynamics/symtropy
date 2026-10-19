@@ -37,6 +37,8 @@ struct ImportSource {
     variable_kind: VariableKind,
     target_definition: String,
     analysis_unit: AnalysisUnit,
+    violence_type: String,
+    binary_event_threshold_brd: i64,
     threshold_definition: String,
     codebook_required_phrase: String,
     forecast_source_reference: String,
@@ -180,6 +182,8 @@ pub struct ViewsImportReceipt {
     spatial_block_map_sha256: String,
     normalized_dataset_sha256: String,
     analysis_unit: AnalysisUnit,
+    violence_type: String,
+    binary_event_threshold_brd: i64,
     forecast_variable: String,
     codebook_variable_key: String,
     target_definition: String,
@@ -538,6 +542,14 @@ pub fn import_views_archive(
         AnalysisUnit::CountryMonth => "/cm/",
         AnalysisUnit::PrioGridMonth => "/pgm/",
     };
+    if manifest.source.violence_type != "sb"
+        || manifest.source.analysis_unit != AnalysisUnit::CountryMonth
+        || manifest.source.binary_event_threshold_brd != 25
+    {
+        return Err(vec![
+            "v0.1 supports only the country-month state-based violence target with a 25 battle-related-deaths threshold".to_owned()
+        ]);
+    }
     let model_variable = &manifest.source.forecast_variable;
     let mut records = Vec::new();
     let mut release_summaries = Vec::new();
@@ -570,11 +582,14 @@ pub fn import_views_archive(
                 release.run_id
             )]);
         }
-        let expected_suffix = format!("/{model_variable}/{}", manifest.partition);
+        let expected_suffix = format!(
+            "{required_unit_path}{}{model_variable}/{}",
+            manifest.source.violence_type, manifest.partition
+        );
         let query_without_args = release.query_uri.split('?').next().unwrap_or("");
         if !query_without_args.ends_with(&expected_suffix) {
             return Err(vec![format!(
-                "query URI for {:?} must terminate at declared probability variable and partition {:?}",
+                "query URI for {:?} must encode the declared analysis unit, violence type, probability variable and partition {:?}",
                 release.run_id, manifest.partition
             )]);
         }
@@ -969,6 +984,8 @@ pub fn import_views_archive(
         spatial_block_map_sha256: block_map_sha256,
         normalized_dataset_sha256,
         analysis_unit: manifest.source.analysis_unit,
+        violence_type: manifest.source.violence_type,
+        binary_event_threshold_brd: manifest.source.binary_event_threshold_brd,
         forecast_variable: manifest.source.forecast_variable,
         codebook_variable_key: manifest.source.codebook_variable_key,
         target_definition: manifest.source.target_definition,
@@ -1091,6 +1108,8 @@ mod tests {
             bundle.receipt.spatial_block_map_sha256
         );
         assert_eq!(bundle.receipt.partition, "eval");
+        assert_eq!(bundle.receipt.violence_type, "sb");
+        assert_eq!(bundle.receipt.binary_event_threshold_brd, 25);
         assert_eq!(normalized["lead_months"], 1);
         assert_eq!(normalized["records"].as_array().unwrap().len(), 28);
         assert_eq!(
@@ -1113,6 +1132,26 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("declared probability variable"))
         );
+    }
+
+    #[test]
+    fn query_uri_must_pin_the_declared_violence_type() {
+        let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
+        let query = manifest["releases"][0]["query_uri"].as_str().unwrap().to_owned();
+        manifest["releases"][0]["query_uri"] = Value::String(query.replace("/cm/sb/", "/cm/ns/"));
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
+        assert!(result.unwrap_err().iter().any(|error| error.contains("analysis unit, violence type, probability variable")));
+    }
+
+    #[test]
+    fn v0_1_rejects_unimplemented_target_semantics() {
+        let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
+        manifest["source"]["analysis_unit"] = Value::String("prio_grid_month".to_owned());
+        manifest["source"]["binary_event_threshold_brd"] = Value::from(1);
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
+        assert!(result.unwrap_err().iter().any(|error| error.contains("v0.1 supports only the country-month state-based violence target")));
     }
 
     #[test]
