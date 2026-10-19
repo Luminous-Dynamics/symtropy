@@ -18,7 +18,12 @@ It does **not** receive the hidden realization ID, seed, future realized periods
 
 Each envelope scenario that matches the observed prefix contributes its future resource projection. If an observed prefix matches no member of the envelope, the support-miss fallback uses all declared future projections after overwriting only the periods already observed. The policy must then find a completion that stays feasible for every remaining projection or explicitly return a no-feasible-recourse result. It must not fabricate a probability distribution or claim the out-of-envelope condition is covered.
 
-For each candidate current action, the exact tiny oracle finds the cheapest feasible continuation in every still-consistent world. The policy chooses the action that minimizes the worst of these continuation costs, then worst continuation carbon, then current-period batch count. The perfect-information realized-world schedule remains evaluator-only.
+The benchmark runs two separate adaptive policies over the same observed prefixes and uncertainty set:
+
+- **Cost-first recourse:** for each candidate current action, find the cheapest feasible continuation in each still-consistent world, then minimize worst continuation cost, worst continuation carbon, and current-period batch count in that order.
+- **Carbon-first recourse:** find the lowest-carbon feasible continuation per world, then minimize worst continuation carbon, worst continuation cost, and current-period batch count in that order.
+
+These are distinct lexicographic objectives, not a weighted blend of uncalibrated cost/carbon units. The perfect-information realized-world schedule remains evaluator-only.
 
 ## Frozen world set
 
@@ -38,14 +43,15 @@ Compare the same realized world using:
 1. fixed baseline schedule [2,1,1];
 2. exact nominal forecast cost-minimizing schedule;
 3. static bounded-minimax schedule from the declared envelope;
-4. causal adaptive recourse.
+4. causal cost-first adaptive recourse;
+5. causal carbon-first adaptive recourse.
 
-For each split and world class, report feasible/infeasible outcomes, feasibility rate, mean cost and carbon among fully feasible completed schedules, mean cost regret, worst regret, nearest-rank P95 regret, worst-5%-mean regret, and adaptive incurred costs for partially executed trajectories. Infeasible production completion is never assigned artificial finite regret; it is counted separately. The evaluator's oracle is only a reference bound.
+For each split and world class, report feasible/infeasible outcomes, feasibility rate, mean cost and carbon among fully feasible completed schedules, mean cost regret, worst regret, nearest-rank P95 regret, worst-5%-mean regret, and incurred costs for partially executed trajectories of both adaptive policies. Infeasible production completion is never assigned artificial finite regret; it is counted separately. The evaluator's oracle is only a reference bound.
 
 ## Required invariants
 
 - Zero safety-electricity, grid-capacity and protected-water violations among feasible actions/schedules.
-- 100% completion of the production target in every in-envelope world for this frozen tractable fixture.
+- 100% completion of the production target by both recourse policies in every in-envelope world for this frozen tractable fixture.
 - Exact independent reconstruction of every completed schedule and of incurred-prefix resource accounting.
 - Zero non-anticipativity violations: identical observed prefix must lead to identical action.
 - Future-only perturbation must not alter the earlier decision prefix.
