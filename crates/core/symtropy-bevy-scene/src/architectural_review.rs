@@ -1275,6 +1275,158 @@ pub fn validate_feedback_resolutions_for_revision(
     }
 }
 
+/// Presentation mode used for one design-review session. Static plans are a
+/// first-class mode, not a fallback error. HeadTrackedVrReference remains an
+/// adapter declaration; this value does not prove headset support exists.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DesignReviewMode {
+    StaticPlan,
+    FloatingCamera,
+    GuidedWalkthrough,
+    OrbitReview,
+    AccessibleTeleport,
+    HeadTrackedVrReference,
+}
+
+impl DesignReviewMode {
+    fn required_route_rig(self) -> Option<ReviewRig> {
+        match self {
+            Self::StaticPlan => None,
+            Self::FloatingCamera => Some(ReviewRig::FloatingCamera),
+            Self::GuidedWalkthrough => Some(ReviewRig::GuidedWalkthrough),
+            Self::OrbitReview => Some(ReviewRig::OrbitReview),
+            Self::AccessibleTeleport => Some(ReviewRig::AccessibleTeleport),
+            Self::HeadTrackedVrReference => Some(ReviewRig::HeadTrackedVrReference),
+        }
+    }
+}
+
+/// Review manifest tied to the exact homeowner brief and model artifact.
+///
+/// The snapshot digest should cover a canonical manifest representation that
+/// excludes the digest field itself. The validator checks digest syntax and
+/// reference consistency, not actual artifact bytes or immutable storage.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DesignReviewSession {
+    pub session_id: String,
+    pub owner_brief_revision_id: String,
+    pub design_revision_id: String,
+    pub model_artifact_id: String,
+    pub model_sha256: String,
+    pub viewer_build_id: String,
+    pub snapshot_manifest_artifact_id: String,
+    pub snapshot_sha256: String,
+    pub mode: DesignReviewMode,
+    pub route: Option<ArchitecturalReviewRoute>,
+    pub annotations: Vec<ReviewAnnotation>,
+    pub occupant_feedback: Vec<OccupantReviewFeedback>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DesignReviewSessionIssue {
+    EmptySessionId,
+    EmptyOwnerBriefRevisionId,
+    EmptyDesignRevisionId,
+    EmptyModelArtifactId,
+    InvalidModelDigest,
+    EmptyViewerBuildId,
+    EmptySnapshotManifestArtifactId,
+    InvalidSnapshotDigest,
+    StaticPlanMustNotHaveRoute,
+    ModeRequiresRoute { mode: DesignReviewMode },
+    RouteRigDoesNotMatchMode {
+        mode: DesignReviewMode,
+        rig: ReviewRig,
+    },
+    RouteDesignRevisionMismatch,
+    InvalidRoute(Vec<ReviewRouteIssue>),
+    InvalidAnnotations(Vec<ReviewAnnotationIssue>),
+    InvalidOccupantFeedback(Vec<OccupantFeedbackIssue>),
+}
+
+/// Validate the provenance closure of one review session before showing it as a
+/// review of a particular model revision. This ensures the route, annotations,
+/// and feedback describe the same model revision. It does not prove that
+/// evidence bytes match their digests or that the design is compliant.
+pub fn validate_design_review_session(
+    session: &DesignReviewSession,
+) -> Result<(), Vec<DesignReviewSessionIssue>> {
+    let mut issues = Vec::new();
+    if session.session_id.trim().is_empty() {
+        issues.push(DesignReviewSessionIssue::EmptySessionId);
+    }
+    if session.owner_brief_revision_id.trim().is_empty() {
+        issues.push(DesignReviewSessionIssue::EmptyOwnerBriefRevisionId);
+    }
+    if session.design_revision_id.trim().is_empty() {
+        issues.push(DesignReviewSessionIssue::EmptyDesignRevisionId);
+    }
+    if session.model_artifact_id.trim().is_empty() {
+        issues.push(DesignReviewSessionIssue::EmptyModelArtifactId);
+    }
+    if session.model_sha256.len() != 64
+        || !session.model_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        issues.push(DesignReviewSessionIssue::InvalidModelDigest);
+    }
+    if session.viewer_build_id.trim().is_empty() {
+        issues.push(DesignReviewSessionIssue::EmptyViewerBuildId);
+    }
+    if session.snapshot_manifest_artifact_id.trim().is_empty() {
+        issues.push(DesignReviewSessionIssue::EmptySnapshotManifestArtifactId);
+    }
+    if session.snapshot_sha256.len() != 64
+        || !session
+            .snapshot_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+    {
+        issues.push(DesignReviewSessionIssue::InvalidSnapshotDigest);
+    }
+
+    match (session.mode.required_route_rig(), session.route.as_ref()) {
+        (None, Some(_)) => issues.push(DesignReviewSessionIssue::StaticPlanMustNotHaveRoute),
+        (Some(mode), None) => {
+            issues.push(DesignReviewSessionIssue::ModeRequiresRoute { mode });
+        }
+        (Some(expected), Some(route)) => {
+            if route.rig != expected {
+                issues.push(DesignReviewSessionIssue::RouteRigDoesNotMatchMode {
+                    mode: session.mode,
+                    rig: route.rig,
+                });
+            }
+            if route.design_revision_id != session.design_revision_id {
+                issues.push(DesignReviewSessionIssue::RouteDesignRevisionMismatch);
+            }
+            if let Err(route_issues) = validate_review_route(route) {
+                issues.push(DesignReviewSessionIssue::InvalidRoute(route_issues));
+            }
+        }
+        (None, None) => {}
+    }
+
+    if let Err(annotation_issues) = validate_review_annotations_for_revision(
+        &session.annotations,
+        &session.design_revision_id,
+    ) {
+        issues.push(DesignReviewSessionIssue::InvalidAnnotations(annotation_issues));
+    }
+    if let Err(feedback_issues) = validate_occupant_feedback_for_review(
+        &session.occupant_feedback,
+        &session.design_revision_id,
+        session.route.as_ref(),
+    ) {
+        issues.push(DesignReviewSessionIssue::InvalidOccupantFeedback(feedback_issues));
+    }
+
+    if issues.is_empty() {
+        Ok(())
+    } else {
+        Err(issues)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1442,6 +1594,70 @@ mod tests {
             validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2"),
             Ok(())
         );
+    }
+
+    fn sample_review_session(mode: DesignReviewMode) -> DesignReviewSession {
+        let route = (mode != DesignReviewMode::StaticPlan).then(|| {
+            let mut route = sample_route_fixture();
+            route.rig = mode.required_route_rig().expect("non-static mode has a rig");
+            route
+        });
+        DesignReviewSession {
+            session_id: "review-session:house-r1".into(),
+            owner_brief_revision_id: "owner-brief:r4".into(),
+            design_revision_id: "house:r1".into(),
+            model_artifact_id: "model:house-r1".into(),
+            model_sha256: "a".repeat(64),
+            viewer_build_id: "symtropy-build:dev-test".into(),
+            snapshot_manifest_artifact_id: "review-manifest:house-r1".into(),
+            snapshot_sha256: "b".repeat(64),
+            mode,
+            route,
+            annotations: Vec::new(),
+            occupant_feedback: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn static_plan_review_is_a_valid_first_class_session() {
+        let session = sample_review_session(DesignReviewMode::StaticPlan);
+        assert_eq!(validate_design_review_session(&session), Ok(()));
+    }
+
+    #[test]
+    fn floating_camera_session_requires_matching_revision_and_mode() {
+        let session = sample_review_session(DesignReviewMode::FloatingCamera);
+        assert_eq!(validate_design_review_session(&session), Ok(()));
+    }
+
+    #[test]
+    fn review_session_rejects_route_from_an_old_revision() {
+        let mut session = sample_review_session(DesignReviewMode::FloatingCamera);
+        session.route.as_mut().unwrap().design_revision_id = "house:r0".into();
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .contains(&DesignReviewSessionIssue::RouteDesignRevisionMismatch));
+    }
+
+    #[test]
+    fn review_session_rejects_mode_route_mismatch() {
+        let mut session = sample_review_session(DesignReviewMode::GuidedWalkthrough);
+        session.route.as_mut().unwrap().rig = ReviewRig::FloatingCamera;
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .contains(&DesignReviewSessionIssue::RouteRigDoesNotMatchMode {
+                mode: DesignReviewMode::GuidedWalkthrough,
+                rig: ReviewRig::FloatingCamera,
+            }));
+    }
+
+    #[test]
+    fn review_session_rejects_malformed_model_digest() {
+        let mut session = sample_review_session(DesignReviewMode::StaticPlan);
+        session.model_sha256 = "not-a-digest".into();
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .contains(&DesignReviewSessionIssue::InvalidModelDigest));
     }
 
     fn annotation(
