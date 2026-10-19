@@ -4,8 +4,8 @@
 use serde::Deserialize;
 use symtropy_animal_observation::{
     ClaimKind, DataOperation, GeneralizationTarget, ManifestDisposition, ManifestReason,
-    ObservationModality, OperationPermission, PermissionDecision, ReferencePackManifest,
-    SplitRole, validate_manifest,
+    ObservationModality, OperationPermission, PermissionDecision, ReferencePackManifest, SplitRole,
+    validate_manifest,
 };
 
 const FIXTURE: &str = include_str!("../fixtures/observation-manifest-oracle-v1.json");
@@ -96,7 +96,10 @@ enum Mutation {
     WhitespaceAttribution,
 }
 
-fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> ReferencePackManifest {
+fn apply_mutation(
+    mut manifest: ReferencePackManifest,
+    mutation: Mutation,
+) -> ReferencePackManifest {
     match mutation {
         Mutation::NoMutation => {}
         Mutation::UnsupportedSchemaVersion => manifest.schema_version = "UNKNOWN-V9".to_owned(),
@@ -111,7 +114,10 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
         Mutation::EmptyTaxonomyRelease => manifest.taxonomy.release.clear(),
         Mutation::MissingTaxonIds => manifest.taxonomy.taxon_ids.clear(),
         Mutation::DuplicateTaxonBinding => {
-            manifest.taxonomy.taxon_ids.push(manifest.taxonomy.taxon_ids[0].clone());
+            manifest
+                .taxonomy
+                .taxon_ids
+                .push(manifest.taxonomy.taxon_ids[0].clone());
         }
         Mutation::MissingTaxonomyMapping => manifest.taxonomy.mapping_ref = None,
         Mutation::NoMeasurementFields => manifest.fields.clear(),
@@ -122,7 +128,9 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
         Mutation::MissingTemporalSemantics => manifest.time_basis = None,
         Mutation::NoRequestedOperations => manifest.requested_operations.clear(),
         Mutation::DuplicateRequestedOperation => {
-            manifest.requested_operations.push(manifest.requested_operations[0]);
+            manifest
+                .requested_operations
+                .push(manifest.requested_operations[0]);
         }
         Mutation::MissingPermissionReceipt => {
             manifest.permissions.pop();
@@ -151,10 +159,14 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
             manifest.requested_claims.clear();
         }
         Mutation::DuplicateClaim => {
-            manifest.declared_supported_claims.push(manifest.declared_supported_claims[0]);
+            manifest
+                .declared_supported_claims
+                .push(manifest.declared_supported_claims[0]);
         }
         Mutation::ClaimExceedsModalityEnvelope => {
-            manifest.declared_supported_claims.push(ClaimKind::Physiology);
+            manifest
+                .declared_supported_claims
+                .push(ClaimKind::Physiology);
             manifest.requested_claims = vec![ClaimKind::Physiology];
         }
         Mutation::NoSplitRecords => manifest.records.clear(),
@@ -247,33 +259,30 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
         }
         Mutation::GranularLocationTooFine => {
             grant_location_operation(&mut manifest);
-            manifest.location_disclosure = Some(
-                symtropy_animal_observation::LocationDisclosurePolicy {
+            manifest.location_disclosure =
+                Some(symtropy_animal_observation::LocationDisclosurePolicy {
                     sensitive_species_location: true,
                     minimum_export_grid_m: Some(10_000),
                     actual_export_grid_m: Some(100),
-                },
-            );
+                });
         }
         Mutation::GranularLocationSafe => {
             grant_location_operation(&mut manifest);
-            manifest.location_disclosure = Some(
-                symtropy_animal_observation::LocationDisclosurePolicy {
+            manifest.location_disclosure =
+                Some(symtropy_animal_observation::LocationDisclosurePolicy {
                     sensitive_species_location: true,
                     minimum_export_grid_m: Some(10_000),
                     actual_export_grid_m: Some(20_000),
-                },
-            );
+                });
         }
         Mutation::GranularLocationMissingResolution => {
             grant_location_operation(&mut manifest);
-            manifest.location_disclosure = Some(
-                symtropy_animal_observation::LocationDisclosurePolicy {
+            manifest.location_disclosure =
+                Some(symtropy_animal_observation::LocationDisclosurePolicy {
                     sensitive_species_location: false,
                     minimum_export_grid_m: None,
                     actual_export_grid_m: None,
-                },
-            );
+                });
         }
         Mutation::WhitespacePermissionScope => {
             manifest.permissions[0].scope_ref = Some("   ".to_owned());
