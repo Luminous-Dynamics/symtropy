@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use pirb_probability_forecast_eval::views_adapter::{
-    import_views_archive, referenced_source_paths,
+    import_views_archive, referenced_source_paths, ImportRuntime,
 };
 use std::{
     collections::BTreeMap,
@@ -73,10 +73,12 @@ fn run() -> Result<(), String> {
         &outcomes_bytes,
         &block_map_bytes,
         &source_files,
-        &source_commit,
-        &rustc_version,
-        &cargo_version,
-        &lock_bytes,
+        ImportRuntime {
+            source_commit: &source_commit,
+            rustc_version: &rustc_version,
+            cargo_version: &cargo_version,
+            lock_bytes: &lock_bytes,
+        },
     )
     .map_err(|errors| errors.join("\n"))?;
 
