@@ -15,3 +15,9 @@ cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml --
 ```
 
 The corpus is at `docs/tech/mine-flex-scheduling-corpus-v0.1.json`. Every output is a regression test with arbitrary integer units, not a site cost model or real emissions measurement. Read [the benchmark contract](../../docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md) for scope, assumptions, claim ceiling and next evidence tier.
+
+Robustness tournament (synthetic generated validation + held-out seeds):
+
+cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- --robustness --source-commit "$(git rev-parse HEAD)"
+
+This command compares the frozen baseline, a forecast-only nominal scheduler and an envelope-feasible minimax scheduler over 32 validation and 32 non-overlapping held-out seeds, with five paired disturbance worlds per seed. Its receipt reports feasibility, grid cost and carbon, oracle regret, 95th-percentile regret and a worst-5%-mean CVaR-style metric. Held-out seeds are reproducible generated scenarios—not blinded external validation. Read docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md for the full contract.
