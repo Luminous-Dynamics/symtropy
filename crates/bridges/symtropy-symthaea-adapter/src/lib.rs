@@ -694,9 +694,10 @@ mod tests {
 
     #[test]
     fn zero_actuators_yields_empty_vec() {
-        let mut p = make_planner();
+        let mut p = make_planner_with_actuators(0);
         let cmds = p.plan(&[0.5], 1.0, 0);
         assert!(cmds.is_empty());
+        assert_eq!(p.last_fault(), None);
     }
 
     #[test]
