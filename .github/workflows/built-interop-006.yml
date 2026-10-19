@@ -12,6 +12,8 @@ on:
     branches: ["main"]
     paths:
       - "tools/built-interop-006/**"
+      - "tools/built-interop-005/**"
+      - "tools/built-interop-002/fixtures/**"
       - ".github/workflows/built-interop-006.yml"
   workflow_dispatch:
 
