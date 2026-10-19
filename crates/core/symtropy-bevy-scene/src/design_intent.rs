@@ -267,14 +267,6 @@ pub fn validate_design_comparison(
                             intent_id: evaluation.intent_id.clone(),
                         });
                     }
-                    if matches!(
-                        evaluation.outcome,
-                        IntentEvaluationOutcome::Satisfied | IntentEvaluationOutcome::Tradeoff
-                    ) && intent.class == DesignIntentClass::OwnerPreference
-                        && evaluation.outcome == IntentEvaluationOutcome::Tradeoff
-                    {
-                        // A tradeoff is a legitimate description, never a failure verdict.
-                    }
                 }
                 DesignIntentClass::BindingRequirement | DesignIntentClass::OwnerHardConstraint => {
                     if matches!(
