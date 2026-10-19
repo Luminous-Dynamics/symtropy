@@ -2110,6 +2110,11 @@ mod tests {
         assert_eq!(report.right_foot_contact_agreement.f1, Some(1.0));
         assert!(report.root_orientation_error.is_none());
         let serialized = serde_json::to_value(&report).unwrap();
+        assert_eq!(serialized["schema_version"], 2);
+        assert_eq!(
+            serialized["evidence_scope"],
+            "synthetic_software_validation_only"
+        );
         assert!(serialized["root_orientation_error"].is_null());
         assert!(!report.provenance.asset_hashes_match);
         assert!(
