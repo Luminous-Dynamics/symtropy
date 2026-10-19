@@ -386,6 +386,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn gini_handles_equal_and_concentrated_values() {
+        assert!((gini_nonnegative(&[1.0, 1.0, 1.0]) - 0.0).abs() < 1e-12);
+        assert!((gini_nonnegative(&[0.0, 1.0]) - 0.5).abs() < 1e-12);
+        assert_eq!(gini_nonnegative(&[0.0, 0.0]), 0.0);
+    }
+
+    #[test]
     fn identical_seed_and_treatment_replay_identically() {
         let scenario = Scenario::default();
         let first = simulate(&scenario, 42, Treatment::Reciprocity).unwrap();
