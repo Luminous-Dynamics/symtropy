@@ -8,10 +8,11 @@ A source-neutral Rust validator for animal-observation reference manifests and l
 - Taxonomy source/release and **multiple taxon IDs per pack**.
 - Measurement units, coordinate frames, temporal semantics and sampling interval checks.
 - Operation-scoped permission receipts for metadata access, local analysis, transformations, evaluation, training, redistribution, publication and sensitive location output.
+- Privacy gates that require a declared export-resolution ceiling for sensitive wildlife locations.
 - Explicit provenance class and a conservative measurement-modality / claim compatibility matrix.
 - Split qualification for unseen subject, study, site, taxon, future-time prediction and within-subject interpolation.
 - Stable, order-independent canonical manifest digest.
-- Frozen synthetic oracle with 58 expected-outcome cases, plus unit tests for scope, split and digest invariants.
+- Frozen synthetic oracle with 62 expected-outcome cases, plus unit tests for scope, split and digest invariants.
 
 The crate checks supplied permission receipts; it is not the authoritative data-rights system. It fetches no external payloads, grants no permission, and makes no claim of biological accuracy.
 
