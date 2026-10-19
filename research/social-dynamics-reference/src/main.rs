@@ -3,6 +3,12 @@ use symtropy_social_dynamics_reference::{simulate, Metrics, Scenario, Treatment}
 
 const BOOTSTRAP_REPLICATES: usize = 2_000;
 
+struct ScenarioResults {
+    id: String,
+    config: Scenario,
+    treatment_results: Vec<(Treatment, Vec<Metrics>)>,
+}
+
 fn mean(values: impl Iterator<Item = f64>) -> Option<f64> {
     let values: Vec<f64> = values.collect();
     if values.is_empty() {
@@ -14,7 +20,7 @@ fn mean(values: impl Iterator<Item = f64>) -> Option<f64> {
 
 /// SplitMix64 stream used only to make bootstrap resampling reproducible.
 fn next_random(state: &mut u64) -> u64 {
-    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    *state = (*state).wrapping_add(0x9E37_79B9_7F4A_7C15);
     let mut z = *state;
     z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
@@ -73,35 +79,82 @@ fn format_optional(value: Option<f64>) -> String {
     value.map(|v| format!("{v:.4}")).unwrap_or_else(|| "NA".to_owned())
 }
 
+/// One-factor-at-a-time robustness screen. These cases are sensitivity probes,
+/// not an exhaustive factorial design and not empirical calibration.
+fn scenario_cases(base: &Scenario, sweep: bool) -> Vec<(String, Scenario)> {
+    let mut cases = vec![("baseline".to_owned(), base.clone())];
+    if !sweep {
+        return cases;
+    }
 
-fn write_run_csv(path: &str, all_results: &[(Treatment, Vec<Metrics>)]) -> Result<(), String> {
+    let mut config = base.clone();
+    config.observation_noise = 0.0;
+    cases.push(("observation_noise_0.00".to_owned(), config));
+    let mut config = base.clone();
+    config.observation_noise = 0.20;
+    cases.push(("observation_noise_0.20".to_owned(), config));
+
+    let mut config = base.clone();
+    config.observation_cost = 0.0;
+    cases.push(("observation_cost_0.00".to_owned(), config));
+    let mut config = base.clone();
+    config.observation_cost = 0.35;
+    cases.push(("observation_cost_0.35".to_owned(), config));
+
+    let mut config = base.clone();
+    config.attestation_tampering_rate = 0.0;
+    cases.push(("tampering_rate_0.00".to_owned(), config));
+    let mut config = base.clone();
+    config.attestation_tampering_rate = 0.20;
+    cases.push(("tampering_rate_0.20".to_owned(), config));
+
+    let mut config = base.clone();
+    config.shock_capacity = 0.25;
+    cases.push(("shock_capacity_0.25".to_owned(), config));
+    let mut config = base.clone();
+    config.shock_capacity = 0.65;
+    cases.push(("shock_capacity_0.65".to_owned(), config));
+
+    cases
+}
+
+fn write_run_csv(path: &str, all_results: &[ScenarioResults]) -> Result<(), String> {
     let mut file = std::fs::File::create(path)
         .map_err(|error| format!("cannot create run CSV {path}: {error}"))?;
     writeln!(
         file,
-        "treatment,seed,unmet_need_integral,unmet_need_inequality_gini,contribution_count,recovery_tick,observation_overhead,repair_progress_at_shock_end"
+        "scenario_id,treatment,seed,population,ticks,observation_noise,observation_cost,attestation_tampering_rate,shock_capacity,unmet_need_integral,unmet_need_inequality_gini,contribution_count,recovery_tick,observation_overhead,repair_progress_at_shock_end"
     )
     .map_err(|error| format!("cannot write run CSV header: {error}"))?;
 
-    for (treatment, results) in all_results {
-        for (seed, metrics) in results.iter().enumerate() {
-            let recovery_tick = metrics
-                .recovery_tick
-                .map(|tick| tick.to_string())
-                .unwrap_or_else(|| "NA".to_owned());
-            writeln!(
-                file,
-                "{},{},{:.6},{:.6},{},{},{:.4},{:.6}",
-                treatment.as_str(),
-                seed,
-                metrics.unmet_need_integral,
-                metrics.unmet_need_inequality_gini,
-                metrics.contribution_count,
-                recovery_tick,
-                metrics.observation_overhead,
-                metrics.repair_progress_at_shock_end
-            )
-            .map_err(|error| format!("cannot write run CSV row: {error}"))?;
+    for scenario in all_results {
+        for (treatment, results) in &scenario.treatment_results {
+            for (seed, metrics) in results.iter().enumerate() {
+                let recovery_tick = metrics
+                    .recovery_tick
+                    .map(|tick| tick.to_string())
+                    .unwrap_or_else(|| "NA".to_owned());
+                writeln!(
+                    file,
+                    "{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.6},{:.6},{},{},{:.4},{:.6}",
+                    scenario.id,
+                    treatment.as_str(),
+                    seed,
+                    scenario.config.population,
+                    scenario.config.ticks,
+                    scenario.config.observation_noise,
+                    scenario.config.observation_cost,
+                    scenario.config.attestation_tampering_rate,
+                    scenario.config.shock_capacity,
+                    metrics.unmet_need_integral,
+                    metrics.unmet_need_inequality_gini,
+                    metrics.contribution_count,
+                    recovery_tick,
+                    metrics.observation_overhead,
+                    metrics.repair_progress_at_shock_end
+                )
+                .map_err(|error| format!("cannot write run CSV row: {error}"))?;
+            }
         }
     }
     file.flush()
@@ -112,6 +165,7 @@ fn write_run_csv(path: &str, all_results: &[(Treatment, Vec<Metrics>)]) -> Resul
 fn main() {
     let mut runs = 32_u64;
     let mut runs_csv_path: Option<String> = None;
+    let mut run_sweep = false;
     let mut args = std::env::args().skip(1);
     while let Some(argument) = args.next() {
         match argument.as_str() {
@@ -135,11 +189,13 @@ fn main() {
                     std::process::exit(2);
                 }));
             }
+            "--sweep" => run_sweep = true,
             "--help" | "-h" => {
                 println!(
-                    "Usage: social-dynamics-reference [--runs N] [--runs-csv PATH]\n\
+                    "Usage: social-dynamics-reference [--runs N] [--runs-csv PATH] [--sweep]\n\
                      --runs N        Number of paired seeds (minimum 20; default 32).\n\
-                     --runs-csv PATH Write one row per treatment/seed for audit."
+                     --runs-csv PATH Write one row per scenario/treatment/seed for audit.\n\
+                     --sweep         Add one-factor sensitivity cases (9 scenarios total)."
                 );
                 return;
             }
@@ -150,26 +206,34 @@ fn main() {
         }
     }
 
-    let scenario = Scenario::default();
-    if let Err(error) = scenario.validate() {
-        eprintln!("invalid scenario: {error}");
-        std::process::exit(2);
-    }
-
-    let mut all_results: Vec<(Treatment, Vec<Metrics>)> =
-        Vec::with_capacity(Treatment::ALL.len());
-    for treatment in Treatment::ALL {
-        let mut results = Vec::with_capacity(runs as usize);
-        for seed in 0..runs {
-            match simulate(&scenario, seed, treatment) {
-                Ok(metrics) => results.push(metrics),
-                Err(error) => {
-                    eprintln!("simulation failed for seed {seed}: {error}");
-                    std::process::exit(2);
+    let base = Scenario::default();
+    let cases = scenario_cases(&base, run_sweep);
+    let mut all_results: Vec<ScenarioResults> = Vec::with_capacity(cases.len());
+    for (id, config) in cases {
+        if let Err(error) = config.validate() {
+            eprintln!("invalid scenario {id}: {error}");
+            std::process::exit(2);
+        }
+        let mut treatment_results: Vec<(Treatment, Vec<Metrics>)> =
+            Vec::with_capacity(Treatment::ALL.len());
+        for treatment in Treatment::ALL {
+            let mut results = Vec::with_capacity(runs as usize);
+            for seed in 0..runs {
+                match simulate(&config, seed, treatment) {
+                    Ok(metrics) => results.push(metrics),
+                    Err(error) => {
+                        eprintln!("simulation failed for {id}, seed {seed}: {error}");
+                        std::process::exit(2);
+                    }
                 }
             }
+            treatment_results.push((treatment, results));
         }
-        all_results.push((treatment, results));
+        all_results.push(ScenarioResults {
+            id,
+            config,
+            treatment_results,
+        });
     }
 
     if let Some(path) = runs_csv_path.as_deref() {
@@ -177,69 +241,74 @@ fn main() {
             eprintln!("{error}");
             std::process::exit(2);
         }
-        eprintln!("wrote one row per treatment/seed to {path}");
+        eprintln!("wrote one row per scenario/treatment/seed to {path}");
     }
 
-    let baseline = all_results
-        .iter()
-        .find(|(treatment, _)| *treatment == Treatment::NoCommitments)
-        .map(|(_, results)| results)
-        .expect("Treatment::ALL must contain the declared baseline");
-
     println!(
-        "treatment,n_runs,mean_unmet_need_integral,paired_reduction_vs_no_commitments_pct,paired_reduction_ci95_low_pct,paired_reduction_ci95_high_pct,mean_unmet_need_inequality_gini,mean_contribution_count,recovery_rate,mean_recovery_tick_when_recovered,observation_overhead,mean_repair_progress_at_shock_end"
+        "scenario_id,treatment,n_runs,mean_unmet_need_integral,paired_reduction_vs_no_commitments_pct,paired_reduction_ci95_low_pct,paired_reduction_ci95_high_pct,mean_unmet_need_inequality_gini,mean_contribution_count,recovery_rate,mean_recovery_tick_when_recovered,mean_observation_overhead,mean_repair_progress_at_shock_end"
     );
 
-    for (treatment, results) in &all_results {
-        let recovery_ticks: Vec<f64> = results
+    for (scenario_index, scenario) in all_results.iter().enumerate() {
+        let baseline = scenario
+            .treatment_results
             .iter()
-            .filter_map(|metrics| metrics.recovery_tick.map(|tick| tick as f64))
-            .collect();
-        let mean_unmet = mean(results.iter().map(|m| m.unmet_need_integral)).unwrap_or(0.0);
-        let mean_inequality =
-            mean(results.iter().map(|m| m.unmet_need_inequality_gini)).unwrap_or(0.0);
-        let mean_contributions =
-            mean(results.iter().map(|m| m.contribution_count as f64)).unwrap_or(0.0);
-        let mean_overhead =
-            mean(results.iter().map(|m| m.observation_overhead)).unwrap_or(0.0);
-        let mean_repair =
-            mean(results.iter().map(|m| m.repair_progress_at_shock_end)).unwrap_or(0.0);
-        let recovery_rate = results
-            .iter()
-            .filter(|metrics| metrics.recovery_tick.is_some())
-            .count() as f64
-            / results.len() as f64;
-        let mean_recovery = mean(recovery_ticks.iter().copied());
-        let reduction = if *treatment == Treatment::NoCommitments {
-            Some((0.0, 0.0, 0.0))
-        } else {
-            paired_reduction_ci95_pct(
-                results,
-                baseline,
-                BOOTSTRAP_REPLICATES,
-                0x534F_4349_414C_0001 ^ (results.len() as u64),
-            )
-        };
+            .find(|(treatment, _)| *treatment == Treatment::NoCommitments)
+            .map(|(_, results)| results)
+            .expect("Treatment::ALL must contain the declared baseline");
 
-        println!(
-            "{},{},{:.6},{},{},{},{:.6},{:.4},{:.4},{},{:.4},{:.6}",
-            treatment.as_str(),
-            results.len(),
-            mean_unmet,
-            format_optional(reduction.map(|r| r.0)),
-            format_optional(reduction.map(|r| r.1)),
-            format_optional(reduction.map(|r| r.2)),
-            mean_inequality,
-            mean_contributions,
-            recovery_rate,
-            format_optional(mean_recovery),
-            mean_overhead,
-            mean_repair
-        );
+        for (treatment, results) in &scenario.treatment_results {
+            let recovery_ticks: Vec<f64> = results
+                .iter()
+                .filter_map(|metrics| metrics.recovery_tick.map(|tick| tick as f64))
+                .collect();
+            let mean_unmet =
+                mean(results.iter().map(|m| m.unmet_need_integral)).unwrap_or(0.0);
+            let mean_inequality =
+                mean(results.iter().map(|m| m.unmet_need_inequality_gini)).unwrap_or(0.0);
+            let mean_contributions =
+                mean(results.iter().map(|m| m.contribution_count as f64)).unwrap_or(0.0);
+            let mean_overhead =
+                mean(results.iter().map(|m| m.observation_overhead)).unwrap_or(0.0);
+            let mean_repair =
+                mean(results.iter().map(|m| m.repair_progress_at_shock_end)).unwrap_or(0.0);
+            let recovery_rate = results
+                .iter()
+                .filter(|metrics| metrics.recovery_tick.is_some())
+                .count() as f64
+                / results.len() as f64;
+            let mean_recovery = mean(recovery_ticks.iter().copied());
+            let reduction = if *treatment == Treatment::NoCommitments {
+                Some((0.0, 0.0, 0.0))
+            } else {
+                paired_reduction_ci95_pct(
+                    results,
+                    baseline,
+                    BOOTSTRAP_REPLICATES,
+                    0x534F_4349_414C_0001 ^ (results.len() as u64) ^ (scenario_index as u64),
+                )
+            };
+
+            println!(
+                "{},{},{},{:.6},{},{},{},{:.6},{:.4},{:.4},{},{:.4},{:.6}",
+                scenario.id,
+                treatment.as_str(),
+                results.len(),
+                mean_unmet,
+                format_optional(reduction.map(|r| r.0)),
+                format_optional(reduction.map(|r| r.1)),
+                format_optional(reduction.map(|r| r.2)),
+                mean_inequality,
+                mean_contributions,
+                recovery_rate,
+                format_optional(mean_recovery),
+                mean_overhead,
+                mean_repair
+            );
+        }
     }
 
     eprintln!(
-        "note: paired bootstrap CI uses {BOOTSTRAP_REPLICATES} deterministic resamples; positive reductions mean lower unmet need. Synthetic outputs are not empirical validity evidence."
+        "note: paired bootstrap CI uses {BOOTSTRAP_REPLICATES} deterministic resamples per treatment/scenario; positive reductions mean lower simulated unmet need. Synthetic outputs are not empirical validity evidence."
     );
 }
 
@@ -313,5 +382,28 @@ mod tests {
         let zero_treatment = [metric(Treatment::Reciprocity, 0.0)];
         assert!(paired_reduction_ci95_pct(&zero_treatment, &zero_baseline, 2_000, 1).is_none());
         assert!(paired_reduction_ci95_pct(&baseline, &baseline, 10, 1).is_none());
+    }
+
+    #[test]
+    fn sensitivity_manifest_has_nine_valid_unique_scenarios() {
+        let base = Scenario::default();
+        let cases = scenario_cases(&base, true);
+        assert_eq!(cases.len(), 9);
+        let mut ids: Vec<&str> = cases.iter().map(|(id, _)| id.as_str()).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), cases.len());
+        for (_, scenario) in &cases {
+            assert!(scenario.validate().is_ok());
+        }
+        assert_eq!(base.observation_noise, Scenario::default().observation_noise);
+        assert_eq!(cases[0].0, "baseline");
+    }
+
+    #[test]
+    fn single_scenario_mode_keeps_only_the_baseline() {
+        let cases = scenario_cases(&Scenario::default(), false);
+        assert_eq!(cases.len(), 1);
+        assert_eq!(cases[0].0, "baseline");
     }
 }
