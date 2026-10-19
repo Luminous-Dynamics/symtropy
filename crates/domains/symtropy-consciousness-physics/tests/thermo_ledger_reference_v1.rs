@@ -89,7 +89,9 @@ fn evaluate(case: &Value, allowed_categories: &[String]) -> Result<Balance, Stri
                 .as_str()
                 .ok_or_else(|| format!("{field}[{index}].event_id must be a string"))?;
             if event_id.is_empty() || !event_ids.insert(event_id) {
-                return Err(format!("{field}[{index}] has an empty or duplicate event ID"));
+                return Err(format!(
+                    "{field}[{index}] has an empty or duplicate event ID"
+                ));
             }
 
             let category = flow["category"]
@@ -99,22 +101,11 @@ fn evaluate(case: &Value, allowed_categories: &[String]) -> Result<Balance, Stri
                 return Err(format!("{field}[{index}] has an undocumented category"));
             }
 
-            let amount = parse_nonnegative(
-                &flow["amount"],
-                &format!("{field}[{index}].amount"),
-            )?;
+            let amount = parse_nonnegative(&flow["amount"], &format!("{field}[{index}].amount"))?;
             if is_inflow {
-                inflow_total = add_finite(
-                    inflow_total,
-                    amount,
-                    "boundary inflow sum",
-                )?;
+                inflow_total = add_finite(inflow_total, amount, "boundary inflow sum")?;
             } else {
-                outflow_total = add_finite(
-                    outflow_total,
-                    amount,
-                    "boundary outflow sum",
-                )?;
+                outflow_total = add_finite(outflow_total, amount, "boundary outflow sum")?;
             }
         }
     }
@@ -233,7 +224,8 @@ fn frozen_corpus_matches_the_balance_identity_and_rejects_invalid_domains() {
         let result = evaluate(case, &categories);
         if expected_valid {
             valid_count += 1;
-            let result = result.unwrap_or_else(|error| panic!("{id}: valid case rejected: {error}"));
+            let result =
+                result.unwrap_or_else(|error| panic!("{id}: valid case rejected: {error}"));
             let expected_balanced = case["expected"]["balanced"]
                 .as_bool()
                 .expect("valid case needs expected.balanced");
@@ -372,7 +364,10 @@ fn deterministic_boundary_grid_balances_and_perturbations_fail() {
         }
     }
 
-    assert!(checked >= 50, "unexpectedly small deterministic grid: {checked}");
+    assert!(
+        checked >= 50,
+        "unexpectedly small deterministic grid: {checked}"
+    );
 }
 
 #[test]
