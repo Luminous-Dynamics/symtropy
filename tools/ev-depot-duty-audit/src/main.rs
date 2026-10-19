@@ -72,7 +72,7 @@ struct Report {
     operation_days_parsed_valid_rows: usize,
     operation_days_invalid_rows: Vec<InvalidRow>,
     schedule_input_rows: usize,
-    schedule_parsed_valid_rows_before_key_reconciliation: usize,
+    schedule_parsed_valid_rows_with_known_operation_day_ids: usize,
     schedule_invalid_rows: Vec<InvalidRow>,
     reconciled_operation_day_count: usize,
     operation_day_reconciliation_issues: Vec<DayIssue>,
@@ -83,6 +83,7 @@ struct Report {
     idealized_min_average_recharge_power_kw_assuming_all_offshift_is_chargeable: Distribution,
     on_shift_seconds_total: u64,
     off_shift_seconds_total: u64,
+    operation_days_without_offshift_charging_window: usize,
     operation_day_csv_sha256: String,
     schedule_csv_sha256: String,
     provenance_warning: String,
@@ -332,10 +333,14 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
     let valid_schedule_rows = all_segments.len();
     let vmt_values: Vec<f64> = reconciled.iter().map(|day| day.vmt).collect();
     let offshift_hours: Vec<f64> = reconciled.iter().map(|day| f64::from(day.off_shift_seconds) / 3600.0).collect();
-    let idealized_power: Vec<f64> = reconciled.iter().map(|day| {
-        let hours = f64::from(day.off_shift_seconds) / 3600.0;
-        day.vmt * metadata.kwh_per_mile / hours
-    }).collect();
+    let idealized_power: Vec<f64> = reconciled.iter()
+        .filter(|day| day.off_shift_seconds > 0)
+        .map(|day| {
+            let hours = f64::from(day.off_shift_seconds) / 3600.0;
+            day.vmt * metadata.kwh_per_mile / hours
+        })
+        .collect();
+    let no_offshift_window_count = reconciled.iter().filter(|day| day.off_shift_seconds == 0).count();
 
     Ok(Report {
         schema_version: "0.1.0".to_string(),
@@ -362,6 +367,7 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
         idealized_min_average_recharge_power_kw_assuming_all_offshift_is_chargeable: distribution(&idealized_power),
         on_shift_seconds_total: reconciled.iter().map(|day| u64::from(day.on_shift_seconds)).sum(),
         off_shift_seconds_total: reconciled.iter().map(|day| u64::from(day.off_shift_seconds)).sum(),
+        operation_days_without_offshift_charging_window: no_offshift_window_count,
         operation_day_csv_sha256: hash(operation_bytes),
         schedule_csv_sha256: hash(schedule_bytes),
         provenance_warning: "Dataset identity, source URI/revision, evidence class, kWh-per-mile assumption and licensing claims are caller-declared. File hashes identify input bytes but do not authenticate who published them. The idealized minimum recharge power assumes all off-shift time is physically available for depot charging.".to_string(),
