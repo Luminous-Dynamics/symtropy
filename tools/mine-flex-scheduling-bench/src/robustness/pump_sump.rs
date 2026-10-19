@@ -102,7 +102,12 @@ fn violation(
     observed: Option<i64>,
     limit: Option<i64>,
 ) -> Violation {
-    Violation { code: code.to_owned(), period_index, observed, limit }
+    Violation {
+        code: code.to_owned(),
+        period_index,
+        observed,
+        limit,
+    }
 }
 
 fn validate_case_shape(case: &Case) -> Check<()> {
@@ -214,10 +219,17 @@ fn evaluate_case(case: &Case) -> Check<CaseResult> {
                 maximum: case.envelope.maximum_flow_liters_per_period,
             }
         } else {
-            Bounds { minimum: 0, maximum: 0 }
+            Bounds {
+                minimum: 0,
+                maximum: 0,
+            }
         };
 
-        let mut energy = if operating { case.envelope.operating_energy_wh_per_period } else { 0 };
+        let mut energy = if operating {
+            case.envelope.operating_energy_wh_per_period
+        } else {
+            0
+        };
         if started_this_period {
             energy = energy.checked_add(case.envelope.startup_energy_wh)
                 .ok_or_else(|| format!("{}: startup energy overflow", case.case_id))?;
@@ -252,7 +264,10 @@ fn evaluate_case(case: &Case) -> Check<CaseResult> {
             ));
         }
 
-        let sump_after = SumpState { minimum_liters: next_min, maximum_liters: next_max };
+        let sump_after = SumpState {
+            minimum_liters: next_min,
+            maximum_liters: next_max,
+        };
         trajectory.push(PeriodResult {
             period_index: index,
             command_on,
@@ -304,7 +319,10 @@ fn independent_conservation_mismatches(case: &Case, result: &CaseResult) -> usiz
 }
 
 fn bounds(minimum: u32, maximum: u32) -> Bounds {
-    Bounds { minimum, maximum }
+    Bounds {
+        minimum,
+        maximum,
+    }
 }
 
 fn period(inflow: Bounds, head: Bounds, budget: u32) -> PeriodInput {
