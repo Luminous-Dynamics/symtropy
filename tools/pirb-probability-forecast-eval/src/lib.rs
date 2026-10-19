@@ -7,6 +7,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod uncertainty;
+pub mod views_adapter;
 use uncertainty::{BootstrapPoint, estimate as estimate_uncertainty};
 
 const SCHEMA_BYTES: &[u8] =
