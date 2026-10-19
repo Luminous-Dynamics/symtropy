@@ -106,7 +106,11 @@
         "fc-admin1-b-organized"
       ],
       "completeness": "complete",
-      "absolute_tolerance": 0
+      "absolute_tolerance": 0,
+      "expected_child_keys": [
+        "unit-admin1-a",
+        "unit-admin1-b"
+      ]
     },
     {
       "constraint_id": "constraint-country-a-event-types",
@@ -118,7 +122,12 @@
         "fc-country-a-vac"
       ],
       "completeness": "complete",
-      "absolute_tolerance": 0
+      "absolute_tolerance": 0,
+      "expected_child_keys": [
+        "event-battles",
+        "event-explosions",
+        "event-vac"
+      ]
     },
     {
       "constraint_id": "constraint-country-b-spatial-incomplete",
@@ -129,7 +138,11 @@
         "fc-admin1-d-organized"
       ],
       "completeness": "incomplete",
-      "absolute_tolerance": 0
+      "absolute_tolerance": 0,
+      "expected_child_keys": [
+        "unit-admin1-c",
+        "unit-admin1-d"
+      ]
     }
   ]
 }
