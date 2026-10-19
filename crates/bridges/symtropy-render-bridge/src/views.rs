@@ -484,14 +484,14 @@ impl OrientedProjector4D {
             candidate[axis] = 1.0;
 
             let normal_component = dot4(candidate, normal);
-            for coordinate in 0..4 {
-                candidate[coordinate] -= normal_component * normal[coordinate];
+            for (coordinate, normal_component) in candidate.iter_mut().zip(normal) {
+                *coordinate -= normal_component * normal_component;
             }
 
             for existing in &basis {
                 let component = dot4(candidate, *existing);
-                for coordinate in 0..4 {
-                    candidate[coordinate] -= component * existing[coordinate];
+                for (coordinate, basis_component) in candidate.iter_mut().zip(*existing) {
+                    *coordinate -= component * basis_component;
                 }
             }
 
@@ -611,7 +611,7 @@ impl Projector<4> for OrientedProjector4D {
 fn dot4(left: [f64; 4], right: [f64; 4]) -> f64 {
     left.iter()
         .zip(right)
-        .map(|(a, b)| a * b)
+        .map(|(a, b)| *a * b)
         .sum()
 }
 
@@ -768,11 +768,11 @@ mod tests {
         let normal = projector.normal();
         let basis = projector.basis();
         near(dot4(normal, normal), 1.0, 1e-10);
-        for index in 0..3 {
-            near(dot4(basis[index], normal), 0.0, 1e-10);
-            near(dot4(basis[index], basis[index]), 1.0, 1e-10);
-            for other in (index + 1)..3 {
-                near(dot4(basis[index], basis[other]), 0.0, 1e-10);
+        for (index, vector) in basis.iter().enumerate() {
+            near(dot4(*vector, normal), 0.0, 1e-10);
+            near(dot4(*vector, *vector), 1.0, 1e-10);
+            for other in basis.iter().skip(index + 1) {
+                near(dot4(*vector, *other), 0.0, 1e-10);
             }
         }
     }
