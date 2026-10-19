@@ -101,6 +101,7 @@ A digest establishes identity/integrity relative to the digested bytes, not the 
 
 ### Symthaea — investigation and experiment selection
 
+- For component and bearing semantics, compose the existing [IND-COMP-000 component qualification boundary](https://github.com/Luminous-Dynamics/symthaea/issues/5965) and [CIV-ENG-BEARING-001 integrated bearing blocker campaign](https://github.com/Luminous-Dynamics/symthaea/issues/6238), including its frozen synthetic corpus plan ([#6240](https://github.com/Luminous-Dynamics/symthaea/issues/6240)); do not create a competing bearing ontology or reimplement its disposition logic.
 - Consume a typed, versioned analysis record rather than free-form solver output.
 - Maintain competing diagnostic hypotheses, required observations, and evidence for/against each hypothesis.
 - Select the next measurement by expected information gain balanced against cost and safety; expose assumptions and uncertainty.
@@ -108,6 +109,7 @@ A digest establishes identity/integrity relative to the digested bytes, not the 
 
 ### Mycelix — provenance, permissions and review
 
+- Compose lifecycle links with [CIRC-MFG-001](https://github.com/Luminous-Dynamics/mycelix/issues/3095), which already defines manufacturing provenance and circularity connections; do not create a second lifecycle database or event graph.
 - Store or reference signed attestations for revisions, test/calibration records, supplier certificates, solver outputs, and approvals.
 - Preserve revocation/supersession and disagreements between reviewers; a newer record must not erase the audit trail.
 - Separate signatures/authorization from claims of validity. Make confidential maintenance/production records permissioned and minimize unnecessary disclosure.
@@ -115,6 +117,7 @@ A digest establishes identity/integrity relative to the digested bytes, not the 
 
 ### Sol-Atlas — asset context and operational impact
 
+- Reuse the asset/provenance foundations and align repairability measures with the existing [repair-first, reversible construction-systems benchmark](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/149) where it applies; this mechanics work should not introduce a second asset identity system.
 - Link each physical asset and component to stable identifiers, location, facility relationships, access constraints, and critical dependencies (power, water, cooling, transport, spares).
 - Make service capacity and recovery time explicit; distinguish a failed component from a degraded service and from total asset unavailability.
 - Propagate mechanical fault scenarios to operational impacts with documented assumptions and provenance.
