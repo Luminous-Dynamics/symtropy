@@ -37,10 +37,9 @@ pub struct RunReceiptPayload {
     pub unit_registry_version: Option<String>,
     /// SHA-256 of the exact source bytes read from the input artifact.
     pub input_artifact_sha256: String,
-    /// SHA-256 of the parsed model's deterministic serde_json serialization.
-    /// This is not a cross-version canonical-JSON claim.
+    /// SHA-256 of the parsed model serialized using RFC 8785 JCS.
     pub serialized_model_sha256: String,
-    /// SHA-256 of the result payload's serde_json serialization before CLI-envelope rendering.
+    /// SHA-256 of the result payload's RFC 8785 JCS bytes before CLI-envelope rendering.
     pub output_payload_sha256: String,
     /// Execution parameters whose values are not already fully represented by the model.
     pub execution_settings: BTreeMap<String, String>,
@@ -49,7 +48,7 @@ pub struct RunReceiptPayload {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunReceipt {
     pub payload: RunReceiptPayload,
-    /// SHA-256 of the serialized payload; this field is excluded to avoid recursive hashing.
+    /// SHA-256 of the RFC 8785 JCS bytes of the payload; this field is excluded from that hash.
     pub receipt_sha256: String,
 }
 
