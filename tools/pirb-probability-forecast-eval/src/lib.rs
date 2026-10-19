@@ -1174,7 +1174,7 @@ fn vintage_compatibility_errors(
     }
     if forecast_inventory(reference) != forecast_inventory(candidate) {
         findings.push(
-            "outcome-vintage comparison requires byte-identical forecast identities, probabilities, units, cutoffs, horizons, and spatial blocks"
+            "outcome-vintage comparison requires an identical forecast inventory: IDs, probabilities, units, cutoffs, horizons, and spatial blocks must match"
                 .to_owned(),
         );
     }
