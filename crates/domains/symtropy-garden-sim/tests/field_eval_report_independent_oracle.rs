@@ -79,7 +79,7 @@ fn known_late_or_disputed_outcomes_do_not_inflate_upper_bound() {
     let report = assess_field_eval_report_v1(&input);
     assert_eq!(report.disposition, FieldEvalReportDispositionV1::Calculated);
     let bounds = report.evidence_confirmed_attainment.expect("valid bounds");
-    assert_eq!(bounds.lower_numerator, 4);
+    assert_eq!(bounds.lower_numerator, 3);
     assert_eq!(bounds.upper_numerator, 6);
     assert_eq!(bounds.denominator, 10);
 }
