@@ -1074,8 +1074,11 @@ mod tests {
             .map(|case| case.partition.as_str())
             .collect();
         assert!(partitions.len() >= 2);
-        let by_id: BTreeMap<&str, &GeneratedCase> =
-            corpus.cases.iter().map(|case| (case.id.as_str(), case)).collect();
+        let by_id: BTreeMap<&str, &GeneratedCase> = corpus
+            .cases
+            .iter()
+            .map(|case| (case.id.as_str(), case))
+            .collect();
         for pair in &corpus.metamorphic_pairs {
             assert_eq!(
                 by_id[pair.source_case_id.as_str()].partition,
@@ -1181,10 +1184,9 @@ mod tests {
             let _ = root;
         }
 
-        let schema: Value = serde_json::from_str(include_str!(
-            "../schemas/generated-corpus-v0.1.schema.json"
-        ))
-        .expect("published schema parses");
+        let schema: Value =
+            serde_json::from_str(include_str!("../schemas/generated-corpus-v0.1.schema.json"))
+                .expect("published schema parses");
         assert_eq!(
             schema["$schema"],
             "https://json-schema.org/draft/2020-12/schema"
@@ -1215,12 +1217,7 @@ mod tests {
                 let name = reference
                     .strip_prefix("#/$defs/")
                     .expect("schema references are local");
-                check_required(
-                    schema_root,
-                    &schema_root["$defs"][name],
-                    instance,
-                    path,
-                );
+                check_required(schema_root, &schema_root["$defs"][name], instance, path);
                 return;
             }
             if let Some(required) = schema.get("required").and_then(Value::as_array) {
@@ -1244,26 +1241,18 @@ mod tests {
                     }
                 }
             }
-            if let (Some(item_schema), Some(items)) =
-                (schema.get("items"), instance.as_array())
-            {
+            if let (Some(item_schema), Some(items)) = (schema.get("items"), instance.as_array()) {
                 for (index, item) in items.iter().enumerate() {
-                    check_required(
-                        schema_root,
-                        item_schema,
-                        item,
-                        &format!("{path}[{index}]"),
-                    );
+                    check_required(schema_root, item_schema, item, &format!("{path}[{index}]"));
                 }
             }
         }
 
-        let corpus = generate_corpus(42, &ruleset(), RULESET_JSON)
-            .expect("generated corpus validates");
-        let schema: Value = serde_json::from_str(include_str!(
-            "../schemas/generated-corpus-v0.1.schema.json"
-        ))
-        .expect("published schema parses");
+        let corpus =
+            generate_corpus(42, &ruleset(), RULESET_JSON).expect("generated corpus validates");
+        let schema: Value =
+            serde_json::from_str(include_str!("../schemas/generated-corpus-v0.1.schema.json"))
+                .expect("published schema parses");
         let instance = serde_json::to_value(corpus).expect("corpus serializes");
         check_required(&schema, &schema, &instance, "corpus");
     }
