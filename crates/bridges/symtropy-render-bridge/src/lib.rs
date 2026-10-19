@@ -32,5 +32,6 @@ pub use telemetry_ssbo::{LinkTelemetryGpu, NodeTelemetryGpu, TelemetryBufferReso
 
 pub use views::{
     OrientedProjector4D, ProjectorOblique25D, ProjectionConfigError, SliceWindow, ViewConfigError,
-    ViewDetailPolicy, ViewDimension, ViewLayerVisibility, ViewProfile, ViewPurpose,
+    ViewDetailPolicy, ViewDimension, ViewLayerVisibility, ViewNavigationPolicy, ViewProfile,
+    ViewPurpose,
 };
