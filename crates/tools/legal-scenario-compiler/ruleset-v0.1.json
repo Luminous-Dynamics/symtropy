@@ -97,7 +97,7 @@
     {
       "id": "SYN-RULE-ANSWER-SUPPORTED-001",
       "requires": [
-        "procedural_prerequisites_satisfied",
+        "reasoning_chain_complete",
         "current_authority_available",
         "source_use_allowed",
         "no_authority_conflict"
@@ -105,7 +105,7 @@
       "produces": [
         "answer_supported"
       ],
-      "rationale": "A supported answer requires prerequisites, a current synthetic authority, permitted source use, and no unresolved conflict."
+      "rationale": "A supported answer requires a completed synthetic inference chain, a current authority, permitted source use, and no unresolved conflict."
     }
   ],
   "decisions": [
