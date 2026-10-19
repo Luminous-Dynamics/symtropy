@@ -50,6 +50,15 @@ def sha256_hex(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+# Fixed expectations independent of the JSON fixture under test.
+EXPECTED = {
+    "input_artifact_sha256": "cc014e7a9694d0bf7a836dd7ec8aa19552424111024d60822ad09a637a503e84",
+    "serialized_model_sha256": "71d93acd678db5ef8385b1e21984caff6547b22b2fe1c79753c4818d55f1841b",
+    "output_payload_sha256": "8cd5aa75a94d38bbd330f9942a42e6136e9759125c09f2c23da95964621460e6",
+    "receipt_sha256": "53ce783176001947e1fa3e67e30ecfbcc9af4f94cd743152851d0bc54f39f792",
+}
+
+
 def main() -> int:
     input_bytes = (FIXTURE_DIR / "receipt-known-answer-input.json").read_bytes()
     output_bytes = (FIXTURE_DIR / "receipt-known-answer-output.json").read_bytes()
@@ -69,9 +78,11 @@ def main() -> int:
         "receipt_sha256": sha256_hex(receipt_payload_bytes),
     }
     for field, digest in computed.items():
-        expected = receipt.get("receipt_sha256") if field == "receipt_sha256" else payload.get(field)
-        if digest != expected:
-            raise SystemExit(f"FAIL {field}: expected {expected}, computed {digest}")
+        if digest != EXPECTED[field]:
+            raise SystemExit(f"FAIL {field}: fixed expected {EXPECTED[field]}, computed {digest}")
+        fixture_value = receipt.get("receipt_sha256") if field == "receipt_sha256" else payload.get(field)
+        if digest != fixture_value:
+            raise SystemExit(f"FAIL {field}: fixture says {fixture_value}, computed {digest}")
         print(f"PASS {field}: {digest}")
 
     if payload.get("receipt_schema_version") != "0.2.0":
