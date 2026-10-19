@@ -750,6 +750,212 @@ pub fn advance_architectural_review_routes(
     }
 }
 
+/// A person's feedback after experiencing a design revision. This is a
+/// user report—not a verified building-code finding, a measured dimension, or
+/// proof of an engineering defect. Historical records should remain attached
+/// to their original revision; this validator is for presenting/merging them
+/// into a currently displayed review.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OccupantFeedbackCategory {
+    PersonalPreference,
+    SpatialComfort,
+    CirculationConcern,
+    AccessibilityConcern,
+    SightlineAndPrivacy,
+    StorageAndErgonomics,
+    DaylightAndOutdoorConnection,
+    AcousticsQuestion,
+    MaterialsAndMaintenance,
+    Other,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OccupantFeedbackPriority {
+    NiceToHave,
+    Important,
+    MustResolveBeforeBuild,
+}
+
+/// Share scope is explicit. Feedback is private by default when created by a
+/// consumer; public case studies require a separate explicit consent flag.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OccupantFeedbackShareScope {
+    Private,
+    ProjectTeam,
+    PublicCaseStudy,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OccupantFeedbackLifecycle {
+    Captured,
+    NeedsDesignIteration,
+    NeedsIndependentAssessment,
+    AcceptedForDesignChange,
+    Deferred,
+    Resolved,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OccupantReviewFeedback {
+    pub feedback_id: String,
+    pub design_revision_id: String,
+    /// Optional immersive route context; feedback can also come from a static plan.
+    pub route_id: Option<String>,
+    pub waypoint_id: Option<String>,
+    /// Stable room/component ID where available, not a raw room scan.
+    pub location_ref: Option<String>,
+    pub category: OccupantFeedbackCategory,
+    pub priority: OccupantFeedbackPriority,
+    pub note: String,
+    pub desired_change: Option<String>,
+    pub share_scope: OccupantFeedbackShareScope,
+    pub explicit_public_consent: bool,
+    pub lifecycle: OccupantFeedbackLifecycle,
+    pub disposition_note: Option<String>,
+    /// Stable design-change request or issue ID; does not mean that the change
+    /// has been applied or verified.
+    pub design_change_request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OccupantFeedbackIssue {
+    EmptyFeedbackId,
+    DuplicateFeedbackId(String),
+    EmptyDesignRevisionId,
+    RevisionMismatch { feedback_id: String },
+    EmptyNote { feedback_id: String },
+    BlankLocationReference { feedback_id: String },
+    RouteContextUnavailable { feedback_id: String },
+    RouteMismatch { feedback_id: String },
+    RouteRevisionMismatch { feedback_id: String },
+    WaypointWithoutRoute { feedback_id: String },
+    UnknownWaypoint { feedback_id: String, waypoint_id: String },
+    PublicShareWithoutConsent { feedback_id: String },
+    AcceptedWithoutChangeRequest { feedback_id: String },
+    DispositionWithoutExplanation { feedback_id: String },
+}
+
+/// Validate user-authored feedback before showing it against the current
+/// revision or incorporating it into a new design brief. Feedback must remain
+/// distinct from verified compliance findings: recording an accessibility
+/// concern prompts assessment; it does not itself declare a violation.
+pub fn validate_occupant_feedback_for_review(
+    feedback: &[OccupantReviewFeedback],
+    design_revision_id: &str,
+    route: Option<&ArchitecturalReviewRoute>,
+) -> Result<(), Vec<OccupantFeedbackIssue>> {
+    let mut issues = Vec::new();
+    if design_revision_id.trim().is_empty() {
+        issues.push(OccupantFeedbackIssue::EmptyDesignRevisionId);
+    }
+    if route.is_some_and(|value| value.design_revision_id != design_revision_id) {
+        for item in feedback {
+            issues.push(OccupantFeedbackIssue::RouteRevisionMismatch {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+    }
+
+    let mut ids = std::collections::HashSet::new();
+    for item in feedback {
+        if item.feedback_id.trim().is_empty() {
+            issues.push(OccupantFeedbackIssue::EmptyFeedbackId);
+        } else if !ids.insert(item.feedback_id.as_str()) {
+            issues.push(OccupantFeedbackIssue::DuplicateFeedbackId(
+                item.feedback_id.clone(),
+            ));
+        }
+        if item.design_revision_id.trim().is_empty() {
+            issues.push(OccupantFeedbackIssue::EmptyDesignRevisionId);
+        } else if item.design_revision_id != design_revision_id {
+            issues.push(OccupantFeedbackIssue::RevisionMismatch {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+        if item.note.trim().is_empty() {
+            issues.push(OccupantFeedbackIssue::EmptyNote {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+        if item
+            .location_ref
+            .as_deref()
+            .is_some_and(|value| value.trim().is_empty())
+        {
+            issues.push(OccupantFeedbackIssue::BlankLocationReference {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+
+        if let Some(route_id) = &item.route_id {
+            let Some(context_route) = route else {
+                issues.push(OccupantFeedbackIssue::RouteContextUnavailable {
+                    feedback_id: item.feedback_id.clone(),
+                });
+                continue;
+            };
+            if route_id != &context_route.route_id {
+                issues.push(OccupantFeedbackIssue::RouteMismatch {
+                    feedback_id: item.feedback_id.clone(),
+                });
+                continue;
+            }
+            if let Some(waypoint_id) = &item.waypoint_id {
+                if !context_route
+                    .waypoints
+                    .iter()
+                    .any(|waypoint| &waypoint.waypoint_id == waypoint_id)
+                {
+                    issues.push(OccupantFeedbackIssue::UnknownWaypoint {
+                        feedback_id: item.feedback_id.clone(),
+                        waypoint_id: waypoint_id.clone(),
+                    });
+                }
+            }
+        } else if item.waypoint_id.is_some() {
+            issues.push(OccupantFeedbackIssue::WaypointWithoutRoute {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+
+        if item.share_scope == OccupantFeedbackShareScope::PublicCaseStudy
+            && !item.explicit_public_consent
+        {
+            issues.push(OccupantFeedbackIssue::PublicShareWithoutConsent {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+        if item.lifecycle == OccupantFeedbackLifecycle::AcceptedForDesignChange
+            && !item
+                .design_change_request_id
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+        {
+            issues.push(OccupantFeedbackIssue::AcceptedWithoutChangeRequest {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+        if matches!(
+            item.lifecycle,
+            OccupantFeedbackLifecycle::Deferred | OccupantFeedbackLifecycle::Resolved
+        ) && !item
+            .disposition_note
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        {
+            issues.push(OccupantFeedbackIssue::DispositionWithoutExplanation {
+                feedback_id: item.feedback_id.clone(),
+            });
+        }
+    }
+
+    if issues.is_empty() {
+        Ok(())
+    } else {
+        Err(issues)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -925,6 +1131,120 @@ mod tests {
                     annotation_id: "evidence:energy".into(),
                 })
         );
+    }
+
+    fn occupant_feedback(
+        id: &str,
+        revision: &str,
+        category: OccupantFeedbackCategory,
+    ) -> OccupantReviewFeedback {
+        OccupantReviewFeedback {
+            feedback_id: id.into(),
+            design_revision_id: revision.into(),
+            route_id: None,
+            waypoint_id: None,
+            location_ref: Some("room:kitchen".into()),
+            category,
+            priority: OccupantFeedbackPriority::Important,
+            note: "The room feels cramped around the preparation area.".into(),
+            desired_change: Some("Explore a wider circulation path.".into()),
+            share_scope: OccupantFeedbackShareScope::Private,
+            explicit_public_consent: false,
+            lifecycle: OccupantFeedbackLifecycle::Captured,
+            disposition_note: None,
+            design_change_request_id: None,
+        }
+    }
+
+    #[test]
+    fn owner_preference_is_valid_feedback_not_a_code_failure() {
+        let feedback = occupant_feedback(
+            "feedback:arched-window",
+            "house:r1",
+            OccupantFeedbackCategory::PersonalPreference,
+        );
+        assert_eq!(
+            validate_occupant_feedback_for_review(&[feedback], "house:r1", None),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn old_revision_feedback_cannot_be_silently_attached_to_a_new_revision() {
+        let feedback = occupant_feedback(
+            "feedback:kitchen-circulation",
+            "house:r1",
+            OccupantFeedbackCategory::CirculationConcern,
+        );
+        assert!(validate_occupant_feedback_for_review(&[feedback], "house:r2", None)
+            .unwrap_err()
+            .contains(&OccupantFeedbackIssue::RevisionMismatch {
+                feedback_id: "feedback:kitchen-circulation".into(),
+            }));
+    }
+
+    #[test]
+    fn waypoint_feedback_must_reference_the_selected_route() {
+        let mut feedback = occupant_feedback(
+            "feedback:entry",
+            "house-model:r7",
+            OccupantFeedbackCategory::AccessibilityConcern,
+        );
+        feedback.route_id = Some("home-review:accessible-tour".into());
+        feedback.waypoint_id = Some("entry".into());
+        let route = sample_route_fixture();
+        assert_eq!(
+            validate_occupant_feedback_for_review(&[feedback], "house-model:r7", Some(&route)),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn unknown_waypoint_feedback_is_rejected() {
+        let mut feedback = occupant_feedback(
+            "feedback:unknown-stop",
+            "house-model:r7",
+            OccupantFeedbackCategory::SpatialComfort,
+        );
+        feedback.route_id = Some("home-review:accessible-tour".into());
+        feedback.waypoint_id = Some("not-in-route".into());
+        let route = sample_route_fixture();
+        assert!(validate_occupant_feedback_for_review(&[feedback], "house-model:r7", Some(&route))
+            .unwrap_err()
+            .contains(&OccupantFeedbackIssue::UnknownWaypoint {
+                feedback_id: "feedback:unknown-stop".into(),
+                waypoint_id: "not-in-route".into(),
+            }));
+    }
+
+    #[test]
+    fn public_case_study_requires_explicit_consent() {
+        let mut feedback = occupant_feedback(
+            "feedback:living-area",
+            "house:r1",
+            OccupantFeedbackCategory::SpatialComfort,
+        );
+        feedback.share_scope = OccupantFeedbackShareScope::PublicCaseStudy;
+        assert!(validate_occupant_feedback_for_review(&[feedback], "house:r1", None)
+            .unwrap_err()
+            .contains(&OccupantFeedbackIssue::PublicShareWithoutConsent {
+                feedback_id: "feedback:living-area".into(),
+            }));
+    }
+
+    #[test]
+    fn accepted_design_feedback_must_link_a_change_request() {
+        let mut feedback = occupant_feedback(
+            "feedback:storage",
+            "house:r1",
+            OccupantFeedbackCategory::StorageAndErgonomics,
+        );
+        feedback.lifecycle = OccupantFeedbackLifecycle::AcceptedForDesignChange;
+        assert!(validate_occupant_feedback_for_review(&[feedback], "house:r1", None)
+            .unwrap_err()
+            .contains(&OccupantFeedbackIssue::AcceptedWithoutChangeRequest {
+                feedback_id: "feedback:storage".into(),
+            }));
     }
 
     #[test]
