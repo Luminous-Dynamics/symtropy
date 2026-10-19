@@ -221,3 +221,41 @@ fn negative_control_mutations_are_detected() {
         );
     }
 }
+
+
+#[test]
+fn deterministic_edge_grid_preserves_dissipation_sign() {
+    // A deterministic property-style sweep broadens the hand-authored corpus
+    // without adding a random-number dependency or introducing flaky tests.
+    let states = [1.0e-6_f64, 0.01, 0.1, 0.5, 1.0, 2.0, 10.0, 1.0e3, 1.0e6];
+    let conductances = [0.0_f64, 0.125, 0.5, 1.0, 10.0];
+    let mut checked = 0_usize;
+
+    for &a in &states {
+        for &b in &states {
+            for &conductance in &conductances {
+                let contribution = conductance * (a - b) * (a.ln() - b.ln());
+                assert!(contribution.is_finite(), "finite domain produced non-finite result");
+                assert!(
+                    contribution >= -REL_TOL,
+                    "negative dissipation for a={a}, b={b}, c={conductance}: {contribution}"
+                );
+                if conductance > 0.0 && a != b {
+                    assert!(
+                        contribution > 0.0,
+                        "strict monotonicity expected for unequal positive states: a={a}, b={b}, c={conductance}"
+                    );
+                }
+                if conductance == 0.0 || a == b {
+                    assert_eq!(
+                        contribution, 0.0,
+                        "zero-conductance or equal-state edge must dissipate zero"
+                    );
+                }
+                checked += 1;
+            }
+        }
+    }
+
+    assert_eq!(checked, 405, "unexpected deterministic property-grid size");
+}
