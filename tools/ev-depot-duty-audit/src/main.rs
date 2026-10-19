@@ -177,13 +177,22 @@ fn distribution(values: &[f64]) -> Distribution {
     }
 }
 
-fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> Result<Report, String> {
+fn audit(
+    operation_bytes: &[u8],
+    schedule_bytes: &[u8],
+    metadata: Metadata,
+) -> Result<Report, String> {
     if !metadata.kwh_per_mile.is_finite() || metadata.kwh_per_mile <= 0.0 {
         return Err("kwh_per_mile_must_be_finite_and_positive".to_string());
     }
 
-    let mut op_reader = ReaderBuilder::new().trim(Trim::All).from_reader(operation_bytes);
-    let op_headers = op_reader.headers().map_err(|e| format!("operation_day_csv_headers:{e}"))?.clone();
+    let mut op_reader = ReaderBuilder::new()
+        .trim(Trim::All)
+        .from_reader(operation_bytes);
+    let op_headers = op_reader
+        .headers()
+        .map_err(|e| format!("operation_day_csv_headers:{e}"))?
+        .clone();
     let op_id_col = column(&op_headers, "veh_op_day_id")?;
     let op_vmt_col = column(&op_headers, "vmt")?;
     let op_on_col = column(&op_headers, "time_on_shift_s")?;
@@ -197,7 +206,10 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
         let record = match result {
             Ok(record) => record,
             Err(error) => {
-                invalid_op_rows.push(InvalidRow { row_index_zero_based: index, reason: format!("csv_parse_error:{error}") });
+                invalid_op_rows.push(InvalidRow {
+                    row_index_zero_based: index,
+                    reason: format!("csv_parse_error:{error}"),
+                });
                 continue;
             }
         };
@@ -207,25 +219,42 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
             let on = integer_u32(&record, op_on_col, "time_on_shift_s")?;
             let off = integer_u32(&record, op_off_col, "time_off_shift_s")?;
             if on.saturating_add(off) != DAY_SECONDS {
-                return Err(format!("on_plus_off_shift_seconds_must_equal_{DAY_SECONDS}"));
+                return Err(format!(
+                    "on_plus_off_shift_seconds_must_equal_{DAY_SECONDS}"
+                ));
             }
-            Ok(OpDay { id, vmt, on_shift_seconds: on, off_shift_seconds: off })
+            Ok(OpDay {
+                id,
+                vmt,
+                on_shift_seconds: on,
+                off_shift_seconds: off,
+            })
         })();
         match parsed {
             Ok(day) if operation_days.contains_key(&day.id) => invalid_op_rows.push(InvalidRow {
                 row_index_zero_based: index,
                 reason: format!("duplicate_operation_day_id:{}", day.id),
             }),
-            Ok(day) => { operation_days.insert(day.id, day); }
-            Err(reason) => invalid_op_rows.push(InvalidRow { row_index_zero_based: index, reason }),
+            Ok(day) => {
+                operation_days.insert(day.id, day);
+            }
+            Err(reason) => invalid_op_rows.push(InvalidRow {
+                row_index_zero_based: index,
+                reason,
+            }),
         }
     }
     if op_rows == 0 {
         return Err("operation_day_csv_has_no_data_rows".to_string());
     }
 
-    let mut schedule_reader = ReaderBuilder::new().trim(Trim::All).from_reader(schedule_bytes);
-    let schedule_headers = schedule_reader.headers().map_err(|e| format!("schedule_csv_headers:{e}"))?.clone();
+    let mut schedule_reader = ReaderBuilder::new()
+        .trim(Trim::All)
+        .from_reader(schedule_bytes);
+    let schedule_headers = schedule_reader
+        .headers()
+        .map_err(|e| format!("schedule_csv_headers:{e}"))?
+        .clone();
     let sc_id_col = column(&schedule_headers, "veh_op_day_id")?;
     let start_col = column(&schedule_headers, "start_time")?;
     let end_col = column(&schedule_headers, "end_time")?;
@@ -241,7 +270,10 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
         let record = match result {
             Ok(record) => record,
             Err(error) => {
-                invalid_schedule_rows.push(InvalidRow { row_index_zero_based: index, reason: format!("csv_parse_error:{error}") });
+                invalid_schedule_rows.push(InvalidRow {
+                    row_index_zero_based: index,
+                    reason: format!("csv_parse_error:{error}"),
+                });
                 continue;
             }
         };
@@ -251,28 +283,49 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
             let end = parse_clock(field(&record, end_col, "end_time")?)?;
             let declared = integer_u32(&record, duration_col, "total_time_s")?;
             let on_text = field(&record, on_col, "on_shift")?;
-            let on = match on_text { "0" => false, "1" => true, _ => return Err("on_shift_must_be_0_or_1".to_string()) };
+            let on = match on_text {
+                "0" => false,
+                "1" => true,
+                _ => return Err("on_shift_must_be_0_or_1".to_string()),
+            };
             let vmt = finite_nonnegative(&record, vmt_col, "vmt")?;
             if end <= start || declared == 0 {
                 return Err("segment_must_have_positive_duration_without_midnight_wrap".to_string());
             }
             if end - start != declared {
-                return Err(format!("segment_duration_mismatch:clock={},declared={declared}", end - start));
+                return Err(format!(
+                    "segment_duration_mismatch:clock={},declared={declared}",
+                    end - start
+                ));
             }
             if !on && vmt > 1.0e-9 {
                 return Err("off_shift_segment_has_nonzero_vmt".to_string());
             }
-            Ok(Segment { row_index: index, operation_day_id: id, start_second: start, end_second: end, total_seconds: declared, on_shift: on, vmt })
+            Ok(Segment {
+                row_index: index,
+                operation_day_id: id,
+                start_second: start,
+                end_second: end,
+                total_seconds: declared,
+                on_shift: on,
+                vmt,
+            })
         })();
         match parsed {
             Ok(segment) => {
                 if operation_days.contains_key(&segment.operation_day_id) {
                     all_segments.push(segment);
                 } else {
-                    invalid_schedule_rows.push(InvalidRow { row_index_zero_based: index, reason: format!("unknown_operation_day_id:{}", segment.operation_day_id) });
+                    invalid_schedule_rows.push(InvalidRow {
+                        row_index_zero_based: index,
+                        reason: format!("unknown_operation_day_id:{}", segment.operation_day_id),
+                    });
                 }
             }
-            Err(reason) => invalid_schedule_rows.push(InvalidRow { row_index_zero_based: index, reason }),
+            Err(reason) => invalid_schedule_rows.push(InvalidRow {
+                row_index_zero_based: index,
+                reason,
+            }),
         }
     }
     if schedule_rows == 0 {
@@ -281,7 +334,10 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
 
     let mut grouped = BTreeMap::<u64, Vec<Segment>>::new();
     for segment in &all_segments {
-        grouped.entry(segment.operation_day_id).or_default().push(segment.clone());
+        grouped
+            .entry(segment.operation_day_id)
+            .or_default()
+            .push(segment.clone());
     }
     let mut issues = Vec::<DayIssue>::new();
     let mut reconciled = Vec::<OpDay>::new();
@@ -293,14 +349,18 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
         if segments.is_empty() {
             reasons.push("no_schedule_segments".to_string());
         }
-        segments.sort_by_key(|segment| (segment.start_second, segment.end_second, segment.row_index));
+        segments
+            .sort_by_key(|segment| (segment.start_second, segment.end_second, segment.row_index));
         let mut expected_start = 0_u32;
         let mut schedule_on = 0_u64;
         let mut schedule_off = 0_u64;
         let mut schedule_vmt = 0.0_f64;
         for segment in &segments {
             if segment.start_second != expected_start {
-                reasons.push(format!("segment_partition_gap_or_overlap_before_row_{}", segment.row_index));
+                reasons.push(format!(
+                    "segment_partition_gap_or_overlap_before_row_{}",
+                    segment.row_index
+                ));
             }
             expected_start = segment.end_second;
             if segment.on_shift {
@@ -311,13 +371,21 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
             }
         }
         if expected_start != DAY_SECONDS {
-            reasons.push(format!("segments_end_at_{expected_start}_not_{DAY_SECONDS}"));
+            reasons.push(format!(
+                "segments_end_at_{expected_start}_not_{DAY_SECONDS}"
+            ));
         }
         if schedule_on.abs_diff(u64::from(day.on_shift_seconds)) > 1 {
-            reasons.push(format!("on_shift_seconds_mismatch:segments={schedule_on},operation_days={}", day.on_shift_seconds));
+            reasons.push(format!(
+                "on_shift_seconds_mismatch:segments={schedule_on},operation_days={}",
+                day.on_shift_seconds
+            ));
         }
         if schedule_off.abs_diff(u64::from(day.off_shift_seconds)) > 1 {
-            reasons.push(format!("off_shift_seconds_mismatch:segments={schedule_off},operation_days={}", day.off_shift_seconds));
+            reasons.push(format!(
+                "off_shift_seconds_mismatch:segments={schedule_off},operation_days={}",
+                day.off_shift_seconds
+            ));
         }
         let vmt_tolerance = 1.0e-6_f64.max(day.vmt.abs() * 1.0e-7);
         if (schedule_vmt - day.vmt).abs() > vmt_tolerance {
@@ -327,20 +395,30 @@ fn audit(operation_bytes: &[u8], schedule_bytes: &[u8], metadata: Metadata) -> R
             reconciled.push(day.clone());
             segments_for_reconciled += segments.len();
         } else {
-            issues.push(DayIssue { operation_day_id: day.id, reasons });
+            issues.push(DayIssue {
+                operation_day_id: day.id,
+                reasons,
+            });
         }
     }
     let valid_schedule_rows = all_segments.len();
     let vmt_values: Vec<f64> = reconciled.iter().map(|day| day.vmt).collect();
-    let offshift_hours: Vec<f64> = reconciled.iter().map(|day| f64::from(day.off_shift_seconds) / 3600.0).collect();
-    let idealized_power: Vec<f64> = reconciled.iter()
+    let offshift_hours: Vec<f64> = reconciled
+        .iter()
+        .map(|day| f64::from(day.off_shift_seconds) / 3600.0)
+        .collect();
+    let idealized_power: Vec<f64> = reconciled
+        .iter()
         .filter(|day| day.off_shift_seconds > 0)
         .map(|day| {
             let hours = f64::from(day.off_shift_seconds) / 3600.0;
             day.vmt * metadata.kwh_per_mile / hours
         })
         .collect();
-    let no_offshift_window_count = reconciled.iter().filter(|day| day.off_shift_seconds == 0).count();
+    let no_offshift_window_count = reconciled
+        .iter()
+        .filter(|day| day.off_shift_seconds == 0)
+        .count();
 
     Ok(Report {
         schema_version: "0.1.0".to_string(),
@@ -398,12 +476,22 @@ fn parse_args(args: &[String]) -> Result<(String, String, Metadata), String> {
             "--source-uri" => source_uri = Some(args[i + 1].clone()),
             "--source-revision" => source_revision = Some(args[i + 1].clone()),
             "--evidence-class" => evidence_class = Some(args[i + 1].clone()),
-            "--kwh-per-mile" => kwh_per_mile = Some(args[i + 1].parse::<f64>().map_err(|_| "kwh-per-mile must be numeric")?),
+            "--kwh-per-mile" => {
+                kwh_per_mile = Some(
+                    args[i + 1]
+                        .parse::<f64>()
+                        .map_err(|_| "kwh-per-mile must be numeric")?,
+                )
+            }
             other => return Err(format!("unknown argument: {other}")),
         }
         i += 2;
     }
-    let require = |value: Option<String>, name: &str| value.filter(|v| !v.trim().is_empty()).ok_or_else(|| format!("{name} is required"));
+    let require = |value: Option<String>, name: &str| {
+        value
+            .filter(|v| !v.trim().is_empty())
+            .ok_or_else(|| format!("{name} is required"))
+    };
     let metadata = Metadata {
         fleet_id: require(fleet_id, "--fleet-id")?,
         dataset_id: require(dataset_id, "--dataset-id")?,
@@ -415,7 +503,14 @@ fn parse_args(args: &[String]) -> Result<(String, String, Metadata), String> {
     if !metadata.source_uri.starts_with("https://") {
         return Err("--source-uri must start with https://".to_string());
     }
-    if !["synthetic", "published_operational_summary", "measured", "unknown"].contains(&metadata.evidence_class.as_str()) {
+    if ![
+        "synthetic",
+        "published_operational_summary",
+        "measured",
+        "unknown",
+    ]
+    .contains(&metadata.evidence_class.as_str())
+    {
         return Err("unsupported --evidence-class".to_string());
     }
     if !metadata.kwh_per_mile.is_finite() || metadata.kwh_per_mile <= 0.0 {
@@ -427,17 +522,26 @@ fn parse_args(args: &[String]) -> Result<(String, String, Metadata), String> {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     let (operation_path, schedule_path, metadata) = parse_args(&args)?;
-    let operation_bytes = fs::read(&operation_path).map_err(|e| format!("cannot read {operation_path}: {e}"))?;
-    let schedule_bytes = fs::read(&schedule_path).map_err(|e| format!("cannot read {schedule_path}: {e}"))?;
+    let operation_bytes =
+        fs::read(&operation_path).map_err(|e| format!("cannot read {operation_path}: {e}"))?;
+    let schedule_bytes =
+        fs::read(&schedule_path).map_err(|e| format!("cannot read {schedule_path}: {e}"))?;
     let report = audit(&operation_bytes, &schedule_bytes, metadata)?;
-    println!("{}", serde_json::to_string_pretty(&report).map_err(|e| format!("cannot serialize report: {e}"))?);
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report)
+            .map_err(|e| format!("cannot serialize report: {e}"))?
+    );
     Ok(())
 }
 
 fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
-        Err(error) => { eprintln!("ev-depot-duty-audit: {error}"); ExitCode::from(2) }
+        Err(error) => {
+            eprintln!("ev-depot-duty-audit: {error}");
+            ExitCode::from(2)
+        }
     }
 }
 
@@ -445,7 +549,8 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    const OP_DAYS: &str = "veh_op_day_id,vmt,time_on_shift_s,time_off_shift_s\n1,90,32400,53999\n2,40,36000,50399\n";
+    const OP_DAYS: &str =
+        "veh_op_day_id,vmt,time_on_shift_s,time_off_shift_s\n1,90,32400,53999\n2,40,36000,50399\n";
     const SCHEDULES: &str = "veh_op_day_id,start_time,end_time,total_time_s,on_shift,vmt\n1,00:00:00,08:00:00,28800,0,0\n1,08:00:00,17:00:00,32400,1,90\n1,17:00:00,23:59:59,25199,0,0\n2,00:00:00,04:00:00,14400,0,0\n2,04:00:00,06:00:00,7200,1,10\n2,06:00:00,10:00:00,14400,0,0\n2,10:00:00,18:00:00,28800,1,30\n2,18:00:00,23:59:59,21599,0,0\n";
 
     fn metadata() -> Metadata {
@@ -465,12 +570,18 @@ mod tests {
         assert_eq!(report.operation_days_input_rows, 2);
         assert_eq!(report.operation_days_parsed_valid_rows, 2);
         assert_eq!(report.schedule_input_rows, 8);
-        assert_eq!(report.schedule_parsed_valid_rows_before_key_reconciliation, 8);
+        assert_eq!(
+            report.schedule_parsed_valid_rows_before_key_reconciliation,
+            8
+        );
         assert_eq!(report.reconciled_operation_day_count, 2);
         assert!(report.operation_day_reconciliation_issues.is_empty());
         assert_eq!(report.daily_vmt_miles.p50, Some(65.0));
         assert_eq!(report.daily_vmt_miles.p95, Some(90.0));
-        assert_eq!(report.reconciled_vmt_miles_total_across_operation_day_records, 130.0);
+        assert_eq!(
+            report.reconciled_vmt_miles_total_across_operation_day_records,
+            130.0
+        );
         assert_eq!(report.on_shift_seconds_total, 68_400);
         assert_eq!(report.off_shift_seconds_total, 104_398);
         assert_eq!(report.operation_day_csv_sha256.len(), 64);
@@ -483,7 +594,13 @@ mod tests {
         let report = audit(days.as_bytes(), schedules.as_bytes(), metadata()).unwrap();
         assert_eq!(report.reconciled_operation_day_count, 0);
         assert_eq!(report.operation_day_reconciliation_issues.len(), 2);
-        assert!(report.operation_day_reconciliation_issues.iter().any(|issue| issue.operation_day_id == 2 && issue.reasons.contains(&"no_schedule_segments".to_string())));
+        assert!(
+            report
+                .operation_day_reconciliation_issues
+                .iter()
+                .any(|issue| issue.operation_day_id == 2
+                    && issue.reasons.contains(&"no_schedule_segments".to_string()))
+        );
     }
 
     #[test]
@@ -491,7 +608,13 @@ mod tests {
         assert!(parse_clock("24:00:00").is_err());
         assert!(parse_clock("08:61:00").is_err());
         let days = "veh_op_day_id,vmt,time_on_shift_s,time_off_shift_s\n1,NaN,32400,53999\n";
-        assert!(audit(days.as_bytes(), SCHEDULES.as_bytes(), metadata()).unwrap().operation_days_invalid_rows.len() == 1);
+        assert!(
+            audit(days.as_bytes(), SCHEDULES.as_bytes(), metadata())
+                .unwrap()
+                .operation_days_invalid_rows
+                .len()
+                == 1
+        );
     }
 
     #[test]
@@ -508,7 +631,9 @@ mod tests {
         let report = audit(days.as_bytes(), schedules.as_bytes(), metadata()).unwrap();
         assert_eq!(report.operation_days_without_offshift_charging_window, 1);
         assert_eq!(
-            report.idealized_min_average_recharge_power_kw_assuming_all_offshift_is_chargeable.count,
+            report
+                .idealized_min_average_recharge_power_kw_assuming_all_offshift_is_chargeable
+                .count,
             0
         );
     }
