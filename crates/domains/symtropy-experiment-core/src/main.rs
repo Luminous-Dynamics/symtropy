@@ -6,7 +6,7 @@ use symtropy_experiment_core::ExperimentGraph;
 
 fn usage() -> ! {
     eprintln!(
-        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>\n  symtropy-experiment-run oscillator <oscillator-spec.json>\n  symtropy-experiment-run oscillator-convergence <oscillator-spec.json> <coarse-to-fine-dt-csv>"
+        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run inspect <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>\n  symtropy-experiment-run oscillator <oscillator-spec.json>\n  symtropy-experiment-run oscillator-convergence <oscillator-spec.json> <coarse-to-fine-dt-csv>"
     );
     process::exit(2);
 }
@@ -73,6 +73,35 @@ fn run_once(path: &str) {
             process::exit(1);
         }
     }
+}
+
+fn run_inspect(path: &str) {
+    let graph = load_graph(path);
+    let projection = match graph.visual_math_projection() {
+        Ok(projection) => projection,
+        Err(error) => {
+            eprintln!("experiment graph cannot be projected: {error}");
+            process::exit(1);
+        }
+    };
+    let baseline_values = match graph.evaluate() {
+        Ok(values) => values,
+        Err(error) => {
+            eprintln!("experiment graph cannot be evaluated: {error}");
+            process::exit(1);
+        }
+    };
+    print_json(
+        serde_json::json!({
+            "valid": true,
+            "executed": true,
+            "kind": "renderer_neutral_visual_math_projection",
+            "projection": projection,
+            "baseline_values": baseline_values,
+            "interpretation_warning": "Formula labels are derived from the executable operator graph. The projection preserves semantic IDs and evidence references but does not prove that equations are scientifically or historically correct."
+        }),
+        "{\"valid\":true,\"executed\":false,\"error\":\"failed to serialize visual projection\"}",
+    );
 }
 
 fn run_sweep(path: &str, variable_id: &str, values_csv: &str) {
@@ -192,6 +221,7 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
         [path] => run_once(path),
+        [mode, path] if mode == "inspect" => run_inspect(path),
         [mode, path, variable_id, values_csv] if mode == "sweep" => {
             run_sweep(path, variable_id, values_csv)
         }
