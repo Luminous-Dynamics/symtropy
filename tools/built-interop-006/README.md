@@ -33,6 +33,18 @@ If a producer did not supply a gate, the assembler creates that gate with status
 
 Gate IDs are closed and ordered: `artifact_integrity`, `step_syntax`, `ifc_schema_conformance`, `ids_xsd_validity`, `ids_semantic_validity`, `ids_model_conformance`, `exchange_semantic_preservation`, and `engineering_release_qualification`. Duplicate/unknown gates are rejected. PASS/FAIL require a valid tool/config hash and at least one hash-addressed evidence item. NOT_RUN cannot carry tool or evidence. Evidence IDs are globally unique in the assembled report.
 
+## Typed producer integration
+
+`--gate-json` accepts either a normalized `Gate` object / envelope or the exact `BUILT-INTEROP-002-ifc-ids-v0.1` producer report. That adapter report is deserialized with closed Rust types. Its `ifc_input_sha256` must match the exact **target IFC** bytes in this exchange report, and its `ids_input_sha256` must match the exact IDS requirements file; a digest mismatch rejects assembly.
+
+The mapping is deliberately conservative:
+- `SubsetConformant` becomes `PASS` only when the IFC4 token and explicit IDS 1.0 evidence are present, every applicable wall has exactly one `Preserved` observation, the count agrees, and there are no diagnostics.
+- `Blocked` becomes `FAIL` only when typed outcomes identify a required `Name` value as `Changed` or `Missing` under the supported profile.
+- Identity collisions, invalid identity, a schema/profile mismatch, unsupported IDS facets, `NotEvaluated`, and incomplete observation sets remain `UNRESOLVED`; diagnostic strings are not parsed to infer results.
+- The assembler records the SHA-256 of the exact adapter report bytes as its evidence record. It validates the adapter semantic digest's shape, but does not recalculate the producer's internal semantic digest.
+
+This binds the conformance claim to the deliverable IFC and IDS bytes rather than accidentally validating a different model. The source IFC remains separately hashed for exchange comparison.
+
 ## Schema and testing
 
 - `assembled-report-v1.schema.json` pins the BUILT-INTEROP-004-shaped full report.
