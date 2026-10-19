@@ -161,6 +161,7 @@ struct EvidencePayload {
     source_adapter_report_sha256: String,
     target_adapter_report_sha256: String,
     supported_profile: String,
+    profile_confirmed: bool,
     comparison_coverage_complete: bool,
     counts: DeltaCounts,
     findings: Vec<DeltaFinding>,
@@ -326,7 +327,7 @@ fn index_stable_observations(
 fn compare_reports(
     source: &AdapterReport,
     target: &AdapterReport,
-) -> (GateStatus, DeltaCounts, Vec<DeltaFinding>, bool, String) {
+) -> (GateStatus, DeltaCounts, Vec<DeltaFinding>, bool, bool, String) {
     let mut counts = DeltaCounts::default();
     let mut findings = Vec::new();
     let profile_ready = source.supported_profile == SUPPORTED_PROFILE
@@ -495,6 +496,7 @@ fn compare_reports(
         status,
         counts,
         findings,
+        profile_ready,
         comparison_coverage_complete,
         reason.into(),
     )
@@ -519,7 +521,7 @@ fn evaluate(
     let ids_sha256 = sha256_hex(ids_bytes);
     let source_report_sha256 = sha256_hex(source_report_bytes);
     let target_report_sha256 = sha256_hex(target_report_bytes);
-    let (status, counts, findings, coverage_complete, reason) =
+    let (status, counts, findings, profile_confirmed, coverage_complete, reason) =
         compare_reports(&source_report, &target_report);
 
     let evidence_payload = EvidencePayload {
@@ -532,6 +534,7 @@ fn evaluate(
         source_adapter_report_sha256: source_report_sha256,
         target_adapter_report_sha256: target_report_sha256,
         supported_profile: SUPPORTED_PROFILE.into(),
+        profile_confirmed,
         comparison_coverage_complete: coverage_complete,
         counts,
         findings,
@@ -815,6 +818,7 @@ mod tests {
             )],
         );
         assert_eq!(output.gate.status, GateStatus::Pass);
+        assert!(output.evidence_payload.profile_confirmed);
         assert_eq!(output.evidence_payload.counts.compared, 1);
         assert_eq!(output.evidence_payload.counts.preserved, 1);
     }
@@ -1230,6 +1234,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(output.gate.status, GateStatus::Unresolved);
+        assert!(!output.evidence_payload.profile_confirmed);
+        assert!(!output.evidence_payload.comparison_coverage_complete);
     }
 
     #[test]
