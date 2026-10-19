@@ -563,9 +563,9 @@ impl OrientedProjector4D {
         let projected_onto_plane = std::array::from_fn(|index| {
             coordinates[index] - distance * self.normal[index]
         });
-        let projected = self
-            .basis
-            .map(|basis_vector| dot4(projected_onto_plane, basis_vector) * f64::from(self.scale_factor));
+        let projected = self.basis.map(|basis_vector| {
+            dot4(projected_onto_plane, basis_vector) * f64::from(self.scale_factor)
+        });
 
         if projected.iter().all(|value| {
             value.is_finite() && value.abs() <= f64::from(f32::MAX)
