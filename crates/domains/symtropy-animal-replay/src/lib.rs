@@ -100,6 +100,7 @@ pub enum ReplayReason {
     MissingPairedDifference,
     MissingPairedInterval,
     InvalidPairedDifference,
+    PairedDifferenceDoesNotMatchScores,
     InvalidPairedInterval,
     InvalidEffectMargins,
 }
@@ -621,7 +622,18 @@ pub fn build_replay_receipt(
             rejected.insert(ReplayReason::MissingPairedSamples);
         }
         match comparison.mean_difference {
-            Some(value) if value.is_finite() => {}
+            Some(value) if value.is_finite() => {
+                if comparison.stratum_kind == MetricStratumKind::Overall
+                    && comparison.stratum_id == "all"
+                    && let Some(candidate_value) = candidate_metric.value
+                {
+                    let observed_delta = candidate_value - baseline.primary_metric.value.unwrap_or(f64::NAN);
+                    let tolerance = 1e-9 * value.abs().max(observed_delta.abs()).max(1.0);
+                    if !observed_delta.is_finite() || (value - observed_delta).abs() > tolerance {
+                        rejected.insert(ReplayReason::PairedDifferenceDoesNotMatchScores);
+                    }
+                }
+            }
             Some(_) => {
                 rejected.insert(ReplayReason::InvalidPairedDifference);
             }
