@@ -613,7 +613,7 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
             process::exit(2);
         }
     };
-    let model_bytes = match receipt.payload.execution_mode.as_str() {
+    let (model_bytes, model_metadata_matches) = match receipt.payload.execution_mode.as_str() {
         "run" | "inspect" | "sweep" => {
             let graph: ExperimentGraph = match serde_json::from_slice(&input_bytes) {
                 Ok(graph) => graph,
@@ -622,13 +622,17 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
                     process::exit(2);
                 }
             };
-            match serde_json::to_vec(&graph) {
+            let metadata_matches = receipt.payload.experiment_id.as_deref() == Some(graph.id.as_str())
+                && receipt.payload.model_schema_version.as_deref() == Some(graph.schema_version.as_str())
+                && receipt.payload.unit_registry_version.is_some();
+            let bytes = match serde_json::to_vec(&graph) {
                 Ok(bytes) => bytes,
                 Err(error) => {
                     eprintln!("could not serialize parsed experiment graph: {error}");
                     process::exit(2);
                 }
-            }
+            };
+            (bytes, metadata_matches)
         }
         "oscillator" | "oscillator-convergence" => {
             let spec: HarmonicOscillatorSpec = match serde_json::from_slice(&input_bytes) {
@@ -638,13 +642,17 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
                     process::exit(2);
                 }
             };
-            match serde_json::to_vec(&spec) {
+            let metadata_matches = receipt.payload.experiment_id.as_deref() == Some(spec.id.as_str())
+                && receipt.payload.model_schema_version.as_deref() == Some(spec.schema_version.as_str())
+                && receipt.payload.unit_registry_version.is_none();
+            let bytes = match serde_json::to_vec(&spec) {
                 Ok(bytes) => bytes,
                 Err(error) => {
                     eprintln!("could not serialize parsed oscillator specification: {error}");
                     process::exit(2);
                 }
-            }
+            };
+            (bytes, metadata_matches)
         }
         other => {
             eprintln!("unsupported receipt execution mode '{other}'");
@@ -665,16 +673,18 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
             process::exit(2);
         }
     };
+    let valid = verification.is_valid() && model_metadata_matches;
     print_json(
         serde_json::json!({
-            "valid": verification.is_valid(),
+            "valid": valid,
             "receipt_sha256": receipt.receipt_sha256,
-            "verification": verification,
-            "scope_warning": "This verifies receipt self-integrity and matches the saved input artifact, parsed-model serialization, and output payload to recorded digests. It does not authenticate the producer, prove that execution occurred, or validate scientific correctness."
+            "model_metadata_matches": model_metadata_matches,
+            "verification": &verification,
+            "scope_warning": "This verifies receipt self-integrity and matches the saved input artifact, parsed-model serialization, output payload, and model identity/version fields to recorded digests. It does not authenticate the producer, prove that execution occurred, or validate scientific correctness."
         }),
         "{"valid":false,"error":"could not serialize receipt verification report"}",
     );
-    if !verification.is_valid() {
+    if !valid {
         process::exit(1);
     }
 }
