@@ -440,6 +440,9 @@ fn positive_probability_ppm(presence_ppm: u64, candidate: &Candidate) -> u64 {
     let sensitivity = candidate
         .sensitivity_ppm
         .expect("eligible candidate has sensitivity");
+    let false_positive = candidate
+        .false_positive_ppm
+        .expect("eligible candidate has false-positive rate");
     ((u128::from(presence_ppm) * u128::from(sensitivity)
         + u128::from(SCALE - presence_ppm) * u128::from(false_positive))
         / u128::from(SCALE)) as u64
@@ -449,9 +452,6 @@ fn posterior_after(presence_ppm: u64, candidate: &Candidate, positive: bool) -> 
     let sensitivity = candidate
         .sensitivity_ppm
         .expect("eligible candidate has sensitivity");
-    let false_positive = candidate
-        .false_positive_ppm
-        .expect("eligible candidate has false-positive rate");
     let probability = positive_probability_ppm(presence_ppm, candidate);
     if positive {
         if probability == 0 {
