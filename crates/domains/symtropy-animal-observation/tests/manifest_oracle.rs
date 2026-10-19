@@ -28,7 +28,7 @@ struct OracleCase {
 #[serde(rename_all = "snake_case")]
 enum Mutation {
     #[serde(rename = "none")]
-    NoMutation,
+    Unchanged,
     UnsupportedSchemaVersion,
     EmptyPackId,
     EmptySourceId,
@@ -101,7 +101,7 @@ fn apply_mutation(
     mutation: Mutation,
 ) -> ReferencePackManifest {
     match mutation {
-        Mutation::NoMutation => {}
+        Mutation::Unchanged => {}
         Mutation::UnsupportedSchemaVersion => manifest.schema_version = "UNKNOWN-V9".to_owned(),
         Mutation::EmptyPackId => manifest.pack_id.clear(),
         Mutation::EmptySourceId => manifest.source.source_id.clear(),
