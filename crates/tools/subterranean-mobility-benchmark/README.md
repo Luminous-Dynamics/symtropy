@@ -37,7 +37,7 @@ The egress coordination module separates coordination support from route admissi
 - Live coordination requires a current location fix, a fresh local plan matching the declared route-graph version, and a live acknowledged communication path.
 - Store/carry-forward messages are deferred, not reported as delivered.
 - With no current path, fresh local location and a version-matched offline plan may remain locally available; that does not mean the route is still physically clear.
-- Missing/stale location or plan evidence yields an unknown status. Explicitly unavailable location or missing/unverified plan evidence prevents a guidance-available claim.
+- Missing/stale location or plan evidence yields an unknown status. Explicitly unavailable location or missing/unverified plan evidence prevents a local-inputs-available claim.
 - The route-search disposition is returned unchanged. No admissible route, a bounded/incomplete search, and coordination loss remain distinct outcomes.
 
 This is a deterministic interface contract, not an end-to-end network simulator, localization algorithm, live closure detector, or operational egress authorization.
