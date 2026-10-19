@@ -110,7 +110,7 @@ struct Candidate {
     detection_profile: Option<DetectionProfile>,
     exposure_knowledge: ExposureKnowledge,
     effort_units: u32,
-    /// Synthetic expected information gain before the remaining-uncertainty cap.
+    /// Nominal synthetic information gain at perfect detection, before probability discount and the uncertainty cap.
     information_gain_ppm: u64,
     /// Exposure in separate declared channels. Unknown channels never become zero.
     exposure: Exposure,
