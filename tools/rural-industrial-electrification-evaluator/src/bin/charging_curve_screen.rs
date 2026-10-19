@@ -96,7 +96,8 @@ struct Report {
 
 fn main() {
     let path = env::args().nth(1).unwrap_or_else(|| {
-        "tools/rural-industrial-electrification-evaluator/fixtures/charging_curve_v0_1.json".to_string()
+        "tools/rural-industrial-electrification-evaluator/fixtures/charging_curve_v0_1.json"
+            .to_string()
     });
     let input = match fs::read_to_string(&path) {
         Ok(value) => value,
@@ -147,7 +148,8 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         if !scenario_ids.insert(scenario.scenario_id.clone()) {
             return Err(format!("duplicate_scenario_id: {}", scenario.scenario_id));
         }
-        validate_scenario(scenario).map_err(|error| format!("{}: {error}", scenario.scenario_id))?;
+        validate_scenario(scenario)
+            .map_err(|error| format!("{}: {error}", scenario.scenario_id))?;
     }
     Ok(())
 }
@@ -162,8 +164,15 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
             return Err(format!("{name}_must_be_nonempty"));
         }
     }
-    if !["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"]
-        .contains(&scenario.evidence_class.as_str())
+    if ![
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+        "unknown",
+    ]
+    .contains(&scenario.evidence_class.as_str())
     {
         return Err("unsupported_evidence_class".to_string());
     }
@@ -175,19 +184,37 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
     }
 
     for (name, value) in [
-        ("nominal_pack_capacity_kwh", scenario.nominal_pack_capacity_kwh),
+        (
+            "nominal_pack_capacity_kwh",
+            scenario.nominal_pack_capacity_kwh,
+        ),
         ("port_input_power_kw", scenario.port_input_power_kw),
-        ("site_input_power_budget_kw", scenario.site_input_power_budget_kw),
+        (
+            "site_input_power_budget_kw",
+            scenario.site_input_power_budget_kw,
+        ),
     ] {
         if !value.is_finite() || value <= 0.0 {
             return Err(format!("{name}_must_be_finite_and_positive"));
         }
     }
     for (name, value) in [
-        ("state_of_health_fraction", scenario.state_of_health_fraction),
-        ("temperature_capacity_fraction", scenario.temperature_capacity_fraction),
-        ("temperature_acceptance_fraction", scenario.temperature_acceptance_fraction),
-        ("charging_efficiency_fraction", scenario.charging_efficiency_fraction),
+        (
+            "state_of_health_fraction",
+            scenario.state_of_health_fraction,
+        ),
+        (
+            "temperature_capacity_fraction",
+            scenario.temperature_capacity_fraction,
+        ),
+        (
+            "temperature_acceptance_fraction",
+            scenario.temperature_acceptance_fraction,
+        ),
+        (
+            "charging_efficiency_fraction",
+            scenario.charging_efficiency_fraction,
+        ),
     ] {
         if !value.is_finite() || value <= 0.0 || value > 1.0 {
             return Err(format!("{name}_must_be_in_(0,1]"));
@@ -226,7 +253,9 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
             return Err(format!("curve_band_{index}_gap_overlap_or_unsorted_curve"));
         }
         if band.max_battery_acceptance_kw <= 0.0 {
-            return Err(format!("curve_band_{index}_acceptance_power_must_be_positive"));
+            return Err(format!(
+                "curve_band_{index}_acceptance_power_must_be_positive"
+            ));
         }
         expected_lower = band.soc_upper_fraction;
     }
@@ -242,7 +271,9 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
     for band in &scenario.acceptance_curve {
         let _reference = band.max_battery_acceptance_kw * scenario.temperature_acceptance_fraction;
         if !_reference.is_finite() || _reference <= 0.0 {
-            return Err("derived_temperature_derated_acceptance_must_be_finite_and_positive".to_string());
+            return Err(
+                "derived_temperature_derated_acceptance_must_be_finite_and_positive".to_string(),
+            );
         }
     }
     Ok(())
@@ -254,7 +285,9 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
         * scenario.temperature_capacity_fraction;
     let requested_battery_kwh =
         effective_capacity_kwh * (scenario.target_soc_fraction - scenario.initial_soc_fraction);
-    let site_input_power_limit_kw = scenario.port_input_power_kw.min(scenario.site_input_power_budget_kw);
+    let site_input_power_limit_kw = scenario
+        .port_input_power_kw
+        .min(scenario.site_input_power_budget_kw);
     let external_battery_side_power_limit_kw =
         site_input_power_limit_kw * scenario.charging_efficiency_fraction;
 
@@ -299,8 +332,10 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
         });
     }
 
-    let total_battery_energy_delivered_kwh: f64 = results.iter().map(|band| band.battery_energy_kwh).sum();
-    let total_site_input_energy_kwh: f64 = results.iter().map(|band| band.site_input_energy_kwh).sum();
+    let total_battery_energy_delivered_kwh: f64 =
+        results.iter().map(|band| band.battery_energy_kwh).sum();
+    let total_site_input_energy_kwh: f64 =
+        results.iter().map(|band| band.site_input_energy_kwh).sum();
     let total_conversion_loss_kwh: f64 = results.iter().map(|band| band.conversion_loss_kwh).sum();
     let total_charge_duration_minutes: f64 = results.iter().map(|band| band.duration_minutes).sum();
     let min_power = results
@@ -340,10 +375,20 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             - total_conversion_loss_kwh,
         total_charge_duration_minutes,
         average_battery_charge_power_kw: average_power,
-        minimum_effective_battery_charge_power_kw: if min_power.is_finite() { min_power } else { 0.0 },
+        minimum_effective_battery_charge_power_kw: if min_power.is_finite() {
+            min_power
+        } else {
+            0.0
+        },
         maximum_effective_battery_charge_power_kw: max_power,
-        battery_curve_bottleneck_band_count: results.iter().filter(|band| band.bottleneck == "battery_curve").count(),
-        site_or_port_bottleneck_band_count: results.iter().filter(|band| band.bottleneck == "site_or_port_cap").count(),
+        battery_curve_bottleneck_band_count: results
+            .iter()
+            .filter(|band| band.bottleneck == "battery_curve")
+            .count(),
+        site_or_port_bottleneck_band_count: results
+            .iter()
+            .filter(|band| band.bottleneck == "site_or_port_cap")
+            .count(),
         results,
         claim_ceiling: CLAIM_CEILING,
     }
@@ -370,9 +415,21 @@ mod tests {
             port_input_power_kw: 100.0,
             site_input_power_budget_kw: 100.0,
             acceptance_curve: vec![
-                CurveBand { soc_lower_fraction: 0.0, soc_upper_fraction: 0.5, max_battery_acceptance_kw: 100.0 },
-                CurveBand { soc_lower_fraction: 0.5, soc_upper_fraction: 0.8, max_battery_acceptance_kw: 50.0 },
-                CurveBand { soc_lower_fraction: 0.8, soc_upper_fraction: 1.0, max_battery_acceptance_kw: 20.0 },
+                CurveBand {
+                    soc_lower_fraction: 0.0,
+                    soc_upper_fraction: 0.5,
+                    max_battery_acceptance_kw: 100.0,
+                },
+                CurveBand {
+                    soc_lower_fraction: 0.5,
+                    soc_upper_fraction: 0.8,
+                    max_battery_acceptance_kw: 50.0,
+                },
+                CurveBand {
+                    soc_lower_fraction: 0.8,
+                    soc_upper_fraction: 1.0,
+                    max_battery_acceptance_kw: 20.0,
+                },
             ],
         }
     }
@@ -381,11 +438,16 @@ mod tests {
     fn taper_increases_session_duration_vs_flat_acceptance() {
         let mut tapered = sample_scenario();
         let tapered_result = evaluate_scenario(&tapered);
-        tapered.acceptance_curve = vec![
-            CurveBand { soc_lower_fraction: 0.0, soc_upper_fraction: 1.0, max_battery_acceptance_kw: 100.0 },
-        ];
+        tapered.acceptance_curve = vec![CurveBand {
+            soc_lower_fraction: 0.0,
+            soc_upper_fraction: 1.0,
+            max_battery_acceptance_kw: 100.0,
+        }];
         let flat_result = evaluate_scenario(&tapered);
-        assert!(tapered_result.total_charge_duration_minutes > flat_result.total_charge_duration_minutes);
+        assert!(
+            tapered_result.total_charge_duration_minutes
+                > flat_result.total_charge_duration_minutes
+        );
     }
 
     #[test]
@@ -403,7 +465,10 @@ mod tests {
         let healthy = evaluate_scenario(&scenario);
         scenario.state_of_health_fraction = 0.8;
         let aged = evaluate_scenario(&scenario);
-        assert!(aged.effective_battery_energy_required_kwh < healthy.effective_battery_energy_required_kwh);
+        assert!(
+            aged.effective_battery_energy_required_kwh
+                < healthy.effective_battery_energy_required_kwh
+        );
     }
 
     #[test]
@@ -419,14 +484,23 @@ mod tests {
     fn site_energy_reconciles_with_battery_energy_and_losses() {
         let result = evaluate_scenario(&sample_scenario());
         assert!((result.energy_balance_residual_kwh).abs() < 1e-9);
-        assert!((result.total_battery_energy_delivered_kwh - result.effective_battery_energy_required_kwh).abs() < 1e-9);
+        assert!(
+            (result.total_battery_energy_delivered_kwh
+                - result.effective_battery_energy_required_kwh)
+                .abs()
+                < 1e-9
+        );
     }
 
     #[test]
     fn gapped_curve_is_rejected() {
         let mut scenario = sample_scenario();
         scenario.acceptance_curve[1].soc_lower_fraction = 0.55;
-        assert!(validate_scenario(&scenario).unwrap_err().contains("gap_overlap"));
+        assert!(
+            validate_scenario(&scenario)
+                .unwrap_err()
+                .contains("gap_overlap")
+        );
     }
 
     #[test]
