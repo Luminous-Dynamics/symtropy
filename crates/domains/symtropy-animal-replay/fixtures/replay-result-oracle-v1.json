@@ -23,6 +23,8 @@
     {"id":"primary_metric_required","mutation":"missing_primary_metric","expected_disposition":"incomplete","expected_reason_codes":["missing_primary_metric"],"expected_threshold_outcome":"incomplete"},
     {"id":"duplicate_metric_ids_rejected","mutation":"duplicate_metric_id","expected_disposition":"reject","expected_reason_codes":["duplicate_metric_id"],"expected_threshold_outcome":"not_assessed"},
     {"id":"metric_stratum_key_required","mutation":"empty_metric_stratum","expected_disposition":"reject","expected_reason_codes":["empty_metric_stratum"],"expected_threshold_outcome":"not_assessed"},
+    {"id":"overall_metric_uses_canonical_all_key","mutation":"invalid_overall_stratum_id","expected_disposition":"reject","expected_reason_codes":["invalid_overall_stratum_id"],"expected_threshold_outcome":"not_assessed"},
+    {"id":"taxon_stratum_must_be_taxonomy_bound","mutation":"taxon_stratum_unbound","expected_disposition":"reject","expected_reason_codes":["taxon_stratum_unbound"],"expected_threshold_outcome":"not_assessed"},
     {"id":"same_metric_can_be_reported_per_taxon","mutation":"same_metric_across_taxa","expected_disposition":"eligible","expected_reason_codes":[],"expected_threshold_outcome":"meets_threshold"},
     {"id":"nonfinite_metric_rejected","mutation":"nonfinite_metric_value","expected_disposition":"reject","expected_reason_codes":["invalid_metric_observation"],"expected_threshold_outcome":"not_assessed"},
     {"id":"missing_metric_is_not_zero","mutation":"metric_missing_state","expected_disposition":"incomplete","expected_reason_codes":["incomplete_metric_observation"],"expected_threshold_outcome":"incomplete"},
