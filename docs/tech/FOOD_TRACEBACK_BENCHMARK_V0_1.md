@@ -56,7 +56,7 @@ The fixture records are event- and evidence-scoped. A verified custody record, a
 
 All entity IDs, quantities, dates, product lots, sample identifiers and truth labels are invented. No real supplier, product, illness cluster or facility is represented.
 
-## 5. Comparison methods
+## 6. Comparison methods
 
 Use the same input records, candidate-set definitions and evaluation denominators for all methods.
 
@@ -67,7 +67,7 @@ Use the same input records, candidate-set definitions and evaluation denominator
 
 A standalone deterministic Rust evaluator now implements B1 and B3 on the frozen synthetic cases, preserving source candidates, containment candidates, residual exposure, and unnecessary-recall counts in the receipt. B2 (timestamp/locality heuristic) remains specified but not yet implemented. Do not create a second supply-chain ledger, genomic classifier, refrigeration simulator or regulator workflow.
 
-## 6. Evaluation: never collapse safety into one score
+## 7. Evaluation: never collapse safety into one score
 
 Report per case, per stressor and as a macro-average. Show denominators and unresolved counts.
 
@@ -91,7 +91,7 @@ Report per case, per stressor and as a macro-average. Show denominators and unre
 
 The central visualization is a Pareto frontier between residual affected exposure and unnecessary-recall burden. A scalar score must not conceal an unsafe miss. The current receipt reports both dimensions per case; it does not yet fit or rank a global operating point.
 
-## 7. Fail-closed invariants
+## 8. Fail-closed invariants
 
 1. **Missing is not negative.** Missing records do not show that a lot is clean, a transfer did not happen, or exposure was zero.
 2. **Association is not custody.** Pathogen similarity, co-location, time overlap, co-purchase, sample-origin metadata or shared parentage are not individually a verified material-flow edge.
@@ -103,7 +103,7 @@ The central visualization is a Pareto frontier between residual affected exposur
 8. **Deterministic replay.** Identical canonical inputs and configuration produce byte-identical canonical reports.
 9. **Authority boundary.** The evaluator cannot declare food safe, publish a supplier accusation, authorize product release or initiate a real-world recall.
 
-## 8. Acceptance gates
+## 9. Acceptance gates
 
 These are proposed requirements, not results:
 
@@ -117,7 +117,7 @@ These are proposed requirements, not results:
 
 A fixture validator should reject duplicate IDs, dangling references, invalid evidence status, malformed timestamps, non-positive or unitless quantities where quantities are compared, unknown schema versions and mutated frozen truth labels.
 
-## 9. Follow-on research
+## 10. Follow-on research
 
 Only after the synthetic oracle is reliable:
 
@@ -127,6 +127,6 @@ Only after the synthetic oracle is reliable:
 4. Test whether decision-sensitive evidence acquisition reduces unresolved hypotheses without delaying a necessary precautionary hold.
 5. Consider a South African case study only with local authority and partner input, rights-cleared records, and no unsupported claims about local incidence or supplier culpability.
 
-## 10. Claim ceiling
+## 11. Claim ceiling
 
 A passing synthetic benchmark establishes only that the evaluator respects its declared invariants on these small synthetic cases. It does not establish outbreak-detection capability, correct real-world source attribution, fewer illnesses, regulatory compliance, operational savings, or superiority over existing industry systems.
