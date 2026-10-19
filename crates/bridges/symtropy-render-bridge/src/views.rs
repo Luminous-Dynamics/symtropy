@@ -479,10 +479,12 @@ impl OrientedProjector4D {
     fn build_basis(normal: [f64; 4]) -> Option<[[f64; 4]; 3]> {
         let mut basis: Vec<[f64; 4]> = Vec::with_capacity(3);
 
-        for axis in 0..4 {
-            let mut candidate = [0.0; 4];
-            candidate[axis] = 1.0;
-
+        for mut candidate in [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ] {
             let normal_projection = dot4(candidate, normal);
             for (coordinate, normal_axis) in candidate.iter_mut().zip(normal) {
                 *coordinate -= normal_projection * normal_axis;
