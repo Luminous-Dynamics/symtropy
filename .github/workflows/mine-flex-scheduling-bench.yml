@@ -13,6 +13,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md"
       - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
       - "tools/mine-flex-scheduling-bench/**"
       - ".github/workflows/mine-flex-scheduling-bench.yml"
