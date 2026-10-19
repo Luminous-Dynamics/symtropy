@@ -1,0 +1,738 @@
+{
+  "schema_version": "0.1.0",
+  "suite_id": "SEAFOOD-CHAIN-INTEGRITY-SYNTH-001",
+  "scenarios": [
+    {
+      "id": "verified-aquaculture-salmon",
+      "assessment_minute": 200,
+      "target_lot_id": "sushi-lot-001",
+      "lots": [
+        {
+          "lot_id": "harvest-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "aquaculture",
+          "source_reference": "synthetic:farm-harvest-record-001",
+          "source_evidence_status": "verified",
+          "mass_g": 10000,
+          "parent_inputs": []
+        },
+        {
+          "lot_id": "sushi-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "derived",
+          "source_reference": "",
+          "source_evidence_status": "not_applicable",
+          "mass_g": 2500,
+          "parent_inputs": [
+            {
+              "lot_id": "harvest-lot-001",
+              "mass_g": 3000
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event-001-harvest",
+          "lot_id": "harvest-lot-001",
+          "kind": "harvest",
+          "at_minute": 10,
+          "actor_id": "synthetic:farm-17"
+        },
+        {
+          "event_id": "event-002-transform",
+          "lot_id": "sushi-lot-001",
+          "kind": "transform",
+          "at_minute": 40,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-003-pack",
+          "lot_id": "sushi-lot-001",
+          "kind": "pack",
+          "at_minute": 60,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-004-ship",
+          "lot_id": "sushi-lot-001",
+          "kind": "ship",
+          "at_minute": 100,
+          "actor_id": "synthetic:carrier-9"
+        },
+        {
+          "event_id": "event-005-receive",
+          "lot_id": "sushi-lot-001",
+          "kind": "receive",
+          "at_minute": 150,
+          "actor_id": "synthetic:restaurant-4"
+        },
+        {
+          "event_id": "event-006-serve",
+          "lot_id": "sushi-lot-001",
+          "kind": "serve",
+          "at_minute": 170,
+          "actor_id": "synthetic:restaurant-4"
+        }
+      ],
+      "cold_chain": {
+        "sensor_calibration_status": "verified",
+        "max_temp_milli_c": 4000,
+        "max_gap_minutes": 60,
+        "monitoring_start_minute": 0,
+        "monitoring_end_minute": 180,
+        "observations": [
+          {
+            "at_minute": 0,
+            "temp_milli_c": 2300
+          },
+          {
+            "at_minute": 60,
+            "temp_milli_c": 2800
+          },
+          {
+            "at_minute": 120,
+            "temp_milli_c": 3500
+          },
+          {
+            "at_minute": 180,
+            "temp_milli_c": 3400
+          }
+        ]
+      },
+      "raw_ready_to_eat": true,
+      "controls": {
+        "haccp_review_status": "verified",
+        "parasite_control_status": "verified",
+        "parasite_control_basis": "synthetic controlled-process evidence ID PAR-001"
+      },
+      "label": {
+        "identity_status": "verified",
+        "declared_species_latin": "Salmo salar",
+        "verified_species_latin": "Salmo salar"
+      },
+      "sustainability_claims": [
+        {
+          "claim_id": "claim-synth-001",
+          "claim_text": "synthetic example environmental claim",
+          "evidence_reference": "synthetic:review-001",
+          "evidence_status": "verified",
+          "scope_lot_id": "sushi-lot-001",
+          "valid_through_minute": 500
+        }
+      ],
+      "expected_disposition": "eligible_for_human_review",
+      "expected_unsubstantiated_claims": 0
+    },
+    {
+      "id": "unverified-wild-catch",
+      "assessment_minute": 200,
+      "target_lot_id": "sushi-lot-001",
+      "lots": [
+        {
+          "lot_id": "harvest-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "wild_capture",
+          "source_reference": "synthetic:vessel-log-002",
+          "source_evidence_status": "missing",
+          "mass_g": 10000,
+          "parent_inputs": []
+        },
+        {
+          "lot_id": "sushi-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "derived",
+          "source_reference": "",
+          "source_evidence_status": "not_applicable",
+          "mass_g": 2500,
+          "parent_inputs": [
+            {
+              "lot_id": "harvest-lot-001",
+              "mass_g": 3000
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event-001-harvest",
+          "lot_id": "harvest-lot-001",
+          "kind": "harvest",
+          "at_minute": 10,
+          "actor_id": "synthetic:farm-17"
+        },
+        {
+          "event_id": "event-002-transform",
+          "lot_id": "sushi-lot-001",
+          "kind": "transform",
+          "at_minute": 40,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-003-pack",
+          "lot_id": "sushi-lot-001",
+          "kind": "pack",
+          "at_minute": 60,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-004-ship",
+          "lot_id": "sushi-lot-001",
+          "kind": "ship",
+          "at_minute": 100,
+          "actor_id": "synthetic:carrier-9"
+        },
+        {
+          "event_id": "event-005-receive",
+          "lot_id": "sushi-lot-001",
+          "kind": "receive",
+          "at_minute": 150,
+          "actor_id": "synthetic:restaurant-4"
+        },
+        {
+          "event_id": "event-006-serve",
+          "lot_id": "sushi-lot-001",
+          "kind": "serve",
+          "at_minute": 170,
+          "actor_id": "synthetic:restaurant-4"
+        }
+      ],
+      "cold_chain": {
+        "sensor_calibration_status": "verified",
+        "max_temp_milli_c": 4000,
+        "max_gap_minutes": 60,
+        "monitoring_start_minute": 0,
+        "monitoring_end_minute": 180,
+        "observations": [
+          {
+            "at_minute": 0,
+            "temp_milli_c": 2300
+          },
+          {
+            "at_minute": 60,
+            "temp_milli_c": 2800
+          },
+          {
+            "at_minute": 120,
+            "temp_milli_c": 3500
+          },
+          {
+            "at_minute": 180,
+            "temp_milli_c": 3400
+          }
+        ]
+      },
+      "raw_ready_to_eat": true,
+      "controls": {
+        "haccp_review_status": "verified",
+        "parasite_control_status": "verified",
+        "parasite_control_basis": "synthetic controlled-process evidence ID PAR-001"
+      },
+      "label": {
+        "identity_status": "verified",
+        "declared_species_latin": "Salmo salar",
+        "verified_species_latin": "Salmo salar"
+      },
+      "sustainability_claims": [
+        {
+          "claim_id": "claim-synth-001",
+          "claim_text": "synthetic example environmental claim",
+          "evidence_reference": "synthetic:review-001",
+          "evidence_status": "verified",
+          "scope_lot_id": "sushi-lot-001",
+          "valid_through_minute": 500
+        }
+      ],
+      "expected_disposition": "hold",
+      "expected_unsubstantiated_claims": 0
+    },
+    {
+      "id": "cold-chain-excursion",
+      "assessment_minute": 200,
+      "target_lot_id": "sushi-lot-001",
+      "lots": [
+        {
+          "lot_id": "harvest-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "aquaculture",
+          "source_reference": "synthetic:farm-harvest-record-001",
+          "source_evidence_status": "verified",
+          "mass_g": 10000,
+          "parent_inputs": []
+        },
+        {
+          "lot_id": "sushi-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "derived",
+          "source_reference": "",
+          "source_evidence_status": "not_applicable",
+          "mass_g": 2500,
+          "parent_inputs": [
+            {
+              "lot_id": "harvest-lot-001",
+              "mass_g": 3000
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event-001-harvest",
+          "lot_id": "harvest-lot-001",
+          "kind": "harvest",
+          "at_minute": 10,
+          "actor_id": "synthetic:farm-17"
+        },
+        {
+          "event_id": "event-002-transform",
+          "lot_id": "sushi-lot-001",
+          "kind": "transform",
+          "at_minute": 40,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-003-pack",
+          "lot_id": "sushi-lot-001",
+          "kind": "pack",
+          "at_minute": 60,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-004-ship",
+          "lot_id": "sushi-lot-001",
+          "kind": "ship",
+          "at_minute": 100,
+          "actor_id": "synthetic:carrier-9"
+        },
+        {
+          "event_id": "event-005-receive",
+          "lot_id": "sushi-lot-001",
+          "kind": "receive",
+          "at_minute": 150,
+          "actor_id": "synthetic:restaurant-4"
+        },
+        {
+          "event_id": "event-006-serve",
+          "lot_id": "sushi-lot-001",
+          "kind": "serve",
+          "at_minute": 170,
+          "actor_id": "synthetic:restaurant-4"
+        }
+      ],
+      "cold_chain": {
+        "sensor_calibration_status": "verified",
+        "max_temp_milli_c": 4000,
+        "max_gap_minutes": 60,
+        "monitoring_start_minute": 0,
+        "monitoring_end_minute": 180,
+        "observations": [
+          {
+            "at_minute": 0,
+            "temp_milli_c": 2300
+          },
+          {
+            "at_minute": 60,
+            "temp_milli_c": 5100
+          },
+          {
+            "at_minute": 120,
+            "temp_milli_c": 3500
+          },
+          {
+            "at_minute": 180,
+            "temp_milli_c": 3400
+          }
+        ]
+      },
+      "raw_ready_to_eat": true,
+      "controls": {
+        "haccp_review_status": "verified",
+        "parasite_control_status": "verified",
+        "parasite_control_basis": "synthetic controlled-process evidence ID PAR-001"
+      },
+      "label": {
+        "identity_status": "verified",
+        "declared_species_latin": "Salmo salar",
+        "verified_species_latin": "Salmo salar"
+      },
+      "sustainability_claims": [
+        {
+          "claim_id": "claim-synth-001",
+          "claim_text": "synthetic example environmental claim",
+          "evidence_reference": "synthetic:review-001",
+          "evidence_status": "verified",
+          "scope_lot_id": "sushi-lot-001",
+          "valid_through_minute": 500
+        }
+      ],
+      "expected_disposition": "hold",
+      "expected_unsubstantiated_claims": 0
+    },
+    {
+      "id": "species-substitution",
+      "assessment_minute": 200,
+      "target_lot_id": "sushi-lot-001",
+      "lots": [
+        {
+          "lot_id": "harvest-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "aquaculture",
+          "source_reference": "synthetic:farm-harvest-record-001",
+          "source_evidence_status": "verified",
+          "mass_g": 10000,
+          "parent_inputs": []
+        },
+        {
+          "lot_id": "sushi-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "derived",
+          "source_reference": "",
+          "source_evidence_status": "not_applicable",
+          "mass_g": 2500,
+          "parent_inputs": [
+            {
+              "lot_id": "harvest-lot-001",
+              "mass_g": 3000
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event-001-harvest",
+          "lot_id": "harvest-lot-001",
+          "kind": "harvest",
+          "at_minute": 10,
+          "actor_id": "synthetic:farm-17"
+        },
+        {
+          "event_id": "event-002-transform",
+          "lot_id": "sushi-lot-001",
+          "kind": "transform",
+          "at_minute": 40,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-003-pack",
+          "lot_id": "sushi-lot-001",
+          "kind": "pack",
+          "at_minute": 60,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-004-ship",
+          "lot_id": "sushi-lot-001",
+          "kind": "ship",
+          "at_minute": 100,
+          "actor_id": "synthetic:carrier-9"
+        },
+        {
+          "event_id": "event-005-receive",
+          "lot_id": "sushi-lot-001",
+          "kind": "receive",
+          "at_minute": 150,
+          "actor_id": "synthetic:restaurant-4"
+        },
+        {
+          "event_id": "event-006-serve",
+          "lot_id": "sushi-lot-001",
+          "kind": "serve",
+          "at_minute": 170,
+          "actor_id": "synthetic:restaurant-4"
+        }
+      ],
+      "cold_chain": {
+        "sensor_calibration_status": "verified",
+        "max_temp_milli_c": 4000,
+        "max_gap_minutes": 60,
+        "monitoring_start_minute": 0,
+        "monitoring_end_minute": 180,
+        "observations": [
+          {
+            "at_minute": 0,
+            "temp_milli_c": 2300
+          },
+          {
+            "at_minute": 60,
+            "temp_milli_c": 2800
+          },
+          {
+            "at_minute": 120,
+            "temp_milli_c": 3500
+          },
+          {
+            "at_minute": 180,
+            "temp_milli_c": 3400
+          }
+        ]
+      },
+      "raw_ready_to_eat": true,
+      "controls": {
+        "haccp_review_status": "verified",
+        "parasite_control_status": "verified",
+        "parasite_control_basis": "synthetic controlled-process evidence ID PAR-001"
+      },
+      "label": {
+        "identity_status": "verified",
+        "declared_species_latin": "Thunnus albacares",
+        "verified_species_latin": "Thunnus obesus"
+      },
+      "sustainability_claims": [
+        {
+          "claim_id": "claim-synth-001",
+          "claim_text": "synthetic example environmental claim",
+          "evidence_reference": "synthetic:review-001",
+          "evidence_status": "verified",
+          "scope_lot_id": "sushi-lot-001",
+          "valid_through_minute": 500
+        }
+      ],
+      "expected_disposition": "hold",
+      "expected_unsubstantiated_claims": 0
+    },
+    {
+      "id": "raw-rte-parasite-control-missing",
+      "assessment_minute": 200,
+      "target_lot_id": "sushi-lot-001",
+      "lots": [
+        {
+          "lot_id": "harvest-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "aquaculture",
+          "source_reference": "synthetic:farm-harvest-record-001",
+          "source_evidence_status": "verified",
+          "mass_g": 10000,
+          "parent_inputs": []
+        },
+        {
+          "lot_id": "sushi-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "derived",
+          "source_reference": "",
+          "source_evidence_status": "not_applicable",
+          "mass_g": 2500,
+          "parent_inputs": [
+            {
+              "lot_id": "harvest-lot-001",
+              "mass_g": 3000
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event-001-harvest",
+          "lot_id": "harvest-lot-001",
+          "kind": "harvest",
+          "at_minute": 10,
+          "actor_id": "synthetic:farm-17"
+        },
+        {
+          "event_id": "event-002-transform",
+          "lot_id": "sushi-lot-001",
+          "kind": "transform",
+          "at_minute": 40,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-003-pack",
+          "lot_id": "sushi-lot-001",
+          "kind": "pack",
+          "at_minute": 60,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-004-ship",
+          "lot_id": "sushi-lot-001",
+          "kind": "ship",
+          "at_minute": 100,
+          "actor_id": "synthetic:carrier-9"
+        },
+        {
+          "event_id": "event-005-receive",
+          "lot_id": "sushi-lot-001",
+          "kind": "receive",
+          "at_minute": 150,
+          "actor_id": "synthetic:restaurant-4"
+        },
+        {
+          "event_id": "event-006-serve",
+          "lot_id": "sushi-lot-001",
+          "kind": "serve",
+          "at_minute": 170,
+          "actor_id": "synthetic:restaurant-4"
+        }
+      ],
+      "cold_chain": {
+        "sensor_calibration_status": "verified",
+        "max_temp_milli_c": 4000,
+        "max_gap_minutes": 60,
+        "monitoring_start_minute": 0,
+        "monitoring_end_minute": 180,
+        "observations": [
+          {
+            "at_minute": 0,
+            "temp_milli_c": 2300
+          },
+          {
+            "at_minute": 60,
+            "temp_milli_c": 2800
+          },
+          {
+            "at_minute": 120,
+            "temp_milli_c": 3500
+          },
+          {
+            "at_minute": 180,
+            "temp_milli_c": 3400
+          }
+        ]
+      },
+      "raw_ready_to_eat": true,
+      "controls": {
+        "haccp_review_status": "verified",
+        "parasite_control_status": "missing",
+        "parasite_control_basis": ""
+      },
+      "label": {
+        "identity_status": "verified",
+        "declared_species_latin": "Salmo salar",
+        "verified_species_latin": "Salmo salar"
+      },
+      "sustainability_claims": [
+        {
+          "claim_id": "claim-synth-001",
+          "claim_text": "synthetic example environmental claim",
+          "evidence_reference": "synthetic:review-001",
+          "evidence_status": "verified",
+          "scope_lot_id": "sushi-lot-001",
+          "valid_through_minute": 500
+        }
+      ],
+      "expected_disposition": "hold",
+      "expected_unsubstantiated_claims": 0
+    },
+    {
+      "id": "unverified-sustainability-claim",
+      "assessment_minute": 200,
+      "target_lot_id": "sushi-lot-001",
+      "lots": [
+        {
+          "lot_id": "harvest-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "aquaculture",
+          "source_reference": "synthetic:farm-harvest-record-001",
+          "source_evidence_status": "verified",
+          "mass_g": 10000,
+          "parent_inputs": []
+        },
+        {
+          "lot_id": "sushi-lot-001",
+          "species_latin": "Salmo salar",
+          "source_kind": "derived",
+          "source_reference": "",
+          "source_evidence_status": "not_applicable",
+          "mass_g": 2500,
+          "parent_inputs": [
+            {
+              "lot_id": "harvest-lot-001",
+              "mass_g": 3000
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event-001-harvest",
+          "lot_id": "harvest-lot-001",
+          "kind": "harvest",
+          "at_minute": 10,
+          "actor_id": "synthetic:farm-17"
+        },
+        {
+          "event_id": "event-002-transform",
+          "lot_id": "sushi-lot-001",
+          "kind": "transform",
+          "at_minute": 40,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-003-pack",
+          "lot_id": "sushi-lot-001",
+          "kind": "pack",
+          "at_minute": 60,
+          "actor_id": "synthetic:processor-2"
+        },
+        {
+          "event_id": "event-004-ship",
+          "lot_id": "sushi-lot-001",
+          "kind": "ship",
+          "at_minute": 100,
+          "actor_id": "synthetic:carrier-9"
+        },
+        {
+          "event_id": "event-005-receive",
+          "lot_id": "sushi-lot-001",
+          "kind": "receive",
+          "at_minute": 150,
+          "actor_id": "synthetic:restaurant-4"
+        },
+        {
+          "event_id": "event-006-serve",
+          "lot_id": "sushi-lot-001",
+          "kind": "serve",
+          "at_minute": 170,
+          "actor_id": "synthetic:restaurant-4"
+        }
+      ],
+      "cold_chain": {
+        "sensor_calibration_status": "verified",
+        "max_temp_milli_c": 4000,
+        "max_gap_minutes": 60,
+        "monitoring_start_minute": 0,
+        "monitoring_end_minute": 180,
+        "observations": [
+          {
+            "at_minute": 0,
+            "temp_milli_c": 2300
+          },
+          {
+            "at_minute": 60,
+            "temp_milli_c": 2800
+          },
+          {
+            "at_minute": 120,
+            "temp_milli_c": 3500
+          },
+          {
+            "at_minute": 180,
+            "temp_milli_c": 3400
+          }
+        ]
+      },
+      "raw_ready_to_eat": true,
+      "controls": {
+        "haccp_review_status": "verified",
+        "parasite_control_status": "verified",
+        "parasite_control_basis": "synthetic controlled-process evidence ID PAR-001"
+      },
+      "label": {
+        "identity_status": "verified",
+        "declared_species_latin": "Salmo salar",
+        "verified_species_latin": "Salmo salar"
+      },
+      "sustainability_claims": [
+        {
+          "claim_id": "claim-synth-001",
+          "claim_text": "synthetic example environmental claim",
+          "evidence_reference": "synthetic:unreviewed-claim",
+          "evidence_status": "unverified",
+          "scope_lot_id": "sushi-lot-001",
+          "valid_through_minute": 500
+        }
+      ],
+      "expected_disposition": "eligible_for_human_review",
+      "expected_unsubstantiated_claims": 1
+    }
+  ]
+}
