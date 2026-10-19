@@ -1,6 +1,6 @@
 # Legal Evidence Benchmark (synthetic-only v0.1)
 
-This isolated Rust utility is the first executable evaluation slice for LEGAL-EVAL-001. It tests evidence-routing and source-applicability behaviors that should be stable across Symthaea, Mycelix, Symtropy, and Sol-Atlas adapters. It does not provide legal advice, decide real legal questions, or establish real-world compliance.
+This isolated Rust utility is the first executable evaluation slice for LEGAL-EVAL-001. It tests evidence-routing, source-applicability, and metamorphic behaviors that should be stable across Symthaea, Mycelix, Symtropy, and Sol-Atlas adapters. It does not provide legal advice, decide real legal questions, or establish real-world compliance.
 
 ## Why this benchmark exists
 
@@ -14,7 +14,7 @@ Existing efforts cover complementary slices of the problem:
 - ELI demonstrates structured legal identifiers, metadata, and synchronization.
 - NIST AI RMF provides a trustworthiness risk-management frame.
 
-This first tranche does not copy or redistribute those datasets. It uses a small, original synthetic fixture to exercise temporal applicability, jurisdictional uncertainty, authority classification, citation integrity, source-use restrictions, and safe abstention. Any later adapter must verify the source dataset's current terms, licenses, provenance, and permitted processing before use.
+This first tranche does not copy or redistribute those datasets. It uses an original synthetic fixture to exercise temporal applicability, jurisdictional uncertainty, authority classification, citation integrity, source-use restrictions, safe abstention, and paired metamorphic properties. Any later adapter must verify the source dataset's current terms, licenses, provenance, and permitted processing before use.
 
 ## Run
 
@@ -42,6 +42,19 @@ Versioned JSON Schema documents are published under `schemas/`:
 - `validation-report-v0.1.schema.json`: corpus validation receipt and corpus digest.
 
 The Rust unit suite checks these schemas are valid JSON objects with the expected draft, closed-object posture, required lists, resolvable local references, and recursive presence of required fields in serialized benchmark/submission/report examples. This is a structural consistency test, not a full JSON Schema meta-validation; downstream clients should validate against the published schema with a conforming Draft 2020-12 validator. The schemas are contract artifacts, not authority to interpret or apply actual law.
+
+## Metamorphic pairs
+
+The corpus declares paired case relationships with one of four contracts:
+
+- `action_must_change`: a material fact change must change the response action.
+- `action_must_match`: the action should remain stable across a specified variation.
+- `evidence_must_change`: at least the claim-code set or citation set must change.
+- `output_must_match`: action, claim-code set, and citation set must all remain stable.
+
+The current synthetic pairs test a statute effective-date boundary, evidence that changes jurisdictional competence, irrelevant wording variation, and source permission changing from denied to permitted for the represented operation. The corpus validator rejects pairs whose expected outputs contradict their declared relationship. The evaluator separately reports observed pair failures and fails the release gate if any declared relation is violated or either case result is absent/duplicated.
+
+Pairs are explicit test contracts, not a general legal theorem prover. They only establish behavior for the declared transformations; broad robustness claims require unseen and expert-reviewed cases.
 
 ## Submission contract
 
