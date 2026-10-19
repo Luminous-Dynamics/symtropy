@@ -55,3 +55,8 @@ The `trace` module replays authored state-change events against a simulated cloc
 - Replaying the same event sequence yields the same ordered report and reason codes.
 
 The trace is only as accurate as its declared events and evidence. It does not model per-hop queues, airtime, RF/TTE propagation, actual delivery probability, localization error dynamics, physical hazard evolution, or rescue authorization. See [MINE-MISSION-TRACE-001 #2097](https://github.com/Luminous-Dynamics/symtropy/issues/2097) and [Symthaea MINE-COMMS-TRACE-001 #8066](https://github.com/Luminous-Dynamics/symthaea/issues/8066).
+
+
+### Version-bound local plans
+
+Every local plan in timed traces declares the exact graph version it was prepared against. A graph-version change invalidates a plan from an earlier version immediately, even if its observation timestamp is still fresh. A matching replacement plan is required before the local-plan input can be reported available again. Route-search disposition remains a separate value: neither a new graph version nor a successful communications path independently establishes a physically safe route.
