@@ -34,6 +34,7 @@ pub mod coupling;
 pub mod curvature;
 pub mod dimensional_leakage;
 pub mod energy;
+pub mod energy_boundary_accounting;
 pub mod fep_gradient;
 pub mod harmony_field;
 #[cfg(feature = "consciousness-hdc")]
@@ -70,4 +71,8 @@ pub use proc_gen::{
 pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
+pub use energy_boundary_accounting::{
+    BoundaryDirection, BoundaryFlow, EnergyBoundaryAssessment, EnergyBoundaryError,
+    EnergyBoundarySnapshot, InternalEnergyTransfer, assess_energy_boundary,
+};
 pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
