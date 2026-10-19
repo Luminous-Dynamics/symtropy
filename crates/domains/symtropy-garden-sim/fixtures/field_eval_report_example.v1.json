@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "study_ref": "study-demo-v1",
+  "protocol_ref": "service-007-protocol-v1",
+  "analysis_plan_ref": "analysis-plan-demo-v1",
+  "source_ledger_ref": "source-ledger-demo-v1",
+  "task_code": "weeding",
+  "scope_ref": "cooperative-scope-v1",
+  "period_ref": "crop-season-2026-v1",
+  "useful_window_rule_ref": "useful-window-rule-v1",
+  "screened_request_count": "12",
+  "eligible_request_count": "10",
+  "protocol_excluded_count": "2",
+  "outcomes": {
+    "accepted_within_window_count": "4",
+    "accepted_after_window_count": "1",
+    "known_not_accepted_count": "2",
+    "disputed_or_rework_count": "1",
+    "outcome_unknown_count": "1",
+    "follow_up_missing_count": "1"
+  },
+  "nonacceptance_reasons": {
+    "no_provider_count": "1",
+    "provider_declined_count": "0",
+    "farmer_declined_quote_count": "0",
+    "farmer_cancelled_count": "0",
+    "provider_cancelled_count": "0",
+    "provider_no_show_count": "1",
+    "abandoned_count": "0",
+    "other_typed_reason_count": "0"
+  },
+  "completed_pending_decision_count": "1"
+}
