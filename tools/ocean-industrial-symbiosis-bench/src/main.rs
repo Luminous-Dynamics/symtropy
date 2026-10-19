@@ -680,15 +680,51 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
     }
 
     for (scenario_id, link_id, expected_issue) in [
-        ("quality-and-timing-false-synergies", "heat-too-cool", LinkIssueCode::QualityOutsideSinkRange),
-        ("quality-and-timing-false-synergies", "heat-too-cool", LinkIssueCode::TimeWindowMismatch),
-        ("quality-and-timing-false-synergies", "heat-treated-as-electricity", LinkIssueCode::StreamMismatch),
-        ("brine-residual-hazard", "brine-recovery-unreviewed-fate", LinkIssueCode::ChemicalFateUnknown),
-        ("brine-residual-hazard", "brine-recovery-unreviewed-fate", LinkIssueCode::EnvironmentalReviewIncomplete),
-        ("brine-residual-hazard", "brine-recovery-unreviewed-fate", LinkIssueCode::MonitoringCoverageInsufficient),
-        ("storm-resilience-and-no-build", "monitoring-under-covered", LinkIssueCode::MonitoringCoverageInsufficient),
-        ("storm-resilience-and-no-build", "restricted-data-service", LinkIssueCode::UseNotPermitted),
-        ("storm-resilience-and-no-build", "rights-review-required", LinkIssueCode::RightsReviewIncomplete),
+        (
+            "quality-and-timing-false-synergies",
+            "heat-too-cool",
+            LinkIssueCode::QualityOutsideSinkRange,
+        ),
+        (
+            "quality-and-timing-false-synergies",
+            "heat-too-cool",
+            LinkIssueCode::TimeWindowMismatch,
+        ),
+        (
+            "quality-and-timing-false-synergies",
+            "heat-treated-as-electricity",
+            LinkIssueCode::StreamMismatch,
+        ),
+        (
+            "brine-residual-hazard",
+            "brine-recovery-unreviewed-fate",
+            LinkIssueCode::ChemicalFateUnknown,
+        ),
+        (
+            "brine-residual-hazard",
+            "brine-recovery-unreviewed-fate",
+            LinkIssueCode::EnvironmentalReviewIncomplete,
+        ),
+        (
+            "brine-residual-hazard",
+            "brine-recovery-unreviewed-fate",
+            LinkIssueCode::MonitoringCoverageInsufficient,
+        ),
+        (
+            "storm-resilience-and-no-build",
+            "monitoring-under-covered",
+            LinkIssueCode::MonitoringCoverageInsufficient,
+        ),
+        (
+            "storm-resilience-and-no-build",
+            "restricted-data-service",
+            LinkIssueCode::UseNotPermitted,
+        ),
+        (
+            "storm-resilience-and-no-build",
+            "rights-review-required",
+            LinkIssueCode::RightsReviewIncomplete,
+        ),
     ] {
         let found_issue = corpus
             .scenarios
@@ -703,13 +739,21 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
             })
             .unwrap_or(false);
         negative_controls_rejected &= found_issue;
-        if matches!(expected_issue, LinkIssueCode::TimeWindowMismatch | LinkIssueCode::QualityOutsideSinkRange | LinkIssueCode::QualityMetricMismatch) {
+        if matches!(
+            expected_issue,
+            LinkIssueCode::TimeWindowMismatch
+                | LinkIssueCode::QualityOutsideSinkRange
+                | LinkIssueCode::QualityMetricMismatch
+        ) {
             quality_and_timing_are_enforced &= found_issue;
         }
     }
 
     for (scenario_id, link_id) in [
-        ("brine-residual-hazard", "brine-treatment-known-but-chemical-over-cap"),
+        (
+            "brine-residual-hazard",
+            "brine-treatment-known-but-chemical-over-cap",
+        ),
         ("storm-resilience-and-no-build", "thermal-impact-over-cap"),
     ] {
         let rejected_by_budget = corpus
