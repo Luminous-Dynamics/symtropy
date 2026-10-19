@@ -166,7 +166,7 @@ pub struct ReplayReceipt {
     evaluator: String,
     result: String,
     source_commit: String,
-    exact_head_verified: bool,
+    source_commit_sha_valid: bool,
     input_sha256: String,
     schema_sha256: String,
     dependency_lock_sha256: String,
@@ -229,8 +229,8 @@ pub fn evaluate(
     cargo_version: &str,
     lock_bytes: &[u8],
 ) -> Result<ReplayReceipt, Vec<String>> {
-    let exact_head_verified = valid_commit_sha(source_commit);
-    if source_commit != "UNPINNED_LOCAL_RUN" && !exact_head_verified {
+    let source_commit_sha_valid = valid_commit_sha(source_commit);
+    if source_commit != "UNPINNED_LOCAL_RUN" && !source_commit_sha_valid {
         return Err(vec![
             "source commit must be a lowercase 40-character Git SHA or UNPINNED_LOCAL_RUN"
                 .to_owned(),
@@ -256,7 +256,7 @@ pub fn evaluate(
         evaluator: "PIRB historical replay".to_owned(),
         result: "pass".to_owned(),
         source_commit: source_commit.to_owned(),
-        exact_head_verified,
+        source_commit_sha_valid,
         input_sha256: sha256_hex(input),
         schema_sha256: sha256_hex(SCHEMA_BYTES),
         dependency_lock_sha256: sha256_hex(lock_bytes),
@@ -727,7 +727,7 @@ mod tests {
     fn schema_and_synthetic_fixture_validate() {
         let receipt = test_receipt();
         assert_eq!(receipt.result, "pass");
-        assert!(receipt.exact_head_verified);
+        assert!(receipt.source_commit_sha_valid);
         assert_eq!(receipt.dataset_class, DatasetClass::Synthetic);
         assert_eq!(receipt.split_metrics.test.records_total, 6);
         assert_eq!(receipt.split_metrics.test.known_outcome_records, 5);
@@ -833,10 +833,10 @@ mod tests {
     }
 
     #[test]
-    fn local_unpinned_run_is_never_marked_exact_head_verified() {
+    fn local_unpinned_run_is_never_marked_commit_sha_valid() {
         let receipt = evaluate(FIXTURE, "UNPINNED_LOCAL_RUN", "unknown", "unknown", LOCK)
             .expect("local run should still be useful");
-        assert!(!receipt.exact_head_verified);
+        assert!(!receipt.source_commit_sha_valid);
     }
 
     #[test]
