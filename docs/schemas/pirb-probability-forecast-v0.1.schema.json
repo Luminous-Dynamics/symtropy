@@ -33,7 +33,7 @@
       "additionalProperties": false,
       "required": [
         "provider",
-        "forecast_release_id",
+        "forecast_archive_id",
         "model_id",
         "model_version",
         "forecast_variable",
@@ -41,7 +41,7 @@
         "analysis_unit",
         "threshold_definition",
         "forecast_source_reference",
-        "forecast_release_sha256",
+        "forecast_archive_sha256",
         "outcome_source_id",
         "outcome_release_id",
         "outcome_definition",
@@ -52,10 +52,6 @@
       ],
       "properties": {
         "provider": {
-          "type": "string",
-          "minLength": 1
-        },
-        "forecast_release_id": {
           "type": "string",
           "minLength": 1
         },
@@ -89,10 +85,6 @@
           "type": "string",
           "minLength": 1
         },
-        "forecast_release_sha256": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
         "outcome_source_id": {
           "type": "string",
           "minLength": 1
@@ -120,6 +112,14 @@
         "attribution": {
           "type": "string",
           "minLength": 1
+        },
+        "forecast_archive_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_archive_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
