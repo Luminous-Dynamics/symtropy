@@ -21,3 +21,9 @@ Robustness tournament (synthetic generated validation + held-out seeds):
 cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- --robustness --source-commit "$(git rev-parse HEAD)"
 
 This command compares the frozen baseline, a forecast-only nominal scheduler and an envelope-feasible minimax scheduler over 32 validation and 32 non-overlapping held-out seeds, with five paired disturbance worlds per seed. Its receipt reports feasibility, grid cost and carbon, oracle regret, 95th-percentile regret and a worst-5%-mean CVaR-style metric. Held-out seeds are reproducible generated scenarios—not blinded external validation. Read docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md for the full contract.
+
+Causal adaptive recourse and out-of-envelope challenge run:
+
+cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- --recourse --source-commit "$(git rev-parse HEAD)"
+
+This reuses the same dispatch/accounting code and published uncertainty set, commits one period at a time as observations arrive, and evaluates three additional out-of-envelope stress worlds per seed. It checks that identical observed prefixes yield identical actions, reports incomplete production explicitly, and emits separate cost/regret/feasibility results by validation/held-out split and envelope class. See docs/tech/MINE_FLEX_RECOURSE_BENCHMARK_V0_1.md for the causal policy contract and claim ceiling.
