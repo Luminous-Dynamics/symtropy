@@ -38,6 +38,8 @@ struct CaseResult {
     duration: f64,
     position_error: f64,
     velocity_error: f64,
+    discrete_position_error: f64,
+    discrete_velocity_error: f64,
     maximum_abs_position: f64,
     theoretical_discrete_amplitude_bound: f64,
     pass: bool,
@@ -50,15 +52,17 @@ fn main() {
         .map(|dt| run_case(dt, DURATION))
         .collect();
 
-    println!("dt,steps,duration,position_error,velocity_error,max_abs_position,discrete_amplitude_bound,pass");
+    println!("dt,steps,duration,continuous_position_error,continuous_velocity_error,discrete_position_error,discrete_velocity_error,max_abs_position,discrete_amplitude_bound,pass");
     for result in &results {
         println!(
-            "{:.17},{},{:.17},{:.17},{:.17},{:.17},{:.17},{}",
+            "{:.17},{},{:.17},{:.17},{:.17},{:.17},{:.17},{:.17},{:.17},{}",
             result.dt,
             result.steps,
             result.duration,
             result.position_error,
             result.velocity_error,
+            result.discrete_position_error,
+            result.discrete_velocity_error,
             result.maximum_abs_position,
             result.theoretical_discrete_amplitude_bound,
             result.pass
@@ -120,6 +124,11 @@ fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
     }
 
     let mut maximum_abs_position = 1.0_f64;
+    // Independent scalar implementation of the declared discrete update.
+    // This is a code-path differential check, not a fully independent physical
+    // model; continuous-solution convergence remains a separate check.
+    let mut reference_x = 1.0_f64;
+    let mut reference_v = 0.0_f64;
     for _ in 0..steps {
         let x = world
             .body(handle)
@@ -133,6 +142,9 @@ fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
             .expect("body remains in world")
             .apply_force(force);
         world.step(dt);
+
+        reference_v += (-SPRING_K / MASS) * reference_x * dt;
+        reference_x += reference_v * dt;
 
         let next_x = world
             .body(handle)
@@ -152,6 +164,8 @@ fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
     let expected_vx = -OMEGA * (OMEGA * duration).sin();
     let position_error = (observed_x - expected_x).abs();
     let velocity_error = (observed_vx - expected_vx).abs();
+    let discrete_position_error = (observed_x - reference_x).abs();
+    let discrete_velocity_error = (observed_vx - reference_v).abs();
 
     let amplitude_pass = linearly_stable
         && maximum_abs_position
@@ -162,8 +176,10 @@ fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
         && maximum_abs_position.is_finite()
         && position_error.is_finite()
         && velocity_error.is_finite()
-        && position_error <= POSITION_TOLERANCE.max(1e-12)
-        && velocity_error <= VELOCITY_TOLERANCE.max(1e-12)
+        && discrete_position_error.is_finite()
+        && discrete_velocity_error.is_finite()
+        && discrete_position_error <= POSITION_TOLERANCE
+        && discrete_velocity_error <= VELOCITY_TOLERANCE
         && amplitude_pass;
 
     CaseResult {
@@ -172,6 +188,8 @@ fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
         duration,
         position_error,
         velocity_error,
+        discrete_position_error,
+        discrete_velocity_error,
         maximum_abs_position,
         theoretical_discrete_amplitude_bound: amplitude_bound,
         pass,
