@@ -11,6 +11,7 @@ From the repository root:
     cargo run --bin pirb-outcome-vintage-sensitivity --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --input docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json
     cargo run --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
     cargo run --bin pirb-cross-provider-benchmark-validate --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-cross-provider-benchmark-incompatible-v0.1.json --source-commit "$(git rev-parse HEAD)"
+    cargo run --bin pirb-hierarchy-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
 
@@ -19,6 +20,12 @@ A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not 
 The `pirb-cross-provider-benchmark-validate` binary validates `docs/schemas/pirb-cross-provider-benchmark-v0.1.schema.json` plus cross-field invariants that JSON Schema cannot establish alone: unique and resolvable provider/comparison IDs, exact target/unit/time/horizon/output compatibility for direct comparisons, pinned and independently reviewed mappings for mapped comparisons, output-type-specific metric families, and governance gates for authorized historical data. It emits a deterministic registration-validation receipt with schema/input digests and the explicitly declared comparison states. It does **not** load forecast rows, score providers, establish predictive superiority, select actions, or estimate causal impact.
 
 The checked-in VIEWS/ACLED CAST example deliberately exits successfully as a valid **not-comparable** registration while keeping both scoring lanes disabled. That is a successful contract test, not a successful model comparison. For an evaluation registration, source releases, data rights, outcome maturity, shared-row rules and mapping evidence must be pinned before held-out evaluation.
+
+## Hierarchical forecast coherence
+
+The `pirb-hierarchy-coherence-audit` binary measures parent/child consistency for count forecasts before and after reconciliation. It reports raw and reconciled residuals, adjustment magnitudes, completeness coverage, and explicit `not_assessable` constraints when children are missing or coverage is not verified. A registration claiming complete coverage while missing a declared child is rejected. This is not a forecast-accuracy score and the audit does not implement a reconciliation method such as MinTraceSparse; it only checks the declared hierarchy constraints and records their coherence diagnostics.
+
+The checked-in hierarchy fixture has invented aggregate counts. Its all-zero/all-one artifact digests are placeholders and do not identify captured provider data. The fixture includes two complete exact-sum constraints and one incomplete spatial constraint whose missing child must not be imputed as zero. See `docs/tech/PIRB_HIERARCHICAL_FORECAST_COHERENCE_V0_1.md` for the contract and claim limits.
 
 ## Outcome-vintage sensitivity
 
