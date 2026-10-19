@@ -641,58 +641,90 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
     let mut duplicate_benefit_never_reused = true;
     let mut all_frontiers_respect_impact_budget = true;
     let mut quality_and_timing_are_enforced = true;
+    let mut negative_controls_rejected = true;
 
     for scenario in &corpus.scenarios {
-        for outcome in &reports
+        for left in 0..scenario.candidate_links.len() {
+            for right in (left + 1)..scenario.candidate_links.len() {
+                if scenario.candidate_links[left].benefit_claim_id
+                    == scenario.candidate_links[right].benefit_claim_id
+                    && portfolio_outcome(scenario, &[left, right]).is_some()
+                {
+                    duplicate_benefit_never_reused = false;
+                }
+            }
+        }
+
+        let report = reports
             .iter()
             .find(|report| report.scenario_id == scenario.scenario_id)
-            .expect("report exists")
-            .pareto_frontier
-        {
-            if portfolio_outcome(
-                scenario,
-                &outcome
-                    .candidate_link_ids
-                    .iter()
-                    .filter_map(|id| {
-                        scenario
-                            .candidate_links
-                            .iter()
-                            .position(|link| &link.link_id == id)
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .is_none()
-            {
-                all_frontiers_respect_gates = false;
-            }
-            let selected: Vec<&CandidateLink> = outcome
+            .expect("report exists");
+        for outcome in &report.pareto_frontier {
+            let selected_indices = outcome
                 .candidate_link_ids
                 .iter()
                 .filter_map(|id| {
                     scenario
                         .candidate_links
                         .iter()
-                        .find(|link| &link.link_id == id)
+                        .position(|link| &link.link_id == id)
                 })
-                .collect();
-            let mut claims = HashSet::new();
-            for link in &selected {
-                if !claims.insert(link.benefit_claim_id.as_str()) {
-                    duplicate_benefit_never_reused = false;
-                }
-                let issues = link_issues(scenario, link);
-                if issues.contains(&LinkIssueCode::TimeWindowMismatch)
-                    || issues.contains(&LinkIssueCode::QualityOutsideSinkRange)
-                    || issues.contains(&LinkIssueCode::QualityMetricMismatch)
-                {
-                    quality_and_timing_are_enforced = false;
-                }
+                .collect::<Vec<_>>();
+            if portfolio_outcome(scenario, &selected_indices).is_none() {
+                all_frontiers_respect_gates = false;
             }
             if !outcome.impacts.within(scenario.impact_budget) {
                 all_frontiers_respect_impact_budget = false;
             }
         }
+    }
+
+    for (scenario_id, link_id, expected_issue) in [
+        ("quality-and-timing-false-synergies", "heat-too-cool", LinkIssueCode::QualityOutsideSinkRange),
+        ("quality-and-timing-false-synergies", "heat-too-cool", LinkIssueCode::TimeWindowMismatch),
+        ("quality-and-timing-false-synergies", "heat-treated-as-electricity", LinkIssueCode::StreamMismatch),
+        ("brine-residual-hazard", "brine-recovery-unreviewed-fate", LinkIssueCode::ChemicalFateUnknown),
+        ("brine-residual-hazard", "brine-recovery-unreviewed-fate", LinkIssueCode::EnvironmentalReviewIncomplete),
+        ("brine-residual-hazard", "brine-recovery-unreviewed-fate", LinkIssueCode::MonitoringCoverageInsufficient),
+        ("storm-resilience-and-no-build", "monitoring-under-covered", LinkIssueCode::MonitoringCoverageInsufficient),
+        ("storm-resilience-and-no-build", "restricted-data-service", LinkIssueCode::UseNotPermitted),
+        ("storm-resilience-and-no-build", "rights-review-required", LinkIssueCode::RightsReviewIncomplete),
+    ] {
+        let found_issue = corpus
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == scenario_id)
+            .and_then(|scenario| {
+                scenario
+                    .candidate_links
+                    .iter()
+                    .find(|link| link.link_id == link_id)
+                    .map(|link| link_issues(scenario, link).contains(&expected_issue))
+            })
+            .unwrap_or(false);
+        negative_controls_rejected &= found_issue;
+        if matches!(expected_issue, LinkIssueCode::TimeWindowMismatch | LinkIssueCode::QualityOutsideSinkRange | LinkIssueCode::QualityMetricMismatch) {
+            quality_and_timing_are_enforced &= found_issue;
+        }
+    }
+
+    for (scenario_id, link_id) in [
+        ("brine-residual-hazard", "brine-treatment-known-but-chemical-over-cap"),
+        ("storm-resilience-and-no-build", "thermal-impact-over-cap"),
+    ] {
+        let rejected_by_budget = corpus
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == scenario_id)
+            .and_then(|scenario| {
+                scenario
+                    .candidate_links
+                    .iter()
+                    .position(|link| link.link_id == link_id)
+                    .map(|index| portfolio_outcome(scenario, &[index]).is_none())
+            })
+            .unwrap_or(false);
+        all_frontiers_respect_impact_budget &= rejected_by_budget;
     }
 
     let mut invariants = Vec::new();
@@ -707,7 +739,9 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
     add_invariant(&mut invariants, "aggregate_impact_budgets_respected", all_frontiers_respect_impact_budget,
         "Every reported frontier portfolio respects independent sound, light, sediment, thermal, nutrient and chemical-pressure caps.");
     add_invariant(&mut invariants, "quality_and_timing_faults_are_enforced", quality_and_timing_are_enforced,
-        "Quality and timing faults remain rejection reasons rather than being converted into viable synergies.");
+        "Frozen heat-grade and timing negative controls are rejected with their declared reason codes.");
+    add_invariant(&mut invariants, "frozen_rights_chemical_monitoring_and_stream_negative_controls_rejected", negative_controls_rejected,
+        "Restricted/unreviewed use, unknown chemical fate, inadequate monitoring and wrong stream/quality/time matches are actively checked as negative controls.");
     add_invariant(
         &mut invariants,
         "exact_corpus_and_source_are_pinned",
@@ -878,6 +912,35 @@ mod tests {
         let report = evaluate_scenario(&corpus.scenarios[0]);
         assert!(report.individually_eligible_link_count >= 2);
         assert!(!report.pareto_frontier.is_empty());
+    }
+
+    #[test]
+    fn shared_source_capacity_prevents_double_allocation_of_waste_heat() {
+        let (corpus, _) = fixture();
+        let scenario = &corpus.scenarios[0];
+        let thermal = scenario
+            .candidate_links
+            .iter()
+            .position(|link| link.link_id == "waste-heat-to-thermal-desalination")
+            .unwrap();
+        let aquaculture = scenario
+            .candidate_links
+            .iter()
+            .position(|link| link.link_id == "waste-heat-to-aquaculture-cold-chain")
+            .unwrap();
+        assert!(link_issues(scenario, &scenario.candidate_links[thermal]).is_empty());
+        assert!(link_issues(scenario, &scenario.candidate_links[aquaculture]).is_empty());
+        assert!(portfolio_outcome(scenario, &[thermal, aquaculture]).is_none());
+    }
+
+    #[test]
+    fn unsafe_brine_scenario_keeps_no_build_as_the_only_feasible_portfolio() {
+        let (corpus, _) = fixture();
+        let scenario = &corpus.scenarios[2];
+        let report = evaluate_scenario(scenario);
+        assert_eq!(report.feasible_portfolio_count, 1);
+        assert_eq!(report.pareto_frontier.len(), 1);
+        assert!(report.pareto_frontier[0].candidate_link_ids.is_empty());
     }
 
     #[test]
