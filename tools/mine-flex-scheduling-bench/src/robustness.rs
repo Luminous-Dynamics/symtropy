@@ -5,6 +5,8 @@ use super::{
 };
 #[path = "recourse.rs"]
 mod recourse;
+#[path = "risk_budget.rs"]
+mod risk_budget;
 
 use serde::Serialize;
 use std::process::ExitCode;
@@ -776,6 +778,10 @@ fn make_receipt(source_commit: &str) -> Check<RobustnessReceipt> {
 
 pub(super) fn run_recourse_cli(args: &[String]) -> Check<ExitCode> {
     recourse::run_cli(args)
+}
+
+pub(super) fn run_risk_budget_cli(args: &[String]) -> Check<ExitCode> {
+    risk_budget::run_cli(args)
 }
 
 pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {
