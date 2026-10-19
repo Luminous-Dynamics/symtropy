@@ -3,10 +3,52 @@ use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     env, fs, process,
+
+    #[test]
+    fn capacity_frontier_finds_minimum_sampled_feasible_grid_connection() {
+        let templates = templates(template(
+            100.0,
+            1.0,
+            100.0,
+            constant_curve(100.0),
+        ));
+        let case = scenario(vec![job("one", 0.0, 45.0, 0.0, 0.1)], 1, 40.0, vec![]);
+        let frontier =
+            build_capacity_frontier(&templates, &case, Policy::FirstComeFirstServed).unwrap();
+        assert_eq!(frontier.points.len(), 20);
+        assert_eq!(frontier.sample_spacing_percent, 5);
+        assert_eq!(frontier.minimum_sampled_feasible_site_power_kw, Some(14.0));
+        assert!(frontier.points.windows(2).all(|pair| {
+            pair[0].installed_site_power_budget_kw < pair[1].installed_site_power_budget_kw
+        }));
+        assert!(!frontier.points[5].meets_service_target);
+        assert!(frontier.points[6].meets_service_target);
+        assert_eq!(frontier.service_monotonicity_violations, 0);
+        assert_eq!(frontier.feasibility_monotonicity_violations, 0);
+    }
+
+    #[test]
+    fn capacity_frontier_base_point_matches_reference_run() {
+        let templates = templates(template(100.0, 0.9, 25.0, constant_curve(60.0)));
+        let case = scenario(vec![job("one", 0.0, 60.0, 0.0, 0.2)], 1, 20.0, vec![]);
+        let frontier =
+            build_capacity_frontier(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
+        let reference =
+            simulate_scenario(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
+        let base = frontier.points.last().unwrap();
+        assert!((base.installed_site_power_budget_kw - case.site_power_budget_kw).abs() < EPSILON);
+        assert_eq!(base.completed_by_deadline_count, reference.completed_by_deadline_count);
+        assert!((base.delivered_battery_energy_kwh - reference.delivered_battery_energy_kwh).abs() < EPSILON);
+        assert_eq!(base.meets_service_target, reference.completed_by_deadline_count as f64 / reference.job_count as f64 >= MIN_DEADLINE_COMPLETION_FRACTION && reference.energy_service_fraction >= MIN_ENERGY_SERVICE_FRACTION);
+    }
+
 };
 
 const EPSILON: f64 = 1.0e-9;
 const MAX_EVENTS: usize = 100_000;
+const CAPACITY_LEVELS_PERCENT: [u32; 20] = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
+const MIN_DEADLINE_COMPLETION_FRACTION: f64 = 0.95;
+const MIN_ENERGY_SERVICE_FRACTION: f64 = 0.95;
 const CLAIM_CEILING: &str = "Deterministic fleet charging-contingency screen using declared SOC-banded acceptance and piecewise-constant supply/port availability. Inputs are synthetic unless explicitly sourced; this is not an electrochemical, stochastic-reliability, AC load-flow, control-safety, or field-validation model.";
 
 #[derive(Debug, Deserialize)]
@@ -168,11 +210,45 @@ struct ScenarioResult {
 }
 
 #[derive(Debug, Serialize)]
+struct CapacityPoint {
+    installed_site_power_budget_kw: f64,
+    fraction_of_declared_base_capacity: f64,
+    completed_by_deadline_count: usize,
+    missed_deadline_count: usize,
+    deadline_completion_fraction: f64,
+    energy_service_fraction: f64,
+    delivered_battery_energy_kwh: f64,
+    unserved_battery_energy_kwh: f64,
+    maximum_site_input_power_kw: f64,
+    site_power_limit_respected: bool,
+    individual_power_limits_respected: bool,
+    meets_service_target: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct CapacityFrontier {
+    scenario_id: String,
+    label: String,
+    evidence_class: String,
+    policy: String,
+    base_site_power_budget_kw: f64,
+    minimum_deadline_completion_target: f64,
+    minimum_energy_service_target: f64,
+    sample_spacing_percent: u32,
+    minimum_sampled_feasible_site_power_kw: Option<f64>,
+    feasible_sample_count: usize,
+    service_monotonicity_violations: usize,
+    feasibility_monotonicity_violations: usize,
+    points: Vec<CapacityPoint>,
+}
+
+#[derive(Debug, Serialize)]
 struct Report {
     schema_version: String,
     suite_id: String,
     method: &'static str,
     results: Vec<ScenarioResult>,
+    capacity_frontiers: Vec<CapacityFrontier>,
     claim_ceiling: &'static str,
 }
 
@@ -226,11 +302,33 @@ fn main() {
             .cmp(&b.scenario_id)
             .then_with(|| a.policy.cmp(&b.policy))
     });
+    let mut capacity_frontiers = Vec::new();
+    for scenario in &corpus.scenarios {
+        for policy in Policy::ALL {
+            match build_capacity_frontier(&templates, scenario, policy) {
+                Ok(frontier) => capacity_frontiers.push(frontier),
+                Err(error) => {
+                    eprintln!(
+                        "capacity frontier failed for {} / {}: {error}",
+                        scenario.scenario_id,
+                        policy.as_str()
+                    );
+                    process::exit(2);
+                }
+            }
+        }
+    }
+    capacity_frontiers.sort_by(|a, b| {
+        a.scenario_id
+            .cmp(&b.scenario_id)
+            .then_with(|| a.policy.cmp(&b.policy))
+    });
     let report = Report {
         schema_version: corpus.schema_version,
         suite_id: corpus.suite_id,
         method: "event-driven, non-voluntary-preemptive priority scheduling with SOC-band events; max-min site-power sharing and declared capacity contingencies",
         results,
+        capacity_frontiers,
         claim_ceiling: CLAIM_CEILING,
     };
     match serde_json::to_string_pretty(&report) {
@@ -796,6 +894,89 @@ fn simulate_scenario(
         individual_power_limits_respected,
         jobs,
         claim_ceiling: CLAIM_CEILING,
+    })
+}
+
+fn build_capacity_frontier(
+    templates: &BTreeMap<String, VehicleTemplate>,
+    scenario: &Scenario,
+    policy: Policy,
+) -> Result<CapacityFrontier, String> {
+    let mut points = Vec::with_capacity(CAPACITY_LEVELS_PERCENT.len());
+    let mut minimum_feasible = None;
+    let mut feasible_sample_count = 0_usize;
+    let mut service_monotonicity_violations = 0_usize;
+    let mut feasibility_monotonicity_violations = 0_usize;
+    let mut previous_completed = None;
+    let mut previous_delivered = None;
+    let mut previously_feasible = false;
+
+    for percent in CAPACITY_LEVELS_PERCENT {
+        let candidate_budget = scenario.site_power_budget_kw * f64::from(percent) / 100.0;
+        let mut candidate = scenario.clone();
+        candidate.site_power_budget_kw = candidate_budget;
+        // Capacity events are treated as fixed physical caps; the candidate interconnection
+        // cannot exceed them, and smaller candidate connections are clipped by the cap.
+        for event in &mut candidate.capacity_events {
+            event.site_power_budget_kw = event.site_power_budget_kw.min(candidate_budget);
+        }
+        let result = simulate_scenario(templates, &candidate, policy)?;
+        let deadline_completion_fraction =
+            result.completed_by_deadline_count as f64 / result.job_count as f64;
+        let meets_service_target = deadline_completion_fraction + EPSILON
+            >= MIN_DEADLINE_COMPLETION_FRACTION
+            && result.energy_service_fraction + EPSILON >= MIN_ENERGY_SERVICE_FRACTION
+            && result.site_power_limit_respected
+            && result.individual_power_limits_respected;
+        if meets_service_target {
+            feasible_sample_count += 1;
+            minimum_feasible.get_or_insert(candidate_budget);
+        }
+        if previously_feasible && !meets_service_target {
+            feasibility_monotonicity_violations += 1;
+        }
+        if let (Some(prior_completed), Some(prior_delivered)) =
+            (previous_completed, previous_delivered)
+        {
+            if result.completed_by_deadline_count < prior_completed
+                || result.delivered_battery_energy_kwh + EPSILON < prior_delivered
+            {
+                service_monotonicity_violations += 1;
+            }
+        }
+        previously_feasible = meets_service_target;
+        previous_completed = Some(result.completed_by_deadline_count);
+        previous_delivered = Some(result.delivered_battery_energy_kwh);
+        points.push(CapacityPoint {
+            installed_site_power_budget_kw: candidate_budget,
+            fraction_of_declared_base_capacity: f64::from(percent) / 100.0,
+            completed_by_deadline_count: result.completed_by_deadline_count,
+            missed_deadline_count: result.missed_deadline_count,
+            deadline_completion_fraction,
+            energy_service_fraction: result.energy_service_fraction,
+            delivered_battery_energy_kwh: result.delivered_battery_energy_kwh,
+            unserved_battery_energy_kwh: result.unserved_battery_energy_kwh,
+            maximum_site_input_power_kw: result.maximum_site_input_power_kw,
+            site_power_limit_respected: result.site_power_limit_respected,
+            individual_power_limits_respected: result.individual_power_limits_respected,
+            meets_service_target,
+        });
+    }
+
+    Ok(CapacityFrontier {
+        scenario_id: scenario.scenario_id.clone(),
+        label: scenario.label.clone(),
+        evidence_class: scenario.evidence_class.clone(),
+        policy: policy.as_str().to_string(),
+        base_site_power_budget_kw: scenario.site_power_budget_kw,
+        minimum_deadline_completion_target: MIN_DEADLINE_COMPLETION_FRACTION,
+        minimum_energy_service_target: MIN_ENERGY_SERVICE_FRACTION,
+        sample_spacing_percent: 5,
+        minimum_sampled_feasible_site_power_kw: minimum_feasible,
+        feasible_sample_count,
+        service_monotonicity_violations,
+        feasibility_monotonicity_violations,
+        points,
     })
 }
 
