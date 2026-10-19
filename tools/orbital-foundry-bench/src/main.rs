@@ -518,10 +518,10 @@ fn oracle_scenario_loss(design: Design, scenario: &ScenarioContract) -> u32 {
 
 fn oracle_metrics(design: Design, contract: &Contract) -> Metrics {
     let launch_mass_smu =
-        100 + 8 * u32::from(design.standardized_interfaces)
-            + 18 * u32::from(design.isolated_power_domains)
-            + 12 * u32::from(design.spare_pack)
-            + 5 * u32::from(design.end_of_life_plan);
+        100 + 8 * (design.standardized_interfaces as u32)
+            + 18 * (design.isolated_power_domains as u32)
+            + 12 * (design.spare_pack as u32)
+            + 5 * (design.end_of_life_plan as u32);
     let assembly_ticks = 12 - 2 * u32::from(design.standardized_interfaces)
         + 2 * u32::from(design.isolated_power_domains)
         + u32::from(design.spare_pack)
@@ -669,9 +669,9 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
                 .collect();
 
             scenario_reports.push(json!({
-                "scenario_id": scenario.id,
-                "disturbance": scenario.disturbance,
-                "claim_ceiling": scenario.claim_ceiling,
+                "scenario_id": &scenario.id,
+                "disturbance": &scenario.disturbance,
+                "claim_ceiling": &scenario.claim_ceiling,
                 "service_loss_ticks": simulation.service_loss_ticks,
                 "spare_units_remaining": simulation.spare_units_remaining,
                 "event_trace": event_trace
