@@ -1,14 +1,16 @@
-name: Rural and Industrial Electrification Screen
+name: Rural, Industrial and EV Platform Design Screen
 
 on:
   pull_request:
     paths:
       - "tools/rural-industrial-electrification-evaluator/**"
+      - "docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   push:
     branches: [main]
     paths:
       - "tools/rural-industrial-electrification-evaluator/**"
+      - "docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   workflow_dispatch:
 
@@ -47,3 +49,11 @@ jobs:
             --bin energy_dispatch_screen -- \
             tools/rural-industrial-electrification-evaluator/fixtures/dispatch_profiles_v0_1.json > dispatch-report.json
           jq -e '.results | length == 4 and all(.[]; .maximum_absolute_energy_balance_residual_kwh < 0.000001)' dispatch-report.json
+      - name: Run electric mobility design screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+            --bin vehicle_design_screen -- \
+            tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json > vehicle-design-report.json
+          jq -e '.results | length == 19 and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-design-report.json
+          jq -e '[.results[] | select(.design_id == "open-pit-haul-battery-only-control") | .status] == ["blocked"]' vehicle-design-report.json
+          jq -e '[.results[] | select(.design_id != "open-pit-haul-battery-only-control") | select(.status != "passes_synthetic_screen")] | length == 0' vehicle-design-report.json
