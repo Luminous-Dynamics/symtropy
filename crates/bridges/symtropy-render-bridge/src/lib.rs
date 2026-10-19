@@ -31,6 +31,6 @@ pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
 pub use telemetry_ssbo::{LinkTelemetryGpu, NodeTelemetryGpu, TelemetryBufferResource};
 
 pub use views::{
-    OrientedProjector4D, Projector2_5D, ProjectionConfigError, SliceWindow, ViewConfigError,
+    OrientedProjector4D, ProjectorOblique25D, ProjectionConfigError, SliceWindow, ViewConfigError,
     ViewDetailPolicy, ViewDimension, ViewLayerVisibility, ViewProfile, ViewPurpose,
 };
