@@ -55,7 +55,7 @@ EXPECTED = {
     "input_artifact_sha256": "cc014e7a9694d0bf7a836dd7ec8aa19552424111024d60822ad09a637a503e84",
     "serialized_model_sha256": "71d93acd678db5ef8385b1e21984caff6547b22b2fe1c79753c4818d55f1841b",
     "output_payload_sha256": "8cd5aa75a94d38bbd330f9942a42e6136e9759125c09f2c23da95964621460e6",
-    "receipt_sha256": "53ce783176001947e1fa3e67e30ecfbcc9af4f94cd743152851d0bc54f39f792",
+    "receipt_sha256": "b0b045ab62955c0e0342ee9746447dee39181c32318920ab13ac40b15c871775",
 }
 
 
@@ -85,7 +85,7 @@ def main() -> int:
             raise SystemExit(f"FAIL {field}: fixture says {fixture_value}, computed {digest}")
         print(f"PASS {field}: {digest}")
 
-    if payload.get("receipt_schema_version") != "0.2.0":
+    if payload.get("receipt_schema_version") != "0.3.0":
         raise SystemExit("FAIL unsupported fixture receipt schema version")
     if payload.get("canonicalization_algorithm") != "RFC8785-JCS":
         raise SystemExit("FAIL fixture does not identify RFC 8785 JCS")
