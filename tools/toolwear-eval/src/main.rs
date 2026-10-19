@@ -81,6 +81,78 @@ struct ModelResult {
     per_tool: BTreeMap<u32, MetricSummary>,
 }
 
+#[derive(Debug)]
+struct ToolFold {
+    held_out_tool: u32,
+    training_tools: BTreeSet<u32>,
+    training_rows: usize,
+    test_rows: usize,
+    models: BTreeMap<String, ModelResult>,
+}
+
+#[derive(Debug, Default)]
+struct TransferAccumulator {
+    pooled: ErrorAccumulator,
+    per_tool: BTreeMap<u32, MetricSummary>,
+}
+
+impl TransferAccumulator {
+    fn record(&mut self, tool: u32, result: &ModelResult) -> Result<(), String> {
+        let metric = *result
+            .per_tool
+            .get(&tool)
+            .ok_or_else(|| format!("fold omitted its held-out tool {tool}"))?;
+        if self.per_tool.insert(tool, metric).is_some() {
+            return Err(format!("tool {tool} was evaluated more than once"));
+        }
+        self.pooled.rows = self
+            .pooled
+            .rows
+            .checked_add(result.pooled.rows)
+            .ok_or_else(|| "transfer metric row count overflow".to_owned())?;
+        self.pooled.absolute_error_sum += result.pooled.mae * result.pooled.rows as f64;
+        self.pooled.squared_error_sum +=
+            result.pooled.rmse * result.pooled.rmse * result.pooled.rows as f64;
+        if !self.pooled.absolute_error_sum.is_finite() || !self.pooled.squared_error_sum.is_finite()
+        {
+            return Err("transfer metric aggregation became non-finite".to_owned());
+        }
+        Ok(())
+    }
+
+    fn json(&self) -> Result<String, String> {
+        let pooled = self.pooled.finish()?;
+        if self.per_tool.is_empty() {
+            return Err("cannot aggregate leave-one-tool-out without folds".to_owned());
+        }
+        let count = self.per_tool.len() as f64;
+        let macro_mae = self.per_tool.values().map(|m| m.mae).sum::<f64>() / count;
+        let macro_rmse = self.per_tool.values().map(|m| m.rmse).sum::<f64>() / count;
+        if !macro_mae.is_finite() || !macro_rmse.is_finite() {
+            return Err("macro-tool transfer metric is non-finite".to_owned());
+        }
+        let (worst_tool, worst_metric) = self
+            .per_tool
+            .iter()
+            .max_by(|a, b| a.1.mae.total_cmp(&b.1.mae))
+            .ok_or_else(|| "cannot identify worst tool without per-tool metrics".to_owned())?;
+        let per_tool: Vec<String> = self
+            .per_tool
+            .iter()
+            .map(|(tool, metric)| format!("\"{tool}\":{}", metric_json(*metric)))
+            .collect();
+        Ok(format!(
+            "{{\"pooled\":{},\"macro_tool\":{{\"mae\":{:.12},\"rmse\":{:.12}}},\"worst_tool\":{{\"tool\":{},\"metrics\":{}}},\"per_tool\":{{{}}}}}",
+            metric_json(pooled),
+            macro_mae,
+            macro_rmse,
+            worst_tool,
+            metric_json(*worst_metric),
+            per_tool.join(",")
+        ))
+    }
+}
+
 fn parse_csv(text: &str) -> Result<Dataset, String> {
     let mut lines = text.lines();
     let header_line = lines
@@ -394,6 +466,163 @@ fn evaluate_model(
     })
 }
 
+fn fit_leave_one_tool_out(dataset: &Dataset) -> Result<Vec<ToolFold>, String> {
+    let tool_ids: BTreeSet<u32> = dataset.rows.iter().map(|row| row.tool).collect();
+    if tool_ids.len() < 2 {
+        return Err("leave-one-tool-out requires at least two distinct tools".to_owned());
+    }
+    let target_index = column_index(&dataset.headers, "Vb")?;
+    let mut folds = Vec::with_capacity(tool_ids.len());
+
+    for held_out_tool in tool_ids.iter().copied() {
+        let test_tools = BTreeSet::from([held_out_tool]);
+        let training_tools: BTreeSet<u32> = tool_ids.difference(&test_tools).copied().collect();
+        if training_tools.is_empty() || !training_tools.is_disjoint(&test_tools) {
+            return Err("leave-one-tool-out produced an invalid group split".to_owned());
+        }
+
+        let training_rows: Vec<&Row> = dataset
+            .rows
+            .iter()
+            .filter(|row| training_tools.contains(&row.tool))
+            .collect();
+        let test_rows = dataset
+            .rows
+            .iter()
+            .filter(|row| row.tool == held_out_tool)
+            .count();
+        if training_rows.is_empty() || test_rows == 0 {
+            return Err(format!(
+                "leave-one-tool-out fold for tool {held_out_tool} has an empty side"
+            ));
+        }
+        let training_counts = tool_counts(&training_rows);
+        let mut models = BTreeMap::new();
+
+        let constant = fit_tool_balanced_constant(&training_rows, target_index)?;
+        let constant_result =
+            evaluate_model(dataset, &test_tools, target_index, None, constant, 0.0)?;
+        models.insert("constant_train_tool_balanced".to_owned(), constant_result);
+
+        // This feature set and estimator are frozen before inspecting the
+        // leave-one-tool-out results: no fold-specific feature selection.
+        for feature in FEATURES {
+            let feature_index = column_index(&dataset.headers, feature)?;
+            let (intercept, slope) = fit_tool_balanced_linear(
+                &training_rows,
+                &training_counts,
+                feature_index,
+                target_index,
+            )?;
+            let result = evaluate_model(
+                dataset,
+                &test_tools,
+                target_index,
+                Some(feature_index),
+                intercept,
+                slope,
+            )?;
+            models.insert(format!("ols_{feature}"), result);
+        }
+
+        for result in models.values() {
+            if result.per_tool.len() != 1 || !result.per_tool.contains_key(&held_out_tool) {
+                return Err(format!(
+                    "model result for tool {held_out_tool} is not group-local"
+                ));
+            }
+        }
+
+        folds.push(ToolFold {
+            held_out_tool,
+            training_tools,
+            training_rows: training_rows.len(),
+            test_rows,
+            models,
+        });
+    }
+
+    let held_out_tools: BTreeSet<u32> = folds.iter().map(|fold| fold.held_out_tool).collect();
+    if held_out_tools != tool_ids || folds.len() != tool_ids.len() {
+        return Err("leave-one-tool-out did not produce exactly one fold per tool".to_owned());
+    }
+    Ok(folds)
+}
+
+fn model_ranking_by_mae(models: &BTreeMap<String, ModelResult>) -> Vec<String> {
+    let mut ranking: Vec<(String, f64)> = models
+        .iter()
+        .map(|(name, result)| (name.clone(), result.pooled.mae))
+        .collect();
+    ranking.sort_by(|a, b| a.1.total_cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
+    ranking.into_iter().map(|(name, _)| name).collect()
+}
+
+fn tool_transfer_diagnostics(dataset: &Dataset, source_sha: &str) -> Result<String, String> {
+    let folds = fit_leave_one_tool_out(dataset)?;
+    let tools: BTreeSet<u32> = dataset.rows.iter().map(|row| row.tool).collect();
+    let identity = format!(
+        "MFG-DATA-002-LOTO-V1\nsource_sha256={source_sha}\ntools={}\ntarget=Vb\nfeatures={}\n",
+        ids_json(&tools),
+        FEATURES.join(",")
+    );
+    let identity_sha = sha256_hex(identity.as_bytes());
+    let mut aggregates: BTreeMap<String, TransferAccumulator> = BTreeMap::new();
+    let mut ranking_signatures = BTreeSet::new();
+    let mut fold_reports = Vec::with_capacity(folds.len());
+
+    for fold in &folds {
+        let ranking = model_ranking_by_mae(&fold.models);
+        ranking_signatures.insert(ranking.join("|"));
+        for (name, result) in &fold.models {
+            aggregates
+                .entry(name.clone())
+                .or_default()
+                .record(fold.held_out_tool, result)?;
+        }
+        let models: Vec<String> = fold
+            .models
+            .iter()
+            .map(|(name, result)| format!("\"{name}\":{}", model_json(result)))
+            .collect();
+        fold_reports.push(format!(
+            "{{\"held_out_tool\":{},\"training_tools\":{},\"test_tools\":[{}],\"training_rows\":{},\"test_rows\":{},\"model_ranking_by_mae\":[{}],\"models\":{{{}}}}}",
+            fold.held_out_tool,
+            ids_json(&fold.training_tools),
+            fold.held_out_tool,
+            fold.training_rows,
+            fold.test_rows,
+            ranking.iter().map(|name| format!("\"{name}\"")).collect::<Vec<_>>().join(","),
+            models.join(",")
+        ));
+    }
+
+    if folds.len() != tools.len() {
+        return Err("leave-one-tool-out fold count does not match tool count".to_owned());
+    }
+    let mut aggregate_models = Vec::new();
+    for (name, accumulator) in &aggregates {
+        aggregate_models.push(format!("\"{name}\":{}", accumulator.json()?));
+    }
+    let tool_ids_json = ids_json(&tools);
+    Ok(format!(
+        "{{\"schema_version\":\"0.1.0\",\"model_id\":\"MFG-DATA-002\",\"evidence_class\":\"external_dataset_evaluation_unqualified_for_process_control\",\"source\":{{\"repository\":\"Vicomtech/dataset-machine-tool-wear\",\"commit\":\"fa7941101847541cdd31339d6481ee61d152d80f\",\"file\":\"Dataset_Machine_tool_wear.csv\",\"bytes\":{},\"sha256\":\"{}\",\"label\":\"Vb\",\"label_units\":\"not specified by source; values remain source-native\"}},\"diagnostic\":{{\"method\":\"leave-one-tool-out\",\"identity_sha256\":\"{}\",\"tools\":{},\"fold_count\":{},\"features\":[{}],\"target\":\"Vb\"}},\"folds\":[{}],\"aggregate\":{{\"models\":{{{}}},\"ranking_signature_count\":{}}},\"limits\":[\"This is a tool-group transfer diagnostic, not machine-independent validation.\",\"Vb physical units are not specified by the source README and are not inferred.\",\"Feature-table scores do not qualify raw-signal processing, sensor calibration, maintenance policy, or process control.\",\"The frozen MFG-DATA-001 four-tool holdout report is emitted separately and is unchanged by this diagnostic.\"]}}",
+        EXPECTED_BYTES,
+        source_sha,
+        identity_sha,
+        tool_ids_json,
+        folds.len(),
+        FEATURES
+            .iter()
+            .map(|feature| format!("\"{feature}\""))
+            .collect::<Vec<_>>()
+            .join(","),
+        fold_reports.join(","),
+        aggregate_models.join(","),
+        ranking_signatures.len()
+    ))
+}
+
 fn ids_json(ids: &BTreeSet<u32>) -> String {
     let values: Vec<String> = ids.iter().map(u32::to_string).collect();
     format!("[{}]", values.join(","))
@@ -624,12 +853,15 @@ fn sha256_hex(input: &[u8]) -> String {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 && args[1] == "--help" {
-        println!("Usage: toolwear-eval --data PATH");
-        println!("Evaluates the exact pinned machine-tool-wear CSV; rejects other bytes.");
+        println!("Usage: toolwear-eval --data PATH [--loto]");
+        println!("Default output is the frozen MFG-DATA-001 split.");
+        println!("--loto emits the separate MFG-DATA-002 leave-one-tool-out diagnostic.");
         return Ok(());
     }
-    if args.len() != 3 || args[1] != "--data" {
-        return Err("usage: toolwear-eval --data PATH (or --help)".to_owned());
+    let loto_mode = args.len() == 4 && args[1] == "--data" && args[3] == "--loto";
+    let frozen_mode = args.len() == 3 && args[1] == "--data";
+    if !frozen_mode && !loto_mode {
+        return Err("usage: toolwear-eval --data PATH [--loto] (or --help)".to_owned());
     }
 
     let source_bytes = fs::read(&args[2])
@@ -651,7 +883,12 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("source is not valid UTF-8: {error}"))?;
     let dataset = parse_csv(text)?;
     validate_locked_source(&dataset, &source_bytes)?;
-    println!("{}", report(&dataset, &source_sha)?);
+    let output = if loto_mode {
+        tool_transfer_diagnostics(&dataset, &source_sha)?
+    } else {
+        report(&dataset, &source_sha)?
+    };
+    println!("{output}");
     Ok(())
 }
 
@@ -731,6 +968,150 @@ mod tests {
         let (intercept, slope) = fit_tool_balanced_linear(&rows, &counts, feature, target).unwrap();
         assert!((intercept - 1.0).abs() < 1e-10);
         assert!((slope - 2.0).abs() < 1e-10);
+    }
+
+    fn transfer_fixture() -> Dataset {
+        let text = concat!(
+            "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n",
+            "3,1,0.2,1,3\n",
+            "3,2,0.4,2,2\n",
+            "4,3,0.6,3,4\n",
+            "4,5,0.8,4,5\n",
+            "5,6,1.0,5,7\n",
+            "5,7,1.2,6,8\n",
+            "6,9,1.4,7,10\n",
+            "6,10,1.6,8,11\n"
+        );
+        parse_csv(text).expect("transfer fixture should parse")
+    }
+
+    #[test]
+    fn leave_one_tool_out_covers_each_tool_once_without_leakage() {
+        let dataset = transfer_fixture();
+        let folds = fit_leave_one_tool_out(&dataset).unwrap();
+        let expected: BTreeSet<u32> = dataset.rows.iter().map(|row| row.tool).collect();
+        let held_out: BTreeSet<u32> = folds.iter().map(|fold| fold.held_out_tool).collect();
+        assert_eq!(folds.len(), expected.len());
+        assert_eq!(held_out, expected);
+        for fold in &folds {
+            assert!(!fold.training_tools.contains(&fold.held_out_tool));
+            assert_eq!(fold.training_tools.len() + 1, expected.len());
+            assert_eq!(fold.training_rows + fold.test_rows, dataset.rows.len());
+            assert!(fold.test_rows > 0);
+            assert_eq!(fold.models.len(), FEATURES.len() + 1);
+            for result in fold.models.values() {
+                assert_eq!(
+                    result.per_tool.keys().copied().collect::<BTreeSet<_>>(),
+                    [fold.held_out_tool].into_iter().collect()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn target_shuffling_cannot_change_group_fold_assignments() {
+        let mut dataset = transfer_fixture();
+        let target = column_index(&dataset.headers, "Vb").unwrap();
+        let before = fit_leave_one_tool_out(&dataset).unwrap();
+        let before_assignment: Vec<(u32, BTreeSet<u32>, usize, usize)> = before
+            .iter()
+            .map(|fold| {
+                (
+                    fold.held_out_tool,
+                    fold.training_tools.clone(),
+                    fold.training_rows,
+                    fold.test_rows,
+                )
+            })
+            .collect();
+
+        let mut labels: Vec<f64> = dataset
+            .rows
+            .iter()
+            .map(|row| value(row, target).unwrap())
+            .collect();
+        labels.rotate_left(3);
+        for (row, label) in dataset.rows.iter_mut().zip(labels) {
+            row.values[target] = Some(label);
+        }
+
+        let after = fit_leave_one_tool_out(&dataset).unwrap();
+        let after_assignment: Vec<(u32, BTreeSet<u32>, usize, usize)> = after
+            .iter()
+            .map(|fold| {
+                (
+                    fold.held_out_tool,
+                    fold.training_tools.clone(),
+                    fold.training_rows,
+                    fold.test_rows,
+                )
+            })
+            .collect();
+        assert_eq!(before_assignment, after_assignment);
+    }
+
+    #[test]
+    fn column_reordering_does_not_change_named_feature_or_label_binding() {
+        let original = transfer_fixture();
+        let reordered_names = ["F_p_RMS", "tool", "Vb", "F_c_RMS", "AE_RMS"];
+        let indices: Vec<usize> = reordered_names
+            .iter()
+            .map(|name| column_index(&original.headers, name).unwrap())
+            .collect();
+        let reordered = Dataset {
+            headers: reordered_names
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect(),
+            rows: original
+                .rows
+                .iter()
+                .map(|row| Row {
+                    tool: row.tool,
+                    values: indices.iter().map(|index| row.values[*index]).collect(),
+                })
+                .collect(),
+            missing_cells: original.missing_cells,
+        };
+        assert_eq!(
+            tool_transfer_diagnostics(&original, "same-source-identity").unwrap(),
+            tool_transfer_diagnostics(&reordered, "same-source-identity").unwrap()
+        );
+    }
+
+    #[test]
+    fn loto_report_is_byte_deterministic() {
+        let dataset = transfer_fixture();
+        let first = tool_transfer_diagnostics(&dataset, "test-source-sha").unwrap();
+        let second = tool_transfer_diagnostics(&dataset, "test-source-sha").unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn loto_report_exposes_worst_tool_and_ranking_stability() {
+        let dataset = transfer_fixture();
+        let json = tool_transfer_diagnostics(&dataset, "test-source-sha").unwrap();
+        assert!(json.contains("\"model_id\":\"MFG-DATA-002\""));
+        assert!(json.contains("\"method\":\"leave-one-tool-out\""));
+        assert!(json.contains("\"worst_tool\""));
+        assert!(json.contains("\"ranking_signature_count\""));
+        assert!(json.contains("\"model_ranking_by_mae\""));
+        assert!(json.contains("\"fold_count\":4"));
+    }
+
+    #[test]
+    fn leave_one_tool_out_rejects_single_tool_dataset() {
+        let text = "tool,Vb,AE_RMS,F_c_RMS,F_p_RMS\n3,1,0.5,2,4\n3,2,0.6,3,5\n";
+        let dataset = parse_csv(text).unwrap();
+        assert!(fit_leave_one_tool_out(&dataset).is_err());
+    }
+
+    #[test]
+    fn same_length_modified_source_fails_the_source_lock() {
+        let dataset = transfer_fixture();
+        let altered = vec![b'x'; EXPECTED_BYTES];
+        let error = validate_locked_source(&dataset, &altered).unwrap_err();
+        assert!(error.contains("source SHA-256 mismatch"));
     }
 
     #[test]
