@@ -6,7 +6,7 @@ use symtropy_experiment_core::ExperimentGraph;
 
 fn usage() -> ! {
     eprintln!(
-        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>"
+        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>\n  symtropy-experiment-run oscillator <oscillator-spec.json>"
     );
     process::exit(2);
 }
@@ -106,6 +106,42 @@ fn run_sweep(path: &str, variable_id: &str, values_csv: &str) {
     }
 }
 
+fn run_oscillator(path: &str) {
+    use symtropy_experiment_core::{HarmonicOscillatorSpec, simulate_harmonic_oscillator};
+
+    let raw = match fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(error) => {
+            eprintln!("could not read '{path}': {error}");
+            process::exit(2);
+        }
+    };
+    let spec: HarmonicOscillatorSpec = match serde_json::from_str(&raw) {
+        Ok(spec) => spec,
+        Err(error) => {
+            eprintln!("invalid harmonic-oscillator JSON in '{path}': {error}");
+            process::exit(2);
+        }
+    };
+
+    match simulate_harmonic_oscillator(&spec) {
+        Ok(result) => print_json(
+            serde_json::json!({
+                "valid": true,
+                "executed": true,
+                "kind": "analytical_reference_harmonic_oscillator",
+                "result": result,
+                "interpretation_warning": "Errors compare a numerical integrator with the exact solution of the stated ideal oscillator. They are not physical measurement errors or proof that a real apparatus follows this model."
+            }),
+            "{\"valid\":true,\"executed\":false,\"error\":\"failed to serialize oscillator result\"}",
+        ),
+        Err(error) => {
+            eprintln!("harmonic oscillator could not be simulated: {error}");
+            process::exit(1);
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
@@ -113,6 +149,7 @@ fn main() {
         [mode, path, variable_id, values_csv] if mode == "sweep" => {
             run_sweep(path, variable_id, values_csv)
         }
+        [mode, path] if mode == "oscillator" => run_oscillator(path),
         _ => usage(),
     }
 }
