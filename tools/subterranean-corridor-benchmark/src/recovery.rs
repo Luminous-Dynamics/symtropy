@@ -228,9 +228,7 @@ fn sustainable_crossing(samples: &[RecoverySample], threshold: f64) -> Option<f6
         {
             let fraction = (threshold - before.safe_delivered_fraction)
                 / (after.safe_delivered_fraction - before.safe_delivered_fraction);
-            return Some(
-                before.time_hours + fraction * (after.time_hours - before.time_hours),
-            );
+            return Some(before.time_hours + fraction * (after.time_hours - before.time_hours));
         }
     }
     None
@@ -282,17 +280,18 @@ pub fn evaluate_recovery(scenario: &RecoveryScenario) -> RecoveryEvaluation {
         let before = pair[0];
         let after = pair[1];
         let duration = after.time_hours - before.time_hours;
-        let unmet_before =
-            before.demand_units_per_hour * (1.0 - before.safe_delivered_fraction);
-        let unmet_after =
-            after.demand_units_per_hour * (1.0 - after.safe_delivered_fraction);
-        demanded +=
-            (before.demand_units_per_hour + after.demand_units_per_hour) * 0.5 * duration;
+        let unmet_before = before.demand_units_per_hour * (1.0 - before.safe_delivered_fraction);
+        let unmet_after = after.demand_units_per_hour * (1.0 - after.safe_delivered_fraction);
+        demanded += (before.demand_units_per_hour + after.demand_units_per_hour) * 0.5 * duration;
         unmet += (unmet_before + unmet_after) * 0.5 * duration;
     }
     let delivered = demanded - unmet;
     let delivered_fraction = delivered / demanded;
-    let horizon_hours = scenario.samples.last().expect("validated nonempty curve").time_hours;
+    let horizon_hours = scenario
+        .samples
+        .last()
+        .expect("validated nonempty curve")
+        .time_hours;
     let numeric_outputs = [
         demanded,
         unmet,
@@ -307,7 +306,10 @@ pub fn evaluate_recovery(scenario: &RecoveryScenario) -> RecoveryEvaluation {
         || delivered_fraction < -1.0e-9
         || delivered_fraction > 1.0 + 1.0e-9
     {
-        return invalid(&scenario.scenario_id, "INVALID_OR_OVERFLOWED_RECOVERY_METRICS");
+        return invalid(
+            &scenario.scenario_id,
+            "INVALID_OR_OVERFLOWED_RECOVERY_METRICS",
+        );
     }
 
     let metrics = RecoveryMetrics {
