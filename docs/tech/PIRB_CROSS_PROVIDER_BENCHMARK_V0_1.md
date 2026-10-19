@@ -36,7 +36,7 @@ A pairwise comparison must be one of:
 - **comparable after predeclared mapping**: a versioned mapping has been independently checked and approved before held-out evaluation, with the mapping code/digest and coverage loss in the receipt;
 - **not comparable**: a mismatch remains unresolved. The schema requires both forecast-skill and decision-value comparisons to be disabled in this state.
 
-Semantic checks must also reject duplicate provider IDs, comparisons that refer to absent providers, mapped comparisons without independent mapping evidence, and direct-comparison declarations that quietly include a transformation. These are cross-field invariants and must be checked by a Rust validator in the next implementation increment; JSON Schema validation alone is not sufficient to certify them.
+The Rust binary `pirb-cross-provider-benchmark-validate` enforces cross-field invariants beyond the schema: duplicate provider/comparison IDs, dangling references, self-comparisons, direct-comparison field mismatches, mappings without an independent review and pinned policy, probability-only metric families attached to non-probability outputs, and governance gates for authorized historical evidence. JSON Schema validation alone is not sufficient to certify semantic comparability.
 
 Report the excluded-row count and reasons next to scores. Do not hide selection bias by reporting only the subset where one system is available. Never mix forecasts across target horizons or revised outcomes silently. Label-maturity embargoes and the uncertainty design must be registered before the held-out outcomes are examined.
 
@@ -81,12 +81,7 @@ A valid claim must say what target and operating point it improves on, and show 
 
 ## Implementation boundary
 
-This increment establishes a registration schema and a rejection fixture, not a full comparison engine. It has not been validated against actual provider forecasts and does not implement count scoring, target-mapping execution, decision-policy optimization, or causal analysis. The follow-on Rust implementation should:
-- parse and structurally validate the registration;
-- enforce cross-field/reference/digest invariants and condition-to-output metric compatibility;
-- emit typed comparability decisions and exclusion reasons;
-- require independent mapping evidence before mapped scoring;
-- output separate forecast-skill, capacity-constrained decision-value, and impact-evidence sections.
+This increment establishes a registration schema, a negative-control fixture and a Rust validation CLI; it is not a full comparison engine. It has not been validated against actual provider forecasts and does not implement count scoring, target-mapping execution, common-row alignment, decision-policy optimization, or causal analysis. The validator emits validation and comparability receipts only. A later Rust increment should add versioned target-mapping execution, explicit row-eligibility and exclusion receipts, and separate forecast-skill / capacity-constrained decision-value / impact-evidence outputs.
 
 No real provider records should be admitted until access terms, allowed use, target mapping, outcome maturity, disclosure risk and local governance are reviewed.
 
