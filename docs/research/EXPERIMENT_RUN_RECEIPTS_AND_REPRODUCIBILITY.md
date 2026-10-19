@@ -8,7 +8,7 @@ Every emitted experiment result should carry a compact receipt that binds the ex
 
 ## Current implementation
 
-The `provenance` module uses SHA-256 and a versioned JSON receipt payload. The CLI emits receipts for arithmetic runs, graph inspection, one-variable sweeps, oscillator simulation, oscillator convergence studies, and several model-validation/execution failures.
+The `provenance` module uses SHA-256 and a versioned JSON receipt payload. The CLI emits receipts for arithmetic runs, graph inspection, one-variable sweeps, oscillator simulation, oscillator convergence studies, and model-validation/execution failures where a typed model is available. The `verify-receipt <result-envelope.json> <original-input.json>` command verifies the receipt's internal digest and checks the exact input-byte, serialized-model, and output-payload digests.
 
 The receipt contains:
 
@@ -30,7 +30,7 @@ The environment values supplied through `SYMTROPY_SOURCE_REVISION` and `SYMTROPY
 
 ## Verification boundary
 
-`RunReceipt::verify()` recalculates the receipt's own payload digest. It can detect payload changes when the expected digest is retained separately. It does not re-hash an input file or output artifact that is not supplied to it, authenticate who produced the record, or prove that the represented execution actually occurred.
+`RunReceipt::verify()` recalculates the receipt's own payload digest. `verify_artifact_bytes()` additionally checks exact input bytes, the caller-supplied serialized parsed model, and the caller-supplied serialized output payload. The CLI verifier parses the saved result envelope, reconstructs the corresponding typed payload, rereads the original input artifact, and reports each digest link separately. It does not authenticate who produced the record, prove that the represented execution actually occurred, or validate scientific correctness.
 
 A hash can bind identifiers to bytes; it cannot show that the model is correct. Receipts must therefore keep outcome labels separate: planned, rejected, executed, independently reproduced, empirically validated, and accepted for a stated purpose are not interchangeable statuses. A successful serialization or receipt verification is never itself a model-credibility pass.
 
@@ -52,7 +52,8 @@ These are proposed targets, not achieved measurements.
 | Provenance sensitivity | Change input bytes, parsed model, output payload, mode or solver settings independently | Each meaningful change alters the receipt digest |
 | Formatting distinction | Whitespace-only change to JSON artifact while parsed model is constant | Exact input digest changes; parsed-model digest remains constant |
 | Determinism | Repeat identical model/input/output/settings on the same binary and environment | Identical receipt bytes/digest |
-| Execution-mode coverage | Known-answer fixture through each CLI mode plus representative failure paths | Every result envelope that claims a receipt validates it; command-line parse failures are explicitly documented as pre-receipt errors |
+| Execution-mode coverage | Known-answer fixture through each CLI mode plus representative failure paths | Every result envelope that claims a receipt validates it; command-line/JSON parse failures are explicitly documented as pre-receipt errors |
+| Artifact-link verifier | Valid receipt, edited input bytes, edited model, edited output payload | All valid digest links accepted; each mutated link rejected and identified independently |
 | Overhead | Release-mode p50/p95 on 1 KB, 100 KB, and 10 MB payloads | Report separately from solver cost; initial target less than 5% overhead for 100 KB arithmetic-result payloads |
 | Reproducibility | Rebuild and rerun from recorded commit, lockfile, input digest and settings | Exact output digest for deterministic cases; declared tolerance report for floating-point paths |
 | Trust | Change a reported revision/compiler string or replace a receipt and recompute its digest | Demonstrate that unsigned hashes do not authenticate authorship; signed attestations require a separate trusted-key workflow |
@@ -65,5 +66,5 @@ The performance goal must be measured against an equivalent run without receipt 
 2. Add a public fixture file containing a receipt generated from known inputs and verify it with an independently implemented SHA-256 verifier.
 3. Include the dependency lockfile digest and an authenticated source revision from the build pipeline; define which fields are self-reported and which are independently verified.
 4. Define an experiment-run predicate and map it to an in-toto Statement, while keeping SLSA build provenance as a separate layer.
-5. Add immutable output artifact storage and verification against the actual bytes, not just the output digest embedded in the receipt.
+5. Store immutable output payload artifacts separately and verify their exact bytes rather than only the reconstructed payload inside the CLI envelope.
 6. Only then consider signed attestations, hardware/environment details, trusted timestamps and remote verification policy.
