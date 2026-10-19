@@ -35,7 +35,7 @@ For an actual fleet, replace both fixture paths with downloaded source files, us
 
 The tool validates required columns, row parsing, unique positive operation-day IDs, finite non-negative VMT, nonnegative shift durations, the source day length (86,399 seconds from 00:00:00 through 23:59:59), valid clock ranges, declared segment lengths, day partition continuity, on/off-shift reconciliation, and VMT reconciliation. Each input row is classified as parsed-valid or invalid; day-level reconciliation issues are separately listed rather than silently discarded.
 
-It reports source-file SHA-256 digests; VMT and off-shift-hour distributions across reconciled operation-day records; and an idealized minimum average recharge power of `VMT × kWh-per-mile / off-shift-hours`. This last metric is an **assumption-bound lower bound**, not a measured charging rate: it presumes all off-shift time can be used for depot charging. When no off-shift window exists, the power statistic remains unavailable rather than dividing by zero.
+It reports per-day first-on-shift start and last-on-shift end seconds for every reconciled operation day, alongside source-file SHA-256 digests; VMT and off-shift-hour distributions across reconciled operation-day records; and an idealized minimum average recharge power of `VMT × kWh-per-mile / off-shift-hours`. This last metric is an **assumption-bound lower bound**, not a measured charging rate: it presumes all off-shift time can be used for depot charging. When no off-shift window exists, the power statistic remains unavailable rather than dividing by zero.
 
 ## Limits
 
