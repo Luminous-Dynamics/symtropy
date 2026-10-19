@@ -556,18 +556,14 @@ fn summarize(
         .iter()
         .filter_map(|outcome| outcome.regret_vs_realization_oracle_units)
         .collect();
-    let incurred: Vec<u64> = selected
-        .iter()
-        .filter_map(|row| {
-            if policy_id == "causal_adaptive_recourse" {
-                Some(row.adaptive_execution.incurred_grid_cost_units)
-            } else {
-                result_policy(row, policy_id)
-                    .grid_cost_units
-                    .or_else(|| Some(0))
-            }
-        })
-        .collect();
+    let incurred: Vec<u64> = if policy_id == "causal_adaptive_recourse" {
+        selected
+            .iter()
+            .map(|row| row.adaptive_execution.incurred_grid_cost_units)
+            .collect()
+    } else {
+        Vec::new()
+    };
     let sum_cost: u128 = costs.iter().map(|value| u128::from(*value)).sum();
     let sum_carbon: u128 = carbons.iter().map(|value| u128::from(*value)).sum();
     let sum_incurred: u128 = incurred.iter().map(|value| u128::from(*value)).sum();
