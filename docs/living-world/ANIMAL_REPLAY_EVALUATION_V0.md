@@ -12,6 +12,23 @@ The central shift is from *one plausible-looking animal* to **a falsifiable, cal
 
 A result must answer: which capability, measured by what observable, on which independent holdout, against which baselines, with what uncertainty, at what compute cost, and under what claim ceiling?
 
+## Integration with the existing Living World Observatory
+
+This contract **specializes** the shared Observatory; it does not define a competing qualification ladder. Reuse [the Living World Observatory and causal-realism contract stack (PR #245)](https://github.com/Luminous-Dynamics/symtropy/pull/245), [the non-omniscient fauna signal-perception oracle (PR #246)](https://github.com/Luminous-Dynamics/symtropy/pull/246), and [ANIMA's epistemic-state contract (PR #1190)](https://github.com/Luminous-Dynamics/symtropy/pull/1190). Preserve the existing distinction between world truth, emitted signals, raw evidence, percept, fallible interpretation/memory, decision and action. An animal agent must not query hidden exact world state as if it had directly sensed it.
+
+The shared Observatory ladder remains authoritative:
+
+- Q0: static contract and schema evidence.
+- Q1: exact deterministic execution.
+- Q2: differential and invariance evidence (for example, headless/rendered or fidelity-path comparisons).
+- Q3: ecological and causal behavior under controlled interventions.
+- Q4: presentation causal legibility.
+- Q5: human validation/review.
+
+The requirements added here are task-specific observables, comparison protocols, statistics, baseline targets and replay-result receipts within those shared levels. Source rights, measurement quality, taxonomy identity, split independence and transfer envelope are **orthogonal prerequisites**, not new Observatory levels. A pose score does not qualify ecological causality; a Q1 replay does not qualify a real-world model; a Q3 causal pass does not establish presentation quality or human-judged realism. Cross-taxon transfer is a separate empirical claim that must pass a target-specific, held-out evaluation; it is not granted by a broader stage label.
+
+For the integrated target, use the existing deterministic Living World Cell and causal-history intervention cases where possible. Do not create an animal-only parallel world or duplicate shared ecology authority merely to run a benchmark.
+
 ## Paradigm shifts
 
 1. **From species count to capability coverage.** Count represented body plans, sensory modalities, locomotion strategies, life stages, and ecological roles. A long species list is not coverage if every profile is an unvalidated copy of one quadruped.
@@ -23,19 +40,18 @@ A result must answer: which capability, measured by what observable, on which in
 7. **From render-bound behavior to presentation-independent dynamics.** The same physical state and inputs should have the same causal outcomes with rendering on/off and across supported fidelity settings, within explicitly declared numerical tolerance.
 8. **From leaderboard chasing to reproducible scientific claims.** Pin data manifest, rights receipt, split, taxonomy release, code HEAD, model/profile, config, seeds, hardware/runtime and evaluator. A queued check or mutable benchmark URL is not a result.
 
-## Evaluation hierarchy
+## Task-specific evidence gates
 
-Keep these evidence levels separate in the UI, reports and APIs.
+Keep these statuses distinct in the UI, reports and APIs, but map them onto the shared Observatory ladder above rather than assigning them new Q-levels.
 
-- **Q0 — Contract/schema:** typed task, metric, profile, reference, split and result structures validate.
-- **Q1 — Synthetic oracle:** frozen known-answer tests, including adversarial controls, agree with independently authored expected dispositions.
-- **Q2 — Data and rights reviewed:** exact source revision, artifact, attribution, allowed operations, measurements, identity grouping and sensitive-location handling are recorded. This is not model validation.
-- **Q3 — Replay reproduced:** the same immutable inputs recreate the result receipt, with declared numeric tolerances where exact floating-point equality is not portable.
-- **Q4 — Reference task qualified:** a named model passes a narrow real-reference task on a frozen holdout against stated baselines.
-- **Q5 — Scientific/counterfactual qualification:** held-out experimental conditions and preregistered interventions support an explicit causal claim.
-- **Q6 — Transfer qualified:** a separate target taxon, stage, site or condition passes its own predeclared qualification gate.
+- **Contract/oracle status:** typed task, metric, profile, reference, split and result structures validate; frozen adversarial cases agree with independently authored expected dispositions.
+- **Source eligibility:** exact source revision/artifact, allowed operation, attribution, measurement semantics, taxonomy identity, identity grouping and sensitive-location handling are reviewed. This is an input prerequisite, not model validation.
+- **Replay reproduced:** the same immutable inputs recreate the result receipt, with declared numeric tolerances where exact floating-point equality is not portable. This supports reproducibility, not empirical truth.
+- **Reference task qualified:** a named model passes a narrow real-reference task on a frozen holdout against stated baselines. Report the task's Observatory evidence level and claim ceiling.
+- **Scientific/counterfactual qualification:** held-out experimental conditions and preregistered interventions support an explicit causal claim; this belongs at Observatory Q3, with the experiment and uncertainty bound in the receipt.
+- **Transfer qualified:** a separate target taxon, stage, site or condition passes its own predeclared holdout. Transfer is a task-specific result property, not an automatic level or permission to generalize.
 
-Passing Q0–Q3 never implies Q4–Q6. Synthetic oracles can prove that the evaluator rejects bad evidence; they cannot prove an animal model is true.
+Synthetic oracles can prove that the evaluator rejects bad evidence; they cannot prove an animal model is true. Rights review, deterministic replay, ecological causality, presentation legibility and human validation remain different forms of evidence.
 
 ## Task families and metrics
 
