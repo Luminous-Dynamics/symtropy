@@ -327,13 +327,40 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             MetricStratumKind::Taxon,
             "TEST:404",
         )),
-        "same_metric_across_taxa" => inputs.metrics.push(metric_for_stratum(
-            "pose_pck",
-            0.7,
-            "fraction",
-            MetricStratumKind::Taxon,
-            "TEST:1",
-        )),
+        "same_metric_across_taxa" => {
+            inputs.metrics.push(metric_for_stratum(
+                "pose_pck",
+                0.7,
+                "fraction",
+                MetricStratumKind::Taxon,
+                "TEST:1",
+            ));
+            inputs.baselines[0].additional_metrics.push(metric_for_stratum(
+                "pose_pck",
+                0.5,
+                "fraction",
+                MetricStratumKind::Taxon,
+                "TEST:1",
+            ));
+            inputs.paired_comparisons.push(PairedBaselineComparison {
+                baseline_id: "persistence".to_owned(),
+                metric_id: "pose_pck".to_owned(),
+                stratum_kind: MetricStratumKind::Taxon,
+                stratum_id: "TEST:1".to_owned(),
+                comparison_group: "synthetic-protocol-v1".to_owned(),
+                objective: MetricObjective::HigherIsBetter,
+                pairing_unit: "animal".to_owned(),
+                independent_unit_count: 10,
+                mean_difference: Some(0.2),
+                difference_interval: Some(ConfidenceInterval {
+                    confidence_percent: 90,
+                    lower: 0.15,
+                    upper: 0.25,
+                }),
+                minimum_effect_size: 0.1,
+                non_inferiority_margin: 0.05,
+            });
+        },
         "baseline_stratum_mismatch" => {
             inputs.baselines[0].primary_metric = metric_for_stratum(
                 "pose_pck",
@@ -508,6 +535,24 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         primary_metric: metric("pose_pck", 0.5, "fraction"),
             additional_metrics: Vec::new(),
     });
+    first.paired_comparisons.push(PairedBaselineComparison {
+        baseline_id: "constant-velocity".to_owned(),
+        metric_id: "pose_pck".to_owned(),
+        stratum_kind: MetricStratumKind::Overall,
+        stratum_id: "all".to_owned(),
+        comparison_group: "synthetic-protocol-v1".to_owned(),
+        objective: MetricObjective::HigherIsBetter,
+        pairing_unit: "animal".to_owned(),
+        independent_unit_count: 10,
+        mean_difference: Some(0.4),
+        difference_interval: Some(ConfidenceInterval {
+            confidence_percent: 90,
+            lower: 0.3,
+            upper: 0.5,
+        }),
+        minimum_effect_size: 0.1,
+        non_inferiority_margin: 0.05,
+    });
     let expected = build(first);
 
     let mut second = valid_inputs();
@@ -521,8 +566,27 @@ fn receipt_digest_is_invariant_to_input_vector_order() {
         primary_metric: metric("pose_pck", 0.5, "fraction"),
             additional_metrics: Vec::new(),
     });
+    second.paired_comparisons.push(PairedBaselineComparison {
+        baseline_id: "constant-velocity".to_owned(),
+        metric_id: "pose_pck".to_owned(),
+        stratum_kind: MetricStratumKind::Overall,
+        stratum_id: "all".to_owned(),
+        comparison_group: "synthetic-protocol-v1".to_owned(),
+        objective: MetricObjective::HigherIsBetter,
+        pairing_unit: "animal".to_owned(),
+        independent_unit_count: 10,
+        mean_difference: Some(0.4),
+        difference_interval: Some(ConfidenceInterval {
+            confidence_percent: 90,
+            lower: 0.3,
+            upper: 0.5,
+        }),
+        minimum_effect_size: 0.1,
+        non_inferiority_margin: 0.05,
+    });
     second.metrics.reverse();
     second.baselines.reverse();
+    second.paired_comparisons.reverse();
     second.manifest.records.reverse();
     second.manifest.fields.reverse();
     second.manifest.permissions.reverse();
