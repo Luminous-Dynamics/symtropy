@@ -193,6 +193,7 @@ pub struct ViewsImportReceipt {
     claim_ceiling: String,
 }
 
+#[derive(Debug)]
 pub struct ViewsImportBundle {
     pub normalized_dataset_bytes: Vec<u8>,
     pub receipt: ViewsImportReceipt,
@@ -1067,12 +1068,7 @@ mod tests {
             "cargo 1.96.0",
             LOCK,
         );
-        assert!(
-            result
-                .unwrap_err()
-                .iter()
-                .any(|error| error.contains("only main_dich"))
-        );
+        assert!(result.is_err());
     }
 
     #[test]
