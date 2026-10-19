@@ -173,7 +173,7 @@ pub struct ViewsImportReceipt {
     dataset_id: String,
     evidence_class: EvidenceClass,
     partition: String,
-    partition_request_uri_verified: bool,
+    api_route_verified: bool,
     partition_independently_verified: bool,
     forecast_archive_id: String,
     forecast_archive_sha256: String,
@@ -583,13 +583,13 @@ pub fn import_views_archive(
             )]);
         }
         let expected_suffix = format!(
-            "{required_unit_path}{}{model_variable}/{}",
-            manifest.source.violence_type, manifest.partition
+            "{required_unit_path}{}/{}",
+            manifest.source.violence_type, model_variable
         );
         let query_without_args = release.query_uri.split('?').next().unwrap_or("");
         if !query_without_args.ends_with(&expected_suffix) {
             return Err(vec![format!(
-                "query URI for {:?} must encode the declared analysis unit, violence type, probability variable and partition {:?}",
+                "query URI for {:?} must encode the declared analysis unit, violence type and probability variable; partition is not a VIEWS route segment",
                 release.run_id, manifest.partition
             )]);
         }
@@ -975,7 +975,7 @@ pub fn import_views_archive(
         dataset_id: manifest.dataset_id,
         evidence_class: manifest.evidence_class,
         partition: manifest.partition,
-        partition_request_uri_verified: true,
+        api_route_verified: true,
         partition_independently_verified: false,
         forecast_archive_id: manifest.source.forecast_archive_id,
         forecast_archive_sha256,
@@ -1119,19 +1119,14 @@ mod tests {
     }
 
     #[test]
-    fn query_uri_must_pin_the_declared_partition_path() {
+    fn query_uri_must_not_invent_partition_path_segment() {
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
         let query = manifest["releases"][0]["query_uri"].as_str().unwrap().to_owned();
         manifest["releases"][0]["query_uri"] =
-            Value::String(query.replace("/eval?", "/predict?"));
+            Value::String(query.replace("/sc_cm_sb_dich_main?", "/sc_cm_sb_dich_main/eval?"));
         let bytes = serde_json::to_vec(&manifest).unwrap();
         let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
-        assert!(
-            result
-                .unwrap_err()
-                .iter()
-                .any(|error| error.contains("declared probability variable"))
-        );
+        assert!(result.unwrap_err().iter().any(|error| error.contains("partition is not a VIEWS route segment")));
     }
 
     #[test]
