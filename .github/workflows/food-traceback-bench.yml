@@ -64,6 +64,9 @@ jobs:
             and (.source_commit == env.SOURCE_COMMIT)
             and (.scenarios | length == 5)
             and (.scenarios | all(.status == "pass"))
+            and (.scenarios | all(.reference_comparison.B1_naive_ungraded_graph_union != null))
+            and (.scenarios | all(.reference_comparison.B2_association_only != null))
+            and (.scenarios | all(.reference_comparison.B3_evidence_bounded_envelope != null))
           ' food-traceback-reference-receipt.json
 
       - name: Upload deterministic reference receipt
