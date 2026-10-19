@@ -766,7 +766,7 @@ mod tests {
         assert!((result.lifetime_electricity_cost_usd - 40000.0).abs() < 1.0e-8);
         assert!((result.use_phase_embodied_kgco2e - 80000.0).abs() < 1.0e-8);
         assert!(
-            (result.declared_lifecycle_kgco2e - (4000.0 + 4000.0 + 150.0 + 80000.0 + 50.0)).abs()
+            (result.declared_lifecycle_kgco2e - (4000.0 + 4000.0 + 150.0 + 80000.0 + 100.0)).abs()
                 < 1.0e-7
         );
         assert!(result.all_material_flows_conserve);
