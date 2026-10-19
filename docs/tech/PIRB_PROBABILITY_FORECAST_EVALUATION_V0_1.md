@@ -32,6 +32,14 @@ For the currently published VIEWS system, the official FAQ states that country-l
 
 The MVP is a normalized-input evaluator, not a data downloader or an endorsement of any source's use terms. Source/target normalization must be separately reviewed before actual provider data are admitted.
 
+## Outcome-vintage sensitivity
+
+An archived evaluation uses one frozen outcome release. That makes the experiment repeatable but does not establish that the selected release is complete, final, or uniquely correct. The separate `pirb-outcome-vintage-sensitivity` command compares multiple independently validated frozen inputs while requiring the entire forecast inventory to remain fixed: same archive digest, model/version, target definition, analysis unit, declared horizon, record IDs, release IDs, issued probabilities, cutoff/target months, spatial blocks, partition, privacy and resampling policy. Only the outcome release/version and its labels or publication-availability months may differ.
+
+The receipt records each input digest and outcome release digest, the count of held-out labels whose state/availability changed from the chosen reference vintage, and the min/max/spread of available descriptive scores. It does not pool vintages into one outcome, assume revisions are improvements, or call the score range a confidence interval. The first supplied input is the comparison reference, so ordered input lists are part of the reproducibility record.
+
+If model probabilities, target definition, analysis unit, forecast horizon, split, or spatial mapping differ, the comparison is invalid and rejected. Such models or definitions require a separate paired model-comparison design; they cannot be conflated with outcome-vintage sensitivity.
+
 ## Temporal validity and label maturity
 
 For each record:
