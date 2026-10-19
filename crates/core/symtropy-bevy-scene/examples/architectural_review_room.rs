@@ -156,11 +156,8 @@ fn setup(
     let camera_pose =
         Transform::from_xyz(0.0, 1.6, 3.0).looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
     let comfort_profile = ReviewComfortProfile::default();
-    let playback = ReviewRoutePlayback::new_with_comfort_profile(
-        route,
-        comfort_profile.clone(),
-    )
-    .expect("the example route and comfort profile must validate");
+    let playback = ReviewRoutePlayback::new_with_comfort_profile(route, comfort_profile.clone())
+        .expect("the example route and comfort profile must validate");
     let mut free_camera = ReviewFreeCameraController::from_transform(&camera_pose);
     free_camera
         .apply_comfort_profile(&comfort_profile)
