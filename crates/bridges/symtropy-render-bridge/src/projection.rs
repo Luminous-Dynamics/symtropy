@@ -156,7 +156,7 @@ impl Projector4D {
     /// and non-finite points fail closed as fully transparent.
     pub fn alpha(&self, point: &Point<4>) -> f32 {
         if !self.configuration_is_valid()
-            || !(0..4).all(|axis| point.coord(axis).is_finite())
+            || (0..4).any(|axis| !point.coord(axis).is_finite())
         {
             return 0.0;
         }
