@@ -941,15 +941,17 @@ fn validate_metric(metric: &MetricObservation) -> MetricValidation {
             {
                 return MetricValidation::InvalidValue;
             }
-            if let Some(interval) = &metric.interval
-                && (!interval.lower.is_finite()
-                    || !interval.upper.is_finite()
-                    || interval.lower > interval.upper
-                    || value < interval.lower
-                    || value > interval.upper
-                    || interval.method_id.trim().is_empty()
-                    || interval.confidence_percent == 0
-                    || interval.confidence_percent >= 100)
+            let Some(interval) = &metric.interval else {
+                return MetricValidation::Incomplete;
+            };
+            if !interval.lower.is_finite()
+                || !interval.upper.is_finite()
+                || interval.lower > interval.upper
+                || value < interval.lower
+                || value > interval.upper
+                || interval.method_id.trim().is_empty()
+                || interval.confidence_percent == 0
+                || interval.confidence_percent >= 100
             {
                 return MetricValidation::InvalidInterval;
             }
