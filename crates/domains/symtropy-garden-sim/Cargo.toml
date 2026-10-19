@@ -30,6 +30,14 @@ path = "src/bin/verify_field_eval_report.rs"
 name = "verify-field-eval-report-manifest"
 path = "src/bin/verify_field_eval_report_manifest.rs"
 
+[[bin]]
+name = "verify-need-observation"
+path = "src/bin/verify_need_observation.rs"
+
+[[bin]]
+name = "verify-need-observation-manifest"
+path = "src/bin/verify_need_observation_manifest.rs"
+
 [[bench]]
 name = "portfolio_frontier"
 harness = false

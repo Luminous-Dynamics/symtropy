@@ -12,6 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub mod field_eval_report;
 pub mod field_robot_cost;
+pub mod need_observation;
 pub mod portfolio;
 pub mod provider_coverage;
 pub mod service_access;
