@@ -293,7 +293,10 @@ fn generate_scenarios() -> Vec<Scenario> {
 fn absolute_residual(observation: &Observation) -> Option<i64> {
     observation
         .observed_state_liters
-        .map(|observed| i64::try_from(observed.abs_diff(observation.predicted_state_liters)).unwrap_or(i64::MAX))
+        .map(|observed| {
+            i64::try_from(observed.abs_diff(observation.predicted_state_liters))
+                .unwrap_or(i64::MAX)
+        })
 }
 
 fn validate_scenario(scenario: &Scenario) -> Check<()> {
@@ -463,7 +466,12 @@ fn independently_audit_scenario(
     mismatches
 }
 
-fn aggregate(scenarios: &[Scenario], results: &[ScenarioResult], split: Split, kind: ScenarioKind) -> Summary {
+fn aggregate(
+    scenarios: &[Scenario],
+    results: &[ScenarioResult],
+    split: Split,
+    kind: ScenarioKind,
+) -> Summary {
     let mut summary = Summary {
         split,
         kind,
@@ -596,14 +604,35 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         }
     }
 
-    let known_answer_mismatches = summaries.iter().map(|summary| summary.known_answer_mismatches).sum::<usize>();
-    let independent_audit_mismatches = summaries.iter().map(|summary| summary.independent_audit_mismatches).sum::<usize>();
-    let model_acceptances_during_shift = summaries.iter().map(|summary| summary.model_acceptances_during_shift).sum::<usize>();
-    let missing_or_stale_acceptances = summaries.iter().map(|summary| summary.missing_or_stale_acceptances).sum::<usize>();
-    let unsafe_interval_acceptances = summaries.iter().map(|summary| summary.unsafe_interval_acceptances).sum::<usize>();
+    let known_answer_mismatches = summaries
+        .iter()
+        .map(|summary| summary.known_answer_mismatches)
+        .sum::<usize>();
+    let independent_audit_mismatches = summaries
+        .iter()
+        .map(|summary| summary.independent_audit_mismatches)
+        .sum::<usize>();
+    let model_acceptances_during_shift = summaries
+        .iter()
+        .map(|summary| summary.model_acceptances_during_shift)
+        .sum::<usize>();
+    let missing_or_stale_acceptances = summaries
+        .iter()
+        .map(|summary| summary.missing_or_stale_acceptances)
+        .sum::<usize>();
+    let unsafe_interval_acceptances = summaries
+        .iter()
+        .map(|summary| summary.unsafe_interval_acceptances)
+        .sum::<usize>();
     let shift_onsets = summaries.iter().map(|summary| summary.shift_onsets).sum::<usize>();
-    let same_tick_shift_detections = summaries.iter().map(|summary| summary.same_tick_shift_detections).sum::<usize>();
-    let unguarded_baseline_acceptances_during_shift = summaries.iter().map(|summary| summary.unguarded_baseline_acceptances_during_shift).sum::<usize>();
+    let same_tick_shift_detections = summaries
+        .iter()
+        .map(|summary| summary.same_tick_shift_detections)
+        .sum::<usize>();
+    let unguarded_baseline_acceptances_during_shift = summaries
+        .iter()
+        .map(|summary| summary.unguarded_baseline_acceptances_during_shift)
+        .sum::<usize>();
     let observed_count = summaries.iter().map(|summary| summary.observed_count).sum::<usize>();
     let covered_observations = summaries.iter().map(|summary| summary.covered_observations).sum::<usize>();
     let unguarded_baseline_missing_or_stale_acceptances = summaries
@@ -662,7 +691,9 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         observed_count,
         summaries,
         scenarios: results,
-        claim_ceiling: "finite synthetic credibility-gate contract; empirical fixture coverage is not a distribution-free guarantee; no site-calibrated model or safety case".to_owned(),
+        claim_ceiling: "finite synthetic credibility-gate contract; empirical fixture coverage "
+            .to_owned()
+            + "is not a distribution-free guarantee; no site-calibrated model or safety case",
     })
 }
 
