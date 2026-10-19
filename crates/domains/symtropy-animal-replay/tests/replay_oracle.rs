@@ -10,8 +10,8 @@ use symtropy_animal_observation::{
 use symtropy_animal_replay::{
     BaselineComparisonOutcome, BaselineReference, ConfidenceInterval, DecisionThreshold,
     EvaluationMode, MetricObjective, MetricObservation, MetricState, MetricStratumKind,
-    PairedBaselineComparison, ReplayDisposition, ReplayReason, ReplayTaskSpec, RunIdentity,
-    ThresholdDirection, ThresholdOutcome, build_replay_receipt,
+    PairedBaselineComparison, ReplayDisposition, ReplayEvaluationInput, ReplayReason, ReplayTaskSpec,
+    RunIdentity, ThresholdDirection, ThresholdOutcome, build_replay_receipt,
 };
 use symtropy_fauna_core::{AnimalProfile, EvidenceClass, EvidenceState, TaxonBinding};
 
@@ -489,16 +489,16 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
 }
 
 fn build(inputs: TestInputs) -> symtropy_animal_replay::ReplayReceipt {
-    build_replay_receipt(
-        &inputs.profile,
-        &inputs.manifest,
-        inputs.mode,
-        inputs.task,
-        inputs.run,
-        inputs.metrics,
-        inputs.baselines,
-        inputs.paired_comparisons,
-    )
+    build_replay_receipt(ReplayEvaluationInput {
+        profile: &inputs.profile,
+        manifest: &inputs.manifest,
+        mode: inputs.mode,
+        task: inputs.task,
+        run: inputs.run,
+        metrics: inputs.metrics,
+        baselines: inputs.baselines,
+        paired_baseline_comparisons: inputs.paired_comparisons,
+    })
     .unwrap()
 }
 
