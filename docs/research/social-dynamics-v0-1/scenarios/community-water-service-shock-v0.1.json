@@ -8,12 +8,12 @@
     "type": "household",
     "heterogeneous_needs": true,
     "sensitive_identity_attributes": false,
-    "initial_resource_distribution": "bounded_skewed"
+    "initial_resource_distribution": "uniform_bounded_reserve"
   },
   "network": {
     "topology_family": "ring_lattice",
     "directed_trust_estimates": true,
-    "initial_trust_distribution": "beta_like",
+    "initial_trust_distribution": "uniform_0.30_to_0.95",
     "tie_change": "enabled",
     "degree": 4,
     "fixed_during_run": true,
@@ -25,8 +25,9 @@
     "capacity_fraction_during_shock": 0.45,
     "shock_start_tick": 20,
     "shock_duration_ticks": 15,
-    "recovery_requires_contributions": true,
-    "repair_gain_per_contribution": 0.00125
+    "recovery_requires_contributions": "only within the declared shock window; after the exogenous window ends, baseline capacity returns",
+    "repair_gain_per_contribution": 0.00125,
+    "capacity_during_shock": "shock_capacity + (baseline_capacity - shock_capacity) * repair_progress"
   },
   "treatment_arms": [
     "no_explicit_commitments",
@@ -38,7 +39,7 @@
     "shock_severity",
     "observation_noise",
     "verification_cost",
-    "institutional_capture",
+    "institutional_capture_rate",
     "network_density"
   ],
   "run": {
@@ -49,7 +50,7 @@
       "unmet_water_need_integral",
       "time_to_recovery",
       "contribution_distribution",
-      "access_inequality",
+      "unmet_need_inequality_gini",
       "verification_overhead"
     ],
     "baseline_capacity": 1,
@@ -60,7 +61,8 @@
     "random_seed_policy": "same seed list across all treatment arms; fixed per-tick action and observation random channels",
     "default_ticks": 80,
     "recovery_threshold_fraction": 0.98,
-    "reference_model": "research/social-dynamics-reference"
+    "reference_model": "research/social-dynamics-reference",
+    "inequality_metric_definition": "Gini coefficient of each agent's cumulative unmet need over the run"
   },
   "guardrails": {
     "synthetic_only": true,
