@@ -18,7 +18,7 @@ pub use dynamics::{
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use units::unit_definition;
+use units::{unit_definition, UNIT_REGISTRY_VERSION};
 
 pub const SCHEMA_VERSION: &str = "0.1";
 
@@ -152,6 +152,8 @@ pub struct VisualMathEquation {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VisualMathProjection {
     pub schema_version: String,
+    /// Registry semantics used to interpret each variable's unit.
+    pub unit_registry_version: String,
     pub experiment_id: String,
     pub title: String,
     pub question: String,
@@ -375,6 +377,7 @@ impl ExperimentGraph {
 
         Ok(VisualMathProjection {
             schema_version: self.schema_version.clone(),
+            unit_registry_version: UNIT_REGISTRY_VERSION.to_owned(),
             experiment_id: self.id.clone(),
             title: self.title.clone(),
             question: self.question.clone(),
@@ -919,6 +922,7 @@ mod tests {
         let graph = gear_graph();
         let projection = graph.visual_math_projection().unwrap();
         assert_eq!(projection.experiment_id, graph.id);
+        assert_eq!(projection.unit_registry_version, UNIT_REGISTRY_VERSION);
         assert_eq!(projection.variables.len(), graph.variables.len());
         assert_eq!(projection.equations.len(), graph.equations.len());
         let ratio = projection.equations
