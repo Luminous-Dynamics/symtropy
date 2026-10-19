@@ -32,7 +32,7 @@ The target is four batches over periods P0–P2. The fixed comparison schedule i
 
 On this constructed fixture, minimum-cost dispatch lowers the arbitrary cost total by 30.5% versus the fixed baseline while increasing the arbitrary carbon total from 100 to 152. That is the point: cost-only optimization is not automatically low-carbon. These ratios are fixture outcomes, not field performance.
 
-There are 36 possible per-period batch vectors, five vectors meet the four-batch target, and the five are feasible under the base fixture. The Pareto frontier preserves all four non-dominated schedules; the fifth feasible schedule `[0,3,1]` is dominated.
+There are 36 possible per-period batch vectors, eight vectors meet the four-batch target, of which five satisfy every period's power and water constraints. The Pareto frontier preserves all four non-dominated schedules; the fifth feasible schedule `[0,3,1]` is dominated.
 
 ## Validation
 
