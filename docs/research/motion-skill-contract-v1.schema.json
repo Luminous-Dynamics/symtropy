@@ -193,7 +193,17 @@
             "properties": { "kind": { "enum": ["collision_free", "joint_limits", "support_stable"] } },
             "required": ["kind"]
           },
-          "then": { "properties": { "hardness": { "const": "hard" } }
+          "then": {
+            "properties": {
+              "hardness": { "const": "hard" },
+              "target": {
+                "properties": {
+                  "kind": { "const": "boolean" },
+                  "value": { "const": true }
+                },
+                "required": ["kind", "value"]
+              }
+            }
           }
         },
         {
