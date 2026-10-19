@@ -89,6 +89,19 @@ pub enum ReplayReason {
     BaselineUnitMismatch,
     BaselineStratumMismatch,
     BaselineMetricNotReported,
+    MissingBaselineComparison,
+    DuplicateBaselineComparison,
+    UnknownBaselineForComparison,
+    InvalidComparisonMetadata,
+    ComparisonGroupMismatchForBaseline,
+    BaselineComparisonStratumMismatch,
+    BaselineComparisonUnitMismatch,
+    MissingPairedSamples,
+    MissingPairedDifference,
+    MissingPairedInterval,
+    InvalidPairedDifference,
+    InvalidPairedInterval,
+    InvalidEffectMargins,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -197,6 +210,54 @@ pub struct RunIdentity {
     pub seed: Option<u64>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MetricObjective {
+    HigherIsBetter,
+    LowerIsBetter,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BaselineComparisonOutcome {
+    OutperformsByMargin,
+    NonInferior,
+    RegressesBeyondMargin,
+    Uncertain,
+    NotAssessed,
+    Incomplete,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PairedBaselineComparison {
+    pub baseline_id: String,
+    pub metric_id: String,
+    pub stratum_kind: MetricStratumKind,
+    pub stratum_id: String,
+    pub comparison_group: String,
+    /// Paired metric difference is model minus baseline; objective controls sign interpretation.
+    pub objective: MetricObjective,
+    /// What counts as an independent paired unit (animal, recording, or study; not frames by default).
+    pub pairing_unit: String,
+    pub independent_unit_count: u64,
+    pub mean_difference: Option<f64>,
+    pub difference_interval: Option<ConfidenceInterval>,
+    pub minimum_effect_size: f64,
+    pub non_inferiority_margin: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BaselineComparisonResult {
+    pub baseline_id: String,
+    pub metric_id: String,
+    pub stratum_kind: MetricStratumKind,
+    pub stratum_id: String,
+    pub outcome: BaselineComparisonOutcome,
+    /// Effect is oriented so positive values always favor the candidate model.
+    pub normalized_mean_difference: Option<f64>,
+    pub normalized_interval: Option<ConfidenceInterval>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BaselineReference {
     pub baseline_id: String,
@@ -231,6 +292,8 @@ pub struct ReplayReceiptPayload {
     pub run: RunIdentity,
     pub metrics: Vec<MetricObservation>,
     pub baselines: Vec<BaselineReference>,
+    pub paired_baseline_comparisons: Vec<PairedBaselineComparison>,
+    pub baseline_comparison_results: Vec<BaselineComparisonResult>,
     pub assessment: ReplayAssessment,
     pub threshold_outcome: ThresholdOutcome,
 }
@@ -253,6 +316,7 @@ pub fn build_replay_receipt(
     run: RunIdentity,
     mut metrics: Vec<MetricObservation>,
     mut baselines: Vec<BaselineReference>,
+    mut paired_baseline_comparisons: Vec<PairedBaselineComparison>,
 ) -> Result<ReplayReceipt, serde_json::Error> {
     let profile_validation = validate_profile(profile);
     let manifest_validation = validate_manifest(manifest);
