@@ -12,7 +12,8 @@
     "ruleset_sha256",
     "seed",
     "cases",
-    "metamorphic_pairs"
+    "metamorphic_pairs",
+    "generator_source_sha256"
   ],
   "properties": {
     "schema_version": {
@@ -52,6 +53,10 @@
       "items": {
         "$ref": "#/$defs/pair"
       }
+    },
+    "generator_source_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
   },
   "$defs": {
