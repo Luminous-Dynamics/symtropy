@@ -51,14 +51,14 @@ All sites, protocol identifiers, amounts, forecasts and outcomes are invented fo
 | STALE-INCOMPLETE-005 | Key readiness evidence is stale, unknown or has a missing denominator | Abstain on a conclusive rank when critical evidence is unresolved |
 | OUTCOME-LEAKAGE-006 | A post-selection outcome appears in the feature set | Exclude it from the prospective candidate projection and reject it if marked prospectively admissible |
 
-The reference validator checks schema, unique identifiers, chronology, status semantics, truth-label separation and the frozen case inventory. It does **not** claim to implement a validated clinical-trial prediction model or establish which intervention will work.
+The reference evaluator now emits two transparent baselines per synthetic case: B1 uses the site-reported enrollment target as an uncalibrated forecast; B3 emits a readiness heuristic from prospectively admissible, verified measurements and abstains when minimum evidence is unavailable. It also reports access-barrier and accessible-contact-channel signals separately, without a composite quality score. This does **not** constitute a validated enrollment-prediction model or establish which intervention will work.
 
 ## 6. Comparison baselines
 
 - **B0 — synthetic oracle:** hidden fixture outcomes and declared bottlenecks, available to the evaluator only.
-- **B1 — historical average / site-reputation baseline:** a transparent heuristic using the same available historical summary for each candidate.
-- **B2 — static profile-only baseline:** uses pre-selection resources and self-reports but ignores dynamic execution capability.
-- **B3 — dynamic capability-aware decision aid:** uses only evidence admissible as of the decision time, diagnoses bottlenecks, exposes uncertainty, can abstain, and compares support interventions.
+- **B1 — self-reported target baseline (implemented):** uses the site's reported projected enrollment as a deliberately weak transparent comparator; reports mean absolute error against synthetic truth, not a calibrated real-world forecast.
+- **B2 — static profile-only baseline (specified, not yet implemented):** uses pre-selection resources and self-reports but ignores evolving execution capability.
+- **B3 — capability-aware readiness heuristic (implemented):** computes a within-case score from admissible verified direct measurements (staff capacity and workflow, with available follow-up / competing-load dimensions), returns an explicit abstention when minimum dimensions are unavailable, and keeps access dimensions separate. It is a heuristic readiness signal, not an enrollment forecast or evidence of causal benefit from site support.
 
 Compare all methods on identical as-of cutoffs, protocols, source availability and evaluation denominators. Where real retrospective data becomes available, use site-, sponsor-, protocol-, region- and time-held-out splits; random row splitting may leak repeated site identities and protocol patterns. A method should be compared with the published system most relevant to the task—for example, DocTr for clinician/trial matching—not misrepresented as directly comparable when tasks or inputs differ.
 
@@ -66,7 +66,7 @@ Compare all methods on identical as-of cutoffs, protocols, source availability a
 
 Keep dimensions visible rather than manufacturing one “site quality” score.
 
-- **Forecasting:** MAE/WAPE only where denominators are meaningful; Brier/log score, calibration curves, and interval coverage when the method emits predictive distributions.
+- **Forecasting:** B1 reports MAE against the synthetic outcomes. B3 does not emit an enrollment forecast; its pairwise directional concordance with synthetic enrollment is only a small-fixture ranking diagnostic. Brier/log score, calibration curves and interval coverage are reserved for a future method with explicit predictive distributions.
 - **Operations:** site activation delay, time to first participant enrolled, enrollment and retention rates, screen-failure burden and protocol deviations with explicit time windows and denominators.
 - **Decision utility:** time to identify the binding constraint; fraction of recommendations with admissible evidence; independently adjudicated usefulness of support actions.
 - **Access and representation:** gaps relative to an explicitly declared eligible-population frame, participant-facing barriers, and group-specific uncertainty. Aggregate demographic rates do not establish individual eligibility or consent.
@@ -96,6 +96,8 @@ Forecast performance and causal benefit from support actions are different claim
 - 100% of candidate projections exclude hidden oracle outcomes and expected-invariant labels.
 - Input-order permutations produce identical canonical projection and receipt bytes.
 - All denominators are explicit; no dropping sites or unresolved outcomes without a declared protocol rule.
+- The B3 heuristic abstains on the frozen stale/incomplete case rather than converting stale/unknown staffing into zero or verified capacity.
+- The baseline receipt contains B1 and B3 outputs and separate access signals for all six cases.
 - Do not claim industry or SOTA superiority until there is a governed dataset, a protocol-matched benchmark, independent evaluation and uncertainty intervals for the paired comparison.
 
 ## 10. Claim ceiling
