@@ -25,7 +25,7 @@ These presets are a host-renderer contract. A UI must apply them; declaring a pr
 
 Aggregate views must preserve member identities and provide a way to inspect the members. Focused/selected objects are intended to bypass ordinary draw-budget thinning. A draw budget is never a data-deletion limit.
 
-## Dimensional representations
+## Navigation policies\n\n- Planar 2D uses pan/zoom.\n- Oblique 2.5D uses pan/orbit around an oblique overview.\n- Strategic/operational 3D use overview orbit; tactical 3D uses focused orbit around a selected entity/group; scientific/diagnostic 3D use inspection orbit.\n- 4D uses slice-position scrubbing plus pan/orbit inside the current slice.\n\nThese are interaction contracts only; the host application must wire input, camera transforms, focus and selection synchronization.\n\n## Dimensional representations
 
 - **2D:** a true planar plan, map, circuit layout, network diagram, or slice. It does not pretend to encode elevation.
 - **2.5D:** an oblique orthographic basis that separates horizontal position, ground depth, and height. Use it for city/infrastructure overviews, terrain, facility layouts and resource flows where height context helps but unrestricted orbiting is unnecessary.
