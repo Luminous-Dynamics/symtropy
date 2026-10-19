@@ -65,7 +65,7 @@ Baselines must identify exact code/config/run/toolchain/platform plus training-d
 
 ## Frozen synthetic oracle
 
-Freeze **at least 30 independently specified cases** before model tuning. Each case has an expected disposition, expected percept/action invariants and reason code authored independently of the implementation. All initial fixtures use obvious synthetic placeholder IDs and known answers, not measured animal observations.
+Freeze **at least 30 independently specified cases** before model tuning. The current 36-case machine-readable corpus is [ANIMAL_ACTIVE_SENSING_ORACLE_V1.json](ANIMAL_ACTIVE_SENSING_ORACLE_V1.json). Each case has an expected class of outcome and explicit percept/action/budget invariants authored independently of the implementation. All initial fixtures are synthetic contract cases, not measured animal observations or performance claims.
 
 Required hostile conditions:
 
