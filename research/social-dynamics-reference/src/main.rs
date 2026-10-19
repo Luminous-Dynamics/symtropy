@@ -158,3 +158,76 @@ fn main() {
         "note: paired bootstrap CI uses {BOOTSTRAP_REPLICATES} deterministic resamples; positive reductions mean lower unmet need. Synthetic outputs are not empirical validity evidence."
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn metric(treatment: Treatment, unmet_need_integral: f64) -> Metrics {
+        Metrics {
+            treatment,
+            unmet_need_integral,
+            peak_unmet_need: 1.0,
+            unmet_need_inequality_gini: 0.0,
+            contribution_count: 0,
+            recovery_tick: None,
+            verification_overhead: 0.0,
+            repair_progress_at_shock_end: 0.0,
+        }
+    }
+
+    #[test]
+    fn paired_bootstrap_recovers_known_reduction() {
+        let baseline = [
+            metric(Treatment::NoCommitments, 10.0),
+            metric(Treatment::NoCommitments, 20.0),
+            metric(Treatment::NoCommitments, 30.0),
+            metric(Treatment::NoCommitments, 40.0),
+        ];
+        let treatment = [
+            metric(Treatment::Reciprocity, 5.0),
+            metric(Treatment::Reciprocity, 10.0),
+            metric(Treatment::Reciprocity, 15.0),
+            metric(Treatment::Reciprocity, 20.0),
+        ];
+        let result = paired_reduction_ci95_pct(&treatment, &baseline, 2_000, 12345)
+            .expect("valid paired data should produce an interval");
+        assert!((result.0 - 50.0).abs() < 1e-10);
+        assert!((result.1 - 50.0).abs() < 1e-10);
+        assert!((result.2 - 50.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn paired_bootstrap_returns_negative_for_a_worse_treatment() {
+        let baseline = [
+            metric(Treatment::NoCommitments, 10.0),
+            metric(Treatment::NoCommitments, 20.0),
+            metric(Treatment::NoCommitments, 30.0),
+        ];
+        let treatment = [
+            metric(Treatment::Reciprocity, 15.0),
+            metric(Treatment::Reciprocity, 30.0),
+            metric(Treatment::Reciprocity, 45.0),
+        ];
+        let result = paired_reduction_ci95_pct(&treatment, &baseline, 2_000, 9876)
+            .expect("valid paired data should produce an interval");
+        assert!((result.0 + 50.0).abs() < 1e-10);
+        assert!(result.1 <= result.0);
+        assert!(result.2 >= result.0);
+    }
+
+    #[test]
+    fn paired_bootstrap_fails_closed_on_invalid_inputs() {
+        let baseline = [metric(Treatment::NoCommitments, 10.0)];
+        let treatment = [
+            metric(Treatment::Reciprocity, 5.0),
+            metric(Treatment::Reciprocity, 5.0),
+        ];
+        assert!(paired_reduction_ci95_pct(&treatment, &baseline, 2_000, 1).is_none());
+
+        let zero_baseline = [metric(Treatment::NoCommitments, 0.0)];
+        let zero_treatment = [metric(Treatment::Reciprocity, 0.0)];
+        assert!(paired_reduction_ci95_pct(&zero_treatment, &zero_baseline, 2_000, 1).is_none());
+        assert!(paired_reduction_ci95_pct(&baseline, &baseline, 10, 1).is_none());
+    }
+}
