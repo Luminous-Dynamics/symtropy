@@ -14,7 +14,7 @@
     "topology_family": "ring_lattice",
     "directed_trust_estimates": true,
     "initial_trust_distribution": "uniform_0.30_to_0.95",
-    "tie_change": "enabled",
+    "tie_change": "not_implemented; topology is fixed during each run",
     "degree": 4,
     "fixed_during_run": true,
     "trust_update": "treatment_dependent"
@@ -27,7 +27,8 @@
     "shock_duration_ticks": 15,
     "recovery_requires_contributions": "only within the declared shock window; after the exogenous window ends, baseline capacity returns",
     "repair_gain_per_contribution": 0.00125,
-    "capacity_during_shock": "shock_capacity + (baseline_capacity - shock_capacity) * repair_progress"
+    "capacity_during_shock": "shock_capacity + (baseline_capacity - shock_capacity) * repair_progress",
+    "shock_capacity": 0.45
   },
   "treatment_arms": [
     "no_commitments",
@@ -36,11 +37,10 @@
     "evidence_based_trust"
   ],
   "factors_to_sweep": [
-    "shock_severity",
     "observation_noise",
     "observation_cost",
     "attestation_tampering_rate",
-    "network_density"
+    "shock_capacity"
   ],
   "run": {
     "ticks": 80,
@@ -48,6 +48,7 @@
     "deterministic_event_order": true,
     "primary_outcomes": [
       "unmet_need_integral",
+      "peak_unmet_need",
       "contribution_count",
       "recovery_rate",
       "mean_recovery_tick_when_recovered",
@@ -64,12 +65,45 @@
     "inequality_metric_definition": "Gini coefficient of each agent's cumulative unmet need over the run",
     "attestation_tampering_rate": 0.02,
     "observation_cost": 0.15,
-    "observation_overhead": "neighbor evidence checks × observation_cost"
+    "observation_overhead": "neighbor evidence checks × observation_cost",
+    "one_factor_sweep": {
+      "enabled_by_cli_flag": "--sweep",
+      "baseline_case": "baseline",
+      "variants": {
+        "observation_noise": [
+          0,
+          0.2
+        ],
+        "observation_cost": [
+          0,
+          0.35
+        ],
+        "attestation_tampering_rate": [
+          0,
+          0.2
+        ],
+        "shock_capacity": [
+          0.25,
+          0.65
+        ]
+      },
+      "design": "one factor at a time; all other parameters set to baseline",
+      "default_paired_seed_count": 32,
+      "minimum_paired_seed_count": 20,
+      "limitations": "does not estimate interactions; network topology is fixed; synthetic sensitivity only"
+    }
   },
   "guardrails": {
     "synthetic_only": true,
     "individual_reputation_leaderboard": false,
     "no_claim_of_empirical_validity": true
   },
-  "note": "Synthetic proposal fixture aligned to the dependency-free Rust reference model defaults. The evidence_based_trust arm models noisy observations, observation cost, trust updating, and probabilistic signal tampering only; it does not model verifiable commitments or formal dispute resolution. The JSON is not yet parsed by the executable. The model is unvalidated and makes no claim about real communities."
+  "note": "Synthetic proposal fixture aligned to the dependency-free Rust reference model defaults. The evidence_based_trust arm models noisy observations, observation cost, trust updating, and probabilistic signal tampering only; it does not model verifiable commitments or formal dispute resolution. The one-factor sweep is synthetic sensitivity analysis, not empirical validation.",
+  "deferred_factors": [
+    "network_density",
+    "shock_duration_ticks",
+    "population",
+    "trust_learning_rate",
+    "factor_interactions"
+  ]
 }
