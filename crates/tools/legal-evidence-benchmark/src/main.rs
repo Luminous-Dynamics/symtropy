@@ -1117,13 +1117,14 @@ mod tests {
             .find(|result| result.case_id == "SYN-AUTH-002")
             .expect("target wording variant exists");
         target.citations.clear();
+        let actions_still_match = source.action == target.action;
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
         assert!(report
             .metamorphic_pair_failure_ids
             .contains(&"META-AUTH-001".to_string()));
         assert!(!report.metamorphic_gate_passed);
         assert!(!report.fixture_gate_passed);
-        assert_eq!(source.action, target.action);
+        assert!(actions_still_match);
     }
 
     #[test]
