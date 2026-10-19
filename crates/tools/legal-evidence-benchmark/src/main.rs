@@ -479,7 +479,10 @@ fn validate_benchmark(benchmark: &Benchmark) -> Result<(), String> {
     let mut pair_ids = BTreeSet::new();
     for pair in &benchmark.metamorphic_pairs {
         if pair.id.trim().is_empty() || !pair_ids.insert(pair.id.as_str()) {
-            errors.push(format!("empty or duplicate metamorphic pair id: {}", pair.id));
+            errors.push(format!(
+                "empty or duplicate metamorphic pair id: {}",
+                pair.id
+            ));
         }
         if pair.rationale.trim().is_empty() {
             errors.push(format!("metamorphic pair {} has empty rationale", pair.id));
@@ -631,7 +634,8 @@ fn case_relation_holds(
     target_citations: &[Citation],
 ) -> bool {
     let claims_match = unique_strings(source_claim_codes).0 == unique_strings(target_claim_codes).0;
-    let citations_match = unique_citations(source_citations).0 == unique_citations(target_citations).0;
+    let citations_match =
+        unique_citations(source_citations).0 == unique_citations(target_citations).0;
     match relation {
         MetamorphicRelation::ActionMustChange => source_action != target_action,
         MetamorphicRelation::ActionMustMatch => source_action == target_action,
@@ -938,9 +942,8 @@ fn evaluate_with_digests(
 
     let (metamorphic_pairs_passed, metamorphic_pair_failure_ids) =
         evaluate_metamorphic_pairs(benchmark, submission);
-    let metamorphic_gate_passed =
-        metamorphic_pair_failure_ids.is_empty()
-            && metamorphic_pairs_passed == benchmark.metamorphic_pairs.len();
+    let metamorphic_gate_passed = metamorphic_pair_failure_ids.is_empty()
+        && metamorphic_pairs_passed == benchmark.metamorphic_pairs.len();
 
     let missing_set: BTreeSet<&str> = missing_ids.iter().map(String::as_str).collect();
     let duplicate_set: BTreeSet<&str> = duplicate_ids.iter().map(String::as_str).collect();
@@ -1069,7 +1072,12 @@ mod tests {
         assert_eq!(report.claim_code_exact_match_pct, 100.0);
         assert_eq!(report.citation_exact_match_pct, 100.0);
         assert_eq!(report.case_evaluations.len(), benchmark.cases.len());
-        assert!(report.case_evaluations.iter().all(|item| item.failure_codes.is_empty()));
+        assert!(
+            report
+                .case_evaluations
+                .iter()
+                .all(|item| item.failure_codes.is_empty())
+        );
         assert_eq!(report.metamorphic_pairs_total, 4);
         assert_eq!(report.metamorphic_pairs_passed, 4);
         assert!(report.metamorphic_gate_passed);
@@ -1095,9 +1103,11 @@ mod tests {
         target.citations = source.citations;
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
         assert!(!report.metamorphic_gate_passed);
-        assert!(report
-            .metamorphic_pair_failure_ids
-            .contains(&"META-TIME-001".to_string()));
+        assert!(
+            report
+                .metamorphic_pair_failure_ids
+                .contains(&"META-TIME-001".to_string())
+        );
         assert!(!report.fixture_gate_passed);
     }
 
@@ -1119,9 +1129,11 @@ mod tests {
         target.citations.clear();
         let actions_still_match = source.action == target.action;
         let report = evaluate(&benchmark, &submission).expect("evaluation runs");
-        assert!(report
-            .metamorphic_pair_failure_ids
-            .contains(&"META-AUTH-001".to_string()));
+        assert!(
+            report
+                .metamorphic_pair_failure_ids
+                .contains(&"META-AUTH-001".to_string())
+        );
         assert!(!report.metamorphic_gate_passed);
         assert!(!report.fixture_gate_passed);
         assert!(actions_still_match);
