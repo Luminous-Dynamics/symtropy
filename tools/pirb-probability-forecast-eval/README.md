@@ -10,8 +10,15 @@ From the repository root:
     cargo run --bin pirb-probability-forecast-eval --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json
     cargo run --bin pirb-outcome-vintage-sensitivity --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --input docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json
     cargo run --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
+    cargo run --bin pirb-cross-provider-benchmark-validate --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-cross-provider-benchmark-incompatible-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
+
+## Cross-provider benchmark registration
+
+The `pirb-cross-provider-benchmark-validate` binary validates `docs/schemas/pirb-cross-provider-benchmark-v0.1.schema.json` plus cross-field invariants that JSON Schema cannot establish alone: unique and resolvable provider/comparison IDs, exact target/unit/time/horizon/output compatibility for direct comparisons, pinned and independently reviewed mappings for mapped comparisons, output-type-specific metric families, and governance gates for authorized historical data. It emits a deterministic registration-validation receipt with schema/input digests and the explicitly declared comparison states. It does **not** load forecast rows, score providers, establish predictive superiority, select actions, or estimate causal impact.
+
+The checked-in VIEWS/ACLED CAST example deliberately exits successfully as a valid **not-comparable** registration while keeping both scoring lanes disabled. That is a successful contract test, not a successful model comparison. For an evaluation registration, source releases, data rights, outcome maturity, shared-row rules and mapping evidence must be pinned before held-out evaluation.
 
 ## Outcome-vintage sensitivity
 
