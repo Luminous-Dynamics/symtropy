@@ -1021,7 +1021,10 @@ mod tests {
             scenario.observations[0].interval_lower_liters = lower;
             scenario.observations[0].interval_upper_liters = 52;
             let result = decide_scenario(&scenario, error_limit).expect("evaluate lower bound");
-            assert_eq!(Disposition::RejectUnsafeInterval, result.steps[0].disposition);
+            assert_eq!(
+                Disposition::RejectUnsafeInterval,
+                result.steps[0].disposition
+            );
         }
         let mut lower_boundary = baseline.clone();
         lower_boundary.observations[0].interval_lower_liters = 0;
