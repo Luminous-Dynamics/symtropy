@@ -436,7 +436,8 @@ fn sha256_hex(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
         .iter()
         .map(|byte| format!("{byte:02x}"))
-        .collect()
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn validate_source_commit(value: &str) -> Check<()> {
@@ -681,8 +682,8 @@ mod tests {
         );
         let frontier = pareto_frontier(&rows);
         assert_eq!(frontier.len(), 4);
-        assert!(frontier.iter().any(|id| id == "std=1|power_isolated=1|spares=1|eol_plan=1"));
-        assert!(frontier.iter().any(|id| id == "std=1|power_isolated=0|spares=1|eol_plan=1"));
+        assert!(frontier.iter().any(|id| id.as_str() == "std=1|power_isolated=1|spares=1|eol_plan=1"));
+        assert!(frontier.iter().any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1"));
     }
 
     #[test]
