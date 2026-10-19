@@ -513,6 +513,14 @@
       "expected_reason_codes": [
         "missing_within_subject_continuity"
       ]
+    },
+    {
+      "id": "cross_study_linked_subject_leak",
+      "mutation": "cross_study_linked_subject_leak",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "split_identity_leakage"
+      ]
     }
   ]
 }
