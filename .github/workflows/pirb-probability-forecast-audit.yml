@@ -6,6 +6,8 @@ on:
     paths:
       - "docs/schemas/pirb-probability-forecast-v0.1.schema.json"
       - "docs/schemas/pirb-views-offline-import-v0.1.schema.json"
+      - "docs/schemas/pirb-policy-evaluation-v0.1.schema.json"
+      - "docs/fixtures/pirb-policy-evaluation-synthetic-v0.1.json"
       - "docs/fixtures/pirb-probability-forecast-v0.1.json"
       - "docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json"
       - "docs/fixtures/views-import-manifest-synthetic-v0.1.json"
@@ -214,6 +216,50 @@ jobs:
             '.result == "pass" and .source_commit == $source_commit and .input_sha256 == $input_sha and .evidence_class == "synthetic" and .forecast_record_count == 28 and .metrics.training.forecast_count == 12 and .metrics.calibration.forecast_count == 8 and .metrics.test.forecast_count == 8 and .metrics.test.unknown_outcome_count == 1 and .test_uncertainty.status == "not_estimable" and .causal_effect_estimated == false and .live_decision_authority == false' \
             pirb-views-score-receipt.json
 
+      - name: Evaluate all registered synthetic policy thresholds without selecting one
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          dataset="docs/fixtures/pirb-probability-forecast-v0.1.json"
+          policy="docs/fixtures/pirb-policy-evaluation-synthetic-v0.1.json"
+          expected_dataset_sha="$(sha256sum "$dataset" | awk '{print $1}')"
+          expected_policy_sha="$(sha256sum "$policy" | awk '{print $1}')"
+          expected_lock_sha="$(sha256sum tools/pirb-probability-forecast-eval/Cargo.lock | awk '{print $1}')"
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-policy-evaluation -- \
+            --dataset "$dataset" --policy "$policy" --receipt pirb-policy-evaluation-receipt.json \
+            --source-commit "$source_commit" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
+          jq -e --arg source_commit "$source_commit" --arg dataset_sha "$expected_dataset_sha" \
+            --arg policy_sha "$expected_policy_sha" --arg lock_sha "$expected_lock_sha" \
+            '
+              .result == "pass"
+              and .evaluator == "PIRB predeclared aggregate response-policy evaluation"
+              and .source_commit == $source_commit
+              and .source_commit_sha_valid == true
+              and .dependency_lock_sha256 == $lock_sha
+              and .dataset_sha256 == $dataset_sha
+              and .policy_sha256 == $policy_sha
+              and .dataset_id == "pirb-probability-synthetic-reference"
+              and .policy_id == "pirb-policy-synthetic-capacity-aware"
+              and .policy_kind == "confirmatory"
+              and .predeclaration_timing_conforms_to_manifest == true
+              and .registration_timestamp_independently_authenticated == false
+              and .thresholds_selected_by_evaluator == false
+              and .thresholds_evaluated == [0.2, 0.4, 0.6]
+              and .act_on_none_utility_units == -300
+              and (.policy_results | length == 3)
+              and ([.policy_results[].status] | all(. == "estimated"))
+              and ([.policy_results[] | select(.threshold == 0.6)][0].confusion.true_positive == 1)
+              and ([.policy_results[] | select(.threshold == 0.6)][0].confusion.false_positive == 1)
+              and ([.policy_results[] | select(.threshold == 0.6)][0].confusion.false_negative == 1)
+              and ([.policy_results[] | select(.threshold == 0.6)][0].confusion.true_negative == 2)
+              and ([.policy_results[] | select(.threshold == 0.6)][0].utility_units == -80)
+              and ([.policy_results[] | select(.threshold == 0.6)][0].utility_delta_vs_act_on_none_units == 220)
+              and ([.policy_results[] | select(.threshold == 0.2)][0].unknown_outcome_alert_count == 1)
+              and .live_decision_authority == false
+              and .causal_effect_estimated == false
+            ' pirb-policy-evaluation-receipt.json
+
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
         uses: actions/upload-artifact@v4
@@ -221,6 +267,9 @@ jobs:
           name: pirb-probability-forecast-synthetic-receipt
           path: |
             pirb-probability-forecast-receipt.json
+            pirb-policy-evaluation-receipt.json
+            docs/fixtures/pirb-policy-evaluation-synthetic-v0.1.json
+            docs/schemas/pirb-policy-evaluation-v0.1.schema.json
             pirb-views-import-receipt.json
             pirb-views-normalized.json
             pirb-views-score-receipt.json
