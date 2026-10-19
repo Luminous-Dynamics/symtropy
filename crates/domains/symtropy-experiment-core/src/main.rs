@@ -8,6 +8,7 @@ use serde_json::Value;
 use symtropy_experiment_core::{
     units::UNIT_REGISTRY_VERSION, ExperimentGraph, HarmonicOscillatorResult,
     HarmonicOscillatorSpec, OscillatorConvergenceReport, RunReceipt, SweepPoint,
+    provenance::{RECEIPT_CANONICALIZATION_ALGORITHM, RUN_RECEIPT_SCHEMA_VERSION},
 };
 
 fn usage() -> ! {
@@ -521,6 +522,11 @@ fn run_oscillator_convergence(path: &str, time_steps_csv: &str) {
     }
 }
 
+fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
+    serde_json_canonicalizer::to_vec(value)
+        .map_err(|error| format!("could not canonicalize JSON as RFC 8785 JCS: {error}"))
+}
+
 fn canonical_output_payload_bytes(
     envelope: &Value,
     receipt: &RunReceipt,
@@ -536,8 +542,8 @@ fn canonical_output_payload_bytes(
     let payload: Value = match mode {
         "run" => {
             if let Some(values) = envelope.get("values") {
-                return serde_json::to_vec(values)
-                    .map_err(|error| format!("could not serialize run values: {error}"));
+                return canonical_json_bytes(values)
+                    .map_err(|error| format!("could not canonicalize run values: {error}"));
             }
             if envelope.get("issues").is_some() {
                 serde_json::json!({
@@ -557,8 +563,8 @@ fn canonical_output_payload_bytes(
             if let Some(points_value) = envelope.get("points") {
                 let points: Vec<SweepPoint> = serde_json::from_value(points_value.clone())
                     .map_err(|error| format!("invalid sweep points in result envelope: {error}"))?;
-                return serde_json::to_vec(&points)
-                    .map_err(|error| format!("could not serialize sweep points: {error}"));
+                return canonical_json_bytes(&points)
+                    .map_err(|error| format!("could not canonicalize sweep points: {error}"));
             }
             failure_payload()
         }
@@ -566,8 +572,8 @@ fn canonical_output_payload_bytes(
             if let Some(result_value) = envelope.get("result") {
                 let result: HarmonicOscillatorResult = serde_json::from_value(result_value.clone())
                     .map_err(|error| format!("invalid oscillator result in envelope: {error}"))?;
-                return serde_json::to_vec(&result)
-                    .map_err(|error| format!("could not serialize oscillator result: {error}"));
+                return canonical_json_bytes(&result)
+                    .map_err(|error| format!("could not canonicalize oscillator result: {error}"));
             }
             failure_payload()
         }
@@ -575,14 +581,14 @@ fn canonical_output_payload_bytes(
             if let Some(report_value) = envelope.get("report") {
                 let report: OscillatorConvergenceReport = serde_json::from_value(report_value.clone())
                     .map_err(|error| format!("invalid convergence report in envelope: {error}"))?;
-                return serde_json::to_vec(&report)
-                    .map_err(|error| format!("could not serialize convergence report: {error}"));
+                return canonical_json_bytes(&report)
+                    .map_err(|error| format!("could not canonicalize convergence report: {error}"));
             }
             failure_payload()
         }
         other => return Err(format!("unsupported receipt execution mode '{other}'")),
     };
-    serde_json::to_vec(&payload).map_err(|error| format!("could not serialize output payload: {error}"))
+    canonical_json_bytes(&payload).map_err(|error| format!("could not canonicalize output payload: {error}"))
 }
 
 fn run_verify_receipt(envelope_path: &str, input_path: &str) {
@@ -625,7 +631,7 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
             let metadata_matches = receipt.payload.experiment_id.as_deref() == Some(graph.id.as_str())
                 && receipt.payload.model_schema_version.as_deref() == Some(graph.schema_version.as_str())
                 && receipt.payload.unit_registry_version.is_some();
-            let bytes = match serde_json::to_vec(&graph) {
+            let bytes = match canonical_json_bytes(&graph) {
                 Ok(bytes) => bytes,
                 Err(error) => {
                     eprintln!("could not serialize parsed experiment graph: {error}");
@@ -645,7 +651,7 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
             let metadata_matches = receipt.payload.experiment_id.as_deref() == Some(spec.id.as_str())
                 && receipt.payload.model_schema_version.as_deref() == Some(spec.schema_version.as_str())
                 && receipt.payload.unit_registry_version.is_none();
-            let bytes = match serde_json::to_vec(&spec) {
+            let bytes = match canonical_json_bytes(&spec) {
                 Ok(bytes) => bytes,
                 Err(error) => {
                     eprintln!("could not serialize parsed oscillator specification: {error}");
@@ -673,12 +679,16 @@ fn run_verify_receipt(envelope_path: &str, input_path: &str) {
             process::exit(2);
         }
     };
-    let valid = verification.is_valid() && model_metadata_matches;
+    let receipt_contract_supported = receipt.payload.receipt_schema_version == RUN_RECEIPT_SCHEMA_VERSION
+        && receipt.payload.digest_algorithm == "sha256"
+        && receipt.payload.canonicalization_algorithm == RECEIPT_CANONICALIZATION_ALGORITHM;
+    let valid = verification.is_valid() && model_metadata_matches && receipt_contract_supported;
     print_json(
         serde_json::json!({
             "valid": valid,
             "receipt_sha256": receipt.receipt_sha256,
             "model_metadata_matches": model_metadata_matches,
+            "receipt_contract_supported": receipt_contract_supported,
             "verification": &verification,
             "scope_warning": "This verifies receipt self-integrity and matches the saved input artifact, parsed-model serialization, output payload, and model identity/version fields to recorded digests. It does not authenticate the producer, prove that execution occurred, or validate scientific correctness."
         }),
