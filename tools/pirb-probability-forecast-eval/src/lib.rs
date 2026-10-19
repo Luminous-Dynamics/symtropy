@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod uncertainty;
 pub mod views_adapter;
+pub mod policy_eval;
 use uncertainty::{BootstrapPoint, estimate as estimate_uncertainty};
 
 const SCHEMA_BYTES: &[u8] =
