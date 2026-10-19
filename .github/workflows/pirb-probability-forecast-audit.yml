@@ -92,7 +92,15 @@ jobs:
               and .rustc_version == $rustc_version
               and .cargo_version == $cargo_version
               and .evidence_class == "synthetic"
+              and .provider == "synthetic"
+              and .forecast_archive_id == "synthetic-runset-v1"
+              and .forecast_archive_sha256 == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              and .outcome_release_sha256 == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              and .forecast_source_reference == "synthetic:forecast-source"
+              and .outcome_source_reference == "synthetic:outcome-source"
               and .privacy.aggregate_only == true
+              and .forecast_record_count == 18
+              and (.forecast_release_ids | length == 18)
               and .metrics.training.forecast_count == 8
               and .metrics.calibration.forecast_count == 4
               and .metrics.test.forecast_count == 6
