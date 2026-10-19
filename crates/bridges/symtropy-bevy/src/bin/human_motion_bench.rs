@@ -1591,6 +1591,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
     eprintln!(
         concat!(
             "Motion benchmark: validity={}, samples={}, joints_scored={}, ",
+            "source max interval ref/pred={:.1}/{:.1} ms, ",
             "root ADE={:.4} m, FDE={:.4} m, max={:.4} m, ",
             "macro joint ADE={}, max joint FDE={}, ",
             "left-foot drift RMS={:.4} m (contact F1={}), ",
@@ -1601,6 +1602,8 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         report.validity,
         report.alignment.samples,
         report.joint_trajectory_error.joints_scored,
+        report.alignment.reference_max_sample_interval_sec * 1000.0,
+        report.alignment.prediction_max_sample_interval_sec * 1000.0,
         report.root_trajectory_error.mean_displacement_error_m,
         report.root_trajectory_error.final_displacement_error_m,
         report.root_trajectory_error.max_displacement_error_m,
