@@ -1260,6 +1260,29 @@ mod tests {
     }
 
     #[test]
+    fn small_synthetic_test_panel_reports_uncertainty_not_estimable() {
+        let r = receipt();
+        let uncertainty = serde_json::to_value(&r.test_uncertainty).unwrap();
+        assert_eq!(uncertainty["status"], "not_estimable");
+        assert!(uncertainty["brier_score"].is_null());
+        assert!(uncertainty["log_loss"].is_null());
+        assert_eq!(uncertainty["spatial_block_count"], 3);
+        assert_eq!(uncertainty["temporal_block_count"], 5);
+    }
+
+    #[test]
+    fn unit_spatial_block_mapping_cannot_change_within_dataset() {
+        let mut d = dataset();
+        let index = d.records.iter().position(|record| record.unit_id == "unit-alpha" && record.forecast_id == "forecast-t4").unwrap();
+        d.records[index].spatial_block_id = "block-conflicting".to_owned();
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|finding| finding.contains("changes spatial_block_id"))
+        );
+    }
+
+    #[test]
     fn authorized_historical_input_cannot_use_synthetic_references() {
         let mut d = dataset();
         d.evidence_class = EvidenceClass::AuthorizedHistorical;
