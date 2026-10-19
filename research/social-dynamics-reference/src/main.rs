@@ -156,7 +156,6 @@ fn main() {
         std::process::exit(2);
     }
 
-    let runs = 32_u64;
     let mut all_results: Vec<(Treatment, Vec<Metrics>)> =
         Vec::with_capacity(Treatment::ALL.len());
     for treatment in Treatment::ALL {
