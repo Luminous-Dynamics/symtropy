@@ -53,11 +53,7 @@ fn run() -> Result<(), String> {
     output.push(b'\n');
     fs::write(&receipt_path, output)
         .map_err(|error| format!("cannot write policy receipt {receipt_path}: {error}"))?;
-    println!(
-        "Evaluated {} predeclared thresholds; result={}",
-        receipt.thresholds_evaluated.len(),
-        receipt.result
-    );
+    println!("Policy receipt written. The evaluator does not select a threshold or authorize live actions.");
     Ok(())
 }
 
