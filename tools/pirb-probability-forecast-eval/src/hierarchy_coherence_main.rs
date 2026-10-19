@@ -40,6 +40,29 @@ fn number_at(value: &Value, key: &str) -> Option<f64> {
     value.get(key).and_then(Value::as_f64)
 }
 
+fn aggregation_graph_has_cycle(
+    node: &str,
+    adjacency: &BTreeMap<String, BTreeSet<String>>,
+    state: &mut BTreeMap<String, u8>,
+) -> bool {
+    match state.get(node).copied() {
+        Some(1) => return true,
+        Some(2) => return false,
+        _ => {}
+    }
+
+    state.insert(node.to_owned(), 1);
+    if let Some(children) = adjacency.get(node) {
+        for child in children {
+            if aggregation_graph_has_cycle(child, adjacency, state) {
+                return true;
+            }
+        }
+    }
+    state.insert(node.to_owned(), 2);
+    false
+}
+
 fn semantic_errors(registration: &Value) -> Vec<String> {
     let mut errors = Vec::new();
     let origin = registration["forecast_origin_index"]
@@ -86,6 +109,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     }
 
     let mut constraint_ids = BTreeSet::new();
+    let mut aggregation_adjacency: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for constraint in constraints {
         let id = string_at(constraint, "constraint_id").unwrap_or_default();
         if !constraint_ids.insert(id.to_owned()) {
@@ -118,6 +142,15 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         let Some(parent) = parent else {
             continue;
         };
+        let parent_id_owned = parent_id.to_owned();
+        for child_id in child_ids.iter().filter_map(Value::as_str) {
+            if forecast_by_id.contains_key(child_id) {
+                aggregation_adjacency
+                    .entry(parent_id_owned.clone())
+                    .or_default()
+                    .insert(child_id.to_owned());
+            }
+        }
         let kind = string_at(constraint, "kind").unwrap_or_default();
         let mut seen_child_units = BTreeSet::new();
         let mut seen_child_events = BTreeSet::new();
@@ -162,6 +195,14 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                     "constraint {id} has an unsupported aggregation kind"
                 )),
             }
+        }
+    }
+
+    let mut graph_state = BTreeMap::new();
+    for node in forecast_by_id.keys() {
+        if aggregation_graph_has_cycle(node, &aggregation_adjacency, &mut graph_state) {
+            errors.push("aggregation constraint graph contains a cycle".to_owned());
+            break;
         }
     }
 
@@ -566,6 +607,26 @@ mod tests {
         value["forecasts"][3]["unit_id"] = json!("unit-country-b");
         let errors = audit(&value).expect_err("event-type sums require one spatial unit");
         assert!(errors.iter().any(|error| error.contains("mixes unit_id")));
+    }
+
+    #[test]
+    fn aggregation_constraint_cycles_are_rejected() {
+        let mut value = fixture();
+        let mut cycle = value["aggregation_constraints"][0].clone();
+        cycle["constraint_id"] = json!("constraint-cycle-test");
+        cycle["parent_forecast_id"] = json!("fc-admin1-a-organized");
+        cycle["child_forecast_ids"] = json!(["fc-country-a-organized"]);
+        value["aggregation_constraints"]
+            .as_array_mut()
+            .expect("constraints are an array")
+            .push(cycle);
+
+        let errors = audit(&value).expect_err("aggregation graph cannot contain cycles");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aggregation constraint graph contains a cycle"))
+        );
     }
 
     #[test]
