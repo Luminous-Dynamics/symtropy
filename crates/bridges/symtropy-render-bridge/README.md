@@ -54,3 +54,20 @@ Early — the core projection API is stable; the 4D shader pipeline lands in Pha
 
 - [The Symtropy Book](https://github.com/luminous-dynamics/symtropy/tree/main/book) — overview and tutorials.
 - [ten Bosch, M. (2020). *N-Dimensional Rigid Body Dynamics*, SIGGRAPH](https://marctenbosch.com/) — theoretical foundation for 4D rotation.
+
+
+## Purpose-built multidimensional views
+
+The view contract separates **why a view exists** from **how many dimensions it represents**. Use `ViewProfile::recommended(purpose, dimension)` for Strategic, Operational, Tactical, Scientific, or Diagnostic intent, then choose Planar2D, Oblique2_5D, Spatial3D, or HyperSlice4D independently.
+
+- Strategic views prioritize terrain, infrastructure, networks, routes, and identity-preserving aggregation.
+- Operational views prioritize routes, flows, infrastructure dependencies, and clustered activity.
+- Tactical views prioritize local entity geometry, contacts, velocity vectors, and motion trails.
+- Scientific views prioritize scalar/vector fields, uncertainty, legends, and source provenance.
+- Diagnostic views prioritize contacts, motion and field overlays for debugging.
+
+`Projector2_5D` supplies a configurable oblique orthographic coordinate basis that preserves the distinction between ground depth and elevation. The host camera must align to that basis. `OrientedProjector4D` supports a caller-specified 4D hyperplane normal, offset, and half-thickness; it projects points onto that plane but does **not** compute exact mesh/collider intersections.
+
+These are projection and policy contracts, not a complete view manager. Interactive camera controls, viewport-aware culling, scale-dependent aggregation, cross-view selection, and visual-regression capture still need host integration.
+
+See [PURPOSE_BUILT_MULTIDIMENSIONAL_VIEWS_V0_1.md](../../../../docs/research/PURPOSE_BUILT_MULTIDIMENSIONAL_VIEWS_V0_1.md) for invariants, proposed benchmarks, and current boundaries.
