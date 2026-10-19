@@ -1,3 +1,4 @@
+use std::io::Write;
 use symtropy_social_dynamics_reference::{simulate, Metrics, Scenario, Treatment};
 
 const BOOTSTRAP_REPLICATES: usize = 2_000;
@@ -72,7 +73,83 @@ fn format_optional(value: Option<f64>) -> String {
     value.map(|v| format!("{v:.4}")).unwrap_or_else(|| "NA".to_owned())
 }
 
+
+fn write_run_csv(path: &str, all_results: &[(Treatment, Vec<Metrics>)]) -> Result<(), String> {
+    let mut file = std::fs::File::create(path)
+        .map_err(|error| format!("cannot create run CSV {path}: {error}"))?;
+    writeln!(
+        file,
+        "treatment,seed,unmet_need_integral,unmet_need_inequality_gini,contribution_count,recovery_tick,verification_overhead,repair_progress_at_shock_end"
+    )
+    .map_err(|error| format!("cannot write run CSV header: {error}"))?;
+
+    for (treatment, results) in all_results {
+        for (seed, metrics) in results.iter().enumerate() {
+            let recovery_tick = metrics
+                .recovery_tick
+                .map(|tick| tick.to_string())
+                .unwrap_or_else(|| "NA".to_owned());
+            writeln!(
+                file,
+                "{},{},{:.6},{:.6},{},{},{:.4},{:.6}",
+                treatment.as_str(),
+                seed,
+                metrics.unmet_need_integral,
+                metrics.unmet_need_inequality_gini,
+                metrics.contribution_count,
+                recovery_tick,
+                metrics.verification_overhead,
+                metrics.repair_progress_at_shock_end
+            )
+            .map_err(|error| format!("cannot write run CSV row: {error}"))?;
+        }
+    }
+    file.flush()
+        .map_err(|error| format!("cannot flush run CSV: {error}"))?;
+    Ok(())
+}
+
 fn main() {
+    let mut runs = 32_u64;
+    let mut runs_csv_path: Option<String> = None;
+    let mut args = std::env::args().skip(1);
+    while let Some(argument) = args.next() {
+        match argument.as_str() {
+            "--runs" => {
+                let value = args.next().unwrap_or_else(|| {
+                    eprintln!("--runs requires an integer value");
+                    std::process::exit(2);
+                });
+                runs = value.parse::<u64>().unwrap_or_else(|_| {
+                    eprintln!("--runs must be an integer >= 20");
+                    std::process::exit(2);
+                });
+                if runs < 20 {
+                    eprintln!("--runs must be at least 20 for the bootstrap report");
+                    std::process::exit(2);
+                }
+            }
+            "--runs-csv" => {
+                runs_csv_path = Some(args.next().unwrap_or_else(|| {
+                    eprintln!("--runs-csv requires an output path");
+                    std::process::exit(2);
+                }));
+            }
+            "--help" | "-h" => {
+                println!(
+                    "Usage: social-dynamics-reference [--runs N] [--runs-csv PATH]\n\
+                     --runs N        Number of paired seeds (minimum 20; default 32).\n\
+                     --runs-csv PATH Write one row per treatment/seed for audit."
+                );
+                return;
+            }
+            unknown => {
+                eprintln!("unknown argument: {unknown}; use --help");
+                std::process::exit(2);
+            }
+        }
+    }
+
     let scenario = Scenario::default();
     if let Err(error) = scenario.validate() {
         eprintln!("invalid scenario: {error}");
@@ -94,6 +171,14 @@ fn main() {
             }
         }
         all_results.push((treatment, results));
+    }
+
+    if let Some(path) = runs_csv_path.as_deref() {
+        if let Err(error) = write_run_csv(path, &all_results) {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+        eprintln!("wrote one row per treatment/seed to {path}");
     }
 
     let baseline = all_results
