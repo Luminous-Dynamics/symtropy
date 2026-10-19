@@ -1,7 +1,7 @@
 use super::{
-    candidate_schedules, enumerate_vectors, evaluate_schedule, independently_reconstruct_score,
-    is_lower_hex, sha256, Check, GeneratedCase, GeneratedWorld, ProcessModel, Split,
-    WORLDS_PER_SEED, generate_cases,
+    candidate_schedules, enumerate_vectors, evaluate_schedule, generate_cases,
+    independently_reconstruct_score, is_lower_hex, sha256, Check, GeneratedCase, GeneratedWorld,
+    ProcessModel, Split, WORLDS_PER_SEED,
 };
 use serde::Serialize;
 use std::process::ExitCode;
@@ -440,7 +440,9 @@ fn realized_outcome(
                     grid_carbon_units: None,
                     oracle_grid_cost_units: oracle_cost,
                     cost_regret_vs_realization_oracle_units: None,
-                    rejection_reason: Some("INDEPENDENT_RESOURCE_RECONSTRUCTION_MISMATCH".to_owned()),
+                    rejection_reason: Some(
+                        "INDEPENDENT_RESOURCE_RECONSTRUCTION_MISMATCH".to_owned(),
+                    ),
                 });
             }
             Ok(PolicyWorldOutcome {
@@ -478,8 +480,8 @@ fn make_receipt(source_commit: &str) -> Check<ExecutionReceipt> {
         return Err("source commit must be a lowercase 40-character hex SHA".to_owned());
     }
     let cases = execution_cases();
-    let manifest_bytes =
-        serde_json::to_vec(&cases).map_err(|error| format!("cannot serialize case manifest: {error}"))?;
+    let manifest_bytes = serde_json::to_vec(&cases)
+        .map_err(|error| format!("cannot serialize case manifest: {error}"))?;
     let process = model();
     let profile = execution_envelope();
     let mut decisions = Vec::new();
@@ -524,8 +526,10 @@ fn make_receipt(source_commit: &str) -> Check<ExecutionReceipt> {
             resource_only_worst_case_cost_units: resource_only.worst_case_cost_units,
             resource_only_execution_audit,
             execution_constrained_batches: execution_constrained.batches.clone(),
-            execution_constrained_worst_case_cost_units: execution_constrained.worst_case_cost_units,
-            execution_constrained_worst_case_carbon_units: execution_constrained.worst_case_carbon_units,
+            execution_constrained_worst_case_cost_units: execution_constrained
+                .worst_case_cost_units,
+            execution_constrained_worst_case_carbon_units: execution_constrained
+                .worst_case_carbon_units,
             execution_constrained_execution_audit,
         });
 
@@ -621,7 +625,12 @@ fn make_receipt(source_commit: &str) -> Check<ExecutionReceipt> {
         summaries: summaries.to_vec(),
         case_decisions: decisions,
         world_evaluations: worlds,
-        claim_ceiling: "Finite exact static scheduling with coarse authored batch-rate ramp and minimum-up constraints. All units are synthetic; no equipment response model, site-calibrated executable envelope, operational safety claim, or real-mine cost/carbon claim is implied.".to_owned(),
+        claim_ceiling: concat!(
+            "Finite exact static scheduling with coarse authored batch-rate ramp and minimum-up ",
+            "constraints. All units are synthetic; no equipment response model, site-calibrated ",
+            "executable envelope, operational safety claim, or real-mine cost/carbon claim is implied."
+        )
+        .to_owned(),
     })
 }
 
@@ -655,21 +664,36 @@ mod tests {
         assert!(audit_execution(&[1, 2, 1], &envelope).executable);
         let ramp_up = audit_execution(&[0, 2, 2], &envelope);
         assert!(!ramp_up.executable);
-        assert!(ramp_up.violations.iter().any(|v| v.code == "RAMP_UP_EXCEEDED"));
+        assert!(ramp_up
+            .violations
+            .iter()
+            .any(|v| v.code == "RAMP_UP_EXCEEDED"));
 
         let ramp_down = audit_execution(&[2, 0, 2], &envelope);
         assert!(!ramp_down.executable);
-        assert!(ramp_down.violations.iter().any(|v| v.code == "RAMP_DOWN_EXCEEDED"));
-        assert!(ramp_down.violations.iter().any(|v| v.code == "STARTUP_LIMIT_EXCEEDED"));
+        assert!(ramp_down
+            .violations
+            .iter()
+            .any(|v| v.code == "RAMP_DOWN_EXCEEDED"));
+        assert!(ramp_down
+            .violations
+            .iter()
+            .any(|v| v.code == "STARTUP_LIMIT_EXCEEDED"));
     }
 
     #[test]
     fn minimum_up_time_cannot_be_satisfied_by_horizon_truncation() {
         let envelope = execution_envelope();
         let stopped_early = audit_execution(&[1, 0, 3], &envelope);
-        assert!(stopped_early.violations.iter().any(|v| v.code == "MINIMUM_UPTIME_NOT_MET"));
+        assert!(stopped_early
+            .violations
+            .iter()
+            .any(|v| v.code == "MINIMUM_UPTIME_NOT_MET"));
         let start_too_late = audit_execution(&[0, 0, 1], &envelope);
-        assert!(start_too_late.violations.iter().any(|v| v.code == "MINIMUM_UPTIME_EXCEEDS_HORIZON"));
+        assert!(start_too_late
+            .violations
+            .iter()
+            .any(|v| v.code == "MINIMUM_UPTIME_EXCEEDS_HORIZON"));
     }
 
     #[test]
