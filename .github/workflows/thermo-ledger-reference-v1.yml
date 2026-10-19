@@ -71,10 +71,11 @@ jobs:
       - name: Verify clean postflight and emit evidence
         run: |
           git status --short --branch
-          postflight_status="$(git status --porcelain)"
+          postflight_status="$(git status --porcelain=v1 -uall)"
           if [ -n "$postflight_status" ]; then
             echo "Unexpected repository changes after verification:"
-            printf '%s\\n' "$postflight_status"
+            printf 'status_repr=%q\\n' "$postflight_status"
+            printf '%s\\n' "$postflight_status" | od -An -tx1c
             exit 1
           fi
           {
