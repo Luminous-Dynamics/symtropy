@@ -40,6 +40,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path tools/pirb-historical-replay/Cargo.toml -- --check
 
+      - name: Assert public CI input is synthetic and aggregate-only
+        run: jq -e '.dataset_class == "synthetic" and .privacy.aggregate_only == true' docs/fixtures/pirb-historical-replay-v0.1.json > /dev/null
+
       - name: Run schema, semantics, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-historical-replay/Cargo.toml
 
@@ -80,6 +83,8 @@ jobs:
               and .causal_effect_estimated == false
               and .live_decision_authority == false
               and .source_commit_sha_valid == true
+              and .dataset_class == "synthetic"
+              and .privacy.aggregate_only == true
               and .source_commit == $source_commit
               and (.source_commit | test("^[0-9a-f]{40}$"))
               and .input_sha256 == $input_sha
@@ -99,7 +104,7 @@ jobs:
             ' pirb-historical-replay-receipt.json
 
       - name: Upload exact-head synthetic receipt and inputs
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: pirb-historical-replay-synthetic-receipt
@@ -108,5 +113,5 @@ jobs:
             tools/pirb-historical-replay/Cargo.lock
             docs/fixtures/pirb-historical-replay-v0.1.json
             docs/schemas/pirb-historical-replay-v0.1.schema.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 90
