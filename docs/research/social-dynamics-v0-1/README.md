@@ -65,7 +65,7 @@ No single equation is mandated as ground truth. The benchmark must compare compe
 
 Use synthetic agents first. Each household has a water need, time budget, contribution capacity, and access to a shared water-service network. A shock reduces capacity for a defined interval. Households can contribute repair work or resources under alternative coordination and governance rules.
 
-Compare interventions while holding initial topology, resources, policy parameters, exogenous random channels, and seed list constant. Then vary topology, shock severity, observation noise, verification cost, and the prototype's signal-tampering rate as separately declared factors. Do not describe the signal-flip parameter as a complete institutional-capture model.
+Compare interventions while holding initial topology, resources, policy parameters, exogenous random channels, and seed list constant. The current --sweep mode varies observation noise (0.00/0.20), observation cost (0.00/0.35), signal-tampering rate (0.00/0.20), and shock capacity (0.25/0.65) one factor at a time around the baseline. The network stays a degree-four ring lattice; network-density and interaction effects are deferred to a future implementation. Do not describe the signal-flip parameter as a complete institutional-capture model.
 
 Do not begin with a city-wide “digital twin” claim. Start with this small scenario and prove that model behavior, event logs, and metrics are reproducible.
 
