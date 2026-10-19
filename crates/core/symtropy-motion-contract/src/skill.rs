@@ -172,15 +172,21 @@ pub enum MotionSkillExecutionFailure {
 pub enum MotionSkillOutcome {
     Ready,
     Completed,
-    Infeasible { reason: String },
+    Infeasible {
+        reason: String,
+    },
     NotYetValid,
     Expired,
     Interrupted {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         recovery_skill_id: Option<String>,
     },
-    CapabilityMissing { capability_id: String },
-    ExecutionFailed { reason: MotionSkillExecutionFailure },
+    CapabilityMissing {
+        capability_id: String,
+    },
+    ExecutionFailed {
+        reason: MotionSkillExecutionFailure,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -347,9 +353,7 @@ impl MotionSkillContract {
                 .map(|conflict| {
                     format!(
                         "{} conflicts with {}: {}",
-                        conflict.left_constraint_id,
-                        conflict.right_constraint_id,
-                        conflict.reason
+                        conflict.left_constraint_id, conflict.right_constraint_id, conflict.reason
                     )
                 })
                 .collect::<Vec<_>>()
@@ -455,10 +459,12 @@ impl MotionSkillContract {
                 reason: MotionSkillExecutionFailure::PostconditionsFailed,
             });
         }
-        if required
-            .iter()
-            .all(|id| evidence.verified_postconditions.iter().any(|seen| seen == id))
-        {
+        if required.iter().all(|id| {
+            evidence
+                .verified_postconditions
+                .iter()
+                .any(|seen| seen == id)
+        }) {
             return Ok(MotionSkillOutcome::Completed);
         }
         Ok(MotionSkillOutcome::ExecutionFailed {
@@ -474,14 +480,17 @@ fn valid_constraint_target(constraint: &MotionSkillConstraint) -> bool {
             MotionConstraintTarget::PositionWorldM(position),
         ) => position.iter().all(|value| value.is_finite()),
         (
-            MotionConstraintKind::RootOrientation
-            | MotionConstraintKind::EndEffectorOrientation,
+            MotionConstraintKind::RootOrientation | MotionConstraintKind::EndEffectorOrientation,
             MotionConstraintTarget::OrientationWorldXyzw(orientation),
         ) => {
             if orientation.iter().any(|value| !value.is_finite()) {
                 return false;
             }
-            let norm = orientation.iter().map(|value| value * value).sum::<f64>().sqrt();
+            let norm = orientation
+                .iter()
+                .map(|value| value * value)
+                .sum::<f64>()
+                .sqrt();
             norm.is_finite() && (norm - 1.0).abs() <= 0.05
         }
         (MotionConstraintKind::DesiredSpeed, MotionConstraintTarget::Scalar(speed)) => {
@@ -506,7 +515,9 @@ fn valid_constraint_hardness(constraint: &MotionSkillConstraint) -> bool {
     match constraint.kind {
         MotionConstraintKind::CollisionFree
         | MotionConstraintKind::JointLimits
-        | MotionConstraintKind::SupportStable => constraint.hardness == MotionConstraintHardness::Hard,
+        | MotionConstraintKind::SupportStable => {
+            constraint.hardness == MotionConstraintHardness::Hard
+        }
         MotionConstraintKind::Style | MotionConstraintKind::Gaze => {
             constraint.hardness == MotionConstraintHardness::Soft
         }
@@ -630,12 +641,18 @@ mod tests {
     #[test]
     fn start_is_expired_at_exclusive_validity_boundary() {
         let skill = contract();
-        assert_eq!(skill.evaluate_start(&start_evidence(5.0)), Ok(MotionSkillOutcome::Expired));
+        assert_eq!(
+            skill.evaluate_start(&start_evidence(5.0)),
+            Ok(MotionSkillOutcome::Expired)
+        );
         assert_eq!(
             skill.evaluate_start(&start_evidence(0.5)),
             Ok(MotionSkillOutcome::NotYetValid)
         );
-        assert_eq!(skill.evaluate_start(&start_evidence(1.0)), Ok(MotionSkillOutcome::Ready));
+        assert_eq!(
+            skill.evaluate_start(&start_evidence(1.0)),
+            Ok(MotionSkillOutcome::Ready)
+        );
     }
 
     #[test]
@@ -644,7 +661,10 @@ mod tests {
         let hard = &skill.constraints[0];
         let style = &skill.constraints[1];
         assert_eq!(compare_constraint_precedence(hard, style), Ordering::Less);
-        assert_eq!(compare_constraint_precedence(style, hard), Ordering::Greater);
+        assert_eq!(
+            compare_constraint_precedence(style, hard),
+            Ordering::Greater
+        );
         for hard_priority in [0, 1, 127, u8::MAX] {
             for soft_priority in [0, 1, 127, u8::MAX] {
                 let mut hard_variant = hard.clone();
@@ -663,11 +683,13 @@ mod tests {
     fn conflicting_hard_constraints_return_infeasible() {
         let skill = contract();
         let mut evidence = start_evidence(2.0);
-        evidence.hard_constraint_conflicts.push(HardConstraintConflict {
-            left_constraint_id: "floor-collision".to_owned(),
-            right_constraint_id: "hand-target".to_owned(),
-            reason: "target requires penetration of a blocking surface".to_owned(),
-        });
+        evidence
+            .hard_constraint_conflicts
+            .push(HardConstraintConflict {
+                left_constraint_id: "floor-collision".to_owned(),
+                right_constraint_id: "hand-target".to_owned(),
+                reason: "target requires penetration of a blocking surface".to_owned(),
+            });
         match skill.evaluate_start(&evidence).expect("valid evidence") {
             MotionSkillOutcome::Infeasible { reason } => {
                 assert!(reason.contains("floor-collision"));
@@ -800,11 +822,13 @@ mod tests {
     fn start_conflict_evidence_must_reference_two_declared_hard_constraints() {
         let skill = contract();
         let mut evidence = start_evidence(2.0);
-        evidence.hard_constraint_conflicts.push(HardConstraintConflict {
-            left_constraint_id: "desired-style".to_owned(),
-            right_constraint_id: "hand-target".to_owned(),
-            reason: "test conflict".to_owned(),
-        });
+        evidence
+            .hard_constraint_conflicts
+            .push(HardConstraintConflict {
+                left_constraint_id: "desired-style".to_owned(),
+                right_constraint_id: "hand-target".to_owned(),
+                reason: "test conflict".to_owned(),
+            });
         assert_eq!(
             skill.evaluate_start(&evidence),
             Err(MotionSkillValidationError::InvalidConflictEvidence)
