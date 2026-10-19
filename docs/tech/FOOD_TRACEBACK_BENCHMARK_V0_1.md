@@ -53,11 +53,11 @@ All entity IDs, quantities, dates, product lots, sample identifiers and truth la
 Use the same input records, candidate-set definitions and evaluation denominators for all methods.
 
 - **B0 — full-information oracle:** computes reachability and affected output lots using complete hidden truth. This is an evaluation upper bound, not a deployable method; its truth access must never leak into other methods.
-- **B1 — naive reachable-upstream union:** returns all reachable upstream ingredient lots and downstream finished lots without distinguishing evidence status. It measures the cost of treating graph presence as sufficient.
+- **B1 — naive reachable-upstream union:** implemented first baseline; returns upstream ingredient candidates and downstream finished lots while ignoring edge status. It measures the cost of treating graph presence as sufficient.
 - **B2 — timestamp/locality heuristic:** ranks candidates using declared temporal and locality overlap, but must not treat those features as proof of material transfer. Freeze tie-breaks and missing-value handling before scoring.
-- **B3 — evidence-bounded graph method:** uses only observed records, edge status, time, transformations and provenance. Sample-origin records are excluded from material-flow reachability. It may abstain. No claim is made that B3 is implemented or superior.
+- **B3 — evidence-bounded envelope:** implemented reference method; reports verified source paths separately from possible source candidates built from material-flow edges with all declared statuses. It can abstain when no material route is observed and reports ambiguity when multiple candidate sources remain. Sample-origin records are excluded from material-flow reachability. It is a deterministic graph baseline, not a learned or validated causal inference system.
 
-The first implementation can be a small deterministic Rust evaluator. Do not create a second supply-chain ledger, genomic classifier, refrigeration simulator or regulator workflow.
+A standalone deterministic Rust evaluator now implements B1 and B3 on the frozen synthetic cases, preserving source candidates, containment candidates, residual exposure, and unnecessary-recall counts in the receipt. B2 (timestamp/locality heuristic) remains specified but not yet implemented. Do not create a second supply-chain ledger, genomic classifier, refrigeration simulator or regulator workflow.
 
 ## 6. Evaluation: never collapse safety into one score
 
@@ -81,7 +81,7 @@ Report per case, per stressor and as a macro-average. Show denominators and unre
 - Remove records, stale records, conflict records or an entire source channel in controlled ablations. Report changes in coverage, containment burden and source abstention.
 - Keep health consequences, economic loss, destruction cost and false-attribution harm as separate dimensions. Any later composite cost must expose weights and sensitivity analysis.
 
-The central visualization is a Pareto frontier between residual affected exposure and unnecessary-recall burden. A scalar score must not conceal an unsafe miss.
+The central visualization is a Pareto frontier between residual affected exposure and unnecessary-recall burden. A scalar score must not conceal an unsafe miss. The current receipt reports both dimensions per case; it does not yet fit or rank a global operating point.
 
 ## 7. Fail-closed invariants
 
@@ -104,7 +104,7 @@ These are proposed requirements, not results:
 - Zero source-causation claims from pathogen similarity, time overlap or graph reachability alone.
 - Zero reports claiming complete trace/containment when required handoffs remain unresolved.
 - 100% case accounting against declared denominators; no silent omission of false positives, unresolved cases or uncontained affected lots.
-- Byte-identical canonical output under record/entity-order permutations.
+- Byte-identical canonical output under record/entity-order permutations, with explicit unit coverage for baseline metric invariance.
 - No SOTA or industry-superiority claim until comparison against sourced, rights-cleared data and a practitioner-reviewed reference workflow under matched conditions.
 
 A fixture validator should reject duplicate IDs, dangling references, invalid evidence status, malformed timestamps, non-positive or unitless quantities where quantities are compared, unknown schema versions and mutated frozen truth labels.
