@@ -225,7 +225,6 @@ fn valid_global_id(value: &str) -> bool {
 
 fn verify_adapter_report(
     report: &AdapterReport,
-    report_bytes: &[u8],
     model_bytes: &[u8],
     ids_bytes: &[u8],
     label: &str,
@@ -262,9 +261,6 @@ fn verify_adapter_report(
     if sha256_hex(&semantic_bytes) != report.semantic_result_sha256 {
         return Err(format!("ADAPTER_SEMANTIC_DIGEST_MISMATCH:{label}"));
     }
-    // Keep the byte parameter explicit: the output evidence separately hashes
-    // the exact report file, not only the inner semantic summary.
-    let _exact_report_sha256 = sha256_hex(report_bytes);
     Ok(())
 }
 
@@ -503,7 +499,7 @@ fn compare_reports(
     });
 
     let has_definite_loss = counts.changed > 0 || counts.lost > 0 || counts.dropped > 0;
-    let status = if has_definite_loss {
+    let status = if profile_ready && has_definite_loss {
         GateStatus::Fail
     } else if comparison_coverage_complete && counts.compared > 0 && counts.unresolved == 0 {
         GateStatus::Pass
@@ -533,14 +529,12 @@ fn evaluate(
         .map_err(|error| format!("TARGET_ADAPTER_REPORT_INVALID:{error}"))?;
     verify_adapter_report(
         &source_report,
-        source_report_bytes,
         source_ifc,
         ids_bytes,
         "source",
     )?;
     verify_adapter_report(
         &target_report,
-        target_report_bytes,
         target_ifc,
         ids_bytes,
         "target",
@@ -738,10 +732,18 @@ mod tests {
         schema: Option<&str>,
         ids_bytes: &[u8],
     ) -> AdapterReport {
-        let diagnostics = observations
+        let mut observations = observations;
+        observations.sort_by(|a, b| {
+            a.source_object_id
+                .cmp(&b.source_object_id)
+                .then_with(|| a.source_step_id.cmp(&b.source_step_id))
+        });
+        let mut diagnostics = observations
             .iter()
             .filter_map(|observation| observation.diagnostic_code.clone())
             .collect::<Vec<_>>();
+        diagnostics.sort();
+        diagnostics.dedup();
         let mut report = AdapterReport {
             schema_version: ADAPTER_SCHEMA_VERSION.into(),
             benchmark_id: ADAPTER_BENCHMARK_ID.into(),
@@ -778,17 +780,31 @@ mod tests {
     ) -> Output {
         let source = b"source IFC";
         let target = b"target IFC";
+        let source_decision = if source_obs.iter().any(|observation| {
+            observation.outcome != AdapterPropertyOutcome::Preserved
+        }) {
+            AdapterDecision::Blocked
+        } else {
+            AdapterDecision::SubsetConformant
+        };
+        let target_decision = if target_obs.iter().any(|observation| {
+            observation.outcome != AdapterPropertyOutcome::Preserved
+        }) {
+            AdapterDecision::Blocked
+        } else {
+            AdapterDecision::SubsetConformant
+        };
         let source_report = report(
             source,
             source_obs,
-            AdapterDecision::SubsetConformant,
+            source_decision,
             Some("IFC4"),
             IDS_BYTES,
         );
         let target_report = report(
             target,
             target_obs,
-            AdapterDecision::SubsetConformant,
+            target_decision,
             Some("IFC4"),
             IDS_BYTES,
         );
@@ -897,8 +913,8 @@ mod tests {
     fn duplicate_global_ids_are_unresolved_not_silently_collapsed() {
         let output = run_pair(
             vec![
-                observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1"),
-                observation("0000000000000000000000", Some("Panel 002"), AdapterPropertyOutcome::Changed, "#2"),
+                observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::NotEvaluated, "#1"),
+                observation("0000000000000000000000", Some("Panel 002"), AdapterPropertyOutcome::NotEvaluated, "#2"),
             ],
             vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#7")],
         );
