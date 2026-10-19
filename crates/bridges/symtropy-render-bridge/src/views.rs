@@ -141,6 +141,7 @@ pub enum ViewConfigError {
     MissingSliceWindow,
     SliceWindowForNon4DView,
     FieldLayerRequiresLegendAndProvenance,
+    AggregateMustPreserveMembership,
 }
 
 /// Errors shared by projection constructors.
@@ -296,7 +297,7 @@ impl ViewProfile {
         }
 
         if self.aggregate_distant_items && !self.preserve_aggregate_membership {
-            return Err(ViewConfigError::NonFiniteParameter);
+            return Err(ViewConfigError::AggregateMustPreserveMembership);
         }
 
         let has_field_layer = self.layers.scalar_fields || self.layers.vector_fields;
