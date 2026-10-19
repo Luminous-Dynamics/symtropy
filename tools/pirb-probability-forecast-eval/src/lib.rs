@@ -965,12 +965,450 @@ fn valid_commit_sha(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct VintageMetricRange {
+    versions_with_score: usize,
+    minimum: Option<f64>,
+    maximum: Option<f64>,
+    spread: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OutcomeVintageSummary {
+    dataset_id: String,
+    outcome_release_id: String,
+    outcome_release_sha256: String,
+    outcome_source_reference: String,
+    license_reference: String,
+    attribution: String,
+    input_sha256: String,
+    changed_test_labels_vs_reference: usize,
+    test_forecast_count: usize,
+    test_scored_count: usize,
+    test_unknown_outcome_count: usize,
+    test_event_count: usize,
+    test_no_event_count: usize,
+    test_event_rate: Option<f64>,
+    brier_score: Option<f64>,
+    log_loss: Option<f64>,
+    roc_auc: Option<f64>,
+    average_precision: Option<f64>,
+    brier_skill_score_vs_past_only_climatology: Option<f64>,
+    uncertainty_status: uncertainty::UncertaintyStatus,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OutcomeVintageMetricRanges {
+    test_event_rate: VintageMetricRange,
+    brier_score: VintageMetricRange,
+    log_loss: VintageMetricRange,
+    roc_auc: VintageMetricRange,
+    average_precision: VintageMetricRange,
+    brier_skill_score_vs_past_only_climatology: VintageMetricRange,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OutcomeVintageSensitivityReceipt {
+    receipt_version: String,
+    evaluator: String,
+    result: String,
+    source_commit: String,
+    source_commit_sha_valid: bool,
+    rustc_version: String,
+    cargo_version: String,
+    dependency_lock_sha256: String,
+    input_manifest_sha256: String,
+    reference_dataset_id: String,
+    reference_outcome_release_id: String,
+    forecast_archive_id: String,
+    forecast_archive_sha256: String,
+    forecast_inventory_sha256: String,
+    forecast_record_count: usize,
+    provider: String,
+    model_id: String,
+    model_version: String,
+    forecast_variable: String,
+    target_definition: String,
+    outcome_source_id: String,
+    outcome_definition: String,
+    analysis_unit: AnalysisUnit,
+    lead_months: i64,
+    threshold_definition: String,
+    privacy_policy: PrivacyPolicy,
+    temporal_split: TemporalSplit,
+    resampling_policy: ResamplingPolicy,
+    same_forecast_inventory_verified: bool,
+    vintage_count: usize,
+    vintages: Vec<OutcomeVintageSummary>,
+    metric_ranges: OutcomeVintageMetricRanges,
+    causal_effect_estimated: bool,
+    live_decision_authority: bool,
+    execution_claim: String,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+struct ForecastInventoryIdentity {
+    forecast_id: String,
+    forecast_release_id: String,
+    unit_id: String,
+    spatial_block_id: String,
+    forecast_origin_month: i64,
+    input_cutoff_month: i64,
+    target_month: i64,
+    lead_months: i64,
+    probability_bits: u64,
+}
+
+fn forecast_inventory(dataset: &ForecastDataset) -> Vec<ForecastInventoryIdentity> {
+    let mut inventory: Vec<ForecastInventoryIdentity> = dataset
+        .records
+        .iter()
+        .map(|record| ForecastInventoryIdentity {
+            forecast_id: record.forecast_id.clone(),
+            forecast_release_id: record.forecast_release_id.clone(),
+            unit_id: record.unit_id.clone(),
+            spatial_block_id: record.spatial_block_id.clone(),
+            forecast_origin_month: record.forecast_origin_month,
+            input_cutoff_month: record.input_cutoff_month,
+            target_month: record.target_month,
+            lead_months: record.lead_months,
+            probability_bits: record.probability.to_bits(),
+        })
+        .collect();
+    inventory.sort_by(|left, right| left.forecast_id.cmp(&right.forecast_id));
+    inventory
+}
+
+fn same_serialized<T: Serialize>(left: &T, right: &T) -> bool {
+    match (serde_json::to_value(left), serde_json::to_value(right)) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => false,
+    }
+}
+
+fn vintage_compatibility_errors(
+    reference: &ForecastDataset,
+    candidate: &ForecastDataset,
+) -> Vec<String> {
+    let mut findings = Vec::new();
+    let source = &reference.source;
+    let other = &candidate.source;
+    for (name, left, right) in [
+        (
+            "provider",
+            source.provider.as_str(),
+            other.provider.as_str(),
+        ),
+        (
+            "forecast source reference",
+            source.forecast_source_reference.as_str(),
+            other.forecast_source_reference.as_str(),
+        ),
+        (
+            "forecast archive ID",
+            source.forecast_archive_id.as_str(),
+            other.forecast_archive_id.as_str(),
+        ),
+        (
+            "forecast archive digest",
+            source.forecast_archive_sha256.as_str(),
+            other.forecast_archive_sha256.as_str(),
+        ),
+        (
+            "model ID",
+            source.model_id.as_str(),
+            other.model_id.as_str(),
+        ),
+        (
+            "model version",
+            source.model_version.as_str(),
+            other.model_version.as_str(),
+        ),
+        (
+            "forecast variable",
+            source.forecast_variable.as_str(),
+            other.forecast_variable.as_str(),
+        ),
+        (
+            "forecast target definition",
+            source.target_definition.as_str(),
+            other.target_definition.as_str(),
+        ),
+        (
+            "threshold definition",
+            source.threshold_definition.as_str(),
+            other.threshold_definition.as_str(),
+        ),
+        (
+            "outcome source ID",
+            source.outcome_source_id.as_str(),
+            other.outcome_source_id.as_str(),
+        ),
+        (
+            "outcome definition",
+            source.outcome_definition.as_str(),
+            other.outcome_definition.as_str(),
+        ),
+    ] {
+        if left != right {
+            findings.push(format!(
+                "outcome-vintage comparison requires identical {name}"
+            ));
+        }
+    }
+    if source.analysis_unit != other.analysis_unit {
+        findings.push("outcome-vintage comparison cannot mix analysis units".to_owned());
+    }
+    if reference.lead_months != candidate.lead_months {
+        findings.push("outcome-vintage comparison cannot mix forecast horizons".to_owned());
+    }
+    if !same_serialized(&reference.privacy, &candidate.privacy)
+        || !same_serialized(&reference.temporal_split, &candidate.temporal_split)
+        || !same_serialized(&reference.resampling, &candidate.resampling)
+    {
+        findings.push(
+            "outcome-vintage comparison requires identical privacy, temporal-split, and resampling policies"
+                .to_owned(),
+        );
+    }
+    if forecast_inventory(reference) != forecast_inventory(candidate) {
+        findings.push(
+            "outcome-vintage comparison requires an identical forecast inventory: IDs, probabilities, units, cutoffs, horizons, and spatial blocks must match"
+                .to_owned(),
+        );
+    }
+    findings
+}
+
+fn changed_test_labels(reference: &ForecastDataset, candidate: &ForecastDataset) -> usize {
+    let reference_by_id: BTreeMap<&str, &ForecastRecord> = reference
+        .records
+        .iter()
+        .map(|record| (record.forecast_id.as_str(), record))
+        .collect();
+    let candidate_by_id: BTreeMap<&str, &ForecastRecord> = candidate
+        .records
+        .iter()
+        .map(|record| (record.forecast_id.as_str(), record))
+        .collect();
+    reference_by_id
+        .iter()
+        .filter_map(|(forecast_id, reference_record)| {
+            if !belongs_to_split(reference_record, reference, SplitName::Test) {
+                return None;
+            }
+            let candidate_record = candidate_by_id.get(forecast_id)?;
+            Some(
+                reference_record.outcome != candidate_record.outcome
+                    || reference_record.outcome_available_month
+                        != candidate_record.outcome_available_month,
+            )
+        })
+        .filter(|changed| *changed)
+        .count()
+}
+
+fn vintage_metric_range(values: impl IntoIterator<Item = Option<f64>>) -> VintageMetricRange {
+    let mut present: Vec<f64> = values
+        .into_iter()
+        .flatten()
+        .filter(|value| value.is_finite())
+        .collect();
+    present.sort_by(f64::total_cmp);
+    if present.is_empty() {
+        return VintageMetricRange {
+            versions_with_score: 0,
+            minimum: None,
+            maximum: None,
+            spread: None,
+        };
+    }
+    let minimum = present[0];
+    let maximum = present[present.len() - 1];
+    VintageMetricRange {
+        versions_with_score: present.len(),
+        minimum: Some(minimum),
+        maximum: Some(maximum),
+        spread: (present.len() >= 2).then_some(maximum - minimum),
+    }
+}
+
+/// Compare immutable outcome vintages while requiring the forecast inventory to
+/// remain exactly fixed. The returned score ranges are sensitivity diagnostics
+/// over supplied releases, not confidence intervals and not a license to
+/// average incompatible outcome definitions.
+pub fn compare_outcome_vintages(
+    inputs: &[&[u8]],
+    source_commit: &str,
+    rustc_version: &str,
+    cargo_version: &str,
+    lock_bytes: &[u8],
+) -> Result<OutcomeVintageSensitivityReceipt, Vec<String>> {
+    if !(2..=20).contains(&inputs.len()) {
+        return Err(vec![
+            "outcome-vintage comparison requires between 2 and 20 frozen input datasets".to_owned(),
+        ]);
+    }
+    let mut findings = Vec::new();
+    let mut datasets = Vec::with_capacity(inputs.len());
+    let mut receipts = Vec::with_capacity(inputs.len());
+    for input in inputs {
+        let dataset = validate_dataset_json(input)?;
+        let receipt = evaluate(
+            input,
+            source_commit,
+            rustc_version,
+            cargo_version,
+            lock_bytes,
+        )?;
+        datasets.push(dataset);
+        receipts.push(receipt);
+    }
+
+    let reference = &datasets[0];
+    let mut seen_dataset_ids = BTreeSet::new();
+    let mut seen_release_ids = BTreeSet::new();
+    let mut seen_release_digests = BTreeSet::new();
+    for (index, dataset) in datasets.iter().enumerate() {
+        if !seen_dataset_ids.insert(dataset.dataset_id.clone()) {
+            findings.push(format!(
+                "input {} duplicates a dataset_id; each snapshot must be explicitly named",
+                index
+            ));
+        }
+        if !seen_release_ids.insert(dataset.source.outcome_release_id.clone()) {
+            findings.push(format!(
+                "input {} duplicates an outcome_release_id; revisions must be distinct frozen releases",
+                index
+            ));
+        }
+        if !seen_release_digests.insert(dataset.source.outcome_release_sha256.clone()) {
+            findings.push(format!(
+                "input {} duplicates an outcome release digest",
+                index
+            ));
+        }
+        if index > 0 {
+            findings.extend(
+                vintage_compatibility_errors(reference, dataset)
+                    .into_iter()
+                    .map(|finding| format!("input {index}: {finding}")),
+            );
+        }
+    }
+    if !findings.is_empty() {
+        return Err(findings);
+    }
+
+    let inventory = forecast_inventory(reference);
+    let inventory_bytes = serde_json::to_vec(&inventory)
+        .map_err(|error| vec![format!("cannot serialize forecast inventory: {error}")])?;
+    let forecast_inventory_sha256 = sha256_hex(&inventory_bytes);
+    let manifest_digests: Vec<&str> = receipts
+        .iter()
+        .map(|receipt| receipt.input_sha256.as_str())
+        .collect();
+    let input_manifest_bytes = serde_json::to_vec(&manifest_digests).map_err(|error| {
+        vec![format!(
+            "cannot serialize outcome-vintage input manifest: {error}"
+        )]
+    })?;
+
+    let mut summaries = Vec::with_capacity(datasets.len());
+    for (index, (dataset, receipt)) in datasets.iter().zip(receipts.iter()).enumerate() {
+        let test = &receipt.metrics.test;
+        summaries.push(OutcomeVintageSummary {
+            dataset_id: dataset.dataset_id.clone(),
+            outcome_release_id: dataset.source.outcome_release_id.clone(),
+            outcome_release_sha256: dataset.source.outcome_release_sha256.clone(),
+            outcome_source_reference: dataset.source.outcome_source_reference.clone(),
+            license_reference: dataset.source.license_reference.clone(),
+            attribution: dataset.source.attribution.clone(),
+            input_sha256: receipt.input_sha256.clone(),
+            changed_test_labels_vs_reference: if index == 0 {
+                0
+            } else {
+                changed_test_labels(reference, dataset)
+            },
+            test_forecast_count: test.forecast_count,
+            test_scored_count: test.scored_count,
+            test_unknown_outcome_count: test.unknown_outcome_count,
+            test_event_count: test.event_count,
+            test_no_event_count: test.no_event_count,
+            test_event_rate: test.event_rate,
+            brier_score: test.brier_score,
+            log_loss: test.log_loss,
+            roc_auc: test.roc_auc,
+            average_precision: test.average_precision,
+            brier_skill_score_vs_past_only_climatology: test
+                .brier_skill_score_vs_past_only_climatology,
+            uncertainty_status: receipt.test_uncertainty.status,
+        });
+    }
+
+    let metric_ranges = OutcomeVintageMetricRanges {
+        test_event_rate: vintage_metric_range(summaries.iter().map(|row| row.test_event_rate)),
+        brier_score: vintage_metric_range(summaries.iter().map(|row| row.brier_score)),
+        log_loss: vintage_metric_range(summaries.iter().map(|row| row.log_loss)),
+        roc_auc: vintage_metric_range(summaries.iter().map(|row| row.roc_auc)),
+        average_precision: vintage_metric_range(summaries.iter().map(|row| row.average_precision)),
+        brier_skill_score_vs_past_only_climatology: vintage_metric_range(
+            summaries
+                .iter()
+                .map(|row| row.brier_skill_score_vs_past_only_climatology),
+        ),
+    };
+    let source_commit_sha_valid = valid_commit_sha(source_commit);
+    Ok(OutcomeVintageSensitivityReceipt {
+        receipt_version: "0.1".to_owned(),
+        evaluator: "PIRB outcome-vintage sensitivity comparison".to_owned(),
+        result: "pass".to_owned(),
+        source_commit: source_commit.to_owned(),
+        source_commit_sha_valid,
+        rustc_version: rustc_version.to_owned(),
+        cargo_version: cargo_version.to_owned(),
+        dependency_lock_sha256: sha256_hex(lock_bytes),
+        input_manifest_sha256: sha256_hex(&input_manifest_bytes),
+        reference_dataset_id: reference.dataset_id.clone(),
+        reference_outcome_release_id: reference.source.outcome_release_id.clone(),
+        forecast_archive_id: reference.source.forecast_archive_id.clone(),
+        forecast_archive_sha256: reference.source.forecast_archive_sha256.clone(),
+        forecast_inventory_sha256,
+        forecast_record_count: reference.records.len(),
+        provider: reference.source.provider.clone(),
+        model_id: reference.source.model_id.clone(),
+        model_version: reference.source.model_version.clone(),
+        forecast_variable: reference.source.forecast_variable.clone(),
+        target_definition: reference.source.target_definition.clone(),
+        outcome_source_id: reference.source.outcome_source_id.clone(),
+        outcome_definition: reference.source.outcome_definition.clone(),
+        analysis_unit: reference.source.analysis_unit,
+        lead_months: reference.lead_months,
+        threshold_definition: reference.source.threshold_definition.clone(),
+        privacy_policy: reference.privacy.clone(),
+        temporal_split: reference.temporal_split,
+        resampling_policy: reference.resampling.clone(),
+        same_forecast_inventory_verified: true,
+        vintage_count: summaries.len(),
+        vintages: summaries,
+        metric_ranges,
+        causal_effect_estimated: false,
+        live_decision_authority: false,
+        execution_claim: "outcome_vintage_sensitivity_only".to_owned(),
+        claim_ceiling: "A passing receipt proves that the supplied frozen outcome vintages were compared against an identical forecast inventory and reports descriptive score sensitivity among those vintages. It does not establish which vintage is true, source completeness, causal impact, intervention effectiveness, reduced violence, consent, authority legitimacy, or deployment safety.".to_owned(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const FIXTURE: &[u8] =
         include_bytes!("../../../docs/fixtures/pirb-probability-forecast-v0.1.json");
+    const ALTERNATE_VINTAGE: &[u8] = include_bytes!(
+        "../../../docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json"
+    );
     const LOCK: &[u8] = b"synthetic-test-lock";
 
     fn dataset() -> ForecastDataset {
@@ -1310,6 +1748,92 @@ mod tests {
             semantic_errors(&d)
                 .iter()
                 .any(|finding| finding.contains("spatial_block_map_sha256"))
+        );
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_requires_same_forecast_inventory() {
+        let comparison = compare_outcome_vintages(
+            &[FIXTURE, ALTERNATE_VINTAGE],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        )
+        .expect("two synthetic outcome vintages should compare");
+        assert_eq!(comparison.result, "pass");
+        assert!(comparison.same_forecast_inventory_verified);
+        assert_eq!(comparison.vintage_count, 2);
+        assert_eq!(comparison.forecast_record_count, 18);
+        assert_eq!(comparison.vintages[0].changed_test_labels_vs_reference, 0);
+        assert_eq!(comparison.vintages[1].changed_test_labels_vs_reference, 1);
+        assert_eq!(comparison.vintages[0].test_event_count, 2);
+        assert_eq!(comparison.vintages[1].test_event_count, 1);
+        assert_ne!(
+            comparison.vintages[0].input_sha256,
+            comparison.vintages[1].input_sha256
+        );
+        assert!(comparison.metric_ranges.brier_score.spread.is_some());
+        assert_eq!(comparison.metric_ranges.brier_score.versions_with_score, 2);
+        assert!(!comparison.causal_effect_estimated);
+        assert!(!comparison.live_decision_authority);
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_rejects_changed_forecast_probability() {
+        let mut value: Value = serde_json::from_slice(ALTERNATE_VINTAGE).unwrap();
+        value["records"][0]["probability"] = Value::from(0.11);
+        let changed = serde_json::to_vec(&value).unwrap();
+        let result = compare_outcome_vintages(
+            &[FIXTURE, changed.as_slice()],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        );
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|finding| finding.contains("identical forecast inventory"))
+        );
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_rejects_changed_target_definition() {
+        let mut value: Value = serde_json::from_slice(ALTERNATE_VINTAGE).unwrap();
+        value["source"]["outcome_definition"] =
+            Value::String("different target definition".to_owned());
+        let changed = serde_json::to_vec(&value).unwrap();
+        let result = compare_outcome_vintages(
+            &[FIXTURE, changed.as_slice()],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        );
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|finding| finding.contains("identical outcome definition"))
+        );
+    }
+
+    #[test]
+    fn outcome_vintage_comparison_rejects_duplicate_snapshot() {
+        let result = compare_outcome_vintages(
+            &[FIXTURE, FIXTURE],
+            "abcdef0123456789abcdef0123456789abcdef01",
+            "rustc 1.96.0",
+            "cargo 1.96.0",
+            LOCK,
+        );
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|finding| finding.contains("duplicates an outcome_release_id"))
         );
     }
 

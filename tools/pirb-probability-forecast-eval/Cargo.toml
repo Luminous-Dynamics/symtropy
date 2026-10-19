@@ -13,4 +13,8 @@ jsonschema = { version = "0.59", default-features = false }
 sha2 = "0.10"
 hex = "0.4"
 
+[[bin]]
+name = "pirb-outcome-vintage-sensitivity"
+path = "src/vintage_main.rs"
+
 [workspace]
