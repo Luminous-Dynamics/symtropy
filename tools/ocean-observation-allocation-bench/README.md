@@ -24,14 +24,15 @@ The declared information score is a benchmark objective, not a biological truth 
 
 ## Fail-closed eligibility
 
-A candidate is not selectable unless it is non-contact, the rights-review process is complete, use permission is explicitly `permitted`, detection limits are declared, and all exposure channels are known. Review completion alone does not grant permission. Unknown exposure is not zero. Contact actions and unresolved/restricted sources remain represented in the fixture as negative controls, but no policy may select them.
+A candidate is not selectable unless it is non-contact, the rights-review process is complete, use permission is explicitly `permitted`, and a complete synthetic detection profile shows that the expected signal meets or exceeds the minimum detectable signal with non-zero declared detection probability. Missing profiles, missing profile fields, and below-threshold signals are ineligible. Candidate information gain is discounted by declared detection probability; all ppm values are synthetic and are not sensor calibration. Review completion alone does not grant permission. Unknown exposure is not zero. Contact actions and unresolved/restricted sources remain represented in the fixture as negative controls, but no policy may select them.
 
 Historical record count and effort are sampling metadata. The tool has no species-presence/absence conclusion field; no records are not evidence of no species. The synthetic targets are not an empirical biodiversity inventory, an ocean physics model, ecological damage assessment, environmental approval, vehicle actuation permission or mineral-extraction optimizer.
 
 ## Benchmark goals
 
 - Deterministic replay for the same corpus, seed, tool version and source commit.
-- Zero selected actions that fail contact, rights, detection-limit, exposure-known or independent budget gates.
+- Zero selected actions that fail contact, rights-review/use-permission, detection-profile adequacy, exposure-known or independent budget gates.
+- Zero selected actions whose synthetic expected signal falls below their declared minimum detectable signal.
 - In the frozen access-biased case, effort-aware stratification covers more declared-priority weight than the raw-record-count baseline.
 - Exact-oracle regret is non-negative and zero for the oracle itself.
 - Report worst uncovered strata and exposure channels rather than a single environmental safety score.
