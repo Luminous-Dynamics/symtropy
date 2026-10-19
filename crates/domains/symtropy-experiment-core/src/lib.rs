@@ -791,6 +791,23 @@ mod tests {
     }
 
     #[test]
+    fn gear_sweep_matches_known_finite_difference_sensitivity() {
+        let graph = gear_graph();
+        let points = graph
+            .run_parameter_sweep(
+                "variable:n_driver",
+                &["48".to_owned(), "49".to_owned()],
+            )
+            .unwrap();
+        let y0 = points[0].values["variable:theta_output"].parse::<f64>().unwrap();
+        let y1 = points[1].values["variable:theta_output"].parse::<f64>().unwrap();
+        // For this toy formula, d(theta_out)/d(N_driver) is exactly -theta_in/N_driven.
+        // This checks a finite difference against the independently simplified analytic relation.
+        let expected_slope = -0.5_f64 / 12.0_f64;
+        assert!(((y1 - y0) - expected_slope).abs() < 1e-12);
+    }
+
+    #[test]
     fn parameter_overrides_reject_derived_variables_and_nonfinite_values() {
         let graph = gear_graph();
         let mut overrides = BTreeMap::new();
