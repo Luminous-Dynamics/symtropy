@@ -280,7 +280,10 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
         errors.push("ruleset id and description must not be empty".to_string());
     }
     if ruleset.max_forward_chaining_steps < 16 {
-        errors.push("max_forward_chaining_steps must be at least 16 for the supported depth sweep".to_string());
+        errors.push(
+            "max_forward_chaining_steps must be at least 16 for the supported depth sweep"
+                .to_string(),
+        );
     }
 
     let mut ids = BTreeSet::new();
@@ -424,7 +427,8 @@ fn depth_rules(depth: u8) -> Vec<InferenceRule> {
             id: "SYN-RULE-DEPTH-000".to_string(),
             requires: vec![previous_fact],
             produces: vec!["reasoning_chain_complete".to_string()],
-            rationale: "Zero additional inference steps preserve the prerequisite fact.".to_string(),
+            rationale: "Zero additional inference steps preserve the prerequisite fact."
+                .to_string(),
         });
         return rules;
     }
@@ -1001,7 +1005,10 @@ fn validate_corpus(
             return Err(format!("unsupported reasoning depth in {}", case.id));
         }
         if case.generated_inference_rules != depth_rules(case.scenario.reasoning_depth) {
-            return Err(format!("generated inference chain mismatch for {}", case.id));
+            return Err(format!(
+                "generated inference chain mismatch for {}",
+                case.id
+            ));
         }
         let recomputed = evaluate_scenario(&case.scenario, ruleset)?;
         let oracle = oracle_evaluate(&case.scenario, ruleset);
@@ -1048,7 +1055,9 @@ fn validate_corpus(
     }
     let expected_pairs = build_pairs(&corpus.cases)?;
     if corpus.metamorphic_pairs != expected_pairs {
-        return Err("metamorphic pair registry does not match the canonical generated pair set".to_string());
+        return Err(
+            "metamorphic pair registry does not match the canonical generated pair set".to_string(),
+        );
     }
     Ok(())
 }
@@ -1298,8 +1307,7 @@ mod tests {
 
     #[test]
     fn pair_ids_are_independent_of_case_order() {
-        let corpus = generate_corpus(23, &ruleset(), RULESET_JSON)
-            .expect("generation succeeds");
+        let corpus = generate_corpus(23, &ruleset(), RULESET_JSON).expect("generation succeeds");
         let canonical = build_pairs(&corpus.cases).expect("pairs rebuild");
         let mut reversed_cases = corpus.cases.clone();
         reversed_cases.reverse();
@@ -1311,8 +1319,7 @@ mod tests {
     #[test]
     fn validation_rejects_missing_metamorphic_relation() {
         let ruleset = ruleset();
-        let mut corpus = generate_corpus(31, &ruleset, RULESET_JSON)
-            .expect("generation succeeds");
+        let mut corpus = generate_corpus(31, &ruleset, RULESET_JSON).expect("generation succeeds");
         corpus.metamorphic_pairs.pop();
         assert!(validate_corpus(&corpus, &ruleset, RULESET_JSON).is_err());
     }
