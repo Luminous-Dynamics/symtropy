@@ -5,7 +5,9 @@ Evidence-bounded result receipts for animal reference-task evaluations.
 ## Responsibilities
 
 - Reuse the capability-profile and rights/split manifest validators; this crate is not a second authority for species profiles or data rights.
-- Bind one task and claim ceiling to the target, generalization split, code HEAD, config/evaluator/toolchain/platform, seeds, metric definitions, uncertainty, sample counts, baseline references and threshold decision.
+- Bind one task and claim ceiling to the target, generalization split, code HEAD, config/evaluator/toolchain/platform, clean/dirty tree identity, seeds, metric definitions, uncertainty, sample counts, baseline references and threshold decision.
+- Preserve a metric matrix by stable stratum (overall, taxon, life stage, site/study, occlusion or condition); the same metric may appear in multiple different strata, but duplicate metric/stratum keys are rejected.
+- Mark a threshold as met only when the full reported confidence interval clears the threshold. If the interval overlaps it, return `uncertain`; if no interval is provided, the threshold is not assessed.
 - Reject fabricated/non-finite scores, unit mismatches, duplicate metrics/baselines, unbound claims, known bad evidence, and synthetic evidence presented as empirical.
 - Represent missing, abstained and failed metrics explicitly; never turn them into zero.
 - Produce a canonical SHA-256 digest over a sorted receipt payload. Sorting removes input-vector order as a digest source; it does not hide differences in the actual payload.
