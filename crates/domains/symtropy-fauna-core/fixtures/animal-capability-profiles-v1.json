@@ -1009,6 +1009,26 @@
       "expected_reason_codes": [
         "missing_taxon_id"
       ]
+    },
+    {
+      "id": "real_restricted_rights_unasserted",
+      "base_profile": "real",
+      "mutation": "real_restricted_rights_unasserted",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_rights_restricted",
+        "unresolved_capability_evidence"
+      ]
+    },
+    {
+      "id": "real_unknown_rights_unasserted",
+      "base_profile": "real",
+      "mutation": "real_unknown_rights_unasserted",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_rights_unknown",
+        "unresolved_capability_evidence"
+      ]
     }
   ]
 }
