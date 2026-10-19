@@ -133,7 +133,8 @@ struct JobState {
 
 fn main() {
     let path = env::args().nth(1).unwrap_or_else(|| {
-        "tools/rural-industrial-electrification-evaluator/fixtures/charging_queue_v0_1.json".to_string()
+        "tools/rural-industrial-electrification-evaluator/fixtures/charging_queue_v0_1.json"
+            .to_string()
     });
     let input = match fs::read_to_string(&path) {
         Ok(value) => value,
@@ -193,7 +194,8 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         if !scenario_ids.insert(scenario.scenario_id.clone()) {
             return Err(format!("duplicate_scenario_id: {}", scenario.scenario_id));
         }
-        validate_scenario(scenario).map_err(|error| format!("{}: {error}", scenario.scenario_id))?;
+        validate_scenario(scenario)
+            .map_err(|error| format!("{}: {error}", scenario.scenario_id))?;
     }
     Ok(())
 }
@@ -208,8 +210,15 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
             return Err(format!("{name}_must_be_nonempty"));
         }
     }
-    if !["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"]
-        .contains(&scenario.evidence_class.as_str())
+    if ![
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+        "unknown",
+    ]
+    .contains(&scenario.evidence_class.as_str())
     {
         return Err("unsupported_evidence_class".to_string());
     }
@@ -244,25 +253,37 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
             ("departure_deadline_minute", job.departure_deadline_minute),
         ] {
             if !value.is_finite() || value < 0.0 {
-                return Err(format!("job_{}_{}_must_be_finite_and_nonnegative", job.job_id, name));
+                return Err(format!(
+                    "job_{}_{}_must_be_finite_and_nonnegative",
+                    job.job_id, name
+                ));
             }
         }
         if job.departure_deadline_minute <= job.arrival_minute {
             return Err(format!("job_{}_deadline_must_follow_arrival", job.job_id));
         }
         for (name, value) in [
-            ("battery_energy_required_kwh", job.battery_energy_required_kwh),
+            (
+                "battery_energy_required_kwh",
+                job.battery_energy_required_kwh,
+            ),
             ("vehicle_max_acceptance_kw", job.vehicle_max_acceptance_kw),
         ] {
             if !value.is_finite() || value <= 0.0 {
-                return Err(format!("job_{}_{}_must_be_finite_and_positive", job.job_id, name));
+                return Err(format!(
+                    "job_{}_{}_must_be_finite_and_positive",
+                    job.job_id, name
+                ));
             }
         }
         if !job.charging_efficiency_fraction.is_finite()
             || job.charging_efficiency_fraction <= 0.0
             || job.charging_efficiency_fraction > 1.0
         {
-            return Err(format!("job_{}_charging_efficiency_must_be_in_(0,1]", job.job_id));
+            return Err(format!(
+                "job_{}_charging_efficiency_must_be_in_(0,1]",
+                job.job_id
+            ));
         }
     }
     Ok(())
@@ -309,7 +330,8 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
                 state.completion_minute = Some(now);
             }
         }
-        active.retain(|index| states[*index].completion_minute.is_none() && !states[*index].expired);
+        active
+            .retain(|index| states[*index].completion_minute.is_none() && !states[*index].expired);
 
         for state in &mut states {
             if !state.deadline_recorded
@@ -328,9 +350,13 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
                 state.deadline_recorded = true;
             }
         }
-        active.retain(|index| !states[*index].expired && states[*index].completion_minute.is_none());
+        active
+            .retain(|index| !states[*index].expired && states[*index].completion_minute.is_none());
 
-        if states.iter().all(|state| state.completion_minute.is_some() || state.expired) {
+        if states
+            .iter()
+            .all(|state| state.completion_minute.is_some() || state.expired)
+        {
             break;
         }
 
@@ -374,9 +400,9 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
             .iter()
             .map(|index| {
                 let state = &states[*index];
-                scenario
-                    .port_power_kw
-                    .min(state.job.vehicle_max_acceptance_kw / state.job.charging_efficiency_fraction)
+                scenario.port_power_kw.min(
+                    state.job.vehicle_max_acceptance_kw / state.job.charging_efficiency_fraction,
+                )
             })
             .collect();
         let allocations = max_min_water_fill(&limits, scenario.site_power_budget_kw);
@@ -405,9 +431,8 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
         for (slot, index) in active.iter().enumerate() {
             let power = allocations[slot];
             if power > EPSILON {
-                next_event = next_event.min(
-                    now + states[*index].remaining_site_energy_kwh / power * 60.0,
-                );
+                next_event =
+                    next_event.min(now + states[*index].remaining_site_energy_kwh / power * 60.0);
             }
         }
         if !next_event.is_finite() || next_event <= now + EPSILON {
@@ -418,8 +443,9 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
         let elapsed_hours = elapsed_minutes / 60.0;
         active_port_minutes += active.len() as f64 * elapsed_minutes;
         for (slot, index) in active.iter().enumerate() {
-            states[*index].maximum_site_input_power_kw =
-                states[*index].maximum_site_input_power_kw.max(allocations[slot]);
+            states[*index].maximum_site_input_power_kw = states[*index]
+                .maximum_site_input_power_kw
+                .max(allocations[slot]);
             let delivered_site_kwh = allocations[slot] * elapsed_hours;
             states[*index].site_energy_delivered_kwh += delivered_site_kwh;
             states[*index].remaining_site_energy_kwh =
@@ -431,11 +457,11 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
     let mut job_results: Vec<JobResult> = states
         .iter()
         .map(|state| {
-            let delivered_battery = state.site_energy_delivered_kwh
-                * state.job.charging_efficiency_fraction;
-            let completed_by_deadline = state
-                .completion_minute
-                .is_some_and(|completion| completion <= state.job.departure_deadline_minute + EPSILON);
+            let delivered_battery =
+                state.site_energy_delivered_kwh * state.job.charging_efficiency_fraction;
+            let completed_by_deadline = state.completion_minute.is_some_and(|completion| {
+                completion <= state.job.departure_deadline_minute + EPSILON
+            });
             let missed_deadline = state.missed_deadline
                 || (!completed_by_deadline && state.completion_minute.is_none());
             let deadline_slack = state
@@ -472,22 +498,45 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
                 deadline_slack_minutes: deadline_slack,
                 completed_by_deadline,
                 missed_deadline,
-                unserved_battery_energy_kwh_at_deadline: unserved.max(state.unserved_battery_energy_kwh_at_deadline),
+                unserved_battery_energy_kwh_at_deadline: unserved
+                    .max(state.unserved_battery_energy_kwh_at_deadline),
             }
         })
         .collect();
     job_results.sort_by(|a, b| a.job_id.cmp(&b.job_id));
 
-    let total_requested: f64 = job_results.iter().map(|job| job.requested_battery_energy_kwh).sum();
-    let total_battery_delivered: f64 = job_results.iter().map(|job| job.delivered_battery_energy_kwh).sum();
-    let total_site_input: f64 = job_results.iter().map(|job| job.site_input_energy_kwh).sum();
+    let total_requested: f64 = job_results
+        .iter()
+        .map(|job| job.requested_battery_energy_kwh)
+        .sum();
+    let total_battery_delivered: f64 = job_results
+        .iter()
+        .map(|job| job.delivered_battery_energy_kwh)
+        .sum();
+    let total_site_input: f64 = job_results
+        .iter()
+        .map(|job| job.site_input_energy_kwh)
+        .sum();
     let total_loss: f64 = job_results.iter().map(|job| job.conversion_loss_kwh).sum();
-    let total_unserved: f64 = job_results.iter().map(|job| job.unserved_battery_energy_kwh_at_deadline).sum();
-    let completed_by_deadline = job_results.iter().filter(|job| job.completed_by_deadline).count();
+    let total_unserved: f64 = job_results
+        .iter()
+        .map(|job| job.unserved_battery_energy_kwh_at_deadline)
+        .sum();
+    let completed_by_deadline = job_results
+        .iter()
+        .filter(|job| job.completed_by_deadline)
+        .count();
     let missed_deadlines = job_results.iter().filter(|job| job.missed_deadline).count();
-    let mut waits: Vec<f64> = job_results.iter().map(|job| job.queue_wait_minutes).collect();
+    let mut waits: Vec<f64> = job_results
+        .iter()
+        .map(|job| job.queue_wait_minutes)
+        .collect();
     waits.sort_by(f64::total_cmp);
-    let mean_wait = if waits.is_empty() { 0.0 } else { waits.iter().sum::<f64>() / waits.len() as f64 };
+    let mean_wait = if waits.is_empty() {
+        0.0
+    } else {
+        waits.iter().sum::<f64>() / waits.len() as f64
+    };
     let median_wait = quantile(&waits, 0.5);
     let p95_wait = quantile(&waits, 0.95);
     let maximum_wait = waits.last().copied().unwrap_or(0.0);
@@ -523,7 +572,8 @@ fn simulate(scenario: &Scenario, policy: Policy) -> ScenarioResult {
         p95_queue_wait_minutes: p95_wait,
         maximum_queue_wait_minutes: maximum_wait,
         maximum_site_input_power_kw,
-        site_power_limit_respected: maximum_site_input_power_kw <= scenario.site_power_budget_kw + 1e-8,
+        site_power_limit_respected: maximum_site_input_power_kw
+            <= scenario.site_power_budget_kw + 1e-8,
         total_elapsed_minutes: elapsed,
         active_port_minutes,
         port_utilization_fraction: utilization,
@@ -538,7 +588,11 @@ fn max_min_water_fill(limits_kw: &[f64], site_budget_kw: f64) -> Vec<f64> {
         return allocation;
     }
     let mut order: Vec<usize> = (0..limits_kw.len()).collect();
-    order.sort_by(|a, b| limits_kw[*a].total_cmp(&limits_kw[*b]).then_with(|| a.cmp(b)));
+    order.sort_by(|a, b| {
+        limits_kw[*a]
+            .total_cmp(&limits_kw[*b])
+            .then_with(|| a.cmp(b))
+    });
     let mut remaining_budget = site_budget_kw;
     let mut cursor = 0usize;
     while cursor < order.len() {
@@ -580,7 +634,14 @@ fn quantile(sorted_values: &[f64], p: f64) -> f64 {
 mod tests {
     use super::*;
 
-    fn job(id: &str, arrival: f64, deadline: f64, energy: f64, acceptance: f64, efficiency: f64) -> Job {
+    fn job(
+        id: &str,
+        arrival: f64,
+        deadline: f64,
+        energy: f64,
+        acceptance: f64,
+        efficiency: f64,
+    ) -> Job {
         Job {
             job_id: id.to_string(),
             arrival_minute: arrival,
@@ -616,14 +677,23 @@ mod tests {
 
     #[test]
     fn site_power_never_exceeds_shared_limit() {
-        let mut s = scenario(vec![job("a", 0.0, 120.0, 10.0, 20.0, 1.0), job("b", 0.0, 120.0, 10.0, 20.0, 1.0)]);
+        let mut s = scenario(vec![
+            job("a", 0.0, 120.0, 10.0, 20.0, 1.0),
+            job("b", 0.0, 120.0, 10.0, 20.0, 1.0),
+        ]);
         s.charger_port_count = 2;
         s.port_power_kw = 20.0;
         s.site_power_budget_kw = 12.0;
         let result = simulate(&s, Policy::FirstComeFirstServed);
         assert!(result.site_power_limit_respected);
         assert!(result.maximum_site_input_power_kw <= 12.0 + 1e-9);
-        assert!((result.total_site_input_energy_kwh - result.total_delivered_battery_energy_kwh - result.total_conversion_loss_kwh).abs() < 1e-9);
+        assert!(
+            (result.total_site_input_energy_kwh
+                - result.total_delivered_battery_energy_kwh
+                - result.total_conversion_loss_kwh)
+                .abs()
+                < 1e-9
+        );
     }
 
     #[test]
@@ -637,7 +707,14 @@ mod tests {
         assert_eq!(fcfs.missed_deadlines, 1);
         assert_eq!(edf.missed_deadlines, 0);
         assert_eq!(edf.completed_by_deadline, 2);
-        assert_eq!(edf.jobs.iter().find(|x| x.job_id == "b-short").unwrap().completion_minute, Some(18.0));
+        assert_eq!(
+            edf.jobs
+                .iter()
+                .find(|x| x.job_id == "b-short")
+                .unwrap()
+                .completion_minute,
+            Some(18.0)
+        );
     }
 
     #[test]
@@ -647,7 +724,11 @@ mod tests {
             job("b-short", 0.0, 20.0, 3.0, 10.0, 1.0),
         ]);
         let result = simulate(&s, Policy::FirstComeFirstServed);
-        let short = result.jobs.iter().find(|job| job.job_id == "b-short").unwrap();
+        let short = result
+            .jobs
+            .iter()
+            .find(|job| job.job_id == "b-short")
+            .unwrap();
         assert!(!short.completed_by_deadline);
         assert!(short.missed_deadline);
         assert!(!short.started);
@@ -660,8 +741,14 @@ mod tests {
         let b = job("a-first", 0.0, 120.0, 3.0, 10.0, 1.0);
         let first = scenario(vec![a.clone(), b.clone()]);
         let second = scenario(vec![b, a]);
-        assert_eq!(simulate(&first, Policy::FirstComeFirstServed), simulate(&second, Policy::FirstComeFirstServed));
-        assert_eq!(simulate(&first, Policy::EarliestDepartureDeadlineFirst), simulate(&second, Policy::EarliestDepartureDeadlineFirst));
+        assert_eq!(
+            simulate(&first, Policy::FirstComeFirstServed),
+            simulate(&second, Policy::FirstComeFirstServed)
+        );
+        assert_eq!(
+            simulate(&first, Policy::EarliestDepartureDeadlineFirst),
+            simulate(&second, Policy::EarliestDepartureDeadlineFirst)
+        );
     }
 
     #[test]
@@ -685,9 +772,15 @@ mod tests {
     fn zero_port_or_site_capacity_is_rejected() {
         let mut s = scenario(vec![job("a", 0.0, 60.0, 2.0, 10.0, 1.0)]);
         s.charger_port_count = 0;
-        assert_eq!(validate_scenario(&s).unwrap_err(), "charger_port_count_must_be_positive");
+        assert_eq!(
+            validate_scenario(&s).unwrap_err(),
+            "charger_port_count_must_be_positive"
+        );
         s.charger_port_count = 1;
         s.site_power_budget_kw = 0.0;
-        assert_eq!(validate_scenario(&s).unwrap_err(), "site_power_budget_kw_must_be_finite_and_positive");
+        assert_eq!(
+            validate_scenario(&s).unwrap_err(),
+            "site_power_budget_kw_must_be_finite_and_positive"
+        );
     }
 }
