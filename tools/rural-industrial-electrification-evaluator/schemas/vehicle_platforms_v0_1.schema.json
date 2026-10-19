@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json",
+  "title": "EV platform families and shared interface contracts v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "programme_id", "claim_ceiling", "shared_interface_contracts", "platform_families"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "programme_id": { "const": "EV-PLATFORM-001" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "shared_interface_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/contract" }
+    },
+    "platform_families": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/family" }
+    }
+  },
+  "$defs": {
+    "uniqueTextList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_id", "layer", "shared_semantics", "qualification_boundary"],
+      "properties": {
+        "contract_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "layer": { "type": "string", "minLength": 1 },
+        "shared_semantics": { "$ref": "#/$defs/uniqueTextList" },
+        "qualification_boundary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform_family_id", "label", "design_ids", "hardware_reuse_policy", "shared_contracts", "specialization_constraints"],
+      "properties": {
+        "platform_family_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "design_ids": { "$ref": "#/$defs/uniqueTextList" },
+        "hardware_reuse_policy": { "type": "string", "minLength": 1 },
+        "shared_contracts": { "$ref": "#/$defs/uniqueTextList" },
+        "specialization_constraints": { "$ref": "#/$defs/uniqueTextList" }
+      }
+    }
+  }
+}
