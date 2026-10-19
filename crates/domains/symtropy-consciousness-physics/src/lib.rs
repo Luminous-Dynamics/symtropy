@@ -73,6 +73,7 @@ pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
 pub use energy_boundary_accounting::{
     BoundaryDirection, BoundaryFlow, EnergyBoundaryAssessment, EnergyBoundaryError,
-    EnergyBoundarySnapshot, InternalEnergyTransfer, assess_energy_boundary,
+    EnergyBoundarySnapshot, InternalEnergyTransfer, MAX_RELATIVE_TOLERANCE,
+    assess_energy_boundary,
 };
 pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
