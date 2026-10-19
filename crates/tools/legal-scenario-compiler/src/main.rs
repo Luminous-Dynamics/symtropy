@@ -675,7 +675,7 @@ fn build_cases(ruleset: &RuleSet) -> Result<Vec<GeneratedCase>, String> {
                                     id: case_id(&scenario),
                                     family: "fictional_jurisdiction_source_use_depth".to_string(),
                                     partition: String::new(),
-                                    scenario,
+                                    scenario: scenario.clone(),
                                     generated_inference_rules,
                                     prompt: synthetic_prompt(&scenario),
                                     expected,
