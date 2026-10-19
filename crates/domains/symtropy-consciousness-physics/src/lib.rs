@@ -34,6 +34,7 @@ pub mod coupling;
 pub mod curvature;
 pub mod dimensional_leakage;
 pub mod energy;
+pub mod energy_boundary_accounting;
 pub mod fep_gradient;
 pub mod harmony_field;
 #[cfg(feature = "consciousness-hdc")]
@@ -57,6 +58,10 @@ pub use biometrics::{
 };
 pub use coupling::{ConsciousnessField, EntityConsciousness};
 pub use energy::EnergyBudget;
+pub use energy_boundary_accounting::{
+    BoundaryDirection, BoundaryFlow, EnergyBoundaryAssessment, EnergyBoundaryError,
+    EnergyBoundarySnapshot, InternalEnergyTransfer, MAX_RELATIVE_TOLERANCE, assess_energy_boundary,
+};
 pub use harmony_field::HarmonyField;
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
 pub use phase_transition::{
