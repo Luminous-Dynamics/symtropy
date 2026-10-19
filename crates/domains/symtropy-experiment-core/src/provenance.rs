@@ -279,6 +279,55 @@ mod tests {
     }
 
     #[test]
+    fn independent_known_answer_fixture_matches_all_precomputed_digests() {
+        let input_bytes = include_bytes!("../fixtures/receipt-known-answer-input.json");
+        let output_bytes = include_bytes!("../fixtures/receipt-known-answer-output.json");
+        let model: serde_json::Value = serde_json::from_slice(input_bytes).unwrap();
+        let output: serde_json::Value = serde_json::from_slice(output_bytes).unwrap();
+        let model_bytes = deterministic_json_bytes(&model).unwrap();
+        let output_serialized = deterministic_json_bytes(&output).unwrap();
+        let receipt: RunReceipt = serde_json::from_str(include_str!(
+            "../fixtures/receipt-known-answer.json"
+        ))
+        .unwrap();
+
+        // These expected hashes were independently generated with Python hashlib, not by
+        // RunReceipt::build or this module's sha256_hex helper.
+        assert_eq!(
+            sha256_hex(input_bytes),
+            "cc014e7a9694d0bf7a836dd7ec8aa19552424111024d60822ad09a637a503e84"
+        );
+        assert_eq!(
+            sha256_hex(&model_bytes),
+            "71d93acd678db5ef8385b1e21984caff6547b22b2fe1c79753c4818d55f1841b"
+        );
+        assert_eq!(
+            sha256_hex(&output_serialized),
+            "8cd5aa75a94d38bbd330f9942a42e6136e9759125c09f2c23da95964621460e6"
+        );
+        assert_eq!(
+            receipt.receipt_sha256,
+            "92ba62d9f7afe0629df173d1e9b61ba567a30e280cfe69799d711f675a3a4095"
+        );
+        assert_eq!(receipt.verify(), Ok(true));
+        assert!(receipt
+            .verify_artifact_bytes(input_bytes, &model_bytes, &output_serialized)
+            .unwrap()
+            .is_valid());
+
+        // The exact input hash intentionally includes formatting and the final newline.
+        let mut changed_input = input_bytes.to_vec();
+        changed_input.push(b' ');
+        let altered = receipt
+            .verify_artifact_bytes(&changed_input, &model_bytes, &output_serialized)
+            .unwrap();
+        assert!(!altered.input_artifact_digest_matches);
+        assert!(altered.serialized_model_digest_matches);
+        assert!(altered.output_payload_digest_matches);
+        assert!(!altered.is_valid());
+    }
+
+    #[test]
     fn verification_fails_closed_for_empty_or_wrong_digest() {
         let mut value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
         value.receipt_sha256 = "not-a-sha256-digest".to_owned();
