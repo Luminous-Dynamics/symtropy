@@ -942,12 +942,6 @@ fn evaluate_with_digests(
         metamorphic_pair_failure_ids.is_empty()
             && metamorphic_pairs_passed == benchmark.metamorphic_pairs.len();
 
-    let (metamorphic_pairs_passed, metamorphic_pair_failure_ids) =
-        evaluate_metamorphic_pairs(benchmark, submission);
-    let metamorphic_gate_passed =
-        metamorphic_pair_failure_ids.is_empty()
-            && metamorphic_pairs_passed == benchmark.metamorphic_pairs.len();
-
     let missing_set: BTreeSet<&str> = missing_ids.iter().map(String::as_str).collect();
     let duplicate_set: BTreeSet<&str> = duplicate_ids.iter().map(String::as_str).collect();
     let fixture_gate_passed = missing_set.is_empty()
@@ -1043,7 +1037,8 @@ mod tests {
     fn bundled_fixture_is_valid_and_synthetic_only() {
         let benchmark = fixture();
         assert_eq!(benchmark.dataset_kind, "synthetic_only");
-        assert_eq!(benchmark.cases.len(), 11);
+        assert_eq!(benchmark.cases.len(), 14);
+        assert_eq!(benchmark.metamorphic_pairs.len(), 4);
     }
 
     #[test]
@@ -1394,6 +1389,7 @@ mod tests {
             ),
             authority_count: benchmark.authorities.len(),
             case_count: benchmark.cases.len(),
+            metamorphic_pair_count: benchmark.metamorphic_pairs.len(),
             claim_ceiling: "Synthetic corpus structure only.",
         };
         let instances = [
