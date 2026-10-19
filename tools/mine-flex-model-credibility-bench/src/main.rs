@@ -190,8 +190,7 @@ struct Receipt {
 fn finite_sample_absolute_error_limit(calibration: &[u32], alpha_percent: usize) -> Check<i64> {
     if calibration.is_empty() || alpha_percent == 0 || alpha_percent >= 100 {
         return Err(
-            "calibration set and miscoverage alpha must be non-empty and in (0, 100)"
-                .to_owned(),
+            "calibration set and miscoverage alpha must be non-empty and in (0, 100)".to_owned(),
         );
     }
     let mut sorted = calibration.to_vec();
@@ -266,9 +265,7 @@ fn make_observation(seed: u64, kind: ScenarioKind, tick: usize) -> Observation {
 }
 
 fn generate_scenarios() -> Vec<Scenario> {
-    let mut scenarios = Vec::with_capacity(
-        (VALIDATION_SEEDS + HELD_OUT_SEEDS) * CASES_PER_SEED,
-    );
+    let mut scenarios = Vec::with_capacity((VALIDATION_SEEDS + HELD_OUT_SEEDS) * CASES_PER_SEED);
     for (split, seeds) in [
         (Split::Validation, 1_u64..=VALIDATION_SEEDS as u64),
         (
@@ -294,26 +291,32 @@ fn generate_scenarios() -> Vec<Scenario> {
 }
 
 fn absolute_residual(observation: &Observation) -> Option<i64> {
-    observation
-        .observed_state_liters
-        .map(|observed| {
-            i64::try_from(observed.abs_diff(observation.predicted_state_liters))
-                .unwrap_or(i64::MAX)
-        })
+    observation.observed_state_liters.map(|observed| {
+        i64::try_from(observed.abs_diff(observation.predicted_state_liters)).unwrap_or(i64::MAX)
+    })
 }
 
 fn validate_scenario(scenario: &Scenario) -> Check<()> {
     if scenario.observations.len() != STEPS_PER_CASE {
-        return Err(format!("{} {:?}: wrong timestep count", scenario.seed, scenario.kind));
+        return Err(format!(
+            "{} {:?}: wrong timestep count",
+            scenario.seed, scenario.kind
+        ));
     }
     for (expected_tick, observation) in scenario.observations.iter().enumerate() {
         if observation.tick != expected_tick {
-            return Err(format!("{} {:?}: non-contiguous time grid", scenario.seed, scenario.kind));
+            return Err(format!(
+                "{} {:?}: non-contiguous time grid",
+                scenario.seed, scenario.kind
+            ));
         }
         if observation.interval_lower_liters > observation.interval_upper_liters
             || observation.protected_minimum_liters > observation.protected_maximum_liters
         {
-            return Err(format!("{} {:?}: malformed interval", scenario.seed, scenario.kind));
+            return Err(format!(
+                "{} {:?}: malformed interval",
+                scenario.seed, scenario.kind
+            ));
         }
     }
     Ok(())
@@ -389,11 +392,7 @@ fn decide_scenario(scenario: &Scenario, error_limit: i64) -> Check<ScenarioResul
         });
     }
 
-    let independent_audit_mismatches = independently_audit_scenario(
-        scenario,
-        &steps,
-        error_limit,
-    );
+    let independent_audit_mismatches = independently_audit_scenario(scenario, &steps, error_limit);
     Ok(ScenarioResult {
         seed: scenario.seed,
         split: scenario.split,
@@ -448,17 +447,15 @@ fn independently_audit_scenario(
             }
             Some(_) => Disposition::UseModel,
         };
-        if output.disposition != expected
-            || output.disposition != output.known_answer_disposition
-        {
+        if output.disposition != expected || output.disposition != output.known_answer_disposition {
             mismatches += 1;
         }
 
         if output.disposition == Disposition::UseModel {
             let stale_or_missing = input.observed_state_liters.is_none()
                 || input.measurement_age_periods > MAX_MEASUREMENT_AGE_PERIODS;
-            let residual_outside = absolute_residual(input)
-                .is_some_and(|value| value > error_limit);
+            let residual_outside =
+                absolute_residual(input).is_some_and(|value| value > error_limit);
             let interval_unsafe = input.interval_lower_liters < input.protected_minimum_liters
                 || input.interval_upper_liters > input.protected_maximum_liters;
             if stale_or_missing || residual_outside || interval_unsafe || locked {
@@ -509,11 +506,7 @@ fn aggregate(
         }
         summary.scenario_count += 1;
         summary.independent_audit_mismatches += result.independent_audit_mismatches;
-        for (index, (input, output)) in scenario
-            .observations
-            .iter()
-            .zip(&result.steps)
-            .enumerate()
+        for (index, (input, output)) in scenario.observations.iter().zip(&result.steps).enumerate()
         {
             summary.step_count += 1;
             if output.disposition != output.known_answer_disposition {
@@ -581,11 +574,9 @@ fn aggregate(
                     summary.unguarded_baseline_acceptances_missing_or_stale += 1;
                 }
             }
-            summary.interval_width_sum_liters = summary
-                .interval_width_sum_liters
-                .saturating_add(
-                    u64::try_from(output.interval_width_liters.max(0)).unwrap_or(u64::MAX),
-                );
+            summary.interval_width_sum_liters = summary.interval_width_sum_liters.saturating_add(
+                u64::try_from(output.interval_width_liters.max(0)).unwrap_or(u64::MAX),
+            );
             summary.interval_width_count += 1;
         }
     }
@@ -598,10 +589,7 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
     }
 
     let calibration = calibration_residuals();
-    let error_limit = finite_sample_absolute_error_limit(
-        &calibration,
-        MIS_COVERAGE_ALPHA_PERCENT,
-    )?;
+    let error_limit = finite_sample_absolute_error_limit(&calibration, MIS_COVERAGE_ALPHA_PERCENT)?;
     let scenarios = generate_scenarios();
     let scenario_bytes = serde_json::to_vec(&scenarios)
         .map_err(|error| format!("cannot serialize generated scenarios: {error}"))?;
@@ -639,7 +627,10 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         .iter()
         .map(|summary| summary.unsafe_interval_acceptances)
         .sum::<usize>();
-    let shift_onsets = summaries.iter().map(|summary| summary.shift_onsets).sum::<usize>();
+    let shift_onsets = summaries
+        .iter()
+        .map(|summary| summary.shift_onsets)
+        .sum::<usize>();
     let same_tick_shift_detections = summaries
         .iter()
         .map(|summary| summary.same_tick_shift_detections)
@@ -648,7 +639,10 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         .iter()
         .map(|summary| summary.unguarded_baseline_acceptances_during_shift)
         .sum::<usize>();
-    let observed_count = summaries.iter().map(|summary| summary.observed_count).sum::<usize>();
+    let observed_count = summaries
+        .iter()
+        .map(|summary| summary.observed_count)
+        .sum::<usize>();
     let covered_observations = summaries
         .iter()
         .map(|summary| summary.covered_observations)
@@ -658,7 +652,10 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         .map(|summary| summary.unguarded_baseline_acceptances_missing_or_stale)
         .sum::<usize>();
 
-    let total_steps = scenarios.iter().map(|scenario| scenario.observations.len()).sum::<usize>();
+    let total_steps = scenarios
+        .iter()
+        .map(|scenario| scenario.observations.len())
+        .sum::<usize>();
     let expected_steps = (VALIDATION_SEEDS + HELD_OUT_SEEDS) * CASES_PER_SEED * STEPS_PER_CASE;
     if scenarios.len() != (VALIDATION_SEEDS + HELD_OUT_SEEDS) * CASES_PER_SEED
         || total_steps != expected_steps
@@ -752,7 +749,10 @@ mod tests {
     #[test]
     fn finite_sample_quantile_is_explicit_and_deterministic() {
         let calibration = calibration_residuals();
-        assert_eq!(2, finite_sample_absolute_error_limit(&calibration, 5).expect("q95"));
+        assert_eq!(
+            2,
+            finite_sample_absolute_error_limit(&calibration, 5).expect("q95")
+        );
         assert!(finite_sample_absolute_error_limit(&[], 5).is_err());
         assert!(finite_sample_absolute_error_limit(&calibration, 0).is_err());
         assert!(finite_sample_absolute_error_limit(&calibration, 100).is_err());
@@ -782,11 +782,14 @@ mod tests {
             .find(|scenario| scenario.seed == 1 && scenario.kind == ScenarioKind::ResidualShift)
             .expect("shift fixture");
         let result = decide_scenario(&scenario, limit).expect("evaluate shift");
-        assert_eq!(Disposition::AbstainResidualOutOfEnvelope, result.steps[3].disposition);
+        assert_eq!(
+            Disposition::AbstainResidualOutOfEnvelope,
+            result.steps[3].disposition
+        );
         assert_eq!(0, result.steps[3].tick - 3);
-        assert!(result.steps[3..].iter().all(|step| {
-            step.disposition == Disposition::AbstainResidualOutOfEnvelope
-        }));
+        assert!(result.steps[3..]
+            .iter()
+            .all(|step| { step.disposition == Disposition::AbstainResidualOutOfEnvelope }));
     }
 
     #[test]
@@ -797,27 +800,45 @@ mod tests {
             .find(|scenario| scenario.seed == 1 && scenario.kind == ScenarioKind::Recovery)
             .expect("recovery fixture");
         let result = decide_scenario(&scenario, limit).expect("evaluate recovery");
-        assert_eq!(Disposition::AbstainResidualOutOfEnvelope, result.steps[0].disposition);
-        assert_eq!(Disposition::AbstainResidualOutOfEnvelope, result.steps[1].disposition);
-        assert_eq!(Disposition::AbstainRecoveryHoldoff, result.steps[2].disposition);
-        assert_eq!(Disposition::AbstainRecoveryHoldoff, result.steps[3].disposition);
-        assert_eq!(Disposition::AbstainRecoveryHoldoff, result.steps[4].disposition);
+        assert_eq!(
+            Disposition::AbstainResidualOutOfEnvelope,
+            result.steps[0].disposition
+        );
+        assert_eq!(
+            Disposition::AbstainResidualOutOfEnvelope,
+            result.steps[1].disposition
+        );
+        assert_eq!(
+            Disposition::AbstainRecoveryHoldoff,
+            result.steps[2].disposition
+        );
+        assert_eq!(
+            Disposition::AbstainRecoveryHoldoff,
+            result.steps[3].disposition
+        );
+        assert_eq!(
+            Disposition::AbstainRecoveryHoldoff,
+            result.steps[4].disposition
+        );
         assert_eq!(Disposition::UseModel, result.steps[5].disposition);
     }
 
     #[test]
     fn missing_and_stale_measurements_never_get_model_acceptance() {
         let limit = finite_sample_absolute_error_limit(&calibration_residuals(), 5).expect("q95");
-        for kind in [ScenarioKind::MissingObservation, ScenarioKind::StaleTelemetry] {
+        for kind in [
+            ScenarioKind::MissingObservation,
+            ScenarioKind::StaleTelemetry,
+        ] {
             let scenario = generate_scenarios()
                 .into_iter()
                 .find(|scenario| scenario.seed == 1 && scenario.kind == kind)
                 .expect("telemetry fixture");
             let result = decide_scenario(&scenario, limit).expect("evaluate telemetry");
             assert_ne!(Disposition::UseModel, result.steps[4].disposition);
-            assert!(result.steps[4..].iter().all(|step| {
-                step.disposition != Disposition::UseModel
-            }));
+            assert!(result.steps[4..]
+                .iter()
+                .all(|step| { step.disposition != Disposition::UseModel }));
         }
     }
 
@@ -829,10 +850,13 @@ mod tests {
             .find(|scenario| scenario.seed == 1 && scenario.kind == ScenarioKind::SafetyBoundary)
             .expect("boundary fixture");
         let result = decide_scenario(&scenario, limit).expect("evaluate boundary");
-        assert_eq!(Disposition::RejectUnsafeInterval, result.steps[4].disposition);
-        assert!(result.steps[4..].iter().all(|step| {
-            step.disposition == Disposition::RejectUnsafeInterval
-        }));
+        assert_eq!(
+            Disposition::RejectUnsafeInterval,
+            result.steps[4].disposition
+        );
+        assert!(result.steps[4..]
+            .iter()
+            .all(|step| { step.disposition == Disposition::RejectUnsafeInterval }));
     }
 
     #[test]
