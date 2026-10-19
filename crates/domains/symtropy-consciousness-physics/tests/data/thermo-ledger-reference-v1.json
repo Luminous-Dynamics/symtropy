@@ -1,0 +1,615 @@
+{
+  "schema": "symtropy-thermo-ledger-reference-v1",
+  "profile": "BoundedEnergyBoundaryAccountingV1",
+  "status": "research-only; validates a declared bookkeeping identity, not physical-model validity",
+  "math": {
+    "residual": "initial_stored_energy + sum(boundary_inflows) - sum(boundary_outflows) - final_stored_energy",
+    "balanced": "abs(residual) <= relative_tolerance * max(1, initial_stored_energy + sum(boundary_inflows) + sum(boundary_outflows) + final_stored_energy)",
+    "semantics": "Internal transfers between explicitly tracked stores are not boundary flows. All boundary flows are non-negative finite magnitudes with direction represented by the inflow/outflow collection. Regeneration is a boundary inflow, never negative dissipation."
+  },
+  "assumptions": [
+    "The chosen model boundary and tracked stored-energy total are completely specified by the caller; the test cannot establish whether a real simulator has captured every physical reservoir.",
+    "Each boundary event identifier is globally unique within one balance record.",
+    "Every energy amount uses the same declared unit; this fixture currently uses a common abstract joule-equivalent scalar.",
+    "The relative tolerance is finite and in (0, 1]."
+  ],
+  "allowed_categories": [
+    "external_work",
+    "regeneration",
+    "electrical_import",
+    "heat_rejected",
+    "mechanical_export",
+    "energy_export"
+  ],
+  "case_count": 24,
+  "cases": [
+    {
+      "id": "TL-001-closed-stationary-boundary",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "0"
+      }
+    },
+    {
+      "id": "TL-002-balanced-boundary-work",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "external_work",
+          "amount": "25"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "out-1",
+          "category": "heat_rejected",
+          "amount": "5"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "120",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "0"
+      }
+    },
+    {
+      "id": "TL-003-regeneration-and-export-separate",
+      "initial_stored_energy": "50",
+      "boundary_inflows": [
+        {
+          "event_id": "regen-1",
+          "category": "regeneration",
+          "amount": "2"
+        },
+        {
+          "event_id": "import-1",
+          "category": "electrical_import",
+          "amount": "10"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "heat-1",
+          "category": "heat_rejected",
+          "amount": "5"
+        },
+        {
+          "event_id": "export-1",
+          "category": "mechanical_export",
+          "amount": "7"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "50",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "0"
+      }
+    },
+    {
+      "id": "TL-004-internal-transfer-not-boundary-flow",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [],
+      "tracked_stores": [
+        "kinetic",
+        "thermal"
+      ],
+      "internal_transfers": [
+        {
+          "event_id": "move-1",
+          "from_store": "kinetic",
+          "to_store": "thermal",
+          "amount": "25"
+        }
+      ],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "0"
+      }
+    },
+    {
+      "id": "TL-005-equal-flows-hide-storage-drift",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "external_work",
+          "amount": "10"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "out-1",
+          "category": "heat_rejected",
+          "amount": "10"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "95",
+      "expected": {
+        "valid": true,
+        "balanced": false,
+        "residual": "5"
+      }
+    },
+    {
+      "id": "TL-006-unaccounted-storage-change",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "external_work",
+          "amount": "10"
+        }
+      ],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "95",
+      "expected": {
+        "valid": true,
+        "balanced": false,
+        "residual": "15"
+      }
+    },
+    {
+      "id": "TL-007-multiple-flow-balance",
+      "initial_stored_energy": "0",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "electrical_import",
+          "amount": "2"
+        },
+        {
+          "event_id": "in-2",
+          "category": "regeneration",
+          "amount": "3"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "out-1",
+          "category": "heat_rejected",
+          "amount": "1"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "4",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "0"
+      }
+    },
+    {
+      "id": "TL-008-within-relative-tolerance",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "external_work",
+          "amount": "10"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "out-1",
+          "category": "heat_rejected",
+          "amount": "5"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "104.9999999999995",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "4.9737991503207013e-13"
+      }
+    },
+    {
+      "id": "TL-009-outside-relative-tolerance",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "external_work",
+          "amount": "10"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "out-1",
+          "category": "heat_rejected",
+          "amount": "5"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "104.999",
+      "expected": {
+        "valid": true,
+        "balanced": false,
+        "residual": "0.0010000000000047748"
+      }
+    },
+    {
+      "id": "TL-010-storage-decrease-accounted-by-export",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [
+        {
+          "event_id": "out-1",
+          "category": "energy_export",
+          "amount": "5"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "95",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "0"
+      }
+    },
+    {
+      "id": "TL-011-small-energy-balance",
+      "initial_stored_energy": "0.000001",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "external_work",
+          "amount": "0.000002"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "out-1",
+          "category": "heat_rejected",
+          "amount": "0.000001"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "0.000002",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "4.2351647362715017e-22"
+      }
+    },
+    {
+      "id": "TL-012-all-flow-categories-explicit",
+      "initial_stored_energy": "10",
+      "boundary_inflows": [
+        {
+          "event_id": "i1",
+          "category": "external_work",
+          "amount": "1"
+        },
+        {
+          "event_id": "i2",
+          "category": "regeneration",
+          "amount": "2"
+        },
+        {
+          "event_id": "i3",
+          "category": "electrical_import",
+          "amount": "3"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "o1",
+          "category": "heat_rejected",
+          "amount": "1"
+        },
+        {
+          "event_id": "o2",
+          "category": "mechanical_export",
+          "amount": "2"
+        },
+        {
+          "event_id": "o3",
+          "category": "energy_export",
+          "amount": "1"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "12",
+      "expected": {
+        "valid": true,
+        "balanced": true,
+        "residual": "0"
+      }
+    },
+    {
+      "id": "TL-101-negative-inflow",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "bad-in",
+          "category": "external_work",
+          "amount": "-1"
+        }
+      ],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-102-negative-outflow-regeneration-mutation",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [
+        {
+          "event_id": "bad-out",
+          "category": "heat_rejected",
+          "amount": "-1"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-103-nan-inflow",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "nan-in",
+          "category": "external_work",
+          "amount": "NaN"
+        }
+      ],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-104-infinite-outflow",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [
+        {
+          "event_id": "inf-out",
+          "category": "heat_rejected",
+          "amount": "Infinity"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-105-inflow-sum-overflow",
+      "initial_stored_energy": "0",
+      "boundary_inflows": [
+        {
+          "event_id": "big-1",
+          "category": "external_work",
+          "amount": "1e308"
+        },
+        {
+          "event_id": "big-2",
+          "category": "external_work",
+          "amount": "1e308"
+        }
+      ],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "0",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-106-negative-initial-storage",
+      "initial_stored_energy": "-1",
+      "boundary_inflows": [],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "0",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-107-negative-final-storage",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "-1",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-108-duplicate-boundary-event-id",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "dup",
+          "category": "external_work",
+          "amount": "5"
+        }
+      ],
+      "boundary_outflows": [
+        {
+          "event_id": "dup",
+          "category": "heat_rejected",
+          "amount": "5"
+        }
+      ],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-109-internal-transfer-unknown-store",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [],
+      "tracked_stores": [
+        "kinetic",
+        "thermal"
+      ],
+      "internal_transfers": [
+        {
+          "event_id": "move",
+          "from_store": "kinetic",
+          "to_store": "space",
+          "amount": "5"
+        }
+      ],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-110-internal-self-transfer",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [],
+      "tracked_stores": [
+        "kinetic"
+      ],
+      "internal_transfers": [
+        {
+          "event_id": "move",
+          "from_store": "kinetic",
+          "to_store": "kinetic",
+          "amount": "5"
+        }
+      ],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-111-zero-tolerance",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "0",
+      "final_stored_energy": "100",
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "TL-112-unknown-category",
+      "initial_stored_energy": "100",
+      "boundary_inflows": [
+        {
+          "event_id": "in-1",
+          "category": "magic_free_energy",
+          "amount": "1"
+        }
+      ],
+      "boundary_outflows": [],
+      "tracked_stores": [],
+      "internal_transfers": [],
+      "relative_tolerance": "1e-12",
+      "final_stored_energy": "101",
+      "expected": {
+        "valid": false
+      }
+    }
+  ],
+  "mutation_controls": [
+    {
+      "id": "TL-MUT-001",
+      "description": "Replace the complete balance with boundary_inflows minus boundary_outflows, ignoring the initial/final stored-energy delta.",
+      "must_be_detected_by": "TL-005-equal-flows-hide-storage-drift"
+    },
+    {
+      "id": "TL-MUT-002",
+      "description": "Encode regeneration as a negative heat/dissipation outflow.",
+      "must_be_detected_by": "TL-102-negative-outflow-regeneration-mutation"
+    },
+    {
+      "id": "TL-MUT-003",
+      "description": "Count an internal transfer as external input or output.",
+      "must_be_detected_by": "TL-004-internal-transfer-not-boundary-flow"
+    },
+    {
+      "id": "TL-MUT-004",
+      "description": "Accept duplicate event IDs or undocumented categories.",
+      "must_be_detected_by": "TL-108-duplicate-boundary-event-id"
+    },
+    {
+      "id": "TL-MUT-005",
+      "description": "Ignore numeric validation or accept overflowed flow sums.",
+      "must_be_detected_by": "TL-105-inflow-sum-overflow"
+    }
+  ]
+}
