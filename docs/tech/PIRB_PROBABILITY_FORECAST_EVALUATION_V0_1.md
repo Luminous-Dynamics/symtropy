@@ -17,7 +17,7 @@ The core scoring principles use proper scoring rules rather than treating any on
 
 ## Input and source contract
 
-A dataset is one fixed prediction target and one spatial analysis unit, with a frozen and named outcome-data release. Metadata must preserve:
+A dataset is one fixed prediction target, one spatial analysis unit, one declared forecast horizon, and one frozen and named outcome-data release. Evaluate each lead horizon in a separate dataset/receipt rather than pooling 1-, 6-, and 36-month results into one headline score. Metadata must preserve:
 
 - Provider, exact forecast release/run ID, model/version, probability variable, target threshold and definition.
 - Analysis unit and geography reference; country-month and PRIO-GRID-month data are never mixed in one dataset.
