@@ -461,6 +461,9 @@ pub struct FieldVisualizationStatus {
     pub scalar_error: Option<FieldValidationError>,
     pub spectral_error: Option<FieldValidationError>,
     pub vector_error: Option<FieldValidationError>,
+    pub scalar_is_uncalibrated_measurement: bool,
+    pub spectral_is_uncalibrated_measurement: bool,
+    pub vector_is_uncalibrated_measurement: bool,
     pub scalar_glyph_count: usize,
     pub spectral_glyph_count: usize,
     pub vector_glyph_count: usize,
@@ -628,6 +631,9 @@ fn draw_field_views(
     if config.show_scalar_fields
         && let Some(frame) = scalar_frame.as_deref()
     {
+        status.scalar_is_uncalibrated_measurement = frame.provenance.source_kind
+            == FieldSourceKind::MeasuredSensor
+            && frame.provenance.calibration_state == CalibrationState::Uncalibrated;
         match extract_scalar_glyphs(frame, config.max_scalar_samples) {
             Ok(glyphs) => {
                 status.scalar_glyph_count = glyphs.len();
@@ -653,6 +659,9 @@ fn draw_field_views(
     if config.show_spectral_composite
         && let Some(frame) = spectral_frame.as_deref()
     {
+        status.spectral_is_uncalibrated_measurement = frame.provenance.source_kind
+            == FieldSourceKind::MeasuredSensor
+            && frame.provenance.calibration_state == CalibrationState::Uncalibrated;
         match extract_spectral_glyphs(frame, config.max_spectral_samples) {
             Ok(glyphs) => {
                 status.spectral_glyph_count = glyphs.len();
@@ -678,6 +687,9 @@ fn draw_field_views(
     if config.show_vector_fields
         && let Some(frame) = vector_frame.as_deref()
     {
+        status.vector_is_uncalibrated_measurement = frame.provenance.source_kind
+            == FieldSourceKind::MeasuredSensor
+            && frame.provenance.calibration_state == CalibrationState::Uncalibrated;
         match extract_vector_glyphs(
             frame,
             config.max_vector_samples,
