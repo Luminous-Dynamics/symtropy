@@ -21,15 +21,14 @@ fn run() -> Result<(), String> {
         .ok_or_else(|| "usage: pirb-historical-replay --input DATASET.json [--source-commit SHA] [--rustc-version VERSION] [--cargo-version VERSION]".to_owned())?;
     let input = fs::read(&input_path)
         .map_err(|error| format!("cannot read input {}: {error}", input_path))?;
-    let source_commit = option_value(&args, "--source-commit")?
-        .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
+    let source_commit =
+        option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
     let rustc_version = option_value(&args, "--rustc-version")?
         .unwrap_or_else(|| "UNSPECIFIED_LOCAL_TOOLCHAIN".to_owned());
     let cargo_version = option_value(&args, "--cargo-version")?
         .unwrap_or_else(|| "UNSPECIFIED_LOCAL_TOOLCHAIN".to_owned());
 
-    let lock_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.lock");
+    let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.lock");
     let lock_bytes = fs::read(&lock_path)
         .map_err(|error| format!("cannot read generated dependency lock: {error}"))?;
 
