@@ -600,11 +600,7 @@ impl ReviewFreeCameraController {
     }
 
     /// Enable direct movement and atomically pause the attached scripted route.
-    pub fn enable(
-        &mut self,
-        playback: &mut ReviewRoutePlayback,
-        current_transform: &Transform,
-    ) {
+    pub fn enable(&mut self, playback: &mut ReviewRoutePlayback, current_transform: &Transform) {
         self.synchronize_from_transform(current_transform);
         self.enabled = true;
         playback.set_playing(false);
@@ -1029,13 +1025,12 @@ mod tests {
 
     #[test]
     fn free_camera_enable_rebases_to_the_current_scripted_view() {
-        let transform = Transform::from_xyz(2.0, 1.8, -3.0)
-            .looking_at(Vec3::new(0.5, 1.2, 4.0), Vec3::Y);
+        let transform =
+            Transform::from_xyz(2.0, 1.8, -3.0).looking_at(Vec3::new(0.5, 1.2, 4.0), Vec3::Y);
         let route = sample_route_fixture();
         let mut playback = ReviewRoutePlayback::new(route).unwrap();
         let mut controller = ReviewFreeCameraController::from_transform(
-            &Transform::from_xyz(0.0, 1.6, 3.0)
-                .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y),
+            &Transform::from_xyz(0.0, 1.6, 3.0).looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y),
         );
 
         controller.enable(&mut playback, &transform);
