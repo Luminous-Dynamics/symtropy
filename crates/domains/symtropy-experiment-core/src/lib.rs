@@ -646,12 +646,17 @@ mod tests {
     #[test]
     fn subtraction_operator_executes_and_renders() {
         let mut graph = gear_graph();
-        let phase = graph
+        graph
             .equations
             .iter_mut()
             .find(|node| node.id == "equation:phase-offset")
+            .expect("phase equation")
+            .operator = EquationOperator::Subtract;
+        let phase = graph
+            .equations
+            .iter()
+            .find(|node| node.id == "equation:phase-offset")
             .expect("phase equation");
-        phase.operator = EquationOperator::Subtract;
         assert_eq!(
             phase.canonical_expression(&graph).unwrap(),
             "theta_out = theta_scaled - phi"
