@@ -357,7 +357,9 @@ fn validate_design(design: &Design) -> Result<(), String> {
 
     let mut material_ids = BTreeSet::new();
     let mut material_mass = 0.0;
-    for material in &design.materials {
+    let mut material_flows: Vec<&MaterialFlow> = design.materials.iter().collect();
+    material_flows.sort_by(|a, b| a.material_id.cmp(&b.material_id));
+    for material in material_flows {
         if material.material_id.trim().is_empty()
             || material.material_family.trim().is_empty()
             || material.recovery_route.trim().is_empty()
@@ -464,7 +466,9 @@ fn evaluate_design(design: &Design, functional_unit: &str, boundary: &str) -> De
     let mut total_unrecovered_mass = 0.0;
     let mut eol_impact = 0.0;
     let mut total_material_mass = 0.0;
-    for flow in &design.materials {
+    let mut material_flows: Vec<&MaterialFlow> = design.materials.iter().collect();
+    material_flows.sort_by(|a, b| a.material_id.cmp(&b.material_id));
+    for flow in material_flows {
         let total_mass = flow.mass_kg_per_pack * total_pack_count;
         let collectable = total_mass * flow.collection_fraction;
         let recovered = collectable * flow.material_recovery_fraction;
@@ -497,7 +501,13 @@ fn evaluate_design(design: &Design, functional_unit: &str, boundary: &str) -> De
     let gates_passed = design.qualification_gates.iter()
         .filter(|gate| gate.status == "verified_pass")
         .count();
-    let release_eligible = gates_passed == 6;
+    let design_evidence_is_actionable = !["synthetic", "unknown"].contains(&design.evidence_class.as_str());
+    let material_evidence_is_actionable = design.materials.iter().all(|material| {
+        !["synthetic", "unknown"].contains(&material.evidence_class.as_str())
+    });
+    let release_eligible = gates_passed == 6
+        && design_evidence_is_actionable
+        && material_evidence_is_actionable;
     let mass_residual = total_material_mass - design.pack_mass_kg;
     let flow_conserves = mass_residual.abs() <= MASS_TOLERANCE_KG
         && material_results.iter().all(|material| {
@@ -753,6 +763,39 @@ mod tests {
         first.sort_by(|x, y| x.design_id.cmp(&y.design_id));
         second.sort_by(|x, y| x.design_id.cmp(&y.design_id));
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn material_order_permutations_produce_canonical_identical_results() {
+        let baseline_design = design();
+        let expected = evaluate_design(&baseline_design, "delivered battery kWh", "test boundary");
+        for seed in 0_u64..100 {
+            let mut shuffled = design();
+            let mut state = seed + 7;
+            for index in (1..shuffled.materials.len()).rev() {
+                state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+                let swap_index = (state as usize) % (index + 1);
+                shuffled.materials.swap(index, swap_index);
+            }
+            assert_eq!(
+                evaluate_design(&shuffled, "delivered battery kWh", "test boundary"),
+                expected,
+                "material permutation {seed} changed the canonical result"
+            );
+        }
+    }
+
+    #[test]
+    fn synthetic_candidate_cannot_be_pareto_eligible_even_if_gates_have_external_pass_records() {
+        let mut value = design();
+        for gate in &mut value.qualification_gates {
+            gate.status = "verified_pass".to_string();
+            gate.evidence_class = "measured".to_string();
+            gate.evidence_reference = "test-lab-record".to_string();
+        }
+        let result = evaluate_design(&value, "delivered battery kWh", "test boundary");
+        assert!(!result.release_eligible);
+        assert!(!result.pareto_eligible);
     }
 
     #[test]
