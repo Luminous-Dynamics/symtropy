@@ -105,6 +105,17 @@ pub enum AlternativeDisposition {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// An immutable comparison snapshot can be pinned to an owner-brief revision.
+/// It deliberately has no aggregate ranking; alternatives preserve one explicit
+/// evaluation per intent so the owner decides their trade-offs.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DesignComparison {
+    pub comparison_id: String,
+    pub owner_brief_revision_id: String,
+    pub intents: Vec<DesignIntent>,
+    pub alternatives: Vec<DesignAlternative>,
+}
+
 pub struct DesignAlternative {
     pub candidate_id: String,
     pub design_revision_id: String,
@@ -120,6 +131,8 @@ pub struct DesignAlternative {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DesignIntentIssue {
     EmptyIntentId,
+    EmptyComparisonId,
+    EmptyOwnerBriefRevisionId,
     DuplicateIntentId(String),
     EmptyIntentTitle(String),
     EmptyIntentDescription(String),
@@ -131,20 +144,50 @@ pub enum DesignIntentIssue {
     EmptyCandidateRevision(String),
     EmptyCandidateTitle(String),
     EmptyCandidateRationale(String),
-    DuplicateEvaluation { candidate_id: String, intent_id: String },
-    UnknownIntent { candidate_id: String, intent_id: String },
-    MissingEvaluation { candidate_id: String, intent_id: String },
-    EmptyEvaluationExplanation { candidate_id: String, intent_id: String },
-    InvalidOutcomeForIntentClass { candidate_id: String, intent_id: String },
-    NotApplicableWithoutRationale { candidate_id: String, intent_id: String },
-    HardConstraintOutcomeLacksEvidence { candidate_id: String, intent_id: String },
-    PreferenceMisclassifiedAsHardViolation { candidate_id: String, intent_id: String },
-    TechnicalAssessmentHasUnresolvedHardConstraint { candidate_id: String, intent_id: String },
+    DuplicateEvaluation {
+        candidate_id: String,
+        intent_id: String,
+    },
+    UnknownIntent {
+        candidate_id: String,
+        intent_id: String,
+    },
+    MissingEvaluation {
+        candidate_id: String,
+        intent_id: String,
+    },
+    EmptyEvaluationExplanation {
+        candidate_id: String,
+        intent_id: String,
+    },
+    InvalidOutcomeForIntentClass {
+        candidate_id: String,
+        intent_id: String,
+    },
+    NotApplicableWithoutRationale {
+        candidate_id: String,
+        intent_id: String,
+    },
+    HardConstraintOutcomeLacksEvidence {
+        candidate_id: String,
+        intent_id: String,
+    },
+    PreferenceMisclassifiedAsHardViolation {
+        candidate_id: String,
+        intent_id: String,
+    },
+    TechnicalAssessmentHasUnresolvedHardConstraint {
+        candidate_id: String,
+        intent_id: String,
+    },
     BlockedWithoutFailedHardConstraint(String),
     BlockedConstraintMissingEvidence(String),
     OwnerDeclinedWithoutOwner(String),
     OwnerDeclinedWithoutRationale(String),
-    UnverifiedConclusionClaimedSatisfied { candidate_id: String, intent_id: String },
+    UnverifiedConclusionClaimedSatisfied {
+        candidate_id: String,
+        intent_id: String,
+    },
 }
 
 /// Validate a comparison matrix before showing it to an owner or using it to
@@ -161,13 +204,19 @@ pub fn validate_design_comparison(
         if !nonblank(&intent.intent_id) {
             issues.push(DesignIntentIssue::EmptyIntentId);
         } else if !intent_ids.insert(intent.intent_id.as_str()) {
-            issues.push(DesignIntentIssue::DuplicateIntentId(intent.intent_id.clone()));
+            issues.push(DesignIntentIssue::DuplicateIntentId(
+                intent.intent_id.clone(),
+            ));
         }
         if !nonblank(&intent.title) {
-            issues.push(DesignIntentIssue::EmptyIntentTitle(intent.intent_id.clone()));
+            issues.push(DesignIntentIssue::EmptyIntentTitle(
+                intent.intent_id.clone(),
+            ));
         }
         if !nonblank(&intent.description) {
-            issues.push(DesignIntentIssue::EmptyIntentDescription(intent.intent_id.clone()));
+            issues.push(DesignIntentIssue::EmptyIntentDescription(
+                intent.intent_id.clone(),
+            ));
         }
         match intent.class {
             DesignIntentClass::BindingRequirement => {
@@ -180,11 +229,7 @@ pub fn validate_design_comparison(
                 }
             }
             DesignIntentClass::OwnerHardConstraint => {
-                if !intent
-                    .decision_owner_id
-                    .as_deref()
-                    .is_some_and(nonblank)
-                {
+                if !intent.decision_owner_id.as_deref().is_some_and(nonblank) {
                     issues.push(DesignIntentIssue::OwnerHardConstraintMissingDecisionOwner(
                         intent.intent_id.clone(),
                     ));
@@ -250,7 +295,9 @@ pub fn validate_design_comparison(
                     intent_id: evaluation.intent_id.clone(),
                 });
             }
-            let Some(intent) = intents.iter().find(|item| item.intent_id == evaluation.intent_id)
+            let Some(intent) = intents
+                .iter()
+                .find(|item| item.intent_id == evaluation.intent_id)
             else {
                 continue;
             };
@@ -271,7 +318,8 @@ pub fn validate_design_comparison(
                 DesignIntentClass::BindingRequirement | DesignIntentClass::OwnerHardConstraint => {
                     if matches!(
                         evaluation.outcome,
-                        IntentEvaluationOutcome::PreferenceUnmet | IntentEvaluationOutcome::Tradeoff
+                        IntentEvaluationOutcome::PreferenceUnmet
+                            | IntentEvaluationOutcome::Tradeoff
                     ) {
                         issues.push(DesignIntentIssue::InvalidOutcomeForIntentClass {
                             candidate_id: candidate.candidate_id.clone(),
@@ -287,7 +335,8 @@ pub fn validate_design_comparison(
                         });
                     }
                 }
-                DesignIntentClass::EngineeringAssumption | DesignIntentClass::UnknownSiteConstraint => {
+                DesignIntentClass::EngineeringAssumption
+                | DesignIntentClass::UnknownSiteConstraint => {
                     if evaluation.outcome == IntentEvaluationOutcome::Satisfied
                         && !evaluation.evidence_ref.as_deref().is_some_and(nonblank)
                     {
@@ -326,10 +375,12 @@ pub fn validate_design_comparison(
                     IntentEvaluationOutcome::Satisfied | IntentEvaluationOutcome::NotApplicable
                 )
             {
-                issues.push(DesignIntentIssue::TechnicalAssessmentHasUnresolvedHardConstraint {
-                    candidate_id: candidate.candidate_id.clone(),
-                    intent_id: evaluation.intent_id.clone(),
-                });
+                issues.push(
+                    DesignIntentIssue::TechnicalAssessmentHasUnresolvedHardConstraint {
+                        candidate_id: candidate.candidate_id.clone(),
+                        intent_id: evaluation.intent_id.clone(),
+                    },
+                );
             }
         }
 
@@ -349,20 +400,17 @@ pub fn validate_design_comparison(
                 ));
             }
             AlternativeDisposition::BlockedByHardConstraint => {
-                if failed_hard.iter().any(|evaluation| {
-                    !evaluation.evidence_ref.as_deref().is_some_and(nonblank)
-                }) {
+                if failed_hard
+                    .iter()
+                    .any(|evaluation| !evaluation.evidence_ref.as_deref().is_some_and(nonblank))
+                {
                     issues.push(DesignIntentIssue::BlockedConstraintMissingEvidence(
                         candidate.candidate_id.clone(),
                     ));
                 }
             }
             AlternativeDisposition::OwnerDeclined => {
-                if !candidate
-                    .decision_owner_id
-                    .as_deref()
-                    .is_some_and(nonblank)
-                {
+                if !candidate.decision_owner_id.as_deref().is_some_and(nonblank) {
                     issues.push(DesignIntentIssue::OwnerDeclinedWithoutOwner(
                         candidate.candidate_id.clone(),
                     ));
@@ -378,6 +426,30 @@ pub fn validate_design_comparison(
         }
     }
 
+    if issues.is_empty() {
+        Ok(())
+    } else {
+        Err(issues)
+    }
+}
+
+/// Validate an identified comparison snapshot, including the owner-brief
+/// revision it was derived from, before validating its comparison matrix.
+pub fn validate_design_comparison_snapshot(
+    comparison: &DesignComparison,
+) -> Result<(), Vec<DesignIntentIssue>> {
+    let mut issues = Vec::new();
+    if !nonblank(&comparison.comparison_id) {
+        issues.push(DesignIntentIssue::EmptyComparisonId);
+    }
+    if !nonblank(&comparison.owner_brief_revision_id) {
+        issues.push(DesignIntentIssue::EmptyOwnerBriefRevisionId);
+    }
+    if let Err(mut matrix_issues) =
+        validate_design_comparison(&comparison.intents, &comparison.alternatives)
+    {
+        issues.append(&mut matrix_issues);
+    }
     if issues.is_empty() {
         Ok(())
     } else {
@@ -455,6 +527,19 @@ mod tests {
     }
 
     #[test]
+    fn comparison_snapshot_requires_stable_identity_and_owner_brief_revision() {
+        let comparison = DesignComparison {
+            comparison_id: String::new(),
+            owner_brief_revision_id: String::new(),
+            intents: Vec::new(),
+            alternatives: Vec::new(),
+        };
+        let issues = validate_design_comparison_snapshot(&comparison).unwrap_err();
+        assert!(issues.contains(&DesignIntentIssue::EmptyComparisonId));
+        assert!(issues.contains(&DesignIntentIssue::EmptyOwnerBriefRevisionId));
+    }
+
+    #[test]
     fn an_unmet_owner_preference_does_not_block_a_concept() {
         let intents = vec![
             intent("rule:egress", DesignIntentClass::BindingRequirement),
@@ -465,7 +550,10 @@ mod tests {
             AlternativeDisposition::ReadyForTechnicalAssessment,
             vec![
                 evaluation("rule:egress", IntentEvaluationOutcome::Satisfied),
-                evaluation("owner:arched-windows", IntentEvaluationOutcome::PreferenceUnmet),
+                evaluation(
+                    "owner:arched-windows",
+                    IntentEvaluationOutcome::PreferenceUnmet,
+                ),
             ],
         );
         assert_eq!(validate_design_comparison(&intents, &[candidate]), Ok(()));
@@ -473,18 +561,26 @@ mod tests {
 
     #[test]
     fn preference_must_not_be_mislabeled_as_a_hard_failure() {
-        let intents = vec![intent("owner:arched-windows", DesignIntentClass::OwnerPreference)];
+        let intents = vec![intent(
+            "owner:arched-windows",
+            DesignIntentClass::OwnerPreference,
+        )];
         let candidate = candidate(
             "candidate:a",
             AlternativeDisposition::OpenForExploration,
-            vec![evaluation("owner:arched-windows", IntentEvaluationOutcome::NotSatisfied)],
+            vec![evaluation(
+                "owner:arched-windows",
+                IntentEvaluationOutcome::NotSatisfied,
+            )],
         );
-        assert!(validate_design_comparison(&intents, &[candidate]).unwrap_err().contains(
-            &DesignIntentIssue::PreferenceMisclassifiedAsHardViolation {
-                candidate_id: "candidate:a".into(),
-                intent_id: "owner:arched-windows".into(),
-            }
-        ));
+        assert!(
+            validate_design_comparison(&intents, &[candidate])
+                .unwrap_err()
+                .contains(&DesignIntentIssue::PreferenceMisclassifiedAsHardViolation {
+                    candidate_id: "candidate:a".into(),
+                    intent_id: "owner:arched-windows".into(),
+                })
+        );
     }
 
     #[test]
@@ -510,12 +606,14 @@ mod tests {
             AlternativeDisposition::BlockedByHardConstraint,
             vec![failed],
         );
-        assert!(validate_design_comparison(&intents, &[candidate]).unwrap_err().contains(
-            &DesignIntentIssue::HardConstraintOutcomeLacksEvidence {
-                candidate_id: "candidate:a".into(),
-                intent_id: "rule:egress".into(),
-            }
-        ));
+        assert!(
+            validate_design_comparison(&intents, &[candidate])
+                .unwrap_err()
+                .contains(&DesignIntentIssue::HardConstraintOutcomeLacksEvidence {
+                    candidate_id: "candidate:a".into(),
+                    intent_id: "rule:egress".into(),
+                })
+        );
     }
 
     #[test]
@@ -527,14 +625,19 @@ mod tests {
         let candidate = candidate(
             "candidate:a",
             AlternativeDisposition::OpenForExploration,
-            vec![evaluation("owner:privacy", IntentEvaluationOutcome::Satisfied)],
+            vec![evaluation(
+                "owner:privacy",
+                IntentEvaluationOutcome::Satisfied,
+            )],
         );
-        assert!(validate_design_comparison(&intents, &[candidate]).unwrap_err().contains(
-            &DesignIntentIssue::MissingEvaluation {
-                candidate_id: "candidate:a".into(),
-                intent_id: "goal:daylight".into(),
-            }
-        ));
+        assert!(
+            validate_design_comparison(&intents, &[candidate])
+                .unwrap_err()
+                .contains(&DesignIntentIssue::MissingEvaluation {
+                    candidate_id: "candidate:a".into(),
+                    intent_id: "goal:daylight".into(),
+                })
+        );
     }
 
     #[test]
@@ -546,9 +649,13 @@ mod tests {
             AlternativeDisposition::OpenForExploration,
             vec![evaluation("rule:egress", IntentEvaluationOutcome::Unknown)],
         );
-        assert!(validate_design_comparison(&[binding], &[candidate]).unwrap_err().contains(
-            &DesignIntentIssue::BindingIntentMissingProvenance("rule:egress".into())
-        ));
+        assert!(
+            validate_design_comparison(&[binding], &[candidate])
+                .unwrap_err()
+                .contains(&DesignIntentIssue::BindingIntentMissingProvenance(
+                    "rule:egress".into()
+                ))
+        );
     }
 
     #[test]
@@ -557,7 +664,10 @@ mod tests {
         let candidate = candidate(
             "candidate:a",
             AlternativeDisposition::OwnerDeclined,
-            vec![evaluation("owner:material", IntentEvaluationOutcome::PreferenceUnmet)],
+            vec![evaluation(
+                "owner:material",
+                IntentEvaluationOutcome::PreferenceUnmet,
+            )],
         );
         assert_eq!(validate_design_comparison(&intents, &[candidate]), Ok(()));
     }
@@ -570,11 +680,15 @@ mod tests {
             AlternativeDisposition::ReadyForTechnicalAssessment,
             vec![evaluation("rule:fire", IntentEvaluationOutcome::Unknown)],
         );
-        assert!(validate_design_comparison(&intents, &[candidate]).unwrap_err().contains(
-            &DesignIntentIssue::TechnicalAssessmentHasUnresolvedHardConstraint {
-                candidate_id: "candidate:a".into(),
-                intent_id: "rule:fire".into(),
-            }
-        ));
+        assert!(
+            validate_design_comparison(&intents, &[candidate])
+                .unwrap_err()
+                .contains(
+                    &DesignIntentIssue::TechnicalAssessmentHasUnresolvedHardConstraint {
+                        candidate_id: "candidate:a".into(),
+                        intent_id: "rule:fire".into(),
+                    }
+                )
+        );
     }
 }
