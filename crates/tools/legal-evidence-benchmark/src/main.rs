@@ -53,6 +53,25 @@ struct BenchmarkCase {
     tags: Vec<String>,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum MetamorphicRelation {
+    ActionMustChange,
+    ActionMustMatch,
+    EvidenceMustChange,
+    OutputMustMatch,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct MetamorphicPair {
+    id: String,
+    source_case_id: String,
+    target_case_id: String,
+    relation: MetamorphicRelation,
+    rationale: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Citation {
@@ -85,6 +104,7 @@ struct ValidationReport {
     corpus_sha256: String,
     authority_count: usize,
     case_count: usize,
+    metamorphic_pair_count: usize,
     claim_ceiling: &'static str,
 }
 
@@ -133,6 +153,10 @@ struct EvaluationReport {
     uncited_answers: usize,
     critical_failure_case_ids: Vec<String>,
     case_evaluations: Vec<CaseEvaluation>,
+    metamorphic_pairs_total: usize,
+    metamorphic_pairs_passed: usize,
+    metamorphic_pair_failure_ids: Vec<String>,
+    metamorphic_gate_passed: bool,
     fixture_gate_passed: bool,
     claim_ceiling: &'static str,
 }
@@ -165,6 +189,7 @@ fn run() -> Result<bool, String> {
                 corpus_sha256,
                 authority_count: benchmark.authorities.len(),
                 case_count: benchmark.cases.len(),
+                metamorphic_pair_count: benchmark.metamorphic_pairs.len(),
                 claim_ceiling: "Dataset structure only; not legal correctness or model performance.",
             };
             println!(
@@ -249,6 +274,9 @@ fn validate_benchmark(benchmark: &Benchmark) -> Result<(), String> {
     }
     if benchmark.cases.is_empty() {
         errors.push("at least one benchmark case is required".to_string());
+    }
+    if benchmark.metamorphic_pairs.is_empty() {
+        errors.push("at least one metamorphic pair is required".to_string());
     }
 
     let mut authority_map = BTreeMap::new();
@@ -443,6 +471,53 @@ fn validate_benchmark(benchmark: &Benchmark) -> Result<(), String> {
         }
     }
 
+    let case_map: BTreeMap<&str, &BenchmarkCase> = benchmark
+        .cases
+        .iter()
+        .map(|case| (case.id.as_str(), case))
+        .collect();
+    let mut pair_ids = BTreeSet::new();
+    for pair in &benchmark.metamorphic_pairs {
+        if pair.id.trim().is_empty() || !pair_ids.insert(pair.id.as_str()) {
+            errors.push(format!("empty or duplicate metamorphic pair id: {}", pair.id));
+        }
+        if pair.rationale.trim().is_empty() {
+            errors.push(format!("metamorphic pair {} has empty rationale", pair.id));
+        }
+        if pair.source_case_id == pair.target_case_id {
+            errors.push(format!(
+                "metamorphic pair {} must reference two distinct cases",
+                pair.id
+            ));
+            continue;
+        }
+        match (
+            case_map.get(pair.source_case_id.as_str()),
+            case_map.get(pair.target_case_id.as_str()),
+        ) {
+            (Some(source), Some(target)) => {
+                if !case_relation_holds(
+                    &pair.relation,
+                    &source.expected_action,
+                    &source.expected_claim_codes,
+                    &source.expected_citations,
+                    &target.expected_action,
+                    &target.expected_claim_codes,
+                    &target.expected_citations,
+                ) {
+                    errors.push(format!(
+                        "metamorphic pair {} contradicts the expected case outputs",
+                        pair.id
+                    ));
+                }
+            }
+            _ => errors.push(format!(
+                "metamorphic pair {} references an unknown source or target case",
+                pair.id
+            )),
+        }
+    }
+
     if errors.is_empty() {
         Ok(())
     } else {
@@ -546,6 +621,27 @@ fn percent(numerator: usize, denominator: usize) -> f64 {
     }
 }
 
+fn case_relation_holds(
+    relation: &MetamorphicRelation,
+    source_action: &Action,
+    source_claim_codes: &[String],
+    source_citations: &[Citation],
+    target_action: &Action,
+    target_claim_codes: &[String],
+    target_citations: &[Citation],
+) -> bool {
+    let claims_match = unique_strings(source_claim_codes).0 == unique_strings(target_claim_codes).0;
+    let citations_match = unique_citations(source_citations).0 == unique_citations(target_citations).0;
+    match relation {
+        MetamorphicRelation::ActionMustChange => source_action != target_action,
+        MetamorphicRelation::ActionMustMatch => source_action == target_action,
+        MetamorphicRelation::EvidenceMustChange => !claims_match || !citations_match,
+        MetamorphicRelation::OutputMustMatch => {
+            source_action == target_action && claims_match && citations_match
+        }
+    }
+}
+
 fn make_case_evaluation(
     case: &BenchmarkCase,
     result: Option<&CandidateResult>,
@@ -572,6 +668,46 @@ fn make_case_evaluation(
         citation_exact_match,
         failure_codes,
     }
+}
+
+fn evaluate_metamorphic_pairs(
+    benchmark: &Benchmark,
+    submission: &Submission,
+) -> (usize, Vec<String>) {
+    let mut passed = 0usize;
+    let mut failures = Vec::new();
+    for pair in &benchmark.metamorphic_pairs {
+        let source_results: Vec<&CandidateResult> = submission
+            .results
+            .iter()
+            .filter(|result| result.case_id == pair.source_case_id)
+            .collect();
+        let target_results: Vec<&CandidateResult> = submission
+            .results
+            .iter()
+            .filter(|result| result.case_id == pair.target_case_id)
+            .collect();
+        if source_results.len() != 1 || target_results.len() != 1 {
+            failures.push(pair.id.clone());
+            continue;
+        }
+        let source = source_results[0];
+        let target = target_results[0];
+        if case_relation_holds(
+            &pair.relation,
+            &source.action,
+            &source.claim_codes,
+            &source.citations,
+            &target.action,
+            &target.claim_codes,
+            &target.citations,
+        ) {
+            passed += 1;
+        } else {
+            failures.push(pair.id.clone());
+        }
+    }
+    (passed, failures)
 }
 
 fn evaluate(benchmark: &Benchmark, submission: &Submission) -> Result<EvaluationReport, String> {
@@ -806,6 +942,12 @@ fn evaluate_with_digests(
         metamorphic_pair_failure_ids.is_empty()
             && metamorphic_pairs_passed == benchmark.metamorphic_pairs.len();
 
+    let (metamorphic_pairs_passed, metamorphic_pair_failure_ids) =
+        evaluate_metamorphic_pairs(benchmark, submission);
+    let metamorphic_gate_passed =
+        metamorphic_pair_failure_ids.is_empty()
+            && metamorphic_pairs_passed == benchmark.metamorphic_pairs.len();
+
     let missing_set: BTreeSet<&str> = missing_ids.iter().map(String::as_str).collect();
     let duplicate_set: BTreeSet<&str> = duplicate_ids.iter().map(String::as_str).collect();
     let fixture_gate_passed = missing_set.is_empty()
@@ -825,7 +967,8 @@ fn evaluate_with_digests(
         && duplicate_citations == 0
         && duplicate_claim_codes == 0
         && uncited_answers == 0
-        && critical_failures.is_empty();
+        && critical_failures.is_empty()
+        && metamorphic_gate_passed;
 
     Ok(EvaluationReport {
         report_version: "0.1.0",
@@ -855,6 +998,10 @@ fn evaluate_with_digests(
         uncited_answers,
         critical_failure_case_ids: critical_failures.into_iter().collect(),
         case_evaluations,
+        metamorphic_pairs_total: benchmark.metamorphic_pairs.len(),
+        metamorphic_pairs_passed,
+        metamorphic_pair_failure_ids,
+        metamorphic_gate_passed,
         fixture_gate_passed,
         claim_ceiling: concat!(
             "Synthetic fixture conformance only; not legal correctness, ",
