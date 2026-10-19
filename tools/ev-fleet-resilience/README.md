@@ -29,12 +29,14 @@ A job completing exactly at its departure boundary counts as completed. A job mi
 
 ## First adversarial fixtures
 
-1. **Depot curtailment:** shared site power falls during a bounded window while a heterogeneous depot fleet remains scheduled.
-2. **Rural feeder interruption:** site input and ports fall to zero, then recover under a smaller one-port power cap.
-3. **Port loss plus taper:** a port and site cap are reduced while multiple SOC-dependent acceptance curves are active.
+There are seven scenario inputs and fourteen policy results (seven scenarios × FCFS/earliest-departure-first):
+
+1. **Depot pair:** `depot-grid-baseline` and `depot-grid-curtailment` use the same four vehicle jobs, installed ports and base site rating; only the latter includes a 30-minute site-power curtailment.
+2. **Rural pair:** `rural-feeder-baseline` and `rural-feeder-interruption` share the same three jobs; only the latter includes a feeder outage and reduced-power/port recovery.
+3. **Port/taper pair:** `port-stable-baseline` and `port-loss-and-taper` share the same three jobs and installed equipment; only the latter includes the temporary port and site-capacity derate.
 4. **Deadline policy oracle:** a 10 kWh job due at minute 120 and a 3 kWh job due at minute 20 compete for one 10 kW port. This fixture is constructed so FCFS misses the urgent job while earliest-departure-first completes both; it tests the implementation, not the universal superiority of EDF.
 
-All fixture numbers and battery curves are synthetic.
+Use each baseline/stress pair to calculate service degradation under the *same duty demand*, by policy: changes in completion count, unserved battery kWh, p95 wait and site input. The committed evaluator reports both sides as separate, deterministic rows rather than claiming one universal resilience score. All fixture numbers and battery curves are synthetic.
 
 ## Acceptance/benchmark targets
 
