@@ -450,6 +450,45 @@ pub fn evaluate_corpus(corpus: &Value) -> Vec<Evaluation> {
         .unwrap_or_default()
 }
 
+
+fn validate_corpus_header(corpus: &Value) -> Result<&[Value], &'static str> {
+    if text(corpus, &["corpus_id"]) != Some(EXPECTED_CORPUS_ID)
+        || text(corpus, &["schema_version"]) != Some(EXPECTED_SCHEMA_VERSION)
+    {
+        return Err("CORPUS_ID_OR_SCHEMA_VERSION_MISMATCH");
+    }
+    if text(corpus, &["status"]) != Some("synthetic_design_fixture_only") {
+        return Err("CORPUS_STATUS_MISMATCH");
+    }
+    if text(corpus, &["case_schema_file"]) != Some("bioprocess-closure-case-schema-v1.json") {
+        return Err("CASE_SCHEMA_FILE_MISMATCH");
+    }
+    if text(corpus, &["unit_contract", "mass"]) != Some("g")
+        || text(corpus, &["unit_contract", "water"]) != Some("mL")
+        || text(corpus, &["unit_contract", "energy"]) != Some("Wh")
+        || text(corpus, &["unit_contract", "time"]) != Some("s")
+    {
+        return Err("CORPUS_UNIT_CONTRACT_MISMATCH");
+    }
+    let cases = corpus
+        .get("cases")
+        .and_then(Value::as_array)
+        .ok_or("CORPUS_CASES_MISSING")?;
+    if get(corpus, &["case_count"]).and_then(Value::as_u64) != Some(cases.len() as u64) {
+        return Err("CORPUS_CASE_COUNT_MISMATCH");
+    }
+    let mut ids = BTreeSet::new();
+    for case in cases {
+        let Some(case_id) = text(case, &["case_id"]) else {
+            return Err("CASE_IDS_MISSING_OR_DUPLICATED");
+        };
+        if case_id.trim().is_empty() || !ids.insert(case_id) {
+            return Err("CASE_IDS_MISSING_OR_DUPLICATED");
+        }
+    }
+    Ok(cases.as_slice())
+}
+
 pub fn sha256_hex(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
         .iter()
@@ -529,28 +568,13 @@ pub fn run_cli() -> i32 {
             return 2;
         }
     };
-    if text(&corpus, &["corpus_id"]) != Some(EXPECTED_CORPUS_ID)
-        || text(&corpus, &["schema_version"]) != Some(EXPECTED_SCHEMA_VERSION)
-    {
-        eprintln!("unexpected corpus ID or schema version");
-        return 2;
-    }
-    let Some(cases) = corpus.get("cases").and_then(Value::as_array) else {
-        eprintln!("corpus cases missing or not an array");
-        return 2;
+    let cases = match validate_corpus_header(&corpus) {
+        Ok(cases) => cases,
+        Err(error) => {
+            eprintln!("invalid corpus header: {error}");
+            return 2;
+        }
     };
-    if get(&corpus, &["case_count"]).and_then(Value::as_u64) != Some(cases.len() as u64) {
-        eprintln!("declared corpus case_count does not match cases length");
-        return 2;
-    }
-    let ids: Vec<&str> = cases
-        .iter()
-        .filter_map(|case| text(case, &["case_id"]))
-        .collect();
-    if ids.len() != cases.len() || ids.iter().collect::<BTreeSet<_>>().len() != ids.len() {
-        eprintln!("case IDs missing or duplicated");
-        return 2;
-    }
 
     let evaluations = evaluate_corpus(&corpus);
     let receipts: Vec<CaseReceipt> = cases
@@ -735,13 +759,27 @@ mod tests {
         let mut input = corpus();
         let id = input["cases"][0]["case_id"].clone();
         input["cases"][1]["case_id"] = id;
-        let ids: Vec<&str> = input["cases"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter_map(|case| text(case, &["case_id"]))
-            .collect();
-        assert_ne!(ids.iter().collect::<BTreeSet<_>>().len(), ids.len());
+        assert_eq!(
+            validate_corpus_header(&input),
+            Err("CASE_IDS_MISSING_OR_DUPLICATED")
+        );
+    }
+
+    #[test]
+    fn corpus_count_and_units_are_part_of_the_immutable_contract() {
+        let mut input = corpus();
+        input["case_count"] = Value::from(11);
+        assert_eq!(
+            validate_corpus_header(&input),
+            Err("CORPUS_CASE_COUNT_MISMATCH")
+        );
+
+        let mut input = corpus();
+        input["unit_contract"]["energy"] = Value::String("kJ".to_owned());
+        assert_eq!(
+            validate_corpus_header(&input),
+            Err("CORPUS_UNIT_CONTRACT_MISMATCH")
+        );
     }
 
     #[test]
