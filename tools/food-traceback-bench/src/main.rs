@@ -183,6 +183,259 @@ fn candidate_projection(case: &Value) -> Value {
     })
 }
 
+
+fn entity_type_map(input: &Value) -> BTreeMap<String, String> {
+    input
+        .get("entities")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|entity| {
+            Some((
+                entity.get("id")?.as_str()?.to_owned(),
+                entity.get("type")?.as_str()?.to_owned(),
+            ))
+        })
+        .collect()
+}
+
+fn is_material_flow_type(value: &str) -> bool {
+    matches!(
+        value,
+        "custody_record" | "transformation_record" | "retail_receipt"
+    )
+}
+
+fn material_edges(input: &Value, verified_only: bool) -> Vec<(String, String)> {
+    input
+        .get("observed_records")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|record| {
+            let evidence_type = record.get("evidence_type")?.as_str()?;
+            if !is_material_flow_type(evidence_type) {
+                return None;
+            }
+            if verified_only && record.get("status")?.as_str()? != "verified" {
+                return None;
+            }
+            Some((
+                record.get("from")?.as_str()?.to_owned(),
+                record.get("to")?.as_str()?.to_owned(),
+            ))
+        })
+        .collect()
+}
+
+fn outbreak_seeds(input: &Value, entity_types: &BTreeMap<String, String>) -> BTreeSet<String> {
+    let mut seeds = BTreeSet::new();
+    for record in input
+        .get("observed_records")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        if record.get("evidence_type").and_then(Value::as_str) != Some("outbreak_association") {
+            continue;
+        }
+        for endpoint in ["from", "to"] {
+            if let Some(id) = record.get(endpoint).and_then(Value::as_str) {
+                if entity_types.get(id).map(String::as_str) == Some("finished_lot") {
+                    seeds.insert(id.to_owned());
+                }
+            }
+        }
+    }
+    seeds
+}
+
+fn ancestors(seeds: &BTreeSet<String>, edges: &[(String, String)]) -> BTreeSet<String> {
+    let mut reverse: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for (from, to) in edges {
+        reverse.entry(to.as_str()).or_default().push(from.as_str());
+    }
+    let mut queue: VecDeque<String> = seeds.iter().cloned().collect();
+    let mut visited = BTreeSet::new();
+    while let Some(node) = queue.pop_front() {
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        if let Some(previous) = reverse.get(node.as_str()) {
+            queue.extend(previous.iter().map(|id| (*id).to_owned()));
+        }
+    }
+    visited
+}
+
+fn descendants(seeds: &BTreeSet<String>, edges: &[(String, String)]) -> BTreeSet<String> {
+    let mut forward: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for (from, to) in edges {
+        forward.entry(from.as_str()).or_default().push(to.as_str());
+    }
+    let mut queue: VecDeque<String> = seeds.iter().cloned().collect();
+    let mut visited = BTreeSet::new();
+    while let Some(node) = queue.pop_front() {
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        if let Some(next) = forward.get(node.as_str()) {
+            queue.extend(next.iter().map(|id| (*id).to_owned()));
+        }
+    }
+    visited
+}
+
+fn ingredient_sources(
+    seeds: &BTreeSet<String>,
+    edges: &[(String, String)],
+    entity_types: &BTreeMap<String, String>,
+) -> BTreeSet<String> {
+    ancestors(seeds, edges)
+        .into_iter()
+        .filter(|id| entity_types.get(id).map(String::as_str) == Some("ingredient_lot"))
+        .collect()
+}
+
+fn finished_descendants(
+    sources: &BTreeSet<String>,
+    observed_seeds: &BTreeSet<String>,
+    edges: &[(String, String)],
+    entity_types: &BTreeMap<String, String>,
+) -> BTreeSet<String> {
+    let mut finished: BTreeSet<String> = observed_seeds
+        .iter()
+        .filter(|id| entity_types.get(*id).map(String::as_str) == Some("finished_lot"))
+        .cloned()
+        .collect();
+    for id in descendants(sources, edges) {
+        if entity_types.get(&id).map(String::as_str) == Some("finished_lot") {
+            finished.insert(id);
+        }
+    }
+    finished
+}
+
+fn set_metrics(predicted: &BTreeSet<String>, truth: &BTreeSet<String>) -> Value {
+    let true_positive = predicted.intersection(truth).count();
+    let false_positive = predicted.difference(truth).count();
+    let false_negative = truth.difference(predicted).count();
+    let precision = if predicted.is_empty() {
+        Value::Null
+    } else {
+        json!(true_positive as f64 / predicted.len() as f64)
+    };
+    let recall = if truth.is_empty() {
+        Value::Null
+    } else {
+        json!(true_positive as f64 / truth.len() as f64)
+    };
+    json!({
+        "predicted_count": predicted.len(),
+        "truth_count": truth.len(),
+        "true_positive_count": true_positive,
+        "false_positive_count": false_positive,
+        "false_negative_count": false_negative,
+        "precision": precision,
+        "recall": recall
+    })
+}
+
+fn containment_metrics(
+    predicted: &BTreeSet<String>,
+    affected_truth: &BTreeSet<String>,
+    unaffected_truth: &BTreeSet<String>,
+) -> Value {
+    let recall = if affected_truth.is_empty() {
+        Value::Null
+    } else {
+        json!(predicted.intersection(affected_truth).count() as f64 / affected_truth.len() as f64)
+    };
+    json!({
+        "candidate_finished_lots": predicted.iter().cloned().collect::<Vec<_>>(),
+        "affected_lot_recall": recall,
+        "residual_affected_lot_count": affected_truth.difference(predicted).count(),
+        "unnecessary_recall_lot_count": predicted.intersection(unaffected_truth).count()
+    })
+}
+
+fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
+    // Candidate algorithms receive only the projection. Oracle labels are consumed below
+    // exclusively by the evaluator after candidate predictions have been formed.
+    let input = candidate_projection(case);
+    let types = entity_type_map(&input);
+    let seeds = outbreak_seeds(&input, &types);
+    let all_edges = material_edges(&input, false);
+    let verified_edges = material_edges(&input, true);
+
+    let naive_sources = ingredient_sources(&seeds, &all_edges, &types);
+    let naive_containment = finished_descendants(&naive_sources, &seeds, &all_edges, &types);
+
+    let verified_sources = ingredient_sources(&seeds, &verified_edges, &types);
+    let possible_sources = ingredient_sources(&seeds, &all_edges, &types);
+    let bounded_containment = finished_descendants(&possible_sources, &seeds, &all_edges, &types);
+
+    let truth_sources: BTreeSet<String> = string_array(
+        field(truth, "source_lot_ids", "oracle_truth")?,
+        "oracle_truth.source_lot_ids",
+    )?
+    .into_iter()
+    .collect();
+    let truth_affected: BTreeSet<String> = string_array(
+        field(truth, "affected_finished_lot_ids", "oracle_truth")?,
+        "oracle_truth.affected_finished_lot_ids",
+    )?
+    .into_iter()
+    .collect();
+    let truth_unaffected: BTreeSet<String> = string_array(
+        field(truth, "unaffected_finished_lot_ids", "oracle_truth")?,
+        "oracle_truth.unaffected_finished_lot_ids",
+    )?
+    .into_iter()
+    .collect();
+
+    let source_disposition = if possible_sources.is_empty() {
+        "abstain_no_material_route"
+    } else if verified_sources.is_empty() {
+        "abstain_no_verified_source_path"
+    } else if possible_sources.len() > 1 {
+        "ambiguous_multiple_source_candidates"
+    } else if possible_sources == verified_sources {
+        "single_verified_source_path"
+    } else {
+        "unresolved_candidate_path"
+    };
+
+    let nonverified_material_edges = input
+        .get("observed_records")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|record| {
+            record.get("evidence_type")
+                .and_then(Value::as_str)
+                .is_some_and(is_material_flow_type)
+                && record.get("status").and_then(Value::as_str) != Some("verified")
+        })
+        .count();
+
+    Ok(json!({
+        "B1_naive_ungraded_graph_union": {
+            "source_candidates": naive_sources.iter().cloned().collect::<Vec<_>>(),
+            "source_metrics": set_metrics(&naive_sources, &truth_sources),
+            "containment_metrics": containment_metrics(&naive_containment, &truth_affected, &truth_unaffected)
+        },
+        "B3_evidence_bounded_envelope": {
+            "verified_source_candidates": verified_sources.iter().cloned().collect::<Vec<_>>(),
+            "possible_source_candidates": possible_sources.iter().cloned().collect::<Vec<_>>(),
+            "source_disposition": source_disposition,
+            "nonverified_material_edge_count": nonverified_material_edges,
+            "source_metrics": set_metrics(&possible_sources, &truth_sources),
+            "containment_metrics": containment_metrics(&bounded_containment, &truth_affected, &truth_unaffected)
+        }
+    }))
+}
+
 fn validate_case(case: &Value, index: usize) -> Check<Value> {
     let at = format!("cases[{index}]");
     require_keys(
@@ -539,7 +792,8 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         "case_id": case_id,
         "status": "pass",
         "entity_count": entities.len(),
-        "observed_record_count": records.len()
+        "observed_record_count": records.len(),
+        "reference_comparison": evaluate_reference_methods(case, truth)?
     }))
 }
 
