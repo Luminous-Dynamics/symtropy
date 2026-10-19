@@ -17,10 +17,11 @@ The Symtropy arithmetic graph should become an **integration seam**, not a compe
 
 ## 1. Current prototype boundary
 
-The new Rust **symtropy-experiment-core** crate is a narrow, renderer-independent prototype with two separate execution paths:
+The new Rust **symtropy-experiment-core** crate is a narrow, renderer-independent prototype with three related capabilities:
 
 - An acyclic arithmetic graph validates typed dimensions and references, generates formula labels from operator/variable IDs, and supports scoped input/parameter overrides and one-variable sweeps.
 - A separate one-dimensional harmonic-oscillator module implements explicit Euler and symplectic Euler, compares the numerical trajectory against the known analytic solution, and reports integration error and energy drift.
+- A `visual_math_projection` produces a renderer-neutral graph from canonical IDs; its formula labels are generated from the executable operator graph, and the `inspect` CLI can still show an incomplete model if baseline execution fails.
 
 The oscillator is the first time-dependent numerical regression case, **not** a universal physics engine:
 - no general ODE/DAE solver, contact solver, constraint solver, or stochastic process runtime;
@@ -112,7 +113,7 @@ Do not claim “lossless conversion” based on parsing success. Compare semanti
 
 ## 4. From one-off runs to design of experiments
 
-The executable core now supports parameter/input overrides scoped to a single run and a deterministic one-variable sweep, plus a domain-specific harmonic-oscillator integrator comparison against an analytical solution. The gear fixture sweeps driver tooth counts 47, 48 and 49 without mutating the canonical graph. The oscillator fixture uses a unit-mass, 4 N/m ideal spring, initial displacement 1 m, zero velocity, and a 10 s horizon at a 0.01 s timestep; it contrasts explicit-Euler energy growth with the bounded-energy behavior of symplectic Euler at this stable step size. This is a synthetic regression case only.
+The executable core now supports parameter/input overrides scoped to a single run and deterministic one-variable sweeps, a renderer-neutral visual-math projection, and a domain-specific harmonic-oscillator integrator comparison against an analytical solution plus observed-order convergence report. The gear fixture sweeps driver tooth counts 47, 48 and 49 without mutating the canonical graph. The oscillator fixture uses a unit-mass, 4 N/m ideal spring, initial displacement 1 m, zero velocity, and a 10 s horizon at a 0.01 s timestep; it contrasts explicit-Euler energy growth with the bounded-energy behavior of symplectic Euler at this stable step size. This is a synthetic regression case only.
 
 This is the beginning of an **experiment exploration loop**, not yet a full uncertainty quantification package:
 1. Sweep selected inputs over declared values or ranges.
