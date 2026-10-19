@@ -21,4 +21,8 @@ path = "src/vintage_main.rs"
 name = "pirb-views-offline-adapter"
 path = "src/views_adapter_main.rs"
 
+[[bin]]
+name = "pirb-cross-provider-benchmark-validate"
+path = "src/benchmark_registration_main.rs"
+
 [workspace]
