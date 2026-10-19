@@ -326,6 +326,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             primary.sample_count = 0;
             primary.missing_count = 10;
             primary.interval = None;
+            inputs.paired_comparisons[0].independent_unit_count = 0;
         }
         "empty_metric_stratum" => inputs.metrics[0].stratum_id.clear(),
         "invalid_overall_stratum_id" => inputs.metrics[0].stratum_id = "pooled".to_owned(),
@@ -520,6 +521,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             primary.sample_count = 0;
             primary.missing_count = 10;
             primary.interval = None;
+            inputs.paired_comparisons[0].independent_unit_count = 0;
         }
         "below_threshold" => {
             inputs.metrics[0] = metric("pose_pck", 0.6, "fraction");
