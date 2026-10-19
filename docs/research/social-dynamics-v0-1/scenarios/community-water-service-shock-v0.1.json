@@ -1,0 +1,58 @@
+{
+  "schema_version": "social-dynamics-scenario/0.1",
+  "scenario_id": "community-water-service-shock",
+  "status": "synthetic-proposal",
+  "description": "Synthetic community households coordinate limited repair contributions during a temporary shared water-service capacity shock.",
+  "agents": {
+    "count": 128,
+    "type": "household",
+    "heterogeneous_needs": true,
+    "sensitive_identity_attributes": false,
+    "initial_resource_distribution": "bounded_skewed"
+  },
+  "network": {
+    "topology_family": "small_world",
+    "directed_trust_estimates": true,
+    "initial_trust_distribution": "beta_like",
+    "tie_change": "enabled"
+  },
+  "service": {
+    "type": "water",
+    "capacity_fraction_before_shock": 1,
+    "capacity_fraction_during_shock": 0.45,
+    "shock_start_tick": 20,
+    "shock_duration_ticks": 15,
+    "recovery_requires_contributions": true
+  },
+  "treatment_arms": [
+    "no_explicit_commitments",
+    "static_trust",
+    "reciprocity_heuristic",
+    "verifiable_commitments_with_dispute_resolution"
+  ],
+  "factors_to_sweep": [
+    "shock_severity",
+    "observation_noise",
+    "verification_cost",
+    "institutional_capture",
+    "network_density"
+  ],
+  "run": {
+    "ticks": 80,
+    "seed_policy": "preregistered_list",
+    "deterministic_event_order": true,
+    "primary_outcomes": [
+      "unmet_water_need_integral",
+      "time_to_recovery",
+      "contribution_distribution",
+      "access_inequality",
+      "verification_overhead"
+    ]
+  },
+  "guardrails": {
+    "synthetic_only": true,
+    "individual_reputation_leaderboard": false,
+    "no_claim_of_empirical_validity": true
+  },
+  "note": "This is an illustrative fixture, not a validated scenario schema or an executed experiment."
+}
