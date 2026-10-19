@@ -15,6 +15,8 @@ on:
     paths:
       - "docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md"
       - "docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_RECOURSE_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_RISK_BUDGET_BENCHMARK_V0_1.md"
       - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
       - "tools/mine-flex-scheduling-bench/**"
       - ".github/workflows/mine-flex-scheduling-bench.yml"
@@ -192,3 +194,48 @@ jobs:
               carbon_first_incurred_cost: .carbon_aware_execution.incurred_grid_cost_units
             }]
           }' mine-flex-recourse-receipt.json
+
+      - name: Validate risk-budgeted robust Pareto frontier
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \
+            --risk-budget --source-commit "$source_commit" > mine-flex-risk-budget-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-FLEX-PARETO-001"
+            and .suite_version == "0.1.0"
+            and .validation_seed_count == 32
+            and .held_out_seed_count == 32
+            and .carbon_headroom_basis_points == [0,250,500,1000,2500,10000]
+            and .case_frontier_count == 64
+            and .budget_decision_count == 384
+            and .world_evaluation_count == 1920
+            and .decision_failures == 0
+            and .budget_cap_violations == 0
+            and .budget_monotonicity_violations == 0
+            and .independent_hard_constraint_violations == 0
+            and (.generated_case_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.summaries[] | select(.cases_evaluated != 32 or .decision_failures != 0 or .worlds_expected != 160 or .worlds_evaluated != 160 or .feasible_worlds != 160 or .feasibility_rate_basis_points != 10000 or .hard_constraint_violations != 0)] | length == 0)
+            and ([.decisions[] | select(.chosen_schedule_batches == null or .carbon_cap_units == null or .selected_worst_case_carbon_units > .carbon_cap_units)] | length == 0)
+            and ([.case_frontiers[] | select((.nondominated_points | length) == 0)] | length == 0)
+          ' mine-flex-risk-budget-receipt.json
+      - name: Emit risk-budgeted frontier metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id, suite_version, generated_case_set_sha256,
+            case_frontier_count, budget_decision_count, world_evaluation_count,
+            decision_failures, budget_cap_violations, budget_monotonicity_violations,
+            independent_hard_constraint_violations,
+            summaries,
+            selected_frontier: [.decisions[] | {
+              seed, split, carbon_headroom_basis_points, carbon_cap_units,
+              chosen_schedule_batches, selected_worst_case_cost_units,
+              selected_worst_case_carbon_units, nondominated_frontier_points
+            }]
+          }' mine-flex-risk-budget-receipt.json
