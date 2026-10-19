@@ -29,9 +29,10 @@ Forecast rows are unique by `forecast_id`, share the registered target period an
 - kind: `spatial` (same event type across units) or `event_type` (same unit across event types);
 - one parent forecast and a unique list of child forecast IDs;
 - declared completeness: `complete`, `incomplete`, or `unknown`;
+- an explicit `expected_child_keys` set (unit IDs for spatial constraints, event-type IDs for event-type constraints), taken from the pinned hierarchy/ontology;
 - a predeclared absolute residual tolerance.
 
-Spatial constraints cannot mix event types; event-type constraints cannot mix spatial units. Duplicate forecast and constraint IDs, dangling parent references, mismatched periods, invalid fit cutoff, negative count values and invalid complete-child claims fail closed.
+For a complete constraint, the listed child rows must match the declared expected-child keys exactly. A missing forecast reference *or* an existing child forecast silently omitted from the listed set causes rejection. For incomplete/unknown constraints, the receipt reports missing forecast IDs and missing/unexpected expected-child keys instead of making them disappear. Spatial constraints cannot mix event types; event-type constraints cannot mix spatial units. Duplicate forecast and constraint IDs, dangling parent references, cycles in the aggregation graph, mismatched periods, invalid fit cutoff, negative count values and invalid complete-child claims fail closed.
 
 ## Receipt and metrics
 
