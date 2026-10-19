@@ -9,6 +9,10 @@
 
 use crate::Dimension;
 
+/// Bump when supported symbols, conversion factors, or parser semantics change.
+/// Serialized results carry this value so unit interpretation is reproducible.
+pub const UNIT_REGISTRY_VERSION: &str = "0.1.0";
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UnitDefinition {
     pub dimension: Dimension,
