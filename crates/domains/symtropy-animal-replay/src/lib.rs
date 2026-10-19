@@ -578,6 +578,14 @@ pub fn build_replay_receipt(
             {
                 rejected.insert(ReplayReason::BaselineStratumMismatch);
             }
+            if metric.metric_id != task.primary_metric_id {
+                rejected.insert(ReplayReason::BaselineMetricMismatch);
+            }
+            if metric.stratum_kind == MetricStratumKind::Taxon
+                && !manifest.taxonomy.taxon_ids.iter().any(|id| id == &metric.stratum_id)
+            {
+                rejected.insert(ReplayReason::TaxonStratumUnbound);
+            }
             if matches!(validate_metric(metric), MetricValidation::InvalidInterval | MetricValidation::InvalidValue) {
                 rejected.insert(ReplayReason::BaselineMetricNotReported);
             } else if matches!(validate_metric(metric), MetricValidation::Incomplete) {
