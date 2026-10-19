@@ -18,7 +18,7 @@ fn main() {
 
     let runs = 32_u64;
     println!(
-        "treatment,n_runs,mean_unmet_need_integral,mean_contributions,recovery_rate,mean_recovery_tick_when_recovered,verification_overhead,mean_repair_progress_at_shock_end"
+        "treatment,n_runs,mean_unmet_need_integral,mean_unmet_need_inequality_gini,mean_contributions,recovery_rate,mean_recovery_tick_when_recovered,verification_overhead,mean_repair_progress_at_shock_end"
     );
 
     for treatment in Treatment::ALL {
@@ -38,6 +38,8 @@ fn main() {
             .filter_map(|metrics| metrics.recovery_tick.map(|tick| tick as f64))
             .collect();
         let mean_unmet = mean(results.iter().map(|m| m.unmet_need_integral)).unwrap_or(0.0);
+        let mean_inequality =
+            mean(results.iter().map(|m| m.unmet_need_inequality_gini)).unwrap_or(0.0);
         let mean_contributions =
             mean(results.iter().map(|m| m.contribution_count as f64)).unwrap_or(0.0);
         let mean_overhead =
@@ -54,10 +56,11 @@ fn main() {
             .unwrap_or_else(|| "NA".to_owned());
 
         println!(
-            "{},{},{:.6},{:.4},{:.4},{},{:.4},{:.6}",
+            "{},{},{:.6},{:.6},{:.4},{:.4},{},{:.4},{:.6}",
             treatment.as_str(),
             results.len(),
             mean_unmet,
+            mean_inequality,
             mean_contributions,
             recovery_rate,
             mean_recovery,
