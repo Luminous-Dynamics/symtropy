@@ -57,15 +57,15 @@ No single equation is mandated as ground truth. The benchmark must compare compe
 
 ## First falsifiable question
 
-**Question:** Under what conditions do verifiable commitments and accessible dispute resolution improve cooperation and recovery after a shared-service shock, compared with (a) no commitment mechanism, (b) static trust, and (c) a simple reciprocity heuristic?
+**Question:** Under what conditions does noisy, evidence-based trust updating improve cooperation and recovery after a shared-service shock, compared with (a) no explicit trust mechanism, (b) static trust, and (c) a simple reciprocity heuristic?
 
-**Hypothesis, not result:** verification can improve coordination when evidence is informative and the cost of verification is lower than the expected loss from failed commitments. Benefits may vanish or reverse when verification is expensive, evidence is biased, enforcement is captured, or adversaries can cheaply create false attestations.
+**Hypothesis, not result:** evidence-based trust updating can improve coordination when observations are informative and verification cost is lower than the expected loss from failed commitments. Benefits may vanish or reverse when observations are noisy, verification is expensive, or adversaries can cheaply tamper with signals. The current prototype models signal tampering only; institutional capture and a formal appeals/dispute process are later, separately testable extensions.
 
 ### Initial scenario: community water-service shock
 
 Use synthetic agents first. Each household has a water need, time budget, contribution capacity, and access to a shared water-service network. A shock reduces capacity for a defined interval. Households can contribute repair work or resources under alternative coordination and governance rules.
 
-Compare interventions while holding initial topology, resources, policy parameters, event stream, and random seeds constant. Then vary topology, shock severity, information quality, verification cost, and institutional capture as separately declared factors.
+Compare interventions while holding initial topology, resources, policy parameters, exogenous random channels, and seed list constant. Then vary topology, shock severity, observation noise, verification cost, and the prototype's signal-tampering rate as separately declared factors. Do not describe the signal-flip parameter as a complete institutional-capture model.
 
 Do not begin with a city-wide “digital twin” claim. Start with this small scenario and prove that model behavior, event logs, and metrics are reproducible.
 
