@@ -93,6 +93,16 @@ The `IntentEvaluation.preference_rating` field is optional and only valid for `O
 
 This is an exploration aid: it does not prove a candidate is compliant, safe, affordable, or buildable. Hard constraints and independent professional/authority assessments remain separate.
 
+### Try the Pareto example without a renderer
+
+From the workspace root, run:
+
+```bash
+cargo run -p symtropy-bevy-scene --example owner_led_home_alternatives
+```
+
+The example compares four synthetic home concepts using made-up owner ratings for daylight and privacy. It retains genuine trade-offs, leaves a candidate with unknown preference ratings incomparable, and keeps the egress requirement outside the preference score. It does not generate a house, evaluate building codes, or claim that any candidate is buildable.
+
 ## License
 
 Apache-2.0 OR MIT (permissive). No AGPL deps.
