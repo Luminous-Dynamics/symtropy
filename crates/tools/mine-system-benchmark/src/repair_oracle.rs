@@ -557,4 +557,63 @@ mod tests {
         no_opener.requires_access = vec!["closed-gallery".into()];
         assert!(matches!(solve_exact(&problem(vec![no_opener], 5)), Err(RepairError::InvalidInput(_))));
     }
+
+    #[test]
+    fn exact_solver_matches_independent_two_job_start_grid_oracle() {
+        let weights = [0_u64, 1, 3];
+        let mut checked = 0_u32;
+
+        for duration_a in 1_u64..=3 {
+            for duration_b in 1_u64..=3 {
+                for weight_a in weights {
+                    for weight_b in weights {
+                        for horizon in duration_a.max(duration_b)..=5 {
+                            for crew_count in [1_usize, 2] {
+                                let input = RepairProblem {
+                                    horizon_ticks: horizon,
+                                    crew_counts: BTreeMap::from([
+                                        ("mechanic".into(), crew_count),
+                                        ("access".into(), 1),
+                                    ]),
+                                    jobs: vec![
+                                        job("a", duration_a, "mechanic", weight_a),
+                                        job("b", duration_b, "mechanic", weight_b),
+                                    ],
+                                    ..problem(Vec::new(), horizon)
+                                };
+                                // The independent oracle enumerates the full
+                                // Cartesian product of start times. It does not
+                                // use the production solver's dependency-first
+                                // branch order or resource-feasibility routines.
+                                let mut expected: Option<u128> = None;
+                                for start_a in 0..=horizon - duration_a {
+                                    for start_b in 0..=horizon - duration_b {
+                                        let finish_a = start_a + duration_a;
+                                        let finish_b = start_b + duration_b;
+                                        let overlaps = start_a < finish_b && start_b < finish_a;
+                                        if crew_count == 1 && overlaps {
+                                            continue;
+                                        }
+                                        let objective = u128::from(weight_a)
+                                            * u128::from(finish_a)
+                                            + u128::from(weight_b) * u128::from(finish_b);
+                                        expected = Some(expected.map_or(objective, |best| best.min(objective)));
+                                    }
+                                }
+                                let expected = expected.expect("at least one feasible two-job schedule");
+                                let actual = solve_exact(&input).unwrap();
+                                assert_eq!(
+                                    actual.weighted_service_loss_ticks, expected,
+                                    "durations=({duration_a},{duration_b}), weights=({weight_a},{weight_b}), horizon={horizon}, crews={crew_count}"
+                                );
+                                checked += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(checked, 432);
+    }
+
 }
