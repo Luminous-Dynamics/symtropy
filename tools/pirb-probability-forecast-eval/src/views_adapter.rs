@@ -222,8 +222,26 @@ struct ArchiveReleaseCommitment {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+struct ForecastArchiveDescriptor {
+    provider: String,
+    forecast_archive_id: String,
+    model_id: String,
+    model_version: String,
+    forecast_variable: String,
+    codebook_variable_key: String,
+    target_definition: String,
+    analysis_unit: AnalysisUnit,
+    violence_type: String,
+    binary_event_threshold_brd: i64,
+    threshold_definition: String,
+    lead_months: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ArchiveCommitment {
     commitment_version: String,
+    forecast_contract: ForecastArchiveDescriptor,
     releases: Vec<ArchiveReleaseCommitment>,
 }
 
@@ -388,9 +406,10 @@ pub fn import_views_archive(
     }
     if manifest.source.codebook_variable_key != "main_dich"
         || manifest.source.variable_kind != VariableKind::BinaryEventProbability
+        || manifest.source.forecast_variable != "sc_cm_sb_dich_main"
     {
         return Err(vec![
-            "probability import accepts only main_dich with explicit binary-event-probability semantics; count/log-count variables are rejected".to_owned(),
+            "v0.1 accepts only sc_cm_sb_dich_main with main_dich binary-event-probability semantics; count/log-count and unimplemented variables are rejected".to_owned(),
         ]);
     }
     if !matches!(manifest.partition.as_str(), "predict" | "eval" | "calib") {
@@ -893,6 +912,20 @@ pub fn import_views_archive(
 
     let archive_commitment = ArchiveCommitment {
         commitment_version: "0.1".to_owned(),
+        forecast_contract: ForecastArchiveDescriptor {
+            provider: manifest.source.provider.clone(),
+            forecast_archive_id: manifest.source.forecast_archive_id.clone(),
+            model_id: manifest.source.model_id.clone(),
+            model_version: manifest.source.model_version.clone(),
+            forecast_variable: manifest.source.forecast_variable.clone(),
+            codebook_variable_key: manifest.source.codebook_variable_key.clone(),
+            target_definition: manifest.source.target_definition.clone(),
+            analysis_unit: manifest.source.analysis_unit,
+            violence_type: manifest.source.violence_type.clone(),
+            binary_event_threshold_brd: manifest.source.binary_event_threshold_brd,
+            threshold_definition: manifest.source.threshold_definition.clone(),
+            lead_months: manifest.lead_months,
+        },
         releases: archive_releases,
     };
     let archive_bytes = serde_json::to_vec(&archive_commitment)
@@ -1196,6 +1229,47 @@ mod tests {
             changed.receipt.normalized_dataset_sha256,
             original.receipt.normalized_dataset_sha256
         );
+    }
+
+    #[test]
+    fn outcome_only_revision_does_not_change_forecast_archive_commitment() {
+        let original = import();
+        let mut changed_outcomes: Value = serde_json::from_slice(OUTCOMES).unwrap();
+        changed_outcomes["rows"][0]["outcome"] = Value::String("event".to_owned());
+        changed_outcomes["rows"][0]["outcome_available_month"] =
+            Value::from(changed_outcomes["rows"][0]["target_month"].as_i64().unwrap() + 2);
+        let changed_bytes = serde_json::to_vec(&changed_outcomes).unwrap();
+        let changed = import_views_archive(
+            MANIFEST,
+            &changed_bytes,
+            BLOCK_MAP,
+            &source_map(),
+            runtime(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            changed.receipt.forecast_archive_sha256,
+            original.receipt.forecast_archive_sha256
+        );
+        assert_ne!(
+            changed.receipt.outcome_snapshot_sha256,
+            original.receipt.outcome_snapshot_sha256
+        );
+        assert_ne!(
+            changed.receipt.normalized_dataset_sha256,
+            original.receipt.normalized_dataset_sha256
+        );
+    }
+
+    #[test]
+    fn manifest_cannot_relabel_a_different_forecast_variable_as_main_dich() {
+        let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
+        manifest["source"]["forecast_variable"] =
+            Value::String("sc_cm_sb_main".to_owned());
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
+        assert!(result.is_err());
     }
 
     #[test]
