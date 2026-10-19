@@ -382,7 +382,11 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
         findings.push("minimum_subgroup_outcomes must be at least 2".to_owned());
     }
     let resampling = &dataset.resampling;
-    if resampling.spatial_blocking_method_reference.trim().is_empty() {
+    if resampling
+        .spatial_blocking_method_reference
+        .trim()
+        .is_empty()
+    {
         findings.push("spatial_blocking_method_reference must not be empty".to_owned());
     }
     if resampling.spatial_block_map_sha256.len() != 64
@@ -391,7 +395,9 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        findings.push("spatial_block_map_sha256 must be a lowercase 64-character SHA-256 digest".to_owned());
+        findings.push(
+            "spatial_block_map_sha256 must be a lowercase 64-character SHA-256 digest".to_owned(),
+        );
     }
     if !(1..=12).contains(&resampling.temporal_block_length_months)
         || resampling.minimum_spatial_blocks < 4
@@ -403,7 +409,10 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
         || resampling.confidence_level <= 0.5
         || resampling.confidence_level >= 1.0
     {
-        findings.push("resampling support thresholds, replicate counts, and confidence level must be valid".to_owned());
+        findings.push(
+            "resampling support thresholds, replicate counts, and confidence level must be valid"
+                .to_owned(),
+        );
     }
     if !(1..=36).contains(&dataset.lead_months) {
         findings.push(
@@ -465,10 +474,7 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
             )),
             Some(_) => {}
             None => {
-                unit_spatial_blocks.insert(
-                    record.unit_id.clone(),
-                    record.spatial_block_id.clone(),
-                );
+                unit_spatial_blocks.insert(record.unit_id.clone(), record.spatial_block_id.clone());
             }
         }
         if !seen_forecast_ids.insert(record.forecast_id.clone()) {
@@ -1281,7 +1287,13 @@ mod tests {
     #[test]
     fn unit_spatial_block_mapping_cannot_change_within_dataset() {
         let mut d = dataset();
-        let index = d.records.iter().position(|record| record.unit_id == "unit-alpha" && record.forecast_id == "forecast-t4").unwrap();
+        let index = d
+            .records
+            .iter()
+            .position(|record| {
+                record.unit_id == "unit-alpha" && record.forecast_id == "forecast-t4"
+            })
+            .unwrap();
         d.records[index].spatial_block_id = "block-conflicting".to_owned();
         assert!(
             semantic_errors(&d)
