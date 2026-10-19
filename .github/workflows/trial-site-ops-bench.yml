@@ -64,6 +64,9 @@ jobs:
             and (.source_commit == env.SOURCE_COMMIT)
             and (.scenarios | length == 6)
             and (.scenarios | all(.status == "pass"))
+            and (.scenarios | all(.reference_comparison.B1_self_report_only != null))
+            and (.scenarios | all(.reference_comparison.B3_capability_aware_heuristic != null))
+            and (.scenarios | all(.reference_comparison.separate_access_dimensions != null))
           ' trial-site-ops-reference-receipt.json
 
       - name: Upload deterministic reference receipt
