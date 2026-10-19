@@ -1359,7 +1359,9 @@ pub enum DesignReviewSessionIssue {
     EmptyViewerBuildId,
     EmptySnapshotManifestArtifactId,
     InvalidSnapshotDigest,
-    UnsupportedSchemaVersion { found: u32 },
+    UnsupportedSchemaVersion {
+        found: u32,
+    },
     StaticPlanMustNotHaveRoute,
     ModeRequiresRoute {
         mode: DesignReviewMode,
@@ -1721,7 +1723,10 @@ mod tests {
         let second_bytes = review_session_manifest_bytes(&second).unwrap();
         assert_eq!(first_bytes, second_bytes);
         let decoded: serde_json::Value = serde_json::from_slice(&first_bytes).unwrap();
-        assert_eq!(decoded["schema_version"], DESIGN_REVIEW_SESSION_SCHEMA_VERSION);
+        assert_eq!(
+            decoded["schema_version"],
+            DESIGN_REVIEW_SESSION_SCHEMA_VERSION
+        );
         assert!(decoded.get("snapshot_sha256").is_none());
     }
 
@@ -1737,11 +1742,13 @@ mod tests {
     fn review_session_rejects_unknown_schema_version() {
         let mut session = sample_review_session(DesignReviewMode::StaticPlan);
         session.schema_version = DESIGN_REVIEW_SESSION_SCHEMA_VERSION + 1;
-        assert!(validate_design_review_session(&session)
-            .unwrap_err()
-            .contains(&DesignReviewSessionIssue::UnsupportedSchemaVersion {
-                found: DESIGN_REVIEW_SESSION_SCHEMA_VERSION + 1,
-            }));
+        assert!(
+            validate_design_review_session(&session)
+                .unwrap_err()
+                .contains(&DesignReviewSessionIssue::UnsupportedSchemaVersion {
+                    found: DESIGN_REVIEW_SESSION_SCHEMA_VERSION + 1,
+                })
+        );
     }
 
     #[test]
