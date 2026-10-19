@@ -32,6 +32,8 @@ jobs:
         run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-service-access-manifest
       - name: Independently verify field-evaluation report case manifest
         run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-eval-report-manifest
+      - name: Independently verify need-observation case manifest
+        run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-need-observation-manifest
       - name: Run garden-simulation and field-robot cost tests
         run: cargo test --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
       - name: Verify synthetic field-evaluation report fixture
