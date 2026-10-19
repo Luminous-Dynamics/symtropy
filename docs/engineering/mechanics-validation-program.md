@@ -117,7 +117,7 @@ A digest establishes identity/integrity relative to the digested bytes, not the 
 
 ### Sol-Atlas — asset context and operational impact
 
-- Reuse the asset/provenance foundations and align repairability measures with the existing [repair-first, reversible construction-systems benchmark](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/149) where it applies; this mechanics work should not introduce a second asset identity system.
+- Reuse the existing [pump/water service trajectory work](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/144) and [evidence-bounded asset assessment export](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/162) for operational impact and asset packets; align repairability measures with the [repair-first, reversible construction-systems benchmark](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/149) where relevant. Do not introduce a second asset identity system.
 - Link each physical asset and component to stable identifiers, location, facility relationships, access constraints, and critical dependencies (power, water, cooling, transport, spares).
 - Make service capacity and recovery time explicit; distinguish a failed component from a degraded service and from total asset unavailability.
 - Propagate mechanical fault scenarios to operational impacts with documented assumptions and provenance.
