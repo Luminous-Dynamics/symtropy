@@ -12,7 +12,8 @@
     "source",
     "privacy",
     "temporal_split",
-    "records"
+    "records",
+    "lead_months"
   ],
   "properties": {
     "schema_version": {
@@ -196,6 +197,12 @@
       "items": {
         "$ref": "#/$defs/forecast"
       }
+    },
+    "lead_months": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 36,
+      "description": "One forecast horizon per dataset. Evaluate other leads using a separate dataset and receipt."
     }
   },
   "$defs": {
