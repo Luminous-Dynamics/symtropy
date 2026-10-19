@@ -134,6 +134,10 @@ The values below are **targets to implement**, not current accomplishments.
 
 ## Replay-result receipt contract
 
+A metric is keyed by its metric definition plus a stable stratum kind and identifier. The same metric may appear for the overall cohort, each taxon, life stage, site/study, occlusion band or condition; duplicate keys for the same metric/stratum are rejected. Keep per-stratum sample counts and uncertainty visible rather than averaging rare taxa out of the report.
+
+A preregistered threshold is met only when the declared uncertainty interval clears it in the required direction. If the interval overlaps the threshold, record `uncertain`; if no suitable interval exists, the threshold is `not_assessed`, not passed. A point estimate on the favorable side is not sufficient to call a threshold met.
+
 A future typed result record should bind at minimum:
 
 - schema version, stable run ID, task ID/version and result status (eligible, indeterminate, reject, incomplete);
