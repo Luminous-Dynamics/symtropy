@@ -175,6 +175,60 @@ struct ProducerGate {
     evidence_payload: Option<Value>,
 }
 
+const BUILT_INTEROP_002_ID: &str = "BUILT-INTEROP-002-ifc-ids-v0.1";
+const BUILT_INTEROP_002_PROFILE: &str = "IFC4/IDS1.0/IFCWALL.Name/simpleValue-v0.1";
+const BUILT_INTEROP_002_MAPPING_POLICY: &str =
+    "BUILT-INTEROP-006/v0.2;adapter=BUILT-INTEROP-002-ifc-ids-v0.1;binding=target-ifc+requirements-ids-digest;pass=SubsetConformant-all-Preserved;fail=Blocked-with-Changed-or-Missing;otherwise=UNRESOLVED";
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+enum AdapterDecision {
+    SubsetConformant,
+    Blocked,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+enum AdapterPropertyOutcome {
+    Preserved,
+    Changed,
+    Missing,
+    NotEvaluated,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AdapterObservation {
+    requirement_id: String,
+    source_object_id: String,
+    source_step_id: String,
+    source_entity_type: String,
+    source_attribute_index: usize,
+    source_attribute_path: String,
+    property_key: String,
+    expected_value: String,
+    observed_value: Option<String>,
+    outcome: AdapterPropertyOutcome,
+    diagnostic_code: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BuiltInterop002Report {
+    schema_version: String,
+    benchmark_id: String,
+    supported_profile: String,
+    decision: AdapterDecision,
+    ifc_schema_token: Option<String>,
+    ids_version_evidence: String,
+    ifc_input_sha256: String,
+    ids_input_sha256: String,
+    parsed_entity_count: usize,
+    applicable_wall_count: Option<usize>,
+    observations: Vec<AdapterObservation>,
+    diagnostics: Vec<String>,
+    semantic_result_sha256: String,
+}
+
 #[derive(Debug)]
 struct CliArgs {
     source_ifc: PathBuf,
@@ -545,11 +599,120 @@ fn validate_report(report: &Report) -> Result<(), String> {
     Ok(())
 }
 
-fn parse_gate_file(path: &Path) -> Result<ProducerGate, String> {
+fn adapt_built_interop_002_report(
+    report: &BuiltInterop002Report,
+    raw_report_bytes: &[u8],
+    report_path: &Path,
+    target_ifc_bytes: &[u8],
+    requirements_ids_bytes: &[u8],
+) -> Result<Gate, String> {
+    if report.schema_version != "0.1.0"
+        || report.benchmark_id != BUILT_INTEROP_002_ID
+        || report.supported_profile != BUILT_INTEROP_002_PROFILE
+    {
+        return Err("BUILT_INTEROP_002_PROFILE_MISMATCH".into());
+    }
+
+    let target_sha256 = sha256_hex(target_ifc_bytes);
+    let ids_sha256 = sha256_hex(requirements_ids_bytes);
+    if report.ifc_input_sha256 != target_sha256 || report.ids_input_sha256 != ids_sha256 {
+        return Err("BUILT_INTEROP_002_ARTIFACT_DIGEST_MISMATCH".into());
+    }
+    if !is_lower_hex_of_length(&report.semantic_result_sha256, 64) {
+        return Err("BUILT_INTEROP_002_SEMANTIC_DIGEST_INVALID".into());
+    }
+
+    let profile_confirmed = report.ifc_schema_token.as_deref() == Some("IFC4")
+        && report.ids_version_evidence == "Declared:IDS1.0";
+    let property_failure = report.observations.iter().any(|observation| {
+        matches!(
+            observation.outcome,
+            AdapterPropertyOutcome::Changed | AdapterPropertyOutcome::Missing
+        )
+    });
+    let status = if !profile_confirmed {
+        GateStatus::Unresolved
+    } else {
+        match report.decision {
+            AdapterDecision::SubsetConformant => {
+                let complete_observation_set = report.applicable_wall_count
+                    .is_some_and(|count| count > 0 && count == report.observations.len());
+                let every_observation_preserved = report
+                    .observations
+                    .iter()
+                    .all(|observation| observation.outcome == AdapterPropertyOutcome::Preserved);
+                if complete_observation_set
+                    && every_observation_preserved
+                    && report.diagnostics.is_empty()
+                {
+                    GateStatus::Pass
+                } else {
+                    GateStatus::Unresolved
+                }
+            }
+            AdapterDecision::Blocked if property_failure => GateStatus::Fail,
+            AdapterDecision::Blocked | AdapterDecision::Unresolved => GateStatus::Unresolved,
+        }
+    };
+
+    let report_sha256 = sha256_hex(raw_report_bytes);
+    let gate = Gate {
+        gate_id: GateId::IdsModelConformance,
+        mandatory: true,
+        status,
+        claim_scope: report.supported_profile.clone(),
+        limitations: vec![
+            "This mapping implements only IFC4 / IDS 1.0 / required unbounded IFCWALL applicability / literal IFCWALL.Name.".into(),
+            "A Blocked adapter result is FAIL only when a typed observation proves a required Name is changed or missing; identity/profile/unsupported blockers remain UNRESOLVED.".into(),
+            "The assembler hashes the exact producer report bytes; it does not independently recompute the adapter semantic_result_sha256 or prove complete IDS conformance.".into(),
+        ],
+        tool: Some(ToolIdentity {
+            name: "built-interop-ifc-ids".into(),
+            version: report.schema_version.clone(),
+            config_sha256: sha256_hex(BUILT_INTEROP_002_MAPPING_POLICY.as_bytes()),
+        }),
+        evidence: vec![Evidence {
+            evidence_id: format!("built-interop-002-report-{report_sha256}"),
+            kind: EvidenceKind::ValidatorReport,
+            sha256: report_sha256,
+            locator: report_path.display().to_string(),
+        }],
+    };
+    validate_gate(&gate)?;
+    Ok(gate)
+}
+
+fn parse_gate_file(
+    path: &Path,
+    target_ifc_bytes: &[u8],
+    requirements_ids_bytes: &[u8],
+) -> Result<ProducerGate, String> {
     let bytes = fs::read(path)
         .map_err(|error| format!("CANNOT_READ_GATE_JSON:{}:{error}", path.display()))?;
     let json: Value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("INVALID_GATE_JSON:{}:{error}", path.display()))?;
+
+    // This is an explicit typed converter for one pinned producer schema,
+    // not heuristic parsing of diagnostics or console output.
+    if json.get("benchmark_id").and_then(Value::as_str) == Some(BUILT_INTEROP_002_ID)
+        && json.get("gate").is_none()
+    {
+        let adapter_report: BuiltInterop002Report = serde_json::from_value(json)
+            .map_err(|error| format!("INVALID_BUILT_INTEROP_002_REPORT:{}:{error}", path.display()))?;
+        let gate = adapt_built_interop_002_report(
+            &adapter_report,
+            &bytes,
+            path,
+            target_ifc_bytes,
+            requirements_ids_bytes,
+        )?;
+        return Ok(ProducerGate {
+            gate,
+            path: path.to_path_buf(),
+            evidence_payload: None,
+        });
+    }
+
     let is_envelope = json.get("gate").is_some();
     let gate_value = json.get("gate").unwrap_or(&json).clone();
     let evidence_payload = if is_envelope {
@@ -761,8 +924,8 @@ fn run() -> Result<i32, String> {
     })?;
     let mut producer_gates = Vec::new();
     for gate_path in &args.gate_json {
-        let mut input = parse_gate_file(gate_path)?;
-        verify_embedded_payload(&input, &source_bytes, &args.ifc_schema)?;
+        let mut input = parse_gate_file(gate_path, &target_bytes, &ids_bytes)?;
+        verify_embedded_payload(&input, &target_bytes, &args.ifc_schema)?;
         resolve_payload_locator(&mut input)?;
         producer_gates.push(input.gate);
     }
