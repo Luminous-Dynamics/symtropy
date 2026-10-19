@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md"
       - "docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_RECOURSE_BENCHMARK_V0_1.md"
       - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
       - "tools/mine-flex-scheduling-bench/**"
       - ".github/workflows/mine-flex-scheduling-bench.yml"
@@ -128,3 +129,66 @@ jobs:
             }],
             paired_comparisons
           }' mine-flex-robustness-receipt.json
+      - name: Validate causal adaptive recourse and out-of-envelope controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \
+            --recourse --source-commit "$source_commit" > mine-flex-recourse-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-FLEX-RECOURSE-001"
+            and .recourse_policy_version == "mine-flex-causal-recourse-v0.1.0"
+            and .generator_version == "mine-flex-generated-disturbances-v0.1.0"
+            and .validation_seed_count == 32
+            and .held_out_seed_count == 32
+            and .envelope_worlds_per_seed == 5
+            and .out_of_envelope_challenges_per_seed == 3
+            and .in_envelope_world_count == 320
+            and .out_of_envelope_world_count == 192
+            and .total_world_count == 512
+            and .validation_world_count == 256
+            and .held_out_world_count == 256
+            and .completed_adaptive_worlds_within_envelope == 320
+            and .completed_carbon_first_worlds_within_envelope == 320
+            and (.adaptive_aborts_outside_envelope + .carbon_first_aborts_outside_envelope) > 0
+            and .causal_nonanticipativity_violations == 0
+            and .independent_hard_constraint_violations == 0
+            and ([.summaries[] | select((.policy_id == "causal_adaptive_recourse" or .policy_id == "causal_adaptive_carbon_first") and .world_class == "in_envelope").feasible_rate_basis_points] | all(. == 10000))
+            and ([.summaries[] | select((.policy_id == "causal_adaptive_recourse" or .policy_id == "causal_adaptive_carbon_first") and .world_class == "out_of_envelope") | .evaluated_worlds] | all(. == 96))
+            and (.generated_evaluation_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.world_results[] | select(.adaptive_execution.completed_production_target == false and .adaptive_recourse.feasible == true)] | length == 0)
+            and ([.world_results[] | select(.carbon_aware_execution.completed_production_target == false and .carbon_aware_recourse.feasible == true)] | length == 0)
+          ' mine-flex-recourse-receipt.json
+      - name: Emit recourse metrics by split and world class
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id, recourse_policy_version, generator_version,
+            in_envelope_world_count, out_of_envelope_world_count,
+            completed_adaptive_worlds_within_envelope,
+            adaptive_aborts_outside_envelope,
+            completed_carbon_first_worlds_within_envelope,
+            carbon_first_aborts_outside_envelope,
+            causal_nonanticipativity_violations,
+            independent_hard_constraint_violations,
+            summaries,
+            paired_outcomes: [.world_results[] | {
+              seed, split, world_class, realization_id,
+              oracle_cost: .evaluator_oracle_grid_cost_units,
+              nominal_feasible: .nominal_policy.feasible,
+              robust_feasible: .static_robust_policy.feasible,
+              adaptive_feasible: .adaptive_recourse.feasible,
+              adaptive_schedule: .adaptive_recourse.schedule_batches,
+              adaptive_rejection: .adaptive_recourse.rejection_reason,
+              adaptive_incurred_cost: .adaptive_execution.incurred_grid_cost_units,
+              carbon_first_feasible: .carbon_aware_recourse.feasible,
+              carbon_first_schedule: .carbon_aware_recourse.schedule_batches,
+              carbon_first_rejection: .carbon_aware_recourse.rejection_reason,
+              carbon_first_incurred_cost: .carbon_aware_execution.incurred_grid_cost_units
+            }]
+          }' mine-flex-recourse-receipt.json

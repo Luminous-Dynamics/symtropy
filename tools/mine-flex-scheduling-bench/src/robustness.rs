@@ -3,6 +3,9 @@ use super::{
     score_order, sha256, Check, PeriodInput, ProcessModel, ScenarioExpectation, ScenarioInput,
     ScenarioStatus, ScheduleScore,
 };
+#[path = "recourse.rs"]
+mod recourse;
+
 use serde::Serialize;
 use std::process::ExitCode;
 
@@ -769,6 +772,10 @@ fn make_receipt(source_commit: &str) -> Check<RobustnessReceipt> {
         claim_ceiling: "Generated public synthetic disturbance tournament only; no mine-site cost, carbon, water sufficiency, safety, forecast calibration or industrial performance claim.".to_owned(),
         world_results,
     })
+}
+
+pub(super) fn run_recourse_cli(args: &[String]) -> Check<ExitCode> {
+    recourse::run_cli(args)
 }
 
 pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {

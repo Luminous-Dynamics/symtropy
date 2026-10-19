@@ -658,6 +658,12 @@ fn run() -> Check<ExitCode> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     if args
         .first()
+        .is_some_and(|argument| argument == "--recourse")
+    {
+        return robustness::run_recourse_cli(&args[1..]);
+    }
+    if args
+        .first()
         .is_some_and(|argument| argument == "--robustness")
     {
         return robustness::run_cli(&args[1..]);
