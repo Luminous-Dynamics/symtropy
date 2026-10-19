@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use pirb_probability_forecast_eval::views_adapter::{
-    import_views_archive, referenced_source_paths, ImportRuntime,
+    ImportRuntime, import_views_archive, referenced_source_paths,
 };
 use std::{
     collections::BTreeMap,
