@@ -312,7 +312,9 @@ fn index_stable_observations(
                 object_id: id.into(),
                 source_value: observation.observed_value.clone(),
                 target_value: None,
-                detail: format!("{side} observation does not match the pinned IFCWALL.Name profile"),
+                detail: format!(
+                    "{side} observation does not match the pinned IFCWALL.Name profile"
+                ),
             });
             continue;
         }
@@ -365,7 +367,8 @@ fn compare_reports(
                     object_id: object_id.clone(),
                     source_value: source_observation.observed_value.clone(),
                     target_value: None,
-                    detail: "A source IFCWALL with a stable GlobalId has no target observation".into(),
+                    detail: "A source IFCWALL with a stable GlobalId has no target observation"
+                        .into(),
                 });
             } else {
                 counts.unresolved += 1;
@@ -461,7 +464,9 @@ fn compare_reports(
                 object_id: object_id.clone(),
                 source_value: None,
                 target_value: target_observation.observed_value.clone(),
-                detail: "The source observation set is incomplete or contains unmatchable identities".into(),
+                detail:
+                    "The source observation set is incomplete or contains unmatchable identities"
+                        .into(),
             });
         }
     }
@@ -486,7 +491,13 @@ fn compare_reports(
         GateStatus::Pass => "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
         GateStatus::Unresolved => "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED",
     };
-    (status, counts, findings, comparison_coverage_complete, reason.into())
+    (
+        status,
+        counts,
+        findings,
+        comparison_coverage_complete,
+        reason.into(),
+    )
 }
 
 fn evaluate(
@@ -500,18 +511,8 @@ fn evaluate(
         .map_err(|error| format!("SOURCE_ADAPTER_REPORT_INVALID:{error}"))?;
     let target_report: AdapterReport = serde_json::from_slice(target_report_bytes)
         .map_err(|error| format!("TARGET_ADAPTER_REPORT_INVALID:{error}"))?;
-    verify_adapter_report(
-        &source_report,
-        source_ifc,
-        ids_bytes,
-        "source",
-    )?;
-    verify_adapter_report(
-        &target_report,
-        target_ifc,
-        ids_bytes,
-        "target",
-    )?;
+    verify_adapter_report(&source_report, source_ifc, ids_bytes, "source")?;
+    verify_adapter_report(&target_report, target_ifc, ids_bytes, "target")?;
 
     let source_sha256 = sha256_hex(source_ifc);
     let target_sha256 = sha256_hex(target_ifc);
@@ -590,7 +591,8 @@ fn parse_args() -> Result<Option<CliInputs>, String> {
     let mut options = BTreeMap::<String, String>::new();
     while let Some(key) = args.next() {
         match key.as_str() {
-            "--source-ifc" | "--target-ifc" | "--ids" | "--source-report" | "--target-report" | "--output" => {
+            "--source-ifc" | "--target-ifc" | "--ids" | "--source-report" | "--target-report"
+            | "--output" => {
                 let value = args.next().ok_or_else(|| format!("MISSING_VALUE:{key}"))?;
                 if options.insert(key.clone(), value).is_some() {
                     return Err(format!("DUPLICATE_ARGUMENT:{key}"));
@@ -624,16 +626,32 @@ fn run() -> Result<i32, String> {
         println!("{}", usage());
         return Ok(0);
     };
-    let source_ifc = fs::read(&args.source_ifc)
-        .map_err(|error| format!("CANNOT_READ_SOURCE_IFC:{}:{error}", args.source_ifc.display()))?;
-    let target_ifc = fs::read(&args.target_ifc)
-        .map_err(|error| format!("CANNOT_READ_TARGET_IFC:{}:{error}", args.target_ifc.display()))?;
+    let source_ifc = fs::read(&args.source_ifc).map_err(|error| {
+        format!(
+            "CANNOT_READ_SOURCE_IFC:{}:{error}",
+            args.source_ifc.display()
+        )
+    })?;
+    let target_ifc = fs::read(&args.target_ifc).map_err(|error| {
+        format!(
+            "CANNOT_READ_TARGET_IFC:{}:{error}",
+            args.target_ifc.display()
+        )
+    })?;
     let ids = fs::read(&args.ids)
         .map_err(|error| format!("CANNOT_READ_IDS:{}:{error}", args.ids.display()))?;
-    let source_report = fs::read(&args.source_report)
-        .map_err(|error| format!("CANNOT_READ_SOURCE_REPORT:{}:{error}", args.source_report.display()))?;
-    let target_report = fs::read(&args.target_report)
-        .map_err(|error| format!("CANNOT_READ_TARGET_REPORT:{}:{error}", args.target_report.display()))?;
+    let source_report = fs::read(&args.source_report).map_err(|error| {
+        format!(
+            "CANNOT_READ_SOURCE_REPORT:{}:{error}",
+            args.source_report.display()
+        )
+    })?;
+    let target_report = fs::read(&args.target_report).map_err(|error| {
+        format!(
+            "CANNOT_READ_TARGET_REPORT:{}:{error}",
+            args.target_report.display()
+        )
+    })?;
 
     let output = evaluate(
         &source_ifc,
@@ -742,8 +760,7 @@ mod tests {
             observations: &report.observations,
             diagnostics: &report.diagnostics,
         };
-        report.semantic_result_sha256 =
-            sha256_hex(&serde_json::to_vec(&semantic).unwrap());
+        report.semantic_result_sha256 = sha256_hex(&serde_json::to_vec(&semantic).unwrap());
         report
     }
 
@@ -753,34 +770,24 @@ mod tests {
     ) -> Output {
         let source = b"source IFC";
         let target = b"target IFC";
-        let source_decision = if source_obs.iter().any(|observation| {
-            observation.outcome != AdapterPropertyOutcome::Preserved
-        }) {
+        let source_decision = if source_obs
+            .iter()
+            .any(|observation| observation.outcome != AdapterPropertyOutcome::Preserved)
+        {
             AdapterDecision::Blocked
         } else {
             AdapterDecision::SubsetConformant
         };
-        let target_decision = if target_obs.iter().any(|observation| {
-            observation.outcome != AdapterPropertyOutcome::Preserved
-        }) {
+        let target_decision = if target_obs
+            .iter()
+            .any(|observation| observation.outcome != AdapterPropertyOutcome::Preserved)
+        {
             AdapterDecision::Blocked
         } else {
             AdapterDecision::SubsetConformant
         };
-        let source_report = report(
-            source,
-            source_obs,
-            source_decision,
-            Some("IFC4"),
-            IDS_BYTES,
-        );
-        let target_report = report(
-            target,
-            target_obs,
-            target_decision,
-            Some("IFC4"),
-            IDS_BYTES,
-        );
+        let source_report = report(source, source_obs, source_decision, Some("IFC4"), IDS_BYTES);
+        let target_report = report(target, target_obs, target_decision, Some("IFC4"), IDS_BYTES);
         evaluate(
             source,
             target,
@@ -794,8 +801,18 @@ mod tests {
     #[test]
     fn identical_stable_property_is_passed() {
         let output = run_pair(
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#7")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#7",
+            )],
         );
         assert_eq!(output.gate.status, GateStatus::Pass);
         assert_eq!(output.evidence_payload.counts.compared, 1);
@@ -805,19 +822,42 @@ mod tests {
     #[test]
     fn changed_required_value_is_a_preservation_failure() {
         let output = run_pair(
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
-            vec![observation("0000000000000000000000", Some("Panel 002"), AdapterPropertyOutcome::Changed, "#8")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 002"),
+                AdapterPropertyOutcome::Changed,
+                "#8",
+            )],
         );
         assert_eq!(output.gate.status, GateStatus::Fail);
         assert_eq!(output.evidence_payload.counts.changed, 1);
-        assert_eq!(output.evidence_payload.findings[0].code, "REQUIRED_VALUE_CHANGED");
+        assert_eq!(
+            output.evidence_payload.findings[0].code,
+            "REQUIRED_VALUE_CHANGED"
+        );
     }
 
     #[test]
     fn populated_source_value_missing_from_target_is_a_loss() {
         let output = run_pair(
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
-            vec![observation("0000000000000000000000", None, AdapterPropertyOutcome::Missing, "#4")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
+            vec![observation(
+                "0000000000000000000000",
+                None,
+                AdapterPropertyOutcome::Missing,
+                "#4",
+            )],
         );
         assert_eq!(output.gate.status, GateStatus::Fail);
         assert_eq!(output.evidence_payload.counts.lost, 1);
@@ -826,8 +866,18 @@ mod tests {
     #[test]
     fn source_object_without_a_target_counterpart_is_dropped() {
         let output = run_pair(
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
-            vec![observation("0000000000000000000001", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#2")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
+            vec![observation(
+                "0000000000000000000001",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#2",
+            )],
         );
         assert_eq!(output.gate.status, GateStatus::Fail);
         assert_eq!(output.evidence_payload.counts.dropped, 1);
@@ -837,10 +887,25 @@ mod tests {
     #[test]
     fn new_target_object_is_recorded_without_failing_preservation() {
         let output = run_pair(
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
             vec![
-                observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#2"),
-                observation("0000000000000000000001", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#3"),
+                observation(
+                    "0000000000000000000000",
+                    Some("Panel 001"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#2",
+                ),
+                observation(
+                    "0000000000000000000001",
+                    Some("Panel 001"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#3",
+                ),
             ],
         );
         assert_eq!(output.gate.status, GateStatus::Pass);
@@ -851,8 +916,18 @@ mod tests {
     #[test]
     fn equal_absence_does_not_confuse_preservation_with_ids_conformance() {
         let output = run_pair(
-            vec![observation("0000000000000000000000", None, AdapterPropertyOutcome::Missing, "#1")],
-            vec![observation("0000000000000000000000", None, AdapterPropertyOutcome::Missing, "#3")],
+            vec![observation(
+                "0000000000000000000000",
+                None,
+                AdapterPropertyOutcome::Missing,
+                "#1",
+            )],
+            vec![observation(
+                "0000000000000000000000",
+                None,
+                AdapterPropertyOutcome::Missing,
+                "#3",
+            )],
         );
         assert_eq!(output.gate.status, GateStatus::Pass);
         assert_eq!(output.evidence_payload.counts.preserved, 1);
@@ -864,19 +939,36 @@ mod tests {
         let target = b"target IFC";
         let source_report = report(
             source,
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC4"),
             IDS_BYTES,
         );
         let target_report = report(
             target,
-            vec![observation("STEP:#1", Some("Panel 001"), AdapterPropertyOutcome::NotEvaluated, "#1")],
+            vec![observation(
+                "STEP:#1",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::NotEvaluated,
+                "#1",
+            )],
             AdapterDecision::Blocked,
             Some("IFC4"),
             IDS_BYTES,
         );
-        let output = evaluate(source, target, IDS_BYTES, &serde_json::to_vec(&source_report).unwrap(), &serde_json::to_vec(&target_report).unwrap()).unwrap();
+        let output = evaluate(
+            source,
+            target,
+            IDS_BYTES,
+            &serde_json::to_vec(&source_report).unwrap(),
+            &serde_json::to_vec(&target_report).unwrap(),
+        )
+        .unwrap();
         assert_eq!(output.gate.status, GateStatus::Unresolved);
         assert_eq!(output.evidence_payload.counts.dropped, 0);
         assert!(output.evidence_payload.counts.unresolved > 0);
@@ -886,13 +978,34 @@ mod tests {
     fn duplicate_global_ids_are_unresolved_not_silently_collapsed() {
         let output = run_pair(
             vec![
-                observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::NotEvaluated, "#1"),
-                observation("0000000000000000000000", Some("Panel 002"), AdapterPropertyOutcome::NotEvaluated, "#2"),
+                observation(
+                    "0000000000000000000000",
+                    Some("Panel 001"),
+                    AdapterPropertyOutcome::NotEvaluated,
+                    "#1",
+                ),
+                observation(
+                    "0000000000000000000000",
+                    Some("Panel 002"),
+                    AdapterPropertyOutcome::NotEvaluated,
+                    "#2",
+                ),
             ],
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#7")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#7",
+            )],
         );
         assert_eq!(output.gate.status, GateStatus::Unresolved);
-        assert!(output.evidence_payload.findings.iter().any(|f| f.code == "DUPLICATE_GLOBAL_ID"));
+        assert!(
+            output
+                .evidence_payload
+                .findings
+                .iter()
+                .any(|f| f.code == "DUPLICATE_GLOBAL_ID")
+        );
     }
 
     #[test]
@@ -901,29 +1014,64 @@ mod tests {
         let target = b"target IFC";
         let source_report = report(
             b"not source IFC",
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC4"),
             IDS_BYTES,
         );
         let target_report = report(
             target,
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#2")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#2",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC4"),
             IDS_BYTES,
         );
-        assert!(evaluate(source, target, IDS_BYTES, &serde_json::to_vec(&source_report).unwrap(), &serde_json::to_vec(&target_report).unwrap()).unwrap_err().starts_with("ADAPTER_MODEL_DIGEST_MISMATCH"));
+        assert!(
+            evaluate(
+                source,
+                target,
+                IDS_BYTES,
+                &serde_json::to_vec(&source_report).unwrap(),
+                &serde_json::to_vec(&target_report).unwrap()
+            )
+            .unwrap_err()
+            .starts_with("ADAPTER_MODEL_DIGEST_MISMATCH")
+        );
 
         let bad_ids = b"different IDS bytes";
         let source_report = report(
             source,
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC4"),
             bad_ids,
         );
-        assert!(evaluate(source, target, IDS_BYTES, &serde_json::to_vec(&source_report).unwrap(), &serde_json::to_vec(&target_report).unwrap()).unwrap_err().starts_with("ADAPTER_IDS_DIGEST_MISMATCH"));
+        assert!(
+            evaluate(
+                source,
+                target,
+                IDS_BYTES,
+                &serde_json::to_vec(&source_report).unwrap(),
+                &serde_json::to_vec(&target_report).unwrap()
+            )
+            .unwrap_err()
+            .starts_with("ADAPTER_IDS_DIGEST_MISMATCH")
+        );
     }
 
     #[test]
@@ -932,7 +1080,12 @@ mod tests {
         let target = b"target IFC";
         let mut source_report = report(
             source,
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC4"),
             IDS_BYTES,
@@ -940,40 +1093,104 @@ mod tests {
         source_report.observations[0].observed_value = Some("altered".into());
         let target_report = report(
             target,
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#2")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#2",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC4"),
             IDS_BYTES,
         );
-        assert!(evaluate(source,target,IDS_BYTES,&serde_json::to_vec(&source_report).unwrap(),&serde_json::to_vec(&target_report).unwrap()).unwrap_err().starts_with("ADAPTER_SEMANTIC_DIGEST_MISMATCH"));
+        assert!(
+            evaluate(
+                source,
+                target,
+                IDS_BYTES,
+                &serde_json::to_vec(&source_report).unwrap(),
+                &serde_json::to_vec(&target_report).unwrap()
+            )
+            .unwrap_err()
+            .starts_with("ADAPTER_SEMANTIC_DIGEST_MISMATCH")
+        );
     }
 
     #[test]
     fn permutation_of_step_ids_does_not_change_semantic_delta_findings() {
         let first = run_pair(
             vec![
-                observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1"),
-                observation("0000000000000000000001", Some("Panel 003"), AdapterPropertyOutcome::Preserved, "#2"),
+                observation(
+                    "0000000000000000000000",
+                    Some("Panel 001"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#1",
+                ),
+                observation(
+                    "0000000000000000000001",
+                    Some("Panel 003"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#2",
+                ),
             ],
             vec![
-                observation("0000000000000000000000", Some("Panel 002"), AdapterPropertyOutcome::Changed, "#8"),
-                observation("0000000000000000000001", Some("Panel 003"), AdapterPropertyOutcome::Preserved, "#7"),
+                observation(
+                    "0000000000000000000000",
+                    Some("Panel 002"),
+                    AdapterPropertyOutcome::Changed,
+                    "#8",
+                ),
+                observation(
+                    "0000000000000000000001",
+                    Some("Panel 003"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#7",
+                ),
             ],
         );
         let second = run_pair(
             vec![
-                observation("0000000000000000000001", Some("Panel 003"), AdapterPropertyOutcome::Preserved, "#1"),
-                observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#2"),
+                observation(
+                    "0000000000000000000001",
+                    Some("Panel 003"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#1",
+                ),
+                observation(
+                    "0000000000000000000000",
+                    Some("Panel 001"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#2",
+                ),
             ],
             vec![
-                observation("0000000000000000000001", Some("Panel 003"), AdapterPropertyOutcome::Preserved, "#8"),
-                observation("0000000000000000000000", Some("Panel 002"), AdapterPropertyOutcome::Changed, "#7"),
+                observation(
+                    "0000000000000000000001",
+                    Some("Panel 003"),
+                    AdapterPropertyOutcome::Preserved,
+                    "#8",
+                ),
+                observation(
+                    "0000000000000000000000",
+                    Some("Panel 002"),
+                    AdapterPropertyOutcome::Changed,
+                    "#7",
+                ),
             ],
         );
         assert_eq!(first.gate.status, second.gate.status);
-        assert_eq!(first.evidence_payload.counts.compared, second.evidence_payload.counts.compared);
-        assert_eq!(first.evidence_payload.counts.changed, second.evidence_payload.counts.changed);
-        assert_eq!(first.evidence_payload.findings, second.evidence_payload.findings);
+        assert_eq!(
+            first.evidence_payload.counts.compared,
+            second.evidence_payload.counts.compared
+        );
+        assert_eq!(
+            first.evidence_payload.counts.changed,
+            second.evidence_payload.counts.changed
+        );
+        assert_eq!(
+            first.evidence_payload.findings,
+            second.evidence_payload.findings
+        );
     }
 
     #[test]
@@ -982,27 +1199,54 @@ mod tests {
         let target = b"target IFC";
         let source_report = report(
             source,
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC2X3"),
             IDS_BYTES,
         );
         let target_report = report(
             target,
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#2")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#2",
+            )],
             AdapterDecision::SubsetConformant,
             Some("IFC4"),
             IDS_BYTES,
         );
-        let output=evaluate(source,target,IDS_BYTES,&serde_json::to_vec(&source_report).unwrap(),&serde_json::to_vec(&target_report).unwrap()).unwrap();
+        let output = evaluate(
+            source,
+            target,
+            IDS_BYTES,
+            &serde_json::to_vec(&source_report).unwrap(),
+            &serde_json::to_vec(&target_report).unwrap(),
+        )
+        .unwrap();
         assert_eq!(output.gate.status, GateStatus::Unresolved);
     }
 
     #[test]
     fn output_embeds_hashed_payload_in_standard_gate_shape() {
         let output = run_pair(
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#1")],
-            vec![observation("0000000000000000000000", Some("Panel 001"), AdapterPropertyOutcome::Preserved, "#2")],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#1",
+            )],
+            vec![observation(
+                "0000000000000000000000",
+                Some("Panel 001"),
+                AdapterPropertyOutcome::Preserved,
+                "#2",
+            )],
         );
         let payload_bytes = serde_json::to_vec(&output.evidence_payload).unwrap();
         assert_eq!(output.gate.evidence[0].sha256, sha256_hex(&payload_bytes));
