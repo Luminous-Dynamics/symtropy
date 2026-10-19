@@ -21,7 +21,7 @@ Evidence-bounded result receipts for animal reference-task evaluations.
 
 The receipt builder does not fetch reference data, grant permissions, execute the simulator, select baselines, estimate scientific uncertainty, or prove causality. It validates the supplied result bundle and binds its declared evidence. It cannot establish that source metadata or a metric implementation is truthful unless those are independently qualified.
 
-The main PR currently includes the synthetic capability-profile and observation-manifest oracles; the replay-result oracle extends those with hostile scorecard/receipt cases. All fixture data and IDs are synthetic placeholders, not animal observations.
+The main PR currently includes the synthetic capability-profile and observation-manifest oracles; the replay-result oracle extends those with **65 frozen expected-outcome cases** for hostile scorecard/receipt conditions. All fixture data and IDs are synthetic placeholders, not animal observations.
 
 ## Focused checks
 
