@@ -509,7 +509,7 @@ fn report() {
             "escape_rate",
             paired_delta(condition, fixed, RunMetrics::escape_rate),
         );
-        print!("}}");
+        print!("}}}}");
     }
 
     println!("]}}");
