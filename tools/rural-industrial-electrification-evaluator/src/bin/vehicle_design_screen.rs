@@ -173,7 +173,10 @@ fn validate_design(design: &Design) -> Result<(), String> {
         ("label", design.label.as_str()),
         ("family", design.family.as_str()),
         ("architecture", design.architecture.as_str()),
-        ("mission_functional_unit", design.mission_functional_unit.as_str()),
+        (
+            "mission_functional_unit",
+            design.mission_functional_unit.as_str(),
+        ),
         ("evidence_note", design.evidence_note.as_str()),
         ("charging_strategy", design.charging.strategy.as_str()),
     ] {
@@ -223,7 +226,10 @@ fn validate_design(design: &Design) -> Result<(), String> {
         ),
         ("charger_rating_kw", design.charging.charger_rating_kw),
         ("site_power_budget_kw", design.charging.site_power_budget_kw),
-        ("available_window_hours", design.charging.available_window_hours),
+        (
+            "available_window_hours",
+            design.charging.available_window_hours,
+        ),
     ] {
         if !value.is_finite() || value <= 0.0 {
             return Err(format!("{name}_must_be_finite_and_positive"));
@@ -231,7 +237,10 @@ fn validate_design(design: &Design) -> Result<(), String> {
     }
 
     for (name, value) in [
-        ("installed_module_mass_kg", design.mass.installed_module_mass_kg),
+        (
+            "installed_module_mass_kg",
+            design.mass.installed_module_mass_kg,
+        ),
         ("target_payload_kg", design.mass.target_payload_kg),
     ] {
         if !value.is_finite() || value < 0.0 {
@@ -248,7 +257,10 @@ fn validate_design(design: &Design) -> Result<(), String> {
             "temperature_capacity_fraction",
             design.battery.temperature_capacity_fraction,
         ),
-        ("charging_efficiency_fraction", design.charging.efficiency_fraction),
+        (
+            "charging_efficiency_fraction",
+            design.charging.efficiency_fraction,
+        ),
     ] {
         if !value.is_finite() || value <= 0.0 || value > 1.0 {
             return Err(format!("{name}_must_be_in_(0,1]"));
@@ -269,7 +281,12 @@ fn validate_design(design: &Design) -> Result<(), String> {
     if design.mission.required_peak_power_kw < design.mission.required_continuous_power_kw {
         return Err("required_peak_power_must_be_at_least_required_continuous_power".to_string());
     }
-    if design.design_notes.is_empty() || design.design_notes.iter().any(|note| note.trim().is_empty()) {
+    if design.design_notes.is_empty()
+        || design
+            .design_notes
+            .iter()
+            .any(|note| note.trim().is_empty())
+    {
         return Err("design_notes_must_be_nonempty".to_string());
     }
     Ok(())
@@ -300,8 +317,8 @@ fn evaluate_design(design: &Design) -> DesignResult {
     let battery_energy_margin_kwh =
         usable_battery_energy_kwh - design.mission.battery_energy_demand_kwh_per_shift;
 
-    let continuous_power_margin_kw = design.battery.rated_continuous_power_kw
-        - design.mission.required_continuous_power_kw;
+    let continuous_power_margin_kw =
+        design.battery.rated_continuous_power_kw - design.mission.required_continuous_power_kw;
     let peak_power_margin_kw =
         design.battery.rated_peak_power_kw - design.mission.required_peak_power_kw;
 
@@ -328,7 +345,9 @@ fn evaluate_design(design: &Design) -> DesignResult {
         findings.push("peak_power_rating_below_declared_mission_demand".to_string());
     }
     if charging_window_margin_hours < -1e-9 {
-        findings.push("recharge_does_not_fit_declared_window_under_constant_power_assumption".to_string());
+        findings.push(
+            "recharge_does_not_fit_declared_window_under_constant_power_assumption".to_string(),
+        );
     }
 
     let status = if !findings.is_empty() {
@@ -337,7 +356,8 @@ fn evaluate_design(design: &Design) -> DesignResult {
         findings.push("unknown_evidence_blocks_decision_use".to_string());
         Status::Indeterminate
     } else if design.evidence_class == "synthetic" {
-        findings.push("arithmetic_screen_only_synthetic_input_is_not_design_qualification".to_string());
+        findings
+            .push("arithmetic_screen_only_synthetic_input_is_not_design_qualification".to_string());
         Status::PassesSyntheticScreen
     } else {
         findings.push("screen_only_specialist_validation_still_required".to_string());
@@ -454,7 +474,8 @@ mod tests {
         let result = evaluate_design(&design);
         assert!((result.effective_charger_power_kw - 2.5).abs() < 1e-9);
         assert_eq!(result.status, Status::Blocked);
-        assert!(result.findings.iter().any(|finding| finding == "recharge_does_not_fit_declared_window_under_constant_power_assumption"));
+        assert!(result.findings.iter().any(|finding| finding
+            == "recharge_does_not_fit_declared_window_under_constant_power_assumption"));
     }
 
     #[test]
@@ -463,7 +484,12 @@ mod tests {
         design.mission.battery_energy_demand_kwh_per_shift = 80.0;
         let result = evaluate_design(&design);
         assert_eq!(result.status, Status::Blocked);
-        assert!(result.findings.iter().any(|finding| finding == "derated_usable_battery_energy_does_not_cover_shift"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|finding| finding == "derated_usable_battery_energy_does_not_cover_shift")
+        );
     }
 
     #[test]
@@ -481,7 +507,12 @@ mod tests {
         design.mission.required_continuous_power_kw = 90.0;
         let result = evaluate_design(&design);
         assert_eq!(result.status, Status::Blocked);
-        assert!(result.findings.iter().any(|finding| finding == "continuous_power_rating_below_declared_mission_demand"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|finding| finding == "continuous_power_rating_below_declared_mission_demand")
+        );
     }
 
     #[test]
@@ -490,7 +521,12 @@ mod tests {
         design.mission.required_peak_power_kw = 180.0;
         let result = evaluate_design(&design);
         assert_eq!(result.status, Status::Blocked);
-        assert!(result.findings.iter().any(|finding| finding == "peak_power_rating_below_declared_mission_demand"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|finding| finding == "peak_power_rating_below_declared_mission_demand")
+        );
     }
 
     #[test]
@@ -509,7 +545,12 @@ mod tests {
         design.evidence_reference.clear();
         let result = evaluate_design(&design);
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.findings.iter().any(|finding| finding == "unknown_evidence_blocks_decision_use"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|finding| finding == "unknown_evidence_blocks_decision_use")
+        );
     }
 
     #[test]
@@ -517,21 +558,30 @@ mod tests {
         let mut design = sample_design();
         design.evidence_class = "manufacturer".to_string();
         design.evidence_reference.clear();
-        assert_eq!(validate_design(&design).unwrap_err(), "non_synthetic_evidence_requires_reference");
+        assert_eq!(
+            validate_design(&design).unwrap_err(),
+            "non_synthetic_evidence_requires_reference"
+        );
     }
 
     #[test]
     fn invalid_reserve_fraction_is_rejected() {
         let mut design = sample_design();
         design.battery.reserve_fraction = 1.0;
-        assert_eq!(validate_design(&design).unwrap_err(), "reserve_fraction_must_be_in_[0,1)");
+        assert_eq!(
+            validate_design(&design).unwrap_err(),
+            "reserve_fraction_must_be_in_[0,1)"
+        );
     }
 
     #[test]
     fn duplicate_design_ids_are_rejected() {
         let design = sample_design();
         let catalog = sample_catalog(vec![design.clone(), design]);
-        assert_eq!(validate_catalog(&catalog).unwrap_err(), "duplicate_design_id: sample-vehicle");
+        assert_eq!(
+            validate_catalog(&catalog).unwrap_err(),
+            "duplicate_design_id: sample-vehicle"
+        );
     }
 
     #[test]
