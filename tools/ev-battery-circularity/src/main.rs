@@ -85,7 +85,7 @@ struct MaterialFlow {
     evidence_note: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct QualificationGate {
     gate_id: String,
