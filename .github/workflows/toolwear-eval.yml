@@ -102,12 +102,13 @@ jobs:
             and .diagnostic.tools == [3,4,5,6,7,9,10,11,12,13,14,15,16]
             and .diagnostic.fold_count == 13
             and (.folds | length) == 13
-            and all(.folds[] as $f;
-              ($f.test_tools == [$f.held_out_tool])
-              and (($f.training_tools | index($f.held_out_tool)) == null)
-              and ($f.training_rows > 0)
-              and ($f.test_rows > 0)
-              and (($f.models | keys | sort) == ["constant_train_tool_balanced","ols_AE_RMS","ols_F_c_RMS","ols_F_p_RMS"])
+            and all(.folds[];
+              . as $f
+              | ($f.test_tools == [$f.held_out_tool])
+                and (($f.training_tools | index($f.held_out_tool)) == null)
+                and ($f.training_rows > 0)
+                and ($f.test_rows > 0)
+                and (($f.models | keys | sort) == ["constant_train_tool_balanced","ols_AE_RMS","ols_F_c_RMS","ols_F_p_RMS"])
             )
             and ((.aggregate.models | keys | sort) == ["constant_train_tool_balanced","ols_AE_RMS","ols_F_c_RMS","ols_F_p_RMS"])
             and all(.aggregate.models[];
