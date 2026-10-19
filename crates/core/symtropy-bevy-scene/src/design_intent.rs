@@ -496,13 +496,11 @@ mod tests {
             intent_id: id.into(),
             outcome,
             explanation: "Synthetic test rationale".into(),
-            evidence_ref: if outcome == IntentEvaluationOutcome::NotSatisfied {
-                Some(format!("evidence:{id}"))
-            } else if outcome == IntentEvaluationOutcome::Satisfied {
-                Some(format!("evidence:{id}"))
-            } else {
-                None
-            },
+            evidence_ref: matches!(
+                outcome,
+                IntentEvaluationOutcome::NotSatisfied | IntentEvaluationOutcome::Satisfied
+            )
+            .then(|| format!("evidence:{id}")),
             not_applicable_rationale: (outcome == IntentEvaluationOutcome::NotApplicable)
                 .then(|| "The stated scope excludes this item for this reviewed option".into()),
             uncertainty_note: None,
