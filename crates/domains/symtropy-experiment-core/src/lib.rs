@@ -3,9 +3,16 @@
 
 //! A small renderer-independent representation and interpreter for executable experiment math.
 //!
-//! This crate intentionally starts with acyclic arithmetic graphs. It validates the graph and
-//! physical dimensions before evaluating it; it is not a general-purpose ODE solver or physics
-//! engine. Stateful dynamics and domain-specific solvers belong behind later, explicit adapters.
+//! This crate combines a narrow arithmetic equation graph with an explicitly separate,
+//! analytical-reference harmonic-oscillator solver. Neither is a universal physics engine:
+//! stateful dynamics stay in domain-specific modules with declared validity domains, assumptions,
+//! and numerical regression tests. See the dynamics module for its solver-specific contract.
+
+pub mod dynamics;
+pub use dynamics::{
+    HarmonicOscillatorResult, HarmonicOscillatorSpec, OscillatorIntegrator, OscillatorSample,
+    simulate_harmonic_oscillator,
+};
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
