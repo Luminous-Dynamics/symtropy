@@ -47,9 +47,10 @@
     "seed_policy": "preregistered_list",
     "deterministic_event_order": true,
     "primary_outcomes": [
-      "unmet_water_need_integral",
-      "time_to_recovery",
+      "unmet_need_integral",
       "contribution_count",
+      "recovery_rate",
+      "mean_recovery_tick_when_recovered",
       "unmet_need_inequality_gini",
       "verification_overhead"
     ],
