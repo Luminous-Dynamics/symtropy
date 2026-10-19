@@ -958,6 +958,17 @@ mod tests {
     }
 
     #[test]
+    fn baseline_uses_only_unique_labels_matured_at_the_forecast_cutoff() {
+        let d = dataset();
+        let history = BaselineHistory::from_dataset(&d);
+        assert!((history.probability(120, 3).unwrap() - 0.25).abs() < 1e-12);
+        // forecast-x1's label is not available by cutoff 121, but is available
+        // by cutoff 122; the second query may legitimately include it.
+        assert!((history.probability(121, 3).unwrap() - 0.25).abs() < 1e-12);
+        assert!((history.probability(122, 3).unwrap() - (4.0 / 13.0)).abs() < 1e-12);
+    }
+
+    #[test]
     fn duplicated_unit_month_with_conflicting_frozen_outcome_is_rejected() {
         let mut d = dataset();
         let mut repeated = d.records[0].clone();
@@ -1090,6 +1101,22 @@ mod tests {
         ];
         assert!(rank_roc_auc(&points).is_none());
         assert!(average_precision(&points).is_none());
+    }
+
+    #[test]
+    fn roc_auc_and_average_precision_group_equal_probabilities() {
+        let points = [
+            ScoredPoint {
+                probability: 0.5,
+                outcome: true,
+            },
+            ScoredPoint {
+                probability: 0.5,
+                outcome: false,
+            },
+        ];
+        assert!((rank_roc_auc(&points).unwrap() - 0.5).abs() < 1e-12);
+        assert!((average_precision(&points).unwrap() - 0.5).abs() < 1e-12);
     }
 
     #[test]
