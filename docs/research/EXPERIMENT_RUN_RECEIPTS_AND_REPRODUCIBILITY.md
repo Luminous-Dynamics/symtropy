@@ -36,7 +36,7 @@ A hash can bind identifiers to bytes; it cannot show that the model is correct. 
 
 ## Independent known-answer fixture
 
-The static fixture files are [the raw input](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer-input.json), [the raw output example](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer-output.json), [the expected receipt](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer.json), and [fixture methodology](../../crates/domains/symtropy-experiment-core/fixtures/RECEIPT_KNOWN_ANSWER.md). The test compares four fixed digest strings produced with Python `hashlib` against the Rust receipt parser/verifier, validates all artifact links, and proves that a formatting-only edit changes the raw input digest while leaving the parsed-model digest unchanged. These are authored tests; the Rust test suite has not yet run here.
+The static fixture files are [the raw input](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer-input.json), [the raw output example](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer-output.json), [the expected receipt](../../crates/domains/symtropy-experiment-core/fixtures/receipt-known-answer.json), and [fixture methodology](../../crates/domains/symtropy-experiment-core/fixtures/RECEIPT_KNOWN_ANSWER.md). The test compares four fixed digest strings produced with Python `hashlib` against the Rust receipt parser/verifier, validates all artifact links, and proves that a formatting-only edit changes the raw input digest while leaving the parsed-model digest unchanged. These are authored tests; the Rust test suite has not yet run here. The separate [`independent_receipt_fixture.py`](../../crates/domains/symtropy-experiment-core/tests/independent_receipt_fixture.py) uses only Python's standard library to independently cross-check this exact fixture. It rejects floats and non-ASCII strings/keys by design; it is a narrow test oracle, not a production verifier or general RFC 8785 implementation.
 
 ## External standards and integration path
 
@@ -55,6 +55,8 @@ These are proposed targets, not achieved measurements.
 | Tamper detection | Mutate each receipt field without updating digest | 100% detected |
 | Provenance sensitivity | Change input bytes, parsed model, output payload, mode or solver settings independently | Each meaningful change alters the receipt digest |
 | Formatting distinction | Whitespace-only change to JSON artifact while parsed model is constant | Exact input digest changes; parsed-model digest remains constant |
+| JCS known-answer coverage | RFC 8785 Appendix B number formatting, recursive key ordering, Unicode key-order edge cases and rejected values | 100% agreement with published expected bytes; unsupported I-JSON inputs rejected |
+| Independent implementation agreement | Canonical model/output/receipt bytes compared between Rust JCS library and an independent implementation | Zero byte/digest mismatches on the supported interoperability corpus |
 | Determinism | Repeat identical model/input/output/settings on the same binary and environment | Identical receipt bytes/digest |
 | Execution-mode coverage | Known-answer fixture through each CLI mode plus representative failure paths | Every result envelope that claims a receipt validates it; command-line/JSON parse failures are explicitly documented as pre-receipt errors |
 | Artifact-link verifier | Valid receipt, edited input bytes, edited model, edited output payload | All valid digest links accepted; each mutated link rejected and identified independently |
@@ -67,7 +69,7 @@ The performance goal must be measured against an equivalent run without receipt 
 ## Next steps
 
 1. Execute the authored suite on a trusted Rust toolchain; run formatting/lints and inspect the lockfile diff before review.
-2. Add a public fixture file containing a receipt generated from known inputs and verify it with an independently implemented SHA-256 verifier.
+2. Expand the independent verifier beyond the current ASCII/integer fixture and cross-check RFC 8785 Appendix B numeric vectors, Unicode property sorting, I-JSON constraints and malformed-input handling.
 3. Include the dependency lockfile digest and an authenticated source revision from the build pipeline; define which fields are self-reported and which are independently verified.
 4. Define an experiment-run predicate and map it to an in-toto Statement, while keeping SLSA build provenance as a separate layer.
 5. Store immutable output payload artifacts separately and verify their exact bytes rather than only the reconstructed payload inside the CLI envelope.
