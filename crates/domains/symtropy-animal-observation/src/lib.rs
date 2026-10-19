@@ -332,8 +332,9 @@ fn add_cross_split(
     groups.entry(group_key).or_default().insert(role);
 }
 
-/// Check split leakage using study-scoped subject and track identifiers.
-/// All identity keys are scoped by study because source systems may reuse IDs.
+/// Check split leakage using the declared generalization target.
+/// Subject and track IDs are study-scoped; duplicate-group and taxon IDs must
+/// be canonical within the reference pack and its pinned taxonomy release.
 pub fn validate_split(
     records: &[SplitRecord],
     target: GeneralizationTarget,
