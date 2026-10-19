@@ -1881,6 +1881,24 @@ mod tests {
     }
 
     #[test]
+    fn yaw_metrics_are_null_when_forward_heading_is_vertical_for_the_whole_trace() {
+        let mut trace = orientation_fixture();
+        let half_angle = std::f64::consts::FRAC_PI_4;
+        let vertical = [half_angle.sin(), 0.0, 0.0, half_angle.cos()];
+        trace.root_rotation_world_xyzw = Some(vec![vertical; trace.timestamps_sec.len()]);
+
+        let report = evaluate(&trace, &trace, None)
+            .expect("full rotation error remains measurable when yaw is undefined");
+        let orientation = report.root_orientation_error.unwrap();
+        assert_eq!(orientation.samples, 4);
+        assert_eq!(orientation.yaw_samples_scored, 0);
+        assert_eq!(orientation.yaw_samples_undefined, 4);
+        assert_eq!(orientation.mean_absolute_yaw_error_rad, None);
+        assert_eq!(orientation.p95_absolute_yaw_error_rad, None);
+        assert_eq!(orientation.final_absolute_yaw_error_rad, None);
+    }
+
+    #[test]
     fn trace_versions_must_match_and_v1_cannot_smuggle_orientation() {
         let legacy = fixture();
         let v2 = orientation_fixture();
