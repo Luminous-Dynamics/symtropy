@@ -4,44 +4,6 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     env, fs, process,
 
-    #[test]
-    fn capacity_frontier_finds_minimum_sampled_feasible_grid_connection() {
-        let templates = templates(template(
-            100.0,
-            1.0,
-            100.0,
-            constant_curve(100.0),
-        ));
-        let case = scenario(vec![job("one", 0.0, 45.0, 0.0, 0.1)], 1, 40.0, vec![]);
-        let frontier =
-            build_capacity_frontier(&templates, &case, Policy::FirstComeFirstServed).unwrap();
-        assert_eq!(frontier.points.len(), 20);
-        assert_eq!(frontier.sample_spacing_percent, 5);
-        assert_eq!(frontier.minimum_sampled_feasible_site_power_kw, Some(14.0));
-        assert!(frontier.points.windows(2).all(|pair| {
-            pair[0].installed_site_power_budget_kw < pair[1].installed_site_power_budget_kw
-        }));
-        assert!(!frontier.points[5].meets_service_target);
-        assert!(frontier.points[6].meets_service_target);
-        assert_eq!(frontier.service_monotonicity_violations, 0);
-        assert_eq!(frontier.feasibility_monotonicity_violations, 0);
-    }
-
-    #[test]
-    fn capacity_frontier_base_point_matches_reference_run() {
-        let templates = templates(template(100.0, 0.9, 25.0, constant_curve(60.0)));
-        let case = scenario(vec![job("one", 0.0, 60.0, 0.0, 0.2)], 1, 20.0, vec![]);
-        let frontier =
-            build_capacity_frontier(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
-        let reference =
-            simulate_scenario(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
-        let base = frontier.points.last().unwrap();
-        assert!((base.installed_site_power_budget_kw - case.site_power_budget_kw).abs() < EPSILON);
-        assert_eq!(base.completed_by_deadline_count, reference.completed_by_deadline_count);
-        assert!((base.delivered_battery_energy_kwh - reference.delivered_battery_energy_kwh).abs() < EPSILON);
-        assert_eq!(base.meets_service_target, reference.completed_by_deadline_count as f64 / reference.job_count as f64 >= MIN_DEADLINE_COMPLETION_FRACTION && reference.energy_service_fraction >= MIN_ENERGY_SERVICE_FRACTION);
-    }
-
 };
 
 const EPSILON: f64 = 1.0e-9;
@@ -1487,4 +1449,40 @@ mod tests {
                 .collect::<Vec<_>>()
         );
     }
+    #[test]
+    fn capacity_frontier_finds_minimum_sampled_feasible_grid_connection() {
+        let templates = templates(template(100.0, 1.0, 100.0, constant_curve(100.0)));
+        let case = scenario(vec![job("one", 0.0, 45.0, 0.0, 0.1)], 1, 40.0, vec![]);
+        let frontier =
+            build_capacity_frontier(&templates, &case, Policy::FirstComeFirstServed).unwrap();
+        assert_eq!(frontier.points.len(), 20);
+        assert_eq!(frontier.sample_spacing_percent, 5);
+        assert_eq!(frontier.minimum_sampled_feasible_site_power_kw, Some(14.0));
+        assert!(frontier.points.windows(2).all(|pair| {
+            pair[0].installed_site_power_budget_kw < pair[1].installed_site_power_budget_kw
+        }));
+        assert!(!frontier.points[5].meets_service_target);
+        assert!(frontier.points[6].meets_service_target);
+        assert_eq!(frontier.service_monotonicity_violations, 0);
+        assert_eq!(frontier.feasibility_monotonicity_violations, 0);
+    }
+
+    #[test]
+    fn capacity_frontier_base_point_matches_reference_run() {
+        let templates = templates(template(100.0, 0.9, 25.0, constant_curve(60.0)));
+        let case = scenario(vec![job("one", 0.0, 60.0, 0.0, 0.2)], 1, 20.0, vec![]);
+        let frontier =
+            build_capacity_frontier(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
+        let reference =
+            simulate_scenario(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
+        let base = frontier.points.last().unwrap();
+        assert!((base.installed_site_power_budget_kw - case.site_power_budget_kw).abs() < EPSILON);
+        assert_eq!(base.completed_by_deadline_count, reference.completed_by_deadline_count);
+        assert!((base.delivered_battery_energy_kwh - reference.delivered_battery_energy_kwh).abs() < EPSILON);
+        let reference_meets = reference.completed_by_deadline_count as f64 / reference.job_count as f64
+            >= MIN_DEADLINE_COMPLETION_FRACTION
+            && reference.energy_service_fraction >= MIN_ENERGY_SERVICE_FRACTION;
+        assert_eq!(base.meets_service_target, reference_meets);
+    }
+
 }
