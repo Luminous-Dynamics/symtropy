@@ -17,111 +17,320 @@
     "training_end_exclusive": 1780000100,
     "calibration_end_exclusive": 1780000200,
     "test_end_exclusive": 1780000400,
-    "evaluation_as_of": 1780000800
+    "evaluation_as_of": 1780000800,
+    "outcome_horizon_seconds": 20
   },
   "records": [
     {
-      "case_id": "case-001", "community_id": "community-a", "period_id": "period-001",
+      "case_id": "case-001",
+      "community_id": "community-a",
+      "period_id": "period-001",
       "decision_at": 1780000010,
-      "evidence": [{"evidence_id": "evidence-001", "available_at": 1780000005, "status": "verified"}],
-      "alert_issued_at": 1780000015, "outcome": "harm", "harm_occurred_at": 1780000030, "outcome_available_at": 1780000040,
-      "response": {"status": "independently_verified_completed", "completed_at": 1780000025, "verified_at": 1780000027, "independent_evidence_reference": "synthetic:independent-response-001"},
+      "evidence": [
+        {
+          "evidence_id": "evidence-001",
+          "available_at": 1780000005,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": 1780000015,
+      "outcome": "harm",
+      "harm_occurred_at": 1780000030,
+      "outcome_available_at": 1780000040,
+      "response": {
+        "status": "independently_verified_completed",
+        "completed_at": 1780000025,
+        "verified_at": 1780000027,
+        "independent_evidence_reference": "synthetic:independent-response-001"
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-002", "community_id": "community-a", "period_id": "period-002",
+      "case_id": "case-002",
+      "community_id": "community-a",
+      "period_id": "period-002",
       "decision_at": 1780000020,
-      "evidence": [{"evidence_id": "evidence-002", "available_at": 1780000018, "status": "verified"}],
-      "alert_issued_at": 1780000025, "outcome": "no_harm", "harm_occurred_at": null, "outcome_available_at": 1780000035,
-      "response": {"status": "not_dispatched", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-002",
+          "available_at": 1780000018,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": 1780000025,
+      "outcome": "no_harm",
+      "harm_occurred_at": null,
+      "outcome_available_at": 1780000040,
+      "response": {
+        "status": "not_dispatched",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-003", "community_id": "community-b", "period_id": "period-003",
+      "case_id": "case-003",
+      "community_id": "community-b",
+      "period_id": "period-003",
       "decision_at": 1780000040,
-      "evidence": [{"evidence_id": "evidence-003", "available_at": 1780000038, "status": "verified"}],
-      "alert_issued_at": null, "outcome": "harm", "harm_occurred_at": 1780000060, "outcome_available_at": 1780000070,
-      "response": {"status": "not_alerted", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-003",
+          "available_at": 1780000038,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": null,
+      "outcome": "harm",
+      "harm_occurred_at": 1780000060,
+      "outcome_available_at": 1780000070,
+      "response": {
+        "status": "not_alerted",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-004", "community_id": "community-c", "period_id": "period-004",
+      "case_id": "case-004",
+      "community_id": "community-c",
+      "period_id": "period-004",
       "decision_at": 1780000060,
-      "evidence": [{"evidence_id": "evidence-004", "available_at": 1780000059, "status": "verified"}],
-      "alert_issued_at": null, "outcome": "no_harm", "harm_occurred_at": null, "outcome_available_at": 1780000075,
-      "response": {"status": "not_alerted", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-004",
+          "available_at": 1780000059,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": null,
+      "outcome": "no_harm",
+      "harm_occurred_at": null,
+      "outcome_available_at": 1780000080,
+      "response": {
+        "status": "not_alerted",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-005", "community_id": "community-a", "period_id": "period-005",
+      "case_id": "case-005",
+      "community_id": "community-a",
+      "period_id": "period-005",
       "decision_at": 1780000110,
-      "evidence": [{"evidence_id": "evidence-005", "available_at": 1780000105, "status": "verified"}],
-      "alert_issued_at": 1780000112, "outcome": "harm", "harm_occurred_at": 1780000115, "outcome_available_at": 1780000120,
-      "response": {"status": "completed_unverified", "completed_at": 1780000114, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-005",
+          "available_at": 1780000105,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": 1780000112,
+      "outcome": "harm",
+      "harm_occurred_at": 1780000115,
+      "outcome_available_at": 1780000120,
+      "response": {
+        "status": "completed_unverified",
+        "completed_at": 1780000114,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-006", "community_id": "community-b", "period_id": "period-006",
+      "case_id": "case-006",
+      "community_id": "community-b",
+      "period_id": "period-006",
       "decision_at": 1780000120,
-      "evidence": [{"evidence_id": "evidence-006", "available_at": 1780000110, "status": "stale"}],
-      "alert_issued_at": 1780000124, "outcome": "harm", "harm_occurred_at": 1780000123, "outcome_available_at": 1780000130,
-      "response": {"status": "disputed", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-006",
+          "available_at": 1780000110,
+          "status": "stale"
+        }
+      ],
+      "alert_issued_at": 1780000124,
+      "outcome": "harm",
+      "harm_occurred_at": 1780000123,
+      "outcome_available_at": 1780000130,
+      "response": {
+        "status": "disputed",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-007", "community_id": "community-c", "period_id": "period-007",
+      "case_id": "case-007",
+      "community_id": "community-c",
+      "period_id": "period-007",
       "decision_at": 1780000150,
-      "evidence": [{"evidence_id": "evidence-007", "available_at": 1780000149, "status": "conflicting"}],
-      "alert_issued_at": 1780000151, "outcome": "unknown", "harm_occurred_at": null, "outcome_available_at": null,
-      "response": {"status": "dispatched", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-007",
+          "available_at": 1780000149,
+          "status": "conflicting"
+        }
+      ],
+      "alert_issued_at": 1780000151,
+      "outcome": "unknown",
+      "harm_occurred_at": null,
+      "outcome_available_at": null,
+      "response": {
+        "status": "dispatched",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-008", "community_id": "community-a", "period_id": "period-008",
+      "case_id": "case-008",
+      "community_id": "community-a",
+      "period_id": "period-008",
       "decision_at": 1780000220,
-      "evidence": [{"evidence_id": "evidence-008", "available_at": 1780000219, "status": "verified"}],
-      "alert_issued_at": 1780000222, "outcome": "harm", "harm_occurred_at": 1780000235, "outcome_available_at": 1780000240,
-      "response": {"status": "independently_verified_completed", "completed_at": 1780000230, "verified_at": 1780000232, "independent_evidence_reference": "synthetic:independent-response-008"},
+      "evidence": [
+        {
+          "evidence_id": "evidence-008",
+          "available_at": 1780000219,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": 1780000222,
+      "outcome": "harm",
+      "harm_occurred_at": 1780000235,
+      "outcome_available_at": 1780000240,
+      "response": {
+        "status": "independently_verified_completed",
+        "completed_at": 1780000230,
+        "verified_at": 1780000232,
+        "independent_evidence_reference": "synthetic:independent-response-008"
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-009", "community_id": "community-a", "period_id": "period-009",
+      "case_id": "case-009",
+      "community_id": "community-a",
+      "period_id": "period-009",
       "decision_at": 1780000240,
-      "evidence": [{"evidence_id": "evidence-009", "available_at": 1780000239, "status": "verified"}],
-      "alert_issued_at": 1780000245, "outcome": "no_harm", "harm_occurred_at": null, "outcome_available_at": 1780000260,
-      "response": {"status": "not_dispatched", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-009",
+          "available_at": 1780000239,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": 1780000245,
+      "outcome": "no_harm",
+      "harm_occurred_at": null,
+      "outcome_available_at": 1780000260,
+      "response": {
+        "status": "not_dispatched",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-010", "community_id": "community-b", "period_id": "period-010",
+      "case_id": "case-010",
+      "community_id": "community-b",
+      "period_id": "period-010",
       "decision_at": 1780000260,
-      "evidence": [{"evidence_id": "evidence-010", "available_at": 1780000250, "status": "verified"}],
-      "alert_issued_at": null, "outcome": "harm", "harm_occurred_at": 1780000280, "outcome_available_at": 1780000290,
-      "response": {"status": "not_alerted", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-010",
+          "available_at": 1780000250,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": null,
+      "outcome": "harm",
+      "harm_occurred_at": 1780000280,
+      "outcome_available_at": 1780000290,
+      "response": {
+        "status": "not_alerted",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": false
     },
     {
-      "case_id": "case-011", "community_id": "community-c", "period_id": "period-011",
+      "case_id": "case-011",
+      "community_id": "community-c",
+      "period_id": "period-011",
       "decision_at": 1780000290,
-      "evidence": [{"evidence_id": "evidence-011", "available_at": 1780000289, "status": "verified"}],
-      "alert_issued_at": null, "outcome": "no_harm", "harm_occurred_at": null, "outcome_available_at": 1780000300,
-      "response": {"status": "not_alerted", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-011",
+          "available_at": 1780000289,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": null,
+      "outcome": "no_harm",
+      "harm_occurred_at": null,
+      "outcome_available_at": 1780000310,
+      "response": {
+        "status": "not_alerted",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-012", "community_id": "community-c", "period_id": "period-012",
+      "case_id": "case-012",
+      "community_id": "community-c",
+      "period_id": "period-012",
       "decision_at": 1780000320,
-      "evidence": [{"evidence_id": "evidence-012", "available_at": 1780000319, "status": "verified"}],
-      "alert_issued_at": 1780000321, "outcome": "no_harm", "harm_occurred_at": null, "outcome_available_at": 1780000340,
-      "response": {"status": "completed_unverified", "completed_at": 1780000325, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-012",
+          "available_at": 1780000319,
+          "status": "verified"
+        }
+      ],
+      "alert_issued_at": 1780000321,
+      "outcome": "no_harm",
+      "harm_occurred_at": null,
+      "outcome_available_at": 1780000340,
+      "response": {
+        "status": "completed_unverified",
+        "completed_at": 1780000325,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": true
     },
     {
-      "case_id": "case-013", "community_id": "community-d", "period_id": "period-013",
+      "case_id": "case-013",
+      "community_id": "community-d",
+      "period_id": "period-013",
       "decision_at": 1780000350,
-      "evidence": [{"evidence_id": "evidence-013", "available_at": 1780000340, "status": "conflicting"}],
-      "alert_issued_at": 1780000352, "outcome": "unknown", "harm_occurred_at": null, "outcome_available_at": null,
-      "response": {"status": "dispatched", "completed_at": null, "verified_at": null, "independent_evidence_reference": null},
+      "evidence": [
+        {
+          "evidence_id": "evidence-013",
+          "available_at": 1780000340,
+          "status": "conflicting"
+        }
+      ],
+      "alert_issued_at": 1780000352,
+      "outcome": "unknown",
+      "harm_occurred_at": null,
+      "outcome_available_at": null,
+      "response": {
+        "status": "dispatched",
+        "completed_at": null,
+        "verified_at": null,
+        "independent_evidence_reference": null
+      },
       "scope_assessed": false
     }
   ]
