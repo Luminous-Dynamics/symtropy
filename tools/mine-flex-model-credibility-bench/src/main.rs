@@ -1023,12 +1023,22 @@ mod tests {
             let result = decide_scenario(&scenario, error_limit).expect("evaluate lower bound");
             assert_eq!(Disposition::RejectUnsafeInterval, result.steps[0].disposition);
         }
+        let mut lower_boundary = baseline.clone();
+        lower_boundary.observations[0].interval_lower_liters = 0;
+        lower_boundary.observations[0].interval_upper_liters = 52;
+        let result = decide_scenario(&lower_boundary, error_limit).expect("lower boundary");
+        assert_eq!(Disposition::UseModel, result.steps[0].disposition);
+
         for upper in 100_i64..=105 {
             let mut scenario = baseline.clone();
             scenario.observations[0].interval_lower_liters = 48;
             scenario.observations[0].interval_upper_liters = upper;
             let result = decide_scenario(&scenario, error_limit).expect("evaluate upper bound");
-            assert_eq!(Disposition::RejectUnsafeInterval, result.steps[0].disposition);
+            if upper == 100 {
+                assert_eq!(Disposition::UseModel, result.steps[0].disposition);
+            } else {
+                assert_eq!(Disposition::RejectUnsafeInterval, result.steps[0].disposition);
+            }
         }
     }
 
