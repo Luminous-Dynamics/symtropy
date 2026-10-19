@@ -358,6 +358,61 @@ fn containment_metrics(
     })
 }
 
+fn association_only_sources(
+    input: &Value,
+    entity_types: &BTreeMap<String, String>,
+) -> BTreeSet<String> {
+    let records = input
+        .get("observed_records")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut sample_to_ingredient_lots = BTreeMap::<String, BTreeSet<String>>::new();
+    for record in &records {
+        if record.get("evidence_type").and_then(Value::as_str) != Some("sample_origin_record")
+            || record.get("status").and_then(Value::as_str) != Some("verified")
+        {
+            continue;
+        }
+        let (Some(ingredient), Some(sample)) = (
+            record.get("from").and_then(Value::as_str),
+            record.get("to").and_then(Value::as_str),
+        ) else {
+            continue;
+        };
+        if entity_types.get(ingredient).map(String::as_str) == Some("ingredient_lot")
+            && entity_types.get(sample).map(String::as_str) == Some("pathogen_sample")
+        {
+            sample_to_ingredient_lots
+                .entry(sample.to_owned())
+                .or_default()
+                .insert(ingredient.to_owned());
+        }
+    }
+
+    let mut candidates = BTreeSet::new();
+    for record in &records {
+        if record.get("evidence_type").and_then(Value::as_str)
+            != Some("pathogen_profile_comparison")
+            || record.get("status").and_then(Value::as_str) != Some("screening_only")
+            || record.get("scope").and_then(Value::as_str)
+                != Some("relatedness_only_not_custody")
+        {
+            continue;
+        }
+        for endpoint in ["from", "to"] {
+            if let Some(sample_id) = record.get(endpoint).and_then(Value::as_str) {
+                if entity_types.get(sample_id).map(String::as_str) == Some("pathogen_sample") {
+                    if let Some(lots) = sample_to_ingredient_lots.get(sample_id) {
+                        candidates.extend(lots.iter().cloned());
+                    }
+                }
+            }
+        }
+    }
+    candidates
+}
+
 fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
     // Candidate algorithms receive only the projection. Oracle labels are consumed below
     // exclusively by the evaluator after candidate predictions have been formed.
@@ -372,6 +427,7 @@ fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
 
     let verified_sources = ingredient_sources(&seeds, &verified_edges, &types);
     let possible_sources = ingredient_sources(&seeds, &all_edges, &types);
+    let association_sources = association_only_sources(&input, &types);
     let bounded_containment = finished_descendants(&possible_sources, &seeds, &all_edges, &types);
 
     let truth_sources: BTreeSet<String> = string_array(
@@ -424,6 +480,13 @@ fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
             "source_candidates": naive_sources.iter().cloned().collect::<Vec<_>>(),
             "source_metrics": set_metrics(&naive_sources, &truth_sources),
             "containment_metrics": containment_metrics(&naive_containment, &truth_affected, &truth_unaffected)
+        },
+        "B2_association_only": {
+            "source_candidates": association_sources.iter().cloned().collect::<Vec<_>>(),
+            "source_metrics": set_metrics(&association_sources, &truth_sources),
+            "disposition": if association_sources.is_empty() { "abstain_no_profile_match" } else { "association_only_not_custody" },
+            "may_claim_material_flow": false,
+            "may_authorize_containment": false
         },
         "B3_evidence_bounded_envelope": {
             "verified_source_candidates": verified_sources.iter().cloned().collect::<Vec<_>>(),
@@ -975,6 +1038,29 @@ mod tests {
             scenarios
                 .iter()
                 .all(|scenario| { scenario.get("status").and_then(Value::as_str) == Some("pass") })
+        );
+    }
+
+    #[test]
+    fn profile_match_without_material_route_exposes_association_only_false_positive() {
+        let corpus = fixture();
+        let scenarios = validate_corpus(&corpus).expect("fixture validates");
+        let case = scenarios.iter().find(|item| {
+            item.get("case_id").and_then(Value::as_str) == Some("GENOMIC-NO-ROUTE-005")
+        }).expect("genomic-without-route case exists");
+        let b2 = &case["reference_comparison"]["B2_association_only"];
+        assert_eq!(
+            b2["source_candidates"].as_array().expect("candidate array")[0].as_str(),
+            Some("ING-B")
+        );
+        assert_eq!(b2["source_metrics"]["true_positive_count"].as_u64(), Some(0));
+        assert_eq!(b2["source_metrics"]["false_positive_count"].as_u64(), Some(1));
+        assert_eq!(b2["disposition"].as_str(), Some("association_only_not_custody"));
+        assert_eq!(b2["may_claim_material_flow"].as_bool(), Some(false));
+        let b3 = &case["reference_comparison"]["B3_evidence_bounded_envelope"];
+        assert_eq!(
+            b3["source_disposition"].as_str(),
+            Some("abstain_no_material_route")
         );
     }
 
