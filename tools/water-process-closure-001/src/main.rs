@@ -20,6 +20,7 @@ struct Receipt {
     implementation_revision: Option<String>,
     input_sha256: String,
     oracle_sha256: String,
+    cargo_lock_sha256: String,
     result_count: usize,
     matched_case_count: usize,
     mismatches: Vec<Mismatch>,
@@ -73,6 +74,10 @@ fn run() -> Result<i32, String> {
         return Err("oracle identity or claim ceiling is invalid".to_owned());
     }
 
+    let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
+    let lock_bytes = fs::read(&lock_path)
+        .map_err(|err| format!("read {}: {err}", lock_path.display()))?;
+
     let actual = evaluate_corpus(&corpus)?;
     let mut expected = oracle.results;
     expected.sort_by(|a, b| a.case_id.cmp(&b.case_id));
@@ -115,6 +120,7 @@ fn run() -> Result<i32, String> {
         implementation_revision: revision,
         input_sha256: sha256_hex(&input_bytes),
         oracle_sha256: sha256_hex(&oracle_bytes),
+        cargo_lock_sha256: sha256_hex(&lock_bytes),
         result_count: actual.len(),
         matched_case_count: actual.len().saturating_sub(mismatches.len()),
         mismatches,
