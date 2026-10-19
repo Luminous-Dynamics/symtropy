@@ -300,10 +300,7 @@ impl ViewProfile {
     }
 
     /// Recommended camera interaction for a given purpose/projection pair.
-    pub fn navigation_for(
-        purpose: ViewPurpose,
-        dimension: ViewDimension,
-    ) -> ViewNavigationPolicy {
+    pub fn navigation_for(purpose: ViewPurpose, dimension: ViewDimension) -> ViewNavigationPolicy {
         match dimension {
             ViewDimension::Planar2D => ViewNavigationPolicy::PlanarPanZoom,
             ViewDimension::Oblique25D => ViewNavigationPolicy::ObliquePanOrbit,
@@ -436,9 +433,10 @@ impl ProjectorOblique25D {
         let scale = f64::from(self.scale_factor);
         let projected = [horizontal * scale, screen_up * scale, depth * scale];
 
-        if projected.iter().all(|value| {
-            value.is_finite() && value.abs() <= f64::from(f32::MAX)
-        }) {
+        if projected
+            .iter()
+            .all(|value| value.is_finite() && value.abs() <= f64::from(f32::MAX))
+        {
             Some([
                 projected[0] as f32,
                 projected[1] as f32,
@@ -508,8 +506,8 @@ impl OrientedProjector4D {
             return Err(ViewConfigError::DegenerateSliceNormal);
         }
         let normalized_normal = normal.map(|component| component / norm);
-        let basis = Self::build_basis(normalized_normal)
-            .ok_or(ViewConfigError::DegenerateSliceNormal)?;
+        let basis =
+            Self::build_basis(normalized_normal).ok_or(ViewConfigError::DegenerateSliceNormal)?;
 
         Ok(Self {
             normal: normalized_normal,
@@ -604,16 +602,16 @@ impl OrientedProjector4D {
             return None;
         }
         let distance = dot4(coordinates, self.normal) - self.offset;
-        let projected_onto_plane = std::array::from_fn(|index| {
-            coordinates[index] - distance * self.normal[index]
-        });
+        let projected_onto_plane =
+            std::array::from_fn(|index| coordinates[index] - distance * self.normal[index]);
         let projected = self.basis.map(|basis_vector| {
             dot4(projected_onto_plane, basis_vector) * f64::from(self.scale_factor)
         });
 
-        if projected.iter().all(|value| {
-            value.is_finite() && value.abs() <= f64::from(f32::MAX)
-        }) {
+        if projected
+            .iter()
+            .all(|value| value.is_finite() && value.abs() <= f64::from(f32::MAX))
+        {
             Some([
                 projected[0] as f32,
                 projected[1] as f32,
@@ -655,10 +653,7 @@ impl Projector<4> for OrientedProjector4D {
 }
 
 fn dot4(left: [f64; 4], right: [f64; 4]) -> f64 {
-    left.iter()
-        .zip(right)
-        .map(|(a, b)| *a * b)
-        .sum()
+    left.iter().zip(right).map(|(a, b)| *a * b).sum()
 }
 
 #[cfg(test)]
@@ -674,12 +669,10 @@ mod tests {
 
     #[test]
     fn purpose_profiles_have_distinct_intents() {
-        let strategic =
-            ViewProfile::recommended(ViewPurpose::Strategic, ViewDimension::Planar2D);
+        let strategic = ViewProfile::recommended(ViewPurpose::Strategic, ViewDimension::Planar2D);
         let operational =
             ViewProfile::recommended(ViewPurpose::Operational, ViewDimension::Oblique25D);
-        let tactical =
-            ViewProfile::recommended(ViewPurpose::Tactical, ViewDimension::Spatial3D);
+        let tactical = ViewProfile::recommended(ViewPurpose::Tactical, ViewDimension::Spatial3D);
         let scientific =
             ViewProfile::recommended(ViewPurpose::Scientific, ViewDimension::HyperSlice4D);
 
@@ -688,7 +681,10 @@ mod tests {
         assert!(strategic.aggregate_distant_items);
         assert!(!strategic.layers.contacts);
 
-        assert_eq!(operational.navigation, ViewNavigationPolicy::ObliquePanOrbit);
+        assert_eq!(
+            operational.navigation,
+            ViewNavigationPolicy::ObliquePanOrbit
+        );
         assert_eq!(operational.detail, ViewDetailPolicy::Clustered);
         assert!(operational.layers.routes);
         assert!(operational.layers.networks);
@@ -713,12 +709,14 @@ mod tests {
 
     #[test]
     fn purpose_and_dimension_are_independent_choices() {
-        let tactical_2d =
-            ViewProfile::recommended(ViewPurpose::Tactical, ViewDimension::Planar2D);
+        let tactical_2d = ViewProfile::recommended(ViewPurpose::Tactical, ViewDimension::Planar2D);
         let tactical_4d = tactical_2d.with_dimension(ViewDimension::HyperSlice4D);
         assert_eq!(tactical_4d.purpose, ViewPurpose::Tactical);
         assert_eq!(tactical_4d.dimension, ViewDimension::HyperSlice4D);
-        assert_eq!(tactical_4d.navigation, ViewNavigationPolicy::SliceScrubOrbit);
+        assert_eq!(
+            tactical_4d.navigation,
+            ViewNavigationPolicy::SliceScrubOrbit
+        );
         assert!(tactical_4d.validate().is_ok());
     }
 
@@ -758,7 +756,11 @@ mod tests {
         let ground_projected = projector.project(&ground);
         let elevated_projected = projector.project(&elevated);
 
-        near(ground_projected[0] as f64, elevated_projected[0] as f64, 1e-6);
+        near(
+            ground_projected[0] as f64,
+            elevated_projected[0] as f64,
+            1e-6,
+        );
         assert!(elevated_projected[1] > ground_projected[1]);
         assert!(elevated_projected[2] < ground_projected[2]);
     }
@@ -784,8 +786,7 @@ mod tests {
 
     #[test]
     fn oriented_four_d_slice_handles_arbitrary_normal_and_offset() {
-        let projector =
-            OrientedProjector4D::new([1.0, 0.0, 0.0, 0.0], 2.0, 0.5, 1.0).unwrap();
+        let projector = OrientedProjector4D::new([1.0, 0.0, 0.0, 0.0], 2.0, 0.5, 1.0).unwrap();
         let on_plane = Point::new([2.0, 3.0, 4.0, 5.0]);
         let near_plane = Point::new([2.25, 3.0, 4.0, 5.0]);
         let outside = Point::new([3.0, 3.0, 4.0, 5.0]);
@@ -814,8 +815,7 @@ mod tests {
 
     #[test]
     fn oriented_four_d_basis_is_orthonormal_for_an_oblique_hyperplane() {
-        let projector =
-            OrientedProjector4D::new([1.0, 2.0, 3.0, 4.0], 2.5, 0.25, 1.0).unwrap();
+        let projector = OrientedProjector4D::new([1.0, 2.0, 3.0, 4.0], 2.5, 0.25, 1.0).unwrap();
         let normal = projector.normal();
         let basis = projector.basis();
         near(dot4(normal, normal), 1.0, 1e-10);
@@ -830,21 +830,24 @@ mod tests {
 
     #[test]
     fn oriented_four_d_slice_rejects_boundary_and_nonfinite_points() {
-        let projector =
-            OrientedProjector4D::new([0.0, 0.0, 0.0, 1.0], 0.0, 0.5, 1.0).unwrap();
+        let projector = OrientedProjector4D::new([0.0, 0.0, 0.0, 1.0], 0.0, 0.5, 1.0).unwrap();
         let boundary = Point::new([1.0, 2.0, 3.0, 0.5]);
         let nonfinite = Point::new([1.0, 2.0, 3.0, f64::NAN]);
 
         assert!(!projector.is_visible(&boundary));
         near(projector.alpha(&boundary) as f64, 0.0, 1e-6);
         assert!(!projector.is_visible(&nonfinite));
-        assert!(!projector.project(&nonfinite).iter().all(|value| value.is_finite()));
+        assert!(
+            !projector
+                .project(&nonfinite)
+                .iter()
+                .all(|value| value.is_finite())
+        );
     }
 
     #[test]
     fn aggregate_policy_cannot_drop_source_membership() {
-        let mut profile =
-            ViewProfile::recommended(ViewPurpose::Strategic, ViewDimension::Planar2D);
+        let mut profile = ViewProfile::recommended(ViewPurpose::Strategic, ViewDimension::Planar2D);
         profile.preserve_aggregate_membership = false;
         assert_eq!(
             profile.validate(),

@@ -155,9 +155,7 @@ impl Projector4D {
     /// Alpha (opacity) based on distance from slice plane. Invalid configurations
     /// and non-finite points fail closed as fully transparent.
     pub fn alpha(&self, point: &Point<4>) -> f32 {
-        if !self.configuration_is_valid()
-            || (0..4).any(|axis| !point.coord(axis).is_finite())
-        {
+        if !self.configuration_is_valid() || (0..4).any(|axis| !point.coord(axis).is_finite()) {
             return 0.0;
         }
         let dist = self.w_distance(point);
@@ -196,9 +194,10 @@ impl Projector<4> for Projector4D {
 /// Converts f64 projected coordinates to f32 only when every coordinate is
 /// representable. Non-finite/overflowing output uses NaNs so callers can fail closed.
 fn representable_xyz(coordinates: [f64; 3]) -> [f32; 3] {
-    if coordinates.iter().all(|value| {
-        value.is_finite() && value.abs() <= f64::from(f32::MAX)
-    }) {
+    if coordinates
+        .iter()
+        .all(|value| value.is_finite() && value.abs() <= f64::from(f32::MAX))
+    {
         [
             coordinates[0] as f32,
             coordinates[1] as f32,
@@ -299,7 +298,12 @@ mod tests {
         let invalid_scale = Projector2D::new(f32::NAN);
         let point = Point::new([1.0, 2.0]);
         assert!(!invalid_scale.is_visible(&point));
-        assert!(!invalid_scale.project(&point).iter().all(|value| value.is_finite()));
+        assert!(
+            !invalid_scale
+                .project(&point)
+                .iter()
+                .all(|value| value.is_finite())
+        );
 
         let overflow = Projector3D::new(f32::MAX);
         let huge_point = Point::new([f64::MAX, 0.0, 0.0]);
