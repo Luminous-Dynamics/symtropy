@@ -1037,7 +1037,10 @@ mod tests {
             if upper == 100 {
                 assert_eq!(Disposition::UseModel, result.steps[0].disposition);
             } else {
-                assert_eq!(Disposition::RejectUnsafeInterval, result.steps[0].disposition);
+                assert_eq!(
+                    Disposition::RejectUnsafeInterval,
+                    result.steps[0].disposition
+                );
             }
         }
     }
