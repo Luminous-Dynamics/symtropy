@@ -25,7 +25,7 @@ pub(super) struct ConfidenceInterval {
 
 #[derive(Debug, Clone, Serialize)]
 pub(super) struct UncertaintyReport {
-    status: UncertaintyStatus,
+    pub(super) status: UncertaintyStatus,
     method: String,
     reason: Option<String>,
     confidence_level: f64,
