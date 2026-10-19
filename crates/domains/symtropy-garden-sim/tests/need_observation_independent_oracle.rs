@@ -288,6 +288,31 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
         "BLOCKED",
         "REJECTED",
     ];
+    assert_eq!(ids.len(), expected.len());
+    assert_eq!(ids, expected);
+    let expected_outcomes = [
+        "CALCULATED",
+        "CALCULATED",
+        "CALCULATED",
+        "CALCULATED",
+        "CALCULATED",
+        "CALCULATED",
+        "CALCULATED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "BLOCKED",
+        "NOT_ASSESSABLE",
+        "BLOCKED",
+        "REJECTED",
+    ];
     assert_eq!(outcomes, expected_outcomes);
     let mut unique = ids.clone();
     unique.sort_unstable();
