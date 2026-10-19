@@ -15,13 +15,59 @@ const SCENARIO_IDS: [&str; 5] = [
 
 type Check<T> = Result<T, String>;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum FaultKind {
+    RobotJointFailure,
+    InterfaceMismatch,
+    PowerDomainFailure,
+    ResupplyDelay,
+    CommonCausePowerFailure,
+}
+
+impl FaultKind {
+    fn parse(value: &str, at: &str) -> Check<Self> {
+        match value {
+            "robot_joint_failure" => Ok(Self::RobotJointFailure),
+            "interface_mismatch" => Ok(Self::InterfaceMismatch),
+            "power_domain_failure" => Ok(Self::PowerDomainFailure),
+            "resupply_delay" => Ok(Self::ResupplyDelay),
+            "common_cause_power_failure" => Ok(Self::CommonCausePowerFailure),
+            _ => Err(format!("{at}: unsupported fault event kind {value:?}")),
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::RobotJointFailure => "robot_joint_failure",
+            Self::InterfaceMismatch => "interface_mismatch",
+            Self::PowerDomainFailure => "power_domain_failure",
+            Self::ResupplyDelay => "resupply_delay",
+            Self::CommonCausePowerFailure => "common_cause_power_failure",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct FaultEvent {
+    at_tick: u32,
+    kind: FaultKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ScenarioContract {
+    id: String,
+    disturbance: String,
+    claim_ceiling: String,
+    events: Vec<FaultEvent>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Contract {
     mass_unit: String,
     time_unit: String,
     max_worst_case_service_loss_ticks: u32,
     end_of_life_plan_required: bool,
-    scenario_ids: Vec<String>,
+    scenarios: Vec<ScenarioContract>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -69,6 +115,22 @@ impl Design {
             u8::from(self.end_of_life_plan)
         )
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct EventOutcome {
+    at_tick: u32,
+    kind: FaultKind,
+    spare_units_before: u32,
+    spare_units_after: u32,
+    recovery_ticks: u32,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ScenarioSimulation {
+    service_loss_ticks: u32,
+    events: Vec<EventOutcome>,
+    spare_units_remaining: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -135,6 +197,21 @@ fn bool_field(value: &Value, key: &str, at: &str) -> Check<bool> {
         .ok_or_else(|| format!("{at}.{key}: expected boolean"))
 }
 
+fn expected_event_kinds(scenario_id: &str) -> Option<&'static [&'static str]> {
+    match scenario_id {
+        "ROBOT_JOINT_FAILURE" => Some(&["robot_joint_failure"]),
+        "INTERFACE_MISMATCH" => Some(&["interface_mismatch"]),
+        "POWER_DOMAIN_FAILURE" => Some(&["power_domain_failure"]),
+        "DELAYED_RESUPPLY" => Some(&["resupply_delay"]),
+        "COMMON_CAUSE_FAILURE" => Some(&[
+            "robot_joint_failure",
+            "common_cause_power_failure",
+            "resupply_delay",
+        ]),
+        _ => None,
+    }
+}
+
 fn parse_contract(bytes: &[u8]) -> Check<Contract> {
     let root: Value =
         serde_json::from_slice(bytes).map_err(|error| format!("fixture JSON: {error}"))?;
@@ -151,9 +228,10 @@ fn parse_contract(bytes: &[u8]) -> Check<Contract> {
         "root",
     )?;
 
-    if string_field(&root, "schema_version", "root")? != "0.1.0"
+    if string_field(&root, "schema_version", "root")? != "0.2.0"
         || string_field(&root, "evidence_class", "root")? != "synthetic"
-        || string_field(&root, "model", "root")? != "discrete_lifecycle_contract_not_physics"
+        || string_field(&root, "model", "root")?
+            != "event_driven_discrete_lifecycle_contract_not_physics"
     {
         return Err("root: unsupported schema, evidence class, or model claim".to_string());
     }
@@ -182,30 +260,76 @@ fn parse_contract(bytes: &[u8]) -> Check<Contract> {
         return Err("hard_gates: unsupported or weakened synthetic contract".to_string());
     }
 
-    let scenarios = field(&root, "scenarios", "root")?
+    let scenario_values = field(&root, "scenarios", "root")?
         .as_array()
         .ok_or_else(|| "scenarios: expected array".to_string())?;
-    if scenarios.len() != SCENARIO_IDS.len() {
+    if scenario_values.len() != SCENARIO_IDS.len() {
         return Err(format!(
             "scenarios: expected {} frozen scenarios, got {}",
             SCENARIO_IDS.len(),
-            scenarios.len()
+            scenario_values.len()
         ));
     }
 
-    let mut scenario_ids = Vec::with_capacity(scenarios.len());
-    for (index, scenario) in scenarios.iter().enumerate() {
+    let mut scenarios = Vec::with_capacity(scenario_values.len());
+    for (index, scenario) in scenario_values.iter().enumerate() {
         let at = format!("scenarios[{index}]");
-        exact_keys(scenario, &["id", "disturbance", "claim_ceiling"], &at)?;
+        exact_keys(
+            scenario,
+            &["id", "disturbance", "claim_ceiling", "events"],
+            &at,
+        )?;
         let id = string_field(scenario, "id", &at)?;
-        let _disturbance = string_field(scenario, "disturbance", &at)?;
-        let ceiling = string_field(scenario, "claim_ceiling", &at)?;
-        if id != SCENARIO_IDS[index] || !ceiling.starts_with("synthetic ") {
+        let disturbance = string_field(scenario, "disturbance", &at)?;
+        let claim_ceiling = string_field(scenario, "claim_ceiling", &at)?;
+        if id != SCENARIO_IDS[index] || !claim_ceiling.starts_with("synthetic ") {
             return Err(format!(
                 "{at}: scenario order/identity or synthetic claim ceiling changed"
             ));
         }
-        scenario_ids.push(id);
+
+        let expected_kinds = expected_event_kinds(&id)
+            .ok_or_else(|| format!("{at}: unsupported scenario identity {id:?}"))?;
+        let event_values = field(scenario, "events", &at)?
+            .as_array()
+            .ok_or_else(|| format!("{at}.events: expected array"))?;
+        if event_values.len() != expected_kinds.len() {
+            return Err(format!(
+                "{at}.events: expected {} events, got {}",
+                expected_kinds.len(),
+                event_values.len()
+            ));
+        }
+
+        let mut events = Vec::with_capacity(event_values.len());
+        let mut previous_tick = None;
+        for (event_index, event_value) in event_values.iter().enumerate() {
+            let event_at = format!("{at}.events[{event_index}]");
+            exact_keys(event_value, &["at_tick", "kind"], &event_at)?;
+            let at_tick = u32_field(event_value, "at_tick", &event_at)?;
+            if previous_tick.is_some_and(|previous| at_tick < previous) {
+                return Err(format!("{event_at}: events must be ordered by nondecreasing tick"));
+            }
+            previous_tick = Some(at_tick);
+
+            let kind_text = string_field(event_value, "kind", &event_at)?;
+            if kind_text != expected_kinds[event_index] {
+                return Err(format!(
+                    "{event_at}: event kind/order differs from the frozen scenario contract"
+                ));
+            }
+            events.push(FaultEvent {
+                at_tick,
+                kind: FaultKind::parse(&kind_text, &event_at)?,
+            });
+        }
+
+        scenarios.push(ScenarioContract {
+            id,
+            disturbance,
+            claim_ceiling,
+            events,
+        });
     }
 
     Ok(Contract {
@@ -213,7 +337,7 @@ fn parse_contract(bytes: &[u8]) -> Check<Contract> {
         time_unit,
         max_worst_case_service_loss_ticks,
         end_of_life_plan_required,
-        scenario_ids,
+        scenarios,
     })
 }
 
@@ -226,6 +350,73 @@ fn sum_checked(values: &[u32], at: &str) -> Check<u32> {
     values
         .iter()
         .try_fold(0_u32, |sum, value| add(sum, *value, at))
+}
+
+fn transition(design: Design, spare_units_remaining: &mut u32, kind: FaultKind) -> u32 {
+    match kind {
+        FaultKind::RobotJointFailure => {
+            if *spare_units_remaining > 0 {
+                *spare_units_remaining -= 1;
+                2
+            } else {
+                6
+            }
+        }
+        FaultKind::InterfaceMismatch => {
+            if design.standardized_interfaces {
+                1
+            } else {
+                7
+            }
+        }
+        FaultKind::PowerDomainFailure => {
+            if design.isolated_power_domains {
+                1
+            } else {
+                8
+            }
+        }
+        FaultKind::ResupplyDelay => {
+            if *spare_units_remaining > 0 {
+                *spare_units_remaining -= 1;
+                2
+            } else {
+                6
+            }
+        }
+        FaultKind::CommonCausePowerFailure => {
+            if design.isolated_power_domains {
+                3
+            } else {
+                8
+            }
+        }
+    }
+}
+
+fn simulate_scenario(design: Design, scenario: &ScenarioContract) -> Check<ScenarioSimulation> {
+    let mut spare_units_remaining = if design.spare_pack { 2 } else { 0 };
+    let mut service_loss_ticks = 0_u32;
+    let mut outcomes = Vec::with_capacity(scenario.events.len());
+
+    for event in &scenario.events {
+        let spare_units_before = spare_units_remaining;
+        let recovery_ticks = transition(design, &mut spare_units_remaining, event.kind);
+        service_loss_ticks = add(service_loss_ticks, recovery_ticks, "scenario service loss")?;
+        outcomes.push(EventOutcome {
+            at_tick: event.at_tick,
+            kind: event.kind,
+            spare_units_before,
+            spare_units_after: spare_units_remaining,
+            recovery_ticks,
+        });
+    }
+
+    Ok(ScenarioSimulation {
+        service_loss_ticks,
+        events: outcomes,
+        spare_units_remaining,
+    })
 }
 
 fn evaluate_model(design: Design, contract: &Contract) -> Check<Metrics> {
@@ -259,25 +450,14 @@ fn evaluate_model(design: Design, contract: &Contract) -> Check<Metrics> {
         "assembly duration",
     )?;
 
-    let robot_loss = if design.spare_pack { 2 } else { 6 };
-    let interface_loss = if design.standardized_interfaces { 1 } else { 7 };
-    let power_loss = if design.isolated_power_domains { 1 } else { 8 };
-    let supply_loss = if design.spare_pack { 2 } else { 6 };
-    let common_cause_loss = sum_checked(
-        &[
-            robot_loss,
-            if design.isolated_power_domains { 3 } else { 8 },
-            supply_loss,
-        ],
-        "common-cause service loss",
-    )?;
-    let scenario_loss_ticks = [
-        robot_loss,
-        interface_loss,
-        power_loss,
-        supply_loss,
-        common_cause_loss,
-    ];
+    let loss_values: Vec<u32> = contract
+        .scenarios
+        .iter()
+        .map(|scenario| simulate_scenario(design, scenario).map(|result| result.service_loss_ticks))
+        .collect::<Check<Vec<_>>>()?;
+    let scenario_loss_ticks: [u32; 5] = loss_values
+        .try_into()
+        .map_err(|_| "scenario count changed during metric computation".to_string())?;
     let sum_service_loss_ticks_across_scenarios =
         sum_checked(&scenario_loss_ticks, "scenario loss sum")?;
     let worst_case_service_loss_ticks = *scenario_loss_ticks
@@ -298,42 +478,58 @@ fn evaluate_model(design: Design, contract: &Contract) -> Check<Metrics> {
     })
 }
 
-// This oracle intentionally does not call evaluate_model or its arithmetic helpers.
-// It recomputes each field through a separate, simple expression over the tiny finite domain.
+// This oracle does not call transition() or simulate_scenario(). It independently
+// recomputes the fixed event semantics and spare inventory consumption.
+fn oracle_scenario_loss(design: Design, scenario: &ScenarioContract) -> u32 {
+    let mut spares = if design.spare_pack { 2_u32 } else { 0_u32 };
+    let mut total = 0_u32;
+    for event in &scenario.events {
+        let loss = match event.kind {
+            FaultKind::RobotJointFailure => {
+                if spares == 0 {
+                    6
+                } else {
+                    spares -= 1;
+                    2
+                }
+            }
+            FaultKind::InterfaceMismatch => {
+                if design.standardized_interfaces { 1 } else { 7 }
+            }
+            FaultKind::PowerDomainFailure => {
+                if design.isolated_power_domains { 1 } else { 8 }
+            }
+            FaultKind::ResupplyDelay => {
+                if spares == 0 {
+                    6
+                } else {
+                    spares -= 1;
+                    2
+                }
+            }
+            FaultKind::CommonCausePowerFailure => {
+                if design.isolated_power_domains { 3 } else { 8 }
+            }
+        };
+        total += loss;
+    }
+    total
+}
+
 fn oracle_metrics(design: Design, contract: &Contract) -> Metrics {
-    let launch_mass_smu = 100
-        + (design.standardized_interfaces as u32) * 8
-        + (design.isolated_power_domains as u32) * 18
-        + (design.spare_pack as u32) * 12
-        + (design.end_of_life_plan as u32) * 5;
+    let launch_mass_smu =
+        100 + 8 * u32::from(design.standardized_interfaces)
+            + 18 * u32::from(design.isolated_power_domains)
+            + 12 * u32::from(design.spare_pack)
+            + 5 * u32::from(design.end_of_life_plan);
+    let assembly_ticks = 12 - 2 * u32::from(design.standardized_interfaces)
+        + 2 * u32::from(design.isolated_power_domains)
+        + u32::from(design.spare_pack)
+        + u32::from(design.end_of_life_plan);
 
-    let assembly_ticks = 12 - 2 * (design.standardized_interfaces as u32)
-        + 2 * (design.isolated_power_domains as u32)
-        + (design.spare_pack as u32)
-        + (design.end_of_life_plan as u32);
-
-    let robot_loss = match design.spare_pack {
-        true => 2,
-        false => 6,
-    };
-    let interface_loss = match design.standardized_interfaces {
-        true => 1,
-        false => 7,
-    };
-    let power_loss = match design.isolated_power_domains {
-        true => 1,
-        false => 8,
-    };
-    let resupply_loss = if design.spare_pack { 2 } else { 6 };
-    let common_cause_power_loss = if design.isolated_power_domains { 3 } else { 8 };
-    let common_cause_loss = robot_loss + common_cause_power_loss + resupply_loss;
-    let scenario_loss_ticks = [
-        robot_loss,
-        interface_loss,
-        power_loss,
-        resupply_loss,
-        common_cause_loss,
-    ];
+    let scenario_loss_ticks: [u32; 5] = std::array::from_fn(|index| {
+        oracle_scenario_loss(design, &contract.scenarios[index])
+    });
     let sum_service_loss_ticks_across_scenarios = scenario_loss_ticks.iter().sum();
     let worst_case_service_loss_ticks = scenario_loss_ticks.iter().copied().max().unwrap_or(0);
     let end_of_life_plan_declared = design.end_of_life_plan;
@@ -445,67 +641,82 @@ fn validate_source_commit(value: &str) -> Check<()> {
 
 fn report(source_commit: Option<&str>) -> Check<Value> {
     let contract = parse_contract(FIXTURE_BYTES)?;
-    let specs = all_design_specs();
-    let mut rows = Vec::with_capacity(specs.len());
-    for spec in specs {
-        rows.push(evaluate_candidate(spec, &contract)?);
-    }
+    let rows: Vec<ResultRow> = all_design_specs()
+        .into_iter()
+        .map(|spec| evaluate_candidate(spec, &contract))
+        .collect::<Check<Vec<_>>>()?;
 
-    let scenario_reports: Vec<Value> = rows
-        .iter()
-        .map(|row| {
-            let scenarios: Vec<Value> = contract
-                .scenario_ids
+    let mut candidate_reports = Vec::with_capacity(rows.len());
+    for row in &rows {
+        let mut scenario_reports = Vec::with_capacity(contract.scenarios.len());
+        for (scenario, expected_loss) in contract.scenarios.iter().zip(row.metrics.scenario_loss_ticks) {
+            let simulation = simulate_scenario(row.design, scenario)?;
+            if simulation.service_loss_ticks != expected_loss {
+                return Err(format!("{}: event trace and metric disagree", scenario.id));
+            }
+            let event_trace: Vec<Value> = simulation
+                .events
                 .iter()
-                .zip(row.metrics.scenario_loss_ticks.iter())
-                .map(|(scenario_id, loss)| {
+                .map(|event| {
                     json!({
-                        "scenario_id": scenario_id,
-                        "service_loss_ticks": loss
+                        "at_tick": event.at_tick,
+                        "kind": event.kind.as_str(),
+                        "spare_units_before": event.spare_units_before,
+                        "spare_units_after": event.spare_units_after,
+                        "recovery_ticks": event.recovery_ticks
                     })
                 })
                 .collect();
-            json!({
-                "design_id": row.design.id(),
-                "design": {
-                    "standardized_interfaces": row.design.standardized_interfaces,
-                    "isolated_power_domains": row.design.isolated_power_domains,
-                    "spare_pack": row.design.spare_pack,
-                    "end_of_life_plan_declared": row.design.end_of_life_plan
-                },
-                "metrics": {
-                    "launch_mass_smu": row.metrics.launch_mass_smu,
-                    "assembly_ticks": row.metrics.assembly_ticks,
-                    "interface_families": row.metrics.interface_families,
-                    "sum_service_loss_ticks_across_scenarios": row.metrics.sum_service_loss_ticks_across_scenarios,
-                    "worst_case_service_loss_ticks": row.metrics.worst_case_service_loss_ticks,
-                    "end_of_life_plan_declared": row.metrics.end_of_life_plan_declared,
-                    "hard_gates_pass": row.metrics.hard_gates_pass,
-                    "scenario_losses": scenarios
-                },
-                "independent_oracle": "pass"
-            })
-        })
-        .collect();
+
+            scenario_reports.push(json!({
+                "scenario_id": scenario.id,
+                "disturbance": scenario.disturbance,
+                "claim_ceiling": scenario.claim_ceiling,
+                "service_loss_ticks": simulation.service_loss_ticks,
+                "spare_units_remaining": simulation.spare_units_remaining,
+                "event_trace": event_trace
+            }));
+        }
+
+        candidate_reports.push(json!({
+            "design_id": row.design.id(),
+            "design": {
+                "standardized_interfaces": row.design.standardized_interfaces,
+                "isolated_power_domains": row.design.isolated_power_domains,
+                "spare_pack": row.design.spare_pack,
+                "end_of_life_plan_declared": row.design.end_of_life_plan
+            },
+            "metrics": {
+                "launch_mass_smu": row.metrics.launch_mass_smu,
+                "assembly_ticks": row.metrics.assembly_ticks,
+                "interface_families": row.metrics.interface_families,
+                "sum_service_loss_ticks_across_scenarios": row.metrics.sum_service_loss_ticks_across_scenarios,
+                "worst_case_service_loss_ticks": row.metrics.worst_case_service_loss_ticks,
+                "end_of_life_plan_declared": row.metrics.end_of_life_plan_declared,
+                "hard_gates_pass": row.metrics.hard_gates_pass,
+                "scenario_losses": scenario_reports
+            },
+            "independent_oracle": "pass"
+        }));
+    }
 
     let eligible_count = rows
         .iter()
         .filter(|row| row.metrics.hard_gates_pass)
         .count();
-    let verified_count = rows.len(); // evaluate_candidate fails unless every row verifies.
     let frontier = pareto_frontier(&rows);
     Ok(json!({
-        "schema_version": "0.1.0",
+        "schema_version": "0.2.0",
         "result": "pass",
         "evidence_class": "synthetic",
-        "model": "discrete_lifecycle_contract_not_physics",
-        "claim_ceiling": "This validates arithmetic and search logic over a synthetic finite design space; it is not a physical LEO simulation, safety case, or flight qualification.",
+        "model": "event_driven_discrete_lifecycle_contract_not_physics",
+        "claim_ceiling": "This validates arithmetic and finite event/state logic over a synthetic design space; it is not a physical LEO simulation, safety case, or flight qualification.",
         "fixture_sha256": sha256_hex(FIXTURE_BYTES),
         "source_commit": source_commit,
         "units": {
             "mass": contract.mass_unit,
             "time": contract.time_unit,
-            "service_loss": contract.time_unit
+            "service_loss": "additive_synthetic_service_loss_ticks"
         },
         "objective_directions": {
             "launch_mass_smu": "minimize",
@@ -515,10 +726,10 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
             "interface_families": "minimize"
         },
         "candidate_count": rows.len(),
-        "verified_candidate_count": verified_count,
+        "verified_candidate_count": rows.len(),
         "hard_gate_eligible_count": eligible_count,
         "pareto_frontier_design_ids": frontier,
-        "candidates": scenario_reports
+        "candidates": candidate_reports
     }))
 }
 
@@ -579,7 +790,7 @@ mod tests {
     #[test]
     fn fixture_is_strict_and_synthetic() {
         let contract = contract();
-        assert_eq!(contract.scenario_ids.len(), 5);
+        assert_eq!(contract.scenarios.len(), 5);
         assert_eq!(contract.max_worst_case_service_loss_ticks, 12);
 
         let mut value: Value = serde_json::from_slice(FIXTURE_BYTES).unwrap();
@@ -594,6 +805,29 @@ mod tests {
     fn weakened_service_floor_contract_fails_closed() {
         let mut value: Value = serde_json::from_slice(FIXTURE_BYTES).unwrap();
         value["hard_gates"]["max_worst_case_service_loss_ticks"] = json!(13);
+        assert!(parse_contract(&serde_json::to_vec(&value).unwrap()).is_err());
+    }
+
+    #[test]
+    fn frozen_event_sequences_are_explicit_and_ordered() {
+        let contract = contract();
+        assert_eq!(contract.scenarios[4].events.len(), 3);
+        assert_eq!(contract.scenarios[4].events[0].at_tick, 2);
+        assert_eq!(contract.scenarios[4].events[1].at_tick, 2);
+        assert_eq!(contract.scenarios[4].events[2].at_tick, 3);
+    }
+
+    #[test]
+    fn nonmonotonic_event_time_fails_closed() {
+        let mut value: Value = serde_json::from_slice(FIXTURE_BYTES).unwrap();
+        value["scenarios"][4]["events"][2]["at_tick"] = json!(1);
+        assert!(parse_contract(&serde_json::to_vec(&value).unwrap()).is_err());
+    }
+
+    #[test]
+    fn unsupported_event_kind_fails_closed() {
+        let mut value: Value = serde_json::from_slice(FIXTURE_BYTES).unwrap();
+        value["scenarios"][0]["events"][0]["kind"] = json!("unknown_failure");
         assert!(parse_contract(&serde_json::to_vec(&value).unwrap()).is_err());
     }
 
@@ -657,6 +891,26 @@ mod tests {
     }
 
     #[test]
+    fn compound_faults_consume_shared_spare_inventory_in_event_order() {
+        let contract = contract();
+        let design = Design {
+            standardized_interfaces: true,
+            isolated_power_domains: true,
+            spare_pack: true,
+            end_of_life_plan: true,
+        };
+        let simulation = simulate_scenario(design, &contract.scenarios[4]).unwrap();
+        assert_eq!(simulation.service_loss_ticks, 7);
+        assert_eq!(simulation.spare_units_remaining, 0);
+        assert_eq!(simulation.events[0].spare_units_before, 2);
+        assert_eq!(simulation.events[0].spare_units_after, 1);
+        assert_eq!(simulation.events[1].spare_units_before, 1);
+        assert_eq!(simulation.events[1].spare_units_after, 1);
+        assert_eq!(simulation.events[2].spare_units_before, 1);
+        assert_eq!(simulation.events[2].spare_units_after, 0);
+    }
+
+    #[test]
     fn output_is_reproducible_without_an_external_commit_binding() {
         let a = serde_json::to_vec(&report(None).unwrap()).unwrap();
         let b = serde_json::to_vec(&report(None).unwrap()).unwrap();
@@ -678,16 +932,12 @@ mod tests {
         );
         let frontier = pareto_frontier(&rows);
         assert_eq!(frontier.len(), 4);
-        assert!(
-            frontier
-                .iter()
-                .any(|id| id.as_str() == "std=1|power_isolated=1|spares=1|eol_plan=1")
-        );
-        assert!(
-            frontier
-                .iter()
-                .any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1")
-        );
+        assert!(frontier
+            .iter()
+            .any(|id| id.as_str() == "std=1|power_isolated=1|spares=1|eol_plan=1"));
+        assert!(frontier
+            .iter()
+            .any(|id| id.as_str() == "std=1|power_isolated=0|spares=1|eol_plan=1"));
     }
 
     #[test]
