@@ -2,13 +2,13 @@ name: FieldFrame Interchange Qualification
 
 on:
   push:
-    branches: ["feat/field-frame-interchange-v2"]
+    branches: ["feat/field-frame-interchange", "feat/spectrum-profile-visualization-v3"]
     paths:
       - "crates/bridges/symtropy-render-bridge/**"
       - "Cargo.lock"
       - ".github/workflows/field-frame-interchange.yml"
   pull_request:
-    branches: ["feat/multiphysics-field-visualization"]
+    branches: ["feat/field-frame-interchange-v2"]
     paths:
       - "crates/bridges/symtropy-render-bridge/**"
       - "Cargo.lock"

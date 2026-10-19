@@ -23,6 +23,9 @@ const MAX_SCALAR_MARKERS_PER_LAYER: usize = 2_048;
 const MAX_VECTOR_GLYPHS_PER_LAYER: usize = 1_024;
 const MAX_SCALAR_MARKERS_TOTAL: usize = 8_192;
 const MAX_VECTOR_GLYPHS_TOTAL: usize = 4_096;
+const MAX_SPECTRUM_PROFILES_RENDERED: usize = 16;
+const MAX_SPECTRUM_BINS_PER_RENDERED_PROFILE: usize = 4_096;
+const MAX_SPECTRUM_BINS_RENDERED_TOTAL: usize = 16_384;
 
 /// A physical quantity with a corresponding display unit.
 ///
@@ -375,6 +378,8 @@ pub struct SpectrumProfile {
     pub calibration_reference: Option<String>,
     pub coordinate_frame: String,
     pub spatial_unit: SpatialUnit,
+    /// Scene coordinates per physical metre; ignored for WorldUnit coordinates.
+    pub world_units_per_meter: f64,
     pub timestamp_unix_ns: Option<u64>,
     pub position: [f64; 3],
     pub bins: Vec<SpectrumBin>,
@@ -403,7 +408,14 @@ pub fn validate_spectrum_profile(profile: &SpectrumProfile) -> Result<(), String
     {
         return Err("a calibrated measured spectrum requires a calibration reference".to_owned());
     }
-    validate_finite_position(profile.position)?;
+    if !profile.world_units_per_meter.is_finite() || profile.world_units_per_meter <= 0.0 {
+        return Err("world_units_per_meter must be finite and positive".to_owned());
+    }
+    project_position(
+        profile.position,
+        profile.spatial_unit,
+        profile.world_units_per_meter,
+    )?;
     if profile.bins.len() < 2 || profile.bins.len() > 4_096 {
         return Err("spectrum profile must contain 2..=4096 wavelength bins".to_owned());
     }
@@ -440,6 +452,167 @@ impl SpectrumProfile {
                 .wavelength_m,
         })
     }
+}
+
+/// Settings for rendering wavelength-vs-radiance curves inside the scene.
+///
+/// Ranges and units are fixed so distinct profiles remain comparable. A profile
+/// in a different radiance unit or coordinate frame is rejected rather than
+/// silently converted or plotted in the wrong place.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SpectrumPlotSettings {
+    pub enabled: bool,
+    pub wavelength_band: WavelengthBand,
+    pub radiance_range: DisplayRange,
+    pub radiance_unit: FieldUnit,
+    pub coordinate_frame: String,
+    pub origin_offset_world_units: [f32; 3],
+    pub plot_width_world_units: f32,
+    pub plot_height_world_units: f32,
+    pub color_map: FieldColorMap,
+    pub max_profiles: usize,
+    pub max_bins_per_profile: usize,
+    pub max_bins_total: usize,
+}
+
+impl Default for SpectrumPlotSettings {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            wavelength_band: WavelengthBand {
+                min_wavelength_m: 380.0e-9,
+                max_wavelength_m: 700.0e-9,
+            },
+            radiance_range: DisplayRange { min: 0.0, max: 1.0 },
+            radiance_unit: FieldUnit::WattPerSquareMeterSteradianPerNanometer,
+            coordinate_frame: "world".to_owned(),
+            origin_offset_world_units: [0.0, 0.0, 0.0],
+            plot_width_world_units: 2.0,
+            plot_height_world_units: 1.0,
+            color_map: FieldColorMap::ViridisLike,
+            max_profiles: 4,
+            max_bins_per_profile: 1_024,
+            max_bins_total: 4_096,
+        }
+    }
+}
+
+/// A validated wavelength/radiance pair projected into a fixed scene chart.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SpectrumPlotPoint {
+    pub position: [f32; 3],
+    pub wavelength_m: f64,
+    pub spectral_radiance: f64,
+    pub normalized_wavelength: f32,
+    pub normalized_radiance: f32,
+    pub color: [f32; 3],
+}
+
+/// Convert a wavelength-resolved profile to bounded 3D chart points.
+///
+/// Bins outside the requested wavelength band are omitted. The same fixed
+/// wavelength/radiance ranges should be used for every profile being compared.
+pub fn extract_spectrum_plot_points(
+    profile: &SpectrumProfile,
+    settings: &SpectrumPlotSettings,
+    max_bins: usize,
+) -> Result<Vec<SpectrumPlotPoint>, String> {
+    validate_spectrum_profile(profile)?;
+    validate_spectrum_plot_settings(settings)?;
+    if profile.unit != settings.radiance_unit {
+        return Err(format!(
+            "spectrum unit {} does not match plot unit {}",
+            profile.unit.symbol(),
+            settings.radiance_unit.symbol()
+        ));
+    }
+    if profile.coordinate_frame != settings.coordinate_frame {
+        return Err(format!(
+            "spectrum coordinate frame {:?} does not match plot frame {:?}",
+            profile.coordinate_frame, settings.coordinate_frame
+        ));
+    }
+    if max_bins < 2 {
+        return Err("spectrum plot requires a budget of at least two bins".to_owned());
+    }
+
+    let anchor = project_position(
+        profile.position,
+        profile.spatial_unit,
+        profile.world_units_per_meter,
+    )?;
+    let band_width =
+        settings.wavelength_band.max_wavelength_m - settings.wavelength_band.min_wavelength_m;
+    let mut points = Vec::with_capacity(max_bins.min(profile.bins.len()));
+
+    for bin in &profile.bins {
+        if bin.wavelength_m < settings.wavelength_band.min_wavelength_m
+            || bin.wavelength_m > settings.wavelength_band.max_wavelength_m
+        {
+            continue;
+        }
+        if points.len() >= max_bins {
+            break;
+        }
+        let normalized_wavelength =
+            ((bin.wavelength_m - settings.wavelength_band.min_wavelength_m) / band_width) as f32;
+        let normalized_radiance = settings.radiance_range.normalize(bin.spectral_radiance) as f32;
+        let x = settings.origin_offset_world_units[0]
+            + normalized_wavelength * settings.plot_width_world_units;
+        let y = settings.origin_offset_world_units[1]
+            + normalized_radiance * settings.plot_height_world_units;
+        let z = settings.origin_offset_world_units[2];
+        let position = [anchor[0] + x, anchor[1] + y, anchor[2] + z];
+        if position.iter().any(|value| !value.is_finite()) {
+            return Err("spectrum plot generated a non-finite chart coordinate".to_owned());
+        }
+        points.push(SpectrumPlotPoint {
+            position,
+            wavelength_m: bin.wavelength_m,
+            spectral_radiance: bin.spectral_radiance,
+            normalized_wavelength,
+            normalized_radiance,
+            color: settings
+                .color_map
+                .map_normalized(normalized_radiance as f64),
+        });
+    }
+    if points.len() < 2 {
+        return Err(
+            "fewer than two spectrum bins fall inside the configured wavelength band".to_owned(),
+        );
+    }
+    Ok(points)
+}
+
+fn validate_spectrum_plot_settings(settings: &SpectrumPlotSettings) -> Result<(), String> {
+    settings.wavelength_band.validate()?;
+    settings.radiance_range.validate()?;
+    if settings.radiance_range.min < 0.0 {
+        return Err("spectral-radiance display range must be non-negative".to_owned());
+    }
+    if settings.coordinate_frame.trim().is_empty() {
+        return Err("spectrum plot coordinate frame must not be empty".to_owned());
+    }
+    if settings
+        .origin_offset_world_units
+        .iter()
+        .any(|value| !value.is_finite())
+        || !settings.plot_width_world_units.is_finite()
+        || settings.plot_width_world_units <= 0.0
+        || !settings.plot_height_world_units.is_finite()
+        || settings.plot_height_world_units <= 0.0
+    {
+        return Err(
+            "spectrum plot geometry must be finite and have positive dimensions".to_owned(),
+        );
+    }
+    if settings.radiance_unit != FieldUnit::WattPerSquareMeterSteradianPerNanometer
+        && settings.radiance_unit != FieldUnit::WattPerSquareMeterSteradianPerMeter
+    {
+        return Err("spectrum plot unit must be a spectral-radiance unit".to_owned());
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -485,6 +658,8 @@ pub struct FieldLayerSet {
     pub max_vector_glyphs_total: usize,
     pub scalar_layers: Vec<ScalarFieldLayer>,
     pub vector_layers: Vec<VectorFieldLayer>,
+    pub spectra: Vec<SpectrumProfile>,
+    pub spectrum_plot: SpectrumPlotSettings,
 }
 
 impl Default for FieldLayerSet {
@@ -497,6 +672,8 @@ impl Default for FieldLayerSet {
             max_vector_glyphs_total: 4_096,
             scalar_layers: Vec::new(),
             vector_layers: Vec::new(),
+            spectra: Vec::new(),
+            spectrum_plot: SpectrumPlotSettings::default(),
         }
     }
 }
@@ -563,6 +740,7 @@ impl FieldFrame {
         let mut layers = FieldLayerSet::default();
         layers.scalar_layers.clone_from(&self.scalar_layers);
         layers.vector_layers.clone_from(&self.vector_layers);
+        layers.spectra.clone_from(&self.spectra);
         Ok(layers)
     }
 }
@@ -922,14 +1100,6 @@ fn project_world_position(position: [f64; 3]) -> Result<[f32; 3], String> {
     Ok(projected)
 }
 
-fn validate_finite_position(position: [f64; 3]) -> Result<(), String> {
-    if position.iter().all(|value| value.is_finite()) {
-        Ok(())
-    } else {
-        Err("spectrum profile has a non-finite position".to_owned())
-    }
-}
-
 /// Optional read-only renderer. Input layers are producer-supplied observations;
 /// the plugin never simulates or modifies their values.
 pub struct FieldVisualizationPlugin;
@@ -945,6 +1115,7 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
     if !layers.enabled
         || layers.scalar_layers.len() > MAX_FIELD_LAYERS
         || layers.vector_layers.len() > MAX_FIELD_LAYERS
+        || layers.spectra.len() > MAX_FIELD_LAYERS
     {
         return;
     }
@@ -1037,6 +1208,67 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
                 end - direction * head_length - side * head_width,
                 color,
             );
+        }
+    }
+
+    draw_spectrum_plots(&mut gizmos, &layers);
+}
+
+fn draw_spectrum_plots(gizmos: &mut Gizmos, layers: &FieldLayerSet) {
+    let settings = &layers.spectrum_plot;
+    if !settings.enabled || layers.spectra.is_empty() {
+        return;
+    }
+
+    let max_profiles = settings.max_profiles.min(MAX_SPECTRUM_PROFILES_RENDERED);
+    let max_bins_per_profile = settings
+        .max_bins_per_profile
+        .min(MAX_SPECTRUM_BINS_PER_RENDERED_PROFILE);
+    let total_budget = settings
+        .max_bins_total
+        .min(MAX_SPECTRUM_BINS_RENDERED_TOTAL);
+    if max_profiles == 0 || max_bins_per_profile < 2 || total_budget < 2 {
+        return;
+    }
+
+    let mut total_bins = 0;
+    for profile in layers.spectra.iter().take(max_profiles) {
+        let remaining = total_budget.saturating_sub(total_bins);
+        if remaining < 2 {
+            break;
+        }
+        let points = match extract_spectrum_plot_points(
+            profile,
+            settings,
+            max_bins_per_profile.min(remaining),
+        ) {
+            Ok(points) => points,
+            Err(_) => continue,
+        };
+        total_bins += points.len();
+
+        let axis_start = Vec3::from_array([
+            points[0].position[0]
+                - points[0].normalized_wavelength * settings.plot_width_world_units,
+            points[0].position[1]
+                - points[0].normalized_radiance * settings.plot_height_world_units,
+            points[0].position[2],
+        ]);
+        let axis_end_x = axis_start + Vec3::X * settings.plot_width_world_units;
+        let axis_end_y = axis_start + Vec3::Y * settings.plot_height_world_units;
+        let axis_color = Color::srgb(0.72, 0.76, 0.82);
+        gizmos.line(axis_start, axis_end_x, axis_color);
+        gizmos.line(axis_start, axis_end_y, axis_color);
+
+        for pair in points.windows(2) {
+            let start = Vec3::from_array(pair[0].position);
+            let end = Vec3::from_array(pair[1].position);
+            let color = Color::srgb(
+                (pair[0].color[0] + pair[1].color[0]) * 0.5,
+                (pair[0].color[1] + pair[1].color[1]) * 0.5,
+                (pair[0].color[2] + pair[1].color[2]) * 0.5,
+            );
+            gizmos.line(start, end, color);
         }
     }
 }
@@ -1220,6 +1452,7 @@ mod tests {
             calibration_reference: Some("traceable radiance standard CERT-123".to_owned()),
             coordinate_frame: "sensor-world".to_owned(),
             spatial_unit: SpatialUnit::Meter,
+            world_units_per_meter: 1.0,
             timestamp_unix_ns: Some(1_800_000_000_000_000_000),
             position: [0.0, 0.0, 0.0],
             bins: vec![
@@ -1249,6 +1482,65 @@ mod tests {
         let band = profile.wavelength_band().expect("valid profile has a band");
         assert_eq!(band.min_wavelength_m, 400.0e-9);
         assert_eq!(band.max_wavelength_m, 700.0e-9);
+    }
+
+    fn test_spectrum_plot_settings() -> SpectrumPlotSettings {
+        SpectrumPlotSettings {
+            enabled: true,
+            wavelength_band: WavelengthBand {
+                min_wavelength_m: 380.0e-9,
+                max_wavelength_m: 700.0e-9,
+            },
+            radiance_range: DisplayRange { min: 0.0, max: 3.0 },
+            radiance_unit: FieldUnit::WattPerSquareMeterSteradianPerNanometer,
+            coordinate_frame: "sensor-world".to_owned(),
+            origin_offset_world_units: [0.0, 0.0, 0.0],
+            plot_width_world_units: 2.0,
+            plot_height_world_units: 1.0,
+            color_map: FieldColorMap::ViridisLike,
+            max_profiles: 4,
+            max_bins_per_profile: 1_024,
+            max_bins_total: 4_096,
+        }
+    }
+
+    #[test]
+    fn spectrum_plot_maps_wavelength_and_radiance_to_fixed_axes() {
+        let profile = spectrum_profile();
+        let points = extract_spectrum_plot_points(&profile, &test_spectrum_plot_settings(), 1_024)
+            .expect("valid spectrum should plot");
+        assert_eq!(points.len(), 3);
+        assert!((points[0].normalized_wavelength - 0.0625).abs() < 1e-6);
+        assert!((points[0].normalized_radiance - 0.4).abs() < 1e-6);
+        assert!((points[0].position[0] - 0.125).abs() < 1e-6);
+        assert!((points[2].position[0] - 2.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn spectrum_plot_rejects_unit_and_coordinate_frame_mismatches() {
+        let profile = spectrum_profile();
+        let mut settings = test_spectrum_plot_settings();
+        settings.radiance_unit = FieldUnit::WattPerSquareMeterSteradianPerMeter;
+        assert!(extract_spectrum_plot_points(&profile, &settings, 1_024).is_err());
+
+        let mut settings = test_spectrum_plot_settings();
+        settings.coordinate_frame = "camera-local".to_owned();
+        assert!(extract_spectrum_plot_points(&profile, &settings, 1_024).is_err());
+    }
+
+    #[test]
+    fn spectrum_plot_respects_bin_budget_and_range() {
+        let profile = spectrum_profile();
+        let mut settings = test_spectrum_plot_settings();
+        let points = extract_spectrum_plot_points(&profile, &settings, 2)
+            .expect("bin budget should truncate the curve");
+        assert_eq!(points.len(), 2);
+
+        settings.wavelength_band = WavelengthBand {
+            min_wavelength_m: 500.0e-9,
+            max_wavelength_m: 600.0e-9,
+        };
+        assert!(extract_spectrum_plot_points(&profile, &settings, 2).is_err());
     }
 
     #[test]
@@ -1423,6 +1715,7 @@ mod tests {
         let visual_layers = decoded.to_layer_set().expect("valid frame maps to layers");
         assert_eq!(visual_layers.scalar_layers.len(), 1);
         assert_eq!(visual_layers.vector_layers.len(), 1);
+        assert_eq!(visual_layers.spectra.len(), 1);
         assert_eq!(decoded.spectra.len(), 1);
     }
 

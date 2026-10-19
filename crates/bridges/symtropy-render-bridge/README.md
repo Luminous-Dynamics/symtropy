@@ -167,8 +167,9 @@ For spectral data, use `SpectrumProfile` rather than collapsing all wavelengths 
 
 ```rust
 use symtropy_render_bridge::{
-    CalibrationStatus, FieldDataOrigin, FieldUnit, SpatialUnit,
-    SpectrumBin, SpectrumProfile, validate_spectrum_profile,
+    CalibrationStatus, DisplayRange, FieldColorMap, FieldDataOrigin, FieldLayerSet,
+    FieldUnit, FieldVisualizationPlugin, SpatialUnit, SpectrumBin, SpectrumPlotSettings,
+    SpectrumProfile, WavelengthBand, validate_spectrum_profile,
 };
 
 let spectrum = SpectrumProfile {
@@ -180,6 +181,7 @@ let spectrum = SpectrumProfile {
     calibration_reference: Some("radiance-standard-CERT-123".to_owned()),
     coordinate_frame: "sensor-world".to_owned(),
     spatial_unit: SpatialUnit::Meter,
+    world_units_per_meter: 1.0,
     timestamp_unix_ns: Some(1_800_000_000_000_000_000),
     position: [1.0, 0.5, 0.0],
     bins: vec![
@@ -192,9 +194,35 @@ let spectrum = SpectrumProfile {
 validate_spectrum_profile(&spectrum)?;
 let band = spectrum.wavelength_band()?;
 let frequencies_hz = band.frequency_range_hz()?;
+
+let mut layers = FieldLayerSet::default();
+layers.spectra.push(spectrum);
+layers.spectrum_plot = SpectrumPlotSettings {
+    enabled: true,
+    wavelength_band: WavelengthBand {
+        min_wavelength_m: 380e-9,
+        max_wavelength_m: 700e-9,
+    },
+    radiance_range: DisplayRange { min: 0.0, max: 3.0 },
+    radiance_unit: FieldUnit::WattPerSquareMeterSteradianPerNanometer,
+    coordinate_frame: "sensor-world".to_owned(),
+    origin_offset_world_units: [0.0, 0.0, 0.0],
+    plot_width_world_units: 2.0,
+    plot_height_world_units: 1.0,
+    color_map: FieldColorMap::ViridisLike,
+    max_profiles: 4,
+    max_bins_per_profile: 1_024,
+    max_bins_total: 4_096,
+};
+
+App::new()
+    .add_plugins(DefaultPlugins)
+    .add_plugins(FieldVisualizationPlugin)
+    .insert_resource(layers)
+    .run();
 ```
 
-This profile preserves ordered wavelength-bin values and per-bin uncertainty at one spatial sample. It can back a host UI's spectrum plot or be sampled along an image/volume grid. The current Bevy layer renderer does **not** draw a spectrum chart or a continuous volume; it draws bounded scene glyphs. A future host UI should put an explicit legend beside the view showing quantity, unit, source, calibration status, timestamp, wavelength/frequency band, fixed range, and uncertainty policy.
+This profile preserves ordered wavelength-bin values and per-bin uncertainty at one spatial sample. Enable `SpectrumPlotSettings` to draw a bounded wavelength-vs-radiance curve in the scene, using an explicit wavelength window, radiance unit/range, coordinate frame and plot dimensions. Bins outside the fixed wavelength band are omitted, and mismatched units or coordinate frames are rejected. Curve colour represents normalized radiance; a host UI should still provide axis labels/units and the source, calibration status, timestamp, wavelength/frequency band, fixed range and uncertainty policy. Continuous volume rendering remains future work.
 
 ### Portable FieldFrame interchange (schema v1)
 
@@ -209,7 +237,7 @@ let frame_sha256 = frame.serialized_sha256()?;
 let render_layers = frame.to_layer_set()?;
 
 // Keep the original frame as the evidence record; the layer set is only
-// the renderable scalar/vector projection. Spectrum profiles stay on the original frame.
+// the renderable scalar/vector projection and spectrum-curve sources. Keep the original frame as evidence.
 assert_eq!(frame.schema_version, FIELD_FRAME_SCHEMA_VERSION);
 assert_eq!(frame_sha256.len(), 64);
 ```

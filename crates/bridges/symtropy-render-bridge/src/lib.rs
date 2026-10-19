@@ -26,8 +26,9 @@ pub use field_visualization::{
     CalibrationStatus, DisplayRange, FIELD_FRAME_SCHEMA_VERSION, FieldColorMap, FieldDataOrigin,
     FieldFrame, FieldLayerMetadata, FieldLayerSet, FieldUnit, FieldVisualizationPlugin,
     PhysicalQuantity, ScalarFieldGlyph, ScalarFieldLayer, ScalarFieldSample, SpatialUnit,
-    SpectrumBin, SpectrumProfile, VectorFieldGlyph, VectorFieldLayer, VectorFieldSample,
-    WavelengthBand, extract_scalar_glyphs, extract_vector_glyphs, validate_field_frame,
+    SpectrumBin, SpectrumPlotPoint, SpectrumPlotSettings, SpectrumProfile, VectorFieldGlyph,
+    VectorFieldLayer, VectorFieldSample, WavelengthBand, extract_scalar_glyphs,
+    extract_spectrum_plot_points, extract_vector_glyphs, validate_field_frame,
     validate_spectrum_profile,
 };
 #[cfg(feature = "inspector")]
