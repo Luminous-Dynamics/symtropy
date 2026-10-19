@@ -532,27 +532,26 @@ fn compute_metrics(dataset: &ForecastDataset, split: SplitName) -> ForecastMetri
     let roc_auc = rank_roc_auc(&points);
     let average_precision = average_precision(&points);
 
-    let baselines: Vec<(f64, bool)> = known
+    let baseline_history = BaselineHistory::from_dataset(dataset);
+    let baseline_points: Vec<(f64, f64, bool)> = known
         .iter()
         .filter_map(|record| {
-            past_only_climatology(dataset, record)
-                .map(|baseline_probability| (baseline_probability, record.outcome == ForecastOutcome::Event))
+            baseline_history.probability(
+                record.input_cutoff_month,
+                t.minimum_climatology_history,
+            )
+            .map(|baseline| (baseline, record.probability, record.outcome == ForecastOutcome::Event))
         })
         .collect();
-    let climatology_covered_count = baselines.len();
-    let baseline_brier = mean(baselines.iter().map(|(p, y)| {
+    let climatology_covered_count = baseline_points.len();
+    let baseline_brier = mean(baseline_points.iter().map(|(base, _, y)| {
         let target = if *y { 1.0 } else { 0.0 };
-        (*p - target).powi(2)
+        (*base - target).powi(2)
     }));
-    let model_brier_on_baseline = mean(
-        known
-            .iter()
-            .filter(|record| past_only_climatology(dataset, record).is_some())
-            .map(|record| {
-                let target = if record.outcome == ForecastOutcome::Event { 1.0 } else { 0.0 };
-                (record.probability - target).powi(2)
-            }),
-    );
+    let model_brier_on_baseline = mean(baseline_points.iter().map(|(_, model, y)| {
+        let target = if *y { 1.0 } else { 0.0 };
+        (*model - target).powi(2)
+    }));
     let brier_skill = match (baseline_brier, model_brier_on_baseline) {
         (Some(base), Some(model)) if base > f64::EPSILON => Some(1.0 - model / base),
         _ => None,
@@ -579,33 +578,56 @@ fn compute_metrics(dataset: &ForecastDataset, split: SplitName) -> ForecastMetri
     }
 }
 
-/// Estimate the naive event probability only from unique, earlier unit-month
-/// outcomes that were available by this forecast's input cutoff.
-fn past_only_climatology(dataset: &ForecastDataset, record: &ForecastRecord) -> Option<f64> {
-    let mut history: BTreeMap<(String, i64), bool> = BTreeMap::new();
-    for candidate in &dataset.records {
-        if candidate.outcome == ForecastOutcome::Unknown
-            || candidate.target_month >= record.target_month
-            || candidate.outcome_available_month.is_none_or(|m| m > record.input_cutoff_month)
-        {
-            continue;
-        }
-        let key = (candidate.unit_id.clone(), candidate.target_month);
-        let event = candidate.outcome == ForecastOutcome::Event;
-        if let Some(previous) = history.get(&key) {
-            if *previous != event {
-                return None;
+/// Online climatology built from unique, mature unit-month labels. A label
+/// enters the prefix only at its declared availability month, so a future or
+/// unreleased observation cannot improve an earlier forecast's baseline.
+struct BaselineHistory {
+    available_months: Vec<i64>,
+    event_prefix: Vec<usize>,
+}
+
+impl BaselineHistory {
+    fn from_dataset(dataset: &ForecastDataset) -> Self {
+        let mut unique: BTreeMap<(String, i64), (bool, i64)> = BTreeMap::new();
+        for record in &dataset.records {
+            let Some(available_month) = record.outcome_available_month else {
+                continue;
+            };
+            if record.outcome == ForecastOutcome::Unknown {
+                continue;
             }
-        } else {
-            history.insert(key, event);
+            let key = (record.unit_id.clone(), record.target_month);
+            unique.entry(key).or_insert((
+                record.outcome == ForecastOutcome::Event,
+                available_month,
+            ));
         }
+
+        let mut observations: Vec<(i64, bool)> = unique
+            .values()
+            .map(|(event, available)| (*available, *event))
+            .collect();
+        observations.sort_unstable_by_key(|(available, _)| *available);
+
+        let available_months: Vec<i64> =
+            observations.iter().map(|(available, _)| *available).collect();
+        let mut event_prefix = Vec::with_capacity(observations.len() + 1);
+        event_prefix.push(0);
+        for (_, event) in &observations {
+            event_prefix.push(event_prefix.last().copied().unwrap_or(0) + usize::from(*event));
+        }
+        Self { available_months, event_prefix }
     }
-    let count = history.len();
-    if count < dataset.temporal_split.minimum_climatology_history {
-        return None;
+
+    fn probability(&self, input_cutoff_month: i64, minimum_history: usize) -> Option<f64> {
+        let count = self
+            .available_months
+            .partition_point(|available| *available <= input_cutoff_month);
+        if count < minimum_history {
+            return None;
+        }
+        Some(self.event_prefix[count] as f64 / count as f64)
     }
-    let events = history.values().filter(|event| **event).count();
-    Some(events as f64 / count as f64)
 }
 
 fn build_reliability_bins(points: &[ScoredPoint], bin_count: usize) -> Vec<ReliabilityBin> {
@@ -836,11 +858,20 @@ mod tests {
 
     #[test]
     fn baseline_excludes_outcomes_not_available_at_the_forecast_cutoff() {
-        let mut d = dataset();
+        let d = dataset();
+        let history = BaselineHistory::from_dataset(&d);
         let test_record = d.records.iter().find(|r| r.forecast_id == "forecast-x1").unwrap().clone();
-        let before = past_only_climatology(&d, &test_record);
-        d.records[0].outcome_available_month = Some(test_record.input_cutoff_month + 1);
-        let after = past_only_climatology(&d, &test_record);
+        let before = history.probability(
+            test_record.input_cutoff_month,
+            d.temporal_split.minimum_climatology_history,
+        );
+        let mut changed = d.clone();
+        changed.records[0].outcome_available_month =
+            Some(test_record.input_cutoff_month + 1);
+        let after = BaselineHistory::from_dataset(&changed).probability(
+            test_record.input_cutoff_month,
+            d.temporal_split.minimum_climatology_history,
+        );
         assert_eq!(before, after);
     }
 
