@@ -33,7 +33,11 @@
     "critical_failure_case_ids",
     "fixture_gate_passed",
     "claim_ceiling",
-    "case_evaluations"
+    "case_evaluations",
+    "metamorphic_pairs_total",
+    "metamorphic_pairs_passed",
+    "metamorphic_pair_failure_ids",
+    "metamorphic_gate_passed"
   ],
   "properties": {
     "report_version": {
@@ -258,6 +262,25 @@
           }
         }
       }
+    },
+    "metamorphic_pairs_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metamorphic_pairs_passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metamorphic_pair_failure_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "metamorphic_gate_passed": {
+      "type": "boolean"
     }
   },
   "$defs": {
