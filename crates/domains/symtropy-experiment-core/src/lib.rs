@@ -640,7 +640,8 @@ mod tests {
     #[test]
     fn duplicate_ids_are_rejected() {
         let mut graph = gear_graph();
-        graph.variables[1].id = graph.variables[0].id.clone();
+        let duplicate_id = graph.variables[0].id.clone();
+        graph.variables[1].id = duplicate_id;
         let report = graph.validate();
         assert!(report.issues.iter().any(|item| {
             item.code == ValidationCode::DuplicateId
