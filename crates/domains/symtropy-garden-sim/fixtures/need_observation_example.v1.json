@@ -5,7 +5,7 @@
   "scope_ref": "scope-demo-v1",
   "period_ref": "season-demo-v1",
   "useful_window_rule_ref": "window-demo-v1",
-  "screened_candidate_count": "8",
+  "screened_candidate_count": "9",
   "protocol_excluded_count": "2",
   "exclusions": {
     "outside_declared_task_count": "0",
@@ -105,6 +105,21 @@
       "outcome_source": "unknown",
       "no_request_reason": null,
       "need_timing": "anticipated"
+    },
+    {
+      "need_ref": "need-007",
+      "task_code": "weeding",
+      "scope_ref": "scope-demo-v1",
+      "period_ref": "season-demo-v1",
+      "useful_window_rule_ref": "window-demo-v1",
+      "report_basis": "farmer_confirmed_prospective",
+      "need_timing": "current",
+      "authority_ref": null,
+      "request_presence": "request_existence_unknown",
+      "request_ref": null,
+      "disposition": "outcome_unknown",
+      "outcome_source": "unknown",
+      "no_request_reason": null
     }
   ]
 }
