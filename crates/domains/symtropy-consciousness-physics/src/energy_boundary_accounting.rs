@@ -22,6 +22,9 @@
 
 use std::collections::BTreeSet;
 
+/// Maximum accepted relative tolerance for classifying a declared boundary as balanced.
+pub const MAX_RELATIVE_TOLERANCE: f64 = 1.0e-2;
+
 /// Direction of a transfer that crosses the declared system boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoundaryDirection {
@@ -51,7 +54,7 @@ pub struct InternalEnergyTransfer {
 
 /// A complete declared input snapshot for one energy boundary and one energy unit.
 ///
-/// Relative tolerance must be finite and in (0, 1]. The arithmetic tolerance is
+/// Relative tolerance must be finite and in (0, 0.01]. The arithmetic tolerance is
 /// relative_tolerance * max(1, E_initial + inflows + outflows + E_final).
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnergyBoundarySnapshot {
@@ -126,7 +129,7 @@ pub fn assess_energy_boundary(
     }
     if !snapshot.relative_tolerance.is_finite()
         || snapshot.relative_tolerance <= 0.0
-        || snapshot.relative_tolerance > 1.0
+        || snapshot.relative_tolerance > MAX_RELATIVE_TOLERANCE
     {
         return Err(EnergyBoundaryError::InvalidRelativeTolerance);
     }
@@ -375,7 +378,7 @@ mod tests {
         );
 
         let mut loose = balanced_snapshot();
-        loose.relative_tolerance = 1.1;
+        loose.relative_tolerance = 0.02;
         assert_eq!(
             assess_energy_boundary(&loose),
             Err(EnergyBoundaryError::InvalidRelativeTolerance)
