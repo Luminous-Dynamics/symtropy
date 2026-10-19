@@ -25,7 +25,7 @@ fn primary_bounds_reconcile_without_float_arithmetic() {
     let report = assess_field_eval_report_v1(&valid_input());
     assert_eq!(report.disposition, FieldEvalReportDispositionV1::Calculated);
     assert_eq!(report.eligible_request_count, 10);
-    assert_eq!(report.classified_request_count, 8);
+    assert_eq!(report.classified_request_count, Some(8));
     let bounds = report.evidence_confirmed_attainment.expect("valid bounds");
     assert_eq!(bounds.lower_numerator, 4);
     assert_eq!(bounds.upper_numerator, 6);
@@ -88,6 +88,16 @@ fn known_late_or_disputed_outcomes_do_not_inflate_upper_bound() {
 }
 
 #[test]
+fn blocked_report_does_not_emit_partial_classified_count_or_rate() {
+    let mut input = valid_input();
+    input.screened_request_count = 99;
+    let report = assess_field_eval_report_v1(&input);
+    assert_eq!(report.disposition, FieldEvalReportDispositionV1::Blocked);
+    assert!(report.classified_request_count.is_none());
+    assert!(report.evidence_confirmed_attainment.is_none());
+}
+
+#[test]
 fn no_eligible_requests_is_not_assessable_not_zero_percent_success() {
     let mut input = valid_input();
     input.screened_request_count = 2;
@@ -102,7 +112,7 @@ fn no_eligible_requests_is_not_assessable_not_zero_percent_success() {
         FieldEvalReportDispositionV1::NotAssessable
     );
     assert!(report.evidence_confirmed_attainment.is_none());
-    assert_eq!(report.classified_request_count, 0);
+    assert_eq!(report.classified_request_count, Some(0));
 }
 
 #[test]
