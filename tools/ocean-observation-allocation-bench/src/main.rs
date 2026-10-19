@@ -57,6 +57,16 @@ enum ExposureKnowledge {
     Unknown,
 }
 
+/// Synthetic detectability profile. Values are normalized ppm units, not physical
+/// sensor calibration. Missing values mean the detection profile is incomplete.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DetectionProfile {
+    minimum_detectable_signal_ppm: Option<u64>,
+    expected_signal_ppm: Option<u64>,
+    detection_probability_ppm: Option<u64>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Exposure {
@@ -96,7 +106,7 @@ struct Candidate {
     observation_mode: ObservationMode,
     rights_review_status: RightsReviewStatus,
     use_permission: UsePermission,
-    detection_limits_declared: bool,
+    /// Absent or incomplete profile is an explicit non-eligibility signal.\n    detection_profile: Option<DetectionProfile>,
     exposure_knowledge: ExposureKnowledge,
     effort_units: u32,
     /// Synthetic expected information gain before the remaining-uncertainty cap.
@@ -361,6 +371,20 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
                     candidate.candidate_id
                 ));
             }
+            if let Some(profile) = candidate.detection_profile {
+                for (name, value) in [
+                    ("minimum_detectable_signal_ppm", profile.minimum_detectable_signal_ppm),
+                    ("expected_signal_ppm", profile.expected_signal_ppm),
+                    ("detection_probability_ppm", profile.detection_probability_ppm),
+                ] {
+                    if value.is_some_and(|ppm| ppm > SCALE_PPM) {
+                        return Err(format!(
+                            "candidate {} {name} exceeds 1,000,000 ppm",
+                            candidate.candidate_id
+                        ));
+                    }
+                }
+            }
         }
     }
     Ok(())
@@ -399,13 +423,42 @@ fn stratum_index(scenario: &Scenario, id: &str) -> usize {
         .expect("corpus validation ensures stratum references exist")
 }
 
+fn detection_profile_is_adequate(candidate: &Candidate) -> bool {
+    let Some(profile) = candidate.detection_profile else {
+        return false;
+    };
+    match (
+        profile.minimum_detectable_signal_ppm,
+        profile.expected_signal_ppm,
+        profile.detection_probability_ppm,
+    ) {
+        (Some(minimum), Some(expected), Some(probability)) => {
+            minimum <= SCALE_PPM
+                && expected <= SCALE_PPM
+                && probability > 0
+                && probability <= SCALE_PPM
+                && expected >= minimum
+        }
+        _ => false,
+    }
+}
+
+fn expected_information_gain_ppm(candidate: &Candidate) -> u64 {
+    let probability = candidate
+        .detection_profile
+        .and_then(|profile| profile.detection_probability_ppm)
+        .expect("only candidates with a complete profile are eligible");
+    ((u128::from(candidate.information_gain_ppm) * u128::from(probability))
+        / u128::from(SCALE_PPM)) as u64
+}
+
 fn is_eligible(candidate: &Candidate) -> bool {
     matches!(
         candidate.observation_mode,
         ObservationMode::PassiveNonContact | ObservationMode::ActiveNonContact
     ) && candidate.rights_review_status == RightsReviewStatus::Reviewed
         && candidate.use_permission == UsePermission::Permitted
-        && candidate.detection_limits_declared
+        && detection_profile_is_adequate(candidate)
         && candidate.exposure_knowledge == ExposureKnowledge::Known
 }
 
@@ -426,8 +479,7 @@ fn can_add(scenario: &Scenario, state: &SelectionState, candidate_index: usize) 
 fn add_candidate(scenario: &Scenario, state: &mut SelectionState, index: usize) {
     let candidate = &scenario.candidates[index];
     let stratum_index = stratum_index(scenario, &candidate.stratum_id);
-    let reduction = candidate
-        .information_gain_ppm
+    let reduction = expected_information_gain_ppm(candidate)
         .min(state.remaining_uncertainty[stratum_index]);
     let priority = scenario.strata[stratum_index].priority_ppm;
     let weighted_score = (u128::from(reduction) * u128::from(priority) / u128::from(SCALE_PPM))
@@ -469,7 +521,7 @@ fn rank_candidate(
     let s_idx = stratum_index(scenario, &candidate.stratum_id);
     let stratum = &scenario.strata[s_idx];
     let remaining = state.remaining_uncertainty[s_idx];
-    let marginal_gain = candidate.information_gain_ppm.min(remaining);
+    let marginal_gain = expected_information_gain_ppm(candidate).min(remaining);
     let marginal_score =
         u128::from(marginal_gain) * u128::from(stratum.priority_ppm) / u128::from(SCALE_PPM);
     let uncovered_first = if state.covered[s_idx] { 0 } else { 1 };
@@ -764,9 +816,9 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
     );
     add_invariant(
         &mut invariants,
-        "no_contact_or_unpermitted_or_detection_limited_action_selected",
+        "no_contact_or_unpermitted_or_inadequately_detectable_action_selected",
         no_ineligible_selected,
-        "Only reviewed-and-permitted, non-contact candidates with declared detection limits and known exposure can be selected.",
+        "Only reviewed-and-permitted non-contact candidates with complete, adequate detection profiles and known exposure can be selected.",
     );
     add_invariant(
         &mut invariants,
@@ -1037,7 +1089,7 @@ mod tests {
             observation_mode: ObservationMode::PassiveNonContact,
             rights_review_status: RightsReviewStatus::ReviewRequired,
             use_permission: UsePermission::Permitted,
-            detection_limits_declared: true,
+            detection_profile: Some(DetectionProfile {\n                minimum_detectable_signal_ppm: Some(100_000),\n                expected_signal_ppm: Some(500_000),\n                detection_probability_ppm: Some(900_000),\n            }),
             exposure_knowledge: ExposureKnowledge::Known,
             effort_units: 1,
             information_gain_ppm: 100,
