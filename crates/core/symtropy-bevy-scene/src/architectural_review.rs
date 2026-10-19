@@ -1067,6 +1067,8 @@ pub enum FeedbackResolutionIssue {
     DuplicateFeedbackResolutionForRevision { feedback_id: String, revision_id: String },
     UnknownFeedback(String),
     SourceRevisionMismatch { feedback_id: String },
+    FeedbackNotAcceptedForChange { feedback_id: String },
+    ChangeRequestMismatch { feedback_id: String },
     StaleReviewedRevision { resolution_id: String },
     EmptyRationale { resolution_id: String },
     MissingChangeRequest { resolution_id: String },
@@ -1152,6 +1154,18 @@ pub fn validate_feedback_resolutions_for_revision(
 
         match resolution.disposition {
             FeedbackResolutionDisposition::ImplementedInRevision => {
+                if original.lifecycle != OccupantFeedbackLifecycle::AcceptedForDesignChange {
+                    issues.push(FeedbackResolutionIssue::FeedbackNotAcceptedForChange {
+                        feedback_id: resolution.feedback_id.clone(),
+                    });
+                }
+                if original.design_change_request_id.as_deref()
+                    != resolution.design_change_request_id.as_deref()
+                {
+                    issues.push(FeedbackResolutionIssue::ChangeRequestMismatch {
+                        feedback_id: resolution.feedback_id.clone(),
+                    });
+                }
                 if resolution.reviewed_against_design_revision_id
                     == resolution.source_design_revision_id
                 {
@@ -1304,23 +1318,42 @@ mod tests {
 
     #[test]
     fn implemented_preference_resolution_requires_revision_and_evidence_trace() {
-        let feedback = vec![sample_feedback(OccupantFeedbackCategory::PersonalPreference)];
+        let mut feedback = sample_feedback(OccupantFeedbackCategory::PersonalPreference);
+        feedback.lifecycle = OccupantFeedbackLifecycle::AcceptedForDesignChange;
+        feedback.design_change_request_id = Some("change:window-screen-v2".into());
         let resolution = sample_resolution(FeedbackResolutionDisposition::ImplementedInRevision);
         assert_eq!(
-            validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2"),
+            validate_feedback_resolutions_for_revision(&[feedback], &[resolution], "house:r2"),
             Ok(())
         );
     }
 
     #[test]
     fn accessibility_concern_cannot_be_marked_implemented_without_assessment() {
-        let feedback = vec![sample_feedback(OccupantFeedbackCategory::AccessibilityConcern)];
+        let mut feedback = sample_feedback(OccupantFeedbackCategory::AccessibilityConcern);
+        feedback.lifecycle = OccupantFeedbackLifecycle::AcceptedForDesignChange;
+        feedback.design_change_request_id = Some("change:window-screen-v2".into());
         let resolution = sample_resolution(FeedbackResolutionDisposition::ImplementedInRevision);
-        assert!(validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2")
+        assert!(validate_feedback_resolutions_for_revision(&[feedback], &[resolution], "house:r2")
             .unwrap_err()
             .contains(&FeedbackResolutionIssue::MissingIndependentAssessment {
                 resolution_id: "resolution:privacy-r1-to-r2".into(),
             }));
+    }
+
+    #[test]
+    fn implementation_cannot_skip_acceptance_or_change_request_linkage() {
+        let feedback = vec![sample_feedback(OccupantFeedbackCategory::PersonalPreference)];
+        let resolution = sample_resolution(FeedbackResolutionDisposition::ImplementedInRevision);
+        let issues =
+            validate_feedback_resolutions_for_revision(&feedback, &[resolution], "house:r2")
+                .unwrap_err();
+        assert!(issues.contains(&FeedbackResolutionIssue::FeedbackNotAcceptedForChange {
+            feedback_id: "feedback:privacy-east-window".into(),
+        }));
+        assert!(issues.contains(&FeedbackResolutionIssue::ChangeRequestMismatch {
+            feedback_id: "feedback:privacy-east-window".into(),
+        }));
     }
 
     #[test]
