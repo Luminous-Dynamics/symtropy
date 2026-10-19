@@ -1095,8 +1095,7 @@ mod tests {
             observations: &report.observations,
             diagnostics: &report.diagnostics,
         };
-        report.semantic_result_sha256 =
-            sha256_hex(&serde_json::to_vec(&semantic_digest).unwrap());
+        report.semantic_result_sha256 = sha256_hex(&serde_json::to_vec(&semantic_digest).unwrap());
         report
     }
 
@@ -1584,8 +1583,7 @@ mod tests {
             observations: &report.observations,
             diagnostics: &report.diagnostics,
         };
-        report.semantic_result_sha256 =
-            sha256_hex(&serde_json::to_vec(&semantic_digest).unwrap());
+        report.semantic_result_sha256 = sha256_hex(&serde_json::to_vec(&semantic_digest).unwrap());
         let gate = gate_from_adapter(&report, target, ids).unwrap();
         assert_eq!(gate.status, GateStatus::Unresolved);
     }
