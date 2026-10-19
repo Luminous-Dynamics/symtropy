@@ -79,7 +79,7 @@ impl RunReceipt {
             ("operating_system".to_owned(), std::env::consts::OS.to_owned()),
             (
                 "build_profile".to_owned(),
-                if cfg!(debug_assertions) { "debug" } else { "release" }.to_owned(),
+                (if cfg!(debug_assertions) { "debug" } else { "release" }).to_owned(),
             ),
         ]);
         if let Ok(version) = std::env::var("SYMTROPY_RUSTC_VERSION") {
