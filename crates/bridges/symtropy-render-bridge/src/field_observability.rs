@@ -133,10 +133,7 @@ pub struct ScalarRange {
 
 impl ScalarRange {
     pub fn validate(self) -> Result<(), FieldValidationError> {
-        if !self.minimum.is_finite()
-            || !self.maximum.is_finite()
-            || self.minimum >= self.maximum
-        {
+        if !self.minimum.is_finite() || !self.maximum.is_finite() || self.minimum >= self.maximum {
             return Err(FieldValidationError::InvalidDisplayRange);
         }
         Ok(())
@@ -469,11 +466,7 @@ impl Plugin for FieldObservabilityPlugin {
 
 /// Convert a field value to a clipped, named pseudocolor. Returns None for
 /// malformed ranges/values; clipping is a display choice, never data mutation.
-pub fn scalar_color(
-    value: f64,
-    range: ScalarRange,
-    palette: ScalarPalette,
-) -> Option<[f32; 3]> {
+pub fn scalar_color(value: f64, range: ScalarRange, palette: ScalarPalette) -> Option<[f32; 3]> {
     if !value.is_finite() || range.validate().is_err() {
         return None;
     }
@@ -508,8 +501,7 @@ pub fn scalar_color(
     let lower = (scaled.floor() as usize).min(segments - 1);
     let fraction = (scaled - lower as f64) as f32;
     Some(std::array::from_fn(|channel| {
-        stops[lower][channel]
-            + (stops[lower + 1][channel] - stops[lower][channel]) * fraction
+        stops[lower][channel] + (stops[lower + 1][channel] - stops[lower][channel]) * fraction
     }))
 }
 
@@ -558,7 +550,11 @@ pub fn extract_spectral_glyphs(
         glyphs.push(SpectralGlyph {
             position: to_f32_position(sample.position_world_m)?,
             rgb,
-            selected_values: [sample.values[red], sample.values[green], sample.values[blue]],
+            selected_values: [
+                sample.values[red],
+                sample.values[green],
+                sample.values[blue],
+            ],
         });
     }
     Ok(glyphs)
@@ -589,7 +585,9 @@ pub fn extract_vector_glyphs(
         if !magnitude.is_finite() || magnitude <= f64::EPSILON {
             continue;
         }
-        let direction = sample.vector.map(|component| (component / magnitude) as f32);
+        let direction = sample
+            .vector
+            .map(|component| (component / magnitude) as f32);
         let magnitude_f32 = magnitude.min(f64::from(f32::MAX)) as f32;
         glyphs.push(VectorGlyph {
             origin: to_f32_position(sample.position_world_m)?,
@@ -795,15 +793,17 @@ mod tests {
 
     #[test]
     fn invalid_ranges_nan_and_negative_uncertainty_fail_closed() {
-        assert!(scalar_color(
-            f64::NAN,
-            ScalarRange {
-                minimum: 0.0,
-                maximum: 1.0
-            },
-            ScalarPalette::Viridis
-        )
-        .is_none());
+        assert!(
+            scalar_color(
+                f64::NAN,
+                ScalarRange {
+                    minimum: 0.0,
+                    maximum: 1.0
+                },
+                ScalarPalette::Viridis
+            )
+            .is_none()
+        );
         let mut frame = temperature_frame();
         frame.display_range.maximum = frame.display_range.minimum;
         assert_eq!(
@@ -827,7 +827,10 @@ mod tests {
                         center_wavelength_nm: 450.0,
                         bandwidth_fwhm_nm: 20.0,
                     },
-                    display_range: ScalarRange { minimum: 0.0, maximum: 1.0 },
+                    display_range: ScalarRange {
+                        minimum: 0.0,
+                        maximum: 1.0,
+                    },
                 },
                 SpectralChannelSpec {
                     band: SpectralBand {
@@ -893,8 +896,7 @@ mod tests {
         };
         assert!(frame.validate().is_ok());
         assert_eq!(frame.quantity.unit(), "V/m");
-        let glyphs = extract_vector_glyphs(&frame, 8, 0.1, 0.25)
-            .expect("valid vectors should map");
+        let glyphs = extract_vector_glyphs(&frame, 8, 0.1, 0.25).expect("valid vectors should map");
         assert_eq!(glyphs.len(), 1);
         assert_eq!(glyphs[0].direction, [0.6, 0.8, 0.0]);
         assert_eq!(glyphs[0].display_length, 0.25);
@@ -925,10 +927,9 @@ mod tests {
             ],
             provenance: simulation_provenance(),
         };
-        let first = extract_vector_glyphs(&vectors, 1, 0.2, 1.0)
-            .expect("valid vectors should map");
-        let second = extract_vector_glyphs(&vectors, 1, 0.2, 1.0)
-            .expect("valid vectors should map");
+        let first = extract_vector_glyphs(&vectors, 1, 0.2, 1.0).expect("valid vectors should map");
+        let second =
+            extract_vector_glyphs(&vectors, 1, 0.2, 1.0).expect("valid vectors should map");
         assert_eq!(first, second);
         assert_eq!(first.len(), 1);
     }
