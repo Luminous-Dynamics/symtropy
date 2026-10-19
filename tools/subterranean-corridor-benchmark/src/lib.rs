@@ -162,6 +162,10 @@ pub struct Candidate {
     /// within the declared boundary or disclose their omission in the cost profile.
     pub energy_kwh_per_unit_km: f64,
     pub emissions_kg_co2e_per_unit_km: f64,
+    /// One-time embodied energy for construction/refurbishment, kWh.
+    pub capital_embodied_energy_kwh: f64,
+    /// One-time embodied greenhouse-gas emissions for construction/refurbishment, kg CO2e.
+    pub capital_embodied_emissions_kg_co2e: f64,
     pub decommissioning_cost_usd: f64,
     pub residual_value_usd: f64,
     pub gates: HardGates,
@@ -309,6 +313,14 @@ fn validate(candidate: &Candidate) -> Result<(), String> {
         (
             "emissions_kg_co2e_per_unit_km",
             candidate.emissions_kg_co2e_per_unit_km,
+        ),
+        (
+            "capital_embodied_energy_kwh",
+            candidate.capital_embodied_energy_kwh,
+        ),
+        (
+            "capital_embodied_emissions_kg_co2e",
+            candidate.capital_embodied_emissions_kg_co2e,
         ),
         ("decommissioning_cost_usd", candidate.decommissioning_cost_usd),
         ("residual_value_usd", candidate.residual_value_usd),
@@ -485,6 +497,18 @@ pub fn evaluate(candidate: &Candidate) -> Evaluation {
     let externality_npv = candidate.annual_external_cost_usd * annuity_factor;
     let social_npv = private_npv + externality_npv;
     let discounted_service_units = candidate.annual_demand_units * annuity_factor;
+    let physical_lifetime_service_units = candidate.annual_demand_units * years as f64;
+    let total_lifecycle_energy_kwh = candidate.capital_embodied_energy_kwh
+        + candidate.annual_demand_units
+            * candidate.route_distance_km
+            * candidate.energy_kwh_per_unit_km
+            * years as f64;
+    let total_lifecycle_emissions_kg_co2e =
+        candidate.capital_embodied_emissions_kg_co2e
+            + candidate.annual_demand_units
+                * candidate.route_distance_km
+                * candidate.emissions_kg_co2e_per_unit_km
+                * years as f64;
     let thermal = candidate.thermal_opportunity.as_ref().map(|heat| {
         let matched = heat
             .recoverable_mwh_per_year
@@ -519,18 +543,11 @@ pub fn evaluate(candidate: &Candidate) -> Evaluation {
         capacity_utilization_fraction: candidate.annual_demand_units / effective_capacity,
         door_to_door_hours: candidate.door_to_door_hours,
         service_availability_fraction: candidate.service_availability_fraction,
-        energy_kwh_per_service_unit: candidate.route_distance_km
-            * candidate.energy_kwh_per_unit_km,
-        emissions_kg_co2e_per_service_unit: candidate.route_distance_km
-            * candidate.emissions_kg_co2e_per_unit_km,
-        total_lifecycle_energy_kwh: candidate.annual_demand_units
-            * candidate.route_distance_km
-            * candidate.energy_kwh_per_unit_km
-            * years as f64,
-        total_lifecycle_emissions_kg_co2e: candidate.annual_demand_units
-            * candidate.route_distance_km
-            * candidate.emissions_kg_co2e_per_unit_km
-            * years as f64,
+        energy_kwh_per_service_unit: total_lifecycle_energy_kwh / physical_lifetime_service_units,
+        emissions_kg_co2e_per_service_unit: total_lifecycle_emissions_kg_co2e
+            / physical_lifetime_service_units,
+        total_lifecycle_energy_kwh,
+        total_lifecycle_emissions_kg_co2e,
         thermal,
     };
     if !finite_metrics(&metrics) {
@@ -642,6 +659,8 @@ mod tests {
             annual_external_cost_usd: 5.0,
             energy_kwh_per_unit_km: 0.2,
             emissions_kg_co2e_per_unit_km: 0.03,
+            capital_embodied_energy_kwh: 40_000.0,
+            capital_embodied_emissions_kg_co2e: 6_000.0,
             decommissioning_cost_usd: 40.0,
             residual_value_usd: 20.0,
             gates: HardGates::all_satisfied(),
@@ -661,8 +680,10 @@ mod tests {
         assert!((metrics.discounted_service_units - 1_000.0).abs() < EPS);
         assert!((metrics.private_cost_per_service_unit_usd - 2.42).abs() < EPS);
         assert!((metrics.social_cost_per_service_unit_usd - 2.47).abs() < EPS);
-        assert!((metrics.total_lifecycle_energy_kwh - 2_000.0).abs() < EPS);
-        assert!((metrics.total_lifecycle_emissions_kg_co2e - 300.0).abs() < EPS);
+        assert!((metrics.total_lifecycle_energy_kwh - 42_000.0).abs() < EPS);
+        assert!((metrics.total_lifecycle_emissions_kg_co2e - 6_300.0).abs() < EPS);
+        assert!((metrics.energy_kwh_per_service_unit - 42.0).abs() < EPS);
+        assert!((metrics.emissions_kg_co2e_per_service_unit - 6.3).abs() < EPS);
     }
 
     #[test]
