@@ -487,7 +487,7 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
     let mut unserved_total = 0.0;
     let mut distance_m = 0.0;
     let mut drive_seconds = 0.0;
-    let mut max_avg_traction_power = 0.0;
+    let mut max_avg_traction_power: f64 = 0.0;
 
     for segment in &scenario.segments {
         let soc_start = soc;
