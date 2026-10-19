@@ -420,10 +420,7 @@ fn verify_benchmark() -> Result<(), String> {
             ));
         }
 
-        for (policy, runs) in policy_runs {
-            let _ = (scenario.id, policy, runs);
-            checked_policy_pairs += 1;
-        }
+        checked_policy_pairs += policy_runs.len();
     }
 
     // Fail if the same seed and policy cannot be replayed byte-for-byte as metrics.
