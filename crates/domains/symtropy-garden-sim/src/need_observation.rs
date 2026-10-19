@@ -41,6 +41,14 @@ pub enum NeedReportBasisV1 {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum NeedTimingV1 {
+    Anticipated,
+    Current,
+    Retrospective,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum NeedRequestPresenceV1 {
     LinkedCanonicalRequest,
     FarmerConfirmsNoRequest,
@@ -160,6 +168,8 @@ pub struct NeedEpisodeV1 {
     pub period_ref: String,
     pub useful_window_rule_ref: String,
     pub report_basis: NeedReportBasisV1,
+    /// Separates anticipated, current and recalled need even within one report method.
+    pub need_timing: NeedTimingV1,
     /// Required only for an explicitly authorized intermediary relay; opaque.
     pub authority_ref: Option<String>,
     pub request_presence: NeedRequestPresenceV1,
@@ -206,6 +216,7 @@ pub enum NeedObservationBlockerCodeV1 {
     ExclusionCountMismatch,
     DuplicateNeedReference,
     ScopeOrTaskMismatch,
+    NeedTimingMismatch,
     UnqualifiedNeedProvenance,
     AuthorityReferenceMismatch,
     RequestReferenceMismatch,
@@ -240,6 +251,12 @@ pub struct NeedObservationSummaryV1 {
     pub retrospective_farmer_recall_count: u64,
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub authorized_relay_count: u64,
+    #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
+    pub anticipated_need_count: u64,
+    #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
+    pub current_need_count: u64,
+    #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
+    pub retrospective_timing_count: u64,
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub linked_canonical_request_count: u64,
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
@@ -364,6 +381,22 @@ fn validate_episode(
                     blockers,
                     NeedObservationBlockerCodeV1::AuthorityReferenceMismatch,
                     "direct farmer reports must not carry an intermediary authority reference",
+                );
+            }
+            let timing_matches = match episode.report_basis {
+                NeedReportBasisV1::FarmerConfirmedProspective => {
+                    episode.need_timing != NeedTimingV1::Retrospective
+                }
+                NeedReportBasisV1::FarmerConfirmedRetrospective => {
+                    episode.need_timing == NeedTimingV1::Retrospective
+                }
+                _ => true,
+            };
+            if !timing_matches {
+                push_blocker(
+                    blockers,
+                    NeedObservationBlockerCodeV1::NeedTimingMismatch,
+                    "need_timing must agree with prospective versus retrospective report basis",
                 );
             }
         }
@@ -572,6 +605,9 @@ fn build_summary(input: &NeedObservationInputV1) -> NeedObservationSummaryV1 {
         prospective_farmer_report_count: 0,
         retrospective_farmer_recall_count: 0,
         authorized_relay_count: 0,
+        anticipated_need_count: 0,
+        current_need_count: 0,
+        retrospective_timing_count: 0,
         linked_canonical_request_count: 0,
         farmer_confirms_no_request_count: 0,
         no_canonical_request_located_count: 0,
@@ -596,6 +632,12 @@ fn build_summary(input: &NeedObservationInputV1) -> NeedObservationSummaryV1 {
             B::FarmerConfirmedRetrospective => summary.retrospective_farmer_recall_count += 1,
             B::AuthorizedRelayWithFarmerConfirmation => summary.authorized_relay_count += 1,
             B::UnverifiedIntermediaryRelay | B::InferredFromNonUseTelemetry => unreachable!("blocked above"),
+        }
+
+        match episode.need_timing {
+            NeedTimingV1::Anticipated => summary.anticipated_need_count += 1,
+            NeedTimingV1::Current => summary.current_need_count += 1,
+            NeedTimingV1::Retrospective => summary.retrospective_timing_count += 1,
         }
 
         match episode.request_presence {
