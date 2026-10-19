@@ -861,4 +861,120 @@ mod tests {
             .iter()
             .any(|finding| finding.contains("predates decision_at")));
     }
+    #[test]
+    fn bounded_temporal_confusion_table_matches_independent_oracle() {
+        let mut dataset = parsed_fixture();
+        let scenarios = [
+            (Outcome::Harm, false, false),
+            (Outcome::Harm, true, false),
+            (Outcome::Harm, true, true),
+            (Outcome::NoHarm, false, false),
+            (Outcome::NoHarm, true, false),
+            (Outcome::Unknown, false, false),
+            (Outcome::Unknown, true, false),
+        ];
+        let mut generated = Vec::new();
+
+        for (index, (outcome, alerted, late)) in scenarios.into_iter().enumerate() {
+            let mut record = dataset.records[7].clone();
+            record.case_id = format!("case-oracle-{index}");
+            record.community_id = "community-oracle".to_owned();
+            record.period_id = format!("period-oracle-{index}");
+            record.decision_at = dataset.temporal_split.calibration_end_exclusive
+                + 5
+                + index as i64 * 10;
+            record.evidence[0].available_at = Some(record.decision_at - 1);
+            record.outcome = outcome;
+            let harm_at = if outcome == Outcome::Harm {
+                Some(record.decision_at + 5)
+            } else {
+                None
+            };
+            record.harm_occurred_at = harm_at;
+            record.outcome_available_at = match outcome {
+                Outcome::Harm | Outcome::NoHarm => Some(record.decision_at + 10),
+                Outcome::Unknown => None,
+            };
+            record.alert_issued_at = if alerted {
+                Some(if late {
+                    harm_at.expect("late scenario is a harm case") + 1
+                } else {
+                    record.decision_at + 1
+                })
+            } else {
+                None
+            };
+            record.response = if alerted {
+                ResponseRecord {
+                    status: ResponseStatus::NotDispatched,
+                    completed_at: None,
+                    verified_at: None,
+                    independent_evidence_reference: None,
+                }
+            } else {
+                ResponseRecord {
+                    status: ResponseStatus::NotAlerted,
+                    completed_at: None,
+                    verified_at: None,
+                    independent_evidence_reference: None,
+                }
+            };
+            generated.push(record);
+        }
+
+        dataset.records = generated.clone();
+        assert!(semantic_errors(&dataset).is_empty());
+        let references: Vec<&ReplayRecord> = generated.iter().collect();
+        let actual = compute_metrics(&references, "test");
+
+        // Independently count the seven enumerated state combinations.
+        // Indexes: known, unknown, unknown-alert, alerts, known-alert,
+        // timely-TP, false-alert, missed-harm, TN, late-alert.
+        let mut oracle = [0_usize; 10];
+        for (outcome, alerted, late) in scenarios {
+            if outcome == Outcome::Unknown {
+                oracle[1] += 1;
+                if alerted {
+                    oracle[2] += 1;
+                }
+            } else {
+                oracle[0] += 1;
+                if alerted {
+                    oracle[4] += 1;
+                }
+            }
+            if alerted {
+                oracle[3] += 1;
+            }
+            match outcome {
+                Outcome::Harm if alerted && !late => oracle[5] += 1,
+                Outcome::Harm => {
+                    oracle[7] += 1;
+                    if late {
+                        oracle[9] += 1;
+                    }
+                }
+                Outcome::NoHarm if alerted => oracle[6] += 1,
+                Outcome::NoHarm => oracle[8] += 1,
+                Outcome::Unknown => {}
+            }
+        }
+
+        assert_eq!(actual.known_outcome_records, oracle[0]);
+        assert_eq!(actual.unknown_outcome_records, oracle[1]);
+        assert_eq!(actual.alerts_with_unknown_outcome, oracle[2]);
+        assert_eq!(actual.alerts_issued, oracle[3]);
+        assert_eq!(actual.alerts_with_known_outcome, oracle[4]);
+        assert_eq!(actual.true_positives, oracle[5]);
+        assert_eq!(actual.false_alerts, oracle[6]);
+        assert_eq!(actual.missed_harms, oracle[7]);
+        assert_eq!(actual.true_negatives, oracle[8]);
+        assert_eq!(actual.late_alerts, oracle[9]);
+        assert_eq!(actual.timely_warning_precision_percent, Some(33.33));
+        assert_eq!(actual.recall_percent, Some(33.33));
+        assert_eq!(actual.false_alerts_per_100_community_periods, Some(20.0));
+        assert_eq!(actual.outcome_coverage_percent, Some(71.43));
+        assert_eq!(actual.median_warning_lead_seconds, Some(4.0));
+    }
+
 }
