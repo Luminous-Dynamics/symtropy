@@ -113,7 +113,8 @@ fn canonical_unsigned(value: &Value) -> Result<i128, &'static str> {
     {
         return Err("RESOURCE_QUANTITY_NON_CANONICAL");
     }
-    raw.parse::<i128>().map_err(|_| "RESOURCE_QUANTITY_OUT_OF_RANGE")
+    raw.parse::<i128>()
+        .map_err(|_| "RESOURCE_QUANTITY_OUT_OF_RANGE")
 }
 
 fn canonical_signed(value: &Value) -> Result<i128, &'static str> {
@@ -130,7 +131,8 @@ fn canonical_signed(value: &Value) -> Result<i128, &'static str> {
     {
         return Err("RESOURCE_QUANTITY_NON_CANONICAL");
     }
-    raw.parse::<i128>().map_err(|_| "RESOURCE_QUANTITY_OUT_OF_RANGE")
+    raw.parse::<i128>()
+        .map_err(|_| "RESOURCE_QUANTITY_OUT_OF_RANGE")
 }
 
 fn base_unit(resource: &str) -> Option<&'static str> {
@@ -151,23 +153,17 @@ fn evaluate_resource_balance(balance: &Value) -> Result<(), &'static str> {
         return Err("RESOURCE_UNIT_MISMATCH");
     }
 
-    let inflow = canonical_unsigned(
-        get(balance, &["inflow"]).ok_or("RESOURCE_INFLOW_MISSING")?,
-    )?;
-    let additions = canonical_unsigned(
-        get(balance, &["additions"]).ok_or("RESOURCE_ADDITIONS_MISSING")?,
-    )?;
-    let outflow = canonical_unsigned(
-        get(balance, &["outflow"]).ok_or("RESOURCE_OUTFLOW_MISSING")?,
-    )?;
+    let inflow = canonical_unsigned(get(balance, &["inflow"]).ok_or("RESOURCE_INFLOW_MISSING")?)?;
+    let additions =
+        canonical_unsigned(get(balance, &["additions"]).ok_or("RESOURCE_ADDITIONS_MISSING")?)?;
+    let outflow =
+        canonical_unsigned(get(balance, &["outflow"]).ok_or("RESOURCE_OUTFLOW_MISSING")?)?;
     let loss = canonical_unsigned(get(balance, &["loss"]).ok_or("RESOURCE_LOSS_MISSING")?)?;
     let storage_delta = canonical_signed(
-        get(balance, &["observed_storage_delta"])
-            .ok_or("RESOURCE_STORAGE_DELTA_MISSING")?,
+        get(balance, &["observed_storage_delta"]).ok_or("RESOURCE_STORAGE_DELTA_MISSING")?,
     )?;
-    let tolerance = canonical_unsigned(
-        get(balance, &["tolerance"]).ok_or("RESOURCE_TOLERANCE_MISSING")?,
-    )?;
+    let tolerance =
+        canonical_unsigned(get(balance, &["tolerance"]).ok_or("RESOURCE_TOLERANCE_MISSING")?)?;
 
     let left = inflow
         .checked_add(additions)
@@ -187,9 +183,8 @@ fn evaluate_resource_balance(balance: &Value) -> Result<(), &'static str> {
 }
 
 fn product_breakdown_is_closed(process: &Value) -> Result<(), &'static str> {
-    let gross = canonical_unsigned(
-        get(process, &["gross_product_g"]).ok_or("GROSS_PRODUCT_MISSING")?,
-    )?;
+    let gross =
+        canonical_unsigned(get(process, &["gross_product_g"]).ok_or("GROSS_PRODUCT_MISSING")?)?;
     let usable = canonical_unsigned(
         get(process, &["usable_product_g"]).ok_or("USABLE_PRODUCT_BREAKDOWN_MISSING")?,
     )?;
@@ -197,8 +192,7 @@ fn product_breakdown_is_closed(process: &Value) -> Result<(), &'static str> {
         get(process, &["rejected_product_g"]).ok_or("REJECTED_BATCH_BURDEN_MISSING")?,
     )?;
     let recovery_loss = canonical_unsigned(
-        get(process, &["downstream_recovery_loss_g"])
-            .ok_or("DOWNSTREAM_RECOVERY_LOSS_MISSING")?,
+        get(process, &["downstream_recovery_loss_g"]).ok_or("DOWNSTREAM_RECOVERY_LOSS_MISSING")?,
     )?;
     let accounted = usable
         .checked_add(rejected)
@@ -212,9 +206,11 @@ fn product_breakdown_is_closed(process: &Value) -> Result<(), &'static str> {
 
 fn valid_unique_strings(values: &[Value]) -> bool {
     let mut found = BTreeSet::new();
-    values
-        .iter()
-        .all(|value| value.as_str().is_some_and(|s| !s.trim().is_empty() && found.insert(s)))
+    values.iter().all(|value| {
+        value
+            .as_str()
+            .is_some_and(|s| !s.trim().is_empty() && found.insert(s))
+    })
 }
 
 fn evaluate_case(value: &Value) -> Evaluation {
@@ -298,11 +294,7 @@ fn evaluate_case(value: &Value) -> Evaluation {
             .iter()
             .find(|entry| text(entry, &["stage"]) == Some(name));
         if !entry.is_some_and(|entry| text(entry, &["state"]) == Some("accounted")) {
-            return result(
-                case_id,
-                Disposition::Indeterminate,
-                "PROCESS_STAGE_MISSING",
-            );
+            return result(case_id, Disposition::Indeterminate, "PROCESS_STAGE_MISSING");
         }
     }
 
@@ -351,7 +343,10 @@ fn evaluate_case(value: &Value) -> Evaluation {
         .iter()
         .filter_map(Value::as_str)
         .collect();
-    if required_resource_names.iter().any(|resource| base_unit(resource).is_none()) {
+    if required_resource_names
+        .iter()
+        .any(|resource| base_unit(resource).is_none())
+    {
         return invalid(case_id, "REQUIRED_RESOURCE_UNKNOWN");
     }
 
@@ -433,7 +428,11 @@ fn evaluate_case(value: &Value) -> Evaluation {
         && (bool_value(process, &["cost_inputs_complete"]) != Some(true)
             || !nonempty(process, &["cost_basis"]))
     {
-        return result(case_id, Disposition::Indeterminate, "COST_INPUTS_INCOMPLETE");
+        return result(
+            case_id,
+            Disposition::Indeterminate,
+            "COST_INPUTS_INCOMPLETE",
+        );
     }
 
     result(
@@ -544,7 +543,10 @@ pub fn run_cli() -> i32 {
         eprintln!("declared corpus case_count does not match cases length");
         return 2;
     }
-    let ids: Vec<&str> = cases.iter().filter_map(|case| text(case, &["case_id"])).collect();
+    let ids: Vec<&str> = cases
+        .iter()
+        .filter_map(|case| text(case, &["case_id"]))
+        .collect();
     if ids.len() != cases.len() || ids.iter().collect::<BTreeSet<_>>().len() != ids.len() {
         eprintln!("case IDs missing or duplicated");
         return 2;
@@ -630,9 +632,8 @@ fn to_snake_case(value: &str) -> String {
 mod tests {
     use super::*;
 
-    const CORPUS_JSON: &str = include_str!(
-        "../../../docs/research/bioprocess/bioprocess-closure-corpus-v1.json"
-    );
+    const CORPUS_JSON: &str =
+        include_str!("../../../docs/research/bioprocess/bioprocess-closure-corpus-v1.json");
 
     fn corpus() -> Value {
         serde_json::from_str(CORPUS_JSON).expect("frozen process corpus parses")
@@ -642,9 +643,19 @@ mod tests {
     fn frozen_corpus_matches_all_expected_dispositions_and_reasons() {
         let input = corpus();
         assert_eq!(evaluate_corpus(&input).len(), 12);
-        for (case, actual) in input["cases"].as_array().unwrap().iter().zip(evaluate_corpus(&input)) {
+        for (case, actual) in input["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(evaluate_corpus(&input))
+        {
             let (expected, reasons) = expected_fields(case);
-            assert_eq!(to_snake_case(&format!("{:?}", actual.disposition)), expected, "{}", actual.case_id);
+            assert_eq!(
+                to_snake_case(&format!("{:?}", actual.disposition)),
+                expected,
+                "{}",
+                actual.case_id
+            );
             assert_eq!(actual.reason_codes, reasons, "{}", actual.case_id);
         }
     }
@@ -662,8 +673,14 @@ mod tests {
     fn stream_order_does_not_change_semantic_result() {
         let mut input = corpus();
         let original = evaluate_case(&input["cases"][0]);
-        input["cases"][0]["process"]["resource_balances"].as_array_mut().unwrap().reverse();
-        input["cases"][0]["process"]["stage_coverage"].as_array_mut().unwrap().reverse();
+        input["cases"][0]["process"]["resource_balances"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        input["cases"][0]["process"]["stage_coverage"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
         let changed = evaluate_case(&input["cases"][0]);
         assert_eq!(original, changed);
     }
@@ -671,7 +688,8 @@ mod tests {
     #[test]
     fn malformed_balance_fails_closed_instead_of_becoming_zero() {
         let mut input = corpus();
-        input["cases"][0]["process"]["resource_balances"][0]["inflow"] = Value::String("01".to_owned());
+        input["cases"][0]["process"]["resource_balances"][0]["inflow"] =
+            Value::String("01".to_owned());
         let result = evaluate_case(&input["cases"][0]);
         assert_eq!(result.disposition, Disposition::InvalidInput);
         assert_eq!(result.reason_codes, vec!["RESOURCE_QUANTITY_NON_CANONICAL"]);
@@ -680,7 +698,8 @@ mod tests {
     #[test]
     fn duplicate_stream_ids_are_invalid() {
         let mut input = corpus();
-        let first_stream_id = input["cases"][0]["process"]["resource_balances"][0]["stream_id"].clone();
+        let first_stream_id =
+            input["cases"][0]["process"]["resource_balances"][0]["stream_id"].clone();
         input["cases"][0]["process"]["resource_balances"][1]["stream_id"] = first_stream_id;
         let result = evaluate_case(&input["cases"][0]);
         assert_eq!(result.disposition, Disposition::InvalidInput);
@@ -690,12 +709,16 @@ mod tests {
     #[test]
     fn missing_required_energy_balance_is_not_treated_as_zero() {
         let mut input = corpus();
-        input["cases"][0]["process"]["resource_balances"].as_array_mut().unwrap().retain(
-            |balance| balance["resource"] != "energy",
-        );
+        input["cases"][0]["process"]["resource_balances"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|balance| balance["resource"] != "energy");
         let result = evaluate_case(&input["cases"][0]);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert_eq!(result.reason_codes, vec!["REQUIRED_RESOURCE_BALANCE_MISSING"]);
+        assert_eq!(
+            result.reason_codes,
+            vec!["REQUIRED_RESOURCE_BALANCE_MISSING"]
+        );
     }
 
     #[test]
@@ -712,15 +735,20 @@ mod tests {
         let mut input = corpus();
         let id = input["cases"][0]["case_id"].clone();
         input["cases"][1]["case_id"] = id;
-        let ids: Vec<&str> = input["cases"].as_array().unwrap().iter()
-            .filter_map(|case| text(case, &["case_id"])).collect();
+        let ids: Vec<&str> = input["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|case| text(case, &["case_id"]))
+            .collect();
         assert_ne!(ids.iter().collect::<BTreeSet<_>>().len(), ids.len());
     }
 
     #[test]
     fn resource_unit_conversion_is_never_implicit() {
         let mut input = corpus();
-        input["cases"][0]["process"]["resource_balances"][2]["unit"] = Value::String("kJ".to_owned());
+        input["cases"][0]["process"]["resource_balances"][2]["unit"] =
+            Value::String("kJ".to_owned());
         let result = evaluate_case(&input["cases"][0]);
         assert_eq!(result.disposition, Disposition::NotComparable);
         assert_eq!(result.reason_codes, vec!["RESOURCE_UNIT_MISMATCH"]);
