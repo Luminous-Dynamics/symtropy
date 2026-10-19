@@ -539,6 +539,16 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             inputs.task.generalization = GeneralizationTarget::UnseenTaxon;
             inputs.manifest.generalization = GeneralizationTarget::UnseenTaxon;
         }
+        "baseline_invalid_code_head" => inputs.baselines[0].code_head = "not-a-commit".to_owned(),
+        "baseline_invalid_config_digest" => inputs.baselines[0].config_sha256 = "bad".to_owned(),
+        "baseline_training_scope_mismatch" => inputs.baselines[0].training_data_scope = "different-training-data".to_owned(),
+        "baseline_compute_budget_mismatch" => inputs.baselines[0].compute_budget = "larger-budget".to_owned(),
+        "declared_budget_tradeoff_allows_scope_mismatch" => {
+            inputs.task.budget_policy = ComparisonBudgetPolicy::DeclaredBudgetTradeoff;
+            inputs.baselines[0].training_data_scope = "different-training-data".to_owned();
+        }
+        "missing_paired_unit_manifest_digest" => inputs.paired_comparisons[0].paired_unit_manifest_sha256.clear(),
+        "malformed_paired_unit_manifest_digest" => inputs.paired_comparisons[0].paired_unit_manifest_sha256 = "bad-digest".to_owned(),
         "empty_baseline_compute_budget" => inputs.baselines[0].compute_budget.clear(),
         "empty_platform" => inputs.run.platform.clear(),
         "empty_evaluator_version" => inputs.run.evaluator_version.clear(),
@@ -565,7 +575,7 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
     let corpus: OracleCorpus = serde_json::from_str(ORACLE_FIXTURE).unwrap();
     assert_eq!(corpus.schema_version, "ANIMAL-REPLAY-RESULT-ORACLE-V1");
     assert!(corpus.note.contains("synthetic"));
-    assert_eq!(corpus.cases.len(), 65);
+    assert_eq!(corpus.cases.len(), 72);
     for case in corpus.cases {
         let mut inputs = valid_inputs();
         apply_mutation(&mut inputs, &case.mutation);
