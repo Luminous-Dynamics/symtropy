@@ -28,7 +28,7 @@ The rules are deliberately simple reference policies, not behaviorally calibrate
 - Resource reserve bounds contribution feasibility; shared service capacity sets the main unmet-need outcome.
 - Recovery is counted only if capacity reaches 98% of baseline within the declared shock window.
 - The benchmark reports unmet need, peak unmet need, total contributions, recovery timing, verification overhead, and repair progress.
-- Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, and a zero-duration shock.
+- Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, a zero-duration shock, and Gini calculations.
 
 ## Known limitations
 
