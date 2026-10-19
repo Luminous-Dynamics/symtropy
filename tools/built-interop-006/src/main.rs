@@ -892,7 +892,8 @@ fn verify_embedded_payload(
             }
             GateStatus::Fail => definite_loss && reason == "DEFINITE_SOURCE_TO_TARGET_LOSS",
             GateStatus::Unresolved => {
-                !definite_loss && reason == "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED"
+                reason == "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED"
+                    && (!definite_loss || !coverage_complete)
             }
             GateStatus::NotRun => false,
         };
