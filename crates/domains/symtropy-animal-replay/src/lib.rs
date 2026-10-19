@@ -89,6 +89,8 @@ pub enum ReplayReason {
     BaselineUnitMismatch,
     BaselineStratumMismatch,
     BaselineMetricNotReported,
+    DuplicateBaselineMetric,
+    MissingBaselineStratumMetric,
     MissingBaselineComparison,
     DuplicateBaselineComparison,
     UnknownBaselineForComparison,
@@ -266,7 +268,10 @@ pub struct BaselineReference {
     pub comparison_group: String,
     pub training_data_scope: String,
     pub compute_budget: String,
+    /// Primary overall metric for this task.
     pub primary_metric: MetricObservation,
+    /// Additional baseline score rows for matching taxon/stage/site/condition strata.
+    pub additional_metrics: Vec<MetricObservation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
