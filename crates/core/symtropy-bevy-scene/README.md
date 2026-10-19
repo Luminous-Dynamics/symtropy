@@ -81,6 +81,18 @@ There is deliberately **no overall scalar score** that tries to declare one home
 
 These types validate the comparison contract; they do not author building geometry, evaluate laws, prove source authenticity, or assess the truth of a claimed measurement.
 
+### Pareto comparison without a single happiness score
+
+The `IntentEvaluation.preference_rating` field is optional and only valid for `OwnerPreference` intents. It is an owner-provided 0–100 rating, not an objective measurement. `compute_owner_preference_frontier` compares alternatives independently on those dimensions:
+
+- a candidate is preference-dominated only when another is at least as good on every comparable, owner-rated preference and strictly better on one;
+- trade-offs such as "more daylight, less privacy" stay on the frontier instead of being crushed into one arbitrary weighted total;
+- asymmetrically missing ratings make a pair incomparable; the system never guesses or imputes a rating;
+- alternatives with known failed or unresolved binding/owner hard constraints are excluded from the preference frontier with an explicit reason, not silently traded against aesthetic preference;
+- owner-declined and explicitly blocked alternatives remain recorded with their separate disposition.
+
+This is an exploration aid: it does not prove a candidate is compliant, safe, affordable, or buildable. Hard constraints and independent professional/authority assessments remain separate.
+
 ## License
 
 Apache-2.0 OR MIT (permissive). No AGPL deps.
