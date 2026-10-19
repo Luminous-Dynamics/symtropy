@@ -822,17 +822,40 @@ pub enum OccupantFeedbackIssue {
     EmptyFeedbackId,
     DuplicateFeedbackId(String),
     EmptyDesignRevisionId,
-    RevisionMismatch { feedback_id: String },
-    EmptyNote { feedback_id: String },
-    BlankLocationReference { feedback_id: String },
-    RouteContextUnavailable { feedback_id: String },
-    RouteMismatch { feedback_id: String },
-    RouteRevisionMismatch { feedback_id: String },
-    WaypointWithoutRoute { feedback_id: String },
-    UnknownWaypoint { feedback_id: String, waypoint_id: String },
-    PublicShareWithoutConsent { feedback_id: String },
-    AcceptedWithoutChangeRequest { feedback_id: String },
-    DispositionWithoutExplanation { feedback_id: String },
+    RevisionMismatch {
+        feedback_id: String,
+    },
+    EmptyNote {
+        feedback_id: String,
+    },
+    BlankLocationReference {
+        feedback_id: String,
+    },
+    RouteContextUnavailable {
+        feedback_id: String,
+    },
+    RouteMismatch {
+        feedback_id: String,
+    },
+    RouteRevisionMismatch {
+        feedback_id: String,
+    },
+    WaypointWithoutRoute {
+        feedback_id: String,
+    },
+    UnknownWaypoint {
+        feedback_id: String,
+        waypoint_id: String,
+    },
+    PublicShareWithoutConsent {
+        feedback_id: String,
+    },
+    AcceptedWithoutChangeRequest {
+        feedback_id: String,
+    },
+    DispositionWithoutExplanation {
+        feedback_id: String,
+    },
 }
 
 /// Validate user-authored feedback before showing it against the current
@@ -1176,11 +1199,13 @@ mod tests {
             "house:r1",
             OccupantFeedbackCategory::CirculationConcern,
         );
-        assert!(validate_occupant_feedback_for_review(&[feedback], "house:r2", None)
-            .unwrap_err()
-            .contains(&OccupantFeedbackIssue::RevisionMismatch {
-                feedback_id: "feedback:kitchen-circulation".into(),
-            }));
+        assert!(
+            validate_occupant_feedback_for_review(&[feedback], "house:r2", None)
+                .unwrap_err()
+                .contains(&OccupantFeedbackIssue::RevisionMismatch {
+                    feedback_id: "feedback:kitchen-circulation".into(),
+                })
+        );
     }
 
     #[test]
@@ -1209,12 +1234,14 @@ mod tests {
         feedback.route_id = Some("home-review:accessible-tour".into());
         feedback.waypoint_id = Some("not-in-route".into());
         let route = sample_route_fixture();
-        assert!(validate_occupant_feedback_for_review(&[feedback], "house-model:r7", Some(&route))
-            .unwrap_err()
-            .contains(&OccupantFeedbackIssue::UnknownWaypoint {
-                feedback_id: "feedback:unknown-stop".into(),
-                waypoint_id: "not-in-route".into(),
-            }));
+        assert!(
+            validate_occupant_feedback_for_review(&[feedback], "house-model:r7", Some(&route))
+                .unwrap_err()
+                .contains(&OccupantFeedbackIssue::UnknownWaypoint {
+                    feedback_id: "feedback:unknown-stop".into(),
+                    waypoint_id: "not-in-route".into(),
+                })
+        );
     }
 
     #[test]
@@ -1225,11 +1252,13 @@ mod tests {
             OccupantFeedbackCategory::SpatialComfort,
         );
         feedback.share_scope = OccupantFeedbackShareScope::PublicCaseStudy;
-        assert!(validate_occupant_feedback_for_review(&[feedback], "house:r1", None)
-            .unwrap_err()
-            .contains(&OccupantFeedbackIssue::PublicShareWithoutConsent {
-                feedback_id: "feedback:living-area".into(),
-            }));
+        assert!(
+            validate_occupant_feedback_for_review(&[feedback], "house:r1", None)
+                .unwrap_err()
+                .contains(&OccupantFeedbackIssue::PublicShareWithoutConsent {
+                    feedback_id: "feedback:living-area".into(),
+                })
+        );
     }
 
     #[test]
@@ -1240,11 +1269,13 @@ mod tests {
             OccupantFeedbackCategory::StorageAndErgonomics,
         );
         feedback.lifecycle = OccupantFeedbackLifecycle::AcceptedForDesignChange;
-        assert!(validate_occupant_feedback_for_review(&[feedback], "house:r1", None)
-            .unwrap_err()
-            .contains(&OccupantFeedbackIssue::AcceptedWithoutChangeRequest {
-                feedback_id: "feedback:storage".into(),
-            }));
+        assert!(
+            validate_occupant_feedback_for_review(&[feedback], "house:r1", None)
+                .unwrap_err()
+                .contains(&OccupantFeedbackIssue::AcceptedWithoutChangeRequest {
+                    feedback_id: "feedback:storage".into(),
+                })
+        );
     }
 
     #[test]
