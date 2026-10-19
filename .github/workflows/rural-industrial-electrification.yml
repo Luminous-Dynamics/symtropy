@@ -20,6 +20,7 @@ on:
       - "docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md"
       - "docs/research/EV_VERIFICATION_AND_BENCHMARKS_V0_1.md"
       - "docs/research/EV_CHARGING_QUEUE_SCREEN_V0_1.md"
+      - "docs/research/EV_CHARGING_CURVE_SCREEN_V0_1.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   workflow_dispatch:
 
@@ -46,6 +47,7 @@ jobs:
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/vehicle_verification_matrix_v0_1.schema.json
           jq empty tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json
+          jq empty tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json
       - name: Run all evaluator tests
         run: cargo test --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --all-targets
       - name: Run shift energy screen
@@ -109,6 +111,11 @@ jobs:
           jq -e '[.results[] | select(.scenario_id == "deadline-policy-oracle" and .policy == "fcfs") | .missed_deadlines] == [1]' charging-queue-report.json
           jq -e '[.results[] | select(.scenario_id == "deadline-policy-oracle" and .policy == "earliest_deadline_first") | .missed_deadlines] == [0]' charging-queue-report.json
           jq -e '[.results[].jobs[]] | length == 58' charging-queue-report.json
+      - name: Run SOC-dependent charge curve screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --bin charging_curve_screen -- tools/rural-industrial-electrification-evaluator/fixtures/charging_curve_v0_1.json > charging-curve-report.json
+          jq -e '.results | length == 5 and all(.[]; .evidence_class == "synthetic" and .total_battery_energy_delivered_kwh > 0 and .total_charge_duration_minutes > 0 and .energy_balance_residual_kwh > -0.000001 and .energy_balance_residual_kwh < 0.000001 and (.results | length > 0))' charging-curve-report.json
+          jq -e '[.results[].results[]] | all(.[]; .effective_battery_charge_power_kw <= .external_battery_side_power_limit_kw + 0.00000001 and .duration_minutes > 0 and .battery_energy_kwh > 0)' charging-curve-report.json
       - name: Validate EV verification matrix coverage and hard gates
         run: |
           jq -e '.schema_version == "0.1.0" and .programme_id == "EV-VALIDATION-001" and .design_count == 19 and .gates_per_design == 5 and (.designs | length == 19) and ([.designs[].design_id] | unique | length == 19) and all(.designs[]; (.verification_gates | length == 5) and all(.verification_gates[]; .release_blocking == true and (.test_id | length > 0) and (.measurement_set | length > 0) and (.evidence_required | length > 0))) and ([.designs[].verification_gates[].test_id] | unique | length == 95) and (.cross_class_invariants | length >= 5)' tools/rural-industrial-electrification-evaluator/fixtures/vehicle_verification_matrix_v0_1.json
@@ -120,7 +127,7 @@ jobs:
             ($designs == $verified and ($verified | unique | length) == 19 and $family_refs_ok)
           '
       - name: Hash deterministic screen reports and inputs
-        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json charging-queue-report.json tools/rural-industrial-electrification-evaluator/fixtures/charging_queue_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json docs/research/EV_CHARGING_QUEUE_SCREEN_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_verification_matrix_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_verification_matrix_v0_1.schema.json docs/research/EV_VERIFICATION_AND_BENCHMARKS_V0_1.md > screen-report.sha256
+        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json charging-queue-report.json charging-curve-report.json tools/rural-industrial-electrification-evaluator/fixtures/charging_curve_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json docs/research/EV_CHARGING_CURVE_SCREEN_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/charging_queue_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json docs/research/EV_CHARGING_QUEUE_SCREEN_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_platforms_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_missions_v0_2.schema.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_platforms_v0_1.schema.json tools/rural-industrial-electrification-evaluator/fixtures/vehicle_subsystem_architectures_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md tools/rural-industrial-electrification-evaluator/fixtures/vehicle_verification_matrix_v0_1.json tools/rural-industrial-electrification-evaluator/schemas/vehicle_verification_matrix_v0_1.schema.json docs/research/EV_VERIFICATION_AND_BENCHMARKS_V0_1.md > screen-report.sha256
       - name: Upload reproducible screen reports
         uses: actions/upload-artifact@v4
         with:
@@ -132,6 +139,7 @@ jobs:
             vehicle-design-report.json
             vehicle-mission-report.json
             charging-queue-report.json
+            charging-curve-report.json
             screen-report.sha256
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json
@@ -151,5 +159,8 @@ jobs:
             docs/research/EV_CHARGING_QUEUE_SCREEN_V0_1.md
             tools/rural-industrial-electrification-evaluator/fixtures/charging_queue_v0_1.json
             tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json
+            tools/rural-industrial-electrification-evaluator/fixtures/charging_curve_v0_1.json
+            tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json
+            docs/research/EV_CHARGING_CURVE_SCREEN_V0_1.md
           if-no-files-found: error
           retention-days: 14
