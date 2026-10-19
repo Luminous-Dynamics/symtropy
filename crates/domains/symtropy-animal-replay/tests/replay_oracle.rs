@@ -21,6 +21,7 @@ const ORACLE_FIXTURE: &str = include_str!("../fixtures/replay-result-oracle-v1.j
 #[derive(Debug, Deserialize)]
 struct ProfileFixture {
     synthetic_template: AnimalProfile,
+    real_template: AnimalProfile,
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,9 +50,16 @@ struct TestInputs {
     baselines: Vec<BaselineReference>,
 }
 
+fn profile_templates() -> ProfileFixture {
+    serde_json::from_str(PROFILE_FIXTURE).unwrap()
+}
+
 fn synthetic_profile() -> AnimalProfile {
-    let fixture: ProfileFixture = serde_json::from_str(PROFILE_FIXTURE).unwrap();
-    fixture.synthetic_template
+    profile_templates().synthetic_template
+}
+
+fn real_profile() -> AnimalProfile {
+    profile_templates().real_template
 }
 
 fn permission(operation: DataOperation) -> OperationPermission {
@@ -232,6 +240,7 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         }
         "empirical_synthetic_inputs" => inputs.mode = EvaluationMode::EmpiricalReference,
         "profile_unknown_state" => {
+            inputs.profile = real_profile();
             inputs.profile.capabilities[0].state = EvidenceState::Unknown;
         }
         "profile_taxon_for_synthetic" => {
