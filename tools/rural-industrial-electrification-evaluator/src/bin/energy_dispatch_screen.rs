@@ -43,7 +43,7 @@ struct Slot {
     grid_carbon_kg_per_kwh: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum Status {
     AllDeclaredLoadsServed,
