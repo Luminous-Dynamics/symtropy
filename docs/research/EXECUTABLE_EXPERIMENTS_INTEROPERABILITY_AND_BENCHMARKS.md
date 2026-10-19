@@ -152,6 +152,7 @@ Benchmarks should be reported as a vector; a good render must not compensate for
 | Dimensional typing | All negative tests for add/subtract mismatch, multiplication/division dimensions and exponent overflow are rejected. | Unit conversion, affine units, uncertainty propagation and cross-format dimension agreement. |
 | Arithmetic execution | The gear known-answer case returns -1.9 rad within 10^-12 in the stated binary64 reference interpreter. | Numerical tolerance policies per solver/backend; exact arithmetic only where explicitly supported. |
 | Stateful dynamics | Harmonic oscillator: compare each sample to the closed-form position/velocity, assert halving timestep reduces maximum position error, and assert symplectic Euler's energy deviation is below 2% for the fixed reference case while explicit Euler growth is detected. | Add damped/forced oscillator analytic cases, resonance, event/state handling and solver-independent reference comparisons before broad ODE claims. |
+| Convergence order | For the synthetic undamped oscillator, evaluate time steps 0.04, 0.02, 0.01, 0.005 s; require decreasing position error and pairwise observed order in [0.8, 1.3] for this finite horizon. Preserve individual pair estimates. | Build work-precision curves across different methods: error against runtime/function evaluations/memory, including reference-error floors and stiff/non-stiff cases. |
 | Visual semantic integrity | 100% of displayed equations generated from graph operators/IDs; all collapsed sections expose their hidden variable count and full expansion path. | Automated scene-to-model linkage checks and accessible keyboard navigation. |
 | Reproducibility | Same fixture and binary revision produce the same declared result under the reference environment; record input and output hashes. | Cross-platform comparisons with explicit floating-point tolerances and solver/environment fingerprints. |
 | Interoperability | Test representative imports/exports; every unsupported feature is rejected or named in a loss report. | Semantic round-trip equivalence on published conformance suites and cross-solver result comparisons. |
@@ -160,7 +161,7 @@ Benchmarks should be reported as a vector; a good render must not compensate for
 | Visual usefulness | Pilot study against text/equation-only controls; record correctness, time, misconception types, accessibility and cognitive load. | The proposed 10% speed-up/non-inferiority target on powered, preregistered expert tasks. |
 | Uncertainty handling | Missing inputs and unverified assumptions are surfaced; values are not silently filled in. | Calibrated predictive intervals, sensitivity analysis, alternatives and experiment-design utility. |
 
-The 10^-12 rad goal is specific to the simple arithmetic fixture and reference interpreter; it is not a universal tolerance for real physical simulation. Numerical thresholds must be justified for each model family. The one-variable sweep now has a known finite-difference check against the toy model's analytic slope, -theta_in/N_driven = -1/24 rad per added driver tooth. This is a benchmark for that synthetic graph only.
+The 10^-12 rad goal is specific to the simple arithmetic fixture and reference interpreter; it is not a universal tolerance for real physical simulation. Numerical thresholds must be justified for each model family. The one-variable sweep has a known finite-difference check against the toy model's analytic slope, -theta_in/N_driven = -1/24 rad per added driver tooth. For the oscillator, an independent calculation mirroring the formulas gives maximum position errors of 0.04464, 0.02116, 0.01029 and 0.005072 m at 0.04, 0.02, 0.01 and 0.005 s; the corresponding pairwise observed orders are approximately 1.077, 1.040 and 1.020. These numbers are a static equation-level audit, not Rust execution results. The benchmark practice mirrors two well-established ideas: report observed convergence instead of inferring it from nominal method order, and compare error against computational work (for example, function evaluations and wall time), not accuracy alone.
 
 ## 7. Recommended implementation sequence
 
@@ -174,6 +175,10 @@ The 10^-12 rad goal is specific to the simple arithmetic fixture and reference i
 8. **Close the loop:** use model disagreement and uncertainty to propose a discriminating physical experiment, then preserve the observations and calibrated instrument record.
 
 ## References
+
+7. NASA Handbook for Models and Simulations, NASA-HDBK-7009B (active, published 2026-02-03), companion implementation guidance for NASA-STD-7009B: https://standards.nasa.gov/standard/NASA/NASA-HDBK-7009
+8. SciMLBenchmarks, solver benchmark suite, uses shootouts and work-precision diagrams to compare algorithm runtime and error on shared problems: https://docs.sciml.ai/DiffEqDevDocs/stable/alg_dev/benchmarks/
+9. SciML convergence simulations, which estimate observed order from error sequences when a true/reference solution is provided: https://docs.sciml.ai/DiffEqDevDocs/stable/alg_dev/convergence/
 
 1. SBML.org, “What is SBML?” — explains SBML as a computable interchange representation focused on systems biology and explicitly rejects a universal quantitative-model language: https://sbml.org/documents/what-is-sbml/
 2. Modelica Association, “FMI for Co-Simulation,” FMI Standard documentation — describes communication points, solver encapsulation and the responsibility of the importer for co-simulation orchestration: https://github.com/modelica/fmi-standard/blob/main/docs/4___co-simulation.adoc
