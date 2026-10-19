@@ -1,7 +1,7 @@
 use super::{
     candidate_schedules, enumerate_vectors, evaluate_schedule, independently_reconstruct_score,
-    is_lower_hex, sha256, Check, GeneratedCase, ProcessModel, Split, WORLDS_PER_SEED,
-    generate_cases,
+    is_lower_hex, sha256, Check, GeneratedCase, GeneratedWorld, ProcessModel, Split,
+    WORLDS_PER_SEED, generate_cases,
 };
 use serde::Serialize;
 use std::process::ExitCode;
@@ -151,6 +151,72 @@ fn model() -> ProcessModel {
         electricity_units_per_batch: 2,
         water_units_per_batch: 1,
     }
+}
+
+fn execution_cases() -> Vec<GeneratedCase> {
+    super::generate_cases()
+        .into_iter()
+        .map(|mut case| {
+            let forecast = case.forecast.clone();
+            let p0 = &forecast.periods[0];
+            let p1 = &forecast.periods[1];
+            let p2 = &forecast.periods[2];
+            // Isolate executability: this suite perturbs tariffs/carbon intensity, while the
+            // existing robustness suite independently covers grid/renewable/water shocks.
+            // The same five-world structure and non-overlapping seeds are retained.
+            case.uncertainty_envelope = vec![
+                GeneratedWorld {
+                    realization_id: "nominal".to_owned(),
+                    scenario: forecast.clone(),
+                },
+                GeneratedWorld {
+                    realization_id: "p0-price-carbon-spike".to_owned(),
+                    scenario: super::apply_changes(
+                        &forecast,
+                        "p0-price-carbon-spike",
+                        &[
+                            (0, 3, p0.grid_price_units_per_import_unit.saturating_add(15)),
+                            (0, 4, p0.grid_carbon_units_per_import_unit.saturating_add(4)),
+                        ],
+                    ),
+                },
+                GeneratedWorld {
+                    realization_id: "p1-carbon-intensity-spike".to_owned(),
+                    scenario: super::apply_changes(
+                        &forecast,
+                        "p1-carbon-intensity-spike",
+                        &[(1, 4, p1.grid_carbon_units_per_import_unit.saturating_add(8))],
+                    ),
+                },
+                GeneratedWorld {
+                    realization_id: "p2-price-carbon-spike".to_owned(),
+                    scenario: super::apply_changes(
+                        &forecast,
+                        "p2-price-carbon-spike",
+                        &[
+                            (2, 3, p2.grid_price_units_per_import_unit.saturating_add(20)),
+                            (2, 4, p2.grid_carbon_units_per_import_unit.saturating_add(6)),
+                        ],
+                    ),
+                },
+                GeneratedWorld {
+                    realization_id: "correlated-price-carbon-spike".to_owned(),
+                    scenario: super::apply_changes(
+                        &forecast,
+                        "correlated-price-carbon-spike",
+                        &[
+                            (0, 3, p0.grid_price_units_per_import_unit.saturating_add(10)),
+                            (0, 4, p0.grid_carbon_units_per_import_unit.saturating_add(2)),
+                            (1, 4, p1.grid_carbon_units_per_import_unit.saturating_add(4)),
+                            (2, 3, p2.grid_price_units_per_import_unit.saturating_add(15)),
+                            (2, 4, p2.grid_carbon_units_per_import_unit.saturating_add(8)),
+                        ],
+                    ),
+                },
+            ];
+            case
+        })
+        .collect()
 }
 
 fn robust_candidates(process: &ProcessModel, case: &GeneratedCase) -> Check<Vec<RobustCandidate>> {
@@ -411,7 +477,7 @@ fn make_receipt(source_commit: &str) -> Check<ExecutionReceipt> {
     if !is_lower_hex(source_commit, 40) {
         return Err("source commit must be a lowercase 40-character hex SHA".to_owned());
     }
-    let cases = generate_cases();
+    let cases = execution_cases();
     let manifest_bytes =
         serde_json::to_vec(&cases).map_err(|error| format!("cannot serialize case manifest: {error}"))?;
     let process = model();
@@ -612,7 +678,7 @@ mod tests {
         let envelope = execution_envelope();
         let batches = [0, 2, 2];
         assert!(!audit_execution(&batches, &envelope).executable);
-        for case in generate_cases() {
+        for case in execution_cases() {
             for world in &case.uncertainty_envelope {
                 let score = evaluate_schedule(&process, &world.scenario, &batches)
                     .expect("control is resource-feasible in each declared envelope world");
