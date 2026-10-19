@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/rural-industrial-electrification-evaluator/**"
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md"
+      - "docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   push:
     branches: [main]
@@ -57,3 +58,11 @@ jobs:
           jq -e '.results | length == 19 and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-design-report.json
           jq -e '[.results[] | select(.design_id == "open-pit-haul-battery-only-control") | .status] == ["blocked"]' vehicle-design-report.json
           jq -e '[.results[] | select(.design_id != "open-pit-haul-battery-only-control") | select(.status != "passes_synthetic_screen")] | length == 0' vehicle-design-report.json
+      - name: Run longitudinal EV mission physics screen
+        run: |
+          cargo run --quiet --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml \
+            --bin vehicle_mission_physics -- \
+            tools/rural-industrial-electrification-evaluator/fixtures/vehicle_designs_v0_1.json \
+            tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json > vehicle-mission-report.json
+          jq -e '.results | length == 8 and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-mission-report.json
+          jq -e '[.results[] | select(.scenario_id == "open-pit-haul-steep-loaded-stress") | .status] == ["blocked"]' vehicle-mission-report.json
