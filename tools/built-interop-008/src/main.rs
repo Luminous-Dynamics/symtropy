@@ -678,6 +678,10 @@ fn compare_bytes(
     let target = snapshot(&target_model, schema, "target");
     let mut issues = source.issues.clone();
     issues.extend(target.issues.clone());
+    issues.sort_by(|a, b| {
+        (&a.side, &a.code, &a.entity_type, &a.step_id, &a.detail)
+            .cmp(&(&b.side, &b.code, &b.entity_type, &b.step_id, &b.detail))
+    });
     let (changes, counts) = compare_snapshots(&source, &target);
     let root_total = source.root_count + target.root_count;
     let stable_roots = source.stable_root_count + target.stable_root_count;
@@ -819,6 +823,43 @@ mod tests {
             1.0
         );
     }
+    #[test]
+    fn reordered_data_records_preserve_semantics_when_global_ids_are_stable() {
+        let source = String::from_utf8(FIXTURE.to_vec()).expect("fixture is UTF-8");
+        let first = "#1=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\n";
+        let second = "#2=IFCWALL('0000000000000000000001',$,'Panel 002',$,$,$,$,$,.NOTDEFINED.);\n";
+        let source_records = format!("{first}{second}");
+        let reordered_records = format!("{second}{first}");
+        let target = source.replace(&source_records, &reordered_records);
+        assert_ne!(source, target);
+        let report = compare(source.as_bytes(), target.as_bytes());
+        assert_eq!(report.status, Status::Equal);
+        assert_ne!(report.source_artifact.sha256, report.target_artifact.sha256);
+        assert_eq!(report.source_semantic_sha256, report.target_semantic_sha256);
+    }
+
+    #[test]
+    fn renumbering_ifcroot_step_ids_does_not_change_guid_keyed_semantics() {
+        let source = String::from_utf8(FIXTURE.to_vec()).expect("fixture is UTF-8");
+        let target = source
+            .replace("#1=IFCWALL", "#17=IFCWALL")
+            .replace("#2=IFCWALL", "#18=IFCWALL");
+        let report = compare(source.as_bytes(), target.as_bytes());
+        assert_eq!(report.status, Status::Equal);
+        assert_ne!(report.source_artifact.sha256, report.target_artifact.sha256);
+        assert_eq!(report.source_semantic_sha256, report.target_semantic_sha256);
+    }
+
+    #[test]
+    fn invalid_global_id_is_unresolved_not_mispaired() {
+        let source = String::from_utf8(FIXTURE.to_vec()).expect("fixture is UTF-8");
+        let target = source.replace("'0000000000000000000000'", "'not-a-guid'");
+        let report = compare(target.as_bytes(), target.as_bytes());
+        assert_eq!(report.status, Status::Unresolved);
+        assert!(report.coverage_issues.iter().any(|issue| issue.code == "INVALID_GLOBAL_ID"));
+        assert!(report.identity_coverage.roots_with_ambiguous_identity > 0);
+    }
+
     #[test]
     fn property_change_is_named_and_structured() {
         let a = String::from_utf8(FIXTURE.to_vec()).unwrap();
