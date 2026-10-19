@@ -1,7 +1,7 @@
 use super::{
-    enumerate_vectors, evaluate_schedule, independently_reconstruct_score, is_lower_hex, score_order,
-    sha256, Check, PeriodInput, ProcessModel, ScenarioExpectation, ScenarioInput, ScenarioStatus,
-    ScheduleScore,
+    enumerate_vectors, evaluate_schedule, independently_reconstruct_score, is_lower_hex,
+    score_order, sha256, Check, PeriodInput, ProcessModel, ScenarioExpectation, ScenarioInput,
+    ScenarioStatus, ScheduleScore,
 };
 use serde::Serialize;
 use std::{env, process::ExitCode};
@@ -40,7 +40,11 @@ struct DeterministicRng(u64);
 
 impl DeterministicRng {
     fn new(seed: u64) -> Self {
-        Self(if seed == 0 { 0x9E37_79B9_7F4A_7C15 } else { seed })
+        Self(if seed == 0 {
+            0x9E37_79B9_7F4A_7C15
+        } else {
+            seed
+        })
     }
 
     fn next_u64(&mut self) -> u64 {
@@ -256,7 +260,11 @@ fn generate_case(seed: u64, split: Split) -> GeneratedCase {
     };
     let p1_power = GeneratedWorld {
         realization_id: "p1-renewables-shortfall".to_owned(),
-        scenario: apply_changes(&forecast, "p1-renewables-shortfall", &[(1, 0, 2), (1, 1, 4)]),
+        scenario: apply_changes(
+            &forecast,
+            "p1-renewables-shortfall",
+            &[(1, 0, 2), (1, 1, 4)],
+        ),
     };
     let p1_water = GeneratedWorld {
         realization_id: "p1-water-shortfall".to_owned(),
@@ -322,10 +330,12 @@ fn candidate_schedules(
             continue;
         }
         if let Ok(score) = evaluate_schedule(model, scenario_input, &batches) {
-            let reconstructed =
-                independently_reconstruct_score(model, scenario_input, &batches)?;
+            let reconstructed = independently_reconstruct_score(model, scenario_input, &batches)?;
             if reconstructed != score {
-                return Err("candidate schedule disagrees with independent balance reconstruction".to_owned());
+                return Err(
+                    "candidate schedule disagrees with independent balance reconstruction"
+                        .to_owned(),
+                );
             }
             candidates.push(score);
         }
@@ -334,10 +344,7 @@ fn candidate_schedules(
 }
 
 // The nominal policy receives a single forecast only. It is not passed a realized world.
-fn choose_nominal_schedule(
-    model: &ProcessModel,
-    forecast: &ScenarioInput,
-) -> Check<Vec<u32>> {
+fn choose_nominal_schedule(model: &ProcessModel, forecast: &ScenarioInput) -> Check<Vec<u32>> {
     candidate_schedules(model, forecast)?
         .into_iter()
         .min_by(score_order)
@@ -368,7 +375,10 @@ fn choose_robust_schedule(
                     let reconstructed =
                         independently_reconstruct_score(model, &world.scenario, &batches)?;
                     if reconstructed != score {
-                        return Err("robust candidate disagrees with independent balance reconstruction".to_owned());
+                        return Err(
+                            "robust candidate disagrees with independent balance reconstruction"
+                                .to_owned(),
+                        );
                     }
                     worst_cost = worst_cost.max(score.total_grid_cost_units);
                     worst_carbon = worst_carbon.max(score.total_grid_carbon_units);
@@ -427,8 +437,7 @@ fn policy_evaluation(
     };
     match evaluate_schedule(model, realized_world, batches) {
         Ok(score) => {
-            let reconstructed =
-                independently_reconstruct_score(model, realized_world, batches);
+            let reconstructed = independently_reconstruct_score(model, realized_world, batches);
             if !matches!(reconstructed.as_ref(), Ok(independent) if independent == &score) {
                 *hard_constraint_violations += 1;
                 return PolicyEvaluation {
@@ -477,7 +486,10 @@ fn policy_evaluation(
     }
 }
 
-fn evaluate_cases(model: &ProcessModel, cases: &[GeneratedCase]) -> Check<(Vec<WorldResult>, usize)> {
+fn evaluate_cases(
+    model: &ProcessModel,
+    cases: &[GeneratedCase],
+) -> Check<(Vec<WorldResult>, usize)> {
     let mut results = Vec::new();
     let mut hard_constraint_violations = 0;
     for case in cases {
@@ -591,7 +603,10 @@ fn summarize_policy(
         .iter()
         .filter_map(|evaluation| evaluation.regret_vs_realization_oracle_units)
         .collect();
-    let feasible_worlds = evaluations.iter().filter(|evaluation| evaluation.feasible).count();
+    let feasible_worlds = evaluations
+        .iter()
+        .filter(|evaluation| evaluation.feasible)
+        .count();
     let sum_cost: u128 = costs.iter().map(|value| u128::from(*value)).sum();
     let sum_carbon: u128 = carbons.iter().map(|value| u128::from(*value)).sum();
     let total = evaluations.len();
@@ -709,8 +724,8 @@ fn make_receipt(source_commit: &str) -> Check<RobustnessReceipt> {
         .iter()
         .filter(|row| row.split == Split::HeldOut)
         .count();
-    let all_worlds_accounted = world_results.len()
-        == (validation_seed_count + held_out_seed_count) * WORLDS_PER_SEED;
+    let all_worlds_accounted =
+        world_results.len() == (validation_seed_count + held_out_seed_count) * WORLDS_PER_SEED;
     let robust_policy_meets_floor = robust_policy_infeasible_worlds == 0;
     let summaries_consistent = summaries.iter().all(|summary| {
         summary.evaluated_worlds
@@ -721,8 +736,8 @@ fn make_receipt(source_commit: &str) -> Check<RobustnessReceipt> {
             }
             && summary.feasible_worlds + summary.infeasible_worlds == summary.evaluated_worlds
             && summary.feasible_rate_basis_points
-                == ((summary.feasible_worlds as u128 * 10_000)
-                    / summary.evaluated_worlds as u128) as u32
+                == ((summary.feasible_worlds as u128 * 10_000) / summary.evaluated_worlds as u128)
+                    as u32
     });
     let result = if hard_constraint_violations == 0
         && robust_policy_meets_floor
@@ -758,7 +773,10 @@ fn make_receipt(source_commit: &str) -> Check<RobustnessReceipt> {
 
 fn run_cli(args: &[String]) -> Check<ExitCode> {
     if args.len() != 2 || args[0] != "--source-commit" {
-        return Err("usage: mine-flex-scheduling-bench --robustness --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: mine-flex-scheduling-bench --robustness --source-commit <40-hex-sha>"
+                .to_owned(),
+        );
     }
     let receipt = make_receipt(&args[1])?;
     println!(
@@ -805,14 +823,17 @@ mod tests {
         assert_eq!(32, validation.len());
         assert_eq!(32, heldout.len());
         assert!(validation.is_disjoint(&heldout));
-        assert!(first.iter().all(|case| case.uncertainty_envelope.len() == WORLDS_PER_SEED));
+        assert!(first
+            .iter()
+            .all(|case| case.uncertainty_envelope.len() == WORLDS_PER_SEED));
     }
 
     #[test]
     fn robust_policy_is_feasible_across_all_declared_disturbances() {
         for case in generate_cases() {
-            let schedule = choose_robust_schedule(&model(), &case.forecast, &case.uncertainty_envelope)
-                .expect("a universally feasible reference schedule exists");
+            let schedule =
+                choose_robust_schedule(&model(), &case.forecast, &case.uncertainty_envelope)
+                    .expect("a universally feasible reference schedule exists");
             for world in &case.uncertainty_envelope {
                 assert!(evaluate_schedule(&model(), &world.scenario, &schedule).is_ok());
             }
@@ -822,17 +843,22 @@ mod tests {
     #[test]
     fn nominal_policy_receives_only_forecast_and_fixed_baseline_is_not_tuned_to_realization() {
         let case = generate_case(42, Split::Validation);
-        let nominal_a = choose_nominal_schedule(&model(), &case.forecast).expect("nominal schedule");
+        let nominal_a =
+            choose_nominal_schedule(&model(), &case.forecast).expect("nominal schedule");
         let mut reversed = case.uncertainty_envelope.clone();
         reversed.reverse();
         let robust_a = choose_robust_schedule(&model(), &case.forecast, &case.uncertainty_envelope)
             .expect("robust schedule");
         let robust_b = choose_robust_schedule(&model(), &case.forecast, &reversed)
             .expect("robust schedule must not depend on envelope iteration order");
-        let nominal_b = choose_nominal_schedule(&model(), &case.forecast).expect("nominal schedule");
+        let nominal_b =
+            choose_nominal_schedule(&model(), &case.forecast).expect("nominal schedule");
         assert_eq!(nominal_a, nominal_b);
         assert_eq!(robust_a, robust_b);
-        assert_eq!(FIXED_BASELINE.to_vec(), case.forecast.fixed_baseline_batches);
+        assert_eq!(
+            FIXED_BASELINE.to_vec(),
+            case.forecast.fixed_baseline_batches
+        );
     }
 
     #[test]
@@ -845,8 +871,11 @@ mod tests {
             assert!(row.robust_policy.feasible);
             assert_eq!(
                 Some(row.oracle_grid_cost_units),
-                row.robust_policy.regret_vs_realization_oracle_units
-                    .map(|regret| row.robust_policy.grid_cost_units.expect("feasible cost") - regret)
+                row.robust_policy
+                    .regret_vs_realization_oracle_units
+                    .map(
+                        |regret| row.robust_policy.grid_cost_units.expect("feasible cost") - regret
+                    )
             );
             for policy in [&row.fixed_baseline, &row.nominal_policy, &row.robust_policy] {
                 if policy.feasible {
@@ -873,10 +902,10 @@ mod tests {
 
     #[test]
     fn receipt_keeps_validation_and_heldout_scores_separate_and_reports_tails() {
-        let receipt_a = make_receipt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-            .expect("valid source commit");
-        let receipt_b = make_receipt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-            .expect("same receipt");
+        let receipt_a =
+            make_receipt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").expect("valid source commit");
+        let receipt_b =
+            make_receipt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").expect("same receipt");
         assert_eq!(
             serde_json::to_vec(&receipt_a).expect("serialize"),
             serde_json::to_vec(&receipt_b).expect("serialize")
@@ -890,16 +919,28 @@ mod tests {
         assert_eq!(0, receipt_a.robust_policy_infeasible_worlds);
         for summary in &receipt_a.summaries {
             assert_eq!(160, summary.evaluated_worlds);
-            assert_eq!(summary.evaluated_worlds, summary.feasible_worlds + summary.infeasible_worlds);
+            assert_eq!(
+                summary.evaluated_worlds,
+                summary.feasible_worlds + summary.infeasible_worlds
+            );
             if summary.cost_regret.sample_count > 0 {
                 assert!(summary.cost_regret.mean_regret_units_floor.is_some());
                 assert!(summary.cost_regret.p95_regret_units_nearest_rank.is_some());
-                assert!(summary.cost_regret.cvar95_regret_units_worst_five_percent_mean_floor.is_some());
+                assert!(summary
+                    .cost_regret
+                    .cvar95_regret_units_worst_five_percent_mean_floor
+                    .is_some());
             }
         }
         assert_eq!(2, receipt_a.paired_comparisons.len());
-        assert!(receipt_a.paired_comparisons.iter().any(|pair| pair.split == Split::Validation));
-        assert!(receipt_a.paired_comparisons.iter().any(|pair| pair.split == Split::HeldOut));
+        assert!(receipt_a
+            .paired_comparisons
+            .iter()
+            .any(|pair| pair.split == Split::Validation));
+        assert!(receipt_a
+            .paired_comparisons
+            .iter()
+            .any(|pair| pair.split == Split::HeldOut));
         for pair in &receipt_a.paired_comparisons {
             assert!(pair.paired_worlds_both_feasible > 0);
         }
@@ -910,7 +951,13 @@ mod tests {
         let metrics = tail_metrics(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100]);
         assert_eq!(Some(100), metrics.worst_regret_units);
         assert_eq!(Some(100), metrics.p95_regret_units_nearest_rank);
-        assert_eq!(Some(100), metrics.cvar95_regret_units_worst_five_percent_mean_floor);
-        assert_eq!(Some(20), tail_metrics(&[10, 10, 20]).cvar95_regret_units_worst_five_percent_mean_floor);
+        assert_eq!(
+            Some(100),
+            metrics.cvar95_regret_units_worst_five_percent_mean_floor
+        );
+        assert_eq!(
+            Some(20),
+            tail_metrics(&[10, 10, 20]).cvar95_regret_units_worst_five_percent_mean_floor
+        );
     }
 }
