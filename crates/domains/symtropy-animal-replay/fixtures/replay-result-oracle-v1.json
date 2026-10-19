@@ -219,9 +219,10 @@
     {
       "id": "primary_metric_required",
       "mutation": "missing_primary_metric",
-      "expected_disposition": "incomplete",
+      "expected_disposition": "reject",
       "expected_reason_codes": [
-        "missing_primary_metric"
+        "missing_primary_metric",
+        "baseline_comparison_stratum_mismatch"
       ],
       "expected_threshold_outcome": "incomplete",
       "expected_baseline_comparison_outcomes": [
@@ -245,7 +246,11 @@
       "mutation": "empty_metric_stratum",
       "expected_disposition": "reject",
       "expected_reason_codes": [
-        "empty_metric_stratum"
+        "empty_metric_stratum",
+        "invalid_overall_stratum_id",
+        "baseline_stratum_mismatch",
+        "missing_baseline_comparison",
+        "baseline_comparison_stratum_mismatch"
       ],
       "expected_threshold_outcome": "not_assessed",
       "expected_baseline_comparison_outcomes": [
@@ -258,6 +263,7 @@
       "expected_disposition": "reject",
       "expected_reason_codes": [
         "invalid_overall_stratum_id",
+        "baseline_stratum_mismatch",
         "missing_baseline_comparison",
         "baseline_comparison_stratum_mismatch"
       ],
@@ -307,7 +313,8 @@
       "mutation": "metric_missing_state",
       "expected_disposition": "incomplete",
       "expected_reason_codes": [
-        "incomplete_metric_observation"
+        "incomplete_metric_observation",
+        "missing_paired_samples"
       ],
       "expected_threshold_outcome": "incomplete",
       "expected_baseline_comparison_outcomes": [
@@ -414,7 +421,8 @@
       "mutation": "baseline_missing_metric",
       "expected_disposition": "incomplete",
       "expected_reason_codes": [
-        "baseline_metric_not_reported"
+        "baseline_metric_not_reported",
+        "missing_paired_samples"
       ],
       "expected_threshold_outcome": "not_assessed",
       "expected_baseline_comparison_outcomes": [
