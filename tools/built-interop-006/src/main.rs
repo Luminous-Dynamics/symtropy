@@ -787,9 +787,7 @@ fn verify_embedded_payload(
         }
         return match input.gate.gate_id {
             GateId::IfcSchemaConformance => Err("IFC_SCHEMA_EVIDENCE_PAYLOAD_REQUIRED".into()),
-            GateId::ExchangeSemanticPreservation => {
-                Err("DELTA_EVIDENCE_PAYLOAD_REQUIRED".into())
-            }
+            GateId::ExchangeSemanticPreservation => Err("DELTA_EVIDENCE_PAYLOAD_REQUIRED".into()),
             _ => Ok(()),
         };
     };
@@ -841,15 +839,13 @@ fn verify_embedded_payload(
         if payload["policy_id"] != DELTA_POLICY_ID {
             return Err("DELTA_POLICY_ID_MISMATCH".into());
         }
-        if payload["source_ifc_sha256"].as_str()
-            != Some(sha256_hex(source_ifc_bytes).as_str())
+        if payload["source_ifc_sha256"].as_str() != Some(sha256_hex(source_ifc_bytes).as_str())
             || payload["source_ifc_byte_length"].as_u64()
                 != u64::try_from(source_ifc_bytes.len()).ok()
         {
             return Err("DELTA_SOURCE_ARTIFACT_MISMATCH".into());
         }
-        if payload["target_ifc_sha256"].as_str()
-            != Some(sha256_hex(target_ifc_bytes).as_str())
+        if payload["target_ifc_sha256"].as_str() != Some(sha256_hex(target_ifc_bytes).as_str())
             || payload["target_ifc_byte_length"].as_u64()
                 != u64::try_from(target_ifc_bytes.len()).ok()
         {
@@ -868,12 +864,18 @@ fn verify_embedded_payload(
             .and_then(Value::as_object)
             .ok_or_else(|| "DELTA_COUNTS_INVALID".to_string())?;
         let expected_count_keys = [
-            "compared", "preserved", "changed", "lost", "dropped", "added", "unresolved",
+            "compared",
+            "preserved",
+            "changed",
+            "lost",
+            "dropped",
+            "added",
+            "unresolved",
         ];
         if counts.len() != expected_count_keys.len()
-            || expected_count_keys.iter().any(|key| {
-                counts.get(*key).and_then(Value::as_u64).is_none()
-            })
+            || expected_count_keys
+                .iter()
+                .any(|key| counts.get(*key).and_then(Value::as_u64).is_none())
         {
             return Err("DELTA_COUNTS_INVALID".into());
         }
@@ -887,7 +889,10 @@ fn verify_embedded_payload(
         let reason = payload["decision_reason"].as_str().unwrap_or("");
         let state_consistent = match input.gate.status {
             GateStatus::Pass => {
-                coverage_complete && compared > 0 && unresolved == 0 && !definite_loss
+                coverage_complete
+                    && compared > 0
+                    && unresolved == 0
+                    && !definite_loss
                     && reason == "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS"
             }
             GateStatus::Fail => definite_loss && reason == "DEFINITE_SOURCE_TO_TARGET_LOSS",
@@ -1546,7 +1551,16 @@ mod tests {
     fn embedded_schema_payload_is_bound_to_exact_target_bytes_and_profile() {
         let target = b"target model bytes";
         let producer = schema_gate_producer(target);
-        assert!(verify_embedded_payload(&producer, b"source bytes", target, b"ids requirements", "IFC4").is_ok());
+        assert!(
+            verify_embedded_payload(
+                &producer,
+                b"source bytes",
+                target,
+                b"ids requirements",
+                "IFC4"
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -1554,7 +1568,14 @@ mod tests {
         let target = b"target model bytes";
         let producer = schema_gate_producer(target);
         assert_eq!(
-            verify_embedded_payload(&producer, b"source bytes", b"other target", b"ids requirements", "IFC4").unwrap_err(),
+            verify_embedded_payload(
+                &producer,
+                b"source bytes",
+                b"other target",
+                b"ids requirements",
+                "IFC4"
+            )
+            .unwrap_err(),
             "IFC_SCHEMA_EVIDENCE_ARTIFACT_MISMATCH"
         );
     }
@@ -1565,7 +1586,14 @@ mod tests {
         let mut producer = schema_gate_producer(target);
         producer.gate.evidence[0].locator = "schema-gate.json".into();
         assert_eq!(
-            verify_embedded_payload(&producer, b"source bytes", target, b"ids requirements", "IFC4").unwrap_err(),
+            verify_embedded_payload(
+                &producer,
+                b"source bytes",
+                target,
+                b"ids requirements",
+                "IFC4"
+            )
+            .unwrap_err(),
             "EVIDENCE_PAYLOAD_UNREFERENCED"
         );
     }
@@ -1576,7 +1604,14 @@ mod tests {
         let mut producer = schema_gate_producer(target);
         producer.evidence_payload = None;
         assert_eq!(
-            verify_embedded_payload(&producer, b"source bytes", target, b"ids requirements", "IFC4").unwrap_err(),
+            verify_embedded_payload(
+                &producer,
+                b"source bytes",
+                target,
+                b"ids requirements",
+                "IFC4"
+            )
+            .unwrap_err(),
             "EVIDENCE_PAYLOAD_MISSING"
         );
     }
@@ -1596,9 +1631,18 @@ mod tests {
         );
 
         let mut delta_gate = delta_gate_producer(
-            source, target, ids, DeltaTestConfig {
-                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 1,
-                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Pass,
+                coverage_complete: true,
+                compared: 1,
+                preserved: 1,
+                changed: 0,
+                lost: 0,
+                dropped: 0,
+                unresolved: 0,
                 reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
             },
         );
@@ -1617,13 +1661,27 @@ mod tests {
         producer.evidence_payload.as_mut().unwrap()["findings"] =
             serde_json::json!([{"tampered": true}]);
         assert_eq!(
-            verify_embedded_payload(&producer, b"source bytes", target, b"ids requirements", "IFC4").unwrap_err(),
+            verify_embedded_payload(
+                &producer,
+                b"source bytes",
+                target,
+                b"ids requirements",
+                "IFC4"
+            )
+            .unwrap_err(),
             "EVIDENCE_POINTER_DIGEST_MISMATCH"
         );
 
         let producer = schema_gate_producer(target);
         assert_eq!(
-            verify_embedded_payload(&producer, b"source bytes", target, b"ids requirements", "IFC2X3").unwrap_err(),
+            verify_embedded_payload(
+                &producer,
+                b"source bytes",
+                target,
+                b"ids requirements",
+                "IFC2X3"
+            )
+            .unwrap_err(),
             "IFC_SCHEMA_EVIDENCE_PROFILE_MISMATCH"
         );
     }
@@ -1634,7 +1692,14 @@ mod tests {
         let mut producer = schema_gate_producer(target);
         producer.gate.tool.as_mut().unwrap().config_sha256 = "0".repeat(64);
         assert_eq!(
-            verify_embedded_payload(&producer, b"source bytes", target, b"ids requirements", "IFC4").unwrap_err(),
+            verify_embedded_payload(
+                &producer,
+                b"source bytes",
+                target,
+                b"ids requirements",
+                "IFC4"
+            )
+            .unwrap_err(),
             "IFC_SCHEMA_TOOL_PROVENANCE_MISMATCH"
         );
     }
@@ -1645,9 +1710,18 @@ mod tests {
         let target = b"target exact bytes";
         let ids = b"requirements exact bytes";
         let producer = delta_gate_producer(
-            source, target, ids, DeltaTestConfig {
-                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 1,
-                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Pass,
+                coverage_complete: true,
+                compared: 1,
+                preserved: 1,
+                changed: 0,
+                lost: 0,
+                dropped: 0,
+                unresolved: 0,
                 reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
             },
         );
@@ -1673,9 +1747,18 @@ mod tests {
         let target = b"target";
         let ids = b"ids";
         let forged_pass = delta_gate_producer(
-            source, target, ids, DeltaTestConfig {
-                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 0,
-                changed: 1, lost: 0, dropped: 0, unresolved: 0,
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Pass,
+                coverage_complete: true,
+                compared: 1,
+                preserved: 0,
+                changed: 1,
+                lost: 0,
+                dropped: 0,
+                unresolved: 0,
                 reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
             },
         );
@@ -1685,18 +1768,36 @@ mod tests {
         );
 
         let valid_fail = delta_gate_producer(
-            source, target, ids, DeltaTestConfig {
-                status: GateStatus::Fail, coverage_complete: false, compared: 1, preserved: 0,
-                changed: 1, lost: 0, dropped: 0, unresolved: 1,
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Fail,
+                coverage_complete: false,
+                compared: 1,
+                preserved: 0,
+                changed: 1,
+                lost: 0,
+                dropped: 0,
+                unresolved: 1,
                 reason: "DEFINITE_SOURCE_TO_TARGET_LOSS",
             },
         );
         assert!(verify_embedded_payload(&valid_fail, source, target, ids, "IFC4").is_ok());
 
         let invalid_fail = delta_gate_producer(
-            source, target, ids, DeltaTestConfig {
-                status: GateStatus::Fail, coverage_complete: true, compared: 1, preserved: 1,
-                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Fail,
+                coverage_complete: true,
+                compared: 1,
+                preserved: 1,
+                changed: 0,
+                lost: 0,
+                dropped: 0,
+                unresolved: 0,
                 reason: "DEFINITE_SOURCE_TO_TARGET_LOSS",
             },
         );
@@ -1712,9 +1813,18 @@ mod tests {
         let target = b"target";
         let ids = b"ids";
         let mut producer = delta_gate_producer(
-            source, target, ids, DeltaTestConfig {
-                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 1,
-                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+            source,
+            target,
+            ids,
+            DeltaTestConfig {
+                status: GateStatus::Pass,
+                coverage_complete: true,
+                compared: 1,
+                preserved: 1,
+                changed: 0,
+                lost: 0,
+                dropped: 0,
+                unresolved: 0,
                 reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
             },
         );
