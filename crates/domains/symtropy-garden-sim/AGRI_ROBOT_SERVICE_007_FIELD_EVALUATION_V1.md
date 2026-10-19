@@ -74,13 +74,13 @@ Keep all eligible requests accounted for. No-provider, refusal, quote expiry, ab
 
 The primary numerator is **confirmed** farmer acceptance inside the useful window, supported by the required decision evidence and timing. The fixed denominator includes all preregistered eligible requests. This produces an *evidence-confirmed attainment rate*, not an assertion that every unconfirmed request failed.
 
-At study close, classify every request as one of: accepted within window; accepted late; known not accepted (typed reason); disputed/rework; outcome unknown after possible remote effect; follow-up missing/inaccessible; or protocol-defined exclusion with reason. Do not collapse the last two into a known failure. Report the number in each category and outcome-ascertainment coverage.
+At study close, classify every eligible request into exactly one mutually exclusive outcome bucket: accepted within window; accepted late; known not accepted (typed reason); disputed/rework; provider-reported completion awaiting the farmer's decision; outcome unknown after possible remote effect; or follow-up missing/inaccessible. Protocol exclusions are recorded outside the eligible denominator with their reason. Do not collapse the last two into a known failure. Report the number in each category and outcome-ascertainment coverage.
 
 Alongside the fixed-denominator evidence-confirmed rate, report a transparent uncertainty range when unresolved/missing cases could plausibly contain an unobserved in-window acceptance:
 - lower evidence bound = confirmed in-window acceptances / all eligible requests;
-- upper evidence bound = (confirmed in-window acceptances + cases whose in-window outcome is genuinely unascertainable) / all eligible requests.
+- upper evidence bound = (confirmed in-window acceptances + completed work awaiting the farmer's decision + unknown remote outcomes + follow-up-missing/inaccessible outcomes) / all eligible requests.
 
-Only include cases in the upper-bound addition when acceptance-within-window cannot be ruled in or out from the authorized evidence. Known late, no-provider, cancellation, no-show, unaccepted completion and documented disputes are not silently reclassified as unknown. Explain any contradiction between a reported “no provider”/cancellation event and later acceptance as a reconciliation case. A classified-case rate may be shown as secondary descriptive analysis, never as a replacement for the fixed denominator. These bounds are identification limits, not confidence intervals; show statistical uncertainty separately.
+Include only the three mutually exclusive pending/unknown/missing buckets in the upper-bound addition; they are distinct categories, never double-counted.  Known late, no-provider, cancellation, no-show, unaccepted completion and documented disputes are not silently reclassified as unknown. Explain any contradiction between a reported “no provider”/cancellation event and later acceptance as a reconciliation case. A classified-case rate may be shown as secondary descriptive analysis, never as a replacement for the fixed denominator. These bounds are identification limits, not confidence intervals; show statistical uncertainty separately.
 
 ## 4. Endpoints
 
@@ -170,9 +170,9 @@ The draft implementation adds `src/field_eval_report.rs`, the `verify-field-eval
 
 For each declared study report it checks:
 - screened requests = eligible requests + protocol exclusions;
-- six mutually exclusive eligible-outcome classes reconcile exactly to the eligible denominator;
+- seven mutually exclusive eligible-outcome classes reconcile exactly to the eligible denominator;
 - typed non-acceptance reason counts reconcile exactly to the known-not-accepted class;
-- a completed-but-pending-farmer-decision count is no larger than the union of unascertained unknown/missing outcomes and is not added again to the denominator;
+- completed-but-pending-farmer-decision, unknown remote outcome, and follow-up missing are separate exclusive outcome buckets; all count toward the eligible denominator, and only the three buckets enter the uncertainty upper bound;
 - opaque, bounded references and a supported schema version are present; unknown JSON fields are rejected;
 - integer sums and rate numerators do not overflow.
 
@@ -180,6 +180,6 @@ The output carries an SHA-256 digest of the exact input bytes and exact count bo
 - **lower evidence bound:** (A/N\);
 - **upper identification bound:** ((A+U)/N\).
 
-Known late acceptances, typed nonacceptance, and recorded disputes/rework do not inflate the upper bound. The identification bounds are not confidence intervals; sampling uncertainty and causal inference require a separately declared analysis plan. A zero-eligible report is `NotAssessable`, not a zero-percent success/failure.
+Known late acceptances, typed nonacceptance, and recorded disputes/rework do not inflate the upper bound. Pending decision, unknown remote outcome, and missing follow-up are disjoint categories and must not be double-counted. The identification bounds are not confidence intervals; sampling uncertainty and causal inference require a separately declared analysis plan. A zero-eligible report is `NotAssessable`, not a zero-percent success/failure.
 
 The checker still cannot validate individual lifecycle events, authenticate evidence, establish that a relayer had real authority, or infer field impact. This is a synthetic arithmetic gate; exact-head CI, independent review, and local study approvals remain required before any field use.
