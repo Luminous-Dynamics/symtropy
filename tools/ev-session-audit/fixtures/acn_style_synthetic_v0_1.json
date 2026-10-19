@@ -1,0 +1,45 @@
+{
+  "_meta": {"page": 1, "max_results": 4, "total": 4},
+  "_items": [
+    {
+      "_id": "fixture-row-001",
+      "sessionID": "fixture-session-001",
+      "userID": "fixture-user-001",
+      "siteID": "caltech",
+      "connectionTime": "Wed, 1 May 2019 08:00:00 GMT",
+      "disconnectTime": "Wed, 1 May 2019 10:30:00 GMT",
+      "doneChargingTime": "Wed, 1 May 2019 09:00:00 GMT",
+      "kWhDelivered": 12.5
+    },
+    {
+      "_id": "fixture-row-002",
+      "sessionID": "fixture-session-002",
+      "userID": "fixture-user-002",
+      "siteID": "caltech",
+      "connectionTime": "Wed, 1 May 2019 12:00:00 GMT",
+      "disconnectTime": "Wed, 1 May 2019 13:00:00 GMT",
+      "doneChargingTime": null,
+      "kWhDelivered": 7.5
+    },
+    {
+      "_id": "fixture-row-003",
+      "sessionID": "fixture-session-003",
+      "userID": "fixture-user-003",
+      "siteID": "caltech",
+      "connectionTime": "Wed, 1 May 2019 14:00:00 GMT",
+      "disconnectTime": "Wed, 1 May 2019 13:00:00 GMT",
+      "doneChargingTime": null,
+      "kWhDelivered": 5.0
+    },
+    {
+      "_id": "fixture-row-004",
+      "sessionID": "fixture-session-004",
+      "userID": "fixture-user-004",
+      "siteID": "caltech",
+      "connectionTime": "Wed, 1 May 2019 15:00:00 GMT",
+      "disconnectTime": "Wed, 1 May 2019 16:00:00 GMT",
+      "doneChargingTime": null,
+      "kWhDelivered": -1.0
+    }
+  ]
+}
