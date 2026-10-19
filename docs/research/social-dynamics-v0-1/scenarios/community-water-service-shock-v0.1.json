@@ -33,12 +33,12 @@
     "no_commitments",
     "static_trust",
     "reciprocity",
-    "verifiable_commitments"
+    "evidence_based_trust"
   ],
   "factors_to_sweep": [
     "shock_severity",
     "observation_noise",
-    "verification_cost",
+    "observation_cost",
     "attestation_tampering_rate",
     "network_density"
   ],
@@ -52,23 +52,24 @@
       "recovery_rate",
       "mean_recovery_tick_when_recovered",
       "unmet_need_inequality_gini",
-      "verification_overhead"
+      "observation_overhead"
     ],
     "baseline_capacity": 1,
     "observation_noise": 0.05,
-    "verification_cost": 0.15,
     "trust_learning_rate": 0.18,
     "random_seed_policy": "same seed list across all treatment arms; fixed per-tick action and observation random channels",
     "default_ticks": 80,
     "recovery_threshold_fraction": 0.98,
     "reference_model": "research/social-dynamics-reference",
     "inequality_metric_definition": "Gini coefficient of each agent's cumulative unmet need over the run",
-    "attestation_tampering_rate": 0.02
+    "attestation_tampering_rate": 0.02,
+    "observation_cost": 0.15,
+    "observation_overhead": "neighbor evidence checks × observation_cost"
   },
   "guardrails": {
     "synthetic_only": true,
     "individual_reputation_leaderboard": false,
     "no_claim_of_empirical_validity": true
   },
-  "note": "Synthetic proposal fixture aligned to the dependency-free Rust reference model defaults. Attestation tampering is represented by probabilistic signal flips; institutional capture and formal dispute resolution are not implemented. The JSON is not yet parsed by the executable. The model is unvalidated and makes no claim about real communities."
+  "note": "Synthetic proposal fixture aligned to the dependency-free Rust reference model defaults. The evidence_based_trust arm models noisy observations, observation cost, trust updating, and probabilistic signal tampering only; it does not model verifiable commitments or formal dispute resolution. The JSON is not yet parsed by the executable. The model is unvalidated and makes no claim about real communities."
 }
