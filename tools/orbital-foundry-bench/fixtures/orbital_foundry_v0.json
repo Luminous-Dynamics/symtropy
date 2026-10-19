@@ -24,7 +24,7 @@
     {
       "id": "POWER_DOMAIN_FAILURE",
       "disturbance": "one power-domain failure",
-      "claim_ceiling": "abstract discrete failure response only"
+      "claim_ceiling": "synthetic abstract discrete failure response only"
     },
     {
       "id": "DELAYED_RESUPPLY",
