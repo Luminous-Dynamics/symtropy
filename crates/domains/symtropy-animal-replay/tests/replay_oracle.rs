@@ -390,6 +390,17 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "threshold_metric_mismatch" => {
             inputs.task.threshold.as_mut().unwrap().metric_id = "another_metric".to_owned();
         }
+        "empty_uncertainty_method" => inputs.task.paired_comparison_method_id.clear(),
+        "metric_confidence_protocol_mismatch" => {
+            inputs.metrics[0].interval.as_mut().unwrap().confidence_percent = 95;
+        }
+        "paired_confidence_protocol_mismatch" => {
+            inputs.paired_comparisons[0].difference_interval.as_mut().unwrap().confidence_percent = 95;
+        }
+        "paired_interval_method_mismatch" => {
+            inputs.paired_comparisons[0].difference_interval.as_mut().unwrap().method_id =
+                "unregistered-paired-method".to_owned();
+        }
         "missing_paired_comparison" => inputs.paired_comparisons.clear(),
         "duplicate_paired_comparison" => inputs.paired_comparisons.push(inputs.paired_comparisons[0].clone()),
         "unknown_baseline_comparison" => inputs.paired_comparisons[0].baseline_id = "missing-baseline".to_owned(),
@@ -495,7 +506,7 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
     let corpus: OracleCorpus = serde_json::from_str(ORACLE_FIXTURE).unwrap();
     assert_eq!(corpus.schema_version, "ANIMAL-REPLAY-RESULT-ORACLE-V1");
     assert!(corpus.note.contains("synthetic"));
-    assert_eq!(corpus.cases.len(), 60);
+    assert_eq!(corpus.cases.len(), 63);
     for case in corpus.cases {
         let mut inputs = valid_inputs();
         apply_mutation(&mut inputs, &case.mutation);
