@@ -644,12 +644,20 @@ pub fn build_replay_receipt(
         }
     }
 
+    // Baseline rows were normalized above; re-sort duplicates by their canonical content.
+    baselines.sort_by(|left, right| {
+        left.baseline_id
+            .cmp(&right.baseline_id)
+            .then_with(|| canonical_sort_key(left).cmp(&canonical_sort_key(right)))
+    });
+
     paired_baseline_comparisons.sort_by(|left, right| {
         left.baseline_id
             .cmp(&right.baseline_id)
             .then_with(|| left.metric_id.cmp(&right.metric_id))
             .then_with(|| left.stratum_kind.cmp(&right.stratum_kind))
             .then_with(|| left.stratum_id.cmp(&right.stratum_id))
+            .then_with(|| canonical_sort_key(left).cmp(&canonical_sort_key(right)))
     });
     let mut comparison_keys = BTreeSet::new();
     for comparison in &paired_baseline_comparisons {
