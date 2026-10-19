@@ -60,6 +60,8 @@ enum Mutation {
     RealNoCapabilityClaims,
     RealWhitespaceSourceRef,
     RealUnknownRightsForAbsence,
+    RealRestrictedRightsUnasserted,
+    RealUnknownRightsUnasserted,
     RealAbsentClaimValid,
     RealNotApplicableClaimValid,
     RealModeledEvidenceValid,
@@ -143,6 +145,14 @@ fn apply_mutation(mut profile: AnimalProfile, mutation: Mutation) -> AnimalProfi
         }
         Mutation::RealUnknownRightsForAbsence => {
             profile.capabilities[0].state = EvidenceState::Absent;
+            profile.capabilities[0].evidence.permission = UsePermission::Unknown;
+        }
+        Mutation::RealRestrictedRightsUnasserted => {
+            profile.capabilities[0].state = EvidenceState::Unknown;
+            profile.capabilities[0].evidence.permission = UsePermission::Restricted;
+        }
+        Mutation::RealUnknownRightsUnasserted => {
+            profile.capabilities[0].state = EvidenceState::Unknown;
             profile.capabilities[0].evidence.permission = UsePermission::Unknown;
         }
         Mutation::RealAbsentClaimValid => {
@@ -301,7 +311,7 @@ fn coverage_scope_cannot_hide_unreviewed_taxa_or_promote_invalid_profiles() {
         },
     ];
     let valid = vec![real_profile("real/1", "TEST:1"), real_profile("real/2", "TEST:2")];
-    assert!(coverage_report(&scope, &declarations, &valid).unwrap().complete);
+    assert!(coverage_report(&scope, &declarations, &valid).unwrap().profile_registry_complete);
     assert_eq!(
         coverage_report(&scope, &declarations, &[real_profile("real/1", "TEST:1")]),
         Err(CoverageError::CoveredWithoutEligibleProfile)
