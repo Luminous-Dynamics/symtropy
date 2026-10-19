@@ -105,6 +105,9 @@ pub enum ReplayReason {
     PairedDifferenceDoesNotMatchScores,
     InvalidPairedInterval,
     InvalidEffectMargins,
+    InvalidRequiredConfidenceLevel,
+    MissingUncertaintyMethod,
+    UncertaintyProtocolMismatch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -149,6 +152,8 @@ pub enum MetricStratumKind {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConfidenceInterval {
+    /// Versioned estimator/resampling procedure that produced this interval.
+    pub method_id: String,
     pub confidence_percent: u8,
     pub lower: f64,
     pub upper: f64,
@@ -189,6 +194,11 @@ pub struct ReplayTaskSpec {
     pub target_taxon_id: Option<String>,
     pub generalization: GeneralizationTarget,
     pub primary_metric_id: String,
+    pub required_confidence_percent: u8,
+    /// Versioned method used for metric-score uncertainty intervals.
+    pub metric_uncertainty_method_id: String,
+    /// Versioned method used for paired candidate-minus-baseline effect intervals.
+    pub paired_comparison_method_id: String,
     /// Identifies the preregistered task/split/protocol comparison group.
     pub comparison_group: String,
     pub threshold: Option<DecisionThreshold>,
@@ -867,6 +877,7 @@ fn assess_paired_comparison(
         outcome,
         Some(normalized_mean),
         Some(ConfidenceInterval {
+            method_id: interval.method_id.clone(),
             confidence_percent: interval.confidence_percent,
             lower,
             upper,
