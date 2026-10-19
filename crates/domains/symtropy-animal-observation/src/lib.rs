@@ -334,8 +334,9 @@ fn add_cross_split(
 }
 
 /// Check split leakage using the declared generalization target.
-/// Subject and track IDs are study-scoped; duplicate-group and taxon IDs must
-/// be canonical within the reference pack and its pinned taxonomy release.
+/// Subject, site, duplicate-group, and taxon IDs are canonical within the pack;
+/// track IDs are study-scoped. Raw study-local subject IDs must be namespaced
+/// unless evidence-backed cross-study identity resolution links the same animal.
 pub fn validate_split(
     records: &[SplitRecord],
     target: GeneralizationTarget,
@@ -394,7 +395,7 @@ pub fn validate_split(
 
         match target {
             GeneralizationTarget::UnseenSubject => add_cross_split(
-                format!("subject:{}:{}", record.study_id, record.subject_id),
+                format!("subject:{}", record.subject_id),
                 record.role,
                 &mut subject_groups,
             ),
