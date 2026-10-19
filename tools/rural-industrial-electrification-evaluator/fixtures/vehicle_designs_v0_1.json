@@ -1,0 +1,786 @@
+{
+  "schema_version": "0.1.0",
+  "catalog_id": "EV-PLATFORM-001",
+  "claim_ceiling": "Synthetic design envelopes only; not production vehicle specifications, homologation, safety qualification, measured range, supplier data or deployment authorization.",
+  "designs": [
+    {
+      "design_id": "cargo-micro-mobility",
+      "label": "Cargo micro-mobility assist",
+      "family": "cargo_micro_mobility",
+      "architecture": "low_voltage_assist_drive_with_fixed_light_pack",
+      "mission_functional_unit": "urban deliveries per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; not a product specification.",
+      "mass": {
+        "base_curb_mass_kg": 35,
+        "installed_module_mass_kg": 0,
+        "target_payload_kg": 100,
+        "maximum_gross_mass_kg": 180
+      },
+      "battery": {
+        "nominal_pack_kwh": 1.5,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.8,
+        "reserve_fraction": 0.2,
+        "rated_continuous_power_kw": 0.5,
+        "rated_peak_power_kw": 1.2
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 0.7,
+        "required_continuous_power_kw": 0.3,
+        "required_peak_power_kw": 0.9
+      },
+      "charging": {
+        "strategy": "small_depot_charge",
+        "charger_rating_kw": 0.7,
+        "site_power_budget_kw": 1.6,
+        "simultaneous_vehicles": 4,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 8
+      },
+      "design_notes": [
+        "Human-powered assist is not assumed to replace safe brakes or stable loaded handling.",
+        "Pack energy is small enough that operator logistics and weather may dominate."
+      ]
+    },
+    {
+      "design_id": "compact-passenger-ev",
+      "label": "Compact urban passenger EV",
+      "family": "compact_passenger",
+      "architecture": "efficient_road_drivetrain_with_depot_or_home_ac",
+      "mission_functional_unit": "passenger-kilometres per day",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; not a production range claim.",
+      "mass": {
+        "base_curb_mass_kg": 1500,
+        "installed_module_mass_kg": 0,
+        "target_payload_kg": 350,
+        "maximum_gross_mass_kg": 2050
+      },
+      "battery": {
+        "nominal_pack_kwh": 45,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.9,
+        "reserve_fraction": 0.15,
+        "rated_continuous_power_kw": 30,
+        "rated_peak_power_kw": 100
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 24,
+        "required_continuous_power_kw": 25,
+        "required_peak_power_kw": 85
+      },
+      "charging": {
+        "strategy": "home_or_depot_ac",
+        "charger_rating_kw": 11,
+        "site_power_budget_kw": 22,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.92,
+        "available_window_hours": 8
+      },
+      "design_notes": [
+        "Optimize total vehicle mass, thermal comfort and affordability before increasing pack size.",
+        "Actual crash structure, axle limits and road compliance require separate validation."
+      ]
+    },
+    {
+      "design_id": "family-passenger-ev",
+      "label": "Family passenger crossover",
+      "family": "family_passenger",
+      "architecture": "mid_size_road_platform_with_cabin_thermal_management",
+      "mission_functional_unit": "passenger-kilometres including variable occupancy",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; not an actual vehicle specification.",
+      "mass": {
+        "base_curb_mass_kg": 1950,
+        "installed_module_mass_kg": 0,
+        "target_payload_kg": 500,
+        "maximum_gross_mass_kg": 2700
+      },
+      "battery": {
+        "nominal_pack_kwh": 75,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.9,
+        "reserve_fraction": 0.15,
+        "rated_continuous_power_kw": 55,
+        "rated_peak_power_kw": 180
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 36,
+        "required_continuous_power_kw": 40,
+        "required_peak_power_kw": 160
+      },
+      "charging": {
+        "strategy": "depot_ac_with_optional_public_dc",
+        "charger_rating_kw": 11,
+        "site_power_budget_kw": 44,
+        "simultaneous_vehicles": 4,
+        "efficiency_fraction": 0.92,
+        "available_window_hours": 10
+      },
+      "design_notes": [
+        "Keep passenger climate demand, cargo use and cold/heat derating visible.",
+        "Avoid assuming a large peak motor improves ordinary family mission performance."
+      ]
+    },
+    {
+      "design_id": "accessible-shuttle",
+      "label": "Accessible passenger shuttle",
+      "family": "accessible_shuttle",
+      "architecture": "low_floor_passenger_platform_with_ramp_or_lift_module",
+      "mission_functional_unit": "accessible passenger trips per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; access hardware and loads need class-specific engineering.",
+      "mass": {
+        "base_curb_mass_kg": 3300,
+        "installed_module_mass_kg": 350,
+        "target_payload_kg": 650,
+        "maximum_gross_mass_kg": 4800
+      },
+      "battery": {
+        "nominal_pack_kwh": 120,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.15,
+        "rated_continuous_power_kw": 90,
+        "rated_peak_power_kw": 220
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 70,
+        "required_continuous_power_kw": 70,
+        "required_peak_power_kw": 190
+      },
+      "charging": {
+        "strategy": "depot_dc_or_terminus_opportunity_charge",
+        "charger_rating_kw": 22,
+        "site_power_budget_kw": 44,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.92,
+        "available_window_hours": 8
+      },
+      "design_notes": [
+        "Ramp/lift, securement, low-floor packaging and HVAC are part of the design mass and mission.",
+        "Access performance and boarding safety require users and specialists in the validation loop."
+      ]
+    },
+    {
+      "design_id": "light-commercial-van",
+      "label": "Light commercial modular van",
+      "family": "light_commercial_van",
+      "architecture": "shared_front_module_with_replaceable_cargo_body_and_shelving",
+      "mission_functional_unit": "delivered kilograms and cubic metres per route",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; payload and cargo volume are not certified.",
+      "mass": {
+        "base_curb_mass_kg": 2700,
+        "installed_module_mass_kg": 250,
+        "target_payload_kg": 850,
+        "maximum_gross_mass_kg": 4000
+      },
+      "battery": {
+        "nominal_pack_kwh": 95,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.9,
+        "reserve_fraction": 0.15,
+        "rated_continuous_power_kw": 90,
+        "rated_peak_power_kw": 180
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 52,
+        "required_continuous_power_kw": 65,
+        "required_peak_power_kw": 150
+      },
+      "charging": {
+        "strategy": "depot_dc_with_managed_fleet_charging",
+        "charger_rating_kw": 22,
+        "site_power_budget_kw": 66,
+        "simultaneous_vehicles": 3,
+        "efficiency_fraction": 0.92,
+        "available_window_hours": 7
+      },
+      "design_notes": [
+        "Installed shelving and refrigeration must not be hidden inside nominal payload.",
+        "Route completions and payload retention are more useful than range alone."
+      ]
+    },
+    {
+      "design_id": "rural-all-terrain-utility",
+      "label": "Rural all-terrain service 4x4",
+      "family": "rural_utility_4x4",
+      "architecture": "protected_underbody_recoverable_drivetrain_and_field_service_modules",
+      "mission_functional_unit": "field service jobs and route-kilometres per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; not a terrain or water-ingress qualification.",
+      "mass": {
+        "base_curb_mass_kg": 2900,
+        "installed_module_mass_kg": 200,
+        "target_payload_kg": 650,
+        "maximum_gross_mass_kg": 4200
+      },
+      "battery": {
+        "nominal_pack_kwh": 110,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.18,
+        "rated_continuous_power_kw": 95,
+        "rated_peak_power_kw": 220
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 64,
+        "required_continuous_power_kw": 70,
+        "required_peak_power_kw": 190
+      },
+      "charging": {
+        "strategy": "depot_ac_with_optional_site_dc_buffer",
+        "charger_rating_kw": 22,
+        "site_power_budget_kw": 44,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 8
+      },
+      "design_notes": [
+        "Measure ground clearance, loaded traction, safe recovery and dust/water exposure independently.",
+        "A solar roof is treated as auxiliary generation, not a guaranteed propulsion supply."
+      ]
+    },
+    {
+      "design_id": "emergency-resilience-vehicle",
+      "label": "Emergency and resilience response vehicle",
+      "family": "emergency_resilience",
+      "architecture": "road_platform_with_isolated_bidirectional_power_export_interface",
+      "mission_functional_unit": "response hours and critical loads served",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; export power requires separate electrical qualification.",
+      "mass": {
+        "base_curb_mass_kg": 3500,
+        "installed_module_mass_kg": 400,
+        "target_payload_kg": 500,
+        "maximum_gross_mass_kg": 4800
+      },
+      "battery": {
+        "nominal_pack_kwh": 140,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.9,
+        "reserve_fraction": 0.15,
+        "rated_continuous_power_kw": 90,
+        "rated_peak_power_kw": 220
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 65,
+        "required_continuous_power_kw": 55,
+        "required_peak_power_kw": 170
+      },
+      "charging": {
+        "strategy": "depot_dc_with_isolated_export_power_mode",
+        "charger_rating_kw": 22,
+        "site_power_budget_kw": 44,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.92,
+        "available_window_hours": 6
+      },
+      "design_notes": [
+        "Driving energy and stationary energy export need separate reserve accounting.",
+        "No vehicle-to-home/grid connection is safe by default; isolation, anti-islanding and qualified interfaces are mandatory design gates."
+      ]
+    },
+    {
+      "design_id": "municipal-work-truck",
+      "label": "Municipal sweeper and work truck",
+      "family": "municipal_work_truck",
+      "architecture": "commercial_chassis_with_electric_work_tool_and_auxiliary_bus",
+      "mission_functional_unit": "kilometres plus completed work jobs per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; work tools and hydraulic replacement are not tested.",
+      "mass": {
+        "base_curb_mass_kg": 13000,
+        "installed_module_mass_kg": 2500,
+        "target_payload_kg": 2500,
+        "maximum_gross_mass_kg": 26000
+      },
+      "battery": {
+        "nominal_pack_kwh": 360,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.2,
+        "rated_continuous_power_kw": 150,
+        "rated_peak_power_kw": 300
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 180,
+        "required_continuous_power_kw": 120,
+        "required_peak_power_kw": 260
+      },
+      "charging": {
+        "strategy": "depot_dc_with_auxiliary_load_accounting",
+        "charger_rating_kw": 180,
+        "site_power_budget_kw": 360,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.93,
+        "available_window_hours": 4.5
+      },
+      "design_notes": [
+        "Brushes, pumps, refrigeration, compaction or hoist duty are first-class electrical loads.",
+        "Do not evaluate propulsion only while ignoring work functions."
+      ]
+    },
+    {
+      "design_id": "smallholder-tractor-carrier",
+      "label": "Smallholder tractor and implement carrier",
+      "family": "smallholder_tractor",
+      "architecture": "low_speed_high_torque_drive_with_modular_implement_and_hydraulic_interfaces",
+      "mission_functional_unit": "hectare-task and implement work per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; agricultural work output is not field-validated.",
+      "mass": {
+        "base_curb_mass_kg": 2900,
+        "installed_module_mass_kg": 450,
+        "target_payload_kg": 400,
+        "maximum_gross_mass_kg": 4000
+      },
+      "battery": {
+        "nominal_pack_kwh": 100,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.18,
+        "rated_continuous_power_kw": 70,
+        "rated_peak_power_kw": 130
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 52,
+        "required_continuous_power_kw": 48,
+        "required_peak_power_kw": 105
+      },
+      "charging": {
+        "strategy": "depot_charge_or_shared_stationary_buffer",
+        "charger_rating_kw": 22,
+        "site_power_budget_kw": 33,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 10
+      },
+      "design_notes": [
+        "PTO, hydraulics, traction, soil and implement demand must later be measured separately.",
+        "The smallholder economics include repair skills, service access and seasonal utilization."
+      ]
+    },
+    {
+      "design_id": "medium-row-crop-tractor",
+      "label": "Medium row-crop tractor",
+      "family": "row_crop_tractor",
+      "architecture": "high_continuous_power_traction_with_implement_bus_and_managed_charge",
+      "mission_functional_unit": "hectares completed within seasonal work window",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; not a tractor performance or soil-work claim.",
+      "mass": {
+        "base_curb_mass_kg": 6500,
+        "installed_module_mass_kg": 600,
+        "target_payload_kg": 1200,
+        "maximum_gross_mass_kg": 9000
+      },
+      "battery": {
+        "nominal_pack_kwh": 220,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.18,
+        "rated_continuous_power_kw": 160,
+        "rated_peak_power_kw": 260
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 120,
+        "required_continuous_power_kw": 120,
+        "required_peak_power_kw": 220
+      },
+      "charging": {
+        "strategy": "high_power_depot_charge_or_task_corridor_supply",
+        "charger_rating_kw": 80,
+        "site_power_budget_kw": 160,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 10
+      },
+      "design_notes": [
+        "Seasonal completion and implement duty are hard service constraints.",
+        "Battery swap and tethered/cable options need matched infrastructure, handling and field-layout models."
+      ]
+    },
+    {
+      "design_id": "compact-electric-excavator",
+      "label": "Compact construction excavator",
+      "family": "construction_excavator",
+      "architecture": "electric_traction_plus_electric_hydraulic_work_circuit",
+      "mission_functional_unit": "cubic metres moved and accepted work cycles per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; hydraulic work and cooling are not modeled by the screen.",
+      "mass": {
+        "base_curb_mass_kg": 14000,
+        "installed_module_mass_kg": 300,
+        "target_payload_kg": 0,
+        "maximum_gross_mass_kg": 16500
+      },
+      "battery": {
+        "nominal_pack_kwh": 160,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.2,
+        "rated_continuous_power_kw": 90,
+        "rated_peak_power_kw": 170
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 78,
+        "required_continuous_power_kw": 75,
+        "required_peak_power_kw": 145
+      },
+      "charging": {
+        "strategy": "site_dc_or_exchangeable_pack_if_economically_qualified",
+        "charger_rating_kw": 60,
+        "site_power_budget_kw": 120,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 10
+      },
+      "design_notes": [
+        "Digging and lifting create high load at near-zero vehicle speed; propulsion-only models fail this duty.",
+        "Thermal validation needs motor, inverter, pump and hydraulic/coolant temperature traces."
+      ]
+    },
+    {
+      "design_id": "urban-distribution-truck",
+      "label": "Urban distribution rigid truck",
+      "family": "urban_distribution_truck",
+      "architecture": "commercial_axle_platform_with_regenerative_stop_start_drive",
+      "mission_functional_unit": "tonne-kilometres and deliveries per route",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; payload and route productivity are not certified.",
+      "mass": {
+        "base_curb_mass_kg": 11000,
+        "installed_module_mass_kg": 1200,
+        "target_payload_kg": 8000,
+        "maximum_gross_mass_kg": 26000
+      },
+      "battery": {
+        "nominal_pack_kwh": 420,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.9,
+        "reserve_fraction": 0.18,
+        "rated_continuous_power_kw": 240,
+        "rated_peak_power_kw": 420
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 230,
+        "required_continuous_power_kw": 200,
+        "required_peak_power_kw": 330
+      },
+      "charging": {
+        "strategy": "managed_depot_dc_with_public_high_power_fallback",
+        "charger_rating_kw": 250,
+        "site_power_budget_kw": 500,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.93,
+        "available_window_hours": 4
+      },
+      "design_notes": [
+        "Route-specific stop frequency and payload affect energy and regeneration.",
+        "Compare actual delivered payload and schedule reliability, not only battery efficiency."
+      ]
+    },
+    {
+      "design_id": "city-bus",
+      "label": "City bus",
+      "family": "city_bus",
+      "architecture": "passenger_platform_with_hvac_reserve_and_depot_or_terminus_charge",
+      "mission_functional_unit": "passenger-kilometres and scheduled trips",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; no passenger capacity or transit schedule is validated.",
+      "mass": {
+        "base_curb_mass_kg": 16000,
+        "installed_module_mass_kg": 500,
+        "target_payload_kg": 6500,
+        "maximum_gross_mass_kg": 25000
+      },
+      "battery": {
+        "nominal_pack_kwh": 500,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.9,
+        "reserve_fraction": 0.15,
+        "rated_continuous_power_kw": 320,
+        "rated_peak_power_kw": 650
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 280,
+        "required_continuous_power_kw": 260,
+        "required_peak_power_kw": 500
+      },
+      "charging": {
+        "strategy": "depot_and_opportunity_charging_coordinated_to_timetable",
+        "charger_rating_kw": 300,
+        "site_power_budget_kw": 600,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.93,
+        "available_window_hours": 4
+      },
+      "design_notes": [
+        "Passenger heat/cooling, door cycles, accessibility hardware and service reliability are critical.",
+        "Charger queues and a missed terminus window can matter more than nominal kWh."
+      ]
+    },
+    {
+      "design_id": "long-haul-heavy-truck",
+      "label": "Long-haul heavy truck",
+      "family": "long_haul_truck",
+      "architecture": "heavy_duty_axles_with_high_power_conductive_mcs_class_charging",
+      "mission_functional_unit": "tonne-kilometres across declared routes",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; MCS compatibility and payload limits are not established.",
+      "mass": {
+        "base_curb_mass_kg": 18000,
+        "installed_module_mass_kg": 1000,
+        "target_payload_kg": 21000,
+        "maximum_gross_mass_kg": 44000
+      },
+      "battery": {
+        "nominal_pack_kwh": 900,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.9,
+        "reserve_fraction": 0.15,
+        "rated_continuous_power_kw": 350,
+        "rated_peak_power_kw": 650
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 500,
+        "required_continuous_power_kw": 300,
+        "required_peak_power_kw": 580
+      },
+      "charging": {
+        "strategy": "high_power_conductive_charge_sized_to_route_and_dwell",
+        "charger_rating_kw": 750,
+        "site_power_budget_kw": 1500,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.94,
+        "available_window_hours": 2
+      },
+      "design_notes": [
+        "A compatible standard does not imply the vehicle can accept maximum nameplate power throughout the charging window.",
+        "Grade, wind, traffic, driver duty, payload, rest windows and pack charge curve require subsequent modeling."
+      ]
+    },
+    {
+      "design_id": "port-yard-terminal-tractor",
+      "label": "Port and yard terminal tractor",
+      "family": "yard_terminal_tractor",
+      "architecture": "low_speed_high_torque_tractor_with_frequent_opportunity_charge",
+      "mission_functional_unit": "container or trailer moves per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; hitch duty and port service data are not validated.",
+      "mass": {
+        "base_curb_mass_kg": 15000,
+        "installed_module_mass_kg": 1000,
+        "target_payload_kg": 19000,
+        "maximum_gross_mass_kg": 40000
+      },
+      "battery": {
+        "nominal_pack_kwh": 400,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.18,
+        "rated_continuous_power_kw": 200,
+        "rated_peak_power_kw": 380
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 190,
+        "required_continuous_power_kw": 160,
+        "required_peak_power_kw": 340
+      },
+      "charging": {
+        "strategy": "opportunity_dc_charge_at_operational_dwell",
+        "charger_rating_kw": 250,
+        "site_power_budget_kw": 500,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.92,
+        "available_window_hours": 3.5
+      },
+      "design_notes": [
+        "Tight duty cycles make charger queueing, operator handoff and maintenance availability decisive.",
+        "Fixed yard routes may justify trolley or automated charging only after lifecycle comparison."
+      ]
+    },
+    {
+      "design_id": "underground-mine-mobile-unit",
+      "label": "Underground mine mobile unit with opportunity supply",
+      "family": "underground_mine_equipment",
+      "architecture": "mine_duty_traction_with_opportunity_supply_and_battery_reserve",
+      "mission_functional_unit": "tonnes moved or accepted mine tasks per shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; mine environmental, thermal and safety qualification is absent.",
+      "mass": {
+        "base_curb_mass_kg": 28000,
+        "installed_module_mass_kg": 2000,
+        "target_payload_kg": 7000,
+        "maximum_gross_mass_kg": 40000
+      },
+      "battery": {
+        "nominal_pack_kwh": 420,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.8,
+        "reserve_fraction": 0.2,
+        "rated_continuous_power_kw": 280,
+        "rated_peak_power_kw": 480
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 180,
+        "required_continuous_power_kw": 240,
+        "required_peak_power_kw": 420
+      },
+      "charging": {
+        "strategy": "opportunity_charge_or_swap_comparison_with_ventilation_accounting",
+        "charger_rating_kw": 250,
+        "site_power_budget_kw": 500,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.92,
+        "available_window_hours": 2
+      },
+      "design_notes": [
+        "The shift-energy input is battery-side residual after declared direct/opportunity supply; compare at the same boundary.",
+        "Ventilation, cooling, emergency egress, fire strategy, grade and production-cycle constraints must be integrated later."
+      ]
+    },
+    {
+      "design_id": "open-pit-haul-battery-only-control",
+      "label": "Open-pit haul truck battery-only negative control",
+      "family": "open_pit_haul",
+      "architecture": "battery_only_high_power_haul_truck",
+      "mission_functional_unit": "loaded tonnes moved per haul cycle and shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Intentionally over-budgeted shift energy relative to usable pack to verify that the screen blocks it.",
+      "mass": {
+        "base_curb_mass_kg": 75000,
+        "installed_module_mass_kg": 5000,
+        "target_payload_kg": 85000,
+        "maximum_gross_mass_kg": 180000
+      },
+      "battery": {
+        "nominal_pack_kwh": 1800,
+        "state_of_health_fraction": 0.85,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.2,
+        "rated_continuous_power_kw": 650,
+        "rated_peak_power_kw": 1100
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 1250,
+        "required_continuous_power_kw": 600,
+        "required_peak_power_kw": 950
+      },
+      "charging": {
+        "strategy": "high_power_depot_charge_battery_only_control",
+        "charger_rating_kw": 1000,
+        "site_power_budget_kw": 2000,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 2
+      },
+      "design_notes": [
+        "Expected result: blocked because derated energy including reserve does not cover the declared shift.",
+        "This synthetic negative control is not a claim that battery-only haul trucks are universally infeasible."
+      ]
+    },
+    {
+      "design_id": "open-pit-haul-trolley-battery",
+      "label": "Open-pit haul truck with trolley and battery reserve",
+      "family": "open_pit_haul",
+      "architecture": "trolley_battery_hybrid_with_declared_corridor_coverage",
+      "mission_functional_unit": "loaded tonnes moved per haul cycle and shift",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative paired architecture; trolley coverage and route economics are not modeled in v0.1.",
+      "mass": {
+        "base_curb_mass_kg": 75000,
+        "installed_module_mass_kg": 5000,
+        "target_payload_kg": 85000,
+        "maximum_gross_mass_kg": 180000
+      },
+      "battery": {
+        "nominal_pack_kwh": 1600,
+        "state_of_health_fraction": 0.9,
+        "temperature_capacity_fraction": 0.85,
+        "reserve_fraction": 0.2,
+        "rated_continuous_power_kw": 650,
+        "rated_peak_power_kw": 1100
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 800,
+        "required_continuous_power_kw": 600,
+        "required_peak_power_kw": 950
+      },
+      "charging": {
+        "strategy": "trolley_on_high_demand_corridor_plus_depot_charge",
+        "charger_rating_kw": 1000,
+        "site_power_budget_kw": 2000,
+        "simultaneous_vehicles": 2,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 2
+      },
+      "design_notes": [
+        "Energy demand is battery-side residual after the assumed trolley segment contribution.",
+        "Compare trolley length, route utilization, off-wire grade, transition time, fault recovery and battery aging before drawing an economic conclusion."
+      ]
+    },
+    {
+      "design_id": "warehouse-autonomous-carrier",
+      "label": "Warehouse and yard autonomous carrier",
+      "family": "autonomous_warehouse_yard",
+      "architecture": "low_speed_drive_with_safe_stop_and_automatic_charge_interface",
+      "mission_functional_unit": "accepted material moves per operating hour",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative envelope; autonomy, perception and safety are not evaluated by this screen.",
+      "mass": {
+        "base_curb_mass_kg": 1800,
+        "installed_module_mass_kg": 300,
+        "target_payload_kg": 600,
+        "maximum_gross_mass_kg": 3200
+      },
+      "battery": {
+        "nominal_pack_kwh": 60,
+        "state_of_health_fraction": 0.95,
+        "temperature_capacity_fraction": 0.8,
+        "reserve_fraction": 0.2,
+        "rated_continuous_power_kw": 30,
+        "rated_peak_power_kw": 75
+      },
+      "mission": {
+        "battery_energy_demand_kwh_per_shift": 25,
+        "required_continuous_power_kw": 24,
+        "required_peak_power_kw": 60
+      },
+      "charging": {
+        "strategy": "automated_depot_or_opportunity_docking",
+        "charger_rating_kw": 22,
+        "site_power_budget_kw": 88,
+        "simultaneous_vehicles": 4,
+        "efficiency_fraction": 0.9,
+        "available_window_hours": 4
+      },
+      "design_notes": [
+        "The safe-stop case under sensor, localization and communications faults sits outside the energy screen.",
+        "Fleet scheduling must model queueing, blocked routes, battery reserve and charger availability."
+      ]
+    }
+  ]
+}
