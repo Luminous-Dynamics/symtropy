@@ -201,8 +201,8 @@ fn evaluate(path: &EnergyPath) -> PathResult {
     }
 
     let delivered_energy = current_power * path.operation_hours;
-    let total_loss_power = (path.source_available_kw - current_power).max(0.0);
-    let total_loss_energy = total_loss_power * path.operation_hours;
+    let source_power_not_delivered = (path.source_available_kw - current_power).max(0.0);
+    let source_energy_not_delivered = source_power_not_delivered * path.operation_hours;
 
     let status = if findings.is_empty() {
         Status::FeasibleUnderDeclaredScreen
@@ -220,8 +220,8 @@ fn evaluate(path: &EnergyPath) -> PathResult {
         source_energy_kwh: source_energy,
         delivered_power_kw: current_power,
         delivered_energy_kwh: delivered_energy,
-        source_power_not_delivered_kw: total_loss_power,
-        source_energy_not_delivered_kwh: total_loss_energy,
+        source_power_not_delivered_kw: source_power_not_delivered,
+        source_energy_not_delivered_kwh: source_energy_not_delivered,
         stages: stage_results,
         findings,
         claim_ceiling: CLAIM_CEILING,
