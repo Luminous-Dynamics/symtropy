@@ -49,7 +49,7 @@
     "primary_outcomes": [
       "unmet_water_need_integral",
       "time_to_recovery",
-      "contribution_distribution",
+      "contribution_count",
       "unmet_need_inequality_gini",
       "verification_overhead"
     ],
