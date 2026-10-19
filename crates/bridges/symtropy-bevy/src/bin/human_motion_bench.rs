@@ -1780,6 +1780,85 @@ mod tests {
         read_trace(&path).expect("the committed v0.2 orientation fixture should validate")
     }
 
+    fn held_out_human_reference_pair() -> (Trace, Trace) {
+        let mut reference = orientation_fixture();
+        let mut prediction = orientation_fixture();
+
+        reference.trace_id = "consented-test-reference-001".to_owned();
+        prediction.trace_id = "candidate-run-001".to_owned();
+
+        reference.run.source_kind = SourceKind::OriginalConsentCapture;
+        reference.run.git_commit = "a".repeat(40);
+        reference.run.asset_sha256 = Some("b".repeat(64));
+        reference.run.asset_license = Some("documented consent and evaluation authorization".to_owned());
+        reference.retarget_map_sha256.0 = Some("c".repeat(64));
+        reference.run.split = Some("test".to_owned());
+        reference.run.dataset_id = Some("consented-dataset".to_owned());
+        reference.run.dataset_version = Some("v1".to_owned());
+        reference.run.actor_pseudonym = Some("actor-pseudonym-007".to_owned());
+        reference.run.recording_id = Some("session-2026-01".to_owned());
+
+        prediction.run.source_kind = SourceKind::ExternalModel;
+        prediction.run.git_commit = "d".repeat(40);
+        prediction.run.asset_sha256 = Some("e".repeat(64));
+        prediction.run.asset_license = Some("model evaluation license".to_owned());
+        prediction.run.model_sha256 = Some("1".repeat(64));
+        prediction.retarget_map_sha256.0 = Some("f".repeat(64));
+
+        (reference, prediction)
+    }
+
+    #[test]
+    fn evidence_scope_distinguishes_synthetic_checks_from_held_out_human_references() {
+        let synthetic = orientation_fixture();
+        assert_eq!(
+            evidence_scope(&synthetic, &synthetic),
+            "synthetic_software_validation_only"
+        );
+
+        let (reference, prediction) = held_out_human_reference_pair();
+        reference.validate(Path::new("reference.json")).unwrap();
+        prediction.validate(Path::new("prediction.json")).unwrap();
+        validate_human_reference_claim(&reference, &prediction).unwrap();
+        let report = evaluate(&reference, &prediction, None).unwrap();
+        assert_eq!(report.evidence_scope, "declared_held_out_human_reference");
+        assert!(report.caveats.iter().any(|value| value.contains("not independent authentication")));
+    }
+
+    #[test]
+    fn held_out_human_reference_gate_rejects_training_split_and_missing_identifiers() {
+        let (mut reference, prediction) = held_out_human_reference_pair();
+        reference.run.split = Some("train".to_owned());
+        assert!(validate_human_reference_claim(&reference, &prediction)
+            .unwrap_err()
+            .to_string()
+            .contains("split = test"));
+
+        let (mut reference, prediction) = held_out_human_reference_pair();
+        reference.run.recording_id = None;
+        assert!(validate_human_reference_claim(&reference, &prediction)
+            .unwrap_err()
+            .to_string()
+            .contains("recording_id"));
+    }
+
+    #[test]
+    fn held_out_human_reference_gate_rejects_synthetic_prediction_and_same_trace_id() {
+        let (reference, mut prediction) = held_out_human_reference_pair();
+        prediction.run.source_kind = SourceKind::SyntheticTestFixture;
+        assert!(validate_human_reference_claim(&reference, &prediction)
+            .unwrap_err()
+            .to_string()
+            .contains("cannot use a synthetic prediction"));
+
+        let (reference, mut prediction) = held_out_human_reference_pair();
+        prediction.trace_id = reference.trace_id.clone();
+        assert!(validate_human_reference_claim(&reference, &prediction)
+            .unwrap_err()
+            .to_string()
+            .contains("distinct reference and prediction"));
+    }
+
     #[test]
     fn committed_orientation_fixture_has_zero_error_against_itself() {
         let trace = orientation_fixture();
