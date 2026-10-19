@@ -136,6 +136,8 @@ A validation for one taxon, stage or condition does not silently qualify another
 
 Split assignment is a first-class, digest-bound artifact—not a convenience random split generated after seeing scores.
 
+Before splitting, normalize raw IDs into a pack-level identity map. Raw Movebank-style animal/tag IDs are not necessarily global identifiers: namespace study-local IDs unless a source-backed alias/link record establishes that two study records refer to the same individual. For an unseen-individual claim, known aliases for one individual must share a canonical pack-level subject key, including when the observations come from different studies. Site and duplicate-group keys are likewise canonicalized within the pack; track IDs remain scoped by study where the source defines them that way. If cross-study individual identity is unresolved and material to the claim, report that limitation or abstain rather than silently claiming verified unseen-individual generalization.
+
 Use the split unit appropriate to the claim, often grouped by some combination of:
 - individual/subject and tag identity;
 - recording/session/track;
