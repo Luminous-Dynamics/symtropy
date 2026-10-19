@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Executable arithmetic oracle for the research-only graph entropy corpus.
 //!
 //! This is intentionally separate from production physics and does not claim
