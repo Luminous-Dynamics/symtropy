@@ -42,7 +42,7 @@ For each stage:
 
 `output_power = min(converted_power, declared_stage_limit)`
 
-The report exposes conversion losses and capacity curtailment separately at each stage. The path is feasible only if its final output meets the same requested receiver power. Thermal routes have an additional hard temperature compatibility gate.
+The report exposes conversion losses and capacity curtailment separately at each stage. It also reports source power/energy not delivered at the endpoint; this aggregate includes both conversion losses and capacity-limited output, so it is not pure thermodynamic loss. The path is feasible only if its final output meets the same requested receiver power. Thermal routes have an additional hard temperature compatibility gate.
 
 The synthetic fixtures illustrate the method only. Stage values are not equipment quotes or field-validated performance. The evaluator has not yet been compiled or executed locally, and its calculations do not model transient power flow, reactive power, harmonics, fault protection, thermohydraulics, heat-pump COP, charging curves, dynamic wireless alignment, route utilization, cost, life-cycle emissions or safety compliance.
 
