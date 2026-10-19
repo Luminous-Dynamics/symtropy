@@ -1069,12 +1069,73 @@ mod tests {
         assert_eq!(report.claim_code_exact_match_pct, 100.0);
         assert_eq!(report.citation_exact_match_pct, 100.0);
         assert_eq!(report.case_evaluations.len(), benchmark.cases.len());
-        assert!(
-            report
-                .case_evaluations
-                .iter()
-                .all(|item| item.failure_codes.is_empty())
-        );
+        assert!(report.case_evaluations.iter().all(|item| item.failure_codes.is_empty()));
+        assert_eq!(report.metamorphic_pairs_total, 4);
+        assert_eq!(report.metamorphic_pairs_passed, 4);
+        assert!(report.metamorphic_gate_passed);
+        assert!(report.metamorphic_pair_failure_ids.is_empty());
+    }
+
+    #[test]
+    fn material_counterfactual_violation_fails_pair_gate() {
+        let benchmark = fixture();
+        let mut submission = reference_submission(&benchmark);
+        let source = submission
+            .results
+            .iter()
+            .find(|result| result.case_id == "SYN-TIME-001")
+            .expect("source temporal case exists")
+            .clone();
+        let target = submission
+            .results
+            .iter_mut()
+            .find(|result| result.case_id == "SYN-TIME-002")
+            .expect("target temporal case exists");
+        target.claim_codes = source.claim_codes;
+        target.citations = source.citations;
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert!(!report.metamorphic_gate_passed);
+        assert!(report
+            .metamorphic_pair_failure_ids
+            .contains(&"META-TIME-001".to_string()));
+        assert!(!report.fixture_gate_passed);
+    }
+
+    #[test]
+    fn irrelevant_rephrasing_must_preserve_output() {
+        let benchmark = fixture();
+        let mut submission = reference_submission(&benchmark);
+        let source = submission
+            .results
+            .iter()
+            .find(|result| result.case_id == "SYN-AUTH-001")
+            .expect("source authority case exists")
+            .clone();
+        let target = submission
+            .results
+            .iter_mut()
+            .find(|result| result.case_id == "SYN-AUTH-002")
+            .expect("target wording variant exists");
+        target.citations.clear();
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert!(report
+            .metamorphic_pair_failure_ids
+            .contains(&"META-AUTH-001".to_string()));
+        assert!(!report.metamorphic_gate_passed);
+        assert!(!report.fixture_gate_passed);
+        assert_eq!(source.action, target.action);
+    }
+
+    #[test]
+    fn benchmark_rejects_metamorphic_pair_with_inconsistent_expected_outputs() {
+        let mut benchmark = fixture();
+        let pair = benchmark
+            .metamorphic_pairs
+            .iter_mut()
+            .find(|pair| pair.id == "META-TIME-001")
+            .expect("temporal pair exists");
+        pair.relation = MetamorphicRelation::OutputMustMatch;
+        assert!(validate_benchmark(&benchmark).is_err());
     }
 
     #[test]
