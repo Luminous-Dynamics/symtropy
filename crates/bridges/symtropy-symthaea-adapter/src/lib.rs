@@ -67,6 +67,8 @@ pub enum PlannerFault {
     InvalidGain,
     NonFiniteObservation,
     ObservationEncodingFailed,
+    RequestedActuatorCountMismatch,
+    BridgeActuatorCountMismatch,
     BridgeReportedFailure,
     InvalidBridgeOutput,
 }
@@ -255,6 +257,9 @@ impl MotorPlanner for EmbodimentPlanner {
         if self.hv_dim == 0 {
             return self.reject(PlannerFault::InvalidHypervectorDimension, num_actuators);
         }
+        if self.bridge.num_actuators() != num_actuators {
+            return self.reject(PlannerFault::RequestedActuatorCountMismatch, num_actuators);
+        }
         if !gain.is_finite() || !(0.0..=1.0).contains(&gain) {
             return self.reject(PlannerFault::InvalidGain, num_actuators);
         }
@@ -275,6 +280,9 @@ impl MotorPlanner for EmbodimentPlanner {
 
         if !result.success {
             return self.reject(PlannerFault::BridgeReportedFailure, num_actuators);
+        }
+        if result.num_actuators != self.bridge.num_actuators() {
+            return self.reject(PlannerFault::BridgeActuatorCountMismatch, num_actuators);
         }
 
         // Validate every bridge value that can affect command authority or
@@ -437,7 +445,13 @@ mod tests {
     }
 
     fn make_planner() -> EmbodimentPlanner {
-        EmbodimentPlanner::new(Box::new(MockBridge::new()))
+        make_planner_with_actuators(21)
+    }
+
+    fn make_planner_with_actuators(num_actuators: usize) -> EmbodimentPlanner {
+        let mut bridge = MockBridge::new();
+        bridge.num_actuators = num_actuators;
+        EmbodimentPlanner::new(Box::new(bridge))
     }
 
     #[test]
@@ -516,7 +530,7 @@ mod tests {
     #[test]
     fn non_finite_observations_fail_closed_before_bridge_step() {
         for invalid in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-            let mut planner = make_planner();
+            let mut planner = make_planner_with_actuators(4);
             let commands = planner.plan(&[0.5, invalid], 0.5, 4);
             assert_eq!(commands, vec![0.0; 4]);
             assert_eq!(planner.last_fault(), Some(PlannerFault::NonFiniteObservation));
@@ -527,7 +541,7 @@ mod tests {
     #[test]
     fn invalid_gain_fails_closed() {
         for gain in [f64::NAN, f64::INFINITY, -0.01, 1.01] {
-            let mut planner = make_planner();
+            let mut planner = make_planner_with_actuators(4);
             let commands = planner.plan(&[0.5], gain, 4);
             assert_eq!(commands, vec![0.0; 4]);
             assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidGain));
@@ -589,7 +603,7 @@ mod tests {
 
     #[test]
     fn successful_result_clears_previous_fault() {
-        let mut planner = make_planner();
+        let mut planner = make_planner_with_actuators(4);
         let _ = planner.plan(&[f64::NAN], 0.5, 4);
         assert!(planner.last_fault().is_some());
         let commands = planner.plan(&[0.5], 0.5, 4);
