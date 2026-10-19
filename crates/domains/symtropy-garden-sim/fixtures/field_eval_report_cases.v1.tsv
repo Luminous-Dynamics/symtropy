@@ -4,7 +4,7 @@ primary_bounds_reconcile_without_float_arithmetic	CALCULATED	Confirms the exact 
 screened_count_must_reconcile_to_eligible_plus_exclusions	BLOCKED	Prevents candidate requests from silently disappearing between screening and eligibility
 mutually_exclusive_outcomes_must_account_for_all_eligible_requests	BLOCKED	Rejects an incomplete or overlapping cohort outcome partition
 known_nonacceptance_reasons_must_reconcile_exactly	BLOCKED	Prevents known nonacceptance outcomes from being omitted or double-counted
-completed_pending_decision_is_a_subset_not_an_extra_denominator_bucket	BLOCKED	Stops pending decisions from being counted a second time
+completed_pending_decision_must_be_a_partition_bucket_not_a_duplicate_field	REJECTED	Requires pending-farmer-decision to be its own exclusive outcome class instead of a duplicated side count
 known_late_or_disputed_outcomes_do_not_inflate_upper_bound	CALCULATED	Keeps known late/disputed cases out of the uncertainty upper bound
 blocked_report_does_not_emit_partial_classified_count_or_rate	BLOCKED	No partial aggregate is emitted for a structurally invalid report
 no_eligible_requests_is_not_assessable_not_zero_percent_success	NOT_ASSESSABLE	Empty eligible cohorts do not become a zero-percent outcome claim
