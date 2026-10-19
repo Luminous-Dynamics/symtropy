@@ -39,3 +39,10 @@ jobs:
           cargo run --quiet --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --json > /tmp/value-share-second.json
           cmp /tmp/value-share-first.json /tmp/value-share-second.json
           cmp /tmp/value-share-first.json tools/port-call-value-sharing-benchmark/fixtures/value-share-v0.1.expected.json
+      - name: Compare deterministic component cost ledger to frozen oracle
+        run: cargo run --quiet --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --cost-ledger-json > /tmp/cost-ledger-first.json
+      - name: Verify component ledger replay and exact receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --cost-ledger-json > /tmp/cost-ledger-second.json
+          cmp /tmp/cost-ledger-first.json /tmp/cost-ledger-second.json
+          cmp /tmp/cost-ledger-first.json tools/port-call-value-sharing-benchmark/fixtures/component-ledger-v0.1.expected.json

@@ -10,6 +10,8 @@
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
 
+pub mod component_ledger;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EvidenceTier {
     Synthetic,
