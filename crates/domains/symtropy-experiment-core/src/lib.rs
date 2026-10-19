@@ -886,6 +886,23 @@ mod tests {
     }
 
     #[test]
+    fn visual_projection_remains_available_when_runtime_inputs_are_missing() {
+        let mut graph = gear_graph();
+        let input = graph
+            .variables
+            .iter_mut()
+            .find(|variable| variable.id == "variable:n_driver")
+            .expect("driver tooth count");
+        input.value_decimal = None;
+
+        assert!(graph.evaluate().is_err());
+        let projection = graph.visual_math_projection().unwrap();
+        assert!(projection.variables.iter().any(|variable| {
+            variable.id == "variable:n_driver" && variable.value_decimal.is_none()
+        }));
+    }
+
+    #[test]
     fn visual_projection_rejects_invalid_graph_instead_of_rendering_it_as_valid() {
         let mut graph = gear_graph();
         graph.equations[0].output_variable_id = "variable:missing-output".to_owned();
