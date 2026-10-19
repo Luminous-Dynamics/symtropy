@@ -235,7 +235,10 @@ fn deterministic_edge_grid_preserves_dissipation_sign() {
         for &b in &states {
             for &conductance in &conductances {
                 let contribution = conductance * (a - b) * (a.ln() - b.ln());
-                assert!(contribution.is_finite(), "finite domain produced non-finite result");
+                assert!(
+                    contribution.is_finite(),
+                    "finite domain produced non-finite result"
+                );
                 assert!(
                     contribution >= -REL_TOL,
                     "negative dissipation for a={a}, b={b}, c={conductance}: {contribution}"
@@ -248,7 +251,8 @@ fn deterministic_edge_grid_preserves_dissipation_sign() {
                 }
                 if conductance == 0.0 || a == b {
                     assert_eq!(
-                        contribution, 0.0,
+                        contribution,
+                        0.0,
                         "zero-conductance or equal-state edge must dissipate zero"
                     );
                 }
