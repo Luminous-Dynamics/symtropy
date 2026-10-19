@@ -60,6 +60,8 @@ An attainment claim also names its source: canonical service-lifecycle evidence,
 
 A voluntary no-request reason can be one of expected unaffordability, no provider known, timing mismatch, task mismatch, inaccessible channel, trust/privacy concern, required inputs unavailable, existing trusted channel chosen, chose not to proceed, other, unknown, unanswered, or not asked. Missing reason metadata is counted separately; it is not interpreted as affordability, provider scarcity, or lack of need.
 
+A positive alternative-channel service report cannot coexist with a claim that the farmer made no request anywhere; such records block and require reconciliation. Where a farmer says no canonical request can be found but reports service through an existing channel, use `no_canonical_request_located` (or request-existence-unknown when appropriate) and keep the service source labelled as farmer-reported/authorized-relayed other-channel evidence.
+
 ## Denominators and outputs
 
 Report these separately:
