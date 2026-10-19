@@ -4,7 +4,7 @@
 
 A schedule can be resource-feasible without being physically executable. The existing exact ledger checks production, safety electricity, grid-import capacity and protected water. This suite adds a separate, independently testable execution envelope and compares a resource-only robust cost minimizer with a minimizer constrained by that envelope.
 
-This is a falsifiable reference contract—not an operational controller or a calibrated equipment model.
+This is a falsifiable reference contract—not an operational controller or a calibrated equipment model. It reuses the 64 deterministic forecast cases and disjoint seed splits, but constructs a separate five-world tariff/carbon-intensity envelope so physical executability can be isolated without the existing suite's tight renewable, grid-capacity and water shocks collapsing the robust schedule space to a single candidate. Resource-shock robustness remains tested by MINE-FLEX-ROBUST-001 and MINE-FLEX-RECOURSE-001.
 
 ## Coarse v0.1 execution envelope
 
@@ -22,7 +22,7 @@ These values are synthetic test settings. One process batch per period is not eq
 
 ## Robust-selection contract
 
-For each of the 64 deterministic generated cases:
+For each of the 64 deterministic generated forecast cases and its execution-specific tariff/carbon envelope:
 
 1. Enumerate schedules that satisfy the production target.
 2. Retain only schedules that satisfy the existing electrical and protected-water ledger in every world in the published uncertainty envelope.
