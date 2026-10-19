@@ -157,7 +157,8 @@
         "predict",
         "eval",
         "calib"
-      ]
+      ],
+      "description": "Local evaluation-partition annotation. The VIEWS API route has no eval/predict/calib path segment; this annotation is not authenticated by the response envelope."
     },
     "column_mapping": {
       "type": "object",
