@@ -54,11 +54,13 @@ jobs:
             and .evidence_class == "synthetic"
             and .candidate_count == 16
             and .verified_candidate_count == 16
-            and .hard_gate_eligible_count == 4
+            and .hard_gate_eligible_count == 2
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
-            and (.pareto_frontier_design_ids | length == 4)
+            and (.pareto_frontier_design_ids | length == 2)
             and (.candidates | all(.independent_oracle == "pass"))
+            and (.candidates | all(.metrics.scenario_recovery_elapsed_ticks | length == 5))
+            and (.candidates | all(.metrics.worst_case_recovery_elapsed_ticks >= 0))
             and (.candidates | all(.metrics.hard_gates_pass == (.metrics.end_of_life_plan_declared and (.metrics.worst_case_service_loss_ticks <= 12))))
           ' orbital-foundry-reference-receipt.json
           test "$(jq -r .source_commit orbital-foundry-reference-receipt.json)" = "$source_commit"
