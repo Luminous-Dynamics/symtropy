@@ -71,7 +71,9 @@ fn has_held_out_human_reference(trace: &Trace) -> bool {
 fn evidence_scope(reference: &Trace, prediction: &Trace) -> &'static str {
     if reference.run.source_kind.is_synthetic() || prediction.run.source_kind.is_synthetic() {
         "synthetic_software_validation_only"
-    } else if has_held_out_human_reference(reference) {
+    } else if reference.trace_id != prediction.trace_id
+        && has_held_out_human_reference(reference)
+    {
         "declared_held_out_human_reference"
     } else {
         "source_provenance_present_reference_not_held_out_human_verified"
@@ -269,6 +271,13 @@ impl Trace {
             .is_some_and(|split| !matches!(split, "train" | "validation" | "test" | "synthetic"))
         {
             return fail(format!("{source}: unknown run.split value"));
+        }
+        if !self.run.source_kind.is_synthetic()
+            && self.run.split.as_deref() == Some("synthetic")
+        {
+            return fail(format!(
+                "{source}: non-synthetic source_kind cannot use run.split = synthetic"
+            ));
         }
 
         if !self.run.source_kind.is_synthetic() {
