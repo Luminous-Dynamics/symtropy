@@ -14,15 +14,19 @@
 
 #[cfg(feature = "inspector")]
 pub mod inspector;
+pub mod material;
 #[cfg(feature = "field-observability")]
 pub mod field_observability;
-pub mod material;
 pub mod projection;
 pub mod sync;
 pub mod telemetry_ssbo;
 
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
+pub use material::{
+    NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
+    TelemetryMaterialPlugin, TelemetrySettings,
+};
 #[cfg(feature = "field-observability")]
 pub use field_observability::{
     CalibrationState, FieldObservabilityPlugin, FieldProvenance, FieldSourceKind,
@@ -31,10 +35,6 @@ pub use field_observability::{
     SpectralCompositeFrame, SpectralGlyph, SpectralSample, SpectralScalarQuantity, VectorFieldFrame,
     VectorFieldSample, VectorGlyph, VectorQuantity, extract_scalar_glyphs, extract_spectral_glyphs,
     extract_vector_glyphs, scalar_color,
-};
-pub use material::{
-    NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
-    TelemetryMaterialPlugin, TelemetrySettings,
 };
 pub use projection::{Projector, Projector2D, Projector3D, Projector4D};
 pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
