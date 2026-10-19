@@ -63,7 +63,7 @@
   "releases": [
     {
       "run_id": "fatalities003_2020_03_t01",
-      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_03_t01/cm/sb/sc_cm_sb_dich_main/eval?month=484",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_03_t01/cm/sb/sc_cm_sb_dich_main?month=484",
       "response_paths": [
         "views-api-response-synthetic-2020-03.json"
       ],
@@ -71,7 +71,7 @@
     },
     {
       "run_id": "fatalities003_2020_04_t01",
-      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_04_t01/cm/sb/sc_cm_sb_dich_main/eval?month=485",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_04_t01/cm/sb/sc_cm_sb_dich_main?month=485",
       "response_paths": [
         "views-api-response-synthetic-2020-04.json"
       ],
@@ -79,7 +79,7 @@
     },
     {
       "run_id": "fatalities003_2020_05_t01",
-      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_05_t01/cm/sb/sc_cm_sb_dich_main/eval?month=486",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_05_t01/cm/sb/sc_cm_sb_dich_main?month=486",
       "response_paths": [
         "views-api-response-synthetic-2020-05.json"
       ],
@@ -87,7 +87,7 @@
     },
     {
       "run_id": "fatalities003_2020_07_t01",
-      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_07_t01/cm/sb/sc_cm_sb_dich_main/eval?month=488",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_07_t01/cm/sb/sc_cm_sb_dich_main?month=488",
       "response_paths": [
         "views-api-response-synthetic-2020-07.json"
       ],
@@ -95,7 +95,7 @@
     },
     {
       "run_id": "fatalities003_2020_08_t01",
-      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_08_t01/cm/sb/sc_cm_sb_dich_main/eval?month=489",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_08_t01/cm/sb/sc_cm_sb_dich_main?month=489",
       "response_paths": [
         "views-api-response-synthetic-2020-08.json"
       ],
@@ -103,7 +103,7 @@
     },
     {
       "run_id": "fatalities003_2020_10_t01",
-      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_10_t01/cm/sb/sc_cm_sb_dich_main/eval?month=491",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_10_t01/cm/sb/sc_cm_sb_dich_main?month=491",
       "response_paths": [
         "views-api-response-synthetic-2020-10.json"
       ],
@@ -111,7 +111,7 @@
     },
     {
       "run_id": "fatalities003_2020_11_t01",
-      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_11_t01/cm/sb/sc_cm_sb_dich_main/eval?month=492",
+      "query_uri": "https://api.viewsforecasting.org/fatalities003_2020_11_t01/cm/sb/sc_cm_sb_dich_main?month=492",
       "response_paths": [
         "views-api-response-synthetic-2020-11.json"
       ],
