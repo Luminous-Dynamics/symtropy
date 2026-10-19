@@ -41,9 +41,15 @@ The mapping is deliberately conservative:
 - `SubsetConformant` becomes `PASS` only when the IFC4 token and explicit IDS 1.0 evidence are present, every applicable wall has exactly one `Preserved` observation, the count agrees, and there are no diagnostics.
 - `Blocked` becomes `FAIL` only when typed outcomes identify a required `Name` value as `Changed` or `Missing` under the supported profile.
 - Identity collisions, invalid identity, a schema/profile mismatch, unsupported IDS facets, `NotEvaluated`, and incomplete observation sets remain `UNRESOLVED`; diagnostic strings are not parsed to infer results.
-- The assembler records the SHA-256 of the exact adapter report bytes as its evidence record. It validates the adapter semantic digest's shape, but does not recalculate the producer's internal semantic digest.
+- The assembler records the SHA-256 of the exact adapter report bytes as its evidence record and independently reconstructs the typed adapter semantic digest before accepting the report.
 
 This binds the conformance claim to the deliverable IFC and IDS bytes rather than accidentally validating a different model. The source IFC remains separately hashed for exchange comparison.
+
+## Paired-preservation gate verification
+
+For `exchange_semantic_preservation`, the assembler requires an embedded, explicitly referenced `evidence_payload`; a bare gate cannot bypass validation. It checks source IFC SHA-256 and byte length, target IFC SHA-256 and byte length, IDS SHA-256, the exact supported profile, pinned tool version and policy/configuration hash, and the typed count/status/reason invariants.
+
+The delta payload now includes an explicit `profile_confirmed` bit. The assembler accepts `FAIL` only when the supported profile is confirmed and at least one definite changed/lost/dropped count is nonzero. A report with an unconfirmed profile remains `UNRESOLVED`, even when it records an apparent difference. `PASS` requires confirmed profile, complete comparison coverage, at least one compared object, no unresolved cases, and no definite losses.
 
 ## Schema and testing
 
