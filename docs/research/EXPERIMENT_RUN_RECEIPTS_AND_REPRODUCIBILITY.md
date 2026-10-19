@@ -8,23 +8,23 @@ Every emitted experiment result should carry a compact receipt that binds the ex
 
 ## Current implementation
 
-The `provenance` module uses SHA-256 and a versioned JSON receipt payload. The CLI emits receipts for arithmetic runs, graph inspection, one-variable sweeps, oscillator simulation, oscillator convergence studies, and model-validation/execution failures where a typed model is available. The `verify-receipt <result-envelope.json> <original-input.json>` command verifies the receipt's internal digest and checks the exact input-byte, serialized-model, and output-payload digests.
+The `provenance` module uses SHA-256 and a versioned JSON receipt payload. Schema `0.2.0` explicitly sets `canonicalization_algorithm` to `RFC8785-JCS` and uses JCS bytes for parsed-model, result-payload, and receipt-payload digests. The CLI emits receipts for arithmetic runs, graph inspection, one-variable sweeps, oscillator simulation, oscillator convergence studies, and model-validation/execution failures where a typed model is available. The `verify-receipt <result-envelope.json> <original-input.json>` command verifies the receipt's internal digest and checks the exact input-byte, serialized-model, and output-payload digests.
 
 The receipt contains:
 
-- Receipt schema version and explicit digest algorithm.
+- Receipt schema version, digest algorithm (`sha256`), and canonicalization algorithm (`RFC8785-JCS`).
 - Execution mode and package version.
 - Optional caller-reported source revision from `SYMTROPY_SOURCE_REVISION`.
 - Optional experiment ID and model schema version.
 - Unit registry version for arithmetic-graph paths; unset for the separate oscillator schema.
 - SHA-256 of the exact UTF-8 input file bytes read by the CLI.
-- SHA-256 of the parsed model's `serde_json` serialization.
-- SHA-256 of the result/error payload's `serde_json` serialization before CLI-envelope rendering.
+- SHA-256 of the parsed model's RFC 8785 JCS canonical JSON bytes.
+- SHA-256 of the result/error payload's RFC 8785 JCS canonical JSON bytes before CLI-envelope rendering.
 - Execution settings that may not be fully represented in the model, such as a sweep variable/value sequence or convergence time-step sequence.
 - Runtime OS, architecture, build profile and optional caller-reported `SYMTROPY_RUSTC_VERSION`.
-- A receipt digest over the serialized receipt payload, excluding the receipt-digest field itself.
+- A receipt digest over the RFC 8785 JCS canonical JSON bytes for the receipt payload, excluding the receipt-digest field itself.
 
-The exact input digest deliberately differs when source bytes differ (for example, formatting whitespace), even if the parsed-model digest stays the same. The parsed-model digest is an implementation-level serialization digest, **not** a cross-version canonical-JSON standard. Preserve both; do not collapse artifact identity and semantic model identity into a single field.
+The exact input digest deliberately differs when source bytes differ (for example, formatting whitespace), even if the parsed-model digest stays the same. Model, output, and receipt-payload digests use RFC 8785 JCS to enable independent implementations to reproduce the byte representation. JCS compatibility is a serialization contract, not proof that two application models have identical scientific semantics. Preserve raw artifact identity separately from parsed-model identity.
 
 The environment values supplied through `SYMTROPY_SOURCE_REVISION` and `SYMTROPY_RUSTC_VERSION` are claims made by the build/run environment. This prototype records them but does not independently authenticate them. No trusted timestamp, signature, build attestation, compiler binary digest, dependency-tree digest, hardware fingerprint, or process isolation guarantee is provided.
 
