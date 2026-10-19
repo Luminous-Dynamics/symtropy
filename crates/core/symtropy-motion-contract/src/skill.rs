@@ -160,7 +160,7 @@ pub struct MotionSkillStartEvidence {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MotionSkillExecutionFailure {
-    NoActiveExecution,
+    ExecutionNotStarted,
     MissingPreconditionEvidence,
     MissingPostconditionEvidence,
     PostconditionNotVerified,
@@ -195,11 +195,14 @@ pub enum MotionSkillOutcome {
 pub struct MotionSkillCompletionEvidence {
     /// Current simulation-clock time used to enforce the same expiry boundary as skill start.
     pub now_sec: f64,
-    /// True only if this evidence refers to an execution that was actually started.
+    /// Runtime attestation that this evidence refers to an execution that actually started.
     pub execution_started: bool,
     /// False when one or more required observations were unavailable or stale.
     pub observations_complete: bool,
+    /// IDs the runtime verified against measured state and each postcondition's tolerance.
+    /// This evaluator checks coverage; it does not itself solve physics or measure joints.
     pub verified_postconditions: Vec<String>,
+    /// IDs the runtime measured and found outside their declared tolerance.
     pub failed_postconditions: Vec<String>,
     pub interrupted: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -440,7 +443,7 @@ impl MotionSkillContract {
         }
         if !evidence.execution_started {
             return Ok(MotionSkillOutcome::ExecutionFailed {
-                reason: MotionSkillExecutionFailure::NoActiveExecution,
+                reason: MotionSkillExecutionFailure::ExecutionNotStarted,
             });
         }
 
@@ -831,11 +834,17 @@ mod tests {
         assert_eq!(
             skill.evaluate_completion(&evidence),
             Ok(MotionSkillOutcome::ExecutionFailed {
-                reason: MotionSkillExecutionFailure::NoActiveExecution
+                reason: MotionSkillExecutionFailure::ExecutionNotStarted
             })
         );
 
         evidence.execution_started = true;
+        evidence.now_sec = 0.5;
+        assert_eq!(
+            skill.evaluate_completion(&evidence),
+            Ok(MotionSkillOutcome::NotYetValid)
+        );
+
         evidence.now_sec = 5.0;
         assert_eq!(
             skill.evaluate_completion(&evidence),
