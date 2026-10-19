@@ -72,3 +72,22 @@ These are **software-contract targets**, not physical fleet targets. When measur
 - Powell & Johnson (2024), *Impact of EV Charging Station Reliability, Resilience, and Location on EV Adoption*, NREL/National Laboratory of the Rockies, NREL/TP-5R00-89896: https://doi.org/10.2172/2432350
 - Santos, Andersen, Marinelli & Pastorelli (2026), *Linking fleet operations to grid requirements: an early-stage framework for electric truck charging depot planning to minimize grid connection capacity*, 10th E-Mobility Power System Integration Symposium: https://orbit.dtu.dk/en/publications/linking-fleet-operations-to-grid-requirements-an-early-stage-fram/
 - South Africa, Department of Trade, Industry and Competition, *Electric Vehicles White Paper* (2023): https://www.thedtic.gov.za/wp-content/uploads/EV-White-Paper.pdf
+
+## Service-constrained grid-capacity frontier (v0.1 extension)
+
+Every scenario/policy pair now emits a discrete grid-capacity frontier with twenty sampled site-import budgets, from 5% to 100% of the scenario's declared base budget in 5-percentage-point increments. These are **sampled** points, not a continuous optimization proof.
+
+The output reports, per point:
+- installed/site import budget in kW and fraction of the declared base;
+- jobs completed by deadline and completion fraction;
+- battery energy delivered and unserved;
+- whether the site and individual port power limits were respected;
+- whether the point meets the explicit research service target.
+
+The initial target is at least 95% deadline completion and at least 95% requested battery-energy service, with all modeled power constraints respected. minimum_sampled_feasible_site_power_kw is the first sampled capacity that meets that target; it is not guaranteed to be the exact minimum feasible engineering connection. A result of null means none of the tested capacities meets the target. The resolution is visible as sample_spacing_percent: 5.
+
+Capacity events are treated as **absolute physical upper bounds**. When a candidate grid connection is smaller than an event's declared available budget, the event's budget is clipped to the candidate connection. Event budgets are not automatically multiplied by the grid sweep ratio. A separate scenario is needed when a contingency itself should scale with the proposed infrastructure.
+
+The frontier also reports service and feasibility monotonicity violations across increasing sampled capacities. We record these rather than assuming the results are monotone. A violation is a diagnostic requiring investigation, not something silently smoothed away.
+
+This experiment does not include stationary storage, tariff optimization, AC load flow, feeder voltage, reactive power, demand charges, battery degradation cost, or storage dispatch. Those additions should arrive as independently modeled dimensions with explicit energy/loss accounting. The current grid sweep is synthetic-input software evidence until a sourced duty cycle and physical site limits have been validated.
