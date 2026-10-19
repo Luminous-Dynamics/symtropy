@@ -393,7 +393,7 @@ fn independent_hard_violation_count(case: &Case, result: &CaseResult) -> usize {
         }
         let startup = command_on && (index == 0 || !case.commands_on[index - 1]);
         let expected_energy = (if expected_operating {
-            case.envelope.operating_energy_wh
+            case.envelope.operating_energy_wh_per_period
         } else {
             0
         })
