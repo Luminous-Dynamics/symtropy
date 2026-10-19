@@ -38,6 +38,17 @@ The exact-head workflow checks the control classifications, zero accepted hard v
 
 A passing suite proves only that this finite synthetic contract and its declared controls behave as specified. It does not prove real pump performance, hydraulic stability, the correctness of a field model, safety, cost or carbon improvements, or physical execution. The fixed flow/head/energy envelope is illustrative. Future work must introduce a calibrated pump curve, variable-speed behavior, response/ramp limits, telemetry freshness and provenance, observed sump measurements, uncertainty propagation, shared-resource allocation, and controller-in-the-loop testing before any site claim.
 
+## Research context
+
+This benchmark is motivated by existing methods, not a claim that asset dynamics or mine-pump scheduling are new:
+
+- Romero et al., *A comparison of the economic benefits of centralized and distributed model predictive control strategies for optimal and sub-optimal mine dewatering system designs*, Applied Thermal Engineering (2015), DOI: https://doi.org/10.1016/j.applthermaleng.2015.01.031. This is relevant prior work on mine dewatering scheduling and control architecture.
+- Wang et al., *Distributionally robust hybrid energy management in smart mining using process-coupled primal-dual mirror descent*, Scientific Reports (2025), https://www.nature.com/articles/s41598-025-11013-x. It studies process-coupled, uncertain multi-period mining energy management involving renewables, ventilation, dewatering and blasting.
+- Li et al., *Unlocking lithium mine load flexibility: A multi-granularity dispatch disaggregation strategy for isolated microgrid*, Energy 360 (2026), DOI: https://doi.org/10.1016/j.energy.2026.141872. It explicitly addresses heterogeneous response power, response time, lag and response rate when translating aggregate dispatch requests into asset setpoints.
+- NIST, *Digital Twins Workshops Summary Report* (NISTIR 8620, 2026), https://doi.org/10.6028/NIST.IR.8620, identifies interoperability, verification/validation, uncertainty quantification and cybersecurity as priorities for trustworthy industrial digital twins.
+
+The results from those studies are not directly comparable with this finite synthetic suite: the plant models, datasets, baselines, objectives and evaluation protocols differ. The appropriate differentiator here is a separately testable, source-bound feasibility receipt and explicit rejection of infeasible trajectories. A real performance comparison must use matched site data, declared operating envelopes, held-out time windows and then blind site-separated evaluation. No cross-paper cost, tracking or emissions advantage is asserted by this benchmark.
+
 ## Cross-project composition
 
 - Symtropy owns this dynamic asset and trajectory-validation experiment.
