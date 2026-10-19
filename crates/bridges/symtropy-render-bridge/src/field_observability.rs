@@ -219,6 +219,110 @@ impl ScalarFieldFrame {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpectralScalarQuantity {
+    ReflectanceFraction,
+    SpectralRadianceWPerSrM2Um,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SpectralChannelSpec {
+    pub band: SpectralBand,
+    pub display_range: ScalarRange,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpectralSample {
+    pub position_world_m: [f64; 3],
+    /// One sample per channel, in the frame's declared scalar quantity.
+    pub values: Vec<f64>,
+    pub standard_uncertainties: Vec<Option<f64>>,
+}
+
+/// Maps three chosen measured/simulated bands to display RGB channels.
+///
+/// This is an explicitly chosen false-colour/pseudocolour composite, not a
+/// colourimetric reconstruction of human vision or a complete hyperspectral product.
+#[derive(Resource, Clone, Debug, PartialEq)]
+pub struct SpectralCompositeFrame {
+    pub quantity: SpectralScalarQuantity,
+    pub channels: Vec<SpectralChannelSpec>,
+    pub samples: Vec<SpectralSample>,
+    /// Indices of input channels used for display red, green and blue.
+    pub rgb_channel_indices: [usize; 3],
+    pub provenance: FieldProvenance,
+}
+
+impl SpectralCompositeFrame {
+    pub fn validate(&self) -> Result<(), FieldValidationError> {
+        self.provenance.validate()?;
+        if self.channels.len() < 3 || self.channels.len() > 256 {
+            return Err(FieldValidationError::InvalidChannelCount);
+        }
+        if self.samples.is_empty() || self.samples.len() > MAX_FIELD_SAMPLES {
+            return Err(FieldValidationError::InvalidSampleCount);
+        }
+        let [red, green, blue] = self.rgb_channel_indices;
+        if red >= self.channels.len()
+            || green >= self.channels.len()
+            || blue >= self.channels.len()
+            || red == green
+            || red == blue
+            || green == blue
+        {
+            return Err(FieldValidationError::InvalidSpectralMapping);
+        }
+
+        for channel in &self.channels {
+            channel.band.validate()?;
+            channel.display_range.validate()?;
+            if channel.display_range.minimum < 0.0
+                || (self.quantity == SpectralScalarQuantity::ReflectanceFraction
+                    && channel.display_range.maximum > 1.0)
+            {
+                return Err(FieldValidationError::InvalidPhysicalValue);
+            }
+        }
+        for sample in &self.samples {
+            validate_position(sample.position_world_m)?;
+            if sample.values.len() != self.channels.len()
+                || sample.standard_uncertainties.len() != self.channels.len()
+            {
+                return Err(FieldValidationError::ChannelSampleCountMismatch);
+            }
+            for (channel, value) in self.channels.iter().zip(&sample.values) {
+                if !value.is_finite() || value.abs() > f64::from(f32::MAX) {
+                    return Err(FieldValidationError::InvalidSampleValue);
+                }
+                if *value < 0.0
+                    || (self.quantity == SpectralScalarQuantity::ReflectanceFraction
+                        && *value > 1.0)
+                    || (self.quantity == SpectralScalarQuantity::ReflectanceFraction
+                        && (channel.display_range.minimum < 0.0
+                            || channel.display_range.maximum > 1.0))
+                {
+                    return Err(FieldValidationError::InvalidPhysicalValue);
+                }
+            }
+            for uncertainty in &sample.standard_uncertainties {
+                if let Some(uncertainty) = uncertainty
+                    && (!uncertainty.is_finite() || *uncertainty < 0.0)
+                {
+                    return Err(FieldValidationError::InvalidUncertainty);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SpectralGlyph {
+    pub position: [f32; 3],
+    pub rgb: [f32; 3],
+    pub selected_values: [f64; 3],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VectorQuantity {
     ElectricFieldVoltsPerMeter,
     MagneticFluxDensityTesla,
@@ -310,6 +414,9 @@ pub enum FieldValidationError {
     InvalidPhysicalValue,
     InvalidUncertainty,
     InvalidGlyphScale,
+    InvalidChannelCount,
+    InvalidSpectralMapping,
+    ChannelSampleCountMismatch,
 }
 
 impl std::fmt::Display for FieldValidationError {
@@ -324,7 +431,9 @@ impl std::error::Error for FieldValidationError {}
 pub struct FieldVisualizationConfig {
     pub enabled: bool,
     pub show_scalar_fields: bool,
+    pub show_spectral_composite: bool,
     pub show_vector_fields: bool,
+    pub max_spectral_samples: usize,
     pub max_scalar_samples: usize,
     pub max_vector_samples: usize,
     pub scalar_cross_half_extent: f32,
@@ -337,7 +446,9 @@ impl Default for FieldVisualizationConfig {
         Self {
             enabled: true,
             show_scalar_fields: true,
+            show_spectral_composite: true,
             show_vector_fields: true,
+            max_spectral_samples: 4096,
             max_scalar_samples: 4096,
             max_vector_samples: 2048,
             scalar_cross_half_extent: 0.035,
@@ -426,6 +537,33 @@ pub fn extract_scalar_glyphs(
     Ok(glyphs)
 }
 
+pub fn extract_spectral_glyphs(
+    frame: &SpectralCompositeFrame,
+    max_samples: usize,
+) -> Result<Vec<SpectralGlyph>, FieldValidationError> {
+    frame.validate()?;
+    let cap = max_samples.min(MAX_RENDERED_SAMPLES);
+    let [red, green, blue] = frame.rgb_channel_indices;
+    let selected = [red, green, blue];
+    let mut glyphs = Vec::with_capacity(cap.min(frame.samples.len()));
+
+    for sample in frame.samples.iter().take(cap) {
+        let rgb = std::array::from_fn(|output_channel| {
+            let input_channel = selected[output_channel];
+            let spec = frame.channels[input_channel];
+            ((sample.values[input_channel] - spec.display_range.minimum)
+                / (spec.display_range.maximum - spec.display_range.minimum))
+                .clamp(0.0, 1.0) as f32
+        });
+        glyphs.push(SpectralGlyph {
+            position: to_f32_position(sample.position_world_m)?,
+            rgb,
+            selected_values: [sample.values[red], sample.values[green], sample.values[blue]],
+        });
+    }
+    Ok(glyphs)
+}
+
 pub fn extract_vector_glyphs(
     frame: &VectorFieldFrame,
     max_samples: usize,
@@ -466,6 +604,7 @@ pub fn extract_vector_glyphs(
 
 fn draw_field_views(
     scalar_frame: Option<Res<ScalarFieldFrame>>,
+    spectral_frame: Option<Res<SpectralCompositeFrame>>,
     vector_frame: Option<Res<VectorFieldFrame>>,
     config: Res<FieldVisualizationConfig>,
     mut gizmos: Gizmos,
@@ -486,6 +625,25 @@ fn draw_field_views(
             for glyph in glyphs {
                 let p = Vec3::from_array(glyph.position);
                 let color = Color::srgb(glyph.color[0], glyph.color[1], glyph.color[2]);
+                gizmos.line(p - Vec3::X * extent, p + Vec3::X * extent, color);
+                gizmos.line(p - Vec3::Y * extent, p + Vec3::Y * extent, color);
+                gizmos.line(p - Vec3::Z * extent, p + Vec3::Z * extent, color);
+            }
+        }
+    }
+    if config.show_spectral_composite
+        && let Some(frame) = spectral_frame.as_deref()
+        && let Ok(glyphs) = extract_spectral_glyphs(frame, config.max_spectral_samples)
+    {
+        let extent = if config.scalar_cross_half_extent.is_finite() {
+            config.scalar_cross_half_extent.clamp(0.0, 10.0)
+        } else {
+            0.0
+        };
+        if extent > 0.0 {
+            for glyph in glyphs {
+                let p = Vec3::from_array(glyph.position);
+                let color = Color::srgb(glyph.rgb[0], glyph.rgb[1], glyph.rgb[2]);
                 gizmos.line(p - Vec3::X * extent, p + Vec3::X * extent, color);
                 gizmos.line(p - Vec3::Y * extent, p + Vec3::Y * extent, color);
                 gizmos.line(p - Vec3::Z * extent, p + Vec3::Z * extent, color);
@@ -657,6 +815,69 @@ mod tests {
         assert_eq!(
             frame.validate(),
             Err(FieldValidationError::InvalidUncertainty)
+        );
+    }
+
+    fn spectral_composite_frame() -> SpectralCompositeFrame {
+        SpectralCompositeFrame {
+            quantity: SpectralScalarQuantity::ReflectanceFraction,
+            channels: vec![
+                SpectralChannelSpec {
+                    band: SpectralBand {
+                        center_wavelength_nm: 450.0,
+                        bandwidth_fwhm_nm: 20.0,
+                    },
+                    display_range: ScalarRange { minimum: 0.0, maximum: 1.0 },
+                },
+                SpectralChannelSpec {
+                    band: SpectralBand {
+                        center_wavelength_nm: 550.0,
+                        bandwidth_fwhm_nm: 20.0,
+                    },
+                    display_range: ScalarRange { minimum: 0.0, maximum: 1.0 },
+                },
+                SpectralChannelSpec {
+                    band: SpectralBand {
+                        center_wavelength_nm: 850.0,
+                        bandwidth_fwhm_nm: 30.0,
+                    },
+                    display_range: ScalarRange { minimum: 0.0, maximum: 1.0 },
+                },
+            ],
+            samples: vec![SpectralSample {
+                position_world_m: [2.0, 0.0, 1.0],
+                values: vec![0.2, 0.5, 0.9],
+                standard_uncertainties: vec![Some(0.01), Some(0.02), None],
+            }],
+            rgb_channel_indices: [2, 1, 0],
+            provenance: simulation_provenance(),
+        }
+    }
+
+    #[test]
+    fn spectral_composites_bind_band_units_and_explicit_rgb_channel_selection() {
+        let frame = spectral_composite_frame();
+        assert!(frame.validate().is_ok());
+        let glyphs = extract_spectral_glyphs(&frame, 8)
+            .expect("well-formed bands should produce a display composite");
+        assert_eq!(glyphs.len(), 1);
+        assert_eq!(glyphs[0].selected_values, [0.9, 0.5, 0.2]);
+        assert_eq!(glyphs[0].rgb, [0.9, 0.5, 0.2]);
+    }
+
+    #[test]
+    fn spectral_composite_rejects_invalid_indices_and_misaligned_channels() {
+        let mut frame = spectral_composite_frame();
+        frame.rgb_channel_indices = [0, 0, 2];
+        assert_eq!(
+            frame.validate(),
+            Err(FieldValidationError::InvalidSpectralMapping)
+        );
+        frame = spectral_composite_frame();
+        frame.samples[0].values.pop();
+        assert_eq!(
+            frame.validate(),
+            Err(FieldValidationError::ChannelSampleCountMismatch)
         );
     }
 
