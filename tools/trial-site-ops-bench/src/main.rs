@@ -115,13 +115,13 @@ fn scalar_number_or_null(value: &Value, at: &str) -> Check<Option<f64>> {
 
 fn candidate_projection(case: &Value) -> Value {
     let as_of = case.get("as_of").and_then(Value::as_str).unwrap_or("");
-    let projected_sites: Vec<Value> = case
+    let mut projected_sites: Vec<Value> = case
         .get("sites")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
         .map(|site| {
-            let evidence: Vec<Value> = site
+            let mut evidence: Vec<Value> = site
                 .get("evidence")
                 .and_then(Value::as_array)
                 .into_iter()
@@ -135,12 +135,24 @@ fn candidate_projection(case: &Value) -> Value {
                 })
                 .cloned()
                 .collect();
+            evidence.sort_by(|a, b| {
+                a.get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .cmp(b.get("name").and_then(Value::as_str).unwrap_or(""))
+            });
             json!({
                 "site_id": site.get("site_id"),
                 "evidence": evidence
             })
         })
         .collect();
+    projected_sites.sort_by(|a, b| {
+        a.get("site_id")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .cmp(b.get("site_id").and_then(Value::as_str).unwrap_or(""))
+    });
     json!({
         "case_id": case.get("case_id"),
         "as_of": case.get("as_of"),
@@ -148,6 +160,246 @@ fn candidate_projection(case: &Value) -> Value {
         "required_enrollment": case.get("required_enrollment"),
         "sites": projected_sites
     })
+}
+
+fn numeric_evidence(site: &Value, name: &str, verified_direct_only: bool) -> Option<f64> {
+    let records = site.get("evidence").and_then(Value::as_array)?;
+    let item = records.iter().find(|item| {
+        item.get("name").and_then(Value::as_str) == Some(name)
+    })?;
+    if item.get("prospective_admissible").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+    if verified_direct_only
+        && (item.get("status").and_then(Value::as_str) != Some("verified")
+            || item.get("source_kind").and_then(Value::as_str) != Some("direct_measurement"))
+    {
+        return None;
+    }
+    let value = item.get("value")?.as_f64()?;
+    value.is_finite().then_some(value)
+}
+
+fn b1_self_report_target(site: &Value) -> Option<f64> {
+    let records = site.get("evidence").and_then(Value::as_array)?;
+    let item = records.iter().find(|item| {
+        item.get("name").and_then(Value::as_str) == Some("site_projected_enrollment")
+    })?;
+    if item.get("status").and_then(Value::as_str) != Some("reported")
+        || item.get("source_kind").and_then(Value::as_str) != Some("site_self_report")
+        || item.get("prospective_admissible").and_then(Value::as_bool) != Some(true)
+    {
+        return None;
+    }
+    let value = item.get("value")?.as_f64()?;
+    value.is_finite().then_some(value)
+}
+
+fn b3_readiness_signal(site: &Value) -> (Option<f64>, Vec<String>, String) {
+    let staff = numeric_evidence(site, "current_staff_fte", true)
+        .or_else(|| numeric_evidence(site, "staff_fte", true));
+    let workflow = numeric_evidence(site, "workflow_coordination", true);
+    let followup = numeric_evidence(site, "followup_reliability", true);
+    let competing_load = numeric_evidence(site, "competing_trial_load", true);
+
+    if let (Some(staff), Some(workflow)) = (staff, workflow) {
+        let mut dimensions = vec!["staff_capacity".to_owned(), "workflow_coordination".to_owned()];
+        let mut score = staff * workflow;
+        if let Some(followup) = followup {
+            score *= followup;
+            dimensions.push("followup_reliability".to_owned());
+        }
+        if let Some(load) = competing_load {
+            if (0.0..=1.0).contains(&load) {
+                score *= 1.0 - load;
+                dimensions.push("competing_trial_load_penalty".to_owned());
+            }
+        }
+        return (
+            Some(score),
+            dimensions,
+            "heuristic_readiness_signal_not_enrollment_forecast".to_owned(),
+        );
+    }
+
+    if staff.is_none() {
+        if let (Some(workflow), Some(followup)) = (workflow, followup) {
+            return (
+                Some(workflow * followup),
+                vec![
+                    "workflow_coordination".to_owned(),
+                    "followup_reliability".to_owned(),
+                ],
+                "process_readiness_signal_access_dimensions_remain_separate".to_owned(),
+            );
+        }
+    }
+
+    let reason = if staff.is_none() {
+        "abstain_missing_current_verified_staff_capacity".to_owned()
+    } else if workflow.is_none() {
+        "abstain_missing_verified_workflow_coordination".to_owned()
+    } else {
+        "abstain_insufficient_verified_capability_dimensions".to_owned()
+    };
+    (None, Vec::new(), reason)
+}
+
+fn top_site(values: &BTreeMap<String, f64>) -> Option<String> {
+    values
+        .iter()
+        .max_by(|(id_a, score_a), (id_b, score_b)| {
+            score_a.total_cmp(score_b).then_with(|| id_b.cmp(id_a))
+        })
+        .map(|(id, _)| id.clone())
+}
+
+fn access_evidence(site: &Value, name: &str) -> Value {
+    site.get("evidence")
+        .and_then(Value::as_array)
+        .and_then(|records| {
+            records.iter().find(|item| {
+                item.get("name").and_then(Value::as_str) == Some(name)
+            })
+        })
+        .map(|item| {
+            json!({
+                "value": item.get("value"),
+                "unit": item.get("unit"),
+                "status": item.get("status"),
+                "source_kind": item.get("source_kind"),
+                "observed_at": item.get("observed_at")
+            })
+        })
+        .unwrap_or(Value::Null)
+}
+
+fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
+    // Both candidate methods receive this projection only. Oracle outcomes are read
+    // after predictions are formed and are used exclusively for evaluator metrics.
+    let input = candidate_projection(case);
+    let sites = array(field(&input, "sites", "candidate_projection")?, "candidate_projection.sites")?;
+    let mut b1_predictions = BTreeMap::<String, f64>::new();
+    let mut b3_scores = BTreeMap::<String, f64>::new();
+    let mut b1_rows = Vec::new();
+    let mut b3_rows = Vec::new();
+    let mut access_rows = Vec::new();
+
+    for site in sites {
+        let site_id = text_field(site, "site_id", "candidate_site")?.to_owned();
+        if let Some(prediction) = b1_self_report_target(site) {
+            b1_predictions.insert(site_id.clone(), prediction);
+            b1_rows.push(json!({
+                "site_id": site_id,
+                "projected_enrollment": prediction,
+                "signal_status": "self_reported_not_independently_verified"
+            }));
+        } else {
+            b1_rows.push(json!({
+                "site_id": site_id,
+                "projected_enrollment": null,
+                "signal_status": "abstain_missing_admissible_self_report"
+            }));
+        }
+
+        let (score, dimensions, disposition) = b3_readiness_signal(site);
+        if let Some(score) = score {
+            b3_scores.insert(site_id.clone(), score);
+            b3_rows.push(json!({
+                "site_id": site_id,
+                "readiness_signal": score,
+                "dimensions_used": dimensions,
+                "disposition": disposition
+            }));
+        } else {
+            b3_rows.push(json!({
+                "site_id": site_id,
+                "readiness_signal": null,
+                "dimensions_used": dimensions,
+                "disposition": disposition
+            }));
+        }
+
+        access_rows.push(json!({
+            "site_id": site_id,
+            "access_barrier_rate": access_evidence(site, "access_barrier_rate"),
+            "accessible_contact_channel_coverage": access_evidence(site, "accessible_contact_channel_coverage")
+        }));
+    }
+
+    let outcomes = array(
+        field(truth, "actual_outcomes_by_site", "oracle_truth")?,
+        "oracle_truth.actual_outcomes_by_site",
+    )?;
+    let mut actual_enrollment = BTreeMap::<String, f64>::new();
+    for outcome in outcomes {
+        let id = text_field(outcome, "site_id", "oracle_outcome")?.to_owned();
+        let enrolled = field(outcome, "enrolled", "oracle_outcome")?
+            .as_f64()
+            .ok_or_else(|| "oracle outcome enrolled value is not numeric".to_owned())?;
+        actual_enrollment.insert(id, enrolled);
+    }
+    let actual_top_site = top_site(&actual_enrollment);
+    let b1_top_site = top_site(&b1_predictions);
+    let b3_top_site = top_site(&b3_scores);
+
+    let absolute_errors: Vec<f64> = b1_predictions
+        .iter()
+        .filter_map(|(id, prediction)| {
+            actual_enrollment.get(id).map(|actual| (prediction - actual).abs())
+        })
+        .collect();
+    let b1_mae = if absolute_errors.is_empty() {
+        Value::Null
+    } else {
+        json!(absolute_errors.iter().sum::<f64>() / absolute_errors.len() as f64)
+    };
+    let b1_top_matches_actual = b1_top_site.as_ref().zip(actual_top_site.as_ref())
+        .map(|(predicted, actual)| predicted == actual);
+    let b3_top_matches_actual = b3_top_site.as_ref().zip(actual_top_site.as_ref())
+        .map(|(predicted, actual)| predicted == actual);
+    let b3_comparable_pair = b3_scores.len() == sites.len();
+    let b3_directional_concordance = if b3_comparable_pair && sites.len() == 2 {
+        let ids: Vec<String> = b3_scores.keys().cloned().collect();
+        let (a, b) = (&ids[0], &ids[1]);
+        let score_diff = b3_scores[a] - b3_scores[b];
+        let outcome_diff = actual_enrollment[a] - actual_enrollment[b];
+        Some(if score_diff == 0.0 || outcome_diff == 0.0 {
+            0.5
+        } else if score_diff.signum() == outcome_diff.signum() {
+            1.0
+        } else {
+            0.0
+        })
+    } else {
+        None
+    };
+
+    Ok(json!({
+        "candidate_input": "prospectively_admissible_evidence_at_or_before_as_of_only",
+        "B1_self_report_only": {
+            "site_signals": b1_rows,
+            "enrollment_mae_against_synthetic_truth": b1_mae,
+            "forecast_count": b1_predictions.len(),
+            "top_reported_target_site": b1_top_site,
+            "top_target_matches_top_synthetic_enrollment": b1_top_matches_actual
+        },
+        "B3_capability_aware_heuristic": {
+            "site_signals": b3_rows,
+            "rankable_site_count": b3_scores.len(),
+            "abstention_count": sites.len().saturating_sub(b3_scores.len()),
+            "top_readiness_signal_site": b3_top_site,
+            "top_readiness_site_matches_top_synthetic_enrollment": b3_top_matches_actual,
+            "pairwise_directional_concordance_with_synthetic_enrollment": b3_directional_concordance,
+            "claim_boundary": "uncalibrated readiness heuristic; not an enrollment forecast"
+        },
+        "separate_access_dimensions": access_rows,
+        "evaluation_metadata": {
+            "site_count": sites.len(),
+            "synthetic_actual_top_enrollment_site": actual_top_site,
+            "site_targets_and_readiness_scores_are_not_probabilities": true
+        }
+    }))
 }
 
 fn validate_site_truth_ids(ids: &[String], sites: &BTreeSet<String>, at: &str) -> Check<()> {
@@ -405,7 +657,8 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         "status": "pass",
         "site_count": sites.len(),
         "required_enrollment": required_enrollment,
-        "candidate_projection_sha256": format!("{:x}", Sha256::digest(serde_json::to_vec(&candidate_projection(case)).unwrap_or_default()))
+        "candidate_projection_sha256": format!("{:x}", Sha256::digest(serde_json::to_vec(&candidate_projection(case)).unwrap_or_default())),
+        "reference_comparison": evaluate_reference_methods(case, truth)?
     }))
 }
 
