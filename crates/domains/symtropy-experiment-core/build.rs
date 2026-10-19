@@ -27,7 +27,10 @@ fn emit_value(name: &str, value: Option<String>) {
 }
 
 fn source_revision() -> Option<String> {
-    let value = env::var("SYMTROPY_SOURCE_REVISION").ok()?;
+    let value = env::var("SYMTROPY_SOURCE_REVISION")
+        .or_else(|_| env::var("GITHUB_SHA"))
+        .or_else(|_| env::var("CI_COMMIT_SHA"))
+        .ok()?;
     let value = value.trim();
     // Accept a full or abbreviated hexadecimal Git object ID, not arbitrary free-form text.
     if !(7..=64).contains(&value.len()) || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
@@ -49,6 +52,8 @@ fn rustc_version() -> Option<String> {
 
 fn main() {
     println!("cargo:rerun-if-env-changed=SYMTROPY_SOURCE_REVISION");
+    println!("cargo:rerun-if-env-changed=GITHUB_SHA");
+    println!("cargo:rerun-if-env-changed=CI_COMMIT_SHA");
     println!("cargo:rerun-if-env-changed=RUSTC");
 
     let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("Cargo sets CARGO_MANIFEST_DIR"));
