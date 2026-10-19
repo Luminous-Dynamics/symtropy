@@ -109,3 +109,46 @@ Every result report should include:
 - Verdict: pass / fail / inconclusive / not run.
 
 “Not run,” “queued,” and “inconclusive” are not equivalent to “pass.”
+
+## 8. Validation ladder: earn stronger claims incrementally
+
+Do not treat a green unit test, a replicated toy model, a match to one aggregate statistic, and an empirically useful intervention forecast as equivalent evidence. Use an explicit validity ladder:
+
+| Tier | Evidence required | Permitted claim |
+|---|---|---|
+| V0 — implementation invariants | Deterministic replay, feasibility/bounds, resource-accounting checks, failure injection | The implementation meets its declared software contract |
+| V1 — canonical replication | Independent reproduction of at least two named reference models, including published parameter settings and multiple output summaries | The implementation can reproduce those specific reference mechanisms |
+| V2 — mechanism discrimination | Paired intervention arms, ablation, negative controls, sensitivity checks, and uncertainty across seeds | The tested mechanism changes the declared synthetic or experimental outcomes under stated conditions |
+| V3 — empirical distributional validation | Calibrated train/validation split and untouched temporal or scenario holdout; distributional outcomes and subgroup errors reported | The model predicts the tested empirical target within the stated population and horizon |
+| V4 — prospective intervention validation | Pre-registered forecasts committed before independently observed intervention outcomes, credible comparator, post-hoc analysis disclosed | Evidence of predictive utility for the specific intervention class and context that was tested |
+
+A model must not skip from V0/V1 directly to policy recommendations. Passing a tier is not a universal certificate: each claim needs a target population, mechanism, time horizon, intended use, and documented validity boundary.
+
+## 9. Distribution-first evaluation
+
+Average outcomes are not enough. Empirical agent-based cooperation research found that a parsimonious deterministic model could predict average public-goods contributions while failing badly on the full contribution distribution; a stochastic model was needed to represent bimodality. Therefore, wherever micro-level distributions are available and their use is ethical, report the distribution—not just its mean.
+
+Recommended metrics by target:
+- Binary event probabilities: Brier score and log loss.
+- Continuous/distributional outcomes: CRPS or a predeclared equivalent proper score, quantile coverage and interval width.
+- Population outcomes: mean, variance, quantiles, tail probabilities, and a declared distribution-distance metric when appropriate.
+- Network dynamics: time-respecting link formation/dissolution predictions plus degree, reciprocity, clustering, and component summaries.
+- Unequal impacts: subgroup calibration and worst-group errors, alongside aggregate scores where lawful and adequately powered.
+
+Do not tune to each metric independently and then present the best result only. Predeclare one primary outcome, report the complete metric family, and separate confirmatory from exploratory analysis.
+
+## 10. Current research implications
+
+Recent work makes validation itself a central challenge for LLM-agent social simulation. An ICML 2026 position paper calls for shared benchmarks, open data, and reproducible evaluation rather than further expansion without common validation practice. A 2025/2026 review similarly warns that face validity and weakly coupled outcome metrics do not establish operational validity. A 2026 ODD-based replication study reports that LLM-generated ABMs can be executable yet still require statistical validation to establish replication. This project should compete by making these requirements executable, not by assuming Rust or an LLM policy is inherently more correct.
+
+- Puelma Touzel et al. (ICML 2026), *Position: Time to Close the Validation Gap in LLM Social Simulations*: https://proceedings.mlr.press/v306/puelma-touzel26a.html
+- Larooij & Törnberg (published 2025; volume year 2026), *Validation is the central challenge for generative social simulation*: https://doi.org/10.1007/s10462-025-11412-6
+- *Can large language models implement agent-based models? An ODD-based replication study* (Ecological Modelling 517, July 2026): https://doi.org/10.1016/j.ecolmodel.2026.111624
+- Grimm et al. (2025), ODD and NetLogo replication exercise; 15 of 18 selected models were replicated: https://doi.org/10.1016/j.ecolmodel.2024.110967
+- Wunder, Suri & Watts (2013), *Empirical agent based models of cooperation in public goods games*: https://www.microsoft.com/en-us/research/publication/empirical-agent-based-models-of-cooperation-in-public-goods-games/
+
+## 11. Interpreting the prototype's paired bootstrap
+
+The current runner compares each treatment to the no-commitments baseline on the same declared synthetic seed list, then uses a deterministic paired bootstrap to estimate a 95% interval for relative reduction in simulated unmet need. Positive values mean a lower simulated loss.
+
+This interval quantifies variation across this prototype's stochastic runs under its assumptions. It is **not** a confidence interval for effects in real people, not a causal estimate from a human experiment, and not evidence of empirical prediction. The experiment remains below V3 until fitted and evaluated against permitted external observations; it remains below V4 until predictions are committed prospectively before intervention outcomes are observed.
