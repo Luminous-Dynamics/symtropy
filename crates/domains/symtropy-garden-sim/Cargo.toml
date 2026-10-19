@@ -26,6 +26,10 @@ path = "src/bin/verify_service_access_manifest.rs"
 name = "verify-field-eval-report"
 path = "src/bin/verify_field_eval_report.rs"
 
+[[bin]]
+name = "verify-field-eval-report-manifest"
+path = "src/bin/verify_field_eval_report_manifest.rs"
+
 [[bench]]
 name = "portfolio_frontier"
 harness = false
