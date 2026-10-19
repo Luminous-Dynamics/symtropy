@@ -818,8 +818,7 @@ mod tests {
 
     #[test]
     fn pareto_frontier_preserves_tradeoffs_and_only_removes_dominated_options() {
-        let report =
-            compute_owner_preference_frontier(&preference_comparison()).unwrap();
+        let report = compute_owner_preference_frontier(&preference_comparison()).unwrap();
         assert_eq!(
             report.frontier_candidate_ids,
             vec![
@@ -828,7 +827,10 @@ mod tests {
                 "candidate:d".to_owned()
             ]
         );
-        assert_eq!(report.dominated_candidate_ids, vec!["candidate:c".to_owned()]);
+        assert_eq!(
+            report.dominated_candidate_ids,
+            vec!["candidate:c".to_owned()]
+        );
         assert!(report.pairwise_comparisons.iter().any(|pair| {
             pair.left_candidate_id == "candidate:a"
                 && pair.right_candidate_id == "candidate:b"
@@ -838,8 +840,7 @@ mod tests {
 
     #[test]
     fn missing_preference_ratings_make_alternatives_incomparable_not_imputed() {
-        let report =
-            compute_owner_preference_frontier(&preference_comparison()).unwrap();
+        let report = compute_owner_preference_frontier(&preference_comparison()).unwrap();
         assert!(report.pairwise_comparisons.iter().any(|pair| {
             pair.left_candidate_id == "candidate:a"
                 && pair.right_candidate_id == "candidate:d"
@@ -855,7 +856,11 @@ mod tests {
         comparison.alternatives[0].evaluations[0].evidence_ref = None;
         comparison.alternatives[0].disposition = AlternativeDisposition::OpenForExploration;
         let report = compute_owner_preference_frontier(&comparison).unwrap();
-        assert!(!report.frontier_candidate_ids.contains(&"candidate:a".to_owned()));
+        assert!(
+            !report
+                .frontier_candidate_ids
+                .contains(&"candidate:a".to_owned())
+        );
         assert!(report.excluded_candidates.iter().any(|item| {
             item.candidate_id == "candidate:a"
                 && matches!(
@@ -870,12 +875,14 @@ mod tests {
     fn preference_ratings_cannot_be_attached_to_binding_requirements() {
         let mut comparison = preference_comparison();
         comparison.alternatives[0].evaluations[0].preference_rating = Some(90);
-        assert!(validate_design_comparison_snapshot(&comparison)
-            .unwrap_err()
-            .contains(&DesignIntentIssue::PreferenceRatingOnNonPreference {
-                candidate_id: "candidate:a".into(),
-                intent_id: "rule:egress".into(),
-            }));
+        assert!(
+            validate_design_comparison_snapshot(&comparison)
+                .unwrap_err()
+                .contains(&DesignIntentIssue::PreferenceRatingOnNonPreference {
+                    candidate_id: "candidate:a".into(),
+                    intent_id: "rule:egress".into(),
+                })
+        );
     }
 
     #[test]
