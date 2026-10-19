@@ -59,6 +59,56 @@ impl SourceKind {
     }
 }
 
+fn has_held_out_human_reference(trace: &Trace) -> bool {
+    trace.run.source_kind == SourceKind::OriginalConsentCapture
+        && trace.run.split.as_deref() == Some("test")
+        && trace.run.dataset_id.as_deref().is_some_and(|value| !value.trim().is_empty())
+        && trace.run.dataset_version.as_deref().is_some_and(|value| !value.trim().is_empty())
+        && trace.run.actor_pseudonym.as_deref().is_some_and(|value| !value.trim().is_empty())
+        && trace.run.recording_id.as_deref().is_some_and(|value| !value.trim().is_empty())
+}
+
+fn evidence_scope(reference: &Trace, prediction: &Trace) -> &'static str {
+    if reference.run.source_kind.is_synthetic() || prediction.run.source_kind.is_synthetic() {
+        "synthetic_software_validation_only"
+    } else if has_held_out_human_reference(reference) {
+        "held_out_human_reference"
+    } else {
+        "source_provenance_present_reference_not_held_out_human_verified"
+    }
+}
+
+fn validate_human_reference_claim(
+    reference: &Trace,
+    prediction: &Trace,
+) -> Result<(), BenchError> {
+    if reference.trace_id == prediction.trace_id {
+        return fail("human-reference claims require distinct reference and prediction trace IDs");
+    }
+    if reference.run.source_kind != SourceKind::OriginalConsentCapture {
+        return fail("human-reference claims require an original consented human-capture reference");
+    }
+    if reference.run.split.as_deref() != Some("test") {
+        return fail("human-reference claims require reference.run.split = test");
+    }
+    for (field, value) in [
+        ("dataset_id", reference.run.dataset_id.as_deref()),
+        ("dataset_version", reference.run.dataset_version.as_deref()),
+        ("actor_pseudonym", reference.run.actor_pseudonym.as_deref()),
+        ("recording_id", reference.run.recording_id.as_deref()),
+    ] {
+        if !value.is_some_and(|value| !value.trim().is_empty()) {
+            return fail(format!(
+                "human-reference claims require non-empty reference.run.{field}"
+            ));
+        }
+    }
+    if prediction.run.source_kind.is_synthetic() {
+        return fail("human-reference claims cannot use a synthetic prediction trace");
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RunMetadata {
