@@ -105,6 +105,38 @@ For every import/export, produce a machine-readable report:
 
 Do not claim “lossless conversion” based on parsing success. Compare semantics and outputs on reference cases.
 
+## 3.1 From one-off runs to design of experiments
+
+The first executable core now supports parameter/input overrides scoped to a single run and a deterministic one-variable sweep. The synthetic gear fixture can evaluate driver tooth counts 47, 48 and 49 without mutating the canonical graph.
+
+This is the beginning of an **experiment exploration loop**, not yet a full uncertainty quantification package:
+1. Sweep selected inputs over declared values or ranges.
+2. Plot outputs and finite differences against the varied inputs.
+3. Flag regions of strong response, nonlinear change, discontinuities or failed runs.
+4. Propagate declared uncertainty only after its distribution and dependence structure are specified.
+5. For expensive models, later choose runs that best distinguish competing hypotheses or reduce uncertainty in a named quantity of interest.
+
+Keep these outputs distinct:
+- **Scenario sweep:** response to a declared list of input values.
+- **Local sensitivity:** an explicitly defined derivative estimate around a point.
+- **Global sensitivity:** a method such as Sobol variance indices, with its assumptions, sampling design and convergence checks.
+- **Uncertainty propagation:** a distribution of possible outputs conditional on the specified input uncertainty.
+- **Experimental design:** a proposed physical measurement selected by its expected discrimination/value and cost.
+
+A sweep is not a probability distribution. A finite difference is not a global sensitivity index. A well-resolved sensitivity calculation does not prove a model is correct.
+
+## 3.2 Verification, validation and uncertainty must be separate gates
+
+NASA-STD-7009B defines practices for modeling and simulation, including acceptance criteria and credibility assessment across a model's life cycle. NASA's verification guidance distinguishes verifying implementation/numerical solution from validating a model against experimental evidence. Symtropy should encode these as distinct statuses and artifacts rather than one unqualified “validated” flag. (References: https://standards.nasa.gov/standard/NASA/NASA-STD-7009; https://www.grc.nasa.gov/www/wind/valid/tutorial/verassess.html; https://www.nasa.gov/reference/appendix-i-verification-and-validation-plan-outline/)
+
+- **Software verification:** did the implementation match the declared model, and are numerical errors bounded?
+- **Solution verification:** is this particular numerical result sufficiently converged for its intended use?
+- **Validation:** does the model agree with independent data for a specified use and domain?
+- **Uncertainty quantification:** how do input, measurement, numerical and model-form uncertainties affect the quantities of interest?
+- **Credibility/acceptance:** is the evidence sufficient for the stated decision, at a declared risk and use context?
+
+Every run should include an intended-use statement, acceptance metric/threshold, target evidence, data split or independence note, limitations, solver/environment identity and visible failed checks. No aggregate score may hide a failed safety-critical validation gate.
+
 ## 4. Benchmark suite to build
 
 Benchmarks should be reported as a vector; a good render must not compensate for wrong science.
@@ -122,7 +154,7 @@ Benchmarks should be reported as a vector; a good render must not compensate for
 | Visual usefulness | Pilot study against text/equation-only controls; record correctness, time, misconception types, accessibility and cognitive load. | The proposed 10% speed-up/non-inferiority target on powered, preregistered expert tasks. |
 | Uncertainty handling | Missing inputs and unverified assumptions are surfaced; values are not silently filled in. | Calibrated predictive intervals, sensitivity analysis, alternatives and experiment-design utility. |
 
-The 10^-12 rad goal is specific to the simple arithmetic fixture and reference interpreter; it is not a universal tolerance for real physical simulation. Numerical thresholds must be justified for each model family.
+The 10^-12 rad goal is specific to the simple arithmetic fixture and reference interpreter; it is not a universal tolerance for real physical simulation. Numerical thresholds must be justified for each model family. The one-variable sweep now has a known finite-difference check against the toy model's analytic slope, -theta_in/N_driven = -1/24 rad per added driver tooth. This is a benchmark for that synthetic graph only.
 
 ## 5. Recommended implementation sequence
 
