@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:schema:symtropy-review-model-context:1.0.0",
+  "title": "Symtropy review model context v1",
+  "description": "Explicit provenance describing what a virtual architectural review model represents; this metadata does not prove model accuracy or compliance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_kind",
+    "source_format",
+    "fidelity",
+    "source_linear_unit",
+    "coordinate_frame_id",
+    "known_limitations"
+  ],
+  "properties": {
+    "source_kind": {
+      "type": "string",
+      "enum": [
+        "SyntheticFixture",
+        "DesignExchange",
+        "NativeScene",
+        "SurveyedCapture"
+      ]
+    },
+    "source_format": {
+      "type": "string",
+      "enum": [
+        "Ifc",
+        "Gltf",
+        "Glb",
+        "SymtropyScene",
+        "BevyScene",
+        "Other"
+      ]
+    },
+    "fidelity": {
+      "type": "string",
+      "enum": [
+        "SyntheticGeometry",
+        "VisualApproximation",
+        "DesignGeometry",
+        "SurveyedAsBuiltGeometry"
+      ]
+    },
+    "source_linear_unit": {
+      "type": "string",
+      "enum": [
+        "Metre",
+        "Millimetre",
+        "Foot",
+        "Inch"
+      ]
+    },
+    "coordinate_frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "known_limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
