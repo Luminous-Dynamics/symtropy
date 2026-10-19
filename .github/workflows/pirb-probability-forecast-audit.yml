@@ -131,30 +131,8 @@ jobs:
           source_commit="$(git rev-parse HEAD)"
           input="docs/fixtures/pirb-probability-forecast-v0.1.json"
           alternate="docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json"
-          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-outcome-vintage-sensitivity -- \\
-            --input "$input" \\
-            --input "$alternate" \\
-            --source-commit "$source_commit" \\
-            --rustc-version "$(rustc --version)" \\
-            --cargo-version "$(cargo --version)" > pirb-outcome-vintage-sensitivity-receipt.json
-
-          jq -e \\
-            --arg source_commit "$source_commit" \\
-            '
-              .result == "pass"
-              and .evaluator == "PIRB outcome-vintage sensitivity comparison"
-              and .source_commit == $source_commit
-              and .source_commit_sha_valid == true
-              and .same_forecast_inventory_verified == true
-              and .forecast_record_count == 18
-              and .vintage_count == 2
-              and .vintages[0].changed_test_labels_vs_reference == 0
-              and .vintages[1].changed_test_labels_vs_reference == 1
-              and .vintages[0].test_event_count == 2
-              and .vintages[1].test_event_count == 1
-              and .causal_effect_estimated == false
-              and .live_decision_authority == false
-            ' pirb-outcome-vintage-sensitivity-receipt.json
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-outcome-vintage-sensitivity -- --input "$input" --input "$alternate" --source-commit "$source_commit" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)" > pirb-outcome-vintage-sensitivity-receipt.json
+          jq -e --arg source_commit "$source_commit" '.result == "pass" and .evaluator == "PIRB outcome-vintage sensitivity comparison" and .source_commit == $source_commit and .source_commit_sha_valid == true and .same_forecast_inventory_verified == true and .forecast_record_count == 18 and .vintage_count == 2 and .vintages[0].changed_test_labels_vs_reference == 0 and .vintages[1].changed_test_labels_vs_reference == 1 and .vintages[0].test_event_count == 2 and .vintages[1].test_event_count == 1 and .causal_effect_estimated == false and .live_decision_authority == false' pirb-outcome-vintage-sensitivity-receipt.json
 
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
