@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use std::{env, fs, process};
-use symtropy_experiment_core::ExperimentGraph;
+use symtropy_experiment_core::{units::UNIT_REGISTRY_VERSION, ExperimentGraph};
 
 fn usage() -> ! {
     eprintln!(
@@ -62,6 +62,7 @@ fn run_once(path: &str) {
                 "executed": true,
                 "kind": "acyclic_arithmetic_reference_interpreter",
                 "schema_version": graph.schema_version,
+                "unit_registry_version": UNIT_REGISTRY_VERSION,
                 "experiment_id": graph.id,
                 "values": values,
                 "limitations": graph.limitations,
@@ -100,6 +101,7 @@ fn run_inspect(path: &str) {
         serde_json::json!({
             "valid": true,
             "kind": "renderer_neutral_visual_math_projection",
+            "unit_registry_version": UNIT_REGISTRY_VERSION,
             "projection": projection,
             "baseline_evaluation": baseline_evaluation,
             "interpretation_warning": "Formula labels are derived from the executable operator graph. The projection preserves semantic IDs and evidence references but does not prove that equations are scientifically or historically correct. An incomplete model can still be inspected when its baseline evaluation fails."
@@ -123,6 +125,7 @@ fn run_sweep(path: &str, variable_id: &str, values_csv: &str) {
                 "executed": true,
                 "kind": "deterministic_one_parameter_sweep",
                 "schema_version": graph.schema_version,
+                "unit_registry_version": UNIT_REGISTRY_VERSION,
                 "experiment_id": graph.id,
                 "swept_variable_id": variable_id,
                 "point_count": points.len(),
