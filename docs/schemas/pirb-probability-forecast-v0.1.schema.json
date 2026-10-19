@@ -13,7 +13,8 @@
     "privacy",
     "temporal_split",
     "records",
-    "lead_months"
+    "lead_months",
+    "resampling"
   ],
   "properties": {
     "schema_version": {
@@ -203,6 +204,64 @@
       "minimum": 1,
       "maximum": 36,
       "description": "One forecast horizon per dataset. Evaluate other leads using a separate dataset and receipt."
+    },
+    "resampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spatial_blocking_method_reference",
+        "spatial_block_map_sha256",
+        "temporal_block_length_months",
+        "minimum_spatial_blocks",
+        "minimum_temporal_blocks",
+        "replicates",
+        "minimum_valid_replicates",
+        "seed",
+        "confidence_level"
+      ],
+      "properties": {
+        "spatial_blocking_method_reference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Governed method defining which units share dependence blocks; opaque block IDs are not coordinates."
+        },
+        "spatial_block_map_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "temporal_block_length_months": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "minimum_spatial_blocks": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "minimum_temporal_blocks": {
+          "type": "integer",
+          "minimum": 6
+        },
+        "replicates": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 10000
+        },
+        "minimum_valid_replicates": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidence_level": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "exclusiveMaximum": 1
+        }
+      }
     }
   },
   "$defs": {
@@ -219,7 +278,8 @@
         "lead_months",
         "probability",
         "outcome",
-        "outcome_available_month"
+        "outcome_available_month",
+        "spatial_block_id"
       ],
       "properties": {
         "forecast_id": {
@@ -270,6 +330,11 @@
             "null"
           ],
           "minimum": 1
+        },
+        "spatial_block_id": {
+          "type": "string",
+          "pattern": "^block-[A-Za-z0-9_-]+$",
+          "description": "Opaque, reviewed spatial dependence cluster ID; never a precise geographic coordinate."
         }
       }
     }
