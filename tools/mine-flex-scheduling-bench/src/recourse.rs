@@ -734,9 +734,13 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
     });
     let in_envelope_completion_control =
         completed_adaptive_worlds_within_envelope == in_envelope_world_count;
+    // This corpus intentionally contains a no-completion shock, so the fail-closed
+    // branch must remain exercised rather than passing vacuously.
+    let out_of_envelope_abort_control = adaptive_aborts_outside_envelope > 0;
     let result = if hard_constraint_violations == 0
         && nonanticipativity_violations == 0
         && in_envelope_completion_control
+        && out_of_envelope_abort_control
         && all_worlds_accounted
         && summaries_consistent
     {
@@ -899,6 +903,7 @@ mod tests {
             512,
             first.validation_world_count + first.held_out_world_count
         );
+        assert!(first.adaptive_aborts_outside_envelope > 0);
         assert!(first.adaptive_aborts_outside_envelope <= 192);
     }
 }
