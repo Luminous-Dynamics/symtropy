@@ -175,9 +175,7 @@ pub fn replay_mission_trace(
             event_id: event.id.clone(),
             at_ms: event.at_ms,
             current_graph_version: current_graph_version.clone(),
-            plan_graph_version: local_plan
-                .as_ref()
-                .map(|plan| plan.graph_version.clone()),
+            plan_graph_version: local_plan.as_ref().map(|plan| plan.graph_version.clone()),
             report,
         });
     }
@@ -502,8 +500,7 @@ mod tests {
                     100,
                     MissionTraceEventKind::CommunicationsChanged(*comms),
                 ));
-                let report =
-                    replay_mission_trace(route, &events, 20).expect("valid matrix trace");
+                let report = replay_mission_trace(route, &events, 20).expect("valid matrix trace");
                 let last = report.samples.last().expect("one sample per event");
                 assert_eq!(last.report.route_disposition, route);
                 assert_eq!(last.report.coordination_status, *expected_coordination);
@@ -549,8 +546,12 @@ mod tests {
             MissionTraceEventKind::RouteGraphVersionChanged(" ".to_owned()),
         )];
         assert!(
-            replay_mission_trace(RouteSearchDisposition::SearchLimitExceeded, &graph_event, 10)
-                .is_err()
+            replay_mission_trace(
+                RouteSearchDisposition::SearchLimitExceeded,
+                &graph_event,
+                10
+            )
+            .is_err()
         );
 
         let plan_event = vec![event(
