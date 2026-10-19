@@ -457,6 +457,227 @@ pub fn validate_design_comparison_snapshot(
     }
 }
 
+/// Pairwise result. Preferences are independent axes; ratings are compared
+/// by Pareto dominance only, never added or weighted into one total.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PreferencePairRelation {
+    LeftDominates,
+    RightDominates,
+    Equivalent,
+    Tradeoff,
+    IncomparableMissingRatings,
+    NotComparable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreferencePairComparison {
+    pub left_candidate_id: String,
+    pub right_candidate_id: String,
+    pub relation: PreferencePairRelation,
+    pub left_better_on: Vec<String>,
+    pub right_better_on: Vec<String>,
+    pub missing_ratings_on: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FrontierExclusionReason {
+    OwnerDeclined,
+    ExplicitlyBlocked,
+    HardConstraintFailed { intent_id: String },
+    HardConstraintUnresolved { intent_id: String },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FrontierExclusion {
+    pub candidate_id: String,
+    pub reason: FrontierExclusionReason,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreferenceFrontierReport {
+    /// Candidates with no known failed/unresolved hard constraint.
+    /// This is comparison eligibility, not legal or professional approval.
+    pub eligible_candidate_ids: Vec<String>,
+    /// Eligible alternatives not Pareto-dominated on owner-entered ratings.
+    pub frontier_candidate_ids: Vec<String>,
+    pub dominated_candidate_ids: Vec<String>,
+    pub excluded_candidates: Vec<FrontierExclusion>,
+    pub pairwise_comparisons: Vec<PreferencePairComparison>,
+}
+
+/// Compute a transparent Pareto frontier from explicit owner preference ratings.
+/// Missing ratings are never imputed; a pair with asymmetric missing ratings is
+/// incomparable. Failed/unresolved binding or owner-hard constraints stay visible
+/// as exclusions rather than being traded against aesthetic preferences.
+pub fn compute_owner_preference_frontier(
+    comparison: &DesignComparison,
+) -> Result<PreferenceFrontierReport, Vec<DesignIntentIssue>> {
+    validate_design_comparison_snapshot(comparison)?;
+
+    let preference_ids: Vec<&str> = comparison
+        .intents
+        .iter()
+        .filter(|intent| intent.class == DesignIntentClass::OwnerPreference)
+        .map(|intent| intent.intent_id.as_str())
+        .collect();
+
+    let mut eligible = Vec::new();
+    let mut excluded = Vec::new();
+    for candidate in &comparison.alternatives {
+        if candidate.disposition == AlternativeDisposition::OwnerDeclined {
+            excluded.push(FrontierExclusion {
+                candidate_id: candidate.candidate_id.clone(),
+                reason: FrontierExclusionReason::OwnerDeclined,
+            });
+            continue;
+        }
+        if candidate.disposition == AlternativeDisposition::BlockedByHardConstraint {
+            excluded.push(FrontierExclusion {
+                candidate_id: candidate.candidate_id.clone(),
+                reason: FrontierExclusionReason::ExplicitlyBlocked,
+            });
+            continue;
+        }
+
+        let mut hard_issue = None;
+        for intent in &comparison.intents {
+            if !matches!(
+                intent.class,
+                DesignIntentClass::BindingRequirement | DesignIntentClass::OwnerHardConstraint
+            ) {
+                continue;
+            }
+            let evaluation = candidate
+                .evaluations
+                .iter()
+                .find(|evaluation| evaluation.intent_id == intent.intent_id)
+                .expect("validated comparison has one evaluation per intent");
+            match evaluation.outcome {
+                IntentEvaluationOutcome::Satisfied | IntentEvaluationOutcome::NotApplicable => {}
+                IntentEvaluationOutcome::NotSatisfied => {
+                    hard_issue = Some(FrontierExclusionReason::HardConstraintFailed {
+                        intent_id: intent.intent_id.clone(),
+                    });
+                    break;
+                }
+                IntentEvaluationOutcome::Unknown
+                | IntentEvaluationOutcome::PreferenceUnmet
+                | IntentEvaluationOutcome::Tradeoff => {
+                    hard_issue = Some(FrontierExclusionReason::HardConstraintUnresolved {
+                        intent_id: intent.intent_id.clone(),
+                    });
+                    break;
+                }
+            }
+        }
+        if let Some(reason) = hard_issue {
+            excluded.push(FrontierExclusion {
+                candidate_id: candidate.candidate_id.clone(),
+                reason,
+            });
+        } else {
+            eligible.push(candidate);
+        }
+    }
+
+    eligible.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+    excluded.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+
+    let ratings_for = |candidate: &DesignAlternative| -> BTreeMap<&str, Option<u8>> {
+        preference_ids
+            .iter()
+            .map(|intent_id| {
+                let rating = candidate
+                    .evaluations
+                    .iter()
+                    .find(|evaluation| evaluation.intent_id == *intent_id)
+                    .and_then(|evaluation| evaluation.preference_rating);
+                (*intent_id, rating)
+            })
+            .collect()
+    };
+    let ratings: BTreeMap<&str, BTreeMap<&str, Option<u8>>> = eligible
+        .iter()
+        .map(|candidate| (candidate.candidate_id.as_str(), ratings_for(candidate)))
+        .collect();
+
+    let mut pairwise_comparisons = Vec::new();
+    let mut dominated = BTreeSet::new();
+    for left_index in 0..eligible.len() {
+        for right_index in (left_index + 1)..eligible.len() {
+            let left = eligible[left_index];
+            let right = eligible[right_index];
+            let left_ratings = &ratings[left.candidate_id.as_str()];
+            let right_ratings = &ratings[right.candidate_id.as_str()];
+            let mut left_better_on = Vec::new();
+            let mut right_better_on = Vec::new();
+            let mut missing_ratings_on = Vec::new();
+            let mut comparable_dimensions = 0;
+
+            for intent_id in &preference_ids {
+                match (left_ratings[intent_id], right_ratings[intent_id]) {
+                    (Some(left_rating), Some(right_rating)) => {
+                        comparable_dimensions += 1;
+                        if left_rating > right_rating {
+                            left_better_on.push((*intent_id).to_owned());
+                        } else if right_rating > left_rating {
+                            right_better_on.push((*intent_id).to_owned());
+                        }
+                    }
+                    (Some(_), None) | (None, Some(_)) => {
+                        missing_ratings_on.push((*intent_id).to_owned());
+                    }
+                    (None, None) => {}
+                }
+            }
+
+            let relation = if !missing_ratings_on.is_empty() {
+                PreferencePairRelation::IncomparableMissingRatings
+            } else if comparable_dimensions == 0 {
+                PreferencePairRelation::NotComparable
+            } else if !left_better_on.is_empty() && right_better_on.is_empty() {
+                dominated.insert(right.candidate_id.clone());
+                PreferencePairRelation::LeftDominates
+            } else if !right_better_on.is_empty() && left_better_on.is_empty() {
+                dominated.insert(left.candidate_id.clone());
+                PreferencePairRelation::RightDominates
+            } else if left_better_on.is_empty() && right_better_on.is_empty() {
+                PreferencePairRelation::Equivalent
+            } else {
+                PreferencePairRelation::Tradeoff
+            };
+
+            pairwise_comparisons.push(PreferencePairComparison {
+                left_candidate_id: left.candidate_id.clone(),
+                right_candidate_id: right.candidate_id.clone(),
+                relation,
+                left_better_on,
+                right_better_on,
+                missing_ratings_on,
+            });
+        }
+    }
+
+    let eligible_candidate_ids: Vec<String> = eligible
+        .iter()
+        .map(|candidate| candidate.candidate_id.clone())
+        .collect();
+    let dominated_candidate_ids: Vec<String> = dominated.into_iter().collect();
+    let frontier_candidate_ids = eligible_candidate_ids
+        .iter()
+        .filter(|candidate_id| !dominated_candidate_ids.contains(candidate_id))
+        .cloned()
+        .collect();
+
+    Ok(PreferenceFrontierReport {
+        eligible_candidate_ids,
+        frontier_candidate_ids,
+        dominated_candidate_ids,
+        excluded_candidates: excluded,
+        pairwise_comparisons,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -535,6 +756,125 @@ mod tests {
         let issues = validate_design_comparison_snapshot(&comparison).unwrap_err();
         assert!(issues.contains(&DesignIntentIssue::EmptyComparisonId));
         assert!(issues.contains(&DesignIntentIssue::EmptyOwnerBriefRevisionId));
+    }
+
+    fn preference_rating(id: &str, rating: u8) -> IntentEvaluation {
+        let mut item = evaluation(id, IntentEvaluationOutcome::Satisfied);
+        item.preference_rating = Some(rating);
+        item
+    }
+
+    fn preference_comparison() -> DesignComparison {
+        let intents = vec![
+            intent("rule:egress", DesignIntentClass::BindingRequirement),
+            intent("owner:daylight", DesignIntentClass::OwnerPreference),
+            intent("owner:privacy", DesignIntentClass::OwnerPreference),
+        ];
+        let hard_pass = evaluation("rule:egress", IntentEvaluationOutcome::Satisfied);
+        DesignComparison {
+            comparison_id: "comparison:brief-r1".into(),
+            owner_brief_revision_id: "owner-brief:r1".into(),
+            intents,
+            alternatives: vec![
+                candidate(
+                    "candidate:a",
+                    AlternativeDisposition::ReadyForTechnicalAssessment,
+                    vec![
+                        hard_pass.clone(),
+                        preference_rating("owner:daylight", 90),
+                        preference_rating("owner:privacy", 35),
+                    ],
+                ),
+                candidate(
+                    "candidate:b",
+                    AlternativeDisposition::ReadyForTechnicalAssessment,
+                    vec![
+                        hard_pass.clone(),
+                        preference_rating("owner:daylight", 45),
+                        preference_rating("owner:privacy", 90),
+                    ],
+                ),
+                candidate(
+                    "candidate:c",
+                    AlternativeDisposition::OpenForExploration,
+                    vec![
+                        hard_pass.clone(),
+                        preference_rating("owner:daylight", 20),
+                        preference_rating("owner:privacy", 20),
+                    ],
+                ),
+                candidate(
+                    "candidate:d",
+                    AlternativeDisposition::OpenForExploration,
+                    vec![
+                        hard_pass,
+                        preference_rating("owner:daylight", 70),
+                        evaluation("owner:privacy", IntentEvaluationOutcome::Unknown),
+                    ],
+                ),
+            ],
+        }
+    }
+
+    #[test]
+    fn pareto_frontier_preserves_tradeoffs_and_only_removes_dominated_options() {
+        let report =
+            compute_owner_preference_frontier(&preference_comparison()).unwrap();
+        assert_eq!(
+            report.frontier_candidate_ids,
+            vec![
+                "candidate:a".to_owned(),
+                "candidate:b".to_owned(),
+                "candidate:d".to_owned()
+            ]
+        );
+        assert_eq!(report.dominated_candidate_ids, vec!["candidate:c".to_owned()]);
+        assert!(report.pairwise_comparisons.iter().any(|pair| {
+            pair.left_candidate_id == "candidate:a"
+                && pair.right_candidate_id == "candidate:b"
+                && pair.relation == PreferencePairRelation::Tradeoff
+        }));
+    }
+
+    #[test]
+    fn missing_preference_ratings_make_alternatives_incomparable_not_imputed() {
+        let report =
+            compute_owner_preference_frontier(&preference_comparison()).unwrap();
+        assert!(report.pairwise_comparisons.iter().any(|pair| {
+            pair.left_candidate_id == "candidate:a"
+                && pair.right_candidate_id == "candidate:d"
+                && pair.relation == PreferencePairRelation::IncomparableMissingRatings
+                && pair.missing_ratings_on == vec!["owner:privacy".to_owned()]
+        }));
+    }
+
+    #[test]
+    fn unresolved_hard_constraint_excludes_candidate_from_preference_frontier() {
+        let mut comparison = preference_comparison();
+        comparison.alternatives[0].evaluations[0].outcome = IntentEvaluationOutcome::Unknown;
+        comparison.alternatives[0].evaluations[0].evidence_ref = None;
+        comparison.alternatives[0].disposition = AlternativeDisposition::OpenForExploration;
+        let report = compute_owner_preference_frontier(&comparison).unwrap();
+        assert!(!report.frontier_candidate_ids.contains(&"candidate:a".to_owned()));
+        assert!(report.excluded_candidates.iter().any(|item| {
+            item.candidate_id == "candidate:a"
+                && item.reason
+                    == FrontierExclusionReason::HardConstraintUnresolved {
+                        intent_id: "rule:egress".into(),
+                    }
+        }));
+    }
+
+    #[test]
+    fn preference_ratings_cannot_be_attached_to_binding_requirements() {
+        let mut comparison = preference_comparison();
+        comparison.alternatives[0].evaluations[0].preference_rating = Some(90);
+        assert!(validate_design_comparison_snapshot(&comparison)
+            .unwrap_err()
+            .contains(&DesignIntentIssue::PreferenceRatingOnNonPreference {
+                candidate_id: "candidate:a".into(),
+                intent_id: "rule:egress".into(),
+            }));
     }
 
     #[test]
