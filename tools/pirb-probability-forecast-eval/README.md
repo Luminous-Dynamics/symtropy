@@ -14,7 +14,7 @@ A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not 
 
 ## Normalized input contract
 
-The Draft 2020-12 schema is deliberately one outcome definition and one analysis unit per dataset. A normalized adapter for an external provider must state the exact forecast release, model/version, probability variable, target definition, outcome release, source-file digests, attribution, and license reference. Every row carries its forecast release, opaque unit, forecast issue month, last input-data month, target month, lead, probability, outcome label, and label-availability month.
+The Draft 2020-12 schema is deliberately one outcome definition, one analysis unit, and one forecast horizon per dataset. Score each horizon separately. A normalized adapter for an external provider must state the exact forecast release, model/version, probability variable, target definition, outcome release, source-file digests, attribution, and license reference. Every row carries its forecast release, opaque unit, forecast issue month, last input-data month, target month, lead, probability, outcome label, and label-availability month.
 
 Month fields use a continuous integer index: `month_index = year * 12 + (month - 1)`. It preserves temporal differences across year boundaries (so January and December are adjacent in the right order). The normalized contract checks `lead_months = target_month - input_cutoff_month`; the target must be after the input cutoff and on or after the forecast-origin/issuance month. This accommodates a one-month forecast issued in January from input data through December.
 
@@ -38,7 +38,8 @@ Training, calibration, and test partitions use forecast-issue months. Every know
 
 - Forecast probabilities must be finite and within [0, 1].
 - The target and forecast lead must agree with the declared input cutoff.
-- Duplicate release/unit/target/horizon forecast keys are rejected.
+- The declared lead horizon must match every row; do not pool different horizons in one score.
+- Duplicate unit/target/horizon forecasts are rejected even if their release IDs differ.
 - Repeated forecasts for the same unit/target month must agree on the frozen outcome label and its availability month. A changed outcome version is a new dataset/evaluation, not a hidden overwrite.
 - Known outcomes must be available after the target month and by the declared evaluation-as-of month. Unknown labels are counted and never mapped to no-event.
 - The input schema rejects unrecognized fields, including person-level fields. Data records are aggregate, using opaque unit IDs.
