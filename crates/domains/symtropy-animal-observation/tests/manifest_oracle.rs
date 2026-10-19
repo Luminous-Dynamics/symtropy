@@ -437,3 +437,33 @@ fn canonical_manifest_digest_binds_policy_and_ignores_list_order() {
         manifest_sha256(&reversed).unwrap()
     );
 }
+
+#[test]
+fn split_report_is_independent_of_record_order() {
+    use symtropy_animal_observation::validate_split;
+
+    let mut manifest = manifest_fixture();
+    let mut validation = manifest.records[1].clone();
+    validation.record_id = "r-validation".to_owned();
+    validation.study_id = manifest.records[0].study_id.clone();
+    validation.subject_id = manifest.records[0].subject_id.clone();
+    validation.track_id = "track-validation".to_owned();
+    validation.duplicate_group = Some("dup-validation".to_owned());
+    validation.role = SplitRole::Validation;
+    manifest.records[1].study_id = manifest.records[0].study_id.clone();
+    manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
+    manifest.records.push(validation);
+
+    let first = validate_split(
+        &manifest.records,
+        manifest.generalization,
+        manifest.minimum_temporal_gap,
+    );
+    manifest.records.reverse();
+    let reversed = validate_split(
+        &manifest.records,
+        manifest.generalization,
+        manifest.minimum_temporal_gap,
+    );
+    assert_eq!(first, reversed);
+}
