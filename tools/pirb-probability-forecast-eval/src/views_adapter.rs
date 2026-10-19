@@ -1172,7 +1172,10 @@ mod tests {
     #[test]
     fn query_uri_must_pin_the_declared_violence_type() {
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
-        let query = manifest["releases"][0]["query_uri"].as_str().unwrap().to_owned();
+        let query = manifest["releases"][0]["query_uri"]
+            .as_str()
+            .unwrap()
+            .to_owned();
         manifest["releases"][0]["query_uri"] = Value::String(query.replace("/cm/sb/", "/cm/ns/"));
         let bytes = serde_json::to_vec(&manifest).unwrap();
         let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
