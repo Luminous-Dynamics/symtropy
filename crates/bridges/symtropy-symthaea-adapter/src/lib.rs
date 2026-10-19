@@ -59,12 +59,31 @@ pub const DEFAULT_DT: f32 = 1.0 / 60.0;
 /// default is correct for every built-in platform.
 pub const DEFAULT_HV_DIM: usize = 16_384;
 
+/// Why the adapter refused to forward a command to the embedded bridge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlannerFault {
+    InvalidTimestep,
+    InvalidHypervectorDimension,
+    InvalidGain,
+    NonFiniteObservation,
+    BridgeReportedFailure,
+    InvalidBridgeOutput,
+}
+
 /// Wraps a Symthaea [`EmbodimentBridge`] as a Symtropy [`MotorPlanner`].
+///
+/// Invalid inputs and failed/invalid bridge results produce a zero-authority
+/// vector and set [`last_fault`](Self::last_fault). This is a software
+/// fail-closed signal, **not** a universal physical safe state: a real platform
+/// may require a brake, hold controller, or independent safety PLC. Integrators
+/// must inspect the fault and let platform-specific safety logic decide how to
+/// stop or hold the mechanism.
 pub struct EmbodimentPlanner {
     bridge: Box<dyn EmbodimentBridge>,
     dt: f32,
     hv_dim: usize,
     observation_encoder: ObservationEncoding,
+    last_fault: Option<PlannerFault>,
 }
 
 /// Observation encoding used before a thought vector enters Symthaea.
@@ -119,12 +138,16 @@ impl SemanticObservationEncoder {
             "channel-count",
             &observation.len().to_string(),
         ))?;
+        if observation.iter().any(|value| !value.is_finite()) {
+            return Err(HdcError::InvalidEncoderSpec(
+                "numeric observation values must be finite".to_owned(),
+            ));
+        }
         for (index, value) in observation.iter().copied().enumerate() {
-            let finite = if value.is_finite() { value } else { 0.0 };
             let role = self.memory.role(&format!("channel.{index}"));
             let encoded = self
                 .scalar
-                .encode(finite, -self.value_extent, self.value_extent)?;
+                .encode(value, -self.value_extent, self.value_extent)?;
             bundle.add(&role.bind(&encoded)?)?;
         }
         let bipolar = bundle.finish(&self.memory.tie_breaker("numeric-observation"))?;
@@ -147,6 +170,7 @@ impl EmbodimentPlanner {
             dt: DEFAULT_DT,
             hv_dim: DEFAULT_HV_DIM,
             observation_encoder: ObservationEncoding::LegacyTiled,
+            last_fault: None,
         }
     }
 
@@ -200,6 +224,18 @@ impl EmbodimentPlanner {
         self.dt
     }
 
+    /// Fault from the most recent call to [`plan`], cleared after a valid
+    /// bridge response. A fault means the returned zero-authority vector must
+    /// not be mistaken for a validated physical hold/brake action.
+    pub fn last_fault(&self) -> Option<PlannerFault> {
+        self.last_fault
+    }
+
+    fn reject(&mut self, fault: PlannerFault, num_actuators: usize) -> Vec<f64> {
+        self.last_fault = Some(fault);
+        vec![0.0; num_actuators]
+    }
+
     /// Semantic encoder fingerprint for research provenance, or `None` while
     /// compatibility tiling is active.
     pub fn observation_encoder_fingerprint(&self) -> Option<u64> {
@@ -212,6 +248,19 @@ impl EmbodimentPlanner {
 
 impl MotorPlanner for EmbodimentPlanner {
     fn plan(&mut self, observation: &[f64], gain: f64, num_actuators: usize) -> Vec<f64> {
+        if !self.dt.is_finite() || self.dt <= 0.0 {
+            return self.reject(PlannerFault::InvalidTimestep, num_actuators);
+        }
+        if self.hv_dim == 0 {
+            return self.reject(PlannerFault::InvalidHypervectorDimension, num_actuators);
+        }
+        if !gain.is_finite() || !(0.0..=1.0).contains(&gain) {
+            return self.reject(PlannerFault::InvalidGain, num_actuators);
+        }
+        if observation.iter().any(|value| !value.is_finite()) {
+            return self.reject(PlannerFault::NonFiniteObservation, num_actuators);
+        }
+
         let thought_hv = match &self.observation_encoder {
             ObservationEncoding::LegacyTiled => encode_observation(observation, self.hv_dim),
             ObservationEncoding::SemanticHdc(encoder) => encoder.encode(observation).expect(
@@ -220,17 +269,36 @@ impl MotorPlanner for EmbodimentPlanner {
         };
         let result = self.bridge.step(&thought_hv, self.dt, gain);
 
-        // Translate the bridge's scalar response into a per-actuator vector.
-        //
-        // The effective per-joint authority is the product of:
-        //   - the bridge's post-step safety gain (its own NRC tier),
-        //   - |control_effort| (how hard the bridge believes it is pushing),
-        // then capped by `gain` (the caller's cap) so we never exceed the
-        // Symtropy-side NRC ceiling. Uniform across actuators.
-        let bridge_gain = result.safety_level.motor_gain() as f64;
-        let effort = (result.control_effort as f64).abs();
-        let per_joint = (bridge_gain * effort).min(gain).max(0.0);
+        if !result.success {
+            return self.reject(PlannerFault::BridgeReportedFailure, num_actuators);
+        }
 
+        // Validate every bridge value that can affect command authority or
+        // attest to the quality of the response. Do not let min/max NaN
+        // semantics turn malformed values into apparently valid commands.
+        let bridge_gain = result.safety_level.motor_gain() as f64;
+        let effort = result.control_effort as f64;
+        let prediction_error = result.prediction_error as f64;
+        let observation_confidence = result.observation_confidence as f64;
+        if !bridge_gain.is_finite()
+            || !(0.0..=1.0).contains(&bridge_gain)
+            || !effort.is_finite()
+            || !prediction_error.is_finite()
+            || prediction_error < 0.0
+            || !observation_confidence.is_finite()
+            || !(0.0..=1.0).contains(&observation_confidence)
+        {
+            return self.reject(PlannerFault::InvalidBridgeOutput, num_actuators);
+        }
+
+        // Translate the bridge's scalar response into a per-actuator vector.
+        // Output remains capped by the caller's bounded gain.
+        let authority = bridge_gain * effort.abs();
+        if !authority.is_finite() {
+            return self.reject(PlannerFault::InvalidBridgeOutput, num_actuators);
+        }
+        let per_joint = authority.min(gain);
+        self.last_fault = None;
         vec![per_joint; num_actuators]
     }
 }
@@ -281,6 +349,7 @@ mod tests {
         last_phi: f64,
         result_safety: MotorSafetyLevel,
         result_effort: f32,
+        result_success: bool,
         num_actuators: usize,
         safety_override: Option<MotorSafetyLevel>,
     }
@@ -294,6 +363,7 @@ mod tests {
                 last_phi: 0.0,
                 result_safety: MotorSafetyLevel::Green,
                 result_effort: 1.0,
+                result_success: true,
                 num_actuators: 21,
                 safety_override: None,
             }
@@ -309,7 +379,7 @@ mod tests {
             EmbodimentResult {
                 num_actuators: self.num_actuators,
                 control_effort: self.result_effort,
-                success: true,
+                success: self.result_success,
                 prediction_error: 0.1,
                 safety_level: self.result_safety,
                 epistemic_grounding: 0,
@@ -363,6 +433,22 @@ mod tests {
 
     fn make_planner() -> EmbodimentPlanner {
         EmbodimentPlanner::new(Box::new(MockBridge::new()))
+    }
+
+    #[test]
+    fn semantic_encoder_rejects_non_finite_observations() {
+        let spec = EncoderSpec {
+            schema_version: 1,
+            dimension: 4_096,
+            seed: 7,
+            scalar_levels: 129,
+        };
+        for invalid in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(
+                encode_observation_semantic(&[0.2, invalid], spec.clone(), 2.0).is_err(),
+                "non-finite observation {invalid} must be rejected"
+            );
+        }
     }
 
     #[test]
@@ -420,6 +506,79 @@ mod tests {
     fn with_dt_overrides_timestep() {
         let p = EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(0.01);
         assert!((p.dt() - 0.01).abs() < 1e-9);
+    }
+
+    #[test]
+    fn non_finite_observations_fail_closed_before_bridge_step() {
+        for invalid in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut planner = make_planner();
+            let commands = planner.plan(&[0.5, invalid], 0.5, 4);
+            assert_eq!(commands, vec![0.0; 4]);
+            assert_eq!(planner.last_fault(), Some(PlannerFault::NonFiniteObservation));
+            assert_eq!(planner.bridge().total_steps(), 0);
+        }
+    }
+
+    #[test]
+    fn invalid_gain_fails_closed() {
+        for gain in [f64::NAN, f64::INFINITY, -0.01, 1.01] {
+            let mut planner = make_planner();
+            let commands = planner.plan(&[0.5], gain, 4);
+            assert_eq!(commands, vec![0.0; 4]);
+            assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidGain));
+            assert_eq!(planner.bridge().total_steps(), 0);
+        }
+    }
+
+    #[test]
+    fn invalid_timestep_fails_closed() {
+        for dt in [f32::NAN, 0.0, -0.01] {
+            let mut planner = EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(dt);
+            let commands = planner.plan(&[0.5], 0.5, 4);
+            assert_eq!(commands, vec![0.0; 4]);
+            assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidTimestep));
+            assert_eq!(planner.bridge().total_steps(), 0);
+        }
+    }
+
+    #[test]
+    fn zero_hypervector_dimension_fails_closed() {
+        let mut planner =
+            EmbodimentPlanner::new(Box::new(MockBridge::new())).with_hv_dim(0);
+        assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
+        assert_eq!(
+            planner.last_fault(),
+            Some(PlannerFault::InvalidHypervectorDimension)
+        );
+        assert_eq!(planner.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn bridge_failure_fails_closed() {
+        let mut bridge = MockBridge::new();
+        bridge.result_success = false;
+        let mut planner = EmbodimentPlanner::new(Box::new(bridge));
+        assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
+        assert_eq!(planner.last_fault(), Some(PlannerFault::BridgeReportedFailure));
+    }
+
+    #[test]
+    fn non_finite_bridge_effort_fails_closed() {
+        let mut bridge = MockBridge::new();
+        bridge.result_effort = f32::NAN;
+        let mut planner = EmbodimentPlanner::new(Box::new(bridge));
+        assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
+        assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidBridgeOutput));
+    }
+
+    #[test]
+    fn successful_result_clears_previous_fault() {
+        let mut planner = make_planner();
+        let _ = planner.plan(&[f64::NAN], 0.5, 4);
+        assert!(planner.last_fault().is_some());
+        let commands = planner.plan(&[0.5], 0.5, 4);
+        assert_eq!(commands, vec![0.5; 4]);
+        assert_eq!(planner.last_fault(), None);
     }
 
     #[test]
