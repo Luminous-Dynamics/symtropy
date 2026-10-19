@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: toolwear-eval-${{github.event.pull_request.number || github.ref }}
+  group: toolwear-eval-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -78,7 +78,7 @@ jobs:
       - name: Upload reproducible report
         uses: actions/upload-artifact@v4
         with:
-          name: toolwear-eval-${{github.sha }}
+          name: toolwear-eval-${{ github.sha }}
           path: toolwear-report.json
           if-no-files-found: error
           retention-days: 14
