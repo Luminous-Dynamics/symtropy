@@ -55,6 +55,12 @@ The crate exposes validated routes for scripted review and a direct desktop floa
 
 Coordinates are metres in the model's declared frame, not georeferencing. The `ReviewAnnotation` types distinguish binding requirements, unresolved binding conflicts, required missing evidence, engineering evidence, non-binding guidance, unknown site facts, owner preferences, and code-reform proposals. An annotation must be pinned to the displayed design revision; binding findings require source/module provenance, owner preferences can be marked `UnfulfilledPreference` but cannot be styled as a binding failure, and guidance/reform proposals remain informational. The validator checks annotation semantics and digest syntax only—not legal truth or evidence bytes.
 
+### Occupant feedback from virtual review
+
+`OccupantReviewFeedback` captures a person's reaction to the design revision they actually reviewed: preferences, spatial comfort, circulation, accessibility concerns, sightlines/privacy, storage/ergonomics, daylight/outdoor connection, acoustics questions, or material/maintenance preferences. It can be pinned to a route waypoint or a stable room/component reference.
+
+This feedback is **not** automatically converted into a code violation or engineering fact. Old-revision feedback cannot be silently applied to a new revision, route/waypoint references are checked, accepted design changes need a traceable change-request ID, and public case-study sharing requires explicit consent. The data model does not collect headset, gaze, body-pose, camera, or microphone data; a host application should keep recording opt-in and provide private/default local review.
+
 The route sampler does not perform wall collision, visibility, accessibility-code, daylight, energy, or building-code checks. A production reviewer should pair it with geometry collision tests, a real model-revision ID, user-controlled speed/pause/comfort settings, a desktop fallback, and an independently implemented XR adapter. A pleasant walkthrough is design feedback, not proof that the proposed building is buildable.
 
 ### Try the synthetic-room example
