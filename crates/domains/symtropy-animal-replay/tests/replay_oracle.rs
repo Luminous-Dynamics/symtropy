@@ -296,6 +296,14 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             primary.interval = None;
         }
         "empty_metric_stratum" => inputs.metrics[0].stratum_id.clear(),
+        "invalid_overall_stratum_id" => inputs.metrics[0].stratum_id = "pooled".to_owned(),
+        "taxon_stratum_unbound" => inputs.metrics.push(metric_for_stratum(
+            "pose_pck",
+            0.7,
+            "fraction",
+            MetricStratumKind::Taxon,
+            "TEST:404",
+        )),
         "same_metric_across_taxa" => inputs.metrics.push(metric_for_stratum(
             "pose_pck",
             0.7,
@@ -381,7 +389,7 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
     let corpus: OracleCorpus = serde_json::from_str(ORACLE_FIXTURE).unwrap();
     assert_eq!(corpus.schema_version, "ANIMAL-REPLAY-RESULT-ORACLE-V1");
     assert!(corpus.note.contains("synthetic"));
-    assert_eq!(corpus.cases.len(), 41);
+    assert_eq!(corpus.cases.len(), 43);
     for case in corpus.cases {
         let mut inputs = valid_inputs();
         apply_mutation(&mut inputs, &case.mutation);
