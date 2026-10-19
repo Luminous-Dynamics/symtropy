@@ -112,6 +112,43 @@ fn checked_sum(total: f64, amount: f64) -> Result<f64, EnergyBoundaryError> {
     }
 }
 
+/// Deterministic compensated sum for non-negative magnitudes.
+///
+/// Sorting before summation makes the result independent of input-vector order;
+/// Neumaier compensation reduces loss when small flows accompany much larger ones.
+fn checked_nonnegative_sum(mut amounts: Vec<f64>) -> Result<f64, EnergyBoundaryError> {
+    amounts.sort_by(f64::total_cmp);
+    let mut sum = 0.0_f64;
+    let mut compensation = 0.0_f64;
+
+    for amount in amounts {
+        if !amount.is_finite() || amount < 0.0 {
+            return Err(EnergyBoundaryError::NonFiniteArithmetic);
+        }
+        let next = sum + amount;
+        if !next.is_finite() {
+            return Err(EnergyBoundaryError::NonFiniteArithmetic);
+        }
+        let correction = if sum.abs() >= amount.abs() {
+            (sum - next) + amount
+        } else {
+            (amount - next) + sum
+        };
+        compensation += correction;
+        if !compensation.is_finite() {
+            return Err(EnergyBoundaryError::NonFiniteArithmetic);
+        }
+        sum = next;
+    }
+
+    let total = sum + compensation;
+    if total.is_finite() {
+        Ok(total)
+    } else {
+        Err(EnergyBoundaryError::NonFiniteArithmetic)
+    }
+}
+
 /// Validate and assess one declared energy boundary without mutating production state.
 ///
 /// Every magnitude must be finite and non-negative. Event IDs are unique across
@@ -152,8 +189,8 @@ pub fn assess_energy_boundary(
     }
 
     let mut event_ids = BTreeSet::new();
-    let mut inflows = 0.0;
-    let mut outflows = 0.0;
+    let mut inflow_amounts = Vec::new();
+    let mut outflow_amounts = Vec::new();
     for flow in &snapshot.boundary_flows {
         if flow.event_id.trim().is_empty() {
             return Err(EnergyBoundaryError::EmptyEventId);
@@ -165,10 +202,12 @@ pub fn assess_energy_boundary(
             return Err(EnergyBoundaryError::InvalidFlowAmount);
         }
         match flow.direction {
-            BoundaryDirection::Inflow => inflows = checked_sum(inflows, flow.amount)?,
-            BoundaryDirection::Outflow => outflows = checked_sum(outflows, flow.amount)?,
+            BoundaryDirection::Inflow => inflow_amounts.push(flow.amount),
+            BoundaryDirection::Outflow => outflow_amounts.push(flow.amount),
         }
     }
+    let inflows = checked_nonnegative_sum(inflow_amounts)?;
+    let outflows = checked_nonnegative_sum(outflow_amounts)?;
 
     for transfer in &snapshot.internal_transfers {
         if transfer.event_id.trim().is_empty() {
@@ -287,6 +326,32 @@ mod tests {
         assert_eq!(result.boundary_inflows, result.boundary_outflows);
         assert_eq!(result.residual, 1.0);
         assert!(!result.balanced);
+    }
+
+    #[test]
+    fn large_and_small_flow_sums_are_input_order_invariant() {
+        let mut first = balanced_snapshot();
+        first.initial_stored_energy = 0.0;
+        first.final_stored_energy = 0.0;
+        first.relative_tolerance = 1.0e-17;
+        first.boundary_flows = vec![
+            flow("large-in", BoundaryDirection::Inflow, 1.0e16),
+            flow("small-in-a", BoundaryDirection::Inflow, 1.0),
+            flow("small-in-b", BoundaryDirection::Inflow, 1.0),
+            flow("large-out", BoundaryDirection::Outflow, 1.0e16),
+        ];
+        first.internal_transfers.clear();
+
+        let mut second = first.clone();
+        second.boundary_flows.swap(0, 1);
+        second.boundary_flows.swap(1, 2);
+        second.boundary_flows.swap(2, 3);
+
+        let a = assess_energy_boundary(&first).unwrap();
+        let b = assess_energy_boundary(&second).unwrap();
+        assert_eq!(a, b);
+        assert_eq!(a.residual, 2.0);
+        assert!(!a.balanced, "small but real flow discrepancy must not round away");
     }
 
     #[test]
