@@ -538,7 +538,7 @@ fn validate_metric(metric: &MetricObservation) -> MetricValidation {
             };
             if !value.is_finite()
                 || metric.sample_count == 0
-                || metric.failure_reason.as_ref().is_some_and(|reason| !reason.trim().is_empty())
+                || metric.failure_reason.is_some()
             {
                 return MetricValidation::InvalidValue;
             }
