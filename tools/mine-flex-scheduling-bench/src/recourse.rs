@@ -512,7 +512,7 @@ fn policy_for_world(
     Ok((row, oracle))
 }
 
-fn result_policy(row: &RecourseWorldResult, policy_id: &str) -> &PolicyEvaluation {
+fn result_policy<'a>(row: &'a RecourseWorldResult, policy_id: &str) -> &'a PolicyEvaluation {
     match policy_id {
         "fixed_baseline" => &row.fixed_baseline,
         "nominal_forecast_cost_minimizer" => &row.nominal_policy,
