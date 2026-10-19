@@ -1293,6 +1293,7 @@ struct ProvenanceReport {
 struct BenchmarkReport {
     schema_version: u32,
     validity: &'static str,
+    evidence_scope: &'static str,
     alignment: AlignmentReport,
     provenance: ProvenanceReport,
     root_trajectory_error: RootTrajectoryReport,
@@ -1541,6 +1542,7 @@ fn evaluate(
     Ok(BenchmarkReport {
         schema_version: 1,
         validity,
+        evidence_scope: evidence_scope(reference, prediction),
         alignment: AlignmentReport {
             method: "linear_position_interpolation_and_nearest_neighbor_contact_on_uniform_overlap_grid",
             overlap_start_sec: grid.overlap_start_sec,
