@@ -609,7 +609,10 @@ pub fn build_replay_receipt(
             rejected.insert(ReplayReason::BaselineComparisonStratumMismatch);
             continue;
         };
-        if candidate_metric.unit != baseline.primary_metric.unit {
+        if candidate_metric.unit != baseline.primary_metric.unit
+            && !(comparison.stratum_kind == MetricStratumKind::Overall
+                && comparison.stratum_id == "all")
+        {
             rejected.insert(ReplayReason::BaselineComparisonUnitMismatch);
         }
         if comparison.independent_unit_count > candidate_metric.sample_count {
