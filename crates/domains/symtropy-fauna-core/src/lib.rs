@@ -232,7 +232,11 @@ pub fn validate_profile(profile: &AnimalProfile) -> ValidationResult {
         let capability_identity = (
             claim.axis.trim().to_lowercase(),
             claim.key.trim().to_lowercase(),
-            claim.stage_requirement.as_deref().map(str::trim).map(str::to_lowercase),
+            claim
+                .stage_requirement
+                .as_deref()
+                .map(str::trim)
+                .map(str::to_lowercase),
         );
         if !capability_keys.insert(capability_identity) {
             rejected.insert(ReasonCode::DuplicateCapabilityKey);
@@ -477,9 +481,10 @@ pub fn coverage_report(
         .filter(|profile| profile.kind == ProfileKind::RealTaxonBound)
         .filter(|profile| validate_profile(profile).disposition == ValidationDisposition::Eligible)
         .filter(|profile| {
-            profile.taxon.as_ref().is_some_and(|taxon| {
-                taxon.source == scope.source && taxon.release == scope.release
-            })
+            profile
+                .taxon
+                .as_ref()
+                .is_some_and(|taxon| taxon.source == scope.source && taxon.release == scope.release)
         })
         .filter_map(|profile| profile.taxon.as_ref().map(|taxon| taxon.taxon_id.clone()))
         .collect::<BTreeSet<_>>();
@@ -503,7 +508,10 @@ pub fn coverage_report(
         }
     }
 
-    let covered = taxa.iter().filter(|taxon| taxon.state == CoverageState::Covered).count();
+    let covered = taxa
+        .iter()
+        .filter(|taxon| taxon.state == CoverageState::Covered)
+        .count();
     let in_progress = taxa
         .iter()
         .filter(|taxon| taxon.state == CoverageState::ProfileInProgress)
@@ -640,7 +648,9 @@ mod tests {
         assert_eq!(results.len(), 2);
         assert!(results.iter().all(|result| {
             result.disposition == ValidationDisposition::Reject
-                && result.reason_codes.contains(&ReasonCode::DuplicateProfileId)
+                && result
+                    .reason_codes
+                    .contains(&ReasonCode::DuplicateProfileId)
         }));
     }
 
@@ -655,12 +665,8 @@ mod tests {
             taxon_id: "TEST:1".to_owned(),
             state: CoverageState::Covered,
         }];
-        let report = coverage_report(
-            &scope,
-            &declarations,
-            &[real_profile("real/1", "TEST:1")],
-        )
-        .unwrap();
+        let report =
+            coverage_report(&scope, &declarations, &[real_profile("real/1", "TEST:1")]).unwrap();
         assert_eq!(report.covered, 1);
         assert_eq!(report.not_reviewed, 1);
         assert!(!report.profile_registry_complete);
