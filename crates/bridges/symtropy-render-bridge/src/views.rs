@@ -683,19 +683,23 @@ mod tests {
         let scientific =
             ViewProfile::recommended(ViewPurpose::Scientific, ViewDimension::HyperSlice4D);
 
+        assert_eq!(strategic.navigation, ViewNavigationPolicy::PlanarPanZoom);
         assert_eq!(strategic.detail, ViewDetailPolicy::Aggregated);
         assert!(strategic.aggregate_distant_items);
         assert!(!strategic.layers.contacts);
 
+        assert_eq!(operational.navigation, ViewNavigationPolicy::ObliquePanOrbit);
         assert_eq!(operational.detail, ViewDetailPolicy::Clustered);
         assert!(operational.layers.routes);
         assert!(operational.layers.networks);
 
+        assert_eq!(tactical.navigation, ViewNavigationPolicy::FocusedOrbit);
         assert_eq!(tactical.detail, ViewDetailPolicy::PerEntity);
         assert!(!tactical.aggregate_distant_items);
         assert!(tactical.layers.contacts);
         assert!(tactical.layers.velocity_vectors);
 
+        assert_eq!(scientific.navigation, ViewNavigationPolicy::SliceScrubOrbit);
         assert_eq!(scientific.detail, ViewDetailPolicy::PerSample);
         assert!(scientific.layers.scalar_fields);
         assert!(scientific.layers.uncertainty);
@@ -714,6 +718,7 @@ mod tests {
         let tactical_4d = tactical_2d.with_dimension(ViewDimension::HyperSlice4D);
         assert_eq!(tactical_4d.purpose, ViewPurpose::Tactical);
         assert_eq!(tactical_4d.dimension, ViewDimension::HyperSlice4D);
+        assert_eq!(tactical_4d.navigation, ViewNavigationPolicy::SliceScrubOrbit);
         assert!(tactical_4d.validate().is_ok());
     }
 
