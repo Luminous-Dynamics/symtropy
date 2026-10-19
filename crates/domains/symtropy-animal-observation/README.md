@@ -12,7 +12,7 @@ A source-neutral Rust validator for animal-observation reference manifests and l
 - Explicit provenance class and a conservative measurement-modality / claim compatibility matrix.
 - Split qualification for unseen subject, study, site, taxon, future-time prediction and within-subject interpolation.
 - Stable, order-independent canonical manifest digest.
-- Frozen synthetic oracle with 62 expected-outcome cases, plus unit tests for scope, split and digest invariants.
+- Frozen synthetic oracle with 65 expected-outcome cases, plus unit tests for scope, split and digest invariants.
 
 The crate checks supplied permission receipts; it is not the authoritative data-rights system. It fetches no external payloads, grants no permission, and makes no claim of biological accuracy.
 
@@ -20,7 +20,7 @@ The crate checks supplied permission receipts; it is not the authoritative data-
 
 A source can support one claim without supporting another. In particular, still 2D keypoints cannot by themselves establish 3D kinematics, contact force, physiology or causal behavior. Multi-animal tracking on unseen categories is a distinct visual-association task, not evidence of validated animal cognition or species physiology.
 
-Train/test leakage is checked according to a declared generalization target. Subject, track and study identifiers are scope-sensitive; duplicate-group identifiers should be canonical within a pack. Future-time evaluation may reuse a track only when the time windows are strictly separated by the declared gap.
+Train/test leakage is checked according to a declared generalization target. Subject and track identifiers are study-scoped; duplicate-group identifiers should be canonical within a pack. Future-time evaluation may reuse a track only when time windows are strictly separated by the declared gap. Within-subject interpolation requires the same study/subject/track to span roles, while overlapping windows across roles are rejected.
 
 Registry/manifest eligibility is not empirical model validation.
 
