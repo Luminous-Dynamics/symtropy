@@ -1,0 +1,596 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-cross-provider-benchmark-v0.1.schema.json",
+  "title": "PIRB Cross-Provider Benchmark Registration v0.1",
+  "description": "Pre-registration contract for fair cross-provider forecast comparison. Structural validation alone does not certify semantic comparability, source authority, or causal impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "status",
+    "evidence_scope",
+    "shared_estimand",
+    "outcome",
+    "temporal_design",
+    "governance",
+    "providers",
+    "comparisons",
+    "preregistration",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-cross-provider-[a-z0-9-]+$"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "preregistered",
+        "closed_without_result"
+      ]
+    },
+    "evidence_scope": {
+      "enum": [
+        "provider_metadata_only",
+        "synthetic_contract_test",
+        "authorized_historical_evaluation"
+      ]
+    },
+    "shared_estimand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimand_id",
+        "event_definition",
+        "analysis_unit",
+        "temporal_aggregation",
+        "target_measure"
+      ],
+      "properties": {
+        "estimand_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "temporal_aggregation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_measure": {
+          "enum": [
+            "binary_event_probability",
+            "event_count",
+            "event_count_distribution",
+            "event_interval",
+            "ordinal_risk",
+            "other"
+          ]
+        },
+        "mapping_policy_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mapping_policy_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "release_id",
+        "target_definition",
+        "maturity_rule",
+        "evaluation_as_of",
+        "source_reference",
+        "license_reference"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maturity_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "source_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "license_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "temporal_design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forecast_origin_start",
+        "training_end_exclusive",
+        "calibration_end_exclusive",
+        "test_end_exclusive",
+        "allowed_horizons",
+        "maturity_embargo_rule",
+        "blocked_uncertainty_plan"
+      ],
+      "properties": {
+        "forecast_origin_start": {
+          "type": "string",
+          "format": "date"
+        },
+        "training_end_exclusive": {
+          "type": "string",
+          "format": "date"
+        },
+        "calibration_end_exclusive": {
+          "type": "string",
+          "format": "date"
+        },
+        "test_end_exclusive": {
+          "type": "string",
+          "format": "date"
+        },
+        "allowed_horizons": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "maturity_embargo_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocked_uncertainty_plan": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_authority_status",
+        "disclosure_review_status",
+        "protected_data_public_ci",
+        "stakeholder_cost_policy"
+      ],
+      "properties": {
+        "data_authority_status": {
+          "enum": [
+            "not_reviewed",
+            "authorized",
+            "not_authorized",
+            "not_applicable_metadata_only"
+          ]
+        },
+        "data_authority_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "disclosure_review_status": {
+          "enum": [
+            "not_reviewed",
+            "approved",
+            "restricted",
+            "not_applicable_metadata_only"
+          ]
+        },
+        "disclosure_review_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "protected_data_public_ci": {
+          "const": false
+        },
+        "stakeholder_cost_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "providers": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id",
+          "provider_name",
+          "forecast_release_id",
+          "model_version",
+          "system_reference",
+          "source_code_or_method_reference",
+          "original_target",
+          "event_ontology",
+          "analysis_unit",
+          "temporal_aggregation",
+          "forecast_horizon",
+          "output_type",
+          "license_reference",
+          "artifact_digest"
+        ],
+        "properties": {
+          "provider_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]+$"
+          },
+          "provider_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "forecast_release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "system_reference": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source_code_or_method_reference": {
+            "type": "string",
+            "format": "uri"
+          },
+          "original_target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_ontology": {
+            "type": "string",
+            "minLength": 1
+          },
+          "analysis_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "temporal_aggregation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "forecast_horizon": {
+            "type": "string",
+            "minLength": 1
+          },
+          "output_type": {
+            "enum": [
+              "binary_probability",
+              "event_count",
+              "count_distribution",
+              "prediction_interval",
+              "ordinal_risk",
+              "other"
+            ]
+          },
+          "license_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifact_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "independent_source_capture_verified": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "comparisons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "comparison_id",
+          "left_provider_id",
+          "right_provider_id",
+          "status",
+          "reason",
+          "forecast_skill_comparison_permitted",
+          "decision_value_comparison_permitted"
+        ],
+        "properties": {
+          "comparison_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]+$"
+          },
+          "left_provider_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "right_provider_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "directly_comparable",
+              "comparable_after_predeclared_mapping",
+              "not_comparable"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "forecast_skill_comparison_permitted": {
+            "type": "boolean"
+          },
+          "decision_value_comparison_permitted": {
+            "type": "boolean"
+          },
+          "common_row_policy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mapping": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method_reference",
+                  "method_sha256",
+                  "independently_verified",
+                  "review_reference"
+                ],
+                "properties": {
+                  "method_reference": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "method_sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "independently_verified": {
+                    "const": true
+                  },
+                  "review_reference": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "not_comparable"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "forecast_skill_comparison_permitted": {
+                  "const": false
+                },
+                "decision_value_comparison_permitted": {
+                  "const": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "directly_comparable"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "forecast_skill_comparison_permitted": {
+                  "const": true
+                },
+                "mapping": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "mapping",
+                "common_row_policy"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "comparable_after_predeclared_mapping"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "forecast_skill_comparison_permitted": {
+                  "const": true
+                },
+                "mapping": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "mapping",
+                "common_row_policy"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registered_at",
+        "primary_metrics_by_output_type",
+        "baselines",
+        "selection_policy",
+        "primary_horizons",
+        "uncertainty_reporting",
+        "analysis_commit"
+      ],
+      "properties": {
+        "registered_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "public_registration_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "primary_metrics_by_output_type": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "baselines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "selection_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_horizons": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "uncertainty_reporting": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forecast_skill_only_until_validated",
+        "causal_impact_established",
+        "live_decision_authority"
+      ],
+      "properties": {
+        "forecast_skill_only_until_validated": {
+          "const": true
+        },
+        "causal_impact_established": {
+          "const": false
+        },
+        "live_decision_authority": {
+          "const": false
+        }
+      }
+    }
+  }
+}
