@@ -8,8 +8,9 @@ use symtropy_animal_observation::{
     SourceSnapshot, SplitRecord, SplitRole, TaxonomyBinding, TimeBasis,
 };
 use symtropy_animal_replay::{
-    BaselineReference, ConfidenceInterval, DecisionThreshold, EvaluationMode, MetricObservation,
-    MetricState, MetricStratumKind, ReplayDisposition, ReplayReason, ReplayTaskSpec, RunIdentity,
+    BaselineComparisonOutcome, BaselineReference, ConfidenceInterval, DecisionThreshold,
+    EvaluationMode, MetricObjective, MetricObservation, MetricState, MetricStratumKind,
+    PairedBaselineComparison, ReplayDisposition, ReplayReason, ReplayTaskSpec, RunIdentity,
     ThresholdDirection, ThresholdOutcome, build_replay_receipt,
 };
 use symtropy_fauna_core::{AnimalProfile, EvidenceClass, EvidenceState, TaxonBinding};
@@ -48,6 +49,7 @@ struct TestInputs {
     run: RunIdentity,
     metrics: Vec<MetricObservation>,
     baselines: Vec<BaselineReference>,
+    paired_comparisons: Vec<PairedBaselineComparison>,
 }
 
 fn profile_templates() -> ProfileFixture {
@@ -239,6 +241,24 @@ fn valid_inputs() -> TestInputs {
             compute_budget: "unit-test".to_owned(),
             primary_metric: metric("pose_pck", 0.4, "fraction"),
         }],
+        paired_comparisons: vec![PairedBaselineComparison {
+            baseline_id: "persistence".to_owned(),
+            metric_id: "pose_pck".to_owned(),
+            stratum_kind: MetricStratumKind::Overall,
+            stratum_id: "all".to_owned(),
+            comparison_group: "synthetic-protocol-v1".to_owned(),
+            objective: MetricObjective::HigherIsBetter,
+            pairing_unit: "animal".to_owned(),
+            independent_unit_count: 10,
+            mean_difference: Some(0.5),
+            difference_interval: Some(ConfidenceInterval {
+                confidence_percent: 90,
+                lower: 0.35,
+                upper: 0.65,
+            }),
+            minimum_effect_size: 0.1,
+            non_inferiority_margin: 0.05,
+        }],
     }
 }
 
@@ -380,6 +400,7 @@ fn build(inputs: TestInputs) -> symtropy_animal_replay::ReplayReceipt {
         inputs.run,
         inputs.metrics,
         inputs.baselines,
+        inputs.paired_comparisons,
     )
     .unwrap()
 }
