@@ -37,6 +37,7 @@ struct Stage {
     carrier: Carrier,
     efficiency_fraction: f64,
     max_output_kw: Option<f64>,
+    temperature_drop_c: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -64,12 +65,13 @@ struct PathResult {
     label: String,
     evidence_class: String,
     carrier: Carrier,
+    delivery_temperature_at_load_c: Option<f64>,
     status: Status,
     source_energy_kwh: f64,
     delivered_power_kw: f64,
     delivered_energy_kwh: f64,
     source_power_not_delivered_kw: f64,
-    source_power_not_delivered_kwh: f64,
+    source_energy_not_delivered_kwh: f64,
     stages: Vec<StageResult>,
     findings: Vec<String>,
     claim_ceiling: &'static str,
@@ -142,9 +144,10 @@ fn evaluate(path: &EnergyPath) -> PathResult {
 
     if let Some(error) = validate(path) {
         findings.push(error);
-        return empty_result(path, Status::InvalidInput, findings);
+        return empty_result(path, Status::InvalidInput, findings, None);
     }
 
+    let mut delivery_temperature_at_load_c = None;
     if path.carrier == Carrier::Thermal {
         match (
             path.source_temperature_c,
@@ -152,14 +155,21 @@ fn evaluate(path: &EnergyPath) -> PathResult {
             path.minimum_approach_temperature_c,
         ) {
             (Some(source_temp), Some(required_temp), Some(approach)) => {
-                if source_temp - approach < required_temp {
-                    findings.push("source_temperature_cannot_meet_required_delivery_temperature_with_declared_approach".to_string());
-                    return empty_result(path, Status::NotFeasibleUnderDeclaredScreen, findings);
+                let drops: Option<Vec<f64>> = path.stages.iter().map(|stage| stage.temperature_drop_c).collect();
+                let Some(drops) = drops else {
+                    findings.push("thermal_route_missing_one_or_more_stage_temperature_drops".to_string());
+                    return empty_result(path, Status::Indeterminate, findings, None);
+                };
+                let delivered_temp = source_temp - drops.iter().sum::<f64>();
+                delivery_temperature_at_load_c = Some(delivered_temp);
+                if delivered_temp - approach < required_temp {
+                    findings.push("source_temperature_cannot_meet_required_delivery_temperature_after_declared_stage_drops_and_approach".to_string());
+                    return empty_result(path, Status::NotFeasibleUnderDeclaredScreen, findings, Some(delivered_temp));
                 }
             }
             _ => {
                 findings.push("thermal_route_missing_source_delivery_or_approach_temperature".to_string());
-                return empty_result(path, Status::Indeterminate, findings);
+                return empty_result(path, Status::Indeterminate, findings, None);
             }
         }
     }
@@ -205,12 +215,13 @@ fn evaluate(path: &EnergyPath) -> PathResult {
         label: path.label.clone(),
         evidence_class: path.evidence_class.clone(),
         carrier: path.carrier,
+        delivery_temperature_at_load_c,
         status,
         source_energy_kwh: source_energy,
         delivered_power_kw: current_power,
         delivered_energy_kwh: delivered_energy,
         source_power_not_delivered_kw: total_loss_power,
-        source_power_not_delivered_kwh: total_loss_energy,
+        source_energy_not_delivered_kwh: total_loss_energy,
         stages: stage_results,
         findings,
         claim_ceiling: CLAIM_CEILING,
@@ -260,6 +271,11 @@ fn validate(path: &EnergyPath) -> Option<String> {
                 return Some("stage_max_output_kw_must_be_finite_and_positive_when_present".to_string());
             }
         }
+        if let Some(drop) = stage.temperature_drop_c {
+            if !drop.is_finite() || drop < 0.0 {
+                return Some("stage_temperature_drop_c_must_be_finite_and_nonnegative_when_present".to_string());
+            }
+        }
     }
 
     for value in [
@@ -283,18 +299,30 @@ fn validate(path: &EnergyPath) -> Option<String> {
     None
 }
 
-fn empty_result(path: &EnergyPath, status: Status, findings: Vec<String>) -> PathResult {
+fn empty_result(path: &EnergyPath, status: Status, findings: Vec<String>, delivery_temperature_at_load_c: Option<f64>) -> PathResult {
+    let source_power = if path.source_available_kw.is_finite() && path.source_available_kw > 0.0 {
+        path.source_available_kw
+    } else {
+        0.0
+    };
+    let hours = if path.operation_hours.is_finite() && path.operation_hours > 0.0 {
+        path.operation_hours
+    } else {
+        0.0
+    };
+    let source_energy = source_power * hours;
     PathResult {
         scenario_id: path.scenario_id.clone(),
         label: path.label.clone(),
         evidence_class: path.evidence_class.clone(),
         carrier: path.carrier,
+        delivery_temperature_at_load_c,
         status,
-        source_energy_kwh: path.source_available_kw * path.operation_hours,
+        source_energy_kwh: source_energy,
         delivered_power_kw: 0.0,
         delivered_energy_kwh: 0.0,
-        source_power_not_delivered_kw: 0.0,
-        source_power_not_delivered_kwh: 0.0,
+        source_power_not_delivered_kw: source_power,
+        source_energy_not_delivered_kwh: source_energy,
         stages: Vec::new(),
         findings,
         claim_ceiling: CLAIM_CEILING,
@@ -323,12 +351,14 @@ mod tests {
                     carrier: Carrier::Electrical,
                     efficiency_fraction: 0.98,
                     max_output_kw: Some(950.0),
+                temperature_drop_c: None,
                 },
                 Stage {
                     stage_id: "converter".into(),
                     carrier: Carrier::Electrical,
                     efficiency_fraction: 0.95,
                     max_output_kw: None,
+                temperature_drop_c: None,
                 },
             ],
         }
@@ -362,6 +392,7 @@ mod tests {
         path.minimum_approach_temperature_c = Some(15.0);
         for stage in &mut path.stages {
             stage.carrier = Carrier::Thermal;
+            stage.temperature_drop_c = Some(0.0);
         }
         let result = evaluate(&path);
         assert_eq!(result.status, Status::NotFeasibleUnderDeclaredScreen);
