@@ -55,9 +55,10 @@ Software/benchmark conformance gates:
 - Every part is counted exactly once as either conforming output or escaped defect; counts reconcile for every run.
 - No run returns non-finite or non-positive simulated time.
 - Replaying the same scenario, policy, and seed returns exactly identical metrics.
-- The condition-based policy must beat fixed-cycle maintenance on first-pass yield, escape rate, and conforming throughput in nominal, gradual_wear, and shock_stress.
-- In biased_sensor_negative_control, fixed-cycle maintenance must outperform condition-based maintenance on those same three metrics. The negative control forbids claims that adaptive maintenance is universally superior.
-- A focused workflow runs format, tests, Clippy, and the standalone check command.
+- For the three designed positive-control scenarios, the condition-based policy's point estimates must improve first-pass yield, escape rate, and conforming throughput relative to fixed-cycle maintenance.
+- The report must include paired descriptive intervals. If an interval crosses zero, the result must be described as inconclusive for that metric; a favorable point estimate is not a robust improvement claim.
+- In biased_sensor_negative_control, fixed-cycle maintenance must outperform the condition-based policy on those same three point estimates. The negative control forbids claims that adaptive maintenance is universally superior.
+- A focused workflow runs formatting, tests, Clippy, the standalone check, JSON schema assertions, and report artifact publication.
 
 Targets for later physical qualification—not current results:
 
