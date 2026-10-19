@@ -697,3 +697,168 @@ fn main() {
         _ => usage(),
     }
 }
+
+#[cfg(test)]
+mod receipt_cli_tests {
+    use super::*;
+    use symtropy_experiment_core::{
+        analyze_harmonic_oscillator_convergence, simulate_harmonic_oscillator,
+    };
+
+    fn verify<M: Serialize>(
+        receipt: &RunReceipt,
+        input: &str,
+        model: &M,
+        envelope: &Value,
+    ) -> symtropy_experiment_core::RunReceiptVerification {
+        let model_bytes = serde_json::to_vec(model).unwrap();
+        let output_bytes = canonical_output_payload_bytes(envelope, receipt).unwrap();
+        receipt
+            .verify_artifact_bytes(input.as_bytes(), &model_bytes, &output_bytes)
+            .unwrap()
+    }
+
+    fn graph_fixture() -> (String, ExperimentGraph) {
+        let raw = include_str!("../fixtures/gear-ratio.json").to_owned();
+        let graph = serde_json::from_str(&raw).unwrap();
+        (raw, graph)
+    }
+
+    #[test]
+    fn run_envelope_verifies_against_original_input_and_output() {
+        let (raw, graph) = graph_fixture();
+        let values = graph.evaluate().unwrap();
+        let receipt = RunReceipt::build(
+            "run",
+            raw.as_bytes(),
+            &graph,
+            &values,
+            Some(graph.id.clone()),
+            Some(graph.schema_version.clone()),
+            Some(UNIT_REGISTRY_VERSION.to_owned()),
+            settings(&[("numeric_format", "IEEE-754 binary64".to_owned())]),
+        ).unwrap();
+        let envelope = serde_json::json!({"values": &values, "run_receipt": &receipt});
+        assert!(verify(&receipt, &raw, &graph, &envelope).is_valid());
+    }
+
+    #[test]
+    fn edited_run_output_fails_artifact_verification() {
+        let (raw, graph) = graph_fixture();
+        let values = graph.evaluate().unwrap();
+        let receipt = RunReceipt::build(
+            "run",
+            raw.as_bytes(),
+            &graph,
+            &values,
+            Some(graph.id.clone()),
+            Some(graph.schema_version.clone()),
+            Some(UNIT_REGISTRY_VERSION.to_owned()),
+            settings(&[("numeric_format", "IEEE-754 binary64".to_owned())]),
+        ).unwrap();
+        let mut changed_values = values;
+        changed_values.insert("variable:theta_output".to_owned(), "999".to_owned());
+        let envelope = serde_json::json!({"values": changed_values, "run_receipt": &receipt});
+        let verified = verify(&receipt, &raw, &graph, &envelope);
+        assert!(verified.receipt_digest_valid);
+        assert!(!verified.output_payload_digest_matches);
+        assert!(!verified.is_valid());
+    }
+
+    #[test]
+    fn sweep_envelope_reconstructs_typed_sweep_payload() {
+        let (raw, graph) = graph_fixture();
+        let points = graph.run_parameter_sweep(
+            "variable:n_driver",
+            &["47".to_owned(), "48".to_owned(), "49".to_owned()],
+        ).unwrap();
+        let receipt = RunReceipt::build(
+            "sweep",
+            raw.as_bytes(),
+            &graph,
+            &points,
+            Some(graph.id.clone()),
+            Some(graph.schema_version.clone()),
+            Some(UNIT_REGISTRY_VERSION.to_owned()),
+            settings(&[
+                ("swept_variable_id", "variable:n_driver".to_owned()),
+                ("sweep_values", "47,48,49".to_owned()),
+            ]),
+        ).unwrap();
+        let envelope = serde_json::json!({"points": &points, "run_receipt": &receipt});
+        assert!(verify(&receipt, &raw, &graph, &envelope).is_valid());
+    }
+
+    #[test]
+    fn inspection_envelope_reconstructs_projection_payload() {
+        let (raw, graph) = graph_fixture();
+        let projection = graph.visual_math_projection().unwrap();
+        let baseline = serde_json::json!({"executed": true, "values": graph.evaluate().unwrap(), "error": null});
+        let output = serde_json::json!({"projection": &projection, "baseline_evaluation": &baseline});
+        let receipt = RunReceipt::build(
+            "inspect",
+            raw.as_bytes(),
+            &graph,
+            &output,
+            Some(graph.id.clone()),
+            Some(graph.schema_version.clone()),
+            Some(UNIT_REGISTRY_VERSION.to_owned()),
+            settings(&[("projection", "renderer_neutral_visual_math_projection".to_owned())]),
+        ).unwrap();
+        let envelope = serde_json::json!({
+            "projection": projection,
+            "baseline_evaluation": baseline,
+            "run_receipt": &receipt,
+        });
+        assert!(verify(&receipt, &raw, &graph, &envelope).is_valid());
+    }
+
+    #[test]
+    fn oscillator_envelope_verifies_against_typed_result_payload() {
+        let raw = include_str!("../fixtures/harmonic-oscillator.json");
+        let spec: HarmonicOscillatorSpec = serde_json::from_str(raw).unwrap();
+        let result = simulate_harmonic_oscillator(&spec).unwrap();
+        let receipt = RunReceipt::build(
+            "oscillator",
+            raw.as_bytes(),
+            &spec,
+            &result,
+            Some(spec.id.clone()),
+            Some(spec.schema_version.clone()),
+            None,
+            settings(&[
+                ("integrator", format!("{:?}", spec.integrator)),
+                ("time_step_s", spec.time_step_s.to_string()),
+                ("duration_s", spec.duration_s.to_string()),
+            ]),
+        ).unwrap();
+        let envelope = serde_json::json!({"result": &result, "run_receipt": &receipt});
+        assert!(verify(&receipt, raw, &spec, &envelope).is_valid());
+    }
+
+    #[test]
+    fn convergence_envelope_verifies_typed_report_and_step_sequence() {
+        let raw = include_str!("../fixtures/harmonic-oscillator.json");
+        let spec: HarmonicOscillatorSpec = serde_json::from_str(raw).unwrap();
+        let steps = vec![0.04, 0.02, 0.01, 0.005];
+        let report = analyze_harmonic_oscillator_convergence(&spec, &steps).unwrap();
+        let step_csv = "0.04,0.02,0.01,0.005";
+        let receipt = RunReceipt::build(
+            "oscillator-convergence",
+            raw.as_bytes(),
+            &spec,
+            &report,
+            Some(spec.id.clone()),
+            Some(spec.schema_version.clone()),
+            None,
+            settings(&[
+                ("integrator", format!("{:?}", spec.integrator)),
+                ("coarse_to_fine_time_steps_s", step_csv.to_owned()),
+                ("duration_s", spec.duration_s.to_string()),
+            ]),
+        ).unwrap();
+        let envelope = serde_json::json!({"report": &report, "run_receipt": &receipt});
+        assert!(verify(&receipt, raw, &spec, &envelope).is_valid());
+    }
+}
+
