@@ -123,6 +123,43 @@ pub enum EquationBasis {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VisualMathVariable {
+    pub id: String,
+    pub symbol: String,
+    pub description: String,
+    pub unit: String,
+    pub dimension: Dimension,
+    pub role: VariableRole,
+    pub value_decimal: Option<String>,
+    pub evidence_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VisualMathEquation {
+    pub id: String,
+    pub operator: EquationOperator,
+    pub input_variable_ids: Vec<String>,
+    pub output_variable_id: String,
+    /// Generated from the executable operator and variable symbols, never a separate caption.
+    pub rendered_expression: String,
+    pub basis: EquationBasis,
+    pub basis_note: String,
+    pub evidence_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VisualMathProjection {
+    pub schema_version: String,
+    pub experiment_id: String,
+    pub title: String,
+    pub question: String,
+    pub kind: ExperimentKind,
+    pub variables: Vec<VisualMathVariable>,
+    pub equations: Vec<VisualMathEquation>,
+    pub limitations: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EquationNode {
     pub id: String,
     pub operator: EquationOperator,
@@ -289,6 +326,61 @@ fn combined_dimension(left: Dimension, right: Dimension, subtract: bool) -> Opti
 }
 
 impl ExperimentGraph {
+    /// Generate a renderer-neutral view of the executable graph.
+    ///
+    /// Variables and equations retain canonical IDs; formula text is derived from the actual
+    /// operator graph, so UI labels cannot silently diverge from the operation being executed.
+    /// This is a view projection, not a second model or a scientific validation result.
+    pub fn visual_math_projection(&self) -> Result<VisualMathProjection, String> {
+        let report = self.validate();
+        if !report.is_valid() {
+            return Err(format!("experiment graph is invalid: {:?}", report.issues));
+        }
+
+        let variables: Vec<VisualMathVariable> = self
+            .variables
+            .iter()
+            .map(|variable| VisualMathVariable {
+                id: variable.id.clone(),
+                symbol: variable.symbol.clone(),
+                description: variable.description.clone(),
+                unit: variable.unit.clone(),
+                dimension: variable.dimension,
+                role: variable.role,
+                value_decimal: variable.value_decimal.clone(),
+                evidence_ids: variable.evidence_ids.clone(),
+            })
+            .collect();
+
+        let equations: Result<Vec<VisualMathEquation>, String> = self
+            .equations
+            .iter()
+            .map(|equation| {
+                Ok(VisualMathEquation {
+                    id: equation.id.clone(),
+                    operator: equation.operator,
+                    input_variable_ids: equation.input_variable_ids.clone(),
+                    output_variable_id: equation.output_variable_id.clone(),
+                    rendered_expression: equation.canonical_expression(self)?,
+                    basis: equation.basis,
+                    basis_note: equation.basis_note.clone(),
+                    evidence_ids: equation.evidence_ids.clone(),
+                })
+            })
+            .collect();
+
+        Ok(VisualMathProjection {
+            schema_version: self.schema_version.clone(),
+            experiment_id: self.id.clone(),
+            title: self.title.clone(),
+            question: self.question.clone(),
+            kind: self.kind,
+            variables,
+            equations: equations?,
+            limitations: self.limitations.clone(),
+        })
+    }
+
     /// Structural and dimensional validation. This does not establish the scientific truth of
     /// an equation or the semantic entailment of its evidence.
     pub fn validate(&self) -> ValidationReport {
@@ -774,6 +866,30 @@ mod tests {
         assert!(report.issues.iter().any(|item| {
             item.code == ValidationCode::DuplicateEquationOutput
         }));
+    }
+
+    #[test]
+    fn visual_projection_uses_executable_formula_and_canonical_ids() {
+        let graph = gear_graph();
+        let projection = graph.visual_math_projection().unwrap();
+        assert_eq!(projection.experiment_id, graph.id);
+        assert_eq!(projection.variables.len(), graph.variables.len());
+        assert_eq!(projection.equations.len(), graph.equations.len());
+        let ratio = projection.equations
+            .iter()
+            .find(|node| node.id == "equation:gear-ratio")
+            .unwrap();
+        assert_eq!(ratio.rendered_expression, "r = N_driver / N_driven");
+        assert_eq!(ratio.input_variable_ids,
+            vec!["variable:n_driver".to_owned(), "variable:n_driven".to_owned()]);
+        assert_eq!(ratio.output_variable_id, "variable:gear_ratio");
+    }
+
+    #[test]
+    fn visual_projection_rejects_invalid_graph_instead_of_rendering_it_as_valid() {
+        let mut graph = gear_graph();
+        graph.equations[0].output_variable_id = "variable:missing-output".to_owned();
+        assert!(graph.visual_math_projection().is_err());
     }
 
     #[test]
