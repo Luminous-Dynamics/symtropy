@@ -79,6 +79,12 @@ pub enum GateState {
 pub struct HardGates {
     pub geotechnical: GateState,
     pub hydrogeological: GateState,
+    pub seismic_hazard_characterization: GateState,
+    pub active_fault_displacement: GateState,
+    pub liquefaction_lateral_spread_and_slope: GateState,
+    pub seismic_lining_and_interface_design: GateState,
+    pub portal_shaft_and_station_interfaces: GateState,
+    pub post_event_inspection_and_recovery: GateState,
     pub rights_and_permits: GateState,
     pub environmental: GateState,
     pub emergency_egress: GateState,
@@ -86,10 +92,28 @@ pub struct HardGates {
 }
 
 impl HardGates {
-    fn states(self) -> [(&'static str, GateState); 6] {
+    fn states(self) -> [(&'static str, GateState); 12] {
         [
             ("geotechnical", self.geotechnical),
             ("hydrogeological", self.hydrogeological),
+            ("seismic_hazard_characterization", self.seismic_hazard_characterization),
+            ("active_fault_displacement", self.active_fault_displacement),
+            (
+                "liquefaction_lateral_spread_and_slope",
+                self.liquefaction_lateral_spread_and_slope,
+            ),
+            (
+                "seismic_lining_and_interface_design",
+                self.seismic_lining_and_interface_design,
+            ),
+            (
+                "portal_shaft_and_station_interfaces",
+                self.portal_shaft_and_station_interfaces,
+            ),
+            (
+                "post_event_inspection_and_recovery",
+                self.post_event_inspection_and_recovery,
+            ),
             ("rights_and_permits", self.rights_and_permits),
             ("environmental", self.environmental),
             ("emergency_egress", self.emergency_egress),
@@ -101,6 +125,12 @@ impl HardGates {
         Self {
             geotechnical: GateState::Satisfied,
             hydrogeological: GateState::Satisfied,
+            seismic_hazard_characterization: GateState::Satisfied,
+            active_fault_displacement: GateState::Satisfied,
+            liquefaction_lateral_spread_and_slope: GateState::Satisfied,
+            seismic_lining_and_interface_design: GateState::Satisfied,
+            portal_shaft_and_station_interfaces: GateState::Satisfied,
+            post_event_inspection_and_recovery: GateState::Satisfied,
             rights_and_permits: GateState::Satisfied,
             environmental: GateState::Satisfied,
             emergency_egress: GateState::Satisfied,
@@ -694,6 +724,41 @@ mod tests {
         assert_eq!(result.disposition, Disposition::NeedsEvidence);
         assert!(result.metrics.is_none());
         assert!(result.reasons.iter().any(|r| r == "NEEDS_EVIDENCE:hydrogeological"));
+    }
+
+    #[test]
+    fn unknown_seismic_hazard_blocks_comparison() {
+        let mut candidate = base_candidate();
+        candidate.gates.seismic_hazard_characterization = GateState::Unknown;
+        let result = evaluate(&candidate);
+        assert_eq!(result.disposition, Disposition::NeedsEvidence);
+        assert!(result.metrics.is_none());
+        assert!(result
+            .reasons
+            .iter()
+            .any(|r| r == "NEEDS_EVIDENCE:seismic_hazard_characterization"));
+    }
+
+    #[test]
+    fn active_fault_displacement_failure_blocks_comparison() {
+        let mut candidate = base_candidate();
+        candidate.gates.active_fault_displacement = GateState::Failed;
+        let result = evaluate(&candidate);
+        assert_eq!(result.disposition, Disposition::Ineligible);
+        assert!(result.metrics.is_none());
+        assert!(result
+            .reasons
+            .iter()
+            .any(|r| r == "GATE_FAILED:active_fault_displacement"));
+    }
+
+    #[test]
+    fn unknown_post_event_recovery_evidence_blocks_comparison() {
+        let mut candidate = base_candidate();
+        candidate.gates.post_event_inspection_and_recovery = GateState::Unknown;
+        let result = evaluate(&candidate);
+        assert_eq!(result.disposition, Disposition::NeedsEvidence);
+        assert!(result.metrics.is_none());
     }
 
     #[test]
