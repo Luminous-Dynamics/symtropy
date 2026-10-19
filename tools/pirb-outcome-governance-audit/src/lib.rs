@@ -1,7 +1,9 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use serde_json::{Value, json};
+use serde_json::Value;
+#[cfg(test)]
+use serde_json::json;
 
 const SCHEMA: &str =
     include_str!("../../../docs/schemas/peacebuilding-outcome-governance-v0.2.schema.json");
@@ -14,6 +16,25 @@ fn parsed_schema() -> Value {
 
 fn example_contract() -> Value {
     serde_json::from_str(EXAMPLE).expect("checked-in v0.2 example must parse")
+}
+
+fn state_implied_by_event(event: &Value) -> Option<&'static str> {
+    match event.get("event_type").and_then(Value::as_str) {
+        Some("proposed") => Some("proposed"),
+        Some("approved") => Some("approved"),
+        Some("activated") => Some("active"),
+        Some("review_required") => Some("review_required"),
+        Some("blocked") => Some("blocked"),
+        Some("suspended") => Some("suspended"),
+        Some("superseded") => Some("superseded"),
+        Some("retired") => Some("retired"),
+        Some("challenged")
+            if event.get("decision").and_then(Value::as_str) == Some("review_required") =>
+        {
+            Some("review_required")
+        }
+        _ => None,
+    }
 }
 
 fn semantic_errors(contract: &Value) -> Vec<String> {
@@ -83,20 +104,51 @@ fn semantic_errors(contract: &Value) -> Vec<String> {
                     .to_owned(),
             ),
         }
-        if current_version_events
-            .last()
-            .and_then(|event| event.get("event_type"))
-            .and_then(Value::as_str)
-            != Some("activated")
-        {
-            findings.push(
-                "active metric version must end its current-version governance history with an activation event"
-                    .to_owned(),
-            );
-        }
+    }
+
+    let declared_status = contract.get("status").and_then(Value::as_str);
+    let implied_status = current_version_events
+        .iter()
+        .rev()
+        .find_map(|event| state_implied_by_event(event));
+    if let Some(implied_status) = implied_status
+        && declared_status != Some(implied_status)
+    {
+        findings.push(format!(
+            "declared status {declared_status:?} disagrees with final governance event state {implied_status:?}"
+        ));
     }
 
     findings
+}
+
+/// Validate the checked-in schema against JSON Schema Draft 2020-12.
+pub fn validate_schema_document() -> Result<(), String> {
+    let schema = parsed_schema();
+    jsonschema::draft202012::meta::validate(&schema)
+        .map_err(|error| format!("Draft 2020-12 schema meta-validation failed: {error}"))
+}
+
+/// Validate one metric contract structurally and against governance-event invariants.
+pub fn validate_metric_contract(contract: &Value) -> Result<(), Vec<String>> {
+    if let Err(error) = validate_schema_document() {
+        return Err(vec![error]);
+    }
+
+    let mut findings = validation_errors(contract);
+    if findings.is_empty() {
+        findings.extend(semantic_errors(contract));
+    }
+    if findings.is_empty() {
+        Ok(())
+    } else {
+        Err(findings)
+    }
+}
+
+/// Validate the checked-in synthetic example through the same public API consumers use.
+pub fn validate_example_metric() -> Result<(), Vec<String>> {
+    validate_metric_contract(&example_contract())
 }
 
 fn validation_errors(instance: &Value) -> Vec<String> {
@@ -181,8 +233,29 @@ fn challenge_after_activation_prevents_active_status_from_remaining_silent() {
     assert!(
         errors
             .iter()
-            .any(|error| error.contains("must end its current-version governance history"))
+            .any(|error| error.contains("status") && error.contains("disagrees"))
     );
+
+    value["status"] = json!("review_required");
+    let review_status_errors = semantic_errors(&value);
+    assert!(
+        !review_status_errors
+            .iter()
+            .any(|error| error.contains("status") && error.contains("disagrees"))
+    );
+}
+
+#[test]
+fn public_validator_accepts_checked_in_example() {
+    assert!(validate_example_metric().is_ok());
+}
+
+#[test]
+fn public_validator_rejects_lifecycle_and_history_mutations() {
+    let mut value = example_contract();
+    value["status"] = json!("active");
+    value["approval"]["state"] = json!("contested");
+    assert!(validate_metric_contract(&value).is_err());
 }
 
 #[test]
