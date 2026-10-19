@@ -45,6 +45,23 @@ pub struct RunReceipt {
     pub receipt_sha256: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RunReceiptVerification {
+    pub receipt_digest_valid: bool,
+    pub input_artifact_digest_matches: bool,
+    pub serialized_model_digest_matches: bool,
+    pub output_payload_digest_matches: bool,
+}
+
+impl RunReceiptVerification {
+    pub fn is_valid(&self) -> bool {
+        self.receipt_digest_valid
+            && self.input_artifact_digest_matches
+            && self.serialized_model_digest_matches
+            && self.output_payload_digest_matches
+    }
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     format!("{digest:x}")
@@ -118,6 +135,28 @@ impl RunReceipt {
     pub fn verify(&self) -> Result<bool, String> {
         let expected = sha256_hex(&deterministic_json_bytes(&self.payload)?);
         Ok(expected == self.receipt_sha256)
+    }
+
+    /// Verify the receipt and the supplied byte-for-byte input/model/output representations.
+    ///
+    /// The caller must serialize the parsed model and output payload with the same representation
+    /// used when the receipt was produced. This function reports each link separately so a
+    /// consumer can diagnose which artifact no longer matches.
+    pub fn verify_artifact_bytes(
+        &self,
+        input_artifact_bytes: &[u8],
+        serialized_model_bytes: &[u8],
+        output_payload_bytes: &[u8],
+    ) -> Result<RunReceiptVerification, String> {
+        Ok(RunReceiptVerification {
+            receipt_digest_valid: self.verify()?,
+            input_artifact_digest_matches: sha256_hex(input_artifact_bytes)
+                == self.payload.input_artifact_sha256,
+            serialized_model_digest_matches: sha256_hex(serialized_model_bytes)
+                == self.payload.serialized_model_sha256,
+            output_payload_digest_matches: sha256_hex(output_payload_bytes)
+                == self.payload.output_payload_sha256,
+        })
     }
 }
 
@@ -214,6 +253,29 @@ mod tests {
         assert_eq!(value.payload.receipt_schema_version, RUN_RECEIPT_SCHEMA_VERSION);
         assert_eq!(value.payload.digest_algorithm, "sha256");
         assert_eq!(value.payload.unit_registry_version.as_deref(), Some("0.1.0"));
+    }
+
+    #[test]
+    fn artifact_verification_reports_each_digest_link_separately() {
+        let input = br#"{"a":1}"#;
+        let model = json!({"a": 1});
+        let output = json!({"answer": 42});
+        let value = receipt(input, &model, &output);
+        let model_bytes = deterministic_json_bytes(&model).unwrap();
+        let output_bytes = deterministic_json_bytes(&output).unwrap();
+
+        let valid = value.verify_artifact_bytes(input, &model_bytes, &output_bytes).unwrap();
+        assert!(valid.is_valid());
+
+        let bad_input = value.verify_artifact_bytes(br#"{"a":2}"#, &model_bytes, &output_bytes).unwrap();
+        assert!(!bad_input.input_artifact_digest_matches);
+        assert!(bad_input.serialized_model_digest_matches);
+        assert!(bad_input.output_payload_digest_matches);
+
+        let bad_output = value.verify_artifact_bytes(input, &model_bytes, br#"{"answer":43}"#).unwrap();
+        assert!(bad_output.receipt_digest_valid);
+        assert!(!bad_output.output_payload_digest_matches);
+        assert!(!bad_output.is_valid());
     }
 
     #[test]
