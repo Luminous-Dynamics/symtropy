@@ -1100,6 +1100,22 @@ mod tests {
     }
 
     #[test]
+    fn query_uri_must_pin_the_declared_partition_path() {
+        let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
+        let query = manifest["releases"][0]["query_uri"].as_str().unwrap().to_owned();
+        manifest["releases"][0]["query_uri"] =
+            Value::String(query.replace("/eval?", "/predict?"));
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("declared probability variable"))
+        );
+    }
+
+    #[test]
     fn adapter_refuses_count_variable_even_if_numeric_values_are_bounded() {
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
         manifest["source"]["codebook_variable_key"] = Value::String("main_mean".to_owned());
