@@ -162,3 +162,24 @@ Do not set an arbitrary percentage improvement, adoption/retention target or aff
 ## 10. Claim ceiling
 
 Stage 0 supports only claims about synthetic model and fixture behavior. Stage 1 supports only formative comprehension/usability observations under the exact declared script, language, prototype and participants. Stage 2 supports descriptive feasibility and scoped service-outcome estimates for the declared cohort. Stage 3 supports causal claims only if its predeclared design and assumptions justify them. None alone proves broad South African adoption, causal yield/income/water benefits, universal channel superiority or agricultural safety.
+
+
+## 11. Executable report-integrity gate
+
+The draft implementation adds `src/field_eval_report.rs`, the `verify-field-eval-report` CLI, and `tests/field_eval_report_independent_oracle.rs` in the existing `symtropy-garden-sim` crate. This tool is a **measurement-layer report checker**, not a second service lifecycle evaluator.
+
+For each declared study report it checks:
+- screened requests = eligible requests + protocol exclusions;
+- six mutually exclusive eligible-outcome classes reconcile exactly to the eligible denominator;
+- typed non-acceptance reason counts reconcile exactly to the known-not-accepted class;
+- a completed-but-pending-farmer-decision count is no larger than the union of unascertained unknown/missing outcomes and is not added again to the denominator;
+- opaque, bounded references and a supported schema version are present; unknown JSON fields are rejected;
+- integer sums and rate numerators do not overflow.
+
+The output carries an SHA-256 digest of the exact input bytes and exact count bounds, not rounded floating-point rates. For (N\) eligible requests, (A\) confirmed within-window acceptances, and (U\) unascertained outcomes:
+- **lower evidence bound:** (A/N\);
+- **upper identification bound:** ((A+U)/N\).
+
+Known late acceptances, typed nonacceptance, and recorded disputes/rework do not inflate the upper bound. The identification bounds are not confidence intervals; sampling uncertainty and causal inference require a separately declared analysis plan. A zero-eligible report is `NotAssessable`, not a zero-percent success/failure.
+
+The checker still cannot validate individual lifecycle events, authenticate evidence, establish that a relayer had real authority, or infer field impact. This is a synthetic arithmetic gate; exact-head CI, independent review, and local study approvals remain required before any field use.
