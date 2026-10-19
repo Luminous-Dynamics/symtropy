@@ -18,6 +18,7 @@ pub mod field_observability;
 pub mod inspector;
 pub mod material;
 pub mod projection;
+pub mod spectral_response;
 pub mod sync;
 pub mod telemetry_ssbo;
 
@@ -39,3 +40,9 @@ pub use material::{
 pub use projection::{Projector, Projector2D, Projector3D, Projector4D};
 pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
 pub use telemetry_ssbo::{LinkTelemetryGpu, NodeTelemetryGpu, TelemetryBufferResource};
+
+pub use spectral_response::{
+    integrate_spectral_response, SpectralBandObservation, SpectralResponseError,
+    SpectralResponseFunction, SpectralResponseSample, SpectralSignalCurve,
+    SpectralSignalQuantity, SpectralSignalSample,
+};
