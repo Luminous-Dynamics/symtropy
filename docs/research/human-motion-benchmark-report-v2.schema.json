@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/human-animation-foundation/docs/research/human-motion-benchmark-report-v2.schema.json",
+  "$id": "urn:luminous-dynamics:symtropy:human-motion-benchmark-report:2",
   "title": "Symtropy Human Motion Benchmark Report v2",
   "description": "Schema for report JSON emitted by human-motion-bench. Evidence scope is derived from declared metadata and does not independently authenticate rights or consent. Root orientation is null for v0.1 trace comparisons; yaw metrics are null when heading is undefined.",
   "type": "object",
