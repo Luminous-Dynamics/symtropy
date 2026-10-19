@@ -50,7 +50,6 @@ enum Status {
     FlexibleLoadShortfall,
     CriticalLoadShortfall,
     CriticalAndFlexibleShortfall,
-    InvalidInput,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -118,7 +117,6 @@ struct Report {
 #[derive(Debug, Clone, Copy)]
 struct BatteryFlow {
     delivered_kwh: f64,
-    stored_energy_delta_kwh: f64,
 }
 
 fn main() {
@@ -256,7 +254,7 @@ fn battery_discharge(
     soc_kwh: &mut f64,
 ) -> BatteryFlow {
     if requested_output_kwh <= 0.0 || duration_hours <= 0.0 {
-        return BatteryFlow { delivered_kwh: 0.0, stored_energy_delta_kwh: 0.0 };
+        return BatteryFlow { delivered_kwh: 0.0 };
     }
     let available_output_kwh = (*soc_kwh - config.minimum_soc_kwh).max(0.0)
         * config.discharge_efficiency_fraction;
@@ -265,7 +263,7 @@ fn battery_discharge(
         .min(available_output_kwh);
     let soc_decrease_kwh = delivered_kwh / config.discharge_efficiency_fraction;
     *soc_kwh = (*soc_kwh - soc_decrease_kwh).max(config.minimum_soc_kwh);
-    BatteryFlow { delivered_kwh, stored_energy_delta_kwh: -soc_decrease_kwh }
+    BatteryFlow { delivered_kwh }
 }
 
 fn battery_charge(
@@ -406,6 +404,7 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
     let total_losses = total(|row| row.storage_charge_loss_kwh + row.storage_discharge_loss_kwh);
     let total_curtailed = total(|row| row.curtailed_generation_kwh);
     let max_residual = rows.iter().map(|row| row.energy_balance_residual_kwh.abs()).fold(0.0, f64::max);
+    drop(total);
 
     let status = match (critical_unserved > 1e-9, flexible_unserved > 1e-9) {
         (false, false) => Status::AllDeclaredLoadsServed,
@@ -421,7 +420,6 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
             "critical_service_demand_unserved".to_string(),
             "one_or_more_flexible_loads_unserved".to_string(),
         ],
-        Status::InvalidInput => vec!["invalid_input".to_string()],
     };
 
     ScenarioResult {
@@ -442,8 +440,8 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
         total_storage_conversion_loss_kwh: total_losses,
         total_curtailed_generation_kwh: total_curtailed,
         final_storage_soc_kwh: soc,
-        estimated_grid_cost: priced.then(|| rows.iter().map(|row| row.grid_cost.unwrap_or(0.0)).sum()),
-        estimated_grid_emissions_kg: carbon_complete.then(|| rows.iter().map(|row| row.grid_emissions_kg.unwrap_or(0.0)).sum()),
+        estimated_grid_cost: priced.then(|| rows.iter().filter_map(|row| row.grid_cost).sum()),
+        estimated_grid_emissions_kg: carbon_complete.then(|| rows.iter().filter_map(|row| row.grid_emissions_kg).sum()),
         maximum_absolute_energy_balance_residual_kwh: max_residual,
         slots: rows,
         findings,
