@@ -47,6 +47,35 @@ pub struct OscillatorSample {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConvergencePoint {
+    pub time_step_s: f64,
+    pub step_count: usize,
+    pub max_position_error_m: f64,
+    pub max_velocity_error_mps: f64,
+    pub max_relative_energy_deviation: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConvergenceOrderEstimate {
+    pub coarse_time_step_s: f64,
+    pub fine_time_step_s: f64,
+    pub coarse_position_error_m: f64,
+    pub fine_position_error_m: f64,
+    /// Observed order from this pair of runs; negative values indicate worsening error.
+    pub observed_order: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OscillatorConvergenceReport {
+    pub experiment_id: String,
+    pub integrator: OscillatorIntegrator,
+    /// Ordered from coarsest to finest time step.
+    pub points: Vec<ConvergencePoint>,
+    pub observed_orders: Vec<ConvergenceOrderEstimate>,
+    pub limitations: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HarmonicOscillatorResult {
     pub experiment_id: String,
     pub integrator: OscillatorIntegrator,
@@ -226,6 +255,73 @@ pub fn simulate_harmonic_oscillator(
     })
 }
 
+/// Compare timestep-refinement runs against the oscillator's closed-form solution.
+///
+/// Timestep sizes must be ordered coarse-to-fine and must each divide the duration according
+/// to the spec's validation rule. The function reports observed pairwise orders rather than
+/// asserting a particular order; a failed/concerning order remains visible in the report.
+pub fn analyze_harmonic_oscillator_convergence(
+    base: &HarmonicOscillatorSpec,
+    time_steps_s: &[f64],
+) -> Result<OscillatorConvergenceReport, String> {
+    if time_steps_s.len() < 3 {
+        return Err("convergence analysis requires at least three time-step sizes".to_owned());
+    }
+    for pair in time_steps_s.windows(2) {
+        if !pair[0].is_finite() || !pair[1].is_finite() || pair[0] <= pair[1] || pair[1] <= 0.0 {
+            return Err("time-step sizes must be finite, positive, distinct, and ordered coarse-to-fine".to_owned());
+        }
+    }
+
+    let mut points = Vec::with_capacity(time_steps_s.len());
+    for time_step_s in time_steps_s {
+        let mut spec = base.clone();
+        spec.time_step_s = *time_step_s;
+        let result = simulate_harmonic_oscillator(&spec)?;
+        points.push(ConvergencePoint {
+            time_step_s: *time_step_s,
+            step_count: result.step_count,
+            max_position_error_m: result.max_position_error_m,
+            max_velocity_error_mps: result.max_velocity_error_mps,
+            max_relative_energy_deviation: result.max_relative_energy_deviation,
+        });
+    }
+
+    let mut observed_orders = Vec::with_capacity(points.len() - 1);
+    for pair in points.windows(2) {
+        let coarse = &pair[0];
+        let fine = &pair[1];
+        if coarse.max_position_error_m <= 0.0 || fine.max_position_error_m <= 0.0 {
+            return Err("observed order is undefined when position error is zero".to_owned());
+        }
+        let numerator = (coarse.max_position_error_m / fine.max_position_error_m).ln();
+        let denominator = (coarse.time_step_s / fine.time_step_s).ln();
+        let observed_order = numerator / denominator;
+        if !observed_order.is_finite() {
+            return Err("observed convergence order is not finite".to_owned());
+        }
+        observed_orders.push(ConvergenceOrderEstimate {
+            coarse_time_step_s: coarse.time_step_s,
+            fine_time_step_s: fine.time_step_s,
+            coarse_position_error_m: coarse.max_position_error_m,
+            fine_position_error_m: fine.max_position_error_m,
+            observed_order,
+        });
+    }
+
+    Ok(OscillatorConvergenceReport {
+        experiment_id: base.id.clone(),
+        integrator: base.integrator,
+        points,
+        observed_orders,
+        limitations: vec![
+            "Observed order is estimated from maximum position error against the exact solution of the ideal oscillator.".to_owned(),
+            "This finite-horizon result applies to the supplied model, initial state, and time-step sequence; it is not a universal solver-order claim.".to_owned(),
+            "No real measurements, damping, external forcing, model-form uncertainty, or instrument error are represented.".to_owned(),
+        ],
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -283,6 +379,31 @@ mod tests {
         let fine = simulate_harmonic_oscillator(&spec(OscillatorIntegrator::SymplecticEuler, 0.01))
             .unwrap();
         assert!(fine.max_position_error_m < coarse.max_position_error_m);
+    }
+
+    #[test]
+    fn convergence_report_estimates_first_order_for_symplectic_euler() {
+        let base = spec(OscillatorIntegrator::SymplecticEuler, 0.01);
+        let report = analyze_harmonic_oscillator_convergence(
+            &base,
+            &[0.04, 0.02, 0.01, 0.005],
+        )
+        .unwrap();
+        assert_eq!(report.points.len(), 4);
+        assert_eq!(report.observed_orders.len(), 3);
+        assert!(report.points.windows(2).all(|pair| {
+            pair[1].max_position_error_m < pair[0].max_position_error_m
+        }));
+        assert!(report.observed_orders.iter().all(|order| {
+            order.observed_order > 0.8 && order.observed_order < 1.3
+        }));
+    }
+
+    #[test]
+    fn convergence_report_rejects_bad_step_sequences_and_too_few_points() {
+        let base = spec(OscillatorIntegrator::SymplecticEuler, 0.01);
+        assert!(analyze_harmonic_oscillator_convergence(&base, &[0.02, 0.01]).is_err());
+        assert!(analyze_harmonic_oscillator_convergence(&base, &[0.01, 0.02, 0.005]).is_err());
     }
 
     #[test]
