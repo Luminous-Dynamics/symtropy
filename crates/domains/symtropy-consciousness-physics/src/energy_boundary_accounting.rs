@@ -351,7 +351,10 @@ mod tests {
         let b = assess_energy_boundary(&second).unwrap();
         assert_eq!(a, b);
         assert_eq!(a.residual, 2.0);
-        assert!(!a.balanced, "small but real flow discrepancy must not round away");
+        assert!(
+            !a.balanced,
+            "small but real flow discrepancy must not round away"
+        );
     }
 
     #[test]
