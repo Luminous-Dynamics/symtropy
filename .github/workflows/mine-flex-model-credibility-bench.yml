@@ -76,6 +76,11 @@ jobs:
             and .same_tick_shift_detections == 128
             and .unguarded_baseline_acceptances_during_shift == 448
             and .unguarded_baseline_missing_or_stale_acceptances == 128
+            and .freshness_only_acceptances_during_shift == 448
+            and .freshness_only_acceptances_missing_or_stale == 0
+            and .residual_only_acceptances_during_shift == 0
+            and .residual_only_acceptances_missing_or_stale == 64
+            and .residual_only_acceptances_during_recovery_holdoff == 192
             and .observed_count == 3008
             and .covered_observations <= .observed_count
             and (.calibration_set_sha256 | test("^[0-9a-f]{64}$"))
@@ -98,6 +103,11 @@ jobs:
             shift_onsets, same_tick_shift_detections,
             unguarded_baseline_acceptances_during_shift,
             unguarded_baseline_missing_or_stale_acceptances,
+            freshness_only_acceptances_during_shift,
+            freshness_only_acceptances_missing_or_stale,
+            residual_only_acceptances_during_shift,
+            residual_only_acceptances_missing_or_stale,
+            residual_only_acceptances_during_recovery_holdoff,
             covered_observations, observed_count, summaries
           }' mine-flex-model-credibility-receipt.json
       - name: Retain exact-head receipt
