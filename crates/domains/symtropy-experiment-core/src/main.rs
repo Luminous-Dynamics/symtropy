@@ -229,7 +229,33 @@ fn run_sweep(path: &str, variable_id: &str, values_csv: &str) {
     let (raw, graph) = load_graph(path);
     let values: Vec<String> = values_csv.split(',').map(str::trim).map(str::to_owned).collect();
     if values.iter().any(String::is_empty) {
-        eprintln!("sweep values must be non-empty comma-separated finite numbers");
+        let message = "sweep values must be non-empty comma-separated finite numbers";
+        let output_payload = serde_json::json!({
+            "executed": false,
+            "error": message,
+        });
+        let receipt = run_receipt_value(
+            "sweep",
+            &raw,
+            &graph,
+            &output_payload,
+            Some(&graph.id),
+            Some(&graph.schema_version),
+            Some(UNIT_REGISTRY_VERSION),
+            settings(&[
+                ("swept_variable_id", variable_id.to_owned()),
+                ("sweep_values", values_csv.to_owned()),
+            ]),
+        );
+        print_json(
+            serde_json::json!({
+                "valid": true,
+                "executed": false,
+                "error": message,
+                "run_receipt": receipt,
+            }),
+            "{"valid":true,"executed":false,"error":"could not serialize invalid-sweep receipt"}",
+        );
         process::exit(2);
     }
 
@@ -328,7 +354,7 @@ fn run_oscillator(path: &str) {
                 &raw,
                 &spec,
                 &result,
-                None,
+                Some(&spec.id),
                 Some(&spec.schema_version),
                 None,
                 settings(&[
@@ -359,7 +385,7 @@ fn run_oscillator(path: &str) {
                 &raw,
                 &spec,
                 &output_payload,
-                None,
+                Some(&spec.id),
                 Some(&spec.schema_version),
                 None,
                 settings(&[
@@ -400,7 +426,34 @@ fn run_oscillator_convergence(path: &str, time_steps_csv: &str) {
         match token.parse::<f64>() {
             Ok(value) if value.is_finite() && value > 0.0 => time_steps_s.push(value),
             _ => {
-                eprintln!("time-step values must be finite positive numbers");
+                let message = "time-step values must be finite positive numbers";
+                let output_payload = serde_json::json!({
+                    "executed": false,
+                    "error": message,
+                });
+                let receipt = run_receipt_value(
+                    "oscillator-convergence",
+                    &raw,
+                    &spec,
+                    &output_payload,
+                    Some(&spec.id),
+                    Some(&spec.schema_version),
+                    None,
+                    settings(&[
+                        ("integrator", format!("{:?}", spec.integrator)),
+                        ("coarse_to_fine_time_steps_s", time_steps_csv.to_owned()),
+                        ("duration_s", spec.duration_s.to_string()),
+                    ]),
+                );
+                print_json(
+                    serde_json::json!({
+                        "valid": true,
+                        "executed": false,
+                        "error": message,
+                        "run_receipt": receipt,
+                    }),
+                    "{"valid":true,"executed":false,"error":"could not serialize invalid-convergence receipt"}",
+                );
                 process::exit(2);
             }
         }
@@ -413,7 +466,7 @@ fn run_oscillator_convergence(path: &str, time_steps_csv: &str) {
                 &raw,
                 &spec,
                 &report,
-                None,
+                Some(&spec.id),
                 Some(&spec.schema_version),
                 None,
                 settings(&[
@@ -444,7 +497,7 @@ fn run_oscillator_convergence(path: &str, time_steps_csv: &str) {
                 &raw,
                 &spec,
                 &output_payload,
-                None,
+                Some(&spec.id),
                 Some(&spec.schema_version),
                 None,
                 settings(&[
