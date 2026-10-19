@@ -785,7 +785,13 @@ fn verify_embedded_payload(
         if points_to_embedded_payload {
             return Err("EVIDENCE_PAYLOAD_MISSING".into());
         }
-        return Ok(());
+        return match input.gate.gate_id {
+            GateId::IfcSchemaConformance => Err("IFC_SCHEMA_EVIDENCE_PAYLOAD_REQUIRED".into()),
+            GateId::ExchangeSemanticPreservation => {
+                Err("DELTA_EVIDENCE_PAYLOAD_REQUIRED".into())
+            }
+            _ => Ok(()),
+        };
     };
 
     let pointer_evidence = input
@@ -1561,6 +1567,32 @@ mod tests {
         assert_eq!(
             verify_embedded_payload(&producer, b"source bytes", target, b"ids requirements", "IFC4").unwrap_err(),
             "EVIDENCE_PAYLOAD_MISSING"
+        );
+    }
+
+    #[test]
+    fn critical_gates_cannot_bypass_payload_verification_with_bare_gate_objects() {
+        let source = b"source bytes";
+        let target = b"target bytes";
+        let ids = b"ids bytes";
+
+        let mut schema_gate = schema_gate_producer(target);
+        schema_gate.evidence_payload = None;
+        schema_gate.gate.evidence[0].locator = "schema-gate.json".into();
+        assert_eq!(
+            verify_embedded_payload(&schema_gate, source, target, ids, "IFC4").unwrap_err(),
+            "IFC_SCHEMA_EVIDENCE_PAYLOAD_REQUIRED"
+        );
+
+        let mut delta_gate = delta_gate_producer(
+            source, target, ids, GateStatus::Pass, true, 1, 1, 0, 0, 0, 0,
+            "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+        );
+        delta_gate.evidence_payload = None;
+        delta_gate.gate.evidence[0].locator = "delta-gate.json".into();
+        assert_eq!(
+            verify_embedded_payload(&delta_gate, source, target, ids, "IFC4").unwrap_err(),
+            "DELTA_EVIDENCE_PAYLOAD_REQUIRED"
         );
     }
 
