@@ -2,6 +2,8 @@
 
 Status: **external-dataset baseline evaluation only; unqualified for process control**.
 
+Implementation code in `tools/toolwear-eval/` is licensed under GNU AGPL-3.0-or-later; its full license text is `tools/toolwear-eval/LICENSE`. This does not relicense the separately licensed upstream CSV.
+
 ## Purpose
 
 Create the first reproducible, non-synthetic measurement-data seam for Symtropy manufacturing work. The scope is deliberately narrower than a calibrated digital twin: verify a published feature table, freeze a tool-disjoint split, fit simple baselines on training tools only, and report performance by held-out tool. The evaluation must not be promoted to sensor qualification, machine-independent prediction, maintenance advice, or manufacturing release.
