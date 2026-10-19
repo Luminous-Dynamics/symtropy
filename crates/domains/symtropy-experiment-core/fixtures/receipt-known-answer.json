@@ -1,7 +1,8 @@
 {
   "payload": {
-    "receipt_schema_version": "0.1.0",
+    "receipt_schema_version": "0.2.0",
     "digest_algorithm": "sha256",
+    "canonicalization_algorithm": "RFC8785-JCS",
     "execution_mode": "fixture",
     "package_version": "0.1.0",
     "source_revision": null,
@@ -21,5 +22,5 @@
       "purpose": "known-answer-fixture"
     }
   },
-  "receipt_sha256": "92ba62d9f7afe0629df173d1e9b61ba567a30e280cfe69799d711f675a3a4095"
+  "receipt_sha256": "53ce783176001947e1fa3e67e30ecfbcc9af4f94cd743152851d0bc54f39f792"
 }
