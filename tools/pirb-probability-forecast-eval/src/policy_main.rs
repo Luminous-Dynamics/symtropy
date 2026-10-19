@@ -30,8 +30,8 @@ fn run() -> Result<(), String> {
     let receipt_path = required_value(&args, "--receipt")?;
     let dataset = read_path(&dataset_path, "normalized dataset")?;
     let policy = read_path(&policy_path, "policy manifest")?;
-    let source_commit = option_value(&args, "--source-commit")?
-        .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
+    let source_commit =
+        option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
     let rustc_version = option_value(&args, "--rustc-version")?
         .unwrap_or_else(|| "UNSPECIFIED_LOCAL_TOOLCHAIN".to_owned());
     let cargo_version = option_value(&args, "--cargo-version")?
@@ -53,7 +53,9 @@ fn run() -> Result<(), String> {
     output.push(b'\n');
     fs::write(&receipt_path, output)
         .map_err(|error| format!("cannot write policy receipt {receipt_path}: {error}"))?;
-    println!("Policy receipt written. The evaluator does not select a threshold or authorize live actions.");
+    println!(
+        "Policy receipt written. The evaluator does not select a threshold or authorize live actions."
+    );
     Ok(())
 }
 
