@@ -41,3 +41,17 @@ The egress coordination module separates coordination support from route admissi
 - The route-search disposition is returned unchanged. No admissible route, a bounded/incomplete search, and coordination loss remain distinct outcomes.
 
 This is a deterministic interface contract, not an end-to-end network simulator, localization algorithm, live closure detector, or operational egress authorization.
+
+
+## Timed mission-trace replay
+
+The `trace` module replays authored state-change events against a simulated clock. It is a mission-state replay harness, not a radio simulator or physical route-safety model.
+
+- Event arrival time and evidence observation time are distinct, so delayed localization/plan evidence can already be stale at receipt.
+- Checkpoint events advance simulated time and re-evaluate freshness without inventing new sensor readings or network acknowledgements.
+- Communications, localization, local-plan availability and route-search disposition remain separate axes.
+- Event IDs must be non-empty and unique; timestamps must be non-decreasing. Events sharing a timestamp preserve fixture order as the explicit causal tie-break.
+- Event-cap overflow returns `EventLimitExceeded` with zero processed events and no partial samples.
+- Replaying the same event sequence yields the same ordered report and reason codes.
+
+The trace is only as accurate as its declared events and evidence. It does not model per-hop queues, airtime, RF/TTE propagation, actual delivery probability, localization error dynamics, physical hazard evolution, or rescue authorization. See [MINE-MISSION-TRACE-001 #2097](https://github.com/Luminous-Dynamics/symtropy/issues/2097) and [Symthaea MINE-COMMS-TRACE-001 #8066](https://github.com/Luminous-Dynamics/symthaea/issues/8066).

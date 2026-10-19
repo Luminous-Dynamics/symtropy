@@ -8,6 +8,7 @@
 //! permission to enter a real cave, mine, tunnel, or confined space.
 
 pub mod egress;
+pub mod trace;
 
 use std::collections::{BTreeSet, VecDeque};
 
