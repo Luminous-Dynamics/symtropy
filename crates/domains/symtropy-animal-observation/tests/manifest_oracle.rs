@@ -84,6 +84,9 @@ enum Mutation {
     UnseenTaxonLeak,
     FutureTimeSameTrackDisjoint,
     FutureTimeBoundaryTouch,
+    WithinSubjectInterpolationOverlap,
+    WithinSubjectInterpolationDisjoint,
+    WithinSubjectInterpolationNoContinuity,
     GranularLocationMissingPolicy,
     GranularLocationTooFine,
     GranularLocationSafe,
@@ -212,6 +215,25 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
             manifest.generalization = GeneralizationTarget::FutureTime;
             manifest.records[1].start_time = 100;
             manifest.records[1].end_time = 300;
+        }
+        Mutation::WithinSubjectInterpolationOverlap => {
+            manifest.generalization = GeneralizationTarget::WithinSubjectInterpolation;
+            manifest.records[1].study_id = manifest.records[0].study_id.clone();
+            manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
+            manifest.records[1].track_id = manifest.records[0].track_id.clone();
+            manifest.records[1].start_time = 50;
+            manifest.records[1].end_time = 150;
+        }
+        Mutation::WithinSubjectInterpolationDisjoint => {
+            manifest.generalization = GeneralizationTarget::WithinSubjectInterpolation;
+            manifest.records[1].study_id = manifest.records[0].study_id.clone();
+            manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
+            manifest.records[1].track_id = manifest.records[0].track_id.clone();
+            manifest.records[1].start_time = 200;
+            manifest.records[1].end_time = 300;
+        }
+        Mutation::WithinSubjectInterpolationNoContinuity => {
+            manifest.generalization = GeneralizationTarget::WithinSubjectInterpolation;
         }
         Mutation::GranularLocationMissingPolicy => {
             grant_location_operation(&mut manifest);
@@ -466,4 +488,40 @@ fn split_report_is_independent_of_record_order() {
         manifest.minimum_temporal_gap,
     );
     assert_eq!(first, reversed);
+}
+
+#[test]
+fn within_subject_interpolation_requires_same_subject_windows_and_detects_overlap() {
+    let mut disjoint = manifest_fixture();
+    disjoint.generalization = GeneralizationTarget::WithinSubjectInterpolation;
+    disjoint.records[1].study_id = disjoint.records[0].study_id.clone();
+    disjoint.records[1].subject_id = disjoint.records[0].subject_id.clone();
+    disjoint.records[1].track_id = disjoint.records[0].track_id.clone();
+    disjoint.records[1].start_time = 200;
+    disjoint.records[1].end_time = 300;
+    assert_eq!(
+        validate_manifest(&disjoint).disposition,
+        ManifestDisposition::Eligible
+    );
+
+    disjoint.records[1].start_time = 100;
+    disjoint.records[1].end_time = 200;
+    assert!(
+        validate_manifest(&disjoint)
+            .reason_codes
+            .contains(&ManifestReason::TemporalLeakage)
+    );
+}
+
+#[test]
+fn within_subject_interpolation_without_shared_subject_windows_is_indeterminate() {
+    let mut manifest = manifest_fixture();
+    manifest.generalization = GeneralizationTarget::WithinSubjectInterpolation;
+    let result = validate_manifest(&manifest);
+    assert_eq!(result.disposition, ManifestDisposition::Indeterminate);
+    assert!(
+        result
+            .reason_codes
+            .contains(&ManifestReason::MissingWithinSubjectContinuity)
+    );
 }
