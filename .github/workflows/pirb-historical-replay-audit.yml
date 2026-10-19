@@ -79,7 +79,7 @@ jobs:
               and .execution_claim == "descriptive_retrospective_performance_only"
               and .causal_effect_estimated == false
               and .live_decision_authority == false
-              and .exact_head_verified == true
+              and .source_commit_sha_valid == true
               and .source_commit == $source_commit
               and (.source_commit | test("^[0-9a-f]{40}$"))
               and .input_sha256 == $input_sha
