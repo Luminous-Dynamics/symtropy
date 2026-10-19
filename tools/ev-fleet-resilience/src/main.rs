@@ -10,6 +10,7 @@ const MAX_EVENTS: usize = 100_000;
 const CLAIM_CEILING: &str = "Deterministic fleet charging-contingency screen using declared SOC-banded acceptance and piecewise-constant supply/port availability. Inputs are synthetic unless explicitly sourced; this is not an electrochemical, stochastic-reliability, AC load-flow, control-safety, or field-validation model.";
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Corpus {
     schema_version: String,
     suite_id: String,
@@ -19,6 +20,7 @@ struct Corpus {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct VehicleTemplate {
     template_id: String,
     label: String,
@@ -35,6 +37,7 @@ struct VehicleTemplate {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct CurveBand {
     soc_lower_fraction: f64,
     soc_upper_fraction: f64,
@@ -42,6 +45,7 @@ struct CurveBand {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Scenario {
     scenario_id: String,
     label: String,
@@ -55,6 +59,7 @@ struct Scenario {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Job {
     job_id: String,
     template_id: String,
@@ -65,6 +70,7 @@ struct Job {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct CapacityEvent {
     start_minute: f64,
     end_minute: f64,
@@ -398,6 +404,11 @@ fn validate_scenario(
             || event.site_power_budget_kw < 0.0
         {
             return Err(format!("capacity_event_{index}_has_invalid_bounds_or_budget"));
+        }
+        if event.site_power_budget_kw > scenario.site_power_budget_kw + EPSILON
+            || event.available_port_count > scenario.charger_port_count
+        {
+            return Err(format!("capacity_event_{index}_exceeds_declared_base_capacity"));
         }
         if index > 0 && event.start_minute < previous_end - EPSILON {
             return Err(format!("capacity_event_{index}_overlaps_previous_event"));
@@ -1052,6 +1063,29 @@ mod tests {
             CapacityEvent { start_minute: 20.0, end_minute: 40.0, site_power_budget_kw: 5.0, available_port_count: 1 },
         ];
         assert!(validate_scenario(&scenario, &templates.keys().cloned().collect()).is_err());
+    }
+
+    #[test]
+    fn contingency_events_cannot_exceed_installed_base_capacity() {
+        let templates = templates(template(10.0, 1.0, 10.0, constant_curve(100.0)));
+        let mut case = scenario(vec![job("a", 0.0, 20.0, 0.0, 0.1)], 1, 10.0, vec![]);
+        case.capacity_events = vec![CapacityEvent {
+            start_minute: 5.0,
+            end_minute: 10.0,
+            site_power_budget_kw: 11.0,
+            available_port_count: 1,
+        }];
+        let template_ids: BTreeSet<String> = templates.keys().cloned().collect();
+        assert_eq!(
+            validate_scenario(&case, &template_ids).unwrap_err(),
+            "capacity_event_0_exceeds_declared_base_capacity"
+        );
+        case.capacity_events[0].site_power_budget_kw = 10.0;
+        case.capacity_events[0].available_port_count = 2;
+        assert_eq!(
+            validate_scenario(&case, &template_ids).unwrap_err(),
+            "capacity_event_0_exceeds_declared_base_capacity"
+        );
     }
 
     #[test]
