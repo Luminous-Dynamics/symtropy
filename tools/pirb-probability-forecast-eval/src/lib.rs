@@ -6,6 +6,9 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod uncertainty;
+use uncertainty::{BootstrapPoint, estimate as estimate_uncertainty};
+
 const SCHEMA_BYTES: &[u8] =
     include_bytes!("../../../docs/schemas/pirb-probability-forecast-v0.1.schema.json");
 
@@ -60,6 +63,20 @@ pub struct PrivacyPolicy {
     minimum_subgroup_outcomes: usize,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResamplingPolicy {
+    spatial_blocking_method_reference: String,
+    spatial_block_map_sha256: String,
+    temporal_block_length_months: usize,
+    minimum_spatial_blocks: usize,
+    minimum_temporal_blocks: usize,
+    replicates: usize,
+    minimum_valid_replicates: usize,
+    seed: u64,
+    confidence_level: f64,
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TemporalSplit {
@@ -79,6 +96,7 @@ pub struct ForecastRecord {
     forecast_id: String,
     forecast_release_id: String,
     unit_id: String,
+    spatial_block_id: String,
     forecast_origin_month: i64,
     input_cutoff_month: i64,
     target_month: i64,
@@ -98,6 +116,7 @@ pub struct ForecastDataset {
     privacy: PrivacyPolicy,
     temporal_split: TemporalSplit,
     lead_months: i64,
+    resampling: ResamplingPolicy,
     records: Vec<ForecastRecord>,
 }
 
@@ -192,6 +211,8 @@ pub struct ForecastEvaluationReceipt {
     metrics: ForecastMetricBundle,
     test_unit_metrics: Vec<UnitMetrics>,
     test_suppressed_unit_count: usize,
+    resampling: ResamplingPolicy,
+    test_uncertainty: uncertainty::UncertaintyReport,
     probability_calibration_fitted: bool,
     causal_effect_estimated: bool,
     live_decision_authority: bool,
@@ -256,6 +277,7 @@ pub fn evaluate(
     };
     let (test_unit_metrics, test_suppressed_unit_count) =
         unit_metrics(&dataset, dataset.privacy.minimum_subgroup_outcomes);
+    let test_uncertainty = compute_test_uncertainty(&dataset);
 
     Ok(ForecastEvaluationReceipt {
         receipt_version: "0.1".to_owned(),
@@ -301,6 +323,8 @@ pub fn evaluate(
         metrics,
         test_unit_metrics,
         test_suppressed_unit_count,
+        resampling: dataset.resampling.clone(),
+        test_uncertainty,
         probability_calibration_fitted: false,
         causal_effect_estimated: false,
         live_decision_authority: false,
@@ -357,6 +381,39 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
     if dataset.privacy.minimum_subgroup_outcomes < 2 {
         findings.push("minimum_subgroup_outcomes must be at least 2".to_owned());
     }
+    let resampling = &dataset.resampling;
+    if resampling
+        .spatial_blocking_method_reference
+        .trim()
+        .is_empty()
+    {
+        findings.push("spatial_blocking_method_reference must not be empty".to_owned());
+    }
+    if resampling.spatial_block_map_sha256.len() != 64
+        || !resampling
+            .spatial_block_map_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        findings.push(
+            "spatial_block_map_sha256 must be a lowercase 64-character SHA-256 digest".to_owned(),
+        );
+    }
+    if !(1..=12).contains(&resampling.temporal_block_length_months)
+        || resampling.minimum_spatial_blocks < 4
+        || resampling.minimum_temporal_blocks < 6
+        || !(200..=10_000).contains(&resampling.replicates)
+        || resampling.minimum_valid_replicates < 100
+        || resampling.minimum_valid_replicates > resampling.replicates
+        || !resampling.confidence_level.is_finite()
+        || resampling.confidence_level <= 0.5
+        || resampling.confidence_level >= 1.0
+    {
+        findings.push(
+            "resampling support thresholds, replicate counts, and confidence level must be valid"
+                .to_owned(),
+        );
+    }
     if !(1..=36).contains(&dataset.lead_months) {
         findings.push(
             "dataset must declare exactly one valid forecast horizon from 1 to 36 months"
@@ -377,6 +434,10 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
             (
                 "license_reference",
                 dataset.source.license_reference.as_str(),
+            ),
+            (
+                "spatial_blocking_method_reference",
+                resampling.spatial_blocking_method_reference.as_str(),
             ),
         ] {
             if reference.trim().is_empty() || reference.starts_with("synthetic:") {
@@ -401,10 +462,21 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
 
     let mut seen_forecast_ids = BTreeSet::new();
     let mut seen_forecast_keys = BTreeSet::new();
+    let mut unit_spatial_blocks: BTreeMap<String, String> = BTreeMap::new();
     let mut outcomes_by_unit_month: BTreeMap<(String, i64), (ForecastOutcome, i64)> =
         BTreeMap::new();
 
     for record in &dataset.records {
+        match unit_spatial_blocks.get(&record.unit_id) {
+            Some(previous) if previous != &record.spatial_block_id => findings.push(format!(
+                "{} changes spatial_block_id for a unit within one frozen dataset",
+                record.forecast_id
+            )),
+            Some(_) => {}
+            None => {
+                unit_spatial_blocks.insert(record.unit_id.clone(), record.spatial_block_id.clone());
+            }
+        }
         if !seen_forecast_ids.insert(record.forecast_id.clone()) {
             findings.push(format!("{} duplicates a forecast_id", record.forecast_id));
         }
@@ -542,6 +614,31 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
 struct ScoredPoint {
     probability: f64,
     outcome: bool,
+}
+
+fn compute_test_uncertainty(dataset: &ForecastDataset) -> uncertainty::UncertaintyReport {
+    let baseline_history = BaselineHistory::from_dataset(dataset);
+    let points: Vec<BootstrapPoint> = dataset
+        .records
+        .iter()
+        .filter(|record| belongs_to_split(record, dataset, SplitName::Test))
+        .filter(|record| record.outcome != ForecastOutcome::Unknown)
+        .map(|record| BootstrapPoint {
+            spatial_block_id: record.spatial_block_id.clone(),
+            target_month: record.target_month,
+            probability: record.probability,
+            outcome: record.outcome == ForecastOutcome::Event,
+            baseline_probability: baseline_history.probability(
+                record.input_cutoff_month,
+                dataset.temporal_split.minimum_climatology_history,
+            ),
+        })
+        .collect();
+    estimate_uncertainty(
+        &points,
+        &dataset.resampling,
+        dataset.temporal_split.log_loss_epsilon,
+    )
 }
 
 fn compute_metrics(dataset: &ForecastDataset, split: SplitName) -> ForecastMetrics {
@@ -1174,6 +1271,46 @@ mod tests {
         assert!(!r.probability_calibration_fitted);
         assert!(!r.causal_effect_estimated);
         assert!(!r.live_decision_authority);
+    }
+
+    #[test]
+    fn small_synthetic_test_panel_reports_uncertainty_not_estimable() {
+        let r = receipt();
+        let uncertainty = serde_json::to_value(&r.test_uncertainty).unwrap();
+        assert_eq!(uncertainty["status"], "not_estimable");
+        assert!(uncertainty["brier_score"].is_null());
+        assert!(uncertainty["log_loss"].is_null());
+        assert_eq!(uncertainty["spatial_block_count"], 3);
+        assert_eq!(uncertainty["temporal_block_count"], 5);
+    }
+
+    #[test]
+    fn unit_spatial_block_mapping_cannot_change_within_dataset() {
+        let mut d = dataset();
+        let index = d
+            .records
+            .iter()
+            .position(|record| {
+                record.unit_id == "unit-alpha" && record.forecast_id == "forecast-t4"
+            })
+            .unwrap();
+        d.records[index].spatial_block_id = "block-conflicting".to_owned();
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|finding| finding.contains("changes spatial_block_id"))
+        );
+    }
+
+    #[test]
+    fn spatial_block_map_digest_must_be_canonical_sha256() {
+        let mut d = dataset();
+        d.resampling.spatial_block_map_sha256 = "not-a-digest".to_owned();
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|finding| finding.contains("spatial_block_map_sha256"))
+        );
     }
 
     #[test]

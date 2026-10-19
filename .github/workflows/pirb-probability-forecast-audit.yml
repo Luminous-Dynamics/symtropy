@@ -100,6 +100,14 @@ jobs:
               and .forecast_source_reference == "synthetic:forecast-source"
               and .outcome_source_reference == "synthetic:outcome-source"
               and .privacy.aggregate_only == true
+              and .resampling.spatial_blocking_method_reference == "synthetic:fictional-cluster-map-v1"
+              and .resampling.spatial_block_map_sha256 == "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+              and .resampling.seed == 20261019
+              and .test_uncertainty.status == "not_estimable"
+              and .test_uncertainty.brier_score == null
+              and .test_uncertainty.log_loss == null
+              and .test_uncertainty.spatial_block_count == 3
+              and .test_uncertainty.temporal_block_count == 5
               and .forecast_record_count == 18
               and (.forecast_release_ids | length == 18)
               and .metrics.training.forecast_count == 8
