@@ -492,4 +492,95 @@ mod tests {
             RecoveryDisposition::InvalidInput
         );
     }
+    #[test]
+    fn thirty_two_synthetic_curves_preserve_service_accounting_invariants() {
+        let event_classes = [
+            RecoveryEventClass::ShakingOnly,
+            RecoveryEventClass::FaultDisplacement,
+            RecoveryEventClass::LiquefactionOrLateralSpread,
+            RecoveryEventClass::PortalOrSlopeFailure,
+            RecoveryEventClass::WaterIngress,
+            RecoveryEventClass::UtilityCommonCause,
+            RecoveryEventClass::AftershockSequence,
+            RecoveryEventClass::CombinedScenario,
+        ];
+
+        // This is a contract stress matrix: it exercises all eight event labels
+        // against four supplied curve shapes. It is not a physical hazard simulation.
+        for (event_index, event_class) in event_classes.into_iter().enumerate() {
+            for curve_kind in 0..4 {
+                let mut scenario = base_scenario();
+                scenario.scenario_id = format!("matrix-{event_index}-{curve_kind}");
+                scenario.event_class = event_class;
+                scenario.service_basis = if event_index % 2 == 0 {
+                    ServiceBasis::PassengerTrip
+                } else {
+                    ServiceBasis::FreightTonne
+                };
+                let demand = 80.0 + (event_index * 7 + curve_kind) as f64;
+                let curve: &[(f64, f64)] = match curve_kind {
+                    0 => &[(0.0, 0.0), (5.0, 0.25), (15.0, 0.75), (30.0, 0.95)],
+                    1 => &[
+                        (0.0, 0.1),
+                        (5.0, 0.8),
+                        (10.0, 0.3),
+                        (25.0, 0.9),
+                        (36.0, 0.95),
+                    ],
+                    2 => &[(0.0, 0.0), (8.0, 0.2), (24.0, 0.4)],
+                    _ => &[(0.0, 1.0), (1.0, 1.0), (10.0, 1.0)],
+                };
+                scenario.samples = curve
+                    .iter()
+                    .map(|(time_hours, safe_fraction)| RecoverySample {
+                        time_hours: *time_hours,
+                        demand_units_per_hour: demand,
+                        safe_delivered_fraction: *safe_fraction,
+                    })
+                    .collect();
+
+                let evaluation = evaluate_recovery(&scenario);
+                assert_eq!(
+                    evaluation.disposition,
+                    RecoveryDisposition::ComparableSynthetic,
+                    "{}",
+                    scenario.scenario_id
+                );
+                let metrics = evaluation.metrics.unwrap();
+                let expected_demand = demand * metrics.horizon_hours;
+                assert!(
+                    (metrics.demanded_service_units - expected_demand).abs() < 1.0e-8,
+                    "{}",
+                    scenario.scenario_id
+                );
+                assert!(
+                    (metrics.delivered_service_units
+                        + metrics.cumulative_unmet_service_units
+                        - metrics.demanded_service_units)
+                        .abs()
+                        < 1.0e-8,
+                    "{}",
+                    scenario.scenario_id
+                );
+                assert!((0.0..=1.0).contains(&metrics.delivered_fraction_over_horizon));
+                if let (Some(t50), Some(t90)) = (metrics.t50_hours, metrics.t90_hours) {
+                    assert!(t50 <= t90, "{}", scenario.scenario_id);
+                }
+                if let (Some(t90), Some(t95)) = (metrics.t90_hours, metrics.t95_hours) {
+                    assert!(t90 <= t95, "{}", scenario.scenario_id);
+                }
+                if curve_kind == 2 {
+                    assert!(metrics.t50_hours.is_none());
+                    assert!(metrics.t90_hours.is_none());
+                    assert!(metrics.t95_hours.is_none());
+                }
+                if curve_kind == 3 {
+                    assert_eq!(metrics.t50_hours, Some(0.0));
+                    assert_eq!(metrics.t90_hours, Some(0.0));
+                    assert_eq!(metrics.t95_hours, Some(0.0));
+                }
+            }
+        }
+    }
+
 }
