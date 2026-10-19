@@ -9,6 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
+pub const OSCILLATOR_SCHEMA_VERSION: &str = "0.1";
 pub const MAX_OSCILLATOR_STEPS: usize = 1_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +21,7 @@ pub enum OscillatorIntegrator {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HarmonicOscillatorSpec {
+    pub schema_version: String,
     pub id: String,
     pub title: String,
     pub mass_kg: f64,
@@ -65,6 +67,12 @@ fn finite_positive(value: f64) -> bool {
 
 impl HarmonicOscillatorSpec {
     pub fn validate(&self) -> Result<usize, String> {
+        if self.schema_version != OSCILLATOR_SCHEMA_VERSION {
+            return Err(format!(
+                "schema_version '{}' is unsupported; expected '{}'",
+                self.schema_version, OSCILLATOR_SCHEMA_VERSION
+            ));
+        }
         if self.id.trim().is_empty() || self.title.trim().is_empty() {
             return Err("experiment id and title must be non-empty".to_owned());
         }
@@ -147,7 +155,7 @@ pub fn simulate_harmonic_oscillator(
     let mut max_relative_energy_deviation: f64 = 0.0;
 
     for step in 0..=step_count {
-        let time_s = step as f64 * spec.time_step_s;
+        let time_s = if step == step_count { spec.duration_s } else { step as f64 * spec.time_step_s };
         let (analytic_position_m, analytic_velocity_mps) = analytic(time_s);
         let acceleration_mps2 = acceleration(position_m);
         let energy_j = energy(position_m, velocity_mps);
@@ -224,6 +232,7 @@ mod tests {
 
     fn spec(integrator: OscillatorIntegrator, time_step_s: f64) -> HarmonicOscillatorSpec {
         HarmonicOscillatorSpec {
+            schema_version: OSCILLATOR_SCHEMA_VERSION.to_owned(),
             id: "synthetic:harmonic-oscillator".to_owned(),
             title: "Synthetic undamped harmonic oscillator".to_owned(),
             mass_kg: 1.0,
@@ -274,6 +283,13 @@ mod tests {
         let fine = simulate_harmonic_oscillator(&spec(OscillatorIntegrator::SymplecticEuler, 0.01))
             .unwrap();
         assert!(fine.max_position_error_m < coarse.max_position_error_m);
+    }
+
+    #[test]
+    fn unsupported_oscillator_schema_version_is_rejected() {
+        let mut spec = spec(OscillatorIntegrator::SymplecticEuler, 0.01);
+        spec.schema_version = "99.0".to_owned();
+        assert!(spec.validate().is_err());
     }
 
     #[test]
