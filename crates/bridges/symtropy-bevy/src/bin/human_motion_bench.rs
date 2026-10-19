@@ -1664,6 +1664,40 @@ mod tests {
     }
 
     #[test]
+    fn orientation_fde_is_evaluated_at_the_exact_overlap_endpoint() {
+        let mut reference = orientation_fixture();
+        let mut prediction = orientation_fixture();
+        let times = vec![0.0, 0.1, 0.2, 0.3, 0.35];
+        let identity = [0.0, 0.0, 0.0, 1.0];
+        let yaw_90 = [
+            0.0,
+            std::f64::consts::FRAC_PI_4.sin(),
+            0.0,
+            std::f64::consts::FRAC_PI_4.cos(),
+        ];
+
+        for trace in [&mut reference, &mut prediction] {
+            trace.timestamps_sec = times.clone();
+            trace.root_world_m = times.iter().map(|time| [*time, 0.0, 0.0]).collect();
+            trace.left_foot_world_m = vec![[0.0, 0.0, 0.0]; times.len()];
+            trace.right_foot_world_m = vec![[0.0, 0.0, 0.0]; times.len()];
+            trace.left_foot_contact = vec![false; times.len()];
+            trace.right_foot_contact = vec![false; times.len()];
+        }
+        reference.root_rotation_world_xyzw = Some(vec![identity; times.len()]);
+        prediction.root_rotation_world_xyzw =
+            Some(vec![identity, identity, identity, identity, yaw_90]);
+
+        let report = evaluate(&reference, &prediction, None)
+            .expect("valid traces with a non-grid-aligned endpoint should compare");
+        let orientation = report.root_orientation_error.unwrap();
+        assert_eq!(report.alignment.samples, 4);
+        assert_eq!(orientation.mean_angular_error_rad, 0.0);
+        assert!((orientation.final_angular_error_deg - 90.0).abs() < 1e-7);
+        assert_eq!(orientation.max_angular_error_deg, 0.0);
+    }
+
+    #[test]
     fn quaternion_sign_equivalence_and_shortest_arc_slerp_are_respected() {
         let identity = [0.0, 0.0, 0.0, 1.0];
         let negative_identity = [0.0, 0.0, 0.0, -1.0];
@@ -1702,6 +1736,24 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("root_rotation_world_xyzw has")
+        );
+
+        let mut trace = orientation_fixture();
+        trace.root_rotation_world_xyzw.as_mut().unwrap()[0] = [f64::NAN, 0.0, 0.0, 1.0];
+        assert!(
+            trace.validate(Path::new("non-finite-quaternion.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("non-finite")
+        );
+
+        let mut trace = orientation_fixture();
+        trace.root_rotation_world_xyzw = None;
+        assert!(
+            trace.validate(Path::new("missing-v2-quaternion.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("requires root_rotation_world_xyzw")
         );
     }
 
