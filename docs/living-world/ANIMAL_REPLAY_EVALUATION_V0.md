@@ -154,6 +154,8 @@ A leaderboard delta alone is not a superiority claim. For each claimed model-vs-
 
 Every paired comparison must bind an exact canonical digest of paired-unit membership. A baseline row must include its own run ID, immutable code HEAD and config digest, evaluator/toolchain/platform, revision, training-data scope and compute budget. A free-form model name or leaderboard label is insufficient provenance. The task must state whether it is a matched-budget comparison or an explicit cost/performance trade-off. Matched-budget mode rejects mismatched declared training-data scope or compute budget; a trade-off may be reported, but must not be described as an equal-budget SOTA comparison.
 
+The paired-unit manifest digest should not expose sensitive animal IDs or wildlife locations: the permitted evaluator may bind an access-controlled manifest by digest without copying it into a public receipt. Record the independent unit and manifest revision alongside the digest so another qualified evaluator can reproduce membership decisions under the same permissions.
+
 A future typed result record should bind at minimum:
 
 - schema version, stable run ID, task ID/version and result status (eligible, indeterminate, reject, incomplete);
