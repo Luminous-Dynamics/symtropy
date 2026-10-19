@@ -77,7 +77,7 @@ pub struct TemporalSplit {
 #[serde(deny_unknown_fields)]
 pub struct ForecastRecord {
     forecast_id: String,
-    forecast_archive_id: String,
+    forecast_release_id: String,
     unit_id: String,
     forecast_issued_month: i64,
     input_cutoff_month: i64,
@@ -253,7 +253,7 @@ pub fn evaluate(
         test: compute_metrics(&dataset, SplitName::Test),
     };
     let (test_unit_metrics, test_suppressed_unit_count) =
-        unit_metrics(&dataset, dataset.temporal_split.minimum_subgroup_outcomes);
+        unit_metrics(&dataset, dataset.privacy.minimum_subgroup_outcomes);
 
     Ok(ForecastEvaluationReceipt {
         receipt_version: "0.1".to_owned(),
