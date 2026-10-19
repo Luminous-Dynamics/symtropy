@@ -27,3 +27,13 @@ Causal adaptive recourse and out-of-envelope challenge run:
 cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- --recourse --source-commit "$(git rev-parse HEAD)"
 
 This reuses the same dispatch/accounting code and published uncertainty set, commits one period at a time as observations arrive, and evaluates three additional out-of-envelope stress worlds per seed. It compares separate cost-first and carbon-first lexicographic recourse objectives, checks that identical observed prefixes yield identical actions within each policy, reports incomplete production explicitly, and emits separate cost/regret/feasibility results by validation/held-out split and envelope class. See docs/tech/MINE_FLEX_RECOURSE_BENCHMARK_V0_1.md for the causal policy contract and claim ceiling.
+
+
+Risk-budgeted robust Pareto frontier (static schedule chosen from the published uncertainty envelope only):
+
+```sh
+cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \
+  --risk-budget --source-commit "$(git rev-parse HEAD)"
+```
+
+This sweeps explicit carbon headroom constraints (0%, 2.5%, 5%, 10%, 25%, and 100% above the minimum worst-case carbon attainable by any robust-feasible schedule), minimizes worst-case cost under each cap, and emits the nondominated robust cost/carbon frontier plus paired validation/held-out outcomes. The exact contract and claim ceiling are in [MINE-FLEX-PARETO-001](../../docs/tech/MINE_FLEX_RISK_BUDGET_BENCHMARK_V0_1.md). Synthetic integer units only; this is not a site-calibrated controller.
