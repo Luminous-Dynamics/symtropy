@@ -116,6 +116,8 @@ pub struct Metrics {
     pub unmet_need_integral: f64,
     /// Maximum sum of unmet need in a single tick.
     pub peak_unmet_need: f64,
+    /// Gini coefficient of cumulative unmet need across agents.
+    pub unmet_need_inequality_gini: f64,
     pub contribution_count: usize,
     /// Tick offset from shock start; None means no in-window recovery.
     pub recovery_tick: Option<usize>,
@@ -132,6 +134,22 @@ struct Agent {
     willingness: f64,
     neighbors: Vec<usize>,
     trust: Vec<f64>,
+}
+
+fn gini_nonnegative(values: &[f64]) -> f64 {
+    let total = values.iter().sum::<f64>();
+    if values.is_empty() || total <= f64::EPSILON {
+        return 0.0;
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let weighted_sum = sorted
+        .iter()
+        .enumerate()
+        .map(|(index, value)| (index as f64 + 1.0) * value)
+        .sum::<f64>();
+    let n = sorted.len() as f64;
+    ((2.0 * weighted_sum) / (n * total) - (n + 1.0) / n).clamp(0.0, 1.0)
 }
 
 #[derive(Clone, Debug)]
@@ -190,6 +208,7 @@ pub fn simulate(
     let mut previous_actions = vec![false; n];
     let mut repair_progress: f64 = 0.0;
     let mut unmet_need_integral = 0.0;
+    let mut unmet_by_agent = vec![0.0; n];
     let mut peak_unmet_need: f64 = 0.0;
     let mut contribution_count = 0_usize;
     let mut recovery_tick = None;
@@ -207,8 +226,10 @@ pub fn simulate(
         };
 
         let mut tick_unmet = 0.0;
-        for agent in &mut agents {
-            tick_unmet += (agent.need - capacity).max(0.0);
+        for (i, agent) in agents.iter_mut().enumerate() {
+            let unmet = (agent.need - capacity).max(0.0);
+            tick_unmet += unmet;
+            unmet_by_agent[i] += unmet;
             // A small reserve buffer makes contribution feasibility stateful.
             let inflow = capacity * 0.30;
             let consumption = agent.need * 0.30;
@@ -352,6 +373,7 @@ pub fn simulate(
         treatment,
         unmet_need_integral,
         peak_unmet_need,
+        unmet_need_inequality_gini: gini_nonnegative(&unmet_by_agent),
         contribution_count,
         recovery_tick,
         verification_overhead,
@@ -389,6 +411,9 @@ mod tests {
             let metrics = simulate(&scenario, 7, treatment).unwrap();
             assert!(metrics.unmet_need_integral.is_finite());
             assert!(metrics.peak_unmet_need.is_finite());
+            assert!(
+                (0.0..=1.0).contains(&metrics.unmet_need_inequality_gini)
+            );
             assert!(metrics.verification_overhead.is_finite());
             assert!(metrics.repair_progress_at_shock_end.is_finite());
             assert!((0.0..=1.0).contains(&metrics.repair_progress_at_shock_end));
