@@ -5,8 +5,8 @@
 //! This module emits sensitivity tables, never a selected threshold or action.
 
 use super::{
-    sha256_hex, valid_commit_sha, validate_dataset_json, AnalysisUnit, EvidenceClass,
-    ForecastDataset, ForecastOutcome, ForecastRecord, SplitName, belongs_to_split,
+    AnalysisUnit, EvidenceClass, ForecastDataset, ForecastOutcome, ForecastRecord, SplitName,
+    belongs_to_split, sha256_hex, valid_commit_sha, validate_dataset_json,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -183,7 +183,9 @@ fn parse_policy(input: &[u8]) -> Result<PolicyManifest, Vec<String>> {
     let schema: Value = serde_json::from_slice(POLICY_SCHEMA)
         .map_err(|error| vec![format!("checked-in policy schema JSON is invalid: {error}")])?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 policy schema meta-validation failed: {error}")]
+        vec![format!(
+            "Draft 2020-12 policy schema meta-validation failed: {error}"
+        )]
     })?;
     let instance: Value = serde_json::from_slice(input)
         .map_err(|error| vec![format!("policy manifest JSON is invalid: {error}")])?;
@@ -266,12 +268,10 @@ fn scores_for_threshold(
             if record.outcome == ForecastOutcome::Unknown {
                 unknown_alert_count += 1;
             }
-            let (alerts, resource_units) = monthly_demand
-                .entry(record.target_month)
-                .or_insert((0, 0));
+            let (alerts, resource_units) =
+                monthly_demand.entry(record.target_month).or_insert((0, 0));
             *alerts = alerts.saturating_add(1);
-            *resource_units = resource_units
-                .saturating_add(policy.action.resource_units_per_alert);
+            *resource_units = resource_units.saturating_add(policy.action.resource_units_per_alert);
         }
         if record.outcome == ForecastOutcome::Unknown {
             continue;
@@ -285,11 +285,9 @@ fn scores_for_threshold(
         }
     }
 
-    let resource_units_required = checked_resource_units(
-        alert_count,
-        policy.action.resource_units_per_alert,
-    )
-    .unwrap_or(u64::MAX);
+    let resource_units_required =
+        checked_resource_units(alert_count, policy.action.resource_units_per_alert)
+            .unwrap_or(u64::MAX);
     let maximum_alerts = monthly_demand
         .values()
         .map(|(alerts, _)| *alerts)
@@ -349,10 +347,7 @@ fn scores_for_threshold(
         alert_rate_on_scored_records: if scored.is_empty() {
             None
         } else {
-            Some(
-                (confusion.true_positive + confusion.false_positive) as f64
-                    / scored.len() as f64,
-            )
+            Some((confusion.true_positive + confusion.false_positive) as f64 / scored.len() as f64)
         },
         coverage_on_test_records: if records.is_empty() {
             None
@@ -367,9 +362,9 @@ fn scores_for_threshold(
         utility_units,
         utility_delta_vs_act_on_none_units: utility_delta,
         reason: reason.or_else(|| {
-            utility_units.is_none().then(|| {
-                "utility arithmetic overflowed the declared integer unit range".to_owned()
-            })
+            utility_units
+                .is_none()
+                .then(|| "utility arithmetic overflowed the declared integer unit range".to_owned())
         }),
     }
 }
@@ -430,7 +425,10 @@ pub fn evaluate_predeclared_policy(
         ]);
     }
     if policy.thresholds.is_empty()
-        || policy.thresholds.iter().any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+        || policy
+            .thresholds
+            .iter()
+            .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
         || policy.thresholds.windows(2).any(|pair| pair[0] >= pair[1])
     {
         return Err(vec![
@@ -455,7 +453,10 @@ pub fn evaluate_predeclared_policy(
     if policy.evidence_class == EvidenceClass::AuthorizedHistorical
         && [
             policy.registration.registration_evidence_reference.as_str(),
-            policy.governance.responsible_organization_reference.as_str(),
+            policy
+                .governance
+                .responsible_organization_reference
+                .as_str(),
             policy.governance.approval_reference.as_str(),
             policy.governance.authorization_scope.as_str(),
         ]
@@ -640,10 +641,12 @@ mod tests {
             "cargo 1.96.0",
             LOCK,
         );
-        assert!(result
-            .unwrap_err()
-            .iter()
-            .any(|error| error.contains("registered strictly before")));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("registered strictly before"))
+        );
     }
 
     #[test]
@@ -651,14 +654,17 @@ mod tests {
         let mut value: Value = serde_json::from_slice(POLICY).unwrap();
         value["forecast_archive_sha256"] = Value::String("c".repeat(64));
         let bytes = serde_json::to_vec(&value).unwrap();
-        assert!(evaluate_predeclared_policy(
-            DATASET,
-            &bytes,
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
-        ).is_err());
+        assert!(
+            evaluate_predeclared_policy(
+                DATASET,
+                &bytes,
+                "abcdef0123456789abcdef0123456789abcdef01",
+                "rustc 1.96.0",
+                "cargo 1.96.0",
+                LOCK,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -672,8 +678,7 @@ mod tests {
             .unwrap()
             .clone();
         additional["forecast_id"] = Value::String("forecast-capacity".to_owned());
-        additional["forecast_release_id"] =
-            Value::String("synthetic-capacity-run".to_owned());
+        additional["forecast_release_id"] = Value::String("synthetic-capacity-run".to_owned());
         additional["unit_id"] = Value::String("unit-epsilon".to_owned());
         additional["spatial_block_id"] = Value::String("block-north".to_owned());
         additional["probability"] = Value::from(0.5);
@@ -700,7 +705,12 @@ mod tests {
         assert!(!low.capacity_feasible);
         assert_eq!(low.maximum_alerts_in_one_target_month, 2);
         assert!(low.utility_units.is_none());
-        assert!(low.reason.as_deref().unwrap().contains("capacity is exceeded"));
+        assert!(
+            low.reason
+                .as_deref()
+                .unwrap()
+                .contains("capacity is exceeded")
+        );
 
         let high = receipt
             .policy_results
@@ -735,15 +745,21 @@ mod tests {
     #[test]
     fn malformed_cost_schedule_is_rejected_by_policy_schema() {
         let mut value: Value = serde_json::from_slice(POLICY).unwrap();
-        value["cost_schedule"].as_object_mut().unwrap().remove("cost_false_alert_units");
+        value["cost_schedule"]
+            .as_object_mut()
+            .unwrap()
+            .remove("cost_false_alert_units");
         let bytes = serde_json::to_vec(&value).unwrap();
-        assert!(evaluate_predeclared_policy(
-            DATASET,
-            &bytes,
-            "abcdef0123456789abcdef0123456789abcdef01",
-            "rustc 1.96.0",
-            "cargo 1.96.0",
-            LOCK,
-        ).is_err());
+        assert!(
+            evaluate_predeclared_policy(
+                DATASET,
+                &bytes,
+                "abcdef0123456789abcdef0123456789abcdef01",
+                "rustc 1.96.0",
+                "cargo 1.96.0",
+                LOCK,
+            )
+            .is_err()
+        );
     }
 }
