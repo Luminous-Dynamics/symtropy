@@ -1001,7 +1001,7 @@ mod tests {
             b3["containment_metrics"]["unnecessary_recall_lot_count"].as_u64(),
             Some(1)
         );
-        let candidate_lots = strings(
+        let candidate_lots = string_array(
             &b3["containment_metrics"]["candidate_finished_lots"],
             "candidate_finished_lots",
         )
