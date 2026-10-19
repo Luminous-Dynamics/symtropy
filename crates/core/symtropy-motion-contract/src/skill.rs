@@ -47,7 +47,7 @@ pub enum MotionConstraintKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
+#[serde(tag = "kind", content = "value", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MotionConstraintTarget {
     PositionWorldM([f64; 3]),
     OrientationWorldXyzw([f64; 4]),
@@ -84,7 +84,7 @@ pub fn compare_constraint_precedence(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MotionSkillPrecondition {
     CapabilityAvailable { capability_id: String },
     TargetReachable { target_ref: String },
@@ -169,7 +169,7 @@ pub enum MotionSkillExecutionFailure {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "status", rename_all = "snake_case")]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MotionSkillOutcome {
     Ready,
     Completed,
@@ -944,6 +944,23 @@ mod tests {
             serde_json::from_str(&json).expect("contract deserializes");
         assert_eq!(decoded, skill);
         decoded.validate().expect("round-trip contract validates");
+    }
+
+    #[test]
+    fn tagged_contract_values_reject_unknown_fields() {
+        let mut value = serde_json::to_value(contract()).expect("contract serializes");
+        value["preconditions"][0]["unexpected"] = serde_json::Value::Bool(true);
+        assert!(
+            serde_json::from_value::<MotionSkillContract>(value).is_err(),
+            "tagged preconditions must reject unknown fields"
+        );
+
+        let mut value = serde_json::to_value(contract()).expect("contract serializes");
+        value["constraints"][0]["target"]["unexpected"] = serde_json::Value::Bool(true);
+        assert!(
+            serde_json::from_value::<MotionSkillContract>(value).is_err(),
+            "tagged constraint targets must reject unknown fields"
+        );
     }
 
     #[test]
