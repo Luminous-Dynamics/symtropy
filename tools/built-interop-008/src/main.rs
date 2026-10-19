@@ -679,8 +679,13 @@ fn compare_bytes(
     let mut issues = source.issues.clone();
     issues.extend(target.issues.clone());
     issues.sort_by(|a, b| {
-        (&a.side, &a.code, &a.entity_type, &a.step_id, &a.detail)
-            .cmp(&(&b.side, &b.code, &b.entity_type, &b.step_id, &b.detail))
+        (&a.side, &a.code, &a.entity_type, &a.step_id, &a.detail).cmp(&(
+            &b.side,
+            &b.code,
+            &b.entity_type,
+            &b.step_id,
+            &b.detail,
+        ))
     });
     let (changes, counts) = compare_snapshots(&source, &target);
     let root_total = source.root_count + target.root_count;
@@ -856,7 +861,12 @@ mod tests {
         let target = source.replace("'0000000000000000000000'", "'not-a-guid'");
         let report = compare(target.as_bytes(), target.as_bytes());
         assert_eq!(report.status, Status::Unresolved);
-        assert!(report.coverage_issues.iter().any(|issue| issue.code == "INVALID_GLOBAL_ID"));
+        assert!(
+            report
+                .coverage_issues
+                .iter()
+                .any(|issue| issue.code == "INVALID_GLOBAL_ID")
+        );
         assert!(report.identity_coverage.roots_with_ambiguous_identity > 0);
     }
 
