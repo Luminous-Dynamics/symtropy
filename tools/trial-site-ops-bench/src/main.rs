@@ -164,9 +164,9 @@ fn candidate_projection(case: &Value) -> Value {
 
 fn numeric_evidence(site: &Value, name: &str, verified_direct_only: bool) -> Option<f64> {
     let records = site.get("evidence").and_then(Value::as_array)?;
-    let item = records.iter().find(|item| {
-        item.get("name").and_then(Value::as_str) == Some(name)
-    })?;
+    let item = records
+        .iter()
+        .find(|item| item.get("name").and_then(Value::as_str) == Some(name))?;
     if item.get("prospective_admissible").and_then(Value::as_bool) != Some(true) {
         return None;
     }
@@ -203,7 +203,10 @@ fn b3_readiness_signal(site: &Value) -> (Option<f64>, Vec<String>, String) {
     let competing_load = numeric_evidence(site, "competing_trial_load", true);
 
     if let (Some(staff), Some(workflow)) = (staff, workflow) {
-        let mut dimensions = vec!["staff_capacity".to_owned(), "workflow_coordination".to_owned()];
+        let mut dimensions = vec![
+            "staff_capacity".to_owned(),
+            "workflow_coordination".to_owned(),
+        ];
         let mut score = staff * workflow;
         if let Some(followup) = followup {
             score *= followup;
@@ -258,9 +261,9 @@ fn access_evidence(site: &Value, name: &str) -> Value {
     site.get("evidence")
         .and_then(Value::as_array)
         .and_then(|records| {
-            records.iter().find(|item| {
-                item.get("name").and_then(Value::as_str) == Some(name)
-            })
+            records
+                .iter()
+                .find(|item| item.get("name").and_then(Value::as_str) == Some(name))
         })
         .map(|item| {
             json!({
@@ -278,7 +281,10 @@ fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
     // Both candidate methods receive this projection only. Oracle outcomes are read
     // after predictions are formed and are used exclusively for evaluator metrics.
     let input = candidate_projection(case);
-    let sites = array(field(&input, "sites", "candidate_projection")?, "candidate_projection.sites")?;
+    let sites = array(
+        field(&input, "sites", "candidate_projection")?,
+        "candidate_projection.sites",
+    )?;
     let mut b1_predictions = BTreeMap::<String, f64>::new();
     let mut b3_scores = BTreeMap::<String, f64>::new();
     let mut b1_rows = Vec::new();
@@ -346,7 +352,9 @@ fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
     let absolute_errors: Vec<f64> = b1_predictions
         .iter()
         .filter_map(|(id, prediction)| {
-            actual_enrollment.get(id).map(|actual| (prediction - actual).abs())
+            actual_enrollment
+                .get(id)
+                .map(|actual| (prediction - actual).abs())
         })
         .collect();
     let b1_mae = if absolute_errors.is_empty() {
@@ -354,9 +362,13 @@ fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
     } else {
         json!(absolute_errors.iter().sum::<f64>() / absolute_errors.len() as f64)
     };
-    let b1_top_matches_actual = b1_top_site.as_ref().zip(actual_top_site.as_ref())
+    let b1_top_matches_actual = b1_top_site
+        .as_ref()
+        .zip(actual_top_site.as_ref())
         .map(|(predicted, actual)| predicted == actual);
-    let b3_top_matches_actual = b3_top_site.as_ref().zip(actual_top_site.as_ref())
+    let b3_top_matches_actual = b3_top_site
+        .as_ref()
+        .zip(actual_top_site.as_ref())
         .map(|(predicted, actual)| predicted == actual);
     let b3_comparable_pair = b3_scores.len() == sites.len();
     let b3_directional_concordance = if b3_comparable_pair && sites.len() == 2 {
@@ -817,16 +829,18 @@ mod tests {
     fn compares_self_report_targets_with_capability_signals_on_capability_gap_case() {
         let corpus = fixture();
         let scenarios = validate_corpus(&corpus).expect("fixture validates");
-        let case = scenarios.iter().find(|item| {
-            item.get("case_id").and_then(Value::as_str) == Some("CAPABILITY-GAP-001")
-        }).expect("capability gap scenario exists");
+        let case = scenarios
+            .iter()
+            .find(|item| item.get("case_id").and_then(Value::as_str) == Some("CAPABILITY-GAP-001"))
+            .expect("capability gap scenario exists");
         let comparison = &case["reference_comparison"];
         assert_eq!(
             comparison["B1_self_report_only"]["top_reported_target_site"].as_str(),
             Some("SITE-NORTH")
         );
         assert_eq!(
-            comparison["B1_self_report_only"]["top_target_matches_top_synthetic_enrollment"].as_bool(),
+            comparison["B1_self_report_only"]["top_target_matches_top_synthetic_enrollment"]
+                .as_bool(),
             Some(false)
         );
         assert_eq!(
@@ -847,15 +861,20 @@ mod tests {
     fn stale_and_incomplete_case_abstains_instead_of_zero_filling() {
         let corpus = fixture();
         let scenarios = validate_corpus(&corpus).expect("fixture validates");
-        let case = scenarios.iter().find(|item| {
-            item.get("case_id").and_then(Value::as_str) == Some("STALE-INCOMPLETE-005")
-        }).expect("stale case exists");
+        let case = scenarios
+            .iter()
+            .find(|item| {
+                item.get("case_id").and_then(Value::as_str) == Some("STALE-INCOMPLETE-005")
+            })
+            .expect("stale case exists");
         assert_eq!(
-            case["reference_comparison"]["B3_capability_aware_heuristic"]["rankable_site_count"].as_u64(),
+            case["reference_comparison"]["B3_capability_aware_heuristic"]["rankable_site_count"]
+                .as_u64(),
             Some(0)
         );
         assert_eq!(
-            case["reference_comparison"]["B3_capability_aware_heuristic"]["abstention_count"].as_u64(),
+            case["reference_comparison"]["B3_capability_aware_heuristic"]["abstention_count"]
+                .as_u64(),
             Some(2)
         );
     }
@@ -868,7 +887,10 @@ mod tests {
         for case in reordered["cases"].as_array_mut().expect("case array") {
             case["sites"].as_array_mut().expect("site array").reverse();
             for site in case["sites"].as_array_mut().expect("site array") {
-                site["evidence"].as_array_mut().expect("evidence array").reverse();
+                site["evidence"]
+                    .as_array_mut()
+                    .expect("evidence array")
+                    .reverse();
             }
         }
         let reordered_results = validate_corpus(&reordered).expect("reordered fixture validates");
@@ -879,13 +901,18 @@ mod tests {
     fn access_dimensions_are_reported_separately_from_readiness_scores() {
         let corpus = fixture();
         let scenarios = validate_corpus(&corpus).expect("fixture validates");
-        let case = scenarios.iter().find(|item| {
-            item.get("case_id").and_then(Value::as_str) == Some("REPRESENTATION-ACCESS-004")
-        }).expect("access scenario exists");
+        let case = scenarios
+            .iter()
+            .find(|item| {
+                item.get("case_id").and_then(Value::as_str) == Some("REPRESENTATION-ACCESS-004")
+            })
+            .expect("access scenario exists");
         let comparison = &case["reference_comparison"];
         assert!(comparison.get("separate_access_dimensions").is_some());
         assert!(comparison.get("site_quality_score").is_none());
-        let access_rows = comparison["separate_access_dimensions"].as_array().expect("access rows");
+        let access_rows = comparison["separate_access_dimensions"]
+            .as_array()
+            .expect("access rows");
         assert_eq!(access_rows.len(), 2);
         assert!(access_rows.iter().any(|row| {
             row["site_id"].as_str() == Some("SITE-COMMUNITY")
