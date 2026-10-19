@@ -213,9 +213,7 @@ fn push_blocker(
 /// evidence-confirmed attainment. Unknown/missing outcomes are not assumed to
 /// be success or failure; known-late, known-not-accepted, and disputed outcomes
 /// do not enter the upper bound. All arithmetic remains integer-exact.
-pub fn assess_field_eval_report_v1(
-    input: &FieldEvalReportInputV1,
-) -> FieldEvalReportAssessmentV1 {
+pub fn assess_field_eval_report_v1(input: &FieldEvalReportInputV1) -> FieldEvalReportAssessmentV1 {
     let mut blockers = Vec::new();
 
     if input.schema_version != FIELD_EVAL_REPORT_SCHEMA_VERSION_V1 {
@@ -234,7 +232,10 @@ pub fn assess_field_eval_report_v1(
         ("task_code", input.task_code.as_str()),
         ("scope_ref", input.scope_ref.as_str()),
         ("period_ref", input.period_ref.as_str()),
-        ("useful_window_rule_ref", input.useful_window_rule_ref.as_str()),
+        (
+            "useful_window_rule_ref",
+            input.useful_window_rule_ref.as_str(),
+        ),
     ] {
         if !is_safe_opaque_ref(value) {
             push_blocker(
@@ -255,7 +256,9 @@ pub fn assess_field_eval_report_v1(
         .outcomes
         .ascertained_count(input.eligible_request_count);
 
-    if expected_screened.is_none() || outcome_total.is_none() || reason_total.is_none()
+    if expected_screened.is_none()
+        || outcome_total.is_none()
+        || reason_total.is_none()
         || uncertain_total.is_none()
     {
         push_blocker(
@@ -308,13 +311,14 @@ pub fn assess_field_eval_report_v1(
     let evidence_confirmed_attainment = if disposition == FieldEvalReportDispositionV1::Calculated {
         let outcomes = &input.outcomes;
         let upper_uncertain = uncertain_total.expect("validated count sum");
-        outcomes.accepted_within_window_count.checked_add(upper_uncertain).map(|upper| {
-            FieldEvalRateBoundsV1 {
+        outcomes
+            .accepted_within_window_count
+            .checked_add(upper_uncertain)
+            .map(|upper| FieldEvalRateBoundsV1 {
                 lower_numerator: outcomes.accepted_within_window_count,
                 upper_numerator: upper,
                 denominator: input.eligible_request_count,
-            }
-        })
+            })
     } else {
         None
     };
