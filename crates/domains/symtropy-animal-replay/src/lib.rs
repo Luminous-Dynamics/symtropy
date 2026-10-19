@@ -337,7 +337,9 @@ pub struct ReplayEvaluationInput<'a> {
 /// Build an evidence-bounded scorecard receipt. Arrays with canonical ordering
 /// are sorted before hashing; the source manifest is digested by its own
 /// canonicalizer. This function never downloads data or grants source rights.
-pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayReceipt, serde_json::Error> {
+pub fn build_replay_receipt(
+    input: ReplayEvaluationInput<'_>,
+) -> Result<ReplayReceipt, serde_json::Error> {
     let ReplayEvaluationInput {
         profile,
         manifest,
@@ -511,7 +513,11 @@ pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayRe
         {
             rejected.insert(ReplayReason::TaxonStratumUnbound);
         }
-        if !metric_keys.insert((metric.metric_id.clone(), metric.stratum_kind, metric.stratum_id.clone())) {
+        if !metric_keys.insert((
+            metric.metric_id.clone(),
+            metric.stratum_kind,
+            metric.stratum_id.clone(),
+        )) {
             rejected.insert(ReplayReason::DuplicateMetricId);
         }
         if metric.unit.trim().is_empty() {
@@ -599,7 +605,10 @@ pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayRe
             {
                 rejected.insert(ReplayReason::TaxonStratumUnbound);
             }
-            if matches!(validate_metric(metric), MetricValidation::InvalidInterval | MetricValidation::InvalidValue) {
+            if matches!(
+                validate_metric(metric),
+                MetricValidation::InvalidInterval | MetricValidation::InvalidValue
+            ) {
                 rejected.insert(ReplayReason::BaselineMetricNotReported);
             } else if matches!(validate_metric(metric), MetricValidation::Incomplete) {
                 incomplete.insert(ReplayReason::BaselineMetricNotReported);
@@ -683,7 +692,10 @@ pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayRe
         if !comparison_keys.insert(key) {
             rejected.insert(ReplayReason::DuplicateBaselineComparison);
         }
-        let Some(baseline) = baselines.iter().find(|item| item.baseline_id == comparison.baseline_id) else {
+        let Some(baseline) = baselines
+            .iter()
+            .find(|item| item.baseline_id == comparison.baseline_id)
+        else {
             rejected.insert(ReplayReason::UnknownBaselineForComparison);
             continue;
         };
@@ -789,7 +801,10 @@ pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayRe
     }
 
     for baseline in &baselines {
-        for candidate_metric in metrics.iter().filter(|metric| metric.metric_id == task.primary_metric_id) {
+        for candidate_metric in metrics
+            .iter()
+            .filter(|metric| metric.metric_id == task.primary_metric_id)
+        {
             let has_matching_comparison = paired_baseline_comparisons.iter().any(|comparison| {
                 comparison.baseline_id == baseline.baseline_id
                     && comparison.metric_id == candidate_metric.metric_id
@@ -838,7 +853,10 @@ pub fn build_replay_receipt(input: ReplayEvaluationInput<'_>) -> Result<ReplayRe
         .collect();
 
     let threshold_outcome = if disposition != ReplayDisposition::Eligible {
-        if matches!(primary_metric.map(|metric| metric.state), Some(MetricState::Missing | MetricState::Abstained | MetricState::Failed))
+        if matches!(
+            primary_metric.map(|metric| metric.state),
+            Some(MetricState::Missing | MetricState::Abstained | MetricState::Failed)
+        )
             || primary_metric.is_none()
         {
             ThresholdOutcome::Incomplete
