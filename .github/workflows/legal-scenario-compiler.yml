@@ -1,0 +1,50 @@
+name: Legal Scenario Compiler
+
+on:
+  pull_request:
+    paths:
+      - "crates/tools/legal-scenario-compiler/**"
+      - ".github/workflows/legal-scenario-compiler.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/tools/legal-scenario-compiler/**"
+      - ".github/workflows/legal-scenario-compiler.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legal-scenario-compiler-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Deterministic Symbolic Scenario Generation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml -- --check
+
+      - name: Unit tests
+        run: cargo test --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml
+
+      - name: Generate identical corpora twice
+        run: |
+          cargo run --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml -- generate 42 "$RUNNER_TEMP/legal-corpus-a.json"
+          cargo run --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml -- generate 42 "$RUNNER_TEMP/legal-corpus-b.json"
+          cmp "$RUNNER_TEMP/legal-corpus-a.json" "$RUNNER_TEMP/legal-corpus-b.json"
+
+      - name: Validate generated corpus
+        run: cargo run --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml -- validate "$RUNNER_TEMP/legal-corpus-a.json"
