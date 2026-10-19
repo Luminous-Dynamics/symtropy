@@ -11,6 +11,7 @@ A renderer-independent first step toward executable, visually navigable experime
 - Parameter/input overrides are scoped to a run; deterministic one-variable sweeps return each input plus the complete evaluated value map without mutating the model.
 - A known-answer synthetic gear-pair fixture and negative tests for dimension mismatch, dimension-exponent overflow, cycles, duplicate equation outputs/IDs, missing run-time values, and division by zero; a subtraction variant tests the remaining arithmetic operator.
 - Regression checks verify parameter sweep order/model immutability and compare a finite difference to the analytic gear model slope; the interpreter can sweep declared parameter/input values without mutating the experiment graph.
+- Adds a separate analytical-reference harmonic oscillator model with explicit versus symplectic Euler integration, analytic position/velocity comparisons, energy drift diagnostics, step-size convergence checks, and fail-closed validity bounds.
 
 ## Run
 
@@ -22,12 +23,15 @@ cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- crates/do
 
 # Sweep a parameter without mutating the canonical model; values retain input order
 cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- sweep crates/domains/symtropy-experiment-core/fixtures/gear-ratio.json variable:n_driver 47,48,49
+
+# Simulate the synthetic oscillator and compare each timestep to its analytic solution
+cargo run -p symtropy-experiment-core --bin symtropy-experiment-run -- oscillator crates/domains/symtropy-experiment-core/fixtures/harmonic-oscillator.json
 ```
 
-The expected idealized result for the fixture is `theta_output = -1.9 rad` and `signed_ratio = -4`. The runner prints all supplied and derived variables as JSON strings. The sweep command reports scenario outputs in the exact order requested; a sweep is deterministic scenario exploration, not a probability distribution, global sensitivity index or physical validation.
+The oscillator fixture uses mass 1 kg, stiffness 4 N/m, initial position 1 m and a 10 s horizon at 0.01 s steps. The angular frequency is 2 rad/s. It compares numerical samples with the analytical solution and reports integration error and relative energy deviation; these are synthetic code-verification diagnostics, not experimental measurement error. The expected idealized gear result is `theta_output = -1.9 rad` and `signed_ratio = -4`. The runner prints all supplied and derived variables as JSON strings. The sweep command reports scenario outputs in the exact order requested; a sweep is deterministic scenario exploration, not a probability distribution, global sensitivity index or physical validation.
 
 ## Important boundary
 
 This is **not** a physical simulator. It is a narrow reference interpreter for a memoryless arithmetic graph. It does not model torque, inertia, contact, friction, backlash, compliance, manufacturing tolerance, solver stability, or physical uncertainty. It uses IEEE-754 binary64; output values must be compared with declared numerical tolerances. A successful graph validation proves internal structure and dimension compatibility under this schema, not that an equation is historically attested or empirically true.
 
-A future visual layer should bind scene entities and equation nodes to these stable IDs instead of duplicating physical meaning in renderer-specific components. Stateful equations and time-stepped physics need an explicit state-transition/time model rather than undetected algebraic feedback loops.
+A future visual layer should bind scene entities and equation nodes to these stable IDs instead of duplicating physical meaning in renderer-specific components. The oscillator lives in a separate, model-specific dynamics module because it has a different contract from an arithmetic DAG. It is still only a simple analytical reference case; damped/nonlinear systems, stochastic models, circuits, chemistry and coupled multiphysics need explicit domain models and their own validation suites.
