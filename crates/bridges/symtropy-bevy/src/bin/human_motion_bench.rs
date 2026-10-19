@@ -88,7 +88,9 @@ fn validate_human_reference_claim(
         return fail("human-reference claims require distinct reference and prediction trace IDs");
     }
     if reference.run.source_kind != SourceKind::OriginalConsentCapture {
-        return fail("human-reference claims require a reference declared as an original consented human capture");
+        return fail(
+            "human-reference claims require a reference declared as an original consented human capture",
+        );
     }
     if reference.run.split.as_deref() != Some("test") {
         return fail("human-reference claims require reference.run.split = test");
@@ -1799,7 +1801,8 @@ mod tests {
         reference.run.source_kind = SourceKind::OriginalConsentCapture;
         reference.run.git_commit = "a".repeat(40);
         reference.run.asset_sha256 = Some("b".repeat(64));
-        reference.run.asset_license = Some("documented consent and evaluation authorization".to_owned());
+        reference.run.asset_license =
+            Some("documented consent and evaluation authorization".to_owned());
         reference.retarget_map_sha256.0 = Some("c".repeat(64));
         reference.run.split = Some("test".to_owned());
         reference.run.dataset_id = Some("consented-dataset".to_owned());
@@ -1832,7 +1835,12 @@ mod tests {
         validate_human_reference_claim(&reference, &prediction).unwrap();
         let report = evaluate(&reference, &prediction, None).unwrap();
         assert_eq!(report.evidence_scope, "declared_held_out_human_reference");
-        assert!(report.caveats.iter().any(|value| value.contains("not independent authentication")));
+        assert!(
+            report
+                .caveats
+                .iter()
+                .any(|value| value.contains("not independent authentication"))
+        );
     }
 
     #[test]
