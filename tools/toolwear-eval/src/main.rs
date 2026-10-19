@@ -113,9 +113,7 @@ impl TransferAccumulator {
         self.pooled.absolute_error_sum += result.pooled.mae * result.pooled.rows as f64;
         self.pooled.squared_error_sum +=
             result.pooled.rmse * result.pooled.rmse * result.pooled.rows as f64;
-        if !self.pooled.absolute_error_sum.is_finite()
-            || !self.pooled.squared_error_sum.is_finite()
-        {
+        if !self.pooled.absolute_error_sum.is_finite() || !self.pooled.squared_error_sum.is_finite() {
             return Err("transfer metric aggregation became non-finite".to_owned());
         }
         Ok(())
@@ -153,7 +151,6 @@ impl TransferAccumulator {
         ))
     }
 }
-
 
 fn parse_csv(text: &str) -> Result<Dataset, String> {
     let mut lines = text.lines();
@@ -468,7 +465,6 @@ fn evaluate_model(
     })
 }
 
-
 fn fit_leave_one_tool_out(dataset: &Dataset) -> Result<Vec<ToolFold>, String> {
     let tool_ids: BTreeSet<u32> = dataset.rows.iter().map(|row| row.tool).collect();
     if tool_ids.len() < 2 {
@@ -479,8 +475,7 @@ fn fit_leave_one_tool_out(dataset: &Dataset) -> Result<Vec<ToolFold>, String> {
 
     for held_out_tool in tool_ids.iter().copied() {
         let test_tools = BTreeSet::from([held_out_tool]);
-        let training_tools: BTreeSet<u32> =
-            tool_ids.difference(&test_tools).copied().collect();
+        let training_tools: BTreeSet<u32> = tool_ids.difference(&test_tools).copied().collect();
         if training_tools.is_empty() || !training_tools.is_disjoint(&test_tools) {
             return Err("leave-one-tool-out produced an invalid group split".to_owned());
         }
@@ -504,14 +499,8 @@ fn fit_leave_one_tool_out(dataset: &Dataset) -> Result<Vec<ToolFold>, String> {
         let mut models = BTreeMap::new();
 
         let constant = fit_tool_balanced_constant(&training_rows, target_index)?;
-        let constant_result = evaluate_model(
-            dataset,
-            &test_tools,
-            target_index,
-            None,
-            constant,
-            0.0,
-        )?;
+        let constant_result =
+            evaluate_model(dataset, &test_tools, target_index, None, constant, 0.0)?;
         models.insert("constant_train_tool_balanced".to_owned(), constant_result);
 
         // This feature set and estimator are frozen before inspecting the
@@ -622,7 +611,11 @@ fn tool_transfer_diagnostics(dataset: &Dataset, source_sha: &str) -> Result<Stri
         identity_sha,
         tool_ids_json,
         folds.len(),
-        FEATURES.iter().map(|feature| format!("\"{feature}\"")).collect::<Vec<_>>().join(","),
+        FEATURES
+            .iter()
+            .map(|feature| format!("\"{feature}\""))
+            .collect::<Vec<_>>()
+            .join(","),
         fold_reports.join(","),
         aggregate_models.join(","),
         ranking_signatures.len()
@@ -1006,7 +999,10 @@ mod tests {
             assert!(fold.test_rows > 0);
             assert_eq!(fold.models.len(), FEATURES.len() + 1);
             for result in fold.models.values() {
-                assert_eq!(result.per_tool.keys().copied().collect::<BTreeSet<_>>(), [fold.held_out_tool].into_iter().collect());
+                assert_eq!(
+                    result.per_tool.keys().copied().collect::<BTreeSet<_>>(),
+                    [fold.held_out_tool].into_iter().collect()
+                );
             }
         }
     }
@@ -1018,12 +1014,14 @@ mod tests {
         let before = fit_leave_one_tool_out(&dataset).unwrap();
         let before_assignment: Vec<(u32, BTreeSet<u32>, usize, usize)> = before
             .iter()
-            .map(|fold| (
-                fold.held_out_tool,
-                fold.training_tools.clone(),
-                fold.training_rows,
-                fold.test_rows,
-            ))
+            .map(|fold| {
+                (
+                    fold.held_out_tool,
+                    fold.training_tools.clone(),
+                    fold.training_rows,
+                    fold.test_rows,
+                )
+            })
             .collect();
 
         let mut labels: Vec<f64> = dataset
@@ -1058,7 +1056,10 @@ mod tests {
             .map(|name| column_index(&original.headers, name).unwrap())
             .collect();
         let reordered = Dataset {
-            headers: reordered_names.iter().map(|name| (*name).to_owned()).collect(),
+            headers: reordered_names
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect(),
             rows: original
                 .rows
                 .iter()
