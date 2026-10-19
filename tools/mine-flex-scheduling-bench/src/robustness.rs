@@ -4,7 +4,7 @@ use super::{
     ScheduleScore,
 };
 use serde::Serialize;
-use std::{cmp::Ordering, env, fs, process::ExitCode};
+use std::{env, process::ExitCode};
 
 const GENERATOR_VERSION: &str = "mine-flex-generated-disturbances-v0.1.0";
 const VALIDATION_SEEDS: std::ops::RangeInclusive<u64> = 1..=32;
@@ -429,7 +429,7 @@ fn policy_evaluation(
         Ok(score) => {
             let reconstructed =
                 independently_reconstruct_score(model, realized_world, batches);
-            if reconstructed.as_ref().is_err_or(|independent| independent != &score) {
+            if !matches!(reconstructed.as_ref(), Ok(independent) if independent == &score) {
                 *hard_constraint_violations += 1;
                 return PolicyEvaluation {
                     policy_id: policy_id.to_owned(),
@@ -827,8 +827,13 @@ mod tests {
         let nominal_a = choose_nominal_schedule(&model(), &case.forecast).expect("nominal schedule");
         let mut reversed = case.uncertainty_envelope.clone();
         reversed.reverse();
+        let robust_a = choose_robust_schedule(&model(), &case.forecast, &case.uncertainty_envelope)
+            .expect("robust schedule");
+        let robust_b = choose_robust_schedule(&model(), &case.forecast, &reversed)
+            .expect("robust schedule must not depend on envelope iteration order");
         let nominal_b = choose_nominal_schedule(&model(), &case.forecast).expect("nominal schedule");
         assert_eq!(nominal_a, nominal_b);
+        assert_eq!(robust_a, robust_b);
         assert_eq!(FIXED_BASELINE.to_vec(), case.forecast.fixed_baseline_batches);
     }
 
@@ -904,8 +909,8 @@ mod tests {
     fn tail_metrics_use_nearest_rank_and_worst_five_percent() {
         let metrics = tail_metrics(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100]);
         assert_eq!(Some(100), metrics.worst_regret_units);
-        assert_eq!(Some(10), metrics.p95_regret_units_nearest_rank);
+        assert_eq!(Some(100), metrics.p95_regret_units_nearest_rank);
         assert_eq!(Some(100), metrics.cvar95_regret_units_worst_five_percent_mean_floor);
-        assert_eq!(Some(13), tail_metrics(&[10, 10, 20]).cvar95_regret_units_worst_five_percent_mean_floor);
+        assert_eq!(Some(20), tail_metrics(&[10, 10, 20]).cvar95_regret_units_worst_five_percent_mean_floor);
     }
 }
