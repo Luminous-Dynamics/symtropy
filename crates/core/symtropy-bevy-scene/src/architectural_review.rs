@@ -1330,7 +1330,7 @@ pub const DESIGN_REVIEW_SESSION_SCHEMA_VERSION: u32 = 1;
 /// The snapshot digest should cover a canonical manifest representation that
 /// excludes the digest field itself. The validator checks digest syntax and
 /// reference consistency, not actual artifact bytes or immutable storage.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DesignReviewSession {
     pub schema_version: u32,
     pub session_id: String,
@@ -1707,6 +1707,39 @@ mod tests {
                     rig: ReviewRig::FloatingCamera,
                 })
         );
+    }
+
+    #[test]
+    fn review_session_manifest_is_deterministic_and_excludes_its_digest() {
+        let first = sample_review_session(DesignReviewMode::StaticPlan);
+        let mut second = first.clone();
+        second.snapshot_sha256 = "c".repeat(64);
+
+        let first_bytes = review_session_manifest_bytes(&first).unwrap();
+        let second_bytes = review_session_manifest_bytes(&second).unwrap();
+        assert_eq!(first_bytes, second_bytes);
+        let decoded: serde_json::Value = serde_json::from_slice(&first_bytes).unwrap();
+        assert_eq!(decoded["schema_version"], DESIGN_REVIEW_SESSION_SCHEMA_VERSION);
+        assert_eq!(decoded["snapshot_sha256"], "");
+    }
+
+    #[test]
+    fn review_session_manifest_json_round_trips() {
+        let session = sample_review_session(DesignReviewMode::FloatingCamera);
+        let bytes = serde_json::to_vec(&session).unwrap();
+        let restored: DesignReviewSession = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(restored, session);
+    }
+
+    #[test]
+    fn review_session_rejects_unknown_schema_version() {
+        let mut session = sample_review_session(DesignReviewMode::StaticPlan);
+        session.schema_version = DESIGN_REVIEW_SESSION_SCHEMA_VERSION + 1;
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .contains(&DesignReviewSessionIssue::UnsupportedSchemaVersion {
+                found: DESIGN_REVIEW_SESSION_SCHEMA_VERSION + 1,
+            }));
     }
 
     #[test]
