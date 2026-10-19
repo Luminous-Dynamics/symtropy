@@ -24,7 +24,7 @@ use symtropy_physics::PhysicsWorld;
 
 const MASS: f64 = 1.0;
 const SPRING_K: f64 = 4.0;
-const OMEGA: f64 = (SPRING_K / MASS).sqrt();
+const OMEGA: f64 = 2.0; // sqrt(SPRING_K / MASS)
 const DURATION: f64 = 2.0;
 const POSITION_TOLERANCE: f64 = 1e-8;
 const VELOCITY_TOLERANCE: f64 = 1e-8;
