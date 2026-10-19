@@ -521,15 +521,20 @@ fn policy_for_world(
         oracle_cost,
         hard_constraint_violations,
     );
-    let adaptive_execution =
-        execute_adaptive_recourse(model, &case.forecast, &case.uncertainty_envelope, world)?;
+    let adaptive_execution = execute_adaptive_recourse(
+        model,
+        &case.forecast,
+        &case.uncertainty_envelope,
+        world,
+        RecourseObjective::CostFirst,
+    )?;
     let adaptive_schedule = if adaptive_execution.completed_production_target {
         Some(adaptive_execution.executed_batches.as_slice())
     } else {
         None
     };
     let mut adaptive = evaluation_for_schedule(
-        "causal_adaptive_recourse",
+        RecourseObjective::CostFirst.policy_id(),
         model,
         world,
         adaptive_schedule,
@@ -541,6 +546,32 @@ fn policy_for_world(
         // Keep actual incurred cost separate from feasible cost in the summary.
         adaptive.grid_cost_units = None;
         adaptive.grid_carbon_units = None;
+    }
+
+    let carbon_aware_execution = execute_adaptive_recourse(
+        model,
+        &case.forecast,
+        &case.uncertainty_envelope,
+        world,
+        RecourseObjective::CarbonFirst,
+    )?;
+    let carbon_aware_schedule = if carbon_aware_execution.completed_production_target {
+        Some(carbon_aware_execution.executed_batches.as_slice())
+    } else {
+        None
+    };
+    let mut carbon_aware = evaluation_for_schedule(
+        RecourseObjective::CarbonFirst.policy_id(),
+        model,
+        world,
+        carbon_aware_schedule,
+        oracle_cost,
+        hard_constraint_violations,
+    );
+    if !carbon_aware_execution.completed_production_target {
+        carbon_aware.rejection_reason = carbon_aware_execution.rejection_reason.clone();
+        carbon_aware.grid_cost_units = None;
+        carbon_aware.grid_carbon_units = None;
     }
     let row = RecourseWorldResult {
         seed,
@@ -554,6 +585,8 @@ fn policy_for_world(
         static_robust_policy: robust,
         adaptive_recourse: adaptive,
         adaptive_execution,
+        carbon_aware_recourse: carbon_aware,
+        carbon_aware_execution,
     };
     Ok((row, oracle))
 }
@@ -564,6 +597,7 @@ fn result_policy<'a>(row: &'a RecourseWorldResult, policy_id: &str) -> &'a Polic
         "nominal_forecast_cost_minimizer" => &row.nominal_policy,
         ROBUST_POLICY_ID => &row.static_robust_policy,
         "causal_adaptive_recourse" => &row.adaptive_recourse,
+        "causal_adaptive_carbon_first" => &row.carbon_aware_recourse,
         _ => unreachable!("summary asks only for a declared policy"),
     }
 }
@@ -599,13 +633,16 @@ fn summarize(
         .iter()
         .filter_map(|outcome| outcome.regret_vs_realization_oracle_units)
         .collect();
-    let incurred: Vec<u64> = if policy_id == "causal_adaptive_recourse" {
-        selected
+    let incurred: Vec<u64> = match policy_id {
+        "causal_adaptive_recourse" => selected
             .iter()
             .map(|row| row.adaptive_execution.incurred_grid_cost_units)
-            .collect()
-    } else {
-        Vec::new()
+            .collect(),
+        "causal_adaptive_carbon_first" => selected
+            .iter()
+            .map(|row| row.carbon_aware_execution.incurred_grid_cost_units)
+            .collect(),
+        _ => Vec::new(),
     };
     let sum_cost: u128 = costs.iter().map(|value| u128::from(*value)).sum();
     let sum_carbon: u128 = carbons.iter().map(|value| u128::from(*value)).sum();
@@ -644,13 +681,19 @@ fn summarize(
 }
 
 fn audit_nonanticipativity(rows: &[RecourseWorldResult]) -> usize {
-    let mut actions: BTreeMap<(u64, String, usize, String), u32> = BTreeMap::new();
+    let mut actions: BTreeMap<(u64, String, String, usize, String), u32> = BTreeMap::new();
     let mut violations = 0;
     for row in rows {
-        for decision in &row.adaptive_execution.decisions {
+        for decision in row
+            .adaptive_execution
+            .decisions
+            .iter()
+            .chain(row.carbon_aware_execution.decisions.iter())
+        {
             let key = (
                 row.seed,
                 format!("{:?}", row.split),
+                decision.policy_id.clone(),
                 decision.epoch,
                 decision.observation_prefix_sha256.clone(),
             );
@@ -732,6 +775,7 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
                 "nominal_forecast_cost_minimizer",
                 ROBUST_POLICY_ID,
                 "causal_adaptive_recourse",
+                "causal_adaptive_carbon_first",
             ] {
                 summaries.push(summarize(&rows, split, class, policy));
             }
