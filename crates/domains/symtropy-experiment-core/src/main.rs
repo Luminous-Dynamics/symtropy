@@ -47,6 +47,7 @@ fn run_once(path: &str) {
         print_json(
             serde_json::json!({
                 "valid": false,
+                "unit_registry_version": UNIT_REGISTRY_VERSION,
                 "experiment_id": graph.id,
                 "issues": report.issues,
             }),
