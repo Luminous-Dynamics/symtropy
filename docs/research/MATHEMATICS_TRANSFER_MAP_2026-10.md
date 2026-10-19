@@ -106,6 +106,17 @@ For rigid-body/contact systems, seek a separate discrete-time result. Collision 
 
 **Required evidence:** exact vector field/transition rule, domain assumptions, invariant/equilibrium definition, boundary conditions, counterexamples near parameter boundaries, numerical trajectories across step sizes, and separate implementation correspondence.
 
+## Second-pass scan: graph metrics and dynamical regimes
+
+The pinned OpenAI formalization catalogue [`lean/formalization.yaml`](https://github.com/openai/math/blob/1581d4cbdd69a0faf34b2089614fe2a814316a6/lean/formalization.yaml), blob `275eee8cfab7ce49d3a5e88f02cbb8f28fe6fee6`, lists graph and dynamical results worth screening against actual Symtropy subsystems:
+
+- **Planar graph metrics embedding into `L1` with constant distortion** and **`L1` embeddings for bounded-treewidth graphs** are candidates for *approximate route-distance analysis*. Before using either, determine if a target graph is planar or has the required bounded-treewidth structure, identify the exact theorem and distortion convention, then compare estimated pairwise distances and route costs against the exact graph metric. An embedding is not an exact shortest-path solver, and a bound for restricted graph families is not a bound for arbitrary Symtropy worlds.
+- **A linear cycle-and-edge decomposition of every graph** may help structure graph-corpus analysis and independent graph invariants. Treat it as a tooling/analysis opportunity until a concrete subsystem and measurable improvement are identified.
+- **Two limit cycles for quintic Liénard systems** is a useful warning that non-linear planar dynamics can have multiple periodic regimes. It can motivate multi-attractor and initial-condition testing for a specific reduced-order dynamical model, but it does not imply that the physics engine or LTC system shares that equation or its bifurcation structure.
+- **Memory/entropy and sampling results** should only enter the physics repo where a subsystem genuinely has the stated probabilistic model; do not use information-theoretic language to dress up deterministic state without defining a distribution.
+
+The first actionable follow-up is a route-metric applicability study with a strict scope: inventory graph instances, test assumptions, and benchmark distortion. Do not change live route selection based on an unqualified embedding.
+
 ## Math-transfer backlog and priority
 
 | Priority | Mathematics | Candidate subsystem | First useful artifact |
