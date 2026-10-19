@@ -1,14 +1,18 @@
-name: EV Depot Workload Generator
+name: EV Depot Workload to Capacity Frontier
 
 on:
   pull_request:
     paths:
       - "tools/ev-depot-workload/**"
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-fleet-resilience/**"
       - ".github/workflows/ev-depot-workload.yml"
   push:
     branches: [main]
     paths:
       - "tools/ev-depot-workload/**"
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-fleet-resilience/**"
       - ".github/workflows/ev-depot-workload.yml"
   workflow_dispatch:
 
@@ -16,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  workload:
+  end-to-end:
     runs-on: ubuntu-latest
     steps:
       - name: Check out exact revision
@@ -26,37 +30,64 @@ jobs:
         with:
           components: rustfmt
       - name: Check formatting
-        run: cargo fmt --manifest-path tools/ev-depot-workload/Cargo.toml --all -- --check
-      - name: Run tests and negative controls
-        run: cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
-      - name: Generate deterministic simulator corpus
+        run: |
+          cargo fmt --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-depot-workload/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-fleet-resilience/Cargo.toml --all -- --check
+      - name: Run unit and negative-control tests
+        run: |
+          cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-fleet-resilience/Cargo.toml --all-targets
+      - name: Download pinned public NLR operational-summary data
+        run: |
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules/fleet1-beverage-delivery"
+          curl --fail --show-error --silent --location "${BASE}/veh_op_days.csv" -o "${RUNNER_TEMP}/nlr-veh_op_days.csv"
+          curl --fail --show-error --silent --location "${BASE}/veh_schedules.csv" -o "${RUNNER_TEMP}/nlr-veh_schedules.csv"
+      - name: Audit pinned source and validate reconciliations
+        run: |
+          cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+            "${RUNNER_TEMP}/nlr-veh_op_days.csv" \
+            "${RUNNER_TEMP}/nlr-veh_schedules.csv" \
+            --fleet-id fleet1-beverage-delivery \
+            --dataset-id nlr-hdev-depot-charging-2021 \
+            --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+            --source-revision 61530df51f6cd7d64f014ebbf8714cef24c8ca70 \
+            --evidence-class published_operational_summary \
+            --kwh-per-mile 1.8 > nlr-duty-audit-report.json
+          jq -e '.operation_days_input_rows == 76 and .operation_days_parsed_valid_rows == 76 and (.operation_days_invalid_rows | length == 0) and .schedule_input_rows == 234 and .schedule_parsed_valid_rows_with_known_operation_day_ids == 234 and (.schedule_invalid_rows | length == 0) and .reconciled_operation_day_count == 76 and (.reconciled_operation_day_profiles | length == 76) and (.operation_day_reconciliation_issues | length == 0) and .evidence_class_declared_by_caller == "published_operational_summary" and .source_revision == "61530df51f6cd7d64f014ebbf8714cef24c8ca70" and (.operation_day_csv_sha256 | length == 64) and (.schedule_csv_sha256 | length == 64)' nlr-duty-audit-report.json
+      - name: Generate deterministic, assumption-traceable fleet workload
         run: |
           cargo run --quiet --manifest-path tools/ev-depot-workload/Cargo.toml -- \
-            --input-report tools/ev-depot-workload/fixtures/audit_report_synthetic_v0_1.json \
-            --output-corpus ev-depot-workload-corpus.json \
-            --output-manifest ev-depot-workload-manifest.json \
-            --fleet-size 2 --seed 17 \
+            --input-report nlr-duty-audit-report.json \
+            --output-corpus nlr-estimate-fleet.json \
+            --output-manifest nlr-estimate-fleet.manifest.json \
+            --fleet-size 6 --seed 12345 \
             --kwh-per-mile 1.8 --pack-capacity-kwh 400 --initial-soc-fraction 0.1 \
             --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
             --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
             --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
-            --charger-ports 2 --site-power-budget-kw 200
-          jq -e '.suite_id == "EV-CHARGE-RESILIENCE-001" and (.scenarios | length == 1) and .scenarios[0].evidence_class == "estimate" and (.scenarios[0].jobs | length == 2) and .scenarios[0].charger_port_count == 2 and .scenarios[0].site_power_budget_kw == 200' ev-depot-workload-corpus.json
-          jq -e '.tool == "ev-depot-workload" and .source_evidence_class_declared_by_caller == "synthetic" and .scenario_evidence_class == "estimate" and (.simulated_jobs | length == 2) and (.audit_report_sha256 | length == 64) and (.assumption_notes | length >= 5)' ev-depot-workload-manifest.json
-      - name: Hash crate, fixture and outputs
+            --charger-ports 6 --site-power-budget-kw 600
+          jq -e '.suite_id == "EV-CHARGE-RESILIENCE-001" and (.scenarios | length == 1) and .scenarios[0].evidence_class == "estimate" and (.scenarios[0].jobs | length == 6) and .scenarios[0].charger_port_count == 6 and .scenarios[0].site_power_budget_kw == 600 and all(.scenarios[0].jobs[]; .target_soc_fraction <= 1 and .departure_minute > .arrival_minute)' nlr-estimate-fleet.json
+          jq -e '.source_evidence_class_declared_by_caller == "published_operational_summary" and .scenario_evidence_class == "estimate" and .fleet_size == 6 and .seed == 12345 and (.simulated_jobs | length == 6) and (.audit_report_sha256 | length == 64) and (.assumption_notes | length >= 5)' nlr-estimate-fleet.manifest.json
+      - name: Run FCFS, earliest-departure-first and grid-capacity frontier
         run: |
-          sha256sum tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-depot-workload/fixtures/audit_report_synthetic_v0_1.json tools/ev-depot-workload/README.md ev-depot-workload-corpus.json ev-depot-workload-manifest.json > ev-depot-workload.sha256
-      - name: Upload reproducible generator evidence
+          cargo run --quiet --manifest-path tools/ev-fleet-resilience/Cargo.toml -- nlr-estimate-fleet.json > nlr-estimate-fleet-simulation-report.json
+          jq -e '.suite_id == "EV-CHARGE-RESILIENCE-001" and (.results | length == 2) and (.capacity_frontiers | length == 2) and all(.results[]; .job_count == 6 and .evidence_class == "estimate" and .site_power_limit_respected and .individual_power_limits_respected and ((.energy_balance_residual_kwh | fabs) < 0.000001) and (.jobs | length == 6) and ([.jobs[].job_id] | unique | length == 6)) and all(.capacity_frontiers[]; .evidence_class == "estimate" and (.points | length == 20) and .sample_spacing_percent == 5 and .minimum_deadline_completion_target == 0.95 and .minimum_energy_service_target == 0.95 and all(.points[]; .site_power_limit_respected and .individual_power_limits_respected))' nlr-estimate-fleet-simulation-report.json
+      - name: Hash code, source inputs, report, generated corpus and simulation result
+        run: |
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-duty-audit-report.json nlr-estimate-fleet.json nlr-estimate-fleet.manifest.json nlr-estimate-fleet-simulation-report.json > ev-depot-end-to-end.sha256
+          (cd "${RUNNER_TEMP}" && sha256sum nlr-veh_op_days.csv nlr-veh_schedules.csv) >> ev-depot-end-to-end.sha256
+      - name: Upload reproducible end-to-end evidence (no raw source tables)
         uses: actions/upload-artifact@v4
         with:
-          name: ev-depot-workload-${{ github.sha }}
+          name: ev-depot-end-to-end-${{ github.sha }}
           path: |
-            ev-depot-workload-corpus.json
-            ev-depot-workload-manifest.json
-            ev-depot-workload.sha256
-            tools/ev-depot-workload/Cargo.toml
-            tools/ev-depot-workload/src/main.rs
-            tools/ev-depot-workload/fixtures/audit_report_synthetic_v0_1.json
-            tools/ev-depot-workload/README.md
+            nlr-duty-audit-report.json
+            nlr-estimate-fleet.json
+            nlr-estimate-fleet.manifest.json
+            nlr-estimate-fleet-simulation-report.json
+            ev-depot-end-to-end.sha256
           if-no-files-found: error
           retention-days: 14
