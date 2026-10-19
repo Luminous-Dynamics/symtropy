@@ -1089,7 +1089,11 @@ mod tests {
             observation_mode: ObservationMode::PassiveNonContact,
             rights_review_status: RightsReviewStatus::ReviewRequired,
             use_permission: UsePermission::Permitted,
-            detection_profile: Some(DetectionProfile {\n                minimum_detectable_signal_ppm: Some(100_000),\n                expected_signal_ppm: Some(500_000),\n                detection_probability_ppm: Some(900_000),\n            }),
+            detection_profile: Some(DetectionProfile {
+                minimum_detectable_signal_ppm: Some(100_000),
+                expected_signal_ppm: Some(500_000),
+                detection_probability_ppm: Some(900_000),
+            }),
             exposure_knowledge: ExposureKnowledge::Known,
             effort_units: 1,
             information_gain_ppm: 100,
