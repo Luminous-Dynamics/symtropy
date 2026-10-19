@@ -491,6 +491,28 @@
       "expected_reason_codes": [
         "missing_location_resolution"
       ]
+    },
+    {
+      "id": "within_subject_interpolation_overlap",
+      "mutation": "within_subject_interpolation_overlap",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "temporal_leakage"
+      ]
+    },
+    {
+      "id": "within_subject_interpolation_disjoint",
+      "mutation": "within_subject_interpolation_disjoint",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "within_subject_interpolation_no_continuity",
+      "mutation": "within_subject_interpolation_no_continuity",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_within_subject_continuity"
+      ]
     }
   ]
 }
