@@ -70,4 +70,4 @@ The view contract separates **why a view exists** from **how many dimensions it 
 
 These are projection and policy contracts, not a complete view manager. Interactive camera controls, viewport-aware culling, scale-dependent aggregation, cross-view selection, and visual-regression capture still need host integration.
 
-See [PURPOSE_BUILT_MULTIDIMENSIONAL_VIEWS_V0_1.md](../../../../docs/research/PURPOSE_BUILT_MULTIDIMENSIONAL_VIEWS_V0_1.md) for invariants, proposed benchmarks, and current boundaries.
+See [PURPOSE_BUILT_MULTIDIMENSIONAL_VIEWS_V0_1.md](../../../docs/research/PURPOSE_BUILT_MULTIDIMENSIONAL_VIEWS_V0_1.md) for invariants, proposed benchmarks, and current boundaries.
