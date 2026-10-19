@@ -208,7 +208,7 @@ struct State {
 impl State {
     fn new(prior_presence_ppm: u64) -> Self {
         Self {
-            posterior_presence_ppm,
+            posterior_presence_ppm: prior_presence_ppm,
             selected_mask: 0,
             effort_used: 0,
             exposure: Exposure {
@@ -440,9 +440,6 @@ fn positive_probability_ppm(presence_ppm: u64, candidate: &Candidate) -> u64 {
     let sensitivity = candidate
         .sensitivity_ppm
         .expect("eligible candidate has sensitivity");
-    let false_positive = candidate
-        .false_positive_ppm
-        .expect("eligible candidate has false-positive rate");
     ((u128::from(presence_ppm) * u128::from(sensitivity)
         + u128::from(SCALE - presence_ppm) * u128::from(false_positive))
         / u128::from(SCALE)) as u64
