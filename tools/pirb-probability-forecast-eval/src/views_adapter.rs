@@ -209,7 +209,6 @@ struct ArchiveReleaseCommitment {
 #[derive(Debug, Clone, Serialize)]
 struct ArchiveCommitment {
     commitment_version: String,
-    manifest_sha256: String,
     releases: Vec<ArchiveReleaseCommitment>,
 }
 
@@ -617,7 +616,6 @@ pub fn import_views_archive(
         }
 
         let mut pages = Vec::new();
-        let mut page_hashes = Vec::new();
         let mut page_numbers = BTreeSet::new();
         let mut expected_page_count = None;
         let mut expected_row_count = None;
@@ -689,7 +687,6 @@ pub fn import_views_archive(
                     "non-final response page must include metadata.next_page".to_owned(),
                 ]);
             }
-            page_hashes.push(sha256_hex(bytes));
             pages.push((page.metadata.page_cur, path.clone(), page));
         }
 
@@ -704,6 +701,10 @@ pub fn import_views_archive(
             )]);
         }
         pages.sort_by_key(|(page_number, _, _)| *page_number);
+        let page_hashes: Vec<String> = pages
+            .iter()
+            .map(|(_, path, _)| sha256_hex(source_files.get(path).expect("page path was validated")))
+            .collect();
         let actual_rows: usize = pages.iter().map(|(_, _, page)| page.data.len()).sum();
         if actual_rows != row_count {
             return Err(vec![format!(
@@ -852,7 +853,6 @@ pub fn import_views_archive(
 
     let archive_commitment = ArchiveCommitment {
         commitment_version: "0.1".to_owned(),
-        manifest_sha256: manifest_sha256.clone(),
         releases: archive_releases,
     };
     let archive_bytes = serde_json::to_vec(&archive_commitment)
