@@ -652,7 +652,7 @@ fn resolve_payload_locator(input: &mut ProducerGate) -> Result<(), String> {
     }
     let absolute = fs::canonicalize(&input.path)
         .map_err(|error| format!("CANNOT_CANONICALIZE_GATE_SOURCE:{}:{error}", input.path.display()))?;
-    let raw = absolute.to_string_lossy().replace('\\\\', "/");
+    let raw = absolute.to_string_lossy().replace('\\', "/");
     let mut encoded = String::new();
     for byte in raw.bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b':' | b'-' | b'.' | b'_' | b'~') {
