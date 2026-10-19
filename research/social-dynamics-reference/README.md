@@ -32,6 +32,8 @@ The rules are deliberately simple reference policies, not behaviorally calibrate
 - The benchmark reports unmet need, peak unmet need, the Gini coefficient of cumulative unmet need, total contributions, recovery rate/time, observation overhead, and repair progress. The optional sweep varies observation noise (0.00/0.20), observation cost (0.00/0.35), signal-tampering rate (0.00/0.20), and shock capacity (0.25/0.65) one factor at a time around the default scenario. It does not test interactions between factors or network-density changes.
 - Tests cover deterministic replay, invalid-parameter rejection, finite/bounded metrics, a zero-duration shock, Gini calculations, and paired-bootstrap behavior on known synthetic values (eighteen tests total across the library and binary).
 
+For the next empirically grounded benchmark, see [the external-validation plan](../docs/research/social-dynamics-v0-1/EXTERNAL_VALIDATION_PLAN.md). It requires license verification and study-level held-out evaluation before any claims about human behavior.
+
 ## Known limitations
 
 This prototype has no empirical calibration, no spatial heterogeneity, no institutional-capture mechanism; the only adversarial behavior represented is signal flipping, no real Mycelix or Symthaea integration, and no Sol-Atlas input. The network is a synthetic degree-four ring lattice and fixed during each run. The model omits strategic adaptation, household movement, service queues, equity weights, and confidence intervals around forecasts. These are research limitations, not hidden capabilities.
