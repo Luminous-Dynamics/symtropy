@@ -288,15 +288,21 @@ pub fn integrate_spectral_response(
         });
         let left = signal.samples[signal_index];
         let right = signal.samples[signal_index + 1];
+        let signal_span = right.wavelength_nm - left.wavelength_nm;
+        let signal_fraction0 = (x0 - left.wavelength_nm) / signal_span;
+        let signal_fraction1 = (x1 - left.wavelength_nm) / signal_span;
 
         response_integral_nm += dx * (r0 + r1) * 0.5;
-        // Exact integrals of R(lambda)*(1-t) and R(lambda)*t on this interval.
-        signal_weights[signal_index] += dx * (2.0 * r0 + r1) / 6.0;
-        signal_weights[signal_index + 1] += dx * (r0 + 2.0 * r1) / 6.0;
-
-        // Read these values here to make the covered signal segment explicit;
-        // their weighted contribution is accumulated below from the global weights.
-        let _ = (left, right);
+        // Integrate the response against the signal value at each subinterval
+        // endpoint, then distribute those weights back to the original signal
+        // knots. Response knots can split an input-signal segment, so the local
+        // subinterval endpoints are not necessarily the original sample knots.
+        let endpoint_weight0 = dx * (2.0 * r0 + r1) / 6.0;
+        let endpoint_weight1 = dx * (r0 + 2.0 * r1) / 6.0;
+        signal_weights[signal_index] += endpoint_weight0 * (1.0 - signal_fraction0)
+            + endpoint_weight1 * (1.0 - signal_fraction1);
+        signal_weights[signal_index + 1] +=
+            endpoint_weight0 * signal_fraction0 + endpoint_weight1 * signal_fraction1;
     }
 
     if !response_integral_nm.is_finite() || response_integral_nm <= 0.0 {
@@ -338,7 +344,7 @@ pub fn integrate_spectral_response(
     if let SpectralSignalQuantity::ReflectanceFraction = signal.quantity
         && !(0.0..=1.0).contains(&value)
     {
-        return Err(SpectralResponseError::NonFiniteIntegrationResult);
+        return Err(SpectralResponseError::InvalidSignalValue);
     }
 
     Ok(SpectralBandObservation {
