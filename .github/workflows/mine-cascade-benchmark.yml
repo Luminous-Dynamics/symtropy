@@ -1,0 +1,41 @@
+name: Mine Cascade Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "crates/tools/mine-system-benchmark/**"
+      - "docs/research/MINE_CASCADE_SIMULATION_V0_1.md"
+      - ".github/workflows/mine-cascade-benchmark.yml"
+  push:
+    paths:
+      - "crates/tools/mine-system-benchmark/**"
+      - "docs/research/MINE_CASCADE_SIMULATION_V0_1.md"
+      - ".github/workflows/mine-cascade-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Deterministic mine cascade reference checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/mine-system-benchmark/Cargo.toml -- --check
+      - name: Run locked unit tests
+        run: cargo test --locked --manifest-path crates/tools/mine-system-benchmark/Cargo.toml
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path crates/tools/mine-system-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Replay the frozen shared-cause controls
+        run: |
+          cargo run --quiet --locked --manifest-path crates/tools/mine-system-benchmark/Cargo.toml --example mine_cascade > /tmp/mine-cascade-first.txt
+          cargo run --quiet --locked --manifest-path crates/tools/mine-system-benchmark/Cargo.toml --example mine_cascade > /tmp/mine-cascade-second.txt
+          cmp /tmp/mine-cascade-first.txt /tmp/mine-cascade-second.txt
+          grep -F "SYNTHETIC-SHARED-POWER: critical unavailable service-ticks=5, final dewatering=Viable" /tmp/mine-cascade-first.txt
+          grep -F "SYNTHETIC-INDEPENDENT-POWER: critical unavailable service-ticks=0, final dewatering=Viable" /tmp/mine-cascade-first.txt

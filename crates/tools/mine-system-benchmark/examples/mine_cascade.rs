@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use mine_system_benchmark::cascade::{
-    simulate, DependencyRule, Event, EventKind, LocalState, Scenario, Service,
+    simulate, DependencyRule, Event, EventKind, Scenario, Service,
 };
 
 fn service(id: &str, domain: &str) -> Service {
