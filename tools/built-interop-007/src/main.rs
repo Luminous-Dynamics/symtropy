@@ -20,6 +20,7 @@ use std::process;
 const PROFILE: &str = "IFC4/schema-directed-structural-diff-v0.1";
 const BENCHMARK: &str = "BUILT-INTEROP-007";
 const POLICY: &str = "IFC4-only;strict-step;root-identity=unique-valid-guid;nonroot-identity=step-id;SET-BAG unordered;LIST-ARRAY ordered;coverage-gaps=UNRESOLVED";
+const TOOL_VERSION: &str = "ifc-model=0.3.1;ifc-step=0.5.0;ifc-schema=0.3.2;profile=v0.1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -89,6 +90,8 @@ struct Report {
     schema_version: String,
     benchmark_id: String,
     profile: String,
+    tool_version: String,
+    config_sha256: String,
     status: Status,
     source_artifact: Artifact,
     target_artifact: Artifact,
@@ -123,7 +126,6 @@ struct EntitySnapshot {
 
 struct Snapshot {
     entities: BTreeMap<String, EntitySnapshot>,
-    ids: BTreeMap<EntityId, Identity>,
     root_count: usize,
     stable_root_count: usize,
     nonroot_count: usize,
@@ -137,6 +139,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
     let mut hash = Sha256::new();
     hash.update(bytes);
     format!("{:x}", hash.finalize())
+}
+
+fn config_sha256() -> String {
+    sha256_hex(format!("{TOOL_VERSION};{POLICY}").as_bytes())
 }
 
 fn artifact(locator: &str, bytes: &[u8]) -> Artifact {
@@ -303,7 +309,7 @@ fn snapshot(model: &Model, schema: &Schema, side: &str) -> Snapshot {
     let bytes = serde_json::to_vec(&entities).expect("snapshot map serializes");
     let issue_ambiguous = issues.iter().filter(|i| matches!(i.code.as_str(), "INVALID_GLOBAL_ID" | "MISSING_GLOBAL_ID" | "DUPLICATE_GLOBAL_ID")).count();
     Snapshot {
-        entities, ids, root_count, stable_root_count: stable, nonroot_count,
+        entities, root_count, stable_root_count: stable, nonroot_count,
         ambiguous_count: issue_ambiguous, unresolved_refs, issues,
         semantic_sha256: sha256_hex(&bytes)
     }
@@ -395,7 +401,7 @@ fn early_unresolved(
         "source_schema_token":source_token,"target_schema_token":target_token});
     let digest = sha256_hex(&serde_json::to_vec(&payload).expect("payload serializes"));
     Report { schema_version:"0.1.0".into(), benchmark_id:BENCHMARK.into(), profile:PROFILE.into(),
-        status:Status::Unresolved, source_artifact:artifact(source_path,source_bytes),
+        tool_version:TOOL_VERSION.into(), config_sha256:config_sha256(), status:Status::Unresolved, source_artifact:artifact(source_path,source_bytes),
         target_artifact:artifact(target_path,target_bytes), source_schema_token:source_token,
         target_schema_token:target_token, identity_coverage:coverage, counts, changes:Vec::new(),
         coverage_issues:vec![CoverageIssue { side:"both".into(), code:"PRECONDITION_FAILED".into(),
@@ -452,7 +458,8 @@ fn compare_bytes(source_bytes: &[u8], target_bytes: &[u8], source_path: &str, ta
         "target_semantic_sha256":target.semantic_sha256,"identity_coverage":identity_coverage,
         "counts":counts,"changes":changes,"coverage_issues":issues});
     let digest = sha256_hex(&serde_json::to_vec(&payload).expect("semantic result serializes"));
-    Report { schema_version:"0.1.0".into(), benchmark_id:BENCHMARK.into(), profile:PROFILE.into(), status,
+    Report { schema_version:"0.1.0".into(), benchmark_id:BENCHMARK.into(), profile:PROFILE.into(),
+        tool_version:TOOL_VERSION.into(), config_sha256:config_sha256(), status,
         source_artifact:artifact(source_path,source_bytes), target_artifact:artifact(target_path,target_bytes),
         source_schema_token:source_token,target_schema_token:target_token,identity_coverage,counts,changes,
         coverage_issues:issues,source_semantic_sha256:Some(source.semantic_sha256),
