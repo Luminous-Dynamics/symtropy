@@ -140,10 +140,10 @@ impl TransferAccumulator {
         let per_tool: Vec<String> = self
             .per_tool
             .iter()
-            .map(|(tool, metric)| format!("\\"{tool}\\":{}", metric_json(*metric)))
+            .map(|(tool, metric)| format!("\"{tool}\":{}", metric_json(*metric)))
             .collect();
         Ok(format!(
-            "{{\\"pooled\\":{},\\"macro_tool\\":{{\\"mae\\":{:.12},\\"rmse\\":{:.12}}},\\"worst_tool\\":{{\\"tool\\":{},\\"metrics\\":{}}},\\"per_tool\\":{{{}}}}}",
+            "{{\"pooled\":{},\"macro_tool\":{{\"mae\":{:.12},\"rmse\":{:.12}}},\"worst_tool\":{{\"tool\":{},\"metrics\":{}}},\"per_tool\":{{{}}}}}",
             metric_json(pooled),
             macro_mae,
             macro_rmse,
@@ -572,7 +572,7 @@ fn tool_transfer_diagnostics(dataset: &Dataset, source_sha: &str) -> Result<Stri
     let folds = fit_leave_one_tool_out(dataset)?;
     let tools: BTreeSet<u32> = dataset.rows.iter().map(|row| row.tool).collect();
     let identity = format!(
-        "MFG-DATA-002-LOTO-V1\\nsource_sha256={source_sha}\\ntools={}\\ntarget=Vb\\nfeatures={}\\n",
+        "MFG-DATA-002-LOTO-V1\nsource_sha256={source_sha}\ntools={}\ntarget=Vb\nfeatures={}\n",
         ids_json(&tools),
         FEATURES.join(",")
     );
@@ -593,16 +593,16 @@ fn tool_transfer_diagnostics(dataset: &Dataset, source_sha: &str) -> Result<Stri
         let models: Vec<String> = fold
             .models
             .iter()
-            .map(|(name, result)| format!("\\"{name}\\":{}", model_json(result)))
+            .map(|(name, result)| format!("\"{name}\":{}", model_json(result)))
             .collect();
         fold_reports.push(format!(
-            "{{\\"held_out_tool\\":{},\\"training_tools\\":{},\\"test_tools\\":[{}],\\"training_rows\\":{},\\"test_rows\\":{},\\"model_ranking_by_mae\\":[{}],\\"models\\":{{{}}}}}",
+            "{{\"held_out_tool\":{},\"training_tools\":{},\"test_tools\":[{}],\"training_rows\":{},\"test_rows\":{},\"model_ranking_by_mae\":[{}],\"models\":{{{}}}}}",
             fold.held_out_tool,
             ids_json(&fold.training_tools),
             fold.held_out_tool,
             fold.training_rows,
             fold.test_rows,
-            ranking.iter().map(|name| format!("\\"{name}\\"")).collect::<Vec<_>>().join(","),
+            ranking.iter().map(|name| format!("\"{name}\"")).collect::<Vec<_>>().join(","),
             models.join(",")
         ));
     }
@@ -612,23 +612,22 @@ fn tool_transfer_diagnostics(dataset: &Dataset, source_sha: &str) -> Result<Stri
     }
     let mut aggregate_models = Vec::new();
     for (name, accumulator) in &aggregates {
-        aggregate_models.push(format!("\\"{name}\\":{}", accumulator.json()?));
+        aggregate_models.push(format!("\"{name}\":{}", accumulator.json()?));
     }
     let tool_ids_json = ids_json(&tools);
     Ok(format!(
-        "{{\\"schema_version\\":\\"0.1.0\\",\\"model_id\\":\\"MFG-DATA-002\\",\\"evidence_class\\":\\"external_dataset_evaluation_unqualified_for_process_control\\",\\"source\\":{{\\"repository\\":\\"Vicomtech/dataset-machine-tool-wear\\",\\"commit\\":\\"fa7941101847541cdd31339d6481ee61d152d80f\\",\\"file\\":\\"Dataset_Machine_tool_wear.csv\\",\\"bytes\\":{},\\"sha256\\":\\"{}\\",\\"label\\":\\"Vb\\",\\"label_units\\":\\"not specified by source; values remain source-native\\"}},\\"diagnostic\\":{{\\"method\\":\\"leave-one-tool-out\\",\\"identity_sha256\\":\\"{}\\",\\"tools\\":{},\\"fold_count\\":{},\\"features\\":[{}],\\"target\\":\\"Vb\\"}},\\"folds\\":[{}],\\"aggregate\\":{{\\"models\\":{{{}}},\\"ranking_signature_count\\":{}}},\\"limits\\":[\\"This is a tool-group transfer diagnostic, not machine-independent validation.\\",\\"Vb physical units are not specified by the source README and are not inferred.\\",\\"Feature-table scores do not qualify raw-signal processing, sensor calibration, maintenance policy, or process control.\\",\\"The frozen MFG-DATA-001 four-tool holdout report is emitted separately and is unchanged by this diagnostic.\\"]}}",
+        "{{\"schema_version\":\"0.1.0\",\"model_id\":\"MFG-DATA-002\",\"evidence_class\":\"external_dataset_evaluation_unqualified_for_process_control\",\"source\":{{\"repository\":\"Vicomtech/dataset-machine-tool-wear\",\"commit\":\"fa7941101847541cdd31339d6481ee61d152d80f\",\"file\":\"Dataset_Machine_tool_wear.csv\",\"bytes\":{},\"sha256\":\"{}\",\"label\":\"Vb\",\"label_units\":\"not specified by source; values remain source-native\"}},\"diagnostic\":{{\"method\":\"leave-one-tool-out\",\"identity_sha256\":\"{}\",\"tools\":{},\"fold_count\":{},\"features\":[{}],\"target\":\"Vb\"}},\"folds\":[{}],\"aggregate\":{{\"models\":{{{}}},\"ranking_signature_count\":{}}},\"limits\":[\"This is a tool-group transfer diagnostic, not machine-independent validation.\",\"Vb physical units are not specified by the source README and are not inferred.\",\"Feature-table scores do not qualify raw-signal processing, sensor calibration, maintenance policy, or process control.\",\"The frozen MFG-DATA-001 four-tool holdout report is emitted separately and is unchanged by this diagnostic.\"]}}",
         EXPECTED_BYTES,
         source_sha,
         identity_sha,
         tool_ids_json,
         folds.len(),
-        FEATURES.iter().map(|feature| format!("\\"{feature}\\"")).collect::<Vec<_>>().join(","),
+        FEATURES.iter().map(|feature| format!("\"{feature}\"")).collect::<Vec<_>>().join(","),
         fold_reports.join(","),
         aggregate_models.join(","),
         ranking_signatures.len()
     ))
 }
-
 
 fn ids_json(ids: &BTreeSet<u32>) -> String {
     let values: Vec<String> = ids.iter().map(u32::to_string).collect();
