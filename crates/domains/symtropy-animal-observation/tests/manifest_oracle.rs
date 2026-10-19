@@ -207,6 +207,8 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
         }
         Mutation::FutureTimeSameTrackDisjoint => {
             manifest.generalization = GeneralizationTarget::FutureTime;
+            manifest.records[1].study_id = manifest.records[0].study_id.clone();
+            manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
             manifest.records[1].track_id = manifest.records[0].track_id.clone();
             manifest.records[1].start_time = 200;
             manifest.records[1].end_time = 300;
