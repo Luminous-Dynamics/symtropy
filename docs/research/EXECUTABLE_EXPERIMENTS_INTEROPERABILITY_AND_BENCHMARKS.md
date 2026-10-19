@@ -17,14 +17,19 @@ The Symtropy arithmetic graph should become an **integration seam**, not a compe
 
 ## 1. Current prototype boundary
 
-The new Rust **symtropy-experiment-core** crate is a deliberately narrow first executable slice. It currently describes an acyclic graph of variables and arithmetic operators, checks dimension consistency and references, generates formula labels from operator/variable IDs, and evaluates add/subtract/multiply/divide/negate operations. The synthetic gear fixture demonstrates a known-answer computation.
+The new Rust **symtropy-experiment-core** crate is a narrow, renderer-independent prototype with two separate execution paths:
 
-It is **not** a physical dynamics engine:
-- no ODE/DAE solver, contact solver, conservation-law integrator or stochastic process runtime;
-- no torque, backlash, elasticity, friction, heat transfer or instrument model;
+- An acyclic arithmetic graph validates typed dimensions and references, generates formula labels from operator/variable IDs, and supports scoped input/parameter overrides and one-variable sweeps.
+- A separate one-dimensional harmonic-oscillator module implements explicit Euler and symplectic Euler, compares the numerical trajectory against the known analytic solution, and reports integration error and energy drift.
+
+The oscillator is the first time-dependent numerical regression case, **not** a universal physics engine:
+- no general ODE/DAE solver, contact solver, constraint solver, or stochastic process runtime;
+- no nonlinear/damped/forced dynamics, torque train, backlash, elasticity, friction, heat transfer, or instrument model;
 - no full unit catalogue or conversion engine;
 - no SBML/FMI importer/exporter;
 - no formal theorem proving, historical validation or empirical replication.
+
+The two numerical modules test different properties and should not be fused into an implicit universal abstraction prematurely.
 
 The eighth dimension exponent is explicitly a semantic angle axis. SI treats plane angle as dimensionless; the prototype retains a separate angle type to catch semantically invalid operations such as adding a tooth count to a radian value. This convention must be documented in every adapter and never silently presented as strict SI dimensional analysis.
 
@@ -107,7 +112,7 @@ Do not claim “lossless conversion” based on parsing success. Compare semanti
 
 ## 4. From one-off runs to design of experiments
 
-The first executable core now supports parameter/input overrides scoped to a single run and a deterministic one-variable sweep. The synthetic gear fixture can evaluate driver tooth counts 47, 48 and 49 without mutating the canonical graph.
+The executable core now supports parameter/input overrides scoped to a single run and a deterministic one-variable sweep, plus a domain-specific harmonic-oscillator integrator comparison against an analytical solution. The gear fixture sweeps driver tooth counts 47, 48 and 49 without mutating the canonical graph. The oscillator fixture uses a unit-mass, 4 N/m ideal spring, initial displacement 1 m, zero velocity, and a 10 s horizon at a 0.01 s timestep; it contrasts explicit-Euler energy growth with the bounded-energy behavior of symplectic Euler at this stable step size. This is a synthetic regression case only.
 
 This is the beginning of an **experiment exploration loop**, not yet a full uncertainty quantification package:
 1. Sweep selected inputs over declared values or ranges.
@@ -146,6 +151,7 @@ Benchmarks should be reported as a vector; a good render must not compensate for
 | Graph integrity | 100% detection of seeded invalid references, duplicate outputs, cycles and invalid operator arity; no false positive on known-good fixtures. | Mutation/property tests over generated equation graphs. |
 | Dimensional typing | All negative tests for add/subtract mismatch, multiplication/division dimensions and exponent overflow are rejected. | Unit conversion, affine units, uncertainty propagation and cross-format dimension agreement. |
 | Arithmetic execution | The gear known-answer case returns -1.9 rad within 10^-12 in the stated binary64 reference interpreter. | Numerical tolerance policies per solver/backend; exact arithmetic only where explicitly supported. |
+| Stateful dynamics | Harmonic oscillator: compare each sample to the closed-form position/velocity, assert halving timestep reduces maximum position error, and assert symplectic Euler's energy deviation is below 2% for the fixed reference case while explicit Euler growth is detected. | Add damped/forced oscillator analytic cases, resonance, event/state handling and solver-independent reference comparisons before broad ODE claims. |
 | Visual semantic integrity | 100% of displayed equations generated from graph operators/IDs; all collapsed sections expose their hidden variable count and full expansion path. | Automated scene-to-model linkage checks and accessible keyboard navigation. |
 | Reproducibility | Same fixture and binary revision produce the same declared result under the reference environment; record input and output hashes. | Cross-platform comparisons with explicit floating-point tolerances and solver/environment fingerprints. |
 | Interoperability | Test representative imports/exports; every unsupported feature is rejected or named in a loss report. | Semantic round-trip equivalence on published conformance suites and cross-solver result comparisons. |
@@ -160,8 +166,8 @@ The 10^-12 rad goal is specific to the simple arithmetic fixture and reference i
 
 1. **Secure the baseline:** run the new crate tests and workspace checks on a toolchain; preserve logs/SHAs. The current authored tests are not claimed as executed until a real run is recorded.
 2. **Harden model semantics:** add unit symbols/conversion policies, explicit variable roles and evidence mappings; property-test graph validation and canonical expression generation.
-3. **Separate stateful dynamics:** define explicit time, state transitions, events and solver contracts before attempting oscillators, gears with inertia/backlash, or ODE examples.
-4. **Build reference examples:** analytic oscillator, conservation balance, dimension mismatch, simple reaction network, and gear kinematics. Each example needs independent expected results and negative controls.
+3. **Extend stateful dynamics deliberately:** use the analytical oscillator to harden run manifests, time-step controls, integrator comparisons, and failure statuses; then specify event/state semantics before adding a second ODE family.
+4. **Build independent reference examples:** conservation balance, dimensional-analysis failures, simple reaction network, and gear kinematics. Each example needs an analytical or independently trusted target, convergence tests where numerical solving is involved, and negative controls.
 5. **Add one adapter at a time:** prioritize a minimal SBML subset or an FMI wrapper based on the actual target domain, not on fashionable breadth. Publish capability matrices and loss reports.
 6. **Ship the first evidence-linked historical model:** Antikythera's best-documented gear subsystem, with alternative reconstructions for missing parts. Do not present the generic synthetic gear fixture as a historical reproduction.
 7. **Run usability experiments:** compare equation-only, structure-graph and physical-plus-equation views on concrete research tasks before optimizing visual style.
@@ -174,4 +180,6 @@ The 10^-12 rad goal is specific to the simple arithmetic fixture and reference i
 3. Modelica Association, “Experiments Format,” current version dated 2026-09-17 — describes experiment setups, parameters, stimuli, reference data and simulation timing/tolerance fields: https://modelica.github.io/ma-hs-experiments/main/
 4. Skau, Karlsson & Åsberg Johnels (2026), “Visualizations during arithmetic tasks hamper performance and increase cognitive load in 9-year-olds: an fNIRS study,” *Frontiers in Psychology*: https://doi.org/10.3389/fpsyg.2026.1722948
 5. Shang et al. (2026), “The effects of structural visualization methods on student performance in mathematics word problems: an eye-tracking analysis,” *International Journal of Educational Research* 140, 103075: https://doi.org/10.1016/j.ijer.2026.103075
-6. Efstathiou et al. (2012), “Determination of the gears geometrical parameters necessary for the construction of an operational model of the Antikythera Mechanism,” *Mechanism and Machine Theory* 52: https://doi.org/10.1016/j.mechmachtheory.2012.01.020
+6. NASA-STD-7009B, active Standard for Models and Simulations, on acceptance criteria and model credibility over the modelling/simulation lifecycle: https://standards.nasa.gov/standard/NASA/NASA-STD-7009
+7. NASA Glenn, Verification Assessment, on code/calculation verification, consistency and convergence studies: https://www.grc.nasa.gov/www/wind/valid/tutorial/verassess.html
+8. Efstathiou et al. (2012), “Determination of the gears geometrical parameters necessary for the construction of an operational model of the Antikythera Mechanism,” *Mechanism and Machine Theory* 52: https://doi.org/10.1016/j.mechmachtheory.2012.01.020
