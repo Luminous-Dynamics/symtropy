@@ -6,6 +6,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub mod policy_eval;
 mod uncertainty;
 pub mod views_adapter;
 use uncertainty::{BootstrapPoint, estimate as estimate_uncertainty};

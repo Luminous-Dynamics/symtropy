@@ -20,6 +20,18 @@ The separate `pirb-outcome-vintage-sensitivity` binary compares 2–20 frozen da
 Run it with repeated `--input PATH` arguments. Do not place protected data or raw release files in public CI; a sensitivity receipt includes input and outcome digests and should follow the data controller's publication/access policy.
 
 
+## Predeclared response-policy sensitivity
+
+The \`pirb-policy-evaluation\` binary evaluates an entire threshold grid registered before the held-out period. It reports confusion counts, unknown-outcome handling, alert/resource demand by target month, capacity feasibility and a transparent integer-unit utility calculation versus an act-on-none baseline. It never selects a threshold.
+
+Example:
+
+    cargo run --bin pirb-policy-evaluation --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --dataset docs/fixtures/pirb-probability-forecast-v0.1.json --policy docs/fixtures/pirb-policy-evaluation-synthetic-v0.1.json --receipt pirb-policy-evaluation-receipt.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
+
+The utility schedule and capacity numbers are hypothetical declared assumptions. If per-month capacity is exceeded, that threshold's utility is null and its status is \`review_required\`; resource demand still includes alerts for unknown outcomes because those alerts would consume operational capacity. Unknown outcomes are never treated as negative labels. The receipt records that the registration timestamp was not independently authenticated, and sets \`live_decision_authority=false\` and \`causal_effect_estimated=false\`.
+
+This is not an operational decision rule and its net utility units are not universal or empirically validated. Real use needs a locally approved consequence schedule, authority and service/capacity references, and a tamper-evident pre-registration record before test outcomes are observed. Better forecast scores do not by themselves prove better response policies or reduced harm.
+
 ## Frozen VIEWS archive import (offline only)
 
 The \`pirb-views-offline-adapter\` binary maps locally saved response pages into the normalized dataset contract. It does not contact VIEWS or download data. The manifest pins each response to one model/versioned run, query URI, analysis unit, target month, partition, matching codebook, column mapping, outcome release and governed opaque spatial-block map.
