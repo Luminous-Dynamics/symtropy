@@ -217,9 +217,7 @@ fn finite_sample_absolute_error_limit(calibration: &[u32], alpha_percent: usize)
         .ok_or_else(|| "finite-sample quantile rounding overflow".to_owned())?
         / 100;
     if rank > sorted.len() {
-        return Err(
-            "calibration sample is too small for a finite requested quantile".to_owned(),
-        );
+        return Err("calibration sample is too small for a finite requested quantile".to_owned());
     }
     let one_based_rank = rank.max(1);
     Ok(i64::from(sorted[one_based_rank - 1]))
