@@ -592,6 +592,10 @@ mod tests {
             receipt["constraint_diagnostics"][2]["missing_child_forecast_ids"][0],
             "fc-admin1-d-organized"
         );
+        assert_eq!(
+            receipt["constraint_diagnostics"][2]["missing_expected_child_keys"][0],
+            "unit-admin1-d"
+        );
         assert_eq!(receipt["claims"]["forecast_accuracy_established"], false);
     }
 
