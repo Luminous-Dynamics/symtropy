@@ -979,6 +979,9 @@ pub struct OutcomeVintageSummary {
     dataset_id: String,
     outcome_release_id: String,
     outcome_release_sha256: String,
+    outcome_source_reference: String,
+    license_reference: String,
+    attribution: String,
     input_sha256: String,
     changed_test_labels_vs_reference: usize,
     test_forecast_count: usize,
@@ -1094,6 +1097,11 @@ fn vintage_compatibility_errors(
     let other = &candidate.source;
     for (name, left, right) in [
         ("provider", source.provider.as_str(), other.provider.as_str()),
+        (
+            "forecast source reference",
+            source.forecast_source_reference.as_str(),
+            other.forecast_source_reference.as_str(),
+        ),
         (
             "forecast archive ID",
             source.forecast_archive_id.as_str(),
@@ -1304,6 +1312,9 @@ pub fn compare_outcome_vintages(
             dataset_id: dataset.dataset_id.clone(),
             outcome_release_id: dataset.source.outcome_release_id.clone(),
             outcome_release_sha256: dataset.source.outcome_release_sha256.clone(),
+            outcome_source_reference: dataset.source.outcome_source_reference.clone(),
+            license_reference: dataset.source.license_reference.clone(),
+            attribution: dataset.source.attribution.clone(),
             input_sha256: receipt.input_sha256.clone(),
             changed_test_labels_vs_reference: if index == 0 {
                 0
