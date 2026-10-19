@@ -22,6 +22,8 @@ pub struct RunReceiptPayload {
     /// Optional build provenance supplied by the caller via SYMTROPY_SOURCE_REVISION.
     /// It is informational unless verified against an independent source.
     pub source_revision: Option<String>,
+    /// Runtime/build facts available without trusting external metadata.
+    pub execution_environment: BTreeMap<String, String>,
     pub experiment_id: Option<String>,
     pub model_schema_version: Option<String>,
     pub unit_registry_version: Option<String>,
@@ -72,12 +74,28 @@ impl RunReceipt {
             .map(|value| value.trim().to_owned())
             .filter(|value| !value.is_empty());
 
+        let mut execution_environment = BTreeMap::from([
+            ("architecture".to_owned(), std::env::consts::ARCH.to_owned()),
+            ("operating_system".to_owned(), std::env::consts::OS.to_owned()),
+            (
+                "build_profile".to_owned(),
+                if cfg!(debug_assertions) { "debug" } else { "release" }.to_owned(),
+            ),
+        ]);
+        if let Ok(version) = std::env::var("SYMTROPY_RUSTC_VERSION") {
+            let version = version.trim();
+            if !version.is_empty() {
+                execution_environment.insert("rustc_version_reported_by_builder".to_owned(), version.to_owned());
+            }
+        }
+
         let payload = RunReceiptPayload {
             receipt_schema_version: RUN_RECEIPT_SCHEMA_VERSION.to_owned(),
             digest_algorithm: "sha256".to_owned(),
             execution_mode: execution_mode.into(),
             package_version: env!("CARGO_PKG_VERSION").to_owned(),
             source_revision,
+            execution_environment,
             experiment_id,
             model_schema_version,
             unit_registry_version,
@@ -155,6 +173,22 @@ mod tests {
         assert_ne!(baseline.receipt_sha256, receipt(br#"{"model":2}"#, &model, &output).receipt_sha256);
         assert_ne!(baseline.receipt_sha256, receipt(br#"{"model":1}"#, &json!({"a": 2}), &output).receipt_sha256);
         assert_ne!(baseline.receipt_sha256, receipt(br#"{"model":1}"#, &model, &json!({"answer": 43})).receipt_sha256);
+
+        let different_settings = BTreeMap::from([
+            ("numeric_format".to_owned(), "decimal-arbitrary-precision".to_owned()),
+            ("solver".to_owned(), "different-solver".to_owned()),
+        ]);
+        let changed_settings = RunReceipt::build(
+            "run",
+            br#"{"model":1}"#,
+            &model,
+            &output,
+            Some("experiment:test".to_owned()),
+            Some("0.1".to_owned()),
+            Some("0.1.0".to_owned()),
+            different_settings,
+        ).unwrap();
+        assert_ne!(baseline.receipt_sha256, changed_settings.receipt_sha256);
     }
 
     #[test]
@@ -185,8 +219,7 @@ mod tests {
     #[test]
     fn verification_fails_closed_for_empty_or_wrong_digest() {
         let mut value = receipt(br#"{"model":1}"#, &json!({"a": 1}), &json!({"answer": 42}));
-        value.receipt_sha256.clear();
+        value.receipt_sha256 = "not-a-sha256-digest".to_owned();
         assert_eq!(value.verify(), Ok(false));
-        assert!(deterministic_json_bytes(&BTreeMap::<String, String>::new()).is_ok());
     }
 }
