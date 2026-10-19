@@ -882,11 +882,13 @@ pub fn drive_free_review_camera(
         if keys.pressed(KeyCode::KeyA) {
             movement -= right;
         }
-        if keys.pressed(KeyCode::KeyE) {
-            movement += Vec3::Y;
-        }
-        if keys.pressed(KeyCode::KeyQ) {
-            movement -= Vec3::Y;
+        if controller.allow_vertical_translation {
+            if keys.pressed(KeyCode::KeyE) {
+                movement += Vec3::Y;
+            }
+            if keys.pressed(KeyCode::KeyQ) {
+                movement -= Vec3::Y;
+            }
         }
 
         let speed = controller.speed_mps
@@ -947,7 +949,8 @@ pub fn advance_architectural_review_routes(
         if !playback.playing {
             continue;
         }
-        playback.elapsed_seconds += time.delta_secs();
+        playback.elapsed_seconds +=
+            time.delta_secs() * playback.comfort_profile.route_playback_rate;
         if let Some(pose) = sample_valid_route_pose(&playback.route, playback.elapsed_seconds) {
             *transform = pose;
         } else {
@@ -1467,7 +1470,7 @@ impl DesignReviewMode {
 }
 
 /// Current serialized review-session manifest schema. Bump this on breaking changes.
-pub const DESIGN_REVIEW_SESSION_SCHEMA_VERSION: u32 = 1;
+pub const DESIGN_REVIEW_SESSION_SCHEMA_VERSION: u32 = 2;
 
 /// Review manifest tied to the exact homeowner brief and model artifact.
 ///
@@ -1487,6 +1490,8 @@ pub struct DesignReviewSession {
     /// Omitted only in the pre-hash payload produced by review_session_manifest_bytes.
     #[serde(skip_serializing_if = "String::is_empty")]
     pub snapshot_sha256: String,
+    /// Explicit consent and motion settings used for this review session.
+    pub comfort_profile: ReviewComfortProfile,
     pub mode: DesignReviewMode,
     pub route: Option<ArchitecturalReviewRoute>,
     pub annotations: Vec<ReviewAnnotation>,
@@ -1518,6 +1523,7 @@ pub enum DesignReviewSessionIssue {
     InvalidRoute(Vec<ReviewRouteIssue>),
     InvalidAnnotations(Vec<ReviewAnnotationIssue>),
     InvalidOccupantFeedback(Vec<OccupantFeedbackIssue>),
+    InvalidComfortProfile(Vec<ReviewComfortProfileIssue>),
 }
 
 /// Validate the provenance closure of one review session before showing it as a
@@ -1566,6 +1572,9 @@ pub fn validate_design_review_session(
             .all(|byte| byte.is_ascii_hexdigit())
     {
         issues.push(DesignReviewSessionIssue::InvalidSnapshotDigest);
+    }
+    if let Err(profile_issues) = session.comfort_profile.validate() {
+        issues.push(DesignReviewSessionIssue::InvalidComfortProfile(profile_issues));
     }
 
     match (session.mode.required_route_rig(), session.route.as_ref()) {
@@ -1813,6 +1822,7 @@ mod tests {
             viewer_build_id: "symtropy-build:dev-test".into(),
             snapshot_manifest_artifact_id: "review-manifest:house-r1".into(),
             snapshot_sha256: "b".repeat(64),
+            comfort_profile: ReviewComfortProfile::default(),
             mode,
             route,
             annotations: Vec::new(),
@@ -2393,14 +2403,82 @@ mod tests {
     }
 
     #[test]
+    fn route_starts_paused_and_only_opt_in_profile_autostarts() {
+        let route = sample_route_fixture();
+        let manual = ReviewRoutePlayback::new(route.clone()).unwrap();
+        assert!(!manual.is_playing());
+
+        let mut opt_in = ReviewComfortProfile::default();
+        opt_in.profile_id = "comfort:explicit-autoplay".into();
+        opt_in.start_policy = ReviewRouteStartPolicy::OptInAutoStart;
+        let playback = ReviewRoutePlayback::new_with_comfort_profile(route, opt_in).unwrap();
+        assert!(playback.is_playing());
+
+        let mut teleport = sample_route_fixture();
+        teleport.rig = ReviewRig::AccessibleTeleport;
+        let mut opt_in = ReviewComfortProfile::default();
+        opt_in.start_policy = ReviewRouteStartPolicy::OptInAutoStart;
+        let playback = ReviewRoutePlayback::new_with_comfort_profile(teleport, opt_in).unwrap();
+        assert!(!playback.is_playing());
+    }
+
+    #[test]
+    fn comfort_profile_caps_playback_speed_and_validates_finite_settings() {
+        let mut profile = ReviewComfortProfile::default();
+        assert_eq!(profile.validate(), Ok(()));
+        assert!(profile.route_playback_rate <= 1.0);
+        profile.route_playback_rate = 1.5;
+        assert!(profile
+            .validate()
+            .unwrap_err()
+            .contains(&ReviewComfortProfileIssue::InvalidRoutePlaybackRate));
+        profile.route_playback_rate = f32::NAN;
+        assert!(profile
+            .validate()
+            .unwrap_err()
+            .contains(&ReviewComfortProfileIssue::InvalidRoutePlaybackRate));
+    }
+
+    #[test]
+    fn comfort_profile_applies_slower_camera_and_disables_vertical_motion() {
+        let transform = Transform::from_xyz(0.0, 1.6, 3.0)
+            .looking_at(Vec3::ZERO, Vec3::Y);
+        let mut controller = ReviewFreeCameraController::from_transform(&transform);
+        let mut profile = ReviewComfortProfile::default();
+        profile.free_camera_speed_mps = 0.35;
+        profile.fast_multiplier = 1.0;
+        profile.allow_vertical_translation = false;
+        controller
+            .apply_comfort_profile(&profile)
+            .expect("profile is valid");
+        assert_eq!(controller.speed_mps, 0.35);
+        assert_eq!(controller.fast_multiplier, 1.0);
+        assert!(!controller.allow_vertical_translation);
+    }
+
+    #[test]
+    fn review_session_rejects_invalid_comfort_profile() {
+        let mut session = sample_review_session(DesignReviewMode::StaticPlan);
+        session.comfort_profile.route_playback_rate = f32::INFINITY;
+        assert!(validate_design_review_session(&session)
+            .unwrap_err()
+            .iter()
+            .any(|issue| matches!(
+                issue,
+                DesignReviewSessionIssue::InvalidComfortProfile(profile_issues)
+                    if profile_issues.contains(&ReviewComfortProfileIssue::InvalidRoutePlaybackRate)
+            )));
+    }
+
+    #[test]
     fn playback_requires_validated_route_and_honors_pause_controls() {
         let route = sample_route_fixture();
         let mut playback = ReviewRoutePlayback::new(route).expect("fixture route is valid");
-        assert!(playback.is_playing());
-        playback.set_playing(false);
         assert!(!playback.is_playing());
         playback.set_playing(true);
         assert!(playback.is_playing());
+        playback.set_playing(false);
+        assert!(!playback.is_playing());
         playback.restart();
         assert!(playback.is_playing());
         assert_eq!(playback.elapsed_seconds(), 0.0);
