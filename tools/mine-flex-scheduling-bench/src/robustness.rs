@@ -4,7 +4,7 @@ use super::{
     ScenarioStatus, ScheduleScore,
 };
 use serde::Serialize;
-use std::{env, process::ExitCode};
+use std::process::ExitCode;
 
 const GENERATOR_VERSION: &str = "mine-flex-generated-disturbances-v0.1.0";
 const VALIDATION_SEEDS: std::ops::RangeInclusive<u64> = 1..=32;
@@ -771,7 +771,7 @@ fn make_receipt(source_commit: &str) -> Check<RobustnessReceipt> {
     })
 }
 
-fn run_cli(args: &[String]) -> Check<ExitCode> {
+pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {
     if args.len() != 2 || args[0] != "--source-commit" {
         return Err(
             "usage: mine-flex-scheduling-bench --robustness --source-commit <40-hex-sha>"
