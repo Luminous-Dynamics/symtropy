@@ -18,6 +18,7 @@ pub mod material;
 pub mod projection;
 pub mod sync;
 pub mod telemetry_ssbo;
+pub mod views;
 
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
@@ -28,3 +29,8 @@ pub use material::{
 pub use projection::{Projector, Projector2D, Projector3D, Projector4D};
 pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
 pub use telemetry_ssbo::{LinkTelemetryGpu, NodeTelemetryGpu, TelemetryBufferResource};
+
+pub use views::{
+    OrientedProjector4D, Projector2_5D, ProjectionConfigError, SliceWindow, ViewConfigError,
+    ViewDetailPolicy, ViewDimension, ViewLayerVisibility, ViewProfile, ViewPurpose,
+};
