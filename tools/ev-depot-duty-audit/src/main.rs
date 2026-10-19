@@ -501,4 +501,16 @@ mod tests {
         assert_eq!(values.p50, None);
         assert_eq!(values.p95, None);
     }
+    #[test]
+    fn zero_offshift_window_is_reported_not_divided_by_zero() {
+        let days = "veh_op_day_id,vmt,time_on_shift_s,time_off_shift_s\n1,1,86399,0\n";
+        let schedules = "veh_op_day_id,start_time,end_time,total_time_s,on_shift,vmt\n1,00:00:00,23:59:59,86399,1,1\n";
+        let report = audit(days.as_bytes(), schedules.as_bytes(), metadata()).unwrap();
+        assert_eq!(report.operation_days_without_offshift_charging_window, 1);
+        assert_eq!(
+            report.idealized_min_average_recharge_power_kw_assuming_all_offshift_is_chargeable.count,
+            0
+        );
+    }
+
 }
