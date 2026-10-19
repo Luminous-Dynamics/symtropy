@@ -117,6 +117,13 @@ pub struct OperationPermission {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct LocationDisclosurePolicy {
+    pub sensitive_species_location: bool,
+    pub minimum_export_grid_m: Option<u32>,
+    pub actual_export_grid_m: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SourceSnapshot {
     pub source_id: String,
     pub dataset_id: String,
@@ -201,6 +208,7 @@ pub struct ReferencePackManifest {
     pub sample_interval_ms: Option<u64>,
     pub requested_operations: Vec<DataOperation>,
     pub permissions: Vec<OperationPermission>,
+    pub location_disclosure: Option<LocationDisclosurePolicy>,
     pub declared_supported_claims: Vec<ClaimKind>,
     pub requested_claims: Vec<ClaimKind>,
     pub generalization: GeneralizationTarget,
@@ -268,6 +276,9 @@ pub enum ManifestReason {
     DuplicateObservationLeakage,
     TemporalLeakage,
     MissingRequiredSite,
+    MissingLocationPrivacyPolicy,
+    MissingLocationResolution,
+    GranularLocationPrivacyViolation,
     InvalidTemporalGap,
 }
 
@@ -608,16 +619,37 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         }
     }
 
+    if requested.contains(&DataOperation::PublishGranularLocation) {
+        match manifest.location_disclosure.as_ref() {
+            None => {
+                indeterminate.insert(ManifestReason::MissingLocationPrivacyPolicy);
+            }
+            Some(policy) => {
+                if policy.actual_export_grid_m.is_none() {
+                    indeterminate.insert(ManifestReason::MissingLocationResolution);
+                }
+                if policy.sensitive_species_location {
+                    match (policy.minimum_export_grid_m, policy.actual_export_grid_m) {
+                        (None, _) => {
+                            indeterminate.insert(ManifestReason::MissingLocationPrivacyPolicy);
+                        }
+                        (Some(minimum), Some(actual)) if actual < minimum => {
+                            rejected.insert(ManifestReason::GranularLocationPrivacyViolation);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
     if manifest.declared_supported_claims.is_empty() || manifest.requested_claims.is_empty() {
         indeterminate.insert(ManifestReason::EmptyClaimList);
     }
-    for (claims, reject_duplicate) in [
-        (&manifest.declared_supported_claims, true),
-        (&manifest.requested_claims, true),
-    ] {
+    for claims in [&manifest.declared_supported_claims, &manifest.requested_claims] {
         let mut seen = BTreeSet::new();
         for claim in claims {
-            if !seen.insert(*claim) && reject_duplicate {
+            if !seen.insert(*claim) {
                 rejected.insert(ManifestReason::DuplicateClaim);
             }
             if !modality_can_support(manifest.modality, *claim) {
@@ -797,6 +829,7 @@ mod tests {
                 permission(DataOperation::LocalAnalysis),
                 permission(DataOperation::EvaluateModel),
             ],
+            location_disclosure: None,
             declared_supported_claims: vec![
                 ClaimKind::VisiblePose2d,
                 ClaimKind::Kinematics2d,
