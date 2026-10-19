@@ -149,6 +149,13 @@ struct Summary {
     unguarded_baseline_acceptances: usize,
     unguarded_baseline_acceptances_during_shift: usize,
     unguarded_baseline_acceptances_missing_or_stale: usize,
+    freshness_only_acceptances: usize,
+    freshness_only_acceptances_during_shift: usize,
+    freshness_only_acceptances_missing_or_stale: usize,
+    residual_only_acceptances: usize,
+    residual_only_acceptances_during_shift: usize,
+    residual_only_acceptances_missing_or_stale: usize,
+    residual_only_acceptances_during_recovery_holdoff: usize,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -180,6 +187,11 @@ struct Receipt {
     same_tick_shift_detections: usize,
     unguarded_baseline_acceptances_during_shift: usize,
     unguarded_baseline_missing_or_stale_acceptances: usize,
+    freshness_only_acceptances_during_shift: usize,
+    freshness_only_acceptances_missing_or_stale: usize,
+    residual_only_acceptances_during_shift: usize,
+    residual_only_acceptances_missing_or_stale: usize,
+    residual_only_acceptances_during_recovery_holdoff: usize,
     covered_observations: usize,
     observed_count: usize,
     summaries: Vec<Summary>,
@@ -341,6 +353,34 @@ fn known_answer_disposition(kind: ScenarioKind, tick: usize) -> Disposition {
     }
 }
 
+fn freshness_only_disposition(observation: &Observation) -> Disposition {
+    if observation.observed_state_liters.is_none() {
+        Disposition::AbstainMissingObservation
+    } else if observation.measurement_age_periods > MAX_MEASUREMENT_AGE_PERIODS {
+        Disposition::AbstainStaleTelemetry
+    } else if observation.interval_lower_liters < observation.protected_minimum_liters
+        || observation.interval_upper_liters > observation.protected_maximum_liters
+    {
+        Disposition::RejectUnsafeInterval
+    } else {
+        Disposition::UseModel
+    }
+}
+
+fn residual_only_disposition(observation: &Observation, error_limit: i64) -> Disposition {
+    if observation.observed_state_liters.is_none() {
+        Disposition::AbstainMissingObservation
+    } else if absolute_residual(observation).is_some_and(|value| value > error_limit) {
+        Disposition::AbstainResidualOutOfEnvelope
+    } else if observation.interval_lower_liters < observation.protected_minimum_liters
+        || observation.interval_upper_liters > observation.protected_maximum_liters
+    {
+        Disposition::RejectUnsafeInterval
+    } else {
+        Disposition::UseModel
+    }
+}
+
 fn decide_scenario(scenario: &Scenario, error_limit: i64) -> Check<ScenarioResult> {
     validate_scenario(scenario)?;
     let mut degraded_latched = false;
@@ -498,6 +538,13 @@ fn aggregate(
         unguarded_baseline_acceptances: 0,
         unguarded_baseline_acceptances_during_shift: 0,
         unguarded_baseline_acceptances_missing_or_stale: 0,
+        freshness_only_acceptances: 0,
+        freshness_only_acceptances_during_shift: 0,
+        freshness_only_acceptances_missing_or_stale: 0,
+        residual_only_acceptances: 0,
+        residual_only_acceptances_during_shift: 0,
+        residual_only_acceptances_missing_or_stale: 0,
+        residual_only_acceptances_during_recovery_holdoff: 0,
     };
 
     for (scenario, result) in scenarios.iter().zip(results) {
@@ -558,6 +605,36 @@ fn aggregate(
                     summary.covered_observations += 1;
                 }
             }
+            let freshness_only = freshness_only_disposition(input);
+            if freshness_only == Disposition::UseModel {
+                summary.freshness_only_acceptances += 1;
+                if input.injected_shift_active {
+                    summary.freshness_only_acceptances_during_shift += 1;
+                }
+            }
+            if freshness_only == Disposition::UseModel
+                && (input.observed_state_liters.is_none()
+                    || input.measurement_age_periods > MAX_MEASUREMENT_AGE_PERIODS)
+            {
+                summary.freshness_only_acceptances_missing_or_stale += 1;
+            }
+
+            let residual_only = residual_only_disposition(input, PREDICTION_ERROR_LIMIT);
+            if residual_only == Disposition::UseModel {
+                summary.residual_only_acceptances += 1;
+                if input.injected_shift_active {
+                    summary.residual_only_acceptances_during_shift += 1;
+                }
+                if input.observed_state_liters.is_none()
+                    || input.measurement_age_periods > MAX_MEASUREMENT_AGE_PERIODS
+                {
+                    summary.residual_only_acceptances_missing_or_stale += 1;
+                }
+                if scenario.kind == ScenarioKind::Recovery && (2..5).contains(&index) {
+                    summary.residual_only_acceptances_during_recovery_holdoff += 1;
+                }
+            }
+
             if output.disposition != Disposition::RejectUnsafeInterval
                 && input.interval_lower_liters >= input.protected_minimum_liters
                 && input.interval_upper_liters <= input.protected_maximum_liters
@@ -651,6 +728,26 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         .iter()
         .map(|summary| summary.unguarded_baseline_acceptances_missing_or_stale)
         .sum::<usize>();
+    let freshness_only_acceptances_during_shift = summaries
+        .iter()
+        .map(|summary| summary.freshness_only_acceptances_during_shift)
+        .sum::<usize>();
+    let freshness_only_acceptances_missing_or_stale = summaries
+        .iter()
+        .map(|summary| summary.freshness_only_acceptances_missing_or_stale)
+        .sum::<usize>();
+    let residual_only_acceptances_during_shift = summaries
+        .iter()
+        .map(|summary| summary.residual_only_acceptances_during_shift)
+        .sum::<usize>();
+    let residual_only_acceptances_missing_or_stale = summaries
+        .iter()
+        .map(|summary| summary.residual_only_acceptances_missing_or_stale)
+        .sum::<usize>();
+    let residual_only_acceptances_during_recovery_holdoff = summaries
+        .iter()
+        .map(|summary| summary.residual_only_acceptances_during_recovery_holdoff)
+        .sum::<usize>();
 
     let total_steps = scenarios
         .iter()
@@ -702,6 +799,11 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         same_tick_shift_detections,
         unguarded_baseline_acceptances_during_shift,
         unguarded_baseline_missing_or_stale_acceptances,
+        freshness_only_acceptances_during_shift,
+        freshness_only_acceptances_missing_or_stale,
+        residual_only_acceptances_during_shift,
+        residual_only_acceptances_missing_or_stale,
+        residual_only_acceptances_during_recovery_holdoff,
         covered_observations,
         observed_count,
         summaries,
@@ -772,6 +874,11 @@ mod tests {
         assert_eq!(0, receipt.hard_violations_among_model_acceptances);
         assert_eq!(receipt.shift_onsets, receipt.same_tick_shift_detections);
         assert_eq!(12, receipt.summaries.len());
+        assert_eq!(448, receipt.freshness_only_acceptances_during_shift);
+        assert_eq!(0, receipt.freshness_only_acceptances_missing_or_stale);
+        assert_eq!(0, receipt.residual_only_acceptances_during_shift);
+        assert_eq!(64, receipt.residual_only_acceptances_missing_or_stale);
+        assert_eq!(192, receipt.residual_only_acceptances_during_recovery_holdoff);
     }
 
     #[test]
