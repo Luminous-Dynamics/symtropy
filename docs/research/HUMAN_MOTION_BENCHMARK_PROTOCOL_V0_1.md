@@ -37,6 +37,8 @@ The motion trace records observed/predicted trajectories; it is separate from th
 
 The emitted report has an independent version, currently v2, described by [human-motion-benchmark-report-v2.schema.json](human-motion-benchmark-report-v2.schema.json). Downstream consumers should validate report JSON against that schema and branch on the report schema_version field rather than assuming every metric is present and numeric. In particular, root_orientation_error may be null for v0.1 comparisons and yaw statistics may be null when the heading is undefined.
 
+The next layer is separate from trace serialization: [motion-skill-contract-v1.schema.json](motion-skill-contract-v1.schema.json) defines the version-1 declarative skill request, including typed preconditions, hard/soft constraints and required postconditions. The Rust `symtropy-motion-contract::skill` module evaluates start feasibility and explicit outcomes from runtime-supplied evidence. This metadata schema does not replace semantic checks: expiry, duplicate identifiers, quaternion normalization, constraint-kind/target compatibility and physics conflict evidence must also pass the Rust validator. Schema-to-runtime round-trip validation is a remaining CI hardening task; it is not yet claimed as passed.
+
 ## Task suite
 
 Every scenario is executed against the same avatar, coordinate system, frame rate, physics settings and saved input trace where technically applicable.
