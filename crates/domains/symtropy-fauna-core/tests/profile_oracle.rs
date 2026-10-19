@@ -25,7 +25,7 @@ struct OracleCase {
     expected_reason_codes: Vec<ReasonCode>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 enum Mutation {
     #[serde(rename = "none")]
