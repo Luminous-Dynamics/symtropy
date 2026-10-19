@@ -57,6 +57,26 @@ pub enum ViewDetailPolicy {
     PerSample,
 }
 
+/// Intended camera interaction model for a view.
+///
+/// The host UI must implement these controls; this enum declares intent and does not
+/// attach an input system or mutate camera transforms itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ViewNavigationPolicy {
+    /// Pan and zoom in a planar orthographic view.
+    PlanarPanZoom,
+    /// Pan and orbit around a fixed oblique overview.
+    ObliquePanOrbit,
+    /// Orbit and pan around a broad spatial overview.
+    OverviewOrbit,
+    /// Keep the camera focus centered on a selected local entity or group.
+    FocusedOrbit,
+    /// Free orbit/pan for scientific or diagnostic inspection.
+    InspectionOrbit,
+    /// Scrub the 4D hyperplane position while allowing 3D pan/orbit in the slice.
+    SliceScrubOrbit,
+}
+
 /// Optional render layers requested by a view profile.
 ///
 /// These are presentation controls only. They must never alter source measurements,
@@ -116,6 +136,7 @@ impl SliceWindow {
 pub struct ViewProfile {
     pub purpose: ViewPurpose,
     pub dimension: ViewDimension,
+    pub navigation: ViewNavigationPolicy,
     pub detail: ViewDetailPolicy,
     /// Soft rendering budget for visible entities/samples; never a data deletion limit.
     pub max_visible_items: usize,
@@ -259,6 +280,7 @@ impl ViewProfile {
         Self {
             purpose,
             dimension,
+            navigation: Self::navigation_for(purpose, dimension),
             detail,
             max_visible_items,
             aggregate_distant_items,
@@ -277,9 +299,31 @@ impl ViewProfile {
         }
     }
 
+    /// Recommended camera interaction for a given purpose/projection pair.
+    pub fn navigation_for(
+        purpose: ViewPurpose,
+        dimension: ViewDimension,
+    ) -> ViewNavigationPolicy {
+        match dimension {
+            ViewDimension::Planar2D => ViewNavigationPolicy::PlanarPanZoom,
+            ViewDimension::Oblique25D => ViewNavigationPolicy::ObliquePanOrbit,
+            ViewDimension::Spatial3D => match purpose {
+                ViewPurpose::Strategic | ViewPurpose::Operational => {
+                    ViewNavigationPolicy::OverviewOrbit
+                }
+                ViewPurpose::Tactical => ViewNavigationPolicy::FocusedOrbit,
+                ViewPurpose::Scientific | ViewPurpose::Diagnostic => {
+                    ViewNavigationPolicy::InspectionOrbit
+                }
+            },
+            ViewDimension::HyperSlice4D => ViewNavigationPolicy::SliceScrubOrbit,
+        }
+    }
+
     /// Changes the dimensional projection family while retaining view purpose.
     pub fn with_dimension(mut self, dimension: ViewDimension) -> Self {
         self.dimension = dimension;
+        self.navigation = Self::navigation_for(self.purpose, dimension);
         self.slice_window = if dimension == ViewDimension::HyperSlice4D {
             Some(SliceWindow {
                 offset: 0.0,
