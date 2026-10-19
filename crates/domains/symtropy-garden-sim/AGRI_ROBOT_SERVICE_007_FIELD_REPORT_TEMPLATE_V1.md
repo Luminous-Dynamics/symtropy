@@ -154,3 +154,19 @@ Claims explicitly not supported: _Not set_
 Required follow-up, safety response or protocol revision: _Not set_
 
 **No conclusion of South African population impact, causal yield/income/water benefit, universal channel superiority or agricultural safety follows from this template or synthetic data.**
+
+
+## 10. Machine-checkable denominator receipt
+
+The synthetic input contract is illustrated by `crates/domains/symtropy-garden-sim/fixtures/field_eval_report_example.v1.json`. Exact count values are decimal strings. Outcome classes are mutually exclusive and must total the eligible-request count: accepted in window, accepted late, known not accepted, disputed/rework, outcome unknown, and follow-up missing. Typed nonacceptance reasons must total the known-not-accepted class.
+
+Run the verifier from the repository root after checking that the file contains only approved aggregate data and opaque references:
+
+```sh
+cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-eval-report -- \
+  --input path/to/approved-field-report-input.v1.json \
+  --report-json crates/domains/symtropy-garden-sim/target/field-report-receipt.v1.json
+```
+
+The receipt binds the assessment to the exact input bytes with SHA-256 and emits exact integer lower/upper identification bounds. `Blocked` means the counts or declared references do not satisfy the report contract; `NotAssessable` means no eligible request is present and no attainment rate is emitted. Neither state is evidence that a farmer did or did not receive a service. The verifier does not authenticate source records, estimate a confidence interval, or prove causality.
+
