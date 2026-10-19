@@ -10,8 +10,8 @@ use symtropy_animal_observation::{
 use symtropy_animal_replay::{
     BaselineComparisonOutcome, BaselineReference, ConfidenceInterval, DecisionThreshold,
     EvaluationMode, MetricObjective, MetricObservation, MetricState, MetricStratumKind,
-    PairedBaselineComparison, ReplayDisposition, ReplayEvaluationInput, ReplayReason, ReplayTaskSpec,
-    RunIdentity, ThresholdDirection, ThresholdOutcome, build_replay_receipt,
+    PairedBaselineComparison, ReplayDisposition, ReplayEvaluationInput, ReplayReason,
+    ReplayTaskSpec, RunIdentity, ThresholdDirection, ThresholdOutcome, build_replay_receipt,
 };
 use symtropy_fauna_core::{AnimalProfile, EvidenceClass, TaxonBinding};
 
@@ -414,7 +414,14 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "zero_paired_samples" => inputs.paired_comparisons[0].independent_unit_count = 0,
         "missing_paired_difference" => inputs.paired_comparisons[0].mean_difference = None,
         "missing_paired_interval" => inputs.paired_comparisons[0].difference_interval = None,
-        "invalid_paired_interval" => inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: 0.8, upper: 0.2 }),
+        "invalid_paired_interval" => {
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: 0.8,
+                upper: 0.2,
+            });
+        }
         "invalid_effect_margins" => inputs.paired_comparisons[0].minimum_effect_size = -0.1,
         "paired_difference_does_not_match_scores" => {
             inputs.paired_comparisons[0].mean_difference = Some(0.2);
