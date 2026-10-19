@@ -187,8 +187,7 @@ fn choose_recourse_action(
                     continue;
                 }
                 if let Ok(score) = evaluate_schedule(model, world, vector) {
-                    let reconstructed =
-                        independently_reconstruct_score(model, world, vector)?;
+                    let reconstructed = independently_reconstruct_score(model, world, vector)?;
                     if reconstructed != score {
                         return Err("recourse continuation disagrees with independent resource reconstruction".to_owned());
                     }
@@ -253,21 +252,21 @@ fn score_incurred_prefix(
             return Err("executed action violated a hard process/water constraint".to_owned());
         }
         let safety = u64::from(period.safety_electricity_units);
-        let process_power =
-            u64::from(count) * u64::from(model.electricity_units_per_batch);
+        let process_power = u64::from(count) * u64::from(model.electricity_units_per_batch);
         let demand = safety + process_power;
         let grid = demand.saturating_sub(u64::from(period.renewable_electricity_units));
         let process_water = u64::from(count) * u64::from(model.water_units_per_batch);
-        let available_for_process = u64::from(
-            period.water_available_units - period.protected_water_reserve_units,
-        );
+        let available_for_process =
+            u64::from(period.water_available_units - period.protected_water_reserve_units);
         if grid > u64::from(period.grid_import_cap_units)
             || safety
                 > u64::from(period.renewable_electricity_units)
                     + u64::from(period.grid_import_cap_units)
             || process_water > available_for_process
         {
-            return Err("executed action violated electrical or protected-water feasibility".to_owned());
+            return Err(
+                "executed action violated electrical or protected-water feasibility".to_owned(),
+            );
         }
         total_cost = total_cost
             .checked_add(grid * u64::from(period.grid_price_units_per_import_unit))
@@ -290,7 +289,13 @@ fn execute_adaptive_recourse(
     let mut rejection_reason = None;
     for epoch in 0..realized.periods.len() {
         let observed_prefix = &realized.periods[..=epoch];
-        match choose_recourse_action(model, forecast, envelope, observed_prefix, &executed_batches) {
+        match choose_recourse_action(
+            model,
+            forecast,
+            envelope,
+            observed_prefix,
+            &executed_batches,
+        ) {
             Ok(decision) => {
                 executed_batches.push(decision.chosen_batches_this_period);
                 decisions.push(decision);
@@ -302,7 +307,10 @@ fn execute_adaptive_recourse(
         }
     }
     let completed_production_target = executed_batches.len() == realized.periods.len()
-        && executed_batches.iter().map(|count| u64::from(*count)).sum::<u64>()
+        && executed_batches
+            .iter()
+            .map(|count| u64::from(*count))
+            .sum::<u64>()
             == u64::from(realized.production_target_batches)
         && evaluate_schedule(model, realized, &executed_batches).is_ok();
     if !completed_production_target && rejection_reason.is_none() {
@@ -400,21 +408,14 @@ fn evaluation_for_schedule(
 
 fn add_out_of_envelope_worlds(case: &GeneratedCase) -> Vec<EvaluationWorld> {
     let forecast = &case.forecast;
-    let p1_moderate_water = apply_changes(
-        forecast,
-        "ood-p1-water-three",
-        &[(1, 2, 3)],
-    );
+    let p1_moderate_water = apply_changes(forecast, "ood-p1-water-three", &[(1, 2, 3)]);
     let p1_severe_correlated = apply_changes(
         forecast,
         "ood-p1-water-floor-with-renewable-loss",
         &[(1, 0, 0), (1, 1, 4), (1, 2, 2)],
     );
-    let p2_last_moment_water = apply_changes(
-        forecast,
-        "ood-p2-last-moment-water-floor",
-        &[(2, 2, 2)],
-    );
+    let p2_last_moment_water =
+        apply_changes(forecast, "ood-p2-last-moment-water-floor", &[(2, 2, 2)]);
     vec![
         EvaluationWorld {
             realization_id: "ood-p1-water-three".to_owned(),
@@ -474,12 +475,8 @@ fn policy_for_world(
         oracle_cost,
         hard_constraint_violations,
     );
-    let adaptive_execution = execute_adaptive_recourse(
-        model,
-        &case.forecast,
-        &case.uncertainty_envelope,
-        world,
-    )?;
+    let adaptive_execution =
+        execute_adaptive_recourse(model, &case.forecast, &case.uncertainty_envelope, world)?;
     let adaptive_schedule = if adaptive_execution.completed_production_target {
         Some(adaptive_execution.executed_batches.as_slice())
     } else {
@@ -637,7 +634,8 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
 
     for case in &cases {
         let nominal = choose_nominal_schedule(&model, &case.forecast)?;
-        let robust = choose_robust_schedule(&model, &case.forecast, &case.uncertainty_envelope).ok();
+        let robust =
+            choose_robust_schedule(&model, &case.forecast, &case.uncertainty_envelope).ok();
         let mut worlds: Vec<EvaluationWorld> = case
             .uncertainty_envelope
             .iter()
@@ -693,10 +691,22 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
             }
         }
     }
-    let in_envelope_world_count = rows.iter().filter(|row| row.world_class == WorldClass::InEnvelope).count();
-    let out_of_envelope_world_count = rows.iter().filter(|row| row.world_class == WorldClass::OutOfEnvelope).count();
-    let validation_world_count = rows.iter().filter(|row| row.split == Split::Validation).count();
-    let held_out_world_count = rows.iter().filter(|row| row.split == Split::HeldOut).count();
+    let in_envelope_world_count = rows
+        .iter()
+        .filter(|row| row.world_class == WorldClass::InEnvelope)
+        .count();
+    let out_of_envelope_world_count = rows
+        .iter()
+        .filter(|row| row.world_class == WorldClass::OutOfEnvelope)
+        .count();
+    let validation_world_count = rows
+        .iter()
+        .filter(|row| row.split == Split::Validation)
+        .count();
+    let held_out_world_count = rows
+        .iter()
+        .filter(|row| row.split == Split::HeldOut)
+        .count();
     let completed_adaptive_worlds_within_envelope = rows
         .iter()
         .filter(|row| {
@@ -717,8 +727,10 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
             * RECURRENT_WORLD_COUNT;
     let summaries_consistent = summaries.iter().all(|summary| {
         summary.feasible_worlds + summary.infeasible_worlds == summary.evaluated_worlds
-            && (summary.evaluated_worlds == 0 || summary.feasible_rate_basis_points
-                == ((summary.feasible_worlds as u128 * 10_000) / summary.evaluated_worlds as u128) as u32)
+            && (summary.evaluated_worlds == 0
+                || summary.feasible_rate_basis_points
+                    == ((summary.feasible_worlds as u128 * 10_000)
+                        / summary.evaluated_worlds as u128) as u32)
     });
     let in_envelope_completion_control =
         completed_adaptive_worlds_within_envelope == in_envelope_world_count;
@@ -764,8 +776,7 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
 pub(super) fn run_cli(args: &[String]) -> Check<ExitCode> {
     if args.len() != 2 || args[0] != "--source-commit" {
         return Err(
-            "usage: mine-flex-scheduling-bench --recourse --source-commit <40-hex-sha>"
-                .to_owned(),
+            "usage: mine-flex-scheduling-bench --recourse --source-commit <40-hex-sha>".to_owned(),
         );
     }
     let receipt = make_recourse_receipt(&args[1])?;
@@ -803,7 +814,11 @@ mod tests {
                     &world.scenario,
                 )
                 .expect("recourse execution");
-                assert!(outcome.completed_production_target, "seed {} world {}", case.seed, world.realization_id);
+                assert!(
+                    outcome.completed_production_target,
+                    "seed {} world {}",
+                    case.seed, world.realization_id
+                );
                 assert_eq!(3, outcome.executed_batches.len());
             }
         }
@@ -867,8 +882,8 @@ mod tests {
     fn same_seed_replays_byte_identically_and_prefix_action_audit_is_zero() {
         let first = make_recourse_receipt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
             .expect("valid source commit");
-        let second = make_recourse_receipt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-            .expect("replay");
+        let second =
+            make_recourse_receipt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").expect("replay");
         assert_eq!(
             serde_json::to_vec(&first).expect("serialize first receipt"),
             serde_json::to_vec(&second).expect("serialize second receipt")
@@ -880,7 +895,10 @@ mod tests {
         assert_eq!(192, first.out_of_envelope_world_count);
         assert_eq!(512, first.total_world_count);
         assert_eq!(320, first.completed_adaptive_worlds_within_envelope);
-        assert_eq!(512, first.validation_world_count + first.held_out_world_count);
+        assert_eq!(
+            512,
+            first.validation_world_count + first.held_out_world_count
+        );
         assert!(first.adaptive_aborts_outside_envelope <= 192);
     }
 }
