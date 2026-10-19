@@ -11,6 +11,7 @@
     "implementation_revision",
     "input_sha256",
     "oracle_sha256",
+    "cargo_lock_sha256",
     "result_count",
     "matched_case_count",
     "mismatches",
@@ -104,6 +105,10 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "cargo_lock_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
   },
   "$defs": {
