@@ -407,4 +407,163 @@ mod tests {
         let report = simulate(&scenario(vec![c, a, b], vec![], 1)).unwrap();
         assert_eq!(report.final_dispositions["consumer"], Disposition::Unknown);
     }
+
+
+    // Independent recursive reference evaluator. It does not reuse the
+    // production topological-order or evaluate/eval_rule implementation.
+    fn reference_disposition(
+        id: &str,
+        services: &BTreeMap<String, Service>,
+        visiting: &mut BTreeSet<String>,
+    ) -> Disposition {
+        if !visiting.insert(id.to_owned()) {
+            return Disposition::Unknown; // cycles are separately rejected
+        }
+        let service = &services[id];
+        let local = if service.local_state == LocalState::Unavailable {
+            Disposition::Unavailable
+        } else if service.local_state == LocalState::Unknown || !service.evidence_current {
+            Disposition::Unknown
+        } else if service.capacity < service.minimum_capacity {
+            Disposition::Unavailable
+        } else {
+            Disposition::Viable
+        };
+        let result = if local != Disposition::Viable {
+            local
+        } else {
+            let mut requirements = Vec::new();
+            for rule in &service.requirements {
+                requirements.push(reference_rule(rule, services, visiting));
+            }
+            if requirements.contains(&Disposition::Unavailable) {
+                Disposition::Unavailable
+            } else if requirements.contains(&Disposition::Unknown) {
+                Disposition::Unknown
+            } else {
+                Disposition::Viable
+            }
+        };
+        visiting.remove(id);
+        result
+    }
+
+    fn reference_rule(
+        rule: &DependencyRule,
+        services: &BTreeMap<String, Service>,
+        visiting: &mut BTreeSet<String>,
+    ) -> Disposition {
+        match rule {
+            DependencyRule::AllOf(ids) => {
+                let results: Vec<Disposition> = ids.iter()
+                    .map(|id| reference_disposition(id, services, visiting))
+                    .collect();
+                if results.contains(&Disposition::Unavailable) {
+                    Disposition::Unavailable
+                } else if results.contains(&Disposition::Unknown) {
+                    Disposition::Unknown
+                } else {
+                    Disposition::Viable
+                }
+            }
+            DependencyRule::AtLeast { service_ids, minimum_viable } => {
+                let mut viable = 0usize;
+                let mut unknown = 0usize;
+                for id in service_ids {
+                    match reference_disposition(id, services, visiting) {
+                        Disposition::Viable => viable += 1,
+                        Disposition::Unknown => unknown += 1,
+                        Disposition::Unavailable => {}
+                    }
+                }
+                if viable >= *minimum_viable {
+                    Disposition::Viable
+                } else if viable + unknown >= *minimum_viable {
+                    Disposition::Unknown
+                } else {
+                    Disposition::Unavailable
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn production_evaluator_matches_independent_oracle_for_exhaustive_small_states() {
+        let local_states = [LocalState::Available, LocalState::Unavailable, LocalState::Unknown];
+        let capacities = [0.0, 10.0];
+        let freshness = [false, true];
+        let mut checked = 0usize;
+
+        for a_state in local_states {
+            for b_state in local_states {
+                for a_capacity in capacities {
+                    for b_capacity in capacities {
+                        for a_fresh in freshness {
+                            for b_fresh in freshness {
+                                let mut a = svc("a");
+                                a.local_state = a_state;
+                                a.capacity = a_capacity;
+                                a.evidence_current = a_fresh;
+
+                                let mut b = svc("b");
+                                b.local_state = b_state;
+                                b.capacity = b_capacity;
+                                b.evidence_current = b_fresh;
+
+                                let mut all = svc("all-of-a-b");
+                                all.requirements = vec![DependencyRule::AllOf(vec![
+                                    "a".into(), "b".into(),
+                                ])];
+                                let mut one = svc("at-least-one");
+                                one.requirements = vec![DependencyRule::AtLeast {
+                                    service_ids: vec!["a".into(), "b".into()],
+                                    minimum_viable: 1,
+                                }];
+                                let mut both = svc("at-least-two");
+                                both.requirements = vec![DependencyRule::AtLeast {
+                                    service_ids: vec!["a".into(), "b".into()],
+                                    minimum_viable: 2,
+                                }];
+
+                                // Deliberately scramble input order; identity, not vector
+                                // position, determines dependency resolution.
+                                let input = scenario(
+                                    vec![both, b, all, one, a],
+                                    vec![],
+                                    1,
+                                );
+                                let report = simulate(&input).unwrap();
+                                let services: BTreeMap<String, Service> = input.services
+                                    .iter()
+                                    .map(|s| (s.id.clone(), s.clone()))
+                                    .collect();
+                                let expected: BTreeMap<String, Disposition> = services.keys()
+                                    .map(|id| (
+                                        id.clone(),
+                                        reference_disposition(id, &services, &mut BTreeSet::new()),
+                                    ))
+                                    .collect();
+
+                                assert_eq!(report.final_dispositions, expected);
+                                checked += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(checked, 144);
+    }
+
+    #[test]
+    fn oversized_declared_caps_are_rejected_before_simulation() {
+        let mut input = scenario(vec![svc("a")], vec![], 1);
+        input.max_services = MAX_CONFIGURED_SERVICES + 1;
+        assert!(matches!(simulate(&input), Err(SimulationError::InvalidInput(_))));
+
+        input.max_services = 4;
+        input.max_events = MAX_CONFIGURED_EVENTS + 1;
+        assert!(matches!(simulate(&input), Err(SimulationError::InvalidInput(_))));
+    }
+
 }
