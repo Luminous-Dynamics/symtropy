@@ -104,7 +104,6 @@ pub enum AlternativeDisposition {
     OwnerDeclined,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
 /// An immutable comparison snapshot can be pinned to an owner-brief revision.
 /// It deliberately has no aggregate ranking; alternatives preserve one explicit
 /// evaluation per intent so the owner decides their trade-offs.
@@ -116,6 +115,7 @@ pub struct DesignComparison {
     pub alternatives: Vec<DesignAlternative>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DesignAlternative {
     pub candidate_id: String,
     pub design_revision_id: String,
