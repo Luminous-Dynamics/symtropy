@@ -1,0 +1,16 @@
+# AGRI-ROBOT-SERVICE-007-FIELD-REPORT-V1
+case_id	expected_result	rationale
+primary_bounds_reconcile_without_float_arithmetic	CALCULATED	Confirms the exact lower and upper count bounds with all eligible requests retained in the denominator
+screened_count_must_reconcile_to_eligible_plus_exclusions	BLOCKED	Prevents candidate requests from silently disappearing between screening and eligibility
+mutually_exclusive_outcomes_must_account_for_all_eligible_requests	BLOCKED	Rejects an incomplete or overlapping cohort outcome partition
+known_nonacceptance_reasons_must_reconcile_exactly	BLOCKED	Prevents known nonacceptance outcomes from being omitted or double-counted
+completed_pending_decision_must_be_a_partition_bucket_not_a_duplicate_field	REJECTED	Requires pending-farmer-decision to be its own exclusive outcome class instead of a duplicated side count
+known_late_or_disputed_outcomes_do_not_inflate_upper_bound	CALCULATED	Keeps known late/disputed cases out of the uncertainty upper bound
+blocked_report_does_not_emit_partial_classified_count_or_rate	BLOCKED	No partial aggregate is emitted for a structurally invalid report
+no_eligible_requests_is_not_assessable_not_zero_percent_success	NOT_ASSESSABLE	Empty eligible cohorts do not become a zero-percent outcome claim
+unsafe_reference_format_blocks_public_report	BLOCKED	Rejects URL/free-form reference fields in the public aggregate input
+unsupported_schema_fails_closed	BLOCKED	Rejects future or unknown schema versions
+overflowing_count_sums_fail_closed	BLOCKED	Detects u64 overflow rather than allowing wrapped totals
+unknown_report_fields_are_rejected_instead_of_silently_ignored	REJECTED	Extra result fields cannot bypass versioned schema semantics
+input_sha256_uses_a_standard_known_vector	SELF_CHECK	Binds input report bytes to a deterministic SHA-256 digest
+report_result_keeps_a_claim_ceiling	SELF_CHECK	Maintains explicit limits on what report arithmetic proves
