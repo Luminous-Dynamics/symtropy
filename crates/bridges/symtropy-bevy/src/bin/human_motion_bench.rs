@@ -1005,6 +1005,8 @@ struct RootOrientationReport {
     mean_absolute_yaw_error_deg: f64,
     final_signed_yaw_error_rad: f64,
     final_signed_yaw_error_deg: f64,
+    final_absolute_yaw_error_rad: f64,
+    final_absolute_yaw_error_deg: f64,
     p95_absolute_yaw_error_rad: f64,
     p95_absolute_yaw_error_deg: f64,
     max_absolute_yaw_error_rad: f64,
@@ -1084,6 +1086,8 @@ fn evaluate_root_orientation(
         mean_absolute_yaw_error_deg: mean_absolute_yaw_error_rad * RAD_TO_DEG,
         final_signed_yaw_error_rad,
         final_signed_yaw_error_deg: final_signed_yaw_error_rad * RAD_TO_DEG,
+        final_absolute_yaw_error_rad: final_signed_yaw_error_rad.abs(),
+        final_absolute_yaw_error_deg: final_signed_yaw_error_rad.abs() * RAD_TO_DEG,
         p95_absolute_yaw_error_rad,
         p95_absolute_yaw_error_deg: p95_absolute_yaw_error_rad * RAD_TO_DEG,
         max_absolute_yaw_error_rad,
@@ -1151,6 +1155,7 @@ struct AlignmentReport {
 #[derive(Debug, Serialize)]
 struct TraceIdentityReport {
     trace_id: String,
+    trace_schema_version: u32,
     run: RunMetadata,
     skeleton_signature_sha256: String,
     retarget_map_sha256: Option<String>,
@@ -1160,6 +1165,7 @@ impl From<&Trace> for TraceIdentityReport {
     fn from(trace: &Trace) -> Self {
         Self {
             trace_id: trace.trace_id.clone(),
+            trace_schema_version: trace.schema_version,
             run: trace.run.clone(),
             skeleton_signature_sha256: trace.skeleton_signature_sha256.clone(),
             retarget_map_sha256: trace.retarget_map_sha256.0.clone(),
@@ -1661,6 +1667,8 @@ mod tests {
         assert!((orientation.mean_angular_error_rad - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
         assert!((orientation.p95_angular_error_deg - 90.0).abs() < 1e-7);
         assert!((orientation.max_angular_error_deg - 90.0).abs() < 1e-7);
+        assert!((orientation.mean_absolute_yaw_error_deg - 90.0).abs() < 1e-7);
+        assert!((orientation.final_absolute_yaw_error_deg - 90.0).abs() < 1e-7);
     }
 
     #[test]
@@ -1694,6 +1702,7 @@ mod tests {
         assert_eq!(report.alignment.samples, 4);
         assert_eq!(orientation.mean_angular_error_rad, 0.0);
         assert!((orientation.final_angular_error_deg - 90.0).abs() < 1e-7);
+        assert!((orientation.final_absolute_yaw_error_deg - 90.0).abs() < 1e-7);
         assert_eq!(orientation.max_angular_error_deg, 0.0);
     }
 
