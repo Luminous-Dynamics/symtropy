@@ -9,6 +9,8 @@ on:
       - "docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md"
       - "docs/research/EV_PLATFORM_FAMILIES_AND_INTERFACES_V0_1.md"
       - "docs/research/EV_VERIFICATION_AND_BENCHMARKS_V0_1.md"
+      - "docs/research/EV_CHARGING_QUEUE_SCREEN_V0_1.md"
+      - "docs/research/EV_CHARGING_CURVE_SCREEN_V0_1.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   push:
     branches: [main]
