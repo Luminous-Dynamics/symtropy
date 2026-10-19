@@ -79,9 +79,11 @@ fn farmer_reported_off_platform_service_never_becomes_canonical_attainment() {
 #[test]
 fn authorized_relayed_other_channel_attainment_stays_noncanonical() {
     let mut input = valid_input();
-    input.episodes[4].request_presence = RequestPresence::NoCanonicalRequestLocated;
     input.episodes[4].disposition = D::AdequateServiceWithinWindow;
     input.episodes[4].outcome_source = S::AuthorizedRelayOtherChannel;
+    assert!(has_blocker(&input, B::OutcomeSourceMismatch));
+
+    input.episodes[4].request_presence = RequestPresence::NoCanonicalRequestLocated;
     input.episodes[4].no_request_reason = None;
     let report = assess_need_observation_v1(&input);
     assert_eq!(report.disposition, AssessmentDisposition::Calculated);
