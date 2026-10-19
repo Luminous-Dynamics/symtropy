@@ -6,6 +6,7 @@ on:
       - "tools/rural-industrial-electrification-evaluator/**"
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_PORTFOLIO_V0_1.md"
       - "docs/research/ELECTRIC_MOBILITY_DESIGN_CARDS_V0_1.md"
+      - "docs/research/EV_MISSION_PHYSICS_SCREEN_V0_2.md"
       - ".github/workflows/rural-industrial-electrification.yml"
   push:
     branches: [main]
@@ -68,3 +69,18 @@ jobs:
             tools/rural-industrial-electrification-evaluator/fixtures/vehicle_missions_v0_2.json > vehicle-mission-report.json
           jq -e '.results | length == 8 and all(.[]; .evidence_class == "synthetic" and (.status == "passes_synthetic_screen" or .status == "blocked"))' vehicle-mission-report.json
           jq -e '[.results[] | select(.scenario_id == "open-pit-haul-steep-loaded-stress") | .status] == ["blocked"]' vehicle-mission-report.json
+      - name: Hash deterministic screen reports
+        run: sha256sum shift-report.json path-report.json dispatch-report.json vehicle-design-report.json vehicle-mission-report.json > screen-report.sha256
+      - name: Upload reproducible screen reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: rural-industrial-ev-screen-reports-${{ github.sha }}
+          path: |
+            shift-report.json
+            path-report.json
+            dispatch-report.json
+            vehicle-design-report.json
+            vehicle-mission-report.json
+            screen-report.sha256
+          if-no-files-found: error
+          retention-days: 14
