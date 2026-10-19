@@ -25,10 +25,10 @@ fn primary_bounds_reconcile_without_float_arithmetic() {
     let report = assess_field_eval_report_v1(&valid_input());
     assert_eq!(report.disposition, FieldEvalReportDispositionV1::Calculated);
     assert_eq!(report.eligible_request_count, 10);
-    assert_eq!(report.classified_request_count, Some(8));
+    assert_eq!(report.classified_request_count, Some(7));
     let bounds = report.evidence_confirmed_attainment.expect("valid bounds");
     assert_eq!(bounds.lower_numerator, 4);
-    assert_eq!(bounds.upper_numerator, 6);
+    assert_eq!(bounds.upper_numerator, 7);
     assert_eq!(bounds.denominator, 10);
 }
 
@@ -63,20 +63,17 @@ fn known_nonacceptance_reasons_must_reconcile_exactly() {
 }
 
 #[test]
-fn completed_pending_decision_is_a_subset_not_an_extra_denominator_bucket() {
-    let mut input = valid_input();
-    input.completed_pending_decision_count = 3;
-    assert!(has_blocker(
-        &input,
-        FieldEvalReportBlockerCodeV1::PendingDecisionExceedsUnknownCases
-    ));
+fn completed_pending_decision_must_be_a_partition_bucket_not_a_duplicate_field() {
+    let mut value: serde_json::Value = serde_json::from_str(EXAMPLE).expect("fixture JSON");
+    value["completed_pending_decision_count"] = serde_json::Value::String("1".into());
+    assert!(serde_json::from_value::<FieldEvalReportInputV1>(value).is_err());
 }
 
 #[test]
 fn known_late_or_disputed_outcomes_do_not_inflate_upper_bound() {
     let mut input = valid_input();
     input.outcomes.accepted_after_window_count = 2;
-    input.outcomes.disputed_or_rework_count = 2;
+    input.outcomes.disputed_or_rework_count = 1;
     input.outcomes.known_not_accepted_count = 0;
     input.nonacceptance_reasons = Default::default();
     let report = assess_field_eval_report_v1(&input);
@@ -105,7 +102,6 @@ fn no_eligible_requests_is_not_assessable_not_zero_percent_success() {
     input.protocol_excluded_count = 2;
     input.outcomes = Default::default();
     input.nonacceptance_reasons = Default::default();
-    input.completed_pending_decision_count = 0;
     let report = assess_field_eval_report_v1(&input);
     assert_eq!(
         report.disposition,
