@@ -42,7 +42,7 @@
         "state": "present",
         "evidence": {
           "class": "modeled",
-          "source_ref": "doi:test/animal-profile-1",
+          "source_ref": "test://synthetic-validation-fixture/reference",
           "permission": "granted",
           "taxon_id": "TEST:1",
           "stage": "adult",
