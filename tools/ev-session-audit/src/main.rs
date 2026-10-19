@@ -15,6 +15,7 @@ struct Invalid { row_index_zero_based: usize, reason: String }
 #[derive(Serialize)]
 struct Report { report_schema_version: String, tool: String, dataset_id: String, source_uri: String, evidence_class_declared_by_caller: String, provenance_warning: String, claim_ceiling: String, input_rows: usize, valid_rows: usize, invalid_rows: Vec<Invalid>, overall: Stats, by_site: BTreeMap<String, Stats> }
 struct Meta { dataset_id: String, source_uri: String, evidence_class: String }
+#[derive(Debug)]
 struct Row { site: String, energy: f64, dwell: f64, active: Option<f64>, post: Option<f64> }
 
 impl Acc {
@@ -59,7 +60,7 @@ fn parse_time(s:&str)->Result<i64,String>{
     let h:u32=t[0].parse().map_err(|_|"bad hour")?; let min:u32=t[1].parse().map_err(|_|"bad minute")?; let sec:u32=t[2].parse().map_err(|_|"bad second")?;
     let md=match m {1|3|5|7|8|10|12=>31,4|6|9|11=>30,2 if y%4==0&&(y%100!=0||y%400==0)=>29,2=>28,_=>0};
     if d==0||d>md||h>23||min>59||sec>59{return Err("date/time component out of range".into())}
-    let ya=y-i64::from(m<=2); let era=if ya>=0{ya}else{ya-399}/400; let yoe=ya-era*400;
+    let ya=y-if m<=2 {1} else {0}; let era=if ya>=0{ya}else{ya-399}/400; let yoe=ya-era*400;
     let mp=i64::from(m)+if m>2{-3}else{9}; let doy=(153*mp+2)/5+i64::from(d)-1;
     let doe=yoe*365+yoe/4-yoe/100+doy; let days=era*146097+doe-719468;
     Ok(days*86400+i64::from(h)*3600+i64::from(min)*60+i64::from(sec))
