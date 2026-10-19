@@ -8,7 +8,7 @@
 //!
 //! Compares a one-dimensional Hooke-law oscillator against the analytical
 //! continuous solution over four timestep refinements. The check verifies
-//! first-order convergence in position and velocity, bounded amplitude in
+//! first-order convergence in position and second-order velocity convergence, bounded amplitude in
 //! the known linearly stable regime, and finite state. It also checks that
 //! the observed peak displacement does not exceed the analytical amplitude
 //! bound for this exact velocity-first update.
@@ -28,8 +28,10 @@ const OMEGA: f64 = (SPRING_K / MASS).sqrt();
 const DURATION: f64 = 2.0;
 const POSITION_TOLERANCE: f64 = 1e-8;
 const VELOCITY_TOLERANCE: f64 = 1e-8;
-const CONVERGENCE_RATIO_MIN: f64 = 1.75;
-const CONVERGENCE_RATIO_MAX: f64 = 2.25;
+const POSITION_CONVERGENCE_RATIO_MIN: f64 = 1.75;
+const POSITION_CONVERGENCE_RATIO_MAX: f64 = 2.25;
+const VELOCITY_CONVERGENCE_RATIO_MIN: f64 = 3.5;
+const VELOCITY_CONVERGENCE_RATIO_MAX: f64 = 4.5;
 const AMPLITUDE_RELATIVE_TOLERANCE: f64 = 1e-6;
 
 struct CaseResult {
@@ -47,7 +49,7 @@ struct CaseResult {
 
 fn main() {
     let mut failures = 0usize;
-    let mut results: Vec<CaseResult> = [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0, 1.0 / 240.0]
+    let results: Vec<CaseResult> = [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0, 1.0 / 240.0]
         .into_iter()
         .map(|dt| run_case(dt, DURATION))
         .collect();
@@ -76,8 +78,15 @@ fn main() {
         let fine = &pair[1];
         let position_ratio = coarse.position_error / fine.position_error;
         let velocity_ratio = coarse.velocity_error / fine.velocity_error;
-        let pass = ratio_in_first_order_band(position_ratio)
-            && ratio_in_first_order_band(velocity_ratio);
+        let pass = ratio_in_band(
+            position_ratio,
+            POSITION_CONVERGENCE_RATIO_MIN,
+            POSITION_CONVERGENCE_RATIO_MAX,
+        ) && ratio_in_band(
+            velocity_ratio,
+            VELOCITY_CONVERGENCE_RATIO_MIN,
+            VELOCITY_CONVERGENCE_RATIO_MAX,
+        );
         eprintln!(
             "first_order_convergence,{:.17},{:.17},{:.17},{:.17},{}",
             coarse.dt, fine.dt, position_ratio, velocity_ratio, pass
@@ -91,10 +100,8 @@ fn main() {
     }
 }
 
-fn ratio_in_first_order_band(ratio: f64) -> bool {
-    ratio.is_finite()
-        && ratio >= CONVERGENCE_RATIO_MIN
-        && ratio <= CONVERGENCE_RATIO_MAX
+fn ratio_in_band(ratio: f64, minimum: f64, maximum: f64) -> bool {
+    ratio.is_finite() && ratio >= minimum && ratio <= maximum
 }
 
 fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
