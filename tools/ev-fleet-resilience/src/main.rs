@@ -3,7 +3,6 @@ use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     env, fs, process,
-
 };
 
 const EPSILON: f64 = 1.0e-9;
@@ -1493,5 +1492,4 @@ mod tests {
             && reference.energy_service_fraction >= MIN_ENERGY_SERVICE_FRACTION;
         assert_eq!(base.meets_service_target, reference_meets);
     }
-
 }
