@@ -1045,20 +1045,49 @@ mod tests {
     }
 
     #[test]
-    fn canonical_job_order_does_not_depend_on_input_order() {
-        let template = template(100.0, 1.0, 10.0, constant_curve(10.0));
+    fn one_hundred_job_order_permutations_produce_identical_reports() {
+        let template = template(100.0, 0.95, 12.0, constant_curve(80.0));
         let templates = templates(template);
-        let a = job("z-last", 0.0, 120.0, 0.0, 0.1);
-        let b = job("a-first", 0.0, 120.0, 0.0, 0.03);
-        let first = scenario(vec![a.clone(), b.clone()], 1, 10.0, vec![]);
-        let second = scenario(vec![b, a], 1, 10.0, vec![]);
-        assert_eq!(
-            simulate_scenario(&templates, &first, Policy::FirstComeFirstServed).unwrap(),
-            simulate_scenario(&templates, &second, Policy::FirstComeFirstServed).unwrap()
-        );
-        assert_eq!(
-            simulate_scenario(&templates, &first, Policy::EarliestDepartureFirst).unwrap(),
-            simulate_scenario(&templates, &second, Policy::EarliestDepartureFirst).unwrap()
-        );
+        let base_jobs: Vec<Job> = (0..8)
+            .map(|index| {
+                job(
+                    &format!("job-{index:02}"),
+                    ((index % 3) * 5) as f64,
+                    100.0 + ((index % 4) * 10) as f64,
+                    0.1,
+                    0.25 + ((index % 5) as f64 * 0.1),
+                )
+            })
+            .collect();
+        let event = CapacityEvent {
+            start_minute: 20.0,
+            end_minute: 30.0,
+            site_power_budget_kw: 7.0,
+            available_port_count: 2,
+        };
+        let baseline = scenario(base_jobs.clone(), 3, 20.0, vec![event.clone()]);
+
+        for policy in Policy::ALL {
+            let expected = simulate_scenario(&templates, &baseline, policy).unwrap();
+            for seed in 0_u64..100 {
+                let mut shuffled = base_jobs.clone();
+                let mut state = seed + 1;
+                for index in (1..shuffled.len()).rev() {
+                    state = state
+                        .wrapping_mul(6_364_136_223_846_793_005)
+                        .wrapping_add(1);
+                    let swap_index = (state as usize) % (index + 1);
+                    shuffled.swap(index, swap_index);
+                }
+                let permutation = scenario(shuffled, 3, 20.0, vec![event.clone()]);
+                assert_eq!(
+                    simulate_scenario(&templates, &permutation, policy).unwrap(),
+                    expected,
+                    "policy {} differed for permutation seed {}",
+                    policy.as_str(),
+                    seed
+                );
+            }
+        }
     }
 }
