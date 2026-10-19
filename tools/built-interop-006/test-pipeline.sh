@@ -5,14 +5,18 @@ repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+schema_gate_root="${BUILT_INTEROP_005_ROOT:-$repo_root/tools/built-interop-005}"
+schema_gate_manifest="$schema_gate_root/Cargo.toml"
+fixture_ifc="$repo_root/tools/built-interop-006/fixtures/panel.ifc"
+fixture_ids="$repo_root/tools/built-interop-006/fixtures/panel.ids"
 schema_gate_json="$tmp/ifc-schema-gate.json"
 assembled_json="$tmp/assembled-report.json"
 
 # The validator may return 0 (PASS) or 2 (UNRESOLVED) for this fixture, but a
 # schema error (1) must fail the integration contract rather than be masked.
 set +e
-cargo run --locked --manifest-path "$repo_root/tools/built-interop-005/Cargo.toml" -- \
-  "$repo_root/tools/built-interop-005/fixtures/panel.ifc" > "$schema_gate_json"
+cargo run --locked --manifest-path "$schema_gate_manifest" -- \
+  "$fixture_ifc" > "$schema_gate_json"
 schema_exit=$?
 set -e
 if [[ "$schema_exit" -ne 0 && "$schema_exit" -ne 2 ]]; then
@@ -41,9 +45,9 @@ source_commit_sha="${GITHUB_SHA:-0000000000000000000000000000000000000000}"
 # NOT_RUN, making a successful integration of these tools UNQUALIFIED by design.
 set +e
 cargo run --locked --manifest-path "$repo_root/tools/built-interop-006/Cargo.toml" -- \
-  --source-ifc "$repo_root/tools/built-interop-005/fixtures/panel.ifc" \
-  --ids "$repo_root/tools/built-interop-002/fixtures/panel.ids" \
-  --target-ifc "$repo_root/tools/built-interop-005/fixtures/panel.ifc" \
+  --source-ifc "$fixture_ifc" \
+  --ids "$fixture_ids" \
+  --target-ifc "$fixture_ifc" \
   --ifc-schema IFC4 \
   --supported-subset "synthetic-ifc4-ids1.0-panel-v0.1" \
   --run-id "$run_id" \
