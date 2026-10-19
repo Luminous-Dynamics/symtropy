@@ -11,10 +11,13 @@
     "initial_resource_distribution": "bounded_skewed"
   },
   "network": {
-    "topology_family": "small_world",
+    "topology_family": "ring_lattice",
     "directed_trust_estimates": true,
     "initial_trust_distribution": "beta_like",
-    "tie_change": "enabled"
+    "tie_change": "enabled",
+    "degree": 4,
+    "fixed_during_run": true,
+    "trust_update": "treatment_dependent"
   },
   "service": {
     "type": "water",
@@ -22,7 +25,8 @@
     "capacity_fraction_during_shock": 0.45,
     "shock_start_tick": 20,
     "shock_duration_ticks": 15,
-    "recovery_requires_contributions": true
+    "recovery_requires_contributions": true,
+    "repair_gain_per_contribution": 0.00125
   },
   "treatment_arms": [
     "no_explicit_commitments",
@@ -47,12 +51,21 @@
       "contribution_distribution",
       "access_inequality",
       "verification_overhead"
-    ]
+    ],
+    "baseline_capacity": 1,
+    "observation_noise": 0.05,
+    "verification_cost": 0.15,
+    "institutional_capture_rate": 0.02,
+    "trust_learning_rate": 0.18,
+    "random_seed_policy": "same seed list across all treatment arms; fixed per-tick action and observation random channels",
+    "default_ticks": 80,
+    "recovery_threshold_fraction": 0.98,
+    "reference_model": "research/social-dynamics-reference"
   },
   "guardrails": {
     "synthetic_only": true,
     "individual_reputation_leaderboard": false,
     "no_claim_of_empirical_validity": true
   },
-  "note": "This is an illustrative fixture, not a validated scenario schema or an executed experiment."
+  "note": "Synthetic proposal fixture aligned to the dependency-free Rust reference model defaults. The JSON is not yet parsed by the executable. The model is unvalidated and makes no claim about real communities."
 }
