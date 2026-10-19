@@ -43,3 +43,25 @@ It reports source-file SHA-256 digests; VMT and off-shift-hour distributions acr
 - Operational schedule records do not by themselves prove a vehicle is continuously at the depot, physically connected, or available to charge through all off-shift seconds.
 - The `kwh-per-mile` parameter is an explicit assumption. The NLR profile-generation code used 1.8 kWh/mile in its documented defaults, but this is not a universal vehicle consumption factor.
 - The source study's U.S. duty patterns and charging strategy outputs must not be treated as evidence of South African fleet performance without a separate local validation study.
+
+## Reproduce the pinned NLR input locally
+
+The CI integration check fetches only these two small CSV tables from the pinned public repository revision; it does not commit or publish the raw tables:
+
+```sh
+REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/$REV/data/fleet-schedules/fleet1-beverage-delivery"
+curl --fail --location "$BASE/veh_op_days.csv" -o /tmp/nlr-veh_op_days.csv
+curl --fail --location "$BASE/veh_schedules.csv" -o /tmp/nlr-veh_schedules.csv
+
+cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+  /tmp/nlr-veh_op_days.csv /tmp/nlr-veh_schedules.csv \
+  --fleet-id fleet1-beverage-delivery \
+  --dataset-id nlr-hdev-depot-charging-2021 \
+  --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+  --source-revision "$REV" \
+  --evidence-class published_operational_summary \
+  --kwh-per-mile 1.8
+```
+
+The current public source snapshot is expected to contain 76 operation-day rows and 234 schedule segments for beverage delivery, with all 76 days reconciling. These counts are a file-contract regression target for that exact pinned revision, not universal assumptions about other fleet tables or future datasets.
