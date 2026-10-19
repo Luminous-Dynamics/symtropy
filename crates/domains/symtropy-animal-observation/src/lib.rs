@@ -70,12 +70,8 @@ fn modality_can_support(modality: ObservationModality, claim: ClaimKind) -> bool
         ),
         ClaimKind::ContactForce => modality == ObservationModality::ForcePlate3d,
         ClaimKind::Physiology => modality == ObservationModality::PhysiologySensor,
-        ClaimKind::SensorimotorResponse => {
-            modality == ObservationModality::SensorimotorExperiment
-        }
-        ClaimKind::IndividualMovementEcology => {
-            modality == ObservationModality::AnimalTracking
-        }
+        ClaimKind::SensorimotorResponse => modality == ObservationModality::SensorimotorExperiment,
+        ClaimKind::IndividualMovementEcology => modality == ObservationModality::AnimalTracking,
         ClaimKind::PopulationDynamics => modality == ObservationModality::PopulationSurvey,
         ClaimKind::AcousticSignal => modality == ObservationModality::AcousticRecording,
     }
@@ -406,11 +402,7 @@ pub fn validate_split(
             ),
             GeneralizationTarget::UnseenSite => {
                 if let Some(site_id) = record.site_id.as_deref() {
-                    add_cross_split(
-                        format!("site:{site_id}"),
-                        record.role,
-                        &mut site_groups,
-                    );
+                    add_cross_split(format!("site:{site_id}"), record.role, &mut site_groups);
                 }
             }
             GeneralizationTarget::UnseenTaxon => add_cross_split(
@@ -418,13 +410,16 @@ pub fn validate_split(
                 record.role,
                 &mut taxon_groups,
             ),
-            GeneralizationTarget::FutureTime
-            | GeneralizationTarget::WithinSubjectInterpolation => {}
+            GeneralizationTarget::FutureTime | GeneralizationTarget::WithinSubjectInterpolation => {
+            }
         }
     }
 
     for (groups, reason) in [
-        (&duplicate_groups, ManifestReason::DuplicateObservationLeakage),
+        (
+            &duplicate_groups,
+            ManifestReason::DuplicateObservationLeakage,
+        ),
         (&track_groups, ManifestReason::DuplicateObservationLeakage),
         (&subject_groups, ManifestReason::SplitIdentityLeakage),
         (&study_groups, ManifestReason::SplitIdentityLeakage),
@@ -463,17 +458,15 @@ pub fn validate_split(
             });
             let mut maximum_end_by_role = BTreeMap::<SplitRole, i64>::new();
             for record in group.iter() {
-                for other_role in [
-                    SplitRole::Training,
-                    SplitRole::Validation,
-                    SplitRole::Test,
-                ] {
+                for other_role in [SplitRole::Training, SplitRole::Validation, SplitRole::Test] {
                     if other_role != record.role
                         && maximum_end_by_role
                             .get(&other_role)
                             .is_some_and(|end| *end >= record.start_time)
                     {
-                        let roles = [other_role, record.role].into_iter().collect::<BTreeSet<_>>();
+                        let roles = [other_role, record.role]
+                            .into_iter()
+                            .collect::<BTreeSet<_>>();
                         violations.insert(LeakageViolation {
                             reason: ManifestReason::TemporalLeakage,
                             group_key: format!(
@@ -495,7 +488,9 @@ pub fn validate_split(
     if target == GeneralizationTarget::FutureTime {
         let max_training_end = records
             .iter()
-            .filter(|record| record.role == SplitRole::Training && record.start_time <= record.end_time)
+            .filter(|record| {
+                record.role == SplitRole::Training && record.start_time <= record.end_time
+            })
             .map(|record| record.end_time)
             .max();
         if let Some(max_end) = max_training_end {
@@ -517,12 +512,22 @@ pub fn validate_split(
     let leakage_violations = violations.into_iter().collect::<Vec<_>>();
     SplitReport {
         record_count: records.len(),
-        training_count: counts.get(&SplitRole::Training).copied().unwrap_or_default(),
-        validation_count: counts.get(&SplitRole::Validation).copied().unwrap_or_default(),
+        training_count: counts
+            .get(&SplitRole::Training)
+            .copied()
+            .unwrap_or_default(),
+        validation_count: counts
+            .get(&SplitRole::Validation)
+            .copied()
+            .unwrap_or_default(),
         test_count: counts.get(&SplitRole::Test).copied().unwrap_or_default(),
         valid: !records.is_empty()
             && leakage_violations.is_empty()
-            && counts.get(&SplitRole::Training).copied().unwrap_or_default() > 0
+            && counts
+                .get(&SplitRole::Training)
+                .copied()
+                .unwrap_or_default()
+                > 0
             && counts.get(&SplitRole::Test).copied().unwrap_or_default() > 0,
         leakage_violations,
     }
@@ -572,7 +577,11 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         indeterminate.insert(ManifestReason::EmptyTaxonomyRelease);
     }
     if manifest.taxonomy.taxon_ids.is_empty()
-        || manifest.taxonomy.taxon_ids.iter().any(|taxon_id| taxon_id.trim().is_empty())
+        || manifest
+            .taxonomy
+            .taxon_ids
+            .iter()
+            .any(|taxon_id| taxon_id.trim().is_empty())
     {
         indeterminate.insert(ManifestReason::EmptyTaxonId);
     }
@@ -582,7 +591,12 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
             rejected.insert(ManifestReason::DuplicateTaxonBinding);
         }
     }
-    if manifest.taxonomy.mapping_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
+    if manifest
+        .taxonomy
+        .mapping_ref
+        .as_deref()
+        .is_none_or(|value| value.trim().is_empty())
+    {
         indeterminate.insert(ManifestReason::MissingTaxonomyMappingReference);
     }
 
@@ -600,13 +614,25 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         if !field_ids.insert(field.id.clone()) {
             rejected.insert(ManifestReason::DuplicateFieldId);
         }
-        if field.quantity && field.unit.as_deref().is_none_or(|value| value.trim().is_empty()) {
+        if field.quantity
+            && field
+                .unit
+                .as_deref()
+                .is_none_or(|value| value.trim().is_empty())
+        {
             indeterminate.insert(ManifestReason::MissingQuantityUnit);
         }
-        if field.coordinate && field.coordinate_frame.as_deref().is_none_or(|value| value.trim().is_empty()) {
+        if field.coordinate
+            && field
+                .coordinate_frame
+                .as_deref()
+                .is_none_or(|value| value.trim().is_empty())
+        {
             indeterminate.insert(ManifestReason::MissingCoordinateFrame);
         }
-        if field.temporal && (manifest.time_basis.is_none() || manifest.sample_interval_ms.is_none()) {
+        if field.temporal
+            && (manifest.time_basis.is_none() || manifest.sample_interval_ms.is_none())
+        {
             indeterminate.insert(ManifestReason::MissingTemporalSemantics);
         }
     }
@@ -623,7 +649,10 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
 
     let mut permissions = BTreeMap::<DataOperation, Vec<&OperationPermission>>::new();
     for permission in &manifest.permissions {
-        permissions.entry(permission.operation).or_default().push(permission);
+        permissions
+            .entry(permission.operation)
+            .or_default()
+            .push(permission);
     }
     for receipts in permissions.values() {
         if receipts.len() > 1 {
@@ -653,17 +682,32 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
                     indeterminate.insert(ManifestReason::PermissionUnknown);
                 }
                 PermissionDecision::Granted | PermissionDecision::AttributionRequired => {
-                    if permission.authority_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
+                    if permission
+                        .authority_ref
+                        .as_deref()
+                        .is_none_or(|value| value.trim().is_empty())
+                    {
                         indeterminate.insert(ManifestReason::MissingPermissionAuthority);
                     }
-                    if permission.scope_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
+                    if permission
+                        .scope_ref
+                        .as_deref()
+                        .is_none_or(|value| value.trim().is_empty())
+                    {
                         indeterminate.insert(ManifestReason::MissingPermissionScope);
                     }
-                    if permission.reviewed_at.as_deref().is_none_or(|value| value.trim().is_empty()) {
+                    if permission
+                        .reviewed_at
+                        .as_deref()
+                        .is_none_or(|value| value.trim().is_empty())
+                    {
                         indeterminate.insert(ManifestReason::MissingPermissionReviewDate);
                     }
                     if permission.decision == PermissionDecision::AttributionRequired
-                        && permission.attribution.as_deref().is_none_or(|value| value.trim().is_empty())
+                        && permission
+                            .attribution
+                            .as_deref()
+                            .is_none_or(|value| value.trim().is_empty())
                     {
                         rejected.insert(ManifestReason::MissingRequiredAttribution);
                     }
@@ -699,7 +743,10 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
     if manifest.declared_supported_claims.is_empty() || manifest.requested_claims.is_empty() {
         indeterminate.insert(ManifestReason::EmptyClaimList);
     }
-    for claims in [&manifest.declared_supported_claims, &manifest.requested_claims] {
+    for claims in [
+        &manifest.declared_supported_claims,
+        &manifest.requested_claims,
+    ] {
         let mut seen = BTreeSet::new();
         for claim in claims {
             if !seen.insert(*claim) {
@@ -715,15 +762,25 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         .iter()
         .copied()
         .collect::<BTreeSet<_>>();
-    if manifest.requested_claims.iter().any(|claim| !supported.contains(claim)) {
+    if manifest
+        .requested_claims
+        .iter()
+        .any(|claim| !supported.contains(claim))
+    {
         rejected.insert(ManifestReason::ClaimExceedsMeasurementEnvelope);
     }
 
     if manifest.records.is_empty() {
         indeterminate.insert(ManifestReason::NoSplitRecords);
     }
-    if !manifest.records.iter().any(|record| record.role == SplitRole::Training)
-        || !manifest.records.iter().any(|record| record.role == SplitRole::Test)
+    if !manifest
+        .records
+        .iter()
+        .any(|record| record.role == SplitRole::Training)
+        || !manifest
+            .records
+            .iter()
+            .any(|record| record.role == SplitRole::Test)
     {
         indeterminate.insert(ManifestReason::MissingRequiredSplitRole);
     }
@@ -755,7 +812,9 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         if record.start_time > record.end_time {
             rejected.insert(ManifestReason::InvalidTimeRange);
         }
-        if manifest.provenance != EvidenceClass::Synthetic && record.provenance == EvidenceClass::Synthetic {
+        if manifest.provenance != EvidenceClass::Synthetic
+            && record.provenance == EvidenceClass::Synthetic
+        {
             rejected.insert(ManifestReason::ProvenancePromotion);
         }
         if manifest.generalization == GeneralizationTarget::UnseenSite
@@ -763,7 +822,6 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         {
             indeterminate.insert(ManifestReason::MissingRequiredSite);
         }
-
     }
 
     if manifest.generalization == GeneralizationTarget::WithinSubjectInterpolation {
@@ -870,7 +928,7 @@ mod tests {
                 source: "test-taxonomy".to_owned(),
                 release: "test-release-1".to_owned(),
                 taxon_ids: vec!["TEST:1".to_owned()],
-            mapping_ref: Some("test://mapping/1".to_owned()),
+                mapping_ref: Some("test://mapping/1".to_owned()),
             },
             provenance: EvidenceClass::Synthetic,
             modality: ObservationModality::VideoKeypoints2d,
@@ -955,7 +1013,11 @@ mod tests {
         manifest.permissions.pop();
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Indeterminate);
-        assert!(assessment.reason_codes.contains(&ManifestReason::MissingPermissionReceipt));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::MissingPermissionReceipt)
+        );
     }
 
     #[test]
@@ -963,7 +1025,10 @@ mod tests {
         for decision in [PermissionDecision::Revoked, PermissionDecision::Restricted] {
             let mut manifest = valid_manifest();
             manifest.permissions[0].decision = decision;
-            assert_eq!(validate_manifest(&manifest).disposition, ManifestDisposition::Reject);
+            assert_eq!(
+                validate_manifest(&manifest).disposition,
+                ManifestDisposition::Reject
+            );
         }
     }
 
@@ -971,7 +1036,10 @@ mod tests {
     fn unknown_permission_never_passes() {
         let mut manifest = valid_manifest();
         manifest.permissions[0].decision = PermissionDecision::Unknown;
-        assert_ne!(validate_manifest(&manifest).disposition, ManifestDisposition::Eligible);
+        assert_ne!(
+            validate_manifest(&manifest).disposition,
+            ManifestDisposition::Eligible
+        );
     }
 
     #[test]
@@ -980,7 +1048,11 @@ mod tests {
         manifest.permissions[0].scope_ref = None;
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Indeterminate);
-        assert!(assessment.reason_codes.contains(&ManifestReason::MissingPermissionScope));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::MissingPermissionScope)
+        );
     }
 
     #[test]
@@ -988,8 +1060,15 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.permissions[0].decision = PermissionDecision::AttributionRequired;
         manifest.permissions[0].attribution = Some("  ".to_owned());
-        assert_eq!(validate_manifest(&manifest).disposition, ManifestDisposition::Reject);
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::MissingRequiredAttribution));
+        assert_eq!(
+            validate_manifest(&manifest).disposition,
+            ManifestDisposition::Reject
+        );
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::MissingRequiredAttribution)
+        );
     }
 
     #[test]
@@ -1000,23 +1079,41 @@ mod tests {
         manifest.requested_claims = vec![ClaimKind::Kinematics3d];
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Reject);
-        assert!(assessment.reason_codes.contains(&ManifestReason::ClaimExceedsMeasurementEnvelope));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::ClaimExceedsMeasurementEnvelope)
+        );
     }
 
     #[test]
     fn digest_must_be_well_formed_when_supplied() {
         let mut manifest = valid_manifest();
         manifest.source.byte_sha256 = Some("not-a-digest".to_owned());
-        assert_eq!(validate_manifest(&manifest).disposition, ManifestDisposition::Reject);
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::MalformedDigest));
+        assert_eq!(
+            validate_manifest(&manifest).disposition,
+            ManifestDisposition::Reject
+        );
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::MalformedDigest)
+        );
     }
 
     #[test]
     fn required_missing_digest_is_rejected() {
         let mut manifest = valid_manifest();
         manifest.source.byte_sha256 = None;
-        assert_eq!(validate_manifest(&manifest).disposition, ManifestDisposition::Reject);
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::MissingRequiredDigest));
+        assert_eq!(
+            validate_manifest(&manifest).disposition,
+            ManifestDisposition::Reject
+        );
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::MissingRequiredDigest)
+        );
     }
 
     #[test]
@@ -1025,7 +1122,11 @@ mod tests {
         manifest.fields[0].unit = None;
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Indeterminate);
-        assert!(assessment.reason_codes.contains(&ManifestReason::MissingQuantityUnit));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::MissingQuantityUnit)
+        );
     }
 
     #[test]
@@ -1034,7 +1135,11 @@ mod tests {
         manifest.fields[0].coordinate_frame = None;
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Indeterminate);
-        assert!(assessment.reason_codes.contains(&ManifestReason::MissingCoordinateFrame));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::MissingCoordinateFrame)
+        );
     }
 
     #[test]
@@ -1043,7 +1148,11 @@ mod tests {
         manifest.time_basis = None;
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Indeterminate);
-        assert!(assessment.reason_codes.contains(&ManifestReason::MissingTemporalSemantics));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::MissingTemporalSemantics)
+        );
     }
 
     #[test]
@@ -1058,8 +1167,15 @@ mod tests {
     fn duplicate_record_ids_are_rejected() {
         let mut manifest = valid_manifest();
         manifest.records[1].record_id = manifest.records[0].record_id.clone();
-        assert_eq!(validate_manifest(&manifest).disposition, ManifestDisposition::Reject);
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::DuplicateRecordId));
+        assert_eq!(
+            validate_manifest(&manifest).disposition,
+            ManifestDisposition::Reject
+        );
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::DuplicateRecordId)
+        );
     }
 
     #[test]
@@ -1069,7 +1185,11 @@ mod tests {
         manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Reject);
-        assert!(assessment.reason_codes.contains(&ManifestReason::SplitIdentityLeakage));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::SplitIdentityLeakage)
+        );
     }
 
     #[test]
@@ -1077,7 +1197,10 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.records[0].subject_id = "animal-1".to_owned();
         manifest.records[1].subject_id = "animal-1".to_owned();
-        assert_eq!(validate_manifest(&manifest).disposition, ManifestDisposition::Eligible);
+        assert_eq!(
+            validate_manifest(&manifest).disposition,
+            ManifestDisposition::Eligible
+        );
     }
 
     #[test]
@@ -1085,7 +1208,11 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.generalization = GeneralizationTarget::UnseenStudy;
         manifest.records[1].study_id = manifest.records[0].study_id.clone();
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::SplitIdentityLeakage));
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::SplitIdentityLeakage)
+        );
     }
 
     #[test]
@@ -1093,7 +1220,11 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.generalization = GeneralizationTarget::UnseenSite;
         manifest.records[1].site_id = manifest.records[0].site_id.clone();
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::SplitIdentityLeakage));
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::SplitIdentityLeakage)
+        );
     }
 
     #[test]
@@ -1105,22 +1236,37 @@ mod tests {
         manifest.records[1].end_time = 300;
         let assessment = validate_manifest(&manifest);
         assert_eq!(assessment.disposition, ManifestDisposition::Reject);
-        assert!(assessment.reason_codes.contains(&ManifestReason::TemporalLeakage));
+        assert!(
+            assessment
+                .reason_codes
+                .contains(&ManifestReason::TemporalLeakage)
+        );
     }
 
     #[test]
     fn provenance_promotion_is_rejected() {
         let mut manifest = valid_manifest();
         manifest.provenance = EvidenceClass::Measured;
-        assert_eq!(validate_manifest(&manifest).disposition, ManifestDisposition::Reject);
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::ProvenancePromotion));
+        assert_eq!(
+            validate_manifest(&manifest).disposition,
+            ManifestDisposition::Reject
+        );
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::ProvenancePromotion)
+        );
     }
 
     #[test]
     fn duplicate_observation_group_may_not_cross_splits() {
         let mut manifest = valid_manifest();
         manifest.records[1].duplicate_group = manifest.records[0].duplicate_group.clone();
-        assert!(validate_manifest(&manifest).reason_codes.contains(&ManifestReason::DuplicateObservationLeakage));
+        assert!(
+            validate_manifest(&manifest)
+                .reason_codes
+                .contains(&ManifestReason::DuplicateObservationLeakage)
+        );
     }
 
     #[test]
