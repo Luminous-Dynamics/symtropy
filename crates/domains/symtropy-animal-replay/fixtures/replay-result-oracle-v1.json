@@ -16,7 +16,7 @@
     {"id":"restricted_permission_is_rejected","mutation":"manifest_restricted_permission","expected_disposition":"reject","expected_reason_codes":["manifest_validation_rejected"],"expected_threshold_outcome":"not_assessed"},
     {"id":"malformed_code_head","mutation":"malformed_code_head","expected_disposition":"reject","expected_reason_codes":["invalid_code_head"],"expected_threshold_outcome":"not_assessed"},
     {"id":"malformed_config_digest","mutation":"malformed_config_digest","expected_disposition":"reject","expected_reason_codes":["invalid_config_digest"],"expected_threshold_outcome":"not_assessed"},
-    {"id":"dirty_tree_requires_digest","mutation":"invalid_working_tree_digest","expected_disposition":"reject","expected_reason_codes":["invalid_working_tree_digest"],"expected_threshold_outcome":"not_assessed"},
+    {"id":"dirty_tree_requires_digest","mutation":"dirty_tree_missing_digest","expected_disposition":"reject","expected_reason_codes":["invalid_working_tree_digest"],"expected_threshold_outcome":"not_assessed"},
     {"id":"deterministic_run_requires_seed","mutation":"deterministic_seed_missing","expected_disposition":"indeterminate","expected_reason_codes":["missing_deterministic_seed"],"expected_threshold_outcome":"not_assessed"},
     {"id":"empty_run_id","mutation":"empty_run_id","expected_disposition":"reject","expected_reason_codes":["invalid_run_identity"],"expected_threshold_outcome":"not_assessed"},
     {"id":"comparison_group_must_match","mutation":"run_comparison_group_mismatch","expected_disposition":"reject","expected_reason_codes":["comparison_group_mismatch"],"expected_threshold_outcome":"not_assessed"},
