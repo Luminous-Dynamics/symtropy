@@ -762,6 +762,46 @@ mod tests {
     }
 
     #[test]
+    fn oriented_four_d_basis_is_orthonormal_for_an_oblique_hyperplane() {
+        let projector =
+            OrientedProjector4D::new([1.0, 2.0, 3.0, 4.0], 2.5, 0.25, 1.0).unwrap();
+        let normal = projector.normal();
+        let basis = projector.basis();
+        near(dot4(normal, normal), 1.0, 1e-10);
+        for index in 0..3 {
+            near(dot4(basis[index], normal), 0.0, 1e-10);
+            near(dot4(basis[index], basis[index]), 1.0, 1e-10);
+            for other in (index + 1)..3 {
+                near(dot4(basis[index], basis[other]), 0.0, 1e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn oriented_four_d_slice_rejects_boundary_and_nonfinite_points() {
+        let projector =
+            OrientedProjector4D::new([0.0, 0.0, 0.0, 1.0], 0.0, 0.5, 1.0).unwrap();
+        let boundary = Point::new([1.0, 2.0, 3.0, 0.5]);
+        let nonfinite = Point::new([1.0, 2.0, 3.0, f64::NAN]);
+
+        assert!(!projector.is_visible(&boundary));
+        near(projector.alpha(&boundary) as f64, 0.0, 1e-6);
+        assert!(!projector.is_visible(&nonfinite));
+        assert!(!projector.project(&nonfinite).iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
+    fn aggregate_policy_cannot_drop_source_membership() {
+        let mut profile =
+            ViewProfile::recommended(ViewPurpose::Strategic, ViewDimension::Planar2D);
+        profile.preserve_aggregate_membership = false;
+        assert_eq!(
+            profile.validate(),
+            Err(ViewConfigError::AggregateMustPreserveMembership)
+        );
+    }
+
+    #[test]
     fn oriented_four_d_slice_rejects_degenerate_or_nonfinite_parameters() {
         assert_eq!(
             OrientedProjector4D::new([0.0; 4], 0.0, 1.0, 1.0),
