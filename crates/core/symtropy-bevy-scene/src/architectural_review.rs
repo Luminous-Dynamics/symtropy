@@ -93,6 +93,14 @@ pub enum ReviewAnnotationState {
     Informational,
 }
 
+/// One source attached to a conflict overlay. Multiple incompatible sources
+/// must remain visible together.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReviewSourceRef {
+    pub module_id: String,
+    pub source_ref: String,
+}
+
 /// Revision-pinned annotation for a plan, room, component, or camera stop.
 /// Evidence hashes are metadata until an artifact verifier checks actual bytes.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -105,6 +113,9 @@ pub struct ReviewAnnotation {
     pub explanation: String,
     pub source_ref: Option<String>,
     pub module_id: Option<String>,
+    /// Additional sources for a binding conflict. Together with the primary
+    /// source, this must contain at least two distinct module/clause pairs.
+    pub related_sources: Vec<ReviewSourceRef>,
     pub evidence_artifact_id: Option<String>,
     pub evidence_sha256: Option<String>,
     pub uncertainty_note: Option<String>,
@@ -119,6 +130,9 @@ pub enum ReviewAnnotationIssue {
     EmptyTitle { annotation_id: String },
     EmptyExplanation { annotation_id: String },
     MissingBindingProvenance { annotation_id: String },
+    MissingConflictSources { annotation_id: String },
+    InvalidRelatedSource { annotation_id: String },
+    MissingResultEvidenceArtifact { annotation_id: String },
     InvalidKindStateCombination { annotation_id: String },
     EvidenceIdWithoutDigest { annotation_id: String },
     DigestWithoutEvidenceId { annotation_id: String },
@@ -202,13 +216,31 @@ pub fn validate_review_annotations_for_revision(
                 }
             }
             ReviewAnnotationKind::BindingConflict => {
+                let primary = annotation
+                    .source_ref
+                    .as_deref()
+                    .zip(annotation.module_id.as_deref());
+                let mut sources = std::collections::HashSet::new();
+                let primary_valid = primary.is_some_and(|(source, module)| {
+                    !source.trim().is_empty()
+                        && !module.trim().is_empty()
+                        && sources.insert((module, source))
+                });
+                let related_valid = annotation.related_sources.iter().all(|source| {
+                    !source.module_id.trim().is_empty()
+                        && !source.source_ref.trim().is_empty()
+                        && sources.insert((source.module_id.as_str(), source.source_ref.as_str()))
+                });
                 if annotation.state != ReviewAnnotationState::Conflict
-                    || annotation
-                        .source_ref
-                        .as_deref()
-                        .is_none_or(|value| value.trim().is_empty())
+                    || !primary_valid
+                    || !related_valid
                 {
                     issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+                if annotation.related_sources.is_empty() || !primary_valid || !related_valid {
+                    issues.push(ReviewAnnotationIssue::MissingConflictSources {
                         annotation_id: annotation.annotation_id.clone(),
                     });
                 }
@@ -243,13 +275,28 @@ pub fn validate_review_annotations_for_revision(
             ReviewAnnotationKind::EngineeringEvidence => {
                 if matches!(
                     annotation.state,
-                    ReviewAnnotationState::Conflict | ReviewAnnotationState::UnfulfilledPreference
+                    ReviewAnnotationState::Conflict
+                        | ReviewAnnotationState::UnfulfilledPreference
+                        | ReviewAnnotationState::Informational
                 ) {
                     issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
                         annotation_id: annotation.annotation_id.clone(),
                     });
                 }
             }
+        }
+
+        if matches!(
+            annotation.kind,
+            ReviewAnnotationKind::BindingRequirement | ReviewAnnotationKind::EngineeringEvidence
+        ) && matches!(
+            annotation.state,
+            ReviewAnnotationState::Satisfied | ReviewAnnotationState::Failed
+        ) && annotation.evidence_artifact_id.is_none()
+        {
+            issues.push(ReviewAnnotationIssue::MissingResultEvidenceArtifact {
+                annotation_id: annotation.annotation_id.clone(),
+            });
         }
 
         match (
@@ -1330,6 +1377,7 @@ mod tests {
             explanation: "Synthetic review annotation".into(),
             source_ref: None,
             module_id: None,
+            related_sources: Vec::new(),
             evidence_artifact_id: None,
             evidence_sha256: None,
             uncertainty_note: None,
@@ -1418,6 +1466,64 @@ mod tests {
                     annotation_id: "rule:ventilation".into(),
                 })
         );
+    }
+
+    #[test]
+    fn binding_requirement_cannot_be_labeled_as_an_unfulfilled_preference() {
+        let mut binding = annotation(
+            "rule:egress",
+            "house:r1",
+            ReviewAnnotationKind::BindingRequirement,
+            ReviewAnnotationState::UnfulfilledPreference,
+        );
+        binding.source_ref = Some("section:egress".into());
+        binding.module_id = Some("module:ZA/JHB:current".into());
+        assert!(validate_review_annotations_for_revision(&[binding], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                annotation_id: "rule:egress".into(),
+            }));
+    }
+
+    #[test]
+    fn binding_conflict_must_show_two_distinct_sources() {
+        let mut conflict = annotation(
+            "conflict:window",
+            "house:r1",
+            ReviewAnnotationKind::BindingConflict,
+            ReviewAnnotationState::Conflict,
+        );
+        conflict.source_ref = Some("section:local".into());
+        conflict.module_id = Some("module:local".into());
+        assert!(validate_review_annotations_for_revision(&[conflict.clone()], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::MissingConflictSources {
+                annotation_id: "conflict:window".into(),
+            }));
+
+        conflict.related_sources.push(ReviewSourceRef {
+            module_id: "module:national".into(),
+            source_ref: "section:national".into(),
+        });
+        assert_eq!(
+            validate_review_annotations_for_revision(&[conflict], "house:r1"),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn satisfied_engineering_annotation_requires_evidence_artifact() {
+        let engineering = annotation(
+            "engineering:daylight",
+            "house:r1",
+            ReviewAnnotationKind::EngineeringEvidence,
+            ReviewAnnotationState::Satisfied,
+        );
+        assert!(validate_review_annotations_for_revision(&[engineering], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::MissingResultEvidenceArtifact {
+                annotation_id: "engineering:daylight".into(),
+            }));
     }
 
     #[test]
