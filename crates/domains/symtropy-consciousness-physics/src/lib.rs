@@ -58,6 +58,10 @@ pub use biometrics::{
 };
 pub use coupling::{ConsciousnessField, EntityConsciousness};
 pub use energy::EnergyBudget;
+pub use energy_boundary_accounting::{
+    BoundaryDirection, BoundaryFlow, EnergyBoundaryAssessment, EnergyBoundaryError,
+    EnergyBoundarySnapshot, InternalEnergyTransfer, MAX_RELATIVE_TOLERANCE, assess_energy_boundary,
+};
 pub use harmony_field::HarmonyField;
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
 pub use phase_transition::{
@@ -71,9 +75,4 @@ pub use proc_gen::{
 pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
-pub use energy_boundary_accounting::{
-    BoundaryDirection, BoundaryFlow, EnergyBoundaryAssessment, EnergyBoundaryError,
-    EnergyBoundarySnapshot, InternalEnergyTransfer, MAX_RELATIVE_TOLERANCE,
-    assess_energy_boundary,
-};
 pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
