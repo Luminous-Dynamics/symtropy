@@ -73,7 +73,7 @@ struct FactMapping {
     facts: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 struct InferenceRule {
     id: String,
