@@ -66,6 +66,10 @@
         },
         {
           "at_tick": 2,
+          "kind": "power_domain_failure"
+        },
+        {
+          "at_tick": 3,
           "kind": "common_cause_power_failure"
         },
         {
