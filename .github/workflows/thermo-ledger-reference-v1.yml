@@ -70,7 +70,13 @@ jobs:
 
       - name: Verify clean postflight and emit evidence
         run: |
-          test -z "$(git status --porcelain)"
+          git status --short --branch
+          postflight_status="$(git status --porcelain)"
+          if [ -n "$postflight_status" ]; then
+            echo "Unexpected repository changes after verification:"
+            printf '%s\\n' "$postflight_status"
+            exit 1
+          fi
           {
             echo "profile=BoundedEnergyBoundaryAccountingV1"
             echo "status=reference-gate-passed"
