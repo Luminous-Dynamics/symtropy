@@ -152,6 +152,7 @@ jobs:
             and .validation_world_count == 256
             and .held_out_world_count == 256
             and .completed_adaptive_worlds_within_envelope == 320
+            and .adaptive_aborts_outside_envelope > 0
             and .causal_nonanticipativity_violations == 0
             and .independent_hard_constraint_violations == 0
             and ([.summaries[] | select(.policy_id == "causal_adaptive_recourse" and .world_class == "in_envelope").feasible_rate_basis_points] | all(. == 10000))
