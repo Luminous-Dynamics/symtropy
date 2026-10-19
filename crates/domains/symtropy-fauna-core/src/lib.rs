@@ -242,15 +242,15 @@ pub fn validate_profile(profile: &AnimalProfile) -> ValidationResult {
             rejected.insert(ReasonCode::DuplicateCapabilityKey);
         }
 
-        if let Some(required_stage) = claim.stage_requirement.as_deref() {
-            if profile.stage.as_deref() != Some(required_stage) {
-                indeterminate.insert(ReasonCode::StageRequirementMismatch);
-            }
+        if let Some(required_stage) = claim.stage_requirement.as_deref()
+            && profile.stage.as_deref() != Some(required_stage)
+        {
+            indeterminate.insert(ReasonCode::StageRequirementMismatch);
         }
-        if let Some(evidence_stage) = claim.evidence.stage.as_deref() {
-            if profile.stage.as_deref() != Some(evidence_stage) {
-                indeterminate.insert(ReasonCode::EvidenceStageMismatch);
-            }
+        if let Some(evidence_stage) = claim.evidence.stage.as_deref()
+            && profile.stage.as_deref() != Some(evidence_stage)
+        {
+            indeterminate.insert(ReasonCode::EvidenceStageMismatch);
         }
 
         // Unknown/non-applicable records describe limits of knowledge, not
