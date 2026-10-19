@@ -250,7 +250,7 @@ impl MotionSkillContract {
             return Err(MotionSkillValidationError::InvalidValidityWindow);
         }
 
-        let mut constraint_ids = Vec::with_capacity(self.constraints.len());
+        let mut constraint_ids: Vec<String> = Vec::with_capacity(self.constraints.len());
         for constraint in &self.constraints {
             if constraint.constraint_id.trim().is_empty() {
                 return Err(MotionSkillValidationError::EmptyConstraintId);
@@ -261,7 +261,7 @@ impl MotionSkillContract {
             {
                 return Err(MotionSkillValidationError::DuplicateConstraintId);
             }
-            constraint_ids.push(constraint.constraint_id.as_str());
+            constraint_ids.push(constraint.constraint_id.clone());
 
             if !constraint.tolerance.is_finite() || constraint.tolerance < 0.0 {
                 return Err(MotionSkillValidationError::InvalidConstraintTolerance);
@@ -277,7 +277,7 @@ impl MotionSkillContract {
         if self.postconditions.is_empty() {
             return Err(MotionSkillValidationError::EmptyPostconditionId);
         }
-        let mut postcondition_ids = Vec::with_capacity(self.postconditions.len());
+        let mut postcondition_ids: Vec<String> = Vec::with_capacity(self.postconditions.len());
         for postcondition in &self.postconditions {
             if postcondition.postcondition_id.trim().is_empty() {
                 return Err(MotionSkillValidationError::EmptyPostconditionId);
@@ -288,7 +288,7 @@ impl MotionSkillContract {
             {
                 return Err(MotionSkillValidationError::DuplicatePostconditionId);
             }
-            postcondition_ids.push(postcondition.postcondition_id.as_str());
+            postcondition_ids.push(postcondition.postcondition_id.clone());
             if !postcondition.tolerance.is_finite() || postcondition.tolerance < 0.0 {
                 return Err(MotionSkillValidationError::InvalidPostconditionTolerance);
             }
