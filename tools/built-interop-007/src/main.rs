@@ -327,7 +327,14 @@ fn index_stable_observations(
 fn compare_reports(
     source: &AdapterReport,
     target: &AdapterReport,
-) -> (GateStatus, DeltaCounts, Vec<DeltaFinding>, bool, bool, String) {
+) -> (
+    GateStatus,
+    DeltaCounts,
+    Vec<DeltaFinding>,
+    bool,
+    bool,
+    String,
+) {
     let mut counts = DeltaCounts::default();
     let mut findings = Vec::new();
     let profile_ready = source.supported_profile == SUPPORTED_PROFILE
