@@ -738,10 +738,10 @@ fn parse_gate_file(
 }
 
 /// Verify an embedded producer payload against the evidence digest and, for
-/// BUILT-INTEROP-005, against the exact source IFC bytes and declared profile.
+/// BUILT-INTEROP-005, against the exact target IFC bytes and declared profile.
 fn verify_embedded_payload(
     input: &ProducerGate,
-    source_bytes: &[u8],
+    target_ifc_bytes: &[u8],
     declared_schema: &str,
 ) -> Result<(), String> {
     let points_to_embedded_payload = input
@@ -756,35 +756,32 @@ fn verify_embedded_payload(
         return Ok(());
     };
 
-    let payload_bytes = serde_json::to_vec(payload)
-        .map_err(|error| format!("EVIDENCE_PAYLOAD_SERIALIZATION_FAILED:{error}"))?;
-    let payload_sha256 = sha256_hex(&payload_bytes);
-    if !input
-        .gate
-        .evidence
-        .iter()
-        .any(|evidence| evidence.sha256 == payload_sha256)
-    {
-        return Err("EVIDENCE_PAYLOAD_DIGEST_MISMATCH".into());
-    }
-    for evidence in input
+    let pointer_evidence = input
         .gate
         .evidence
         .iter()
         .filter(|evidence| evidence.locator == PAYLOAD_POINTER)
+        .collect::<Vec<_>>();
+    if pointer_evidence.is_empty() {
+        return Err("EVIDENCE_PAYLOAD_UNREFERENCED".into());
+    }
+    let payload_bytes = serde_json::to_vec(payload)
+        .map_err(|error| format!("EVIDENCE_PAYLOAD_SERIALIZATION_FAILED:{error}"))?;
+    let payload_sha256 = sha256_hex(&payload_bytes);
+    if pointer_evidence
+        .iter()
+        .any(|evidence| evidence.sha256 != payload_sha256)
     {
-        if evidence.sha256 != payload_sha256 {
-            return Err("EVIDENCE_POINTER_DIGEST_MISMATCH".into());
-        }
+        return Err("EVIDENCE_POINTER_DIGEST_MISMATCH".into());
     }
 
     if input.gate.gate_id == GateId::IfcSchemaConformance {
         if payload["profile_id"] != IFC_SCHEMA_PROFILE_ID {
             return Err("IFC_SCHEMA_PROFILE_ID_MISMATCH".into());
         }
-        let source_sha256 = sha256_hex(source_bytes);
-        if payload["input_sha256"].as_str() != Some(source_sha256.as_str())
-            || payload["input_byte_length"].as_u64() != u64::try_from(source_bytes.len()).ok()
+        let target_sha256 = sha256_hex(target_ifc_bytes);
+        if payload["input_sha256"].as_str() != Some(target_sha256.as_str())
+            || payload["input_byte_length"].as_u64() != u64::try_from(target_ifc_bytes.len()).ok()
         {
             return Err("IFC_SCHEMA_EVIDENCE_ARTIFACT_MISMATCH".into());
         }
