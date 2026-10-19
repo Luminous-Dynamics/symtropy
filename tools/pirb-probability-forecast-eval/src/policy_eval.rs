@@ -154,6 +154,7 @@ pub struct SensitivityScenarioResult {
     scenario_reference: String,
     minimum_warning_window_hours: u64,
     warning_window_source_reference: String,
+    latency_window_independently_authenticated: bool,
     capacity: Capacity,
     cost_schedule: CostSchedule,
     act_on_none_utility_units: Option<i64>,
@@ -469,6 +470,36 @@ pub fn evaluate_predeclared_policy(
             "policy resource use and per-month capacity must be positive".to_owned(),
         ]);
     }
+    if policy.warning_window_source_reference.trim().is_empty() {
+        return Err(vec![
+            "minimum warning window requires a source/assumption reference".to_owned(),
+        ]);
+    }
+    if !(2..=20).contains(&policy.sensitivity_scenarios.len()) {
+        return Err(vec![
+            "at least two and at most twenty sensitivity scenarios are required".to_owned(),
+        ]);
+    }
+    let mut scenario_ids = std::collections::BTreeSet::new();
+    for scenario in &policy.sensitivity_scenarios {
+        if scenario.scenario_id.trim().is_empty()
+            || scenario.scenario_reference.trim().is_empty()
+            || scenario.warning_window_source_reference.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.clone())
+        {
+            return Err(vec![
+                "sensitivity scenarios require unique IDs and non-empty references".to_owned(),
+            ]);
+        }
+        if scenario.capacity.max_alerts_per_target_month == 0
+            || scenario.capacity.max_resource_units_per_target_month == 0
+            || scenario.cost_schedule.cost_unit.trim().is_empty()
+        {
+            return Err(vec![
+                "each sensitivity scenario requires positive capacity and a named cost unit".to_owned(),
+            ]);
+        }
+    }
     if policy.thresholds.is_empty()
         || policy
             .thresholds
@@ -504,7 +535,20 @@ pub fn evaluate_predeclared_policy(
                 .as_str(),
             policy.governance.approval_reference.as_str(),
             policy.governance.authorization_scope.as_str(),
+            policy.warning_window_source_reference.as_str(),
         ]
+        .iter()
+        .chain(
+            policy
+                .sensitivity_scenarios
+                .iter()
+                .flat_map(|scenario| {
+                    [
+                        scenario.scenario_reference.as_str(),
+                        scenario.warning_window_source_reference.as_str(),
+                    ]
+                }),
+        )
         .iter()
         .any(|value| value.trim().is_empty() || value.starts_with("synthetic:"))
         || policy.source_references.is_empty()
@@ -548,8 +592,60 @@ pub fn evaluate_predeclared_policy(
                 &test_records,
                 *threshold,
                 &policy,
+                &policy.capacity,
+                &policy.cost_schedule,
+                policy.minimum_warning_window_hours,
+                &policy.warning_window_source_reference,
                 act_on_none_utility_units,
             )
+        })
+        .collect();
+
+    let sensitivity_scenarios: Vec<SensitivityScenarioResult> = policy
+        .sensitivity_scenarios
+        .iter()
+        .map(|scenario| {
+            let scenario_act_on_none_utility_units = (scored_count > 0)
+                .then(|| {
+                    i64::try_from(event_count)
+                        .ok()?
+                        .checked_mul(scenario.cost_schedule.cost_missed_event_units)?
+                        .checked_neg()
+                })
+                .flatten();
+            let mut scenario_policy = policy.clone();
+            scenario_policy.capacity = scenario.capacity.clone();
+            scenario_policy.cost_schedule = scenario.cost_schedule.clone();
+            scenario_policy.minimum_warning_window_hours = scenario.minimum_warning_window_hours;
+            scenario_policy.warning_window_source_reference =
+                scenario.warning_window_source_reference.clone();
+            let scenario_policy_results = scenario_policy
+                .thresholds
+                .iter()
+                .map(|threshold| {
+                    scores_for_threshold(
+                        &test_records,
+                        *threshold,
+                        &scenario_policy,
+                        &scenario.capacity,
+                        &scenario.cost_schedule,
+                        scenario.minimum_warning_window_hours,
+                        &scenario.warning_window_source_reference,
+                        scenario_act_on_none_utility_units,
+                    )
+                })
+                .collect();
+            SensitivityScenarioResult {
+                scenario_id: scenario.scenario_id.clone(),
+                scenario_reference: scenario.scenario_reference.clone(),
+                minimum_warning_window_hours: scenario.minimum_warning_window_hours,
+                warning_window_source_reference: scenario.warning_window_source_reference.clone(),
+                latency_window_independently_authenticated: false,
+                capacity: scenario.capacity.clone(),
+                cost_schedule: scenario.cost_schedule.clone(),
+                act_on_none_utility_units: scenario_act_on_none_utility_units,
+                policy_results: scenario_policy_results,
+            }
         })
         .collect();
 
@@ -594,6 +690,9 @@ pub fn evaluate_predeclared_policy(
         action_description: policy.action.action_description,
         resource_unit: policy.action.resource_unit,
         action_latency_hours: policy.action.latency_hours,
+        minimum_warning_window_hours: policy.minimum_warning_window_hours,
+        warning_window_source_reference: policy.warning_window_source_reference,
+        latency_window_independently_authenticated: false,
         thresholds_evaluated: policy.thresholds,
         thresholds_selected_by_evaluator: false,
         cost_schedule: policy.cost_schedule,
@@ -603,6 +702,7 @@ pub fn evaluate_predeclared_policy(
         act_on_none_utility_units,
         act_on_none_scored_count: scored_count,
         policy_results,
+        sensitivity_scenarios,
         live_decision_authority: false,
         causal_effect_estimated: false,
         execution_claim: "aggregate_hypothetical_response_policy_sensitivity_only".to_owned(),
