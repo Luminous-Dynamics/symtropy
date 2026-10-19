@@ -373,9 +373,15 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
             }
             if let Some(profile) = candidate.detection_profile {
                 for (name, value) in [
-                    ("minimum_detectable_signal_ppm", profile.minimum_detectable_signal_ppm),
+                    (
+                        "minimum_detectable_signal_ppm",
+                        profile.minimum_detectable_signal_ppm,
+                    ),
                     ("expected_signal_ppm", profile.expected_signal_ppm),
-                    ("detection_probability_ppm", profile.detection_probability_ppm),
+                    (
+                        "detection_probability_ppm",
+                        profile.detection_probability_ppm,
+                    ),
                 ] {
                     if value.is_some_and(|ppm| ppm > SCALE_PPM) {
                         return Err(format!(
@@ -448,8 +454,8 @@ fn expected_information_gain_ppm(candidate: &Candidate) -> u64 {
         .detection_profile
         .and_then(|profile| profile.detection_probability_ppm)
         .expect("only candidates with a complete profile are eligible");
-    ((u128::from(candidate.information_gain_ppm) * u128::from(probability))
-        / u128::from(SCALE_PPM)) as u64
+    ((u128::from(candidate.information_gain_ppm) * u128::from(probability)) / u128::from(SCALE_PPM))
+        as u64
 }
 
 fn is_eligible(candidate: &Candidate) -> bool {
@@ -479,8 +485,8 @@ fn can_add(scenario: &Scenario, state: &SelectionState, candidate_index: usize) 
 fn add_candidate(scenario: &Scenario, state: &mut SelectionState, index: usize) {
     let candidate = &scenario.candidates[index];
     let stratum_index = stratum_index(scenario, &candidate.stratum_id);
-    let reduction = expected_information_gain_ppm(candidate)
-        .min(state.remaining_uncertainty[stratum_index]);
+    let reduction =
+        expected_information_gain_ppm(candidate).min(state.remaining_uncertainty[stratum_index]);
     let priority = scenario.strata[stratum_index].priority_ppm;
     let weighted_score = (u128::from(reduction) * u128::from(priority) / u128::from(SCALE_PPM))
         .min(u128::from(u64::MAX)) as u64;
