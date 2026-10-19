@@ -20,7 +20,6 @@ The separate `pirb-outcome-vintage-sensitivity` binary compares 2–20 frozen da
 Run it with repeated `--input PATH` arguments. Do not place protected data or raw release files in public CI; a sensitivity receipt includes input and outcome digests and should follow the data controller's publication/access policy.
 
 
-
 ## Predeclared response-policy sensitivity
 
 The \`pirb-policy-evaluation\` binary evaluates an entire threshold grid registered before the held-out period. It reports confusion counts, unknown-outcome handling, alert/resource demand by target month, capacity feasibility and a transparent integer-unit utility calculation versus an act-on-none baseline. It never selects a threshold.
@@ -43,7 +42,7 @@ Example from the repository root:
 
     cargo run --bin pirb-views-offline-adapter --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --manifest docs/fixtures/views-import-manifest-synthetic-v0.1.json --outcomes docs/fixtures/views-outcomes-synthetic-v0.1.json --block-map docs/fixtures/views-spatial-block-map-synthetic-v0.1.json --output pirb-views-normalized.json --receipt pirb-views-import-receipt.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
 
-The adapter rejects unsafe relative source paths, missing or duplicate outcome keys, missing block mappings, incomplete response pagination, source/model mismatches, wrong horizons/query months, duplicate forecast observations, non-probability codebooks, and extra source files not declared by the manifest. Receipts bind the manifest, outcome snapshot, block-map, codebook, response pages, generated archive commitment, normalized dataset and dependency lock.
+The adapter rejects unsafe relative source paths, missing or duplicate outcome keys, missing block mappings, incomplete response pagination, source/model mismatches, wrong horizons/query months, duplicate forecast observations, non-probability codebooks, and extra source files not declared by the manifest. The response envelope does not independently authenticate the requested partition, so the receipt marks partition as manifest-declared only; real-data import still requires a separately reviewed partition-provenance procedure. Receipts bind the manifest, outcome snapshot, block-map, codebook, response pages, generated archive commitment, normalized dataset and dependency lock.
 
 A passing import receipt establishes mapping/conformance only. Source references and license strings are declarations to review, not cryptographic proof of permission. For authorized historical use, keep raw files and receipts in the controlled environment and check data terms, attribution, confidentiality, and disclosure risk before publishing any derived metrics.
 
