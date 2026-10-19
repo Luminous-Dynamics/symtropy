@@ -8,7 +8,7 @@ A renderer-independent first step toward executable, visually navigable experime
 - Structural checks for record IDs, variable references, operator arity, source/evidence links, output roles, dimensional compatibility, duplicate equation outputs, and dependency cycles.
 - A small arithmetic DAG interpreter for add, subtract, multiply, divide, and negate.
 - Canonical equation labels are generated from operator and variable IDs, avoiding a separate hand-written formula that can drift from the executed calculation.
-- A known-answer synthetic gear-pair fixture and negative tests for dimension mismatch, cycles, missing run-time values, division by zero, and duplicate IDs.
+- A known-answer synthetic gear-pair fixture and negative tests for dimension mismatch, dimension-exponent overflow, cycles, duplicate equation outputs/IDs, missing run-time values, and division by zero; a subtraction variant tests the remaining arithmetic operator.
 
 ## Run
 
