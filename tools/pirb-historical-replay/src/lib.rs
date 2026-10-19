@@ -68,6 +68,7 @@ pub struct TemporalSplit {
     calibration_end_exclusive: i64,
     test_end_exclusive: i64,
     evaluation_as_of: i64,
+    outcome_horizon_seconds: i64,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -344,7 +345,8 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
     if !(split.evaluation_start_at < split.training_end_exclusive
         && split.training_end_exclusive < split.calibration_end_exclusive
         && split.calibration_end_exclusive < split.test_end_exclusive
-        && split.test_end_exclusive <= split.evaluation_as_of)
+        && split.test_end_exclusive <= split.evaluation_as_of
+        && split.outcome_horizon_seconds > 0)
     {
         findings.push(
             "temporal split must be strictly ordered and evaluation_as_of must be at or after test_end_exclusive"
@@ -407,11 +409,22 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
         match record.outcome {
             Outcome::Harm => match (record.harm_occurred_at, record.outcome_available_at) {
                 (Some(harm_at), Some(available_at)) => {
-                    if harm_at < record.decision_at {
+                    if harm_at <= record.decision_at {
                         findings.push(format!(
-                            "{} labels harm that predates the decision window",
+                            "{} harm must occur strictly after the decision time",
                             record.case_id
                         ));
+                    }
+                    match record.decision_at.checked_add(split.outcome_horizon_seconds) {
+                        Some(followup_end) if harm_at > followup_end => findings.push(format!(
+                            "{} harm lies beyond the declared outcome horizon",
+                            record.case_id
+                        )),
+                        None => findings.push(format!(
+                            "{} decision time plus outcome horizon overflows the timestamp range",
+                            record.case_id
+                        )),
+                        _ => {}
                     }
                     if available_at <= record.decision_at || available_at < harm_at {
                         findings.push(format!(
@@ -438,8 +451,11 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
                         record.case_id
                     ));
                 }
-                match record.outcome_available_at {
-                    Some(available_at) if available_at > record.decision_at => {
+                match (
+                    record.outcome_available_at,
+                    record.decision_at.checked_add(split.outcome_horizon_seconds),
+                ) {
+                    (Some(available_at), Some(followup_end)) if available_at >= followup_end => {
                         if available_at > split.evaluation_as_of {
                             findings.push(format!(
                                 "{} outcome label was not available by evaluation_as_of",
@@ -448,7 +464,7 @@ fn semantic_errors(dataset: &ReplayDataset) -> Vec<String> {
                         }
                     }
                     _ => findings.push(format!(
-                        "{} no_harm requires a later outcome_available_at observation window",
+                        "{} no_harm requires complete follow-up through the declared outcome horizon",
                         record.case_id
                     )),
                 }
@@ -856,6 +872,30 @@ mod tests {
     }
 
     #[test]
+    fn negative_outcome_requires_full_outcome_horizon() {
+        let mut dataset = parsed_fixture();
+        dataset.records[1].outcome_available_at =
+            Some(dataset.records[1].decision_at + dataset.temporal_split.outcome_horizon_seconds - 1);
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("complete follow-up through the declared outcome horizon"))
+        );
+    }
+
+    #[test]
+    fn harm_outside_declared_outcome_horizon_is_rejected() {
+        let mut dataset = parsed_fixture();
+        dataset.records[0].harm_occurred_at =
+            Some(dataset.records[0].decision_at + dataset.temporal_split.outcome_horizon_seconds + 1);
+        assert!(
+            semantic_errors(&dataset)
+                .iter()
+                .any(|finding| finding.contains("beyond the declared outcome horizon"))
+        );
+    }
+
+    #[test]
     fn alert_before_decision_is_rejected() {
         let mut dataset = parsed_fixture();
         dataset.records[0].alert_issued_at = Some(dataset.records[0].decision_at - 1);
@@ -895,7 +935,10 @@ mod tests {
             };
             record.harm_occurred_at = harm_at;
             record.outcome_available_at = match outcome {
-                Outcome::Harm | Outcome::NoHarm => Some(record.decision_at + 10),
+                Outcome::Harm => Some(record.decision_at + 10),
+                Outcome::NoHarm => Some(
+                    record.decision_at + dataset.temporal_split.outcome_horizon_seconds,
+                ),
                 Outcome::Unknown => None,
             };
             record.alert_issued_at = if alerted {
