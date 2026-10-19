@@ -41,6 +41,17 @@ The receipt records each input digest and outcome release digest, the count of h
 If model probabilities, target definition, analysis unit, forecast horizon, split, or spatial mapping differ, the comparison is invalid and rejected. Such models or definitions require a separate paired model-comparison design; they cannot be conflated with outcome-vintage sensitivity.
 
 
+
+## Predeclared response-policy sensitivity
+
+The separate \`pirb-policy-evaluation\` tool consumes a normalized historical forecast dataset and a separate policy manifest. It binds the manifest to the dataset ID, forecast archive digest, outcome release ID/digest, analysis unit, target definition and single declared horizon. A confirmatory policy must declare the complete threshold grid as registered strictly before the held-out test period; the tool reports every threshold in the submitted order and never selects a winning threshold.
+
+For every threshold it reports confusion counts, known/unknown outcome counts, event prevalence, alert count (including alerts attached to unknown outcomes), resource units demanded, maximum target-month demand, capacity feasibility and an integer-unit utility calculated as true-alert utility minus false-alert cost, missed-event cost and resource cost. Capacity-infeasible thresholds return null utility plus \`review_required\`; they are not scored as though every alert were delivered. The act-on-none baseline is visible so a positive forecast hit rate cannot be confused with added policy value.
+
+The pre-registration time and governance references are manifest declarations; a receipt explicitly marks the registration timestamp as **not independently authenticated**. This makes the software fail closed on inconsistent date metadata but does not prove a registry was immutable. A confirmatory deployment-grade study needs externally verifiable pre-registration, locally authorized actions/costs/capacity, privacy/disclosure review and a held-out analysis fixed before outcomes are examined. The utility schedule is a decision-maker input, not a globally valid moral or economic exchange rate.
+
+This layer estimates aggregate retrospective arithmetic under declared assumptions only. It cannot show that an alert triggered a service, that an action was legitimate or feasible in reality, or that any intervention caused reduced harm. Forecast validation, operational delivery evidence and causal impact remain separate gates.
+
 ## Offline VIEWS source adapter
 
 The Rust-first \`pirb-views-offline-adapter\` imports only locally archived API JSON, a matching run/codebook snapshot, an explicit outcome snapshot, and a governed spatial block map. Network access is deliberately outside the evaluator. The source manifest records the run ID, exact query URI/filters, response pages, codebook path, response-column mapping, analysis unit, target definition, codebook threshold phrase, partition, attribution/license references and evaluation policy.
