@@ -169,6 +169,7 @@ pub struct PolicyEvaluationReceipt {
     cost_schedule: CostSchedule,
     capacity: Capacity,
     privacy: PolicyPrivacy,
+    source_references: Vec<String>,
     act_on_none_utility_units: Option<i64>,
     act_on_none_scored_count: usize,
     policy_results: Vec<ThresholdPolicyResult>,
@@ -460,6 +461,11 @@ pub fn evaluate_predeclared_policy(
         ]
         .iter()
         .any(|value| value.trim().is_empty() || value.starts_with("synthetic:"))
+        || policy.source_references.is_empty()
+        || policy
+            .source_references
+            .iter()
+            .any(|value| value.trim().is_empty() || value.starts_with("synthetic:"))
     {
         return Err(vec![
             "authorized historical policy evaluation requires non-synthetic governance and registration references".to_owned(),
@@ -547,6 +553,7 @@ pub fn evaluate_predeclared_policy(
         cost_schedule: policy.cost_schedule,
         capacity: policy.capacity,
         privacy: policy.privacy,
+        source_references: policy.source_references,
         act_on_none_utility_units,
         act_on_none_scored_count: scored_count,
         policy_results,
