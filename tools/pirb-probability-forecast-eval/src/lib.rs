@@ -79,7 +79,7 @@ pub struct ForecastRecord {
     forecast_id: String,
     forecast_release_id: String,
     unit_id: String,
-    forecast_issued_month: i64,
+    forecast_origin_month: i64,
     input_cutoff_month: i64,
     target_month: i64,
     lead_months: i64,
@@ -327,16 +327,16 @@ fn belongs_to_split(record: &ForecastRecord, dataset: &ForecastDataset, split: S
     let t = dataset.temporal_split;
     match split {
         SplitName::Training => {
-            record.forecast_issued_month >= t.forecast_origin_start_month
-                && record.forecast_issued_month < t.training_end_exclusive_month
+            record.forecast_origin_month >= t.forecast_origin_start_month
+                && record.forecast_origin_month < t.training_end_exclusive_month
         }
         SplitName::Calibration => {
-            record.forecast_issued_month >= t.training_end_exclusive_month
-                && record.forecast_issued_month < t.calibration_end_exclusive_month
+            record.forecast_origin_month >= t.training_end_exclusive_month
+                && record.forecast_origin_month < t.calibration_end_exclusive_month
         }
         SplitName::Test => {
-            record.forecast_issued_month >= t.calibration_end_exclusive_month
-                && record.forecast_issued_month < t.test_end_exclusive_month
+            record.forecast_origin_month >= t.calibration_end_exclusive_month
+                && record.forecast_origin_month < t.test_end_exclusive_month
         }
     }
 }
@@ -412,15 +412,15 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
             ));
         }
 
-        if record.forecast_issued_month < t.forecast_origin_start_month
-            || record.forecast_issued_month >= t.test_end_exclusive_month
+        if record.forecast_origin_month < t.forecast_origin_start_month
+            || record.forecast_origin_month >= t.test_end_exclusive_month
         {
             findings.push(format!(
                 "{} forecast issue month lies outside declared split bounds",
                 record.forecast_id
             ));
         }
-        if record.input_cutoff_month > record.forecast_issued_month {
+        if record.input_cutoff_month > record.forecast_origin_month {
             findings.push(format!(
                 "{} uses an input cutoff later than the forecast issue month",
                 record.forecast_id
@@ -433,10 +433,10 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
             ));
         }
         if record.target_month <= record.input_cutoff_month
-            || record.target_month <= record.forecast_issued_month
+            || record.target_month < record.forecast_origin_month
         {
             findings.push(format!(
-                "{} target month must be strictly after its cutoff and issue month",
+                "{} target month must be after its input cutoff and on or after forecast origin",
                 record.forecast_id
             ));
         }
