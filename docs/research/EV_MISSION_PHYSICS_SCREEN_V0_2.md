@@ -55,18 +55,31 @@ Statuses:
 - indeterminate: evidence is explicitly unknown and no already-known hard failure blocks it.
 - passes_evidence_backed_screen: non-synthetic evidence has been declared, but specialist validation remains required.
 
-## Current eight-profile panel
+## Complete nineteen-family profile panel
 
-- Compact passenger EV: urban + arterial trip and reserve sensitivity.
-- Family passenger EV: regional travel with climb/descent.
-- Rural all-terrain utility: track, grade and rough-ground stress route.
-- City bus: passenger route plus high HVAC/auxiliary energy.
-- Compact excavator: very low-speed travel plus explicit stationary work energy.
-- Long-haul truck: loaded flat, climb and descent segments.
-- Open-pit haul: intentionally severe loaded uphill negative control.
-- Autonomous warehouse carrier: repeatable low-speed cycles.
+The mission fixture now has exactly one scenario for each of the 19 vehicle design IDs in the v0.1 catalogue:
 
-Current fixture values are synthetic arithmetic examples—not data measured from vehicles, manufacturers, South African roads, farms, mines or depots. The compact EV and rural 4×4 profiles are allowed to fail: that is useful evidence that the current assumed capacity/reserve does not cover the chosen scenario. Do not interpret the output as a universal feasibility judgment for those vehicle classes.
+1. Cargo micro-mobility: last-mile delivery.
+2. Compact passenger EV: urban + arterial trip and reserve sensitivity.
+3. Family passenger EV: regional travel with climb/descent.
+4. Accessible shuttle: urban/suburban route plus boarding/HVAC auxiliary budget.
+5. Light commercial van: cargo route plus auxiliary demand.
+6. Rural all-terrain utility: track, grade and rough-ground stress route.
+7. Emergency/resilience vehicle: response travel plus declared stationary export energy.
+8. Municipal work truck: route plus work-tool energy.
+9. Smallholder tractor: field passes plus declared implement energy.
+10. Medium row-crop tractor: seasonal task plus continuous implement work.
+11. Compact excavator: very low-speed travel plus explicit stationary excavation energy.
+12. Urban distribution truck: stop-start delivery route.
+13. City bus: passenger route plus high HVAC/auxiliary energy.
+14. Long-haul truck: loaded flat, climb and descent segments.
+15. Port/yard terminal tractor: yard movement plus hitch-work energy.
+16. Underground mine unit: loaded grade, return drift and stationary work demand.
+17. Open-pit battery-only haul control: intentionally severe loaded uphill negative control.
+18. Open-pit trolley+battery design: **off-wire battery-reserve route only**; trolley-supplied traction is outside the mission's battery-energy boundary and must not be counted twice.
+19. Autonomous warehouse carrier: repeatable low-speed cycles.
+
+Current fixture values are synthetic arithmetic examples—not data measured from vehicles, manufacturers, South African roads, farms, mines or depots. Four profiles are deliberately/assumption-bound blocked by the current arithmetic model: compact-EV city/arterial reserve sensitivity, light-van delivery, rural 4×4 rough/uphill support, and open-pit loaded uphill stress. This makes energy assumptions visible and gives the design review something to change or validate. These results are not real-vehicle feasibility judgments, and passing scenarios are not production-qualified.
 
 ## Boundaries and failure modes
 
