@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -239,7 +239,7 @@ impl SelectionState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 struct Rank {
     primary: u128,
     secondary: u128,
@@ -295,7 +295,7 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
 
         let mut stratum_ids = HashSet::new();
         for stratum in &scenario.strata {
-            if stratum.stratum_id.trim().is_empty() || !stratum_ids.insert(&stratum.stratum_id) {
+            if stratum.stratum_id.trim().is_empty() || !stratum_ids.insert(stratum.stratum_id.as_str()) {
                 return Err(format!("scenario {} has a blank/duplicate stratum ID", scenario.scenario_id));
             }
             if stratum.priority_ppm == 0 || stratum.priority_ppm > SCALE_PPM {
@@ -309,11 +309,11 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         let mut candidate_ids = HashSet::new();
         for candidate in &scenario.candidates {
             if candidate.candidate_id.trim().is_empty()
-                || !candidate_ids.insert(&candidate.candidate_id)
+                || !candidate_ids.insert(candidate.candidate_id.as_str())
             {
                 return Err(format!("scenario {} has a blank/duplicate candidate ID", scenario.scenario_id));
             }
-            if !stratum_ids.contains(&candidate.stratum_id) {
+            if !stratum_ids.contains(candidate.stratum_id.as_str()) {
                 return Err(format!(
                     "candidate {} references missing stratum {}",
                     candidate.candidate_id,
@@ -420,7 +420,7 @@ fn rank_candidate(
     let marginal_gain = candidate.information_gain_ppm.min(remaining);
     let marginal_score = u128::from(marginal_gain) * u128::from(stratum.priority_ppm)
         / u128::from(SCALE_PPM);
-    let uncovered_first = u128::from(!state.covered[s_idx]);
+    let uncovered_first = if state.covered[s_idx] { 0 } else { 1 };
     let effort = u128::from(candidate.effort_units.max(1));
 
     match policy {
@@ -637,11 +637,16 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], commit: String) -> VerificationR
             if effort > scenario.budget.effort_units || !exposure.within(scenario.budget) {
                 all_budgets_respected = false;
             }
-            if policy_report.oracle_regret_units > 0
-                && policy_report.policy == Policy::ExactSmallCaseOracle
-            {
-                oracle_dominates_score = false;
-            }
+        }
+        let oracle_score = report.policy_reports.iter()
+            .find(|item| item.policy == Policy::ExactSmallCaseOracle)
+            .map(|item| item.information_score_units)
+            .unwrap_or(0);
+        if report.policy_reports.iter().any(|item| {
+            item.information_score_units > oracle_score
+                || (item.policy == Policy::ExactSmallCaseOracle && item.oracle_regret_units != 0)
+        }) {
+            oracle_dominates_score = false;
         }
     }
     add_invariant(
@@ -851,7 +856,7 @@ mod tests {
             let oracle = report.policy_reports.iter().find(|item| item.policy == Policy::ExactSmallCaseOracle).unwrap();
             assert_eq!(oracle.oracle_regret_units, 0);
             assert!(scenario.candidates.len() <= MAX_CANDIDATES_PER_SCENARIO);
-            assert!(report.policy_reports.iter().all(|item| item.oracle_regret_units <= item.information_score_units));
+            assert!(report.policy_reports.iter().all(|item| item.information_score_units <= oracle.information_score_units));
         }
     }
 
