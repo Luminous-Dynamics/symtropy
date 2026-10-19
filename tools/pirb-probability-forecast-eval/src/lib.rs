@@ -358,7 +358,10 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
         findings.push("minimum_subgroup_outcomes must be at least 2".to_owned());
     }
     if !(1..=36).contains(&dataset.lead_months) {
-        findings.push("dataset must declare exactly one valid forecast horizon from 1 to 36 months".to_owned());
+        findings.push(
+            "dataset must declare exactly one valid forecast horizon from 1 to 36 months"
+                .to_owned(),
+        );
     }
     if dataset.evidence_class == EvidenceClass::AuthorizedHistorical {
         for (name, reference) in [
