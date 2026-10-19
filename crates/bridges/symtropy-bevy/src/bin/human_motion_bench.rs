@@ -1552,7 +1552,7 @@ fn evaluate(
     };
 
     Ok(BenchmarkReport {
-        schema_version: 1,
+        schema_version: 2,
         validity,
         evidence_scope: evidence_scope(reference, prediction),
         alignment: AlignmentReport {
@@ -1883,6 +1883,7 @@ mod tests {
         assert_eq!(trace.schema_version, 2);
         let report =
             evaluate(&trace, &trace, None).expect("identical orientation fixtures should compare");
+        assert_eq!(report.schema_version, 2);
         let orientation = report
             .root_orientation_error
             .expect("v0.2 traces include root orientation");
