@@ -1546,6 +1546,41 @@ pub enum ReviewLinearUnit {
     Inch,
 }
 
+impl ReviewLinearUnit {
+    /// Exact international conversion factors for the units supported here.
+    pub const fn metres_per_unit(self) -> f64 {
+        match self {
+            Self::Metre => 1.0,
+            Self::Millimetre => 0.001,
+            Self::Foot => 0.3048,
+            Self::Inch => 0.0254,
+        }
+    }
+}
+
+/// Convert coordinates from the declared source linear unit into review-space
+/// metres. This scales values only; it does not transform axis orientation,
+/// geographic datum, origin, handedness, or local/world coordinate frames.
+/// Those conversions must be explicit in the model-import adapter.
+pub fn scale_point_to_review_metres(
+    source_position: [f64; 3],
+    source_unit: ReviewLinearUnit,
+) -> Option<[f32; 3]> {
+    let scale = source_unit.metres_per_unit();
+    let mut result = [0.0_f32; 3];
+    for (target, source) in result.iter_mut().zip(source_position) {
+        let value = source * scale;
+        if !value.is_finite() || value.abs() > f32::MAX as f64 {
+            return None;
+        }
+        *target = value as f32;
+        if !target.is_finite() {
+            return None;
+        }
+    }
+    Some(result)
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ReviewModelFidelity {
     SyntheticGeometry,
@@ -2076,6 +2111,34 @@ mod tests {
             rule_context_artifact_id: "rule-context:za-jhb:r3".into(),
             rule_context_sha256: "d".repeat(64),
         }
+    }
+
+    #[test]
+    fn source_linear_units_are_scaled_to_review_metres() {
+        assert_eq!(
+            scale_point_to_review_metres([1200.0, 2500.0, 3000.0], ReviewLinearUnit::Millimetre),
+            Some([1.2, 2.5, 3.0])
+        );
+        assert_eq!(
+            scale_point_to_review_metres([10.0, 0.0, 0.0], ReviewLinearUnit::Foot),
+            Some([3.048, 0.0, 0.0])
+        );
+        assert_eq!(
+            scale_point_to_review_metres([10.0, 0.0, 0.0], ReviewLinearUnit::Inch),
+            Some([0.254, 0.0, 0.0])
+        );
+    }
+
+    #[test]
+    fn source_unit_conversion_rejects_nonfinite_and_overflow_values() {
+        assert_eq!(
+            scale_point_to_review_metres([f64::NAN, 0.0, 0.0], ReviewLinearUnit::Metre),
+            None
+        );
+        assert_eq!(
+            scale_point_to_review_metres([f64::MAX, 0.0, 0.0], ReviewLinearUnit::Foot),
+            None
+        );
     }
 
     #[test]
