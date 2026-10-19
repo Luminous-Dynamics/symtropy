@@ -93,7 +93,6 @@
       "operator": "divide",
       "input_variable_ids": ["variable:n_driver", "variable:n_driven"],
       "output_variable_id": "variable:gear_ratio",
-      "expression": "r = N_driver / N_driven",
       "basis": "synthetic_benchmark",
       "basis_note": "Exact toy input with a known algebraic result; not measured historical geometry.",
       "evidence_ids": []
@@ -103,7 +102,6 @@
       "operator": "negate",
       "input_variable_ids": ["variable:gear_ratio"],
       "output_variable_id": "variable:signed_ratio",
-      "expression": "r_signed = -r",
       "basis": "synthetic_benchmark",
       "basis_note": "Ideal external gear pair reverses direction; losses, backlash, compliance, and tooth geometry are outside this toy graph.",
       "evidence_ids": []
@@ -113,7 +111,6 @@
       "operator": "multiply",
       "input_variable_ids": ["variable:signed_ratio", "variable:theta_input"],
       "output_variable_id": "variable:theta_scaled",
-      "expression": "theta_scaled = r_signed * theta_in",
       "basis": "synthetic_benchmark",
       "basis_note": "Memoryless ideal kinematic relation for a fixed ratio.",
       "evidence_ids": []
@@ -123,7 +120,6 @@
       "operator": "add",
       "input_variable_ids": ["variable:theta_scaled", "variable:phase_offset"],
       "output_variable_id": "variable:theta_output",
-      "expression": "theta_out = theta_scaled + phi",
       "basis": "synthetic_benchmark",
       "basis_note": "Phase offset is an explicit toy parameter, not sourced from a real device.",
       "evidence_ids": []
