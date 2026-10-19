@@ -17,7 +17,8 @@ The crate is an isolated nested Cargo workspace and does not require private Myc
 - Capacity sufficiency, declared source references, hard evidence gates and a multi-objective Pareto frontier.
 - Separate geothermal/tunnel-heat matching; unresolved source/sink qualification is never counted as useful delivered heat or a transport-cost credit.
 - Explicit seismic gates for site hazard, active fault displacement, liquefaction/lateral spread/slope, lining/interfaces, portals/shafts/stations, and post-event inspection/recovery.
+- Experimental functional-recovery curve metrics (`recovery` module): demand-normalized safe service over time, T50/T90/T95 only when sustained, and cumulative unmet service with right-censoring when recovery is not reached.
 
 Every demonstration value is synthetic. The evaluator does not fetch/authenticate sources, model seismic or continuum geotechnical physics, validate the ground, estimate real project cost, certify safety, or authorize excavation/entry/reopening. A supplied gate state is an input assertion, not an engineering conclusion.
 
-See docs/research/SEISMICALLY_RESILIENT_CORRIDOR_BENCHMARK_V0_1.md for the design philosophy, failure-mode register, baselines, evidence ladder, benchmark metrics and research references.
+See docs/research/SEISMICALLY_RESILIENT_CORRIDOR_BENCHMARK_V0_1.md for the design philosophy, failure-mode register, baselines, evidence ladder, benchmark metrics and research references. See docs/research/SEISMIC_FUNCTIONAL_RECOVERY_V0_2.md for the experimental service-recovery contract and limits.
