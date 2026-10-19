@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-historical-replay-v0.1.schema.json",
+  "title": "PIRB Historical Replay Dataset v0.1",
+  "description": "Aggregate-only retrospective alert evaluation input. Structural validity does not prove data authorization, consent, privacy, legitimacy, or causal impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "dataset_id", "dataset_class", "authorization", "privacy", "temporal_split", "records"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "dataset_id": { "type": "string", "pattern": "^pirb-replay-[a-z0-9-]+$" },
+    "dataset_class": { "enum": ["synthetic", "authorized_historical"] },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_reference", "protocol_reference", "privacy_review_reference", "data_steward_reference"],
+      "properties": {
+        "authority_reference": { "type": "string", "minLength": 1 },
+        "protocol_reference": { "type": "string", "minLength": 1 },
+        "privacy_review_reference": { "type": "string", "minLength": 1 },
+        "data_steward_reference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aggregate_only", "minimum_subgroup_denominator"],
+      "properties": {
+        "aggregate_only": { "const": true },
+        "minimum_subgroup_denominator": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "temporal_split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evaluation_start_at", "training_end_exclusive", "calibration_end_exclusive", "test_end_exclusive", "evaluation_as_of"],
+      "properties": {
+        "evaluation_start_at": { "type": "integer", "minimum": 0 },
+        "training_end_exclusive": { "type": "integer", "minimum": 0 },
+        "calibration_end_exclusive": { "type": "integer", "minimum": 0 },
+        "test_end_exclusive": { "type": "integer", "minimum": 0 },
+        "evaluation_as_of": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/record" }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "available_at", "status"],
+      "properties": {
+        "evidence_id": { "type": "string", "pattern": "^evidence-[A-Za-z0-9_-]+$" },
+        "available_at": { "type": ["integer", "null"], "minimum": 0 },
+        "status": { "enum": ["verified", "stale", "conflicting", "missing"] }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "completed_at", "verified_at", "independent_evidence_reference"],
+      "properties": {
+        "status": { "enum": ["not_alerted", "not_dispatched", "dispatched", "completed_unverified", "independently_verified_completed", "disputed"] },
+        "completed_at": { "type": ["integer", "null"], "minimum": 0 },
+        "verified_at": { "type": ["integer", "null"], "minimum": 0 },
+        "independent_evidence_reference": { "type": ["string", "null"] }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "community_id", "period_id", "decision_at", "evidence", "alert_issued_at", "outcome", "harm_occurred_at", "outcome_available_at", "response", "scope_assessed"],
+      "properties": {
+        "case_id": { "type": "string", "pattern": "^case-[A-Za-z0-9_-]+$" },
+        "community_id": { "type": "string", "pattern": "^community-[A-Za-z0-9_-]+$" },
+        "period_id": { "type": "string", "pattern": "^period-[A-Za-z0-9_-]+$" },
+        "decision_at": { "type": "integer", "minimum": 0 },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "alert_issued_at": { "type": ["integer", "null"], "minimum": 0 },
+        "outcome": { "enum": ["harm", "no_harm", "unknown"] },
+        "harm_occurred_at": { "type": ["integer", "null"], "minimum": 0 },
+        "outcome_available_at": { "type": ["integer", "null"], "minimum": 0 },
+        "response": { "$ref": "#/$defs/response" },
+        "scope_assessed": { "type": "boolean" }
+      }
+    }
+  }
+}
