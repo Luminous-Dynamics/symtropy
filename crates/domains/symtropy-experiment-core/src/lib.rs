@@ -198,6 +198,14 @@ pub struct ValidationIssue {
     pub message: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SweepPoint {
+    pub variable_id: String,
+    pub value_decimal: String,
+    /// Values for all input and computed variables at this sweep point.
+    pub values: BTreeMap<String, String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ValidationReport {
     pub issues: Vec<ValidationIssue>,
@@ -550,14 +558,49 @@ impl ExperimentGraph {
     /// high-precision arithmetic engine, an ODE solver, or physical validation. Scientific
     /// backends must declare their solver and numerical tolerances separately.
     pub fn evaluate(&self) -> Result<BTreeMap<String, String>, String> {
+        self.evaluate_with_overrides(&BTreeMap::new())
+    }
+
+    /// Evaluate with per-run overrides of existing parameter/input variables.
+    ///
+    /// Overrides are scoped to this call: the canonical graph is not mutated, making sweeps
+    /// repeatable and safe to render as alternative scenarios.
+    pub fn evaluate_with_overrides(
+        &self,
+        overrides: &BTreeMap<String, String>,
+    ) -> Result<BTreeMap<String, String>, String> {
         let report = self.validate();
         if !report.is_valid() {
             return Err(format!("experiment graph is invalid: {:?}", report.issues));
         }
 
+        let variable_map: BTreeMap<&str, &ModelVariable> = self
+            .variables
+            .iter()
+            .map(|variable| (variable.id.as_str(), variable))
+            .collect();
+
+        for (id, value) in overrides {
+            let variable = variable_map
+                .get(id.as_str())
+                .ok_or_else(|| format!("cannot override unknown variable '{id}'"))?;
+            if !matches!(variable.role, VariableRole::Parameter | VariableRole::Input) {
+                return Err(format!(
+                    "variable '{}' has role {:?}; only parameters and inputs may be overridden",
+                    id, variable.role
+                ));
+            }
+            if parse_finite(value).is_none() {
+                return Err(format!("override for '{id}' must be a finite numeric string"));
+            }
+        }
+
         let mut values: BTreeMap<String, f64> = BTreeMap::new();
         for variable in &self.variables {
-            if let Some(value) = &variable.value_decimal {
+            let supplied = overrides
+                .get(&variable.id)
+                .or(variable.value_decimal.as_ref());
+            if let Some(value) = supplied {
                 let number = parse_finite(value)
                     .ok_or_else(|| format!("invalid value '{}' for '{}'", value, variable.id))?;
                 values.insert(variable.id.clone(), number);
@@ -608,6 +651,45 @@ impl ExperimentGraph {
             .into_iter()
             .map(|(id, value)| (id, value.to_string()))
             .collect())
+    }
+
+    /// Run a deterministic one-variable sweep, preserving the caller's value order.
+    ///
+    /// This is a scenario sweep, not global sensitivity analysis or an uncertainty distribution.
+    /// Every point re-evaluates the same validated graph with one temporary override.
+    pub fn run_parameter_sweep(
+        &self,
+        variable_id: &str,
+        values: &[String],
+    ) -> Result<Vec<SweepPoint>, String> {
+        if values.is_empty() {
+            return Err("parameter sweep requires at least one value".to_owned());
+        }
+        let variable = self
+            .variables
+            .iter()
+            .find(|variable| variable.id == variable_id)
+            .ok_or_else(|| format!("cannot sweep unknown variable '{variable_id}'"))?;
+        if !matches!(variable.role, VariableRole::Parameter | VariableRole::Input) {
+            return Err(format!(
+                "variable '{variable_id}' has role {:?}; only parameters and inputs may be swept",
+                variable.role
+            ));
+        }
+
+        values
+            .iter()
+            .map(|value| {
+                let mut overrides = BTreeMap::new();
+                overrides.insert(variable_id.to_owned(), value.clone());
+                let evaluated = self.evaluate_with_overrides(&overrides)?;
+                Ok(SweepPoint {
+                    variable_id: variable_id.to_owned(),
+                    value_decimal: value.clone(),
+                    values: evaluated,
+                })
+            })
+            .collect()
     }
 }
 
@@ -684,6 +766,47 @@ mod tests {
         assert!(report.issues.iter().any(|item| {
             item.code == ValidationCode::DuplicateEquationOutput
         }));
+    }
+
+    #[test]
+    fn parameter_sweep_preserves_order_and_does_not_mutate_model() {
+        let graph = gear_graph();
+        let points = graph
+            .run_parameter_sweep(
+                "variable:n_driver",
+                &["47".to_owned(), "48".to_owned(), "49".to_owned()],
+            )
+            .unwrap();
+        assert_eq!(points.len(), 3);
+        assert_eq!(points.iter().map(|p| p.value_decimal.as_str()).collect::<Vec<_>>(),
+            vec!["47", "48", "49"]);
+        let outputs: Vec<f64> = points
+            .iter()
+            .map(|point| point.values["variable:theta_output"].parse::<f64>().unwrap())
+            .collect();
+        assert!(outputs[0] > outputs[1] && outputs[1] > outputs[2]);
+        assert!((outputs[1] - (-1.9_f64)).abs() < 1e-12);
+        assert!((graph.evaluate().unwrap()["variable:theta_output"].parse::<f64>().unwrap()
+            - (-1.9_f64)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn parameter_overrides_reject_derived_variables_and_nonfinite_values() {
+        let graph = gear_graph();
+        let mut overrides = BTreeMap::new();
+        overrides.insert("variable:theta_output".to_owned(), "2".to_owned());
+        assert!(graph.evaluate_with_overrides(&overrides).is_err());
+
+        overrides.clear();
+        overrides.insert("variable:n_driver".to_owned(), "NaN".to_owned());
+        assert!(graph.evaluate_with_overrides(&overrides).is_err());
+    }
+
+    #[test]
+    fn parameter_sweep_rejects_empty_values_and_unknown_variables() {
+        let graph = gear_graph();
+        assert!(graph.run_parameter_sweep("variable:n_driver", &[]).is_err());
+        assert!(graph.run_parameter_sweep("variable:not-found", &["1".to_owned()]).is_err());
     }
 
     #[test]
