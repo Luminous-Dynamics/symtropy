@@ -145,6 +145,7 @@ struct GeneratedCase {
     family: String,
     partition: String,
     scenario: Scenario,
+    generated_inference_rules: Vec<InferenceRule>,
     prompt: String,
     expected: ExpectedResult,
 }
@@ -275,8 +276,8 @@ fn validate_ruleset(ruleset: &RuleSet) -> Result<(), String> {
     if ruleset.id.trim().is_empty() || ruleset.description.trim().is_empty() {
         errors.push("ruleset id and description must not be empty".to_string());
     }
-    if ruleset.max_forward_chaining_steps == 0 {
-        errors.push("max_forward_chaining_steps must be nonzero".to_string());
+    if ruleset.max_forward_chaining_steps < 16 {
+        errors.push("max_forward_chaining_steps must be at least 16 for the supported depth sweep".to_string());
     }
 
     let mut ids = BTreeSet::new();
@@ -658,6 +659,7 @@ fn build_cases(ruleset: &RuleSet) -> Result<Vec<GeneratedCase>, String> {
                                     reasoning_depth,
                                     wording_variant,
                                 };
+                                let generated_inference_rules = depth_rules(reasoning_depth);
                                 let expected = evaluate_scenario(&scenario, ruleset)?;
                                 let oracle = oracle_evaluate(&scenario, ruleset);
                                 if expected.action != oracle.action
@@ -673,8 +675,9 @@ fn build_cases(ruleset: &RuleSet) -> Result<Vec<GeneratedCase>, String> {
                                     id: case_id(&scenario),
                                     family: "fictional_jurisdiction_source_use_depth".to_string(),
                                     partition: String::new(),
-                                    prompt: synthetic_prompt(&scenario),
                                     scenario,
+                                    generated_inference_rules,
+                                    prompt: synthetic_prompt(&scenario),
                                     expected,
                                 });
                             }
@@ -956,15 +959,15 @@ fn validate_corpus(
     if corpus.ruleset_sha256 != sha256_hex(ruleset_raw.as_bytes()) {
         return Err("ruleset digest mismatch".to_string());
     }
-    if corpus.cases.len() != 96 {
+    if corpus.cases.len() != 576 {
         return Err(format!(
-            "expected 96 generated cases, got {}",
+            "expected 576 generated cases, got {}",
             corpus.cases.len()
         ));
     }
-    if corpus.metamorphic_pairs.len() != 54 {
+    if corpus.metamorphic_pairs.len() != 534 {
         return Err(format!(
-            "expected 54 generated metamorphic pairs, got {}",
+            "expected 534 generated metamorphic pairs, got {}",
             corpus.metamorphic_pairs.len()
         ));
     }
@@ -984,6 +987,12 @@ fn validate_corpus(
         }
         if case.id != case_id(&case.scenario) {
             return Err(format!("scenario/id mismatch for {}", case.id));
+        }
+        if !REASONING_DEPTHS.contains(&case.scenario.reasoning_depth) {
+            return Err(format!("unsupported reasoning depth in {}", case.id));
+        }
+        if case.generated_inference_rules != depth_rules(case.scenario.reasoning_depth) {
+            return Err(format!("generated inference chain mismatch for {}", case.id));
         }
         let recomputed = evaluate_scenario(&case.scenario, ruleset)?;
         let oracle = oracle_evaluate(&case.scenario, ruleset);
@@ -1087,8 +1096,8 @@ mod tests {
     #[test]
     fn generator_emits_expected_case_and_pair_counts() {
         let corpus = generate_corpus(7, &ruleset(), RULESET_JSON).expect("generation succeeds");
-        assert_eq!(corpus.cases.len(), 96);
-        assert_eq!(corpus.metamorphic_pairs.len(), 54);
+        assert_eq!(corpus.cases.len(), 576);
+        assert_eq!(corpus.metamorphic_pairs.len(), 534);
         assert_eq!(
             corpus
                 .cases
@@ -1096,8 +1105,58 @@ mod tests {
                 .map(|case| case.id.as_str())
                 .collect::<BTreeSet<_>>()
                 .len(),
-            96
+            576
         );
+    }
+
+    #[test]
+    fn inference_trace_grows_with_depth_without_changing_the_decision() {
+        let ruleset = ruleset();
+        let mut previous_trace_len = 0usize;
+        let mut reference: Option<ExpectedResult> = None;
+        for depth in REASONING_DEPTHS {
+            let scenario = Scenario {
+                source_permission: SourcePermission::Allowed,
+                competence_confirmed: true,
+                current_authority_available: true,
+                required_fact_present: true,
+                authority_conflict: false,
+                reasoning_depth: depth,
+                wording_variant: false,
+            };
+            let result = evaluate_scenario(&scenario, &ruleset).expect("scenario evaluates");
+            assert_eq!(result.action, Action::Answer);
+            assert!(result.inference_trace.len() > previous_trace_len);
+            previous_trace_len = result.inference_trace.len();
+            if let Some(expected) = &reference {
+                assert_eq!(result.action, expected.action);
+                assert_eq!(result.claim_codes, expected.claim_codes);
+                assert_eq!(result.citations, expected.citations);
+            } else {
+                reference = Some(result);
+            }
+        }
+    }
+
+    #[test]
+    fn generated_case_exposes_the_exact_compiled_chain() {
+        let corpus = generate_corpus(13, &ruleset(), RULESET_JSON).expect("generation succeeds");
+        for case in &corpus.cases {
+            assert_eq!(
+                case.generated_inference_rules,
+                depth_rules(case.scenario.reasoning_depth),
+                "{}",
+                case.id
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_reasoning_depth_is_rejected() {
+        let ruleset = ruleset();
+        let mut corpus = generate_corpus(17, &ruleset, RULESET_JSON).expect("generation succeeds");
+        corpus.cases[0].scenario.reasoning_depth = 3;
+        assert!(validate_corpus(&corpus, &ruleset, RULESET_JSON).is_err());
     }
 
     #[test]
@@ -1164,6 +1223,7 @@ mod tests {
             current_authority_available: true,
             required_fact_present: true,
             authority_conflict: false,
+            reasoning_depth: 0,
             wording_variant: false,
         };
         let mut denied = baseline.clone();
@@ -1184,6 +1244,7 @@ mod tests {
             current_authority_available: true,
             required_fact_present: false,
             authority_conflict: true,
+            reasoning_depth: 0,
             wording_variant: false,
         };
         let result = evaluate_scenario(&scenario, &ruleset).expect("scenario evaluates");
@@ -1260,8 +1321,8 @@ mod tests {
             "https://json-schema.org/draft/2020-12/schema"
         );
         assert_eq!(schema["additionalProperties"], false);
-        assert_eq!(schema["properties"]["cases"]["minItems"], 96);
-        assert_eq!(schema["properties"]["metamorphic_pairs"]["minItems"], 54);
+        assert_eq!(schema["properties"]["cases"]["minItems"], 576);
+        assert_eq!(schema["properties"]["metamorphic_pairs"]["minItems"], 534);
 
         let mut references = Vec::new();
         visit(&schema, &schema, &mut references);
