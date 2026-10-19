@@ -506,12 +506,10 @@ fn compare_reports(
     } else {
         GateStatus::Unresolved
     };
-    let reason = if has_definite_loss {
-        "DEFINITE_SOURCE_TO_TARGET_LOSS"
-    } else if status == GateStatus::Pass {
-        "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS"
-    } else {
-        "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED"
+    let reason = match status {
+        GateStatus::Fail => "DEFINITE_SOURCE_TO_TARGET_LOSS",
+        GateStatus::Pass => "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+        GateStatus::Unresolved => "PROFILE_IDENTITY_OR_COVERAGE_UNRESOLVED",
     };
     (status, counts, findings, comparison_coverage_complete, reason.into())
 }
