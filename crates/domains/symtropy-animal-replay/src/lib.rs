@@ -444,10 +444,9 @@ pub fn build_replay_receipt(
             }
             if let (Some(target_taxon), Some(binding)) =
                 (task.target_taxon_id.as_deref(), profile.taxon.as_ref())
+                && binding.taxon_id != target_taxon
             {
-                if binding.taxon_id != target_taxon {
-                    rejected.insert(ReplayReason::ProfileTaxonMismatch);
-                }
+                rejected.insert(ReplayReason::ProfileTaxonMismatch);
             }
         }
     }
@@ -706,10 +705,10 @@ pub fn build_replay_receipt(
         {
             rejected.insert(ReplayReason::BaselineStratumMismatch);
         }
-        if let Some(primary) = primary_metric {
-            if baseline.primary_metric.unit != primary.unit {
-                rejected.insert(ReplayReason::BaselineUnitMismatch);
-            }
+        if let Some(primary) = primary_metric
+            && baseline.primary_metric.unit != primary.unit
+        {
+            rejected.insert(ReplayReason::BaselineUnitMismatch);
         }
         match validate_metric(&baseline.primary_metric) {
             MetricValidation::Valid => {}
