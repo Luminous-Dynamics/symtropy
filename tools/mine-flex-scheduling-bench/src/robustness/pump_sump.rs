@@ -312,10 +312,108 @@ fn independent_conservation_mismatches(case: &Case, result: &CaseResult) -> usiz
         {
             mismatches += 1;
         }
-        prior_min = output.sump_after.minimum_liters;
-        prior_max = output.sump_after.maximum_liters;
+        prior_min = reconstructed_min;
+        prior_max = reconstructed_max;
     }
     mismatches
+}
+
+fn independent_hard_violation_count(case: &Case, result: &CaseResult) -> usize {
+    if result.trajectory.len() != case.periods.len() {
+        return 1;
+    }
+
+    let mut violations = 0;
+    let mut starts = Vec::new();
+    let mut last_stop = None;
+    let mut observed_startups = 0_usize;
+    for (index, command_on) in case.commands_on.iter().copied().enumerate() {
+        let was_on = index > 0 && case.commands_on[index - 1];
+        if command_on && !was_on {
+            starts.push(index);
+            observed_startups += 1;
+            if let Some(stop_index) = last_stop {
+                if index.saturating_sub(stop_index) < case.envelope.minimum_off_periods {
+                    violations += 1;
+                }
+            }
+        }
+        if was_on && !command_on {
+            last_stop = Some(index);
+        }
+    }
+    if observed_startups != result.startup_count {
+        violations += 1;
+    }
+
+    let mut run_start: Option<usize> = None;
+    for index in 0..=case.commands_on.len() {
+        let on = index < case.commands_on.len() && case.commands_on[index];
+        match (run_start, on) {
+            (None, true) => run_start = Some(index),
+            (Some(start), false) => {
+                if index - start < case.envelope.minimum_on_periods {
+                    violations += 1;
+                }
+                run_start = None;
+            }
+            _ => {}
+        }
+    }
+
+    for (index, (period, observed)) in case.periods.iter().zip(&result.trajectory).enumerate() {
+        if observed.period_index != index {
+            violations += 1;
+        }
+        let command_on = case.commands_on[index];
+        let latest_start = starts.iter().copied().take_while(|start| *start <= index).last();
+        let expected_operating = command_on
+            && latest_start.is_some_and(|start| {
+                index.saturating_sub(start) >= case.envelope.startup_delay_periods
+            });
+        if observed.operating != expected_operating {
+            violations += 1;
+        }
+        let expected_flow = if expected_operating {
+            Bounds {
+                minimum: case.envelope.minimum_flow_liters_per_period,
+                maximum: case.envelope.maximum_flow_liters_per_period,
+            }
+        } else {
+            Bounds {
+                minimum: 0,
+                maximum: 0,
+            }
+        };
+        if observed.pump_flow_liters_per_period != expected_flow {
+            violations += 1;
+        }
+        if expected_operating && period.required_head_kpa.maximum > case.envelope.maximum_head_kpa {
+            violations += 1;
+        }
+        let startup = command_on && (index == 0 || !case.commands_on[index - 1]);
+        let expected_energy = (if expected_operating {
+            case.envelope.operating_energy_wh
+        } else {
+            0
+        })
+        .checked_add(if startup {
+            case.envelope.startup_energy_wh
+        } else {
+            0
+        });
+        if expected_energy != Some(observed.energy_wh)
+            || observed.energy_wh > period.energy_budget_wh
+        {
+            violations += 1;
+        }
+        if observed.sump_after.minimum_liters < i64::from(case.minimum_sump_liters)
+            || observed.sump_after.maximum_liters > i64::from(case.maximum_sump_liters)
+        {
+            violations += 1;
+        }
+    }
+    violations
 }
 
 fn bounds(minimum: u32, maximum: u32) -> Bounds {
@@ -442,8 +540,8 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         if !output.executable {
             rejected_cases += 1;
         }
-        if output.executable && !output.violations.is_empty() {
-            hard_violations_in_accepted_cases += 1;
+        if output.executable {
+            hard_violations_in_accepted_cases += independent_hard_violation_count(input, &output);
         }
         conservation_mismatches += independent_conservation_mismatches(input, &output);
         period_count += output.trajectory.len();
@@ -530,6 +628,16 @@ mod tests {
         assert!(low.violations.iter().any(|v| v.code == "SUMP_LOW_BOUND_VIOLATION"));
         let high = evaluate_case(&inputs[2]).expect("high-level control");
         assert!(high.violations.iter().any(|v| v.code == "SUMP_HIGH_BOUND_VIOLATION"));
+    }
+
+    #[test]
+    fn independent_audit_detects_a_forged_accepted_trajectory() {
+        let input = cases()[0].clone();
+        let mut output = evaluate_case(&input).expect("nominal trace");
+        assert!(output.executable);
+        output.trajectory[0].sump_after.minimum_liters = 0;
+        assert!(independent_hard_violation_count(&input, &output) > 0);
+        assert!(independent_conservation_mismatches(&input, &output) > 0);
     }
 
     #[test]
