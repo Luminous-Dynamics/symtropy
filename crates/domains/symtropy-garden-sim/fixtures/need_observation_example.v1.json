@@ -28,7 +28,8 @@
       "request_ref": "req-001",
       "disposition": "adequate_service_within_window",
       "outcome_source": "canonical_service_lifecycle",
-      "no_request_reason": null
+      "no_request_reason": null,
+      "need_timing": "current"
     },
     {
       "need_ref": "need-002",
@@ -42,7 +43,8 @@
       "request_ref": null,
       "disposition": "need_still_open_no_adequate_service",
       "outcome_source": "not_applicable",
-      "no_request_reason": "expected_unaffordable"
+      "no_request_reason": "expected_unaffordable",
+      "need_timing": "current"
     },
     {
       "need_ref": "need-003",
@@ -56,7 +58,8 @@
       "request_ref": null,
       "disposition": "adequate_service_within_window",
       "outcome_source": "farmer_reported_other_channel",
-      "no_request_reason": null
+      "no_request_reason": null,
+      "need_timing": "current"
     },
     {
       "need_ref": "need-004",
@@ -70,7 +73,8 @@
       "request_ref": null,
       "disposition": "farmer_deferred_need",
       "outcome_source": "not_applicable",
-      "no_request_reason": null
+      "no_request_reason": null,
+      "need_timing": "retrospective"
     },
     {
       "need_ref": "need-005",
@@ -84,7 +88,8 @@
       "request_ref": null,
       "disposition": "need_still_open_no_adequate_service",
       "outcome_source": "not_applicable",
-      "no_request_reason": "no_provider_known"
+      "no_request_reason": "no_provider_known",
+      "need_timing": "current"
     },
     {
       "need_ref": "need-006",
@@ -98,7 +103,8 @@
       "request_ref": null,
       "disposition": "follow_up_missing",
       "outcome_source": "unknown",
-      "no_request_reason": null
+      "no_request_reason": null,
+      "need_timing": "anticipated"
     }
   ]
 }
