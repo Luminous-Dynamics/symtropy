@@ -20,7 +20,8 @@
     "transformation_record",
     "retail_receipt",
     "outbreak_association",
-    "pathogen_profile_comparison"
+    "pathogen_profile_comparison",
+    "sample_origin_record"
   ],
   "evaluator_boundary": {
     "input_projection": "Pass only case_id, entities, observed_records, and declared config to a candidate method.",
@@ -158,6 +159,16 @@
           "event_time": "2026-09-09T12:00:00Z",
           "observed_at": "2026-09-09T13:00:00Z",
           "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C1-R9",
+          "from": "ING-A",
+          "to": "SAMPLE-ING-A",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
         }
       ],
       "oracle_truth": {
@@ -383,6 +394,16 @@
           "event_time": "2026-09-09T12:00:00Z",
           "observed_at": "2026-09-09T13:00:00Z",
           "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C2-R14",
+          "from": "ING-A",
+          "to": "SAMPLE-ING-A",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
         }
       ],
       "oracle_truth": {
@@ -401,16 +422,14 @@
         ]
       },
       "expected_behavior": {
-        "source_attribution": "candidate_supported_by_chain_and_profile_evidence_not_final_causal_proof",
+        "source_attribution": "candidate_source_set_is_ambiguous_because_ING-A_and_ING-B_both_feed_MIX-AB; sample similarity is relatedness evidence only",
         "containment_must_include": [
           "FG-A",
           "FG-C"
         ],
-        "containment_should_exclude_under_complete_coverage": [
-          "FG-B"
-        ],
         "trace_completeness": "complete_for_fixture_scope",
-        "propagation_rule": "If ING-A contaminates MIX-AB, every output finished lot from MIX-AB is in the truth set."
+        "propagation_rule": "If ING-A contaminates MIX-AB, every output finished lot from MIX-AB is in the truth set.",
+        "uncertainty_rule": "Do not require the method to exclude FG-B from a conservative candidate containment set when evidence does not distinguish ING-A from ING-B as the affected mix input."
       }
     },
     {
@@ -524,6 +543,16 @@
           "event_time": "2026-09-09T12:00:00Z",
           "observed_at": "2026-09-09T13:00:00Z",
           "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C3-R8",
+          "from": "ING-A",
+          "to": "SAMPLE-ING-A",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
         }
       ],
       "oracle_truth": {
@@ -701,6 +730,16 @@
           "event_time": "2026-09-09T12:00:00Z",
           "observed_at": "2026-09-09T13:00:00Z",
           "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C5-R5",
+          "from": "ING-B",
+          "to": "SAMPLE-ING-B",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
         }
       ],
       "oracle_truth": {
