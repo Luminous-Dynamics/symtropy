@@ -390,16 +390,26 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
             inputs.metrics[0].interval.as_mut().unwrap().confidence_percent = 95;
         }
         "paired_confidence_protocol_mismatch" => {
-            inputs.paired_comparisons[0].difference_interval.as_mut().unwrap().confidence_percent = 95;
+            inputs.paired_comparisons[0]
+                .difference_interval
+                .as_mut()
+                .unwrap()
+                .confidence_percent = 95;
         }
         "paired_interval_method_mismatch" => {
             inputs.paired_comparisons[0].difference_interval.as_mut().unwrap().method_id =
                 "unregistered-paired-method".to_owned();
         }
         "missing_paired_comparison" => inputs.paired_comparisons.clear(),
-        "duplicate_paired_comparison" => inputs.paired_comparisons.push(inputs.paired_comparisons[0].clone()),
-        "unknown_baseline_comparison" => inputs.paired_comparisons[0].baseline_id = "missing-baseline".to_owned(),
-        "comparison_group_mismatch" => inputs.paired_comparisons[0].comparison_group = "different-protocol".to_owned(),
+        "duplicate_paired_comparison" => {
+            inputs.paired_comparisons.push(inputs.paired_comparisons[0].clone());
+        }
+        "unknown_baseline_comparison" => {
+            inputs.paired_comparisons[0].baseline_id = "missing-baseline".to_owned();
+        }
+        "comparison_group_mismatch" => {
+            inputs.paired_comparisons[0].comparison_group = "different-protocol".to_owned();
+        }
         "empty_pairing_unit" => inputs.paired_comparisons[0].pairing_unit.clear(),
         "zero_paired_samples" => inputs.paired_comparisons[0].independent_unit_count = 0,
         "missing_paired_difference" => inputs.paired_comparisons[0].mean_difference = None,
@@ -408,9 +418,16 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "invalid_effect_margins" => inputs.paired_comparisons[0].minimum_effect_size = -0.1,
         "paired_difference_does_not_match_scores" => {
             inputs.paired_comparisons[0].mean_difference = Some(0.2);
-            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: 0.15, upper: 0.25 });
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: 0.15,
+                upper: 0.25,
+            });
         }
-        "paired_samples_exceed_available" => inputs.paired_comparisons[0].independent_unit_count = 11,
+        "paired_samples_exceed_available" => {
+            inputs.paired_comparisons[0].independent_unit_count = 11;
+        }
         "comparison_stratum_missing" => {
             inputs.paired_comparisons[0].stratum_kind = MetricStratumKind::Taxon;
             inputs.paired_comparisons[0].stratum_id = "TEST:404".to_owned();
@@ -418,23 +435,43 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "uncertain_paired_effect" => {
             inputs.metrics[0] = metric("pose_pck", 0.45, "fraction");
             inputs.paired_comparisons[0].mean_difference = Some(0.05);
-            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: -0.1, upper: 0.2 });
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: -0.1,
+                upper: 0.2,
+            });
         }
         "noninferior_paired_effect" => {
             inputs.metrics[0] = metric("pose_pck", 0.42, "fraction");
             inputs.paired_comparisons[0].mean_difference = Some(0.02);
-            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: -0.02, upper: 0.06 });
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: -0.02,
+                upper: 0.06,
+            });
         }
         "regression_paired_effect" => {
             inputs.metrics[0] = metric("pose_pck", 0.2, "fraction");
             inputs.paired_comparisons[0].mean_difference = Some(-0.2);
-            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: -0.3, upper: -0.1 });
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: -0.3,
+                upper: -0.1,
+            });
         }
         "lower_is_better_outperforms" => {
             inputs.metrics[0] = metric("pose_pck", 0.2, "fraction");
             inputs.paired_comparisons[0].objective = MetricObjective::LowerIsBetter;
             inputs.paired_comparisons[0].mean_difference = Some(-0.2);
-            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: -0.3, upper: -0.1 });
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: -0.3,
+                upper: -0.1,
+            });
             inputs.paired_comparisons[0].minimum_effect_size = 0.05;
         }
         "no_baseline" => {
@@ -459,12 +496,22 @@ fn apply_mutation(inputs: &mut TestInputs, mutation: &str) {
         "below_threshold" => {
             inputs.metrics[0] = metric("pose_pck", 0.6, "fraction");
             inputs.paired_comparisons[0].mean_difference = Some(0.2);
-            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: 0.15, upper: 0.25 });
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: 0.15,
+                upper: 0.25,
+            });
         }
         "threshold_interval_overlaps" => {
             inputs.metrics[0] = metric("pose_pck", 0.79, "fraction");
             inputs.paired_comparisons[0].mean_difference = Some(0.39);
-            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: 0.34, upper: 0.44 });
+            inputs.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+                method_id: "synthetic-test-interval-v1".to_owned(),
+                confidence_percent: 90,
+                lower: 0.34,
+                upper: 0.44,
+            });
         }
         "no_threshold" => inputs.task.threshold = None,
         "target_taxon_absent_from_test" => {
@@ -525,7 +572,12 @@ fn frozen_replay_result_oracle_matches_all_expected_outcomes() {
             case.id
         );
         assert_eq!(
-            receipt.payload.baseline_comparison_results.iter().map(|result| result.outcome).collect::<Vec<_>>(),
+            receipt
+                .payload
+                .baseline_comparison_results
+                .iter()
+                .map(|result| result.outcome)
+                .collect::<Vec<_>>(),
             case.expected_baseline_comparison_outcomes,
             "baseline comparisons for case {}",
             case.id
@@ -621,7 +673,12 @@ fn receipt_digest_binds_metrics_seed_and_permission_scope() {
     let mut changed_metric = valid_inputs();
     changed_metric.metrics[0] = metric("pose_pck", 0.85, "fraction");
     changed_metric.paired_comparisons[0].mean_difference = Some(0.45);
-    changed_metric.paired_comparisons[0].difference_interval = Some(ConfidenceInterval { method_id: "synthetic-test-interval-v1".to_owned(), confidence_percent: 90, lower: 0.4, upper: 0.5 });
+    changed_metric.paired_comparisons[0].difference_interval = Some(ConfidenceInterval {
+        method_id: "synthetic-test-interval-v1".to_owned(),
+        confidence_percent: 90,
+        lower: 0.4,
+        upper: 0.5,
+    });
     assert_ne!(original.receipt_sha256, build(changed_metric).receipt_sha256);
 
     let mut changed_seed = valid_inputs();
