@@ -138,13 +138,21 @@ fn main() {
     println!("No scalar 'happiness score' is computed.");
     println!("Candidates retained on the Pareto frontier:");
     for id in &report.frontier_candidate_ids {
-        if let Some(candidate) = comparison.alternatives.iter().find(|item| &item.candidate_id == id) {
+        if let Some(candidate) = comparison
+            .alternatives
+            .iter()
+            .find(|item| &item.candidate_id == id)
+        {
             println!("  - {} ({})", candidate.title, candidate.candidate_id);
         }
     }
     println!("Candidates dominated on all comparable rated dimensions:");
     for id in &report.dominated_candidate_ids {
-        if let Some(candidate) = comparison.alternatives.iter().find(|item| &item.candidate_id == id) {
+        if let Some(candidate) = comparison
+            .alternatives
+            .iter()
+            .find(|item| &item.candidate_id == id)
+        {
             println!("  - {} ({})", candidate.title, candidate.candidate_id);
         }
     }
