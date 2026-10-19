@@ -675,23 +675,21 @@ fn make_receipt(source_commit: &str) -> Check<RobustnessReceipt> {
     let serialized_cases = serde_json::to_vec(&cases)
         .map_err(|error| format!("cannot serialize generated case set: {error}"))?;
     let (world_results, hard_constraint_violations) = evaluate_cases(&model, &cases)?;
-    let summaries = [
-        Split::Validation,
-        Split::HeldOut,
-    ]
-    .into_iter()
-    .flat_map(|split| {
-        [
+    let mut summaries = Vec::new();
+    for split in [Split::Validation, Split::HeldOut] {
+        for policy_id in [
             "fixed_baseline",
             "nominal_forecast_cost_minimizer",
             ROBUST_POLICY_ID,
-        ]
-        .into_iter()
-        .map(move |policy_id| {
-            summarize_policy(&world_results, split, policy_id, hard_constraint_violations)
-        })
-    })
-    .collect::<Vec<_>>();
+        ] {
+            summaries.push(summarize_policy(
+                &world_results,
+                split,
+                policy_id,
+                hard_constraint_violations,
+            ));
+        }
+    }
     let paired_comparisons = [Split::Validation, Split::HeldOut]
         .into_iter()
         .map(|split| paired_comparison(&world_results, split))
