@@ -46,6 +46,9 @@ fn prospective_retrospective_and_relay_basis_remain_distinct() {
     assert_eq!(summary.prospective_farmer_report_count, 4);
     assert_eq!(summary.retrospective_farmer_recall_count, 1);
     assert_eq!(summary.authorized_relay_count, 1);
+    assert_eq!(summary.anticipated_need_count, 1);
+    assert_eq!(summary.current_need_count, 4);
+    assert_eq!(summary.retrospective_timing_count, 1);
 }
 
 #[test]
@@ -113,6 +116,17 @@ fn open_deferred_and_missing_outcomes_stay_distinct() {
     assert_eq!(summary.farmer_deferred_count, 1);
     assert_eq!(summary.follow_up_missing_count, 1);
     assert_eq!(summary.outcome_unknown_count, 0);
+}
+
+#[test]
+fn retrospective_basis_requires_retrospective_need_timing() {
+    let mut input = valid_input();
+    input.episodes[3].need_timing = symtropy_garden_sim::need_observation::NeedTimingV1::Current;
+    assert!(has_blocker(&input, B::NeedTimingMismatch));
+
+    input.episodes[3].need_timing =
+        symtropy_garden_sim::need_observation::NeedTimingV1::Retrospective;
+    assert!(!has_blocker(&input, B::NeedTimingMismatch));
 }
 
 #[test]
@@ -243,6 +257,7 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
     let expected = [
         "valid_mixed_need_and_request_denominators_are_separate",
         "prospective_retrospective_and_relay_basis_remain_distinct",
+        "retrospective_basis_requires_retrospective_need_timing",
         "a_farmer_confirmed_no_request_has_no_invented_request_reference",
         "farmer_reported_off_platform_service_never_becomes_canonical_attainment",
         "authorized_relayed_other_channel_attainment_stays_noncanonical",
@@ -265,6 +280,7 @@ fn frozen_manifest_contains_all_expected_case_ids_once() {
     ];
     let expected_outcomes = [
         "CALCULATED",
+        "BLOCKED",
         "CALCULATED",
         "CALCULATED",
         "CALCULATED",
