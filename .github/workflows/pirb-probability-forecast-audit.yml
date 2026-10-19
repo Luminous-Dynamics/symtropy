@@ -1,0 +1,120 @@
+name: PIRB Probability Forecast Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/schemas/pirb-probability-forecast-v0.1.schema.json"
+      - "docs/fixtures/pirb-probability-forecast-v0.1.json"
+      - "docs/tech/PIRB_PROBABILITY_FORECAST_EVALUATION_V0_1.md"
+      - "tools/pirb-probability-forecast-eval/**"
+      - ".github/workflows/pirb-probability-forecast-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pirb-probability-forecast-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probability-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Generate standalone dependency lock
+        run: cargo generate-lockfile --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --check
+
+      - name: Assert public CI fixture is synthetic and aggregate-only
+        run: jq -e '.evidence_class == "synthetic" and .privacy.aggregate_only == true' docs/fixtures/pirb-probability-forecast-v0.1.json > /dev/null
+
+      - name: Run schema, metric, maturity, and negative-control tests
+        run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --all-targets -- -D warnings
+
+      - name: Evaluate exact-head synthetic fixture and independently verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="docs/fixtures/pirb-probability-forecast-v0.1.json"
+          schema="docs/schemas/pirb-probability-forecast-v0.1.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+          dependency_lock_sha="$(sha256sum tools/pirb-probability-forecast-eval/Cargo.lock | awk '{print $1}')"
+          rustc_version="$(rustc --version)"
+          cargo_version="$(cargo --version)"
+
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- \
+            --input "$input" \
+            --source-commit "$source_commit" \
+            --rustc-version "$rustc_version" \
+            --cargo-version "$cargo_version" > pirb-probability-forecast-receipt.json
+
+          jq -e \
+            --arg source_commit "$source_commit" \
+            --arg input_sha "$expected_input_sha" \
+            --arg schema_sha "$expected_schema_sha" \
+            --arg lock_sha "$dependency_lock_sha" \
+            --arg rustc_version "$rustc_version" \
+            --arg cargo_version "$cargo_version" \
+            '
+              .result == "pass"
+              and .evaluator == "PIRB probability forecast evaluation"
+              and .execution_claim == "descriptive_probability_forecast_performance_only"
+              and .probability_calibration_fitted == false
+              and .causal_effect_estimated == false
+              and .live_decision_authority == false
+              and .source_commit_sha_valid == true
+              and .source_commit == $source_commit
+              and (.source_commit | test("^[0-9a-f]{40}$"))
+              and .input_sha256 == $input_sha
+              and .schema_sha256 == $schema_sha
+              and .dependency_lock_sha256 == $lock_sha
+              and .rustc_version == $rustc_version
+              and .cargo_version == $cargo_version
+              and .evidence_class == "synthetic"
+              and .privacy.aggregate_only == true
+              and .metrics.training.forecast_count == 8
+              and .metrics.calibration.forecast_count == 4
+              and .metrics.test.forecast_count == 6
+              and .metrics.test.scored_count == 5
+              and .metrics.test.unknown_outcome_count == 1
+              and (.metrics.test.brier_score - 0.281 | fabs < 0.0000000001)
+              and (.metrics.test.roc_auc - 0.5 | fabs < 0.0000000001)
+              and (.metrics.test.average_precision - 0.7 | fabs < 0.0000000001)
+              and .metrics.test.climatology_covered_count == 5
+              and .test_suppressed_unit_count == 1
+              and (.test_unit_metrics | length == 2)
+            ' pirb-probability-forecast-receipt.json
+
+      - name: Upload exact-head synthetic receipt and inputs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pirb-probability-forecast-synthetic-receipt
+          path: |
+            pirb-probability-forecast-receipt.json
+            tools/pirb-probability-forecast-eval/Cargo.lock
+            docs/fixtures/pirb-probability-forecast-v0.1.json
+            docs/schemas/pirb-probability-forecast-v0.1.schema.json
+          if-no-files-found: error
+          retention-days: 90
