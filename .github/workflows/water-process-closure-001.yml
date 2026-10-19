@@ -28,9 +28,9 @@ jobs:
         with:
           components: rustfmt
       - name: Check format
-        run: cargo fmt --manifest-path tools/water-process-closure-001/Cargo.toml -- --check
+        run: cargo fmt --package water-process-closure-001 -- --check
       - name: Unit and frozen-oracle tests
-        run: cargo test --manifest-path tools/water-process-closure-001/Cargo.toml
+        run: cargo test --locked --package water-process-closure-001
       - name: Evaluate all cases and write exact-revision receipt
         id: evaluate
         shell: bash
@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts/water-process-closure-001
           WATER_PROC_CLOSURE_REVISION="$GITHUB_SHA" \
-            cargo run --manifest-path tools/water-process-closure-001/Cargo.toml -- \
+            cargo run --locked --package water-process-closure-001 -- \
               fixtures/water-process-closure-001-inputs-v1.json \
               fixtures/water-process-closure-001-oracle-v1.json \
               artifacts/water-process-closure-001/receipt.json
