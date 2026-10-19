@@ -154,6 +154,6 @@ For each item:
 - OpenAI math immutable revision: [`1581d4cbdd69a0faf34b2089614fe2a814316a6a`](https://github.com/openai/math/tree/1581d4cbdd69a0faf34b2089614fe2a814316a6a).
 - OpenAI graph entropy/energy source: [`Entropy.lean`](https://github.com/openai/math/blob/1581d4cbdd69a0faf34b2089614fe2a814316a6a/lean/OAI/Analysis/LpDimension/Entropy.lean).
 - OpenAI relative entropy source: [finite-law entropy formalization](https://github.com/openai/math/blob/1581d4cbdd69a0faf34b2089614fe2a814316a6a/lean/OAI/Probability/SKRatio/Entropy/Entropy.lean).
-- Symtropy contracts: [#1682](https://github.com/Luminous-Dynamics/symtropy/pull/1682), [#1693](https://github.com/Luminous-Dynamics/symtropy/issues/1693), [#1747](https://github.com/Luminous-Dynamics/symtropy/issues/1747), [#1691](https://github.com/Luminous-Dynamics/symtropy/pull/1691).
+- Symtropy contracts: [#1682](https://github.com/Luminous-Dynamics/symtropy/pull/1682), [#1693](https://github.com/Luminous-Dynamics/symtropy/issues/1693), [#1747](https://github.com/Luminous-Dynamics/symtropy/issues/1747), [#1691](https://github.com/Luminous-Dynamics/symtropy/pull/1691). Additional focused work: [graph entropy #2087](https://github.com/Luminous-Dynamics/symtropy/issues/2087), [graph metric #2088](https://github.com/Luminous-Dynamics/symtropy/issues/2088).
 
 **Validation status:** this document is a source-grounded research map only. It does not execute Lean or Rust, does not run a simulation, and does not certify any physical model.
