@@ -1340,6 +1340,8 @@ pub struct DesignReviewSession {
     pub model_sha256: String,
     pub viewer_build_id: String,
     pub snapshot_manifest_artifact_id: String,
+    /// Omitted only in the pre-hash payload produced by review_session_manifest_bytes.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub snapshot_sha256: String,
     pub mode: DesignReviewMode,
     pub route: Option<ArchitecturalReviewRoute>,
@@ -1720,7 +1722,7 @@ mod tests {
         assert_eq!(first_bytes, second_bytes);
         let decoded: serde_json::Value = serde_json::from_slice(&first_bytes).unwrap();
         assert_eq!(decoded["schema_version"], DESIGN_REVIEW_SESSION_SCHEMA_VERSION);
-        assert_eq!(decoded["snapshot_sha256"], "");
+        assert!(decoded.get("snapshot_sha256").is_none());
     }
 
     #[test]
