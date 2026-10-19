@@ -762,6 +762,21 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
             {
                 hard_constraint_violations += 1;
             }
+            if row.carbon_aware_recourse.feasible
+                && (row.carbon_aware_execution.executed_batches.len()
+                    != world.scenario.periods.len()
+                    || !independently_reconstruct_score(
+                        &model,
+                        &world.scenario,
+                        &row.carbon_aware_execution.executed_batches,
+                    )
+                    .is_ok_and(|score| {
+                        Some(score.total_grid_cost_units)
+                            == row.carbon_aware_recourse.grid_cost_units
+                    }))
+            {
+                hard_constraint_violations += 1;
+            }
             rows.push(row);
         }
     }
@@ -812,6 +827,21 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
                 && !row.adaptive_execution.completed_production_target
         })
         .count();
+    let completed_carbon_first_worlds_within_envelope = rows
+        .iter()
+        .filter(|row| {
+            row.world_class == WorldClass::InEnvelope
+                && row.carbon_aware_execution.completed_production_target
+                && row.carbon_aware_recourse.feasible
+        })
+        .count();
+    let carbon_first_aborts_outside_envelope = rows
+        .iter()
+        .filter(|row| {
+            row.world_class == WorldClass::OutOfEnvelope
+                && !row.carbon_aware_execution.completed_production_target
+        })
+        .count();
     let all_worlds_accounted = rows.len()
         == (VALIDATION_SEEDS.clone().count() + HELD_OUT_SEEDS.clone().count())
             * RECURRENT_WORLD_COUNT;
@@ -823,10 +853,12 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
                         / summary.evaluated_worlds as u128) as u32)
     });
     let in_envelope_completion_control =
-        completed_adaptive_worlds_within_envelope == in_envelope_world_count;
-    // This corpus intentionally contains a no-completion shock, so the fail-closed
-    // branch must remain exercised rather than passing vacuously.
-    let out_of_envelope_abort_control = adaptive_aborts_outside_envelope > 0;
+        completed_adaptive_worlds_within_envelope == in_envelope_world_count
+            && completed_carbon_first_worlds_within_envelope == in_envelope_world_count;
+    // This corpus intentionally contains a no-completion shock, so at least one of the
+    // two policies must exercise its fail-closed branch rather than passing vacuously.
+    let out_of_envelope_abort_control =
+        adaptive_aborts_outside_envelope + carbon_first_aborts_outside_envelope > 0;
     let result = if hard_constraint_violations == 0
         && nonanticipativity_violations == 0
         && in_envelope_completion_control
@@ -859,6 +891,8 @@ fn make_recourse_receipt(source_commit: &str) -> Check<RecourseReceipt> {
         held_out_world_count,
         completed_adaptive_worlds_within_envelope,
         adaptive_aborts_outside_envelope,
+        completed_carbon_first_worlds_within_envelope,
+        carbon_first_aborts_outside_envelope,
         causal_nonanticipativity_violations: nonanticipativity_violations,
         independent_hard_constraint_violations: hard_constraint_violations,
         summaries,
