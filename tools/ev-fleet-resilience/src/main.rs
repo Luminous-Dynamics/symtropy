@@ -8,7 +8,9 @@ use std::{
 
 const EPSILON: f64 = 1.0e-9;
 const MAX_EVENTS: usize = 100_000;
-const CAPACITY_LEVELS_PERCENT: [u32; 20] = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
+const CAPACITY_LEVELS_PERCENT: [u32; 20] = [
+    5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
+];
 const MIN_DEADLINE_COMPLETION_FRACTION: f64 = 0.95;
 const MIN_ENERGY_SERVICE_FRACTION: f64 = 0.95;
 const CLAIM_CEILING: &str = "Deterministic fleet charging-contingency screen using declared SOC-banded acceptance and piecewise-constant supply/port availability. Inputs are synthetic unless explicitly sourced; this is not an electrochemical, stochastic-reliability, AC load-flow, control-safety, or field-validation model.";
@@ -1477,9 +1479,16 @@ mod tests {
             simulate_scenario(&templates, &case, Policy::EarliestDepartureFirst).unwrap();
         let base = frontier.points.last().unwrap();
         assert!((base.installed_site_power_budget_kw - case.site_power_budget_kw).abs() < EPSILON);
-        assert_eq!(base.completed_by_deadline_count, reference.completed_by_deadline_count);
-        assert!((base.delivered_battery_energy_kwh - reference.delivered_battery_energy_kwh).abs() < EPSILON);
-        let reference_meets = reference.completed_by_deadline_count as f64 / reference.job_count as f64
+        assert_eq!(
+            base.completed_by_deadline_count,
+            reference.completed_by_deadline_count
+        );
+        assert!(
+            (base.delivered_battery_energy_kwh - reference.delivered_battery_energy_kwh).abs()
+                < EPSILON
+        );
+        let reference_meets = reference.completed_by_deadline_count as f64
+            / reference.job_count as f64
             >= MIN_DEADLINE_COMPLETION_FRACTION
             && reference.energy_service_fraction >= MIN_ENERGY_SERVICE_FRACTION;
         assert_eq!(base.meets_service_target, reference_meets);
