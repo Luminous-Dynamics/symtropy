@@ -21,13 +21,16 @@ The embedded ruleset contains:
 - prioritized decision rules with explicit actions, claim codes, and citations;
 - fail-closed abstention if equally prioritized decision mappings prescribe incompatible outputs.
 
-For each of 48 semantic states, it generates two wording variants, producing **96 fictional cases**. The six modeled dimensions are source-operation permission (allowed, denied, unknown), authenticated competence, current-authority availability, material-fact availability, unresolved authority conflict, and irrelevant wording variation.
+For each of 48 semantic states, it generates six controlled reasoning depths (0, 1, 2, 4, 6, and 8) and two wording variants, producing **576 fictional cases**. The semantic state tracks source-operation permission (allowed, denied, unknown), authenticated competence, current-authority availability, material-fact availability, and unresolved authority conflict. Wording variation is modeled separately.
 
-It also emits **54 metamorphic pairs**:
-- 48 wording-invariance pairs: equivalent wording must preserve action, claim codes, and citations;
+Each case carries the exact case-specific inference rules used to build its reasoning chain. The answer-support rule requires a completed chain; higher depth values introduce additional dependent rules while leaving the intended legal outcome unchanged. This makes inference-trace growth measurable rather than merely annotating a prompt as “hard.”
+
+It emits **534 metamorphic pairs**:
+- 288 wording-invariance pairs: equivalent wording must preserve action, claim codes, and citations at each depth;
+- 240 depth-invariance pairs: increasing the chain length across adjacent selected depths must preserve the legal action and evidence while extending the inference trace;
 - 6 material-change pairs: changing permission, competence, currentness, fact sufficiency, or conflict state must change the action under the fictional rules.
 
-The generator computes each expected result through the symbolic rule engine and cross-checks the action, claim codes, and citation set against a separately written imperative oracle. Full generated result metadata is also re-evaluated when validating a corpus.
+The generator computes each expected result through the symbolic rule engine and cross-checks the action, claim codes, and citation set against a separately written imperative oracle. Validation also checks full expected-result metadata, exact generated rule chains, and the generator-source and ruleset digests.
 
 ## Run
 
@@ -41,14 +44,14 @@ cargo run --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml -- val
 cargo test --manifest-path crates/tools/legal-scenario-compiler/Cargo.toml
 \`\`\`
 
-The output receipt includes the exact corpus SHA-256, ruleset SHA-256, seed, case/pair counts, and train/dev/test case counts. Generation and validation perform no network requests. The generated corpus contract is also published as `schemas/generated-corpus-v0.1.schema.json`; tests verify its local references and required fields against real generated output.
+The output receipt includes exact corpus, generator-source, and ruleset SHA-256 digests, the seed, case/pair counts, and train/dev/test case counts. Generation and validation perform no network requests. The generated corpus contract is published as `schemas/generated-corpus-v0.1.schema.json`; it specifies the six allowed reasoning depths and exact case/pair counts. Tests verify local schema references, required fields, and the serialized fields in generated output.
 
 ## Reproducibility and split rules
 
-- Same generator version + exact ruleset bytes + seed must produce byte-identical JSON.
+- Same generator-source digest + exact ruleset bytes + seed must produce byte-identical JSON.
 - Different seeds may reorder the same scenario set and change the seed-bound partition assignment; they must not change the set of case IDs or expected outputs.
 - All variants connected by a metamorphic pair are assigned to the same partition to prevent direct pair leakage across train/dev/test.
-- The current prototype has a **single fictional rule schema and scenario family**. Its split is useful for reproducible plumbing and pair safety, but it is not a genuine held-out-rule or cross-jurisdiction generalization benchmark. Additional independently reviewed synthetic rule families are required before making those claims.
+- The current prototype has a **single fictional rule schema and scenario family**. Pair-linked cases are kept in one partition, including all depths and wording variants for each semantic state. This avoids direct pair leakage but does not create held-out legal rule families or demonstrate cross-jurisdiction generalization. Additional independently authored synthetic rule families are required before making those claims.
 
 ## Proposed release gates
 
@@ -58,7 +61,7 @@ These are targets, not results claimed for a deployed legal system:
 - 100% satisfaction of all declared metamorphic pairs.
 - Zero duplicate IDs, broken pair references, mismatched ruleset digests, corrupted expected traces, or cross-partition pairs.
 - Zero silent answers in explicitly underdetermined scenarios.
-- Report results by permission state, temporal/currentness state, reasoning depth, fact sufficiency, conflict state, and wording variant—never just one aggregate score.
+- Report results by source permission, authenticated competence, currentness, fact sufficiency, conflict state, wording variant, and reasoning depth—never just one aggregate score. Measure answer correctness and inference-trace growth separately; an accurate answer on a synthetic oracle does not show a production model completed the same chain.
 - On future held-out rule families, report degradation as inference depth/exception complexity increases.
 
 A passing result only demonstrates conformance to the declared fictional ruleset. It does not establish real-world legal correctness, source permissions, professional competence, fairness of an actual institution, or authorization to provide legal services.
