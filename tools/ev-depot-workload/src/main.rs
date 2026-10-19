@@ -412,7 +412,7 @@ fn generate(report: &AuditReport, report_bytes: &[u8], eligible: &[DutyProfile],
                 profile.operation_day_id, daily_energy, energy_headroom
             ));
         }
-        let target_soc = options.initial_soc_fraction + daily_energy / effective_capacity;
+        let target_soc = (options.initial_soc_fraction + daily_energy / effective_capacity).min(1.0);
         let first_start = f64::from(profile.first_on_shift_start_second.expect("eligible profile")) / 60.0;
         let last_end = f64::from(profile.last_on_shift_end_second.expect("eligible profile")) / 60.0;
         let arrival = last_end;
