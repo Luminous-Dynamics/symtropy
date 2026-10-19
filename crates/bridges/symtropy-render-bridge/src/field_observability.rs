@@ -881,14 +881,20 @@ mod tests {
                         center_wavelength_nm: 550.0,
                         bandwidth_fwhm_nm: 20.0,
                     },
-                    display_range: ScalarRange { minimum: 0.0, maximum: 1.0 },
+                    display_range: ScalarRange {
+                        minimum: 0.0,
+                        maximum: 1.0,
+                    },
                 },
                 SpectralChannelSpec {
                     band: SpectralBand {
                         center_wavelength_nm: 850.0,
                         bandwidth_fwhm_nm: 30.0,
                     },
-                    display_range: ScalarRange { minimum: 0.0, maximum: 1.0 },
+                    display_range: ScalarRange {
+                        minimum: 0.0,
+                        maximum: 1.0,
+                    },
                 },
             ],
             samples: vec![SpectralSample {
