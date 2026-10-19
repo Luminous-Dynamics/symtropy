@@ -229,7 +229,8 @@
         },
         "forecast_origin_month": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Month the forecast release is issued/valid from; a one-month-ahead target can equal this month when the input cutoff is the preceding month."
         },
         "input_cutoff_month": {
           "type": "integer",
