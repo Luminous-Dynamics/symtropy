@@ -199,6 +199,8 @@ jobs:
               and .forecast_variable == "sc_cm_sb_dich_main"
               and .codebook_variable_key == "main_dich"
               and .partition == "eval"
+              and .partition_independently_verified == false
+              and .partition_independently_verified == false
               and ([.releases[].response_page_sha256[]] == $expected_pages)
               and ([.releases[].codebook_sha256] | all(. == $codebook_sha))
               and .normalized_dataset_sha256 == $normalized_sha
@@ -215,6 +217,9 @@ jobs:
           jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_normalized_sha" \
             '.result == "pass" and .source_commit == $source_commit and .input_sha256 == $input_sha and .evidence_class == "synthetic" and .forecast_record_count == 28 and .metrics.training.forecast_count == 12 and .metrics.calibration.forecast_count == 8 and .metrics.test.forecast_count == 8 and .metrics.test.unknown_outcome_count == 1 and .test_uncertainty.status == "not_estimable" and .causal_effect_estimated == false and .live_decision_authority == false' \
             pirb-views-score-receipt.json
+            pirb-policy-evaluation-receipt.json
+            docs/fixtures/pirb-policy-evaluation-synthetic-v0.1.json
+            docs/schemas/pirb-policy-evaluation-v0.1.schema.json
 
       - name: Evaluate all registered synthetic policy thresholds without selecting one
         shell: bash
@@ -267,9 +272,6 @@ jobs:
           name: pirb-probability-forecast-synthetic-receipt
           path: |
             pirb-probability-forecast-receipt.json
-            pirb-policy-evaluation-receipt.json
-            docs/fixtures/pirb-policy-evaluation-synthetic-v0.1.json
-            docs/schemas/pirb-policy-evaluation-v0.1.schema.json
             pirb-views-import-receipt.json
             pirb-views-normalized.json
             pirb-views-score-receipt.json
