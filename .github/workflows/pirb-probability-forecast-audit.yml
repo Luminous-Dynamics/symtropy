@@ -193,6 +193,8 @@ jobs:
               and .unit_count == 4
               and .unknown_outcome_count == 1
               and .analysis_unit == "country_month"
+              and .violence_type == "sb"
+              and .binary_event_threshold_brd == 25
               and .lead_months == 1
               and .forecast_variable == "sc_cm_sb_dich_main"
               and .codebook_variable_key == "main_dich"
