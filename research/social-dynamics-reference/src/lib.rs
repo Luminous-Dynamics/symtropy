@@ -39,7 +39,7 @@ pub struct Scenario {
     pub shock_capacity: f64,
     pub observation_noise: f64,
     pub verification_cost: f64,
-    pub capture_rate: f64,
+    pub attestation_tampering_rate: f64,
     pub repair_gain_per_contribution: f64,
     pub trust_learning_rate: f64,
 }
@@ -55,7 +55,7 @@ impl Default for Scenario {
             shock_capacity: 0.45,
             observation_noise: 0.05,
             verification_cost: 0.15,
-            capture_rate: 0.02,
+            attestation_tampering_rate: 0.02,
             repair_gain_per_contribution: 0.00125,
             trust_learning_rate: 0.18,
         }
@@ -78,7 +78,7 @@ impl Scenario {
             ("shock_capacity", self.shock_capacity),
             ("observation_noise", self.observation_noise),
             ("verification_cost", self.verification_cost),
-            ("capture_rate", self.capture_rate),
+            ("attestation_tampering_rate", self.attestation_tampering_rate),
             ("repair_gain_per_contribution", self.repair_gain_per_contribution),
             ("trust_learning_rate", self.trust_learning_rate),
         ] {
@@ -95,7 +95,7 @@ impl Scenario {
         for (name, value) in [
             ("observation_noise", self.observation_noise),
             ("verification_cost", self.verification_cost),
-            ("capture_rate", self.capture_rate),
+            ("attestation_tampering_rate", self.attestation_tampering_rate),
             ("trust_learning_rate", self.trust_learning_rate),
         ] {
             if !(0.0..=1.0).contains(&value) {
@@ -284,7 +284,7 @@ pub fn simulate(
                         if decision_noise_draws[i][edge] < scenario.observation_noise {
                             observed = 1.0 - observed;
                         }
-                        if decision_capture_draws[i][edge] < scenario.capture_rate {
+                        if decision_capture_draws[i][edge] < scenario.attestation_tampering_rate {
                             observed = 1.0 - observed;
                         }
                         evidence_rate += observed / agent.neighbors.len() as f64;
@@ -353,7 +353,7 @@ pub fn simulate(
                     if update_noise_draws[i][edge] < scenario.observation_noise {
                         observed = 1.0 - observed;
                     }
-                    if update_capture_draws[i][edge] < scenario.capture_rate {
+                    if update_capture_draws[i][edge] < scenario.attestation_tampering_rate {
                         observed = 1.0 - observed;
                     }
                     let old_trust = agents[i].trust[edge];
