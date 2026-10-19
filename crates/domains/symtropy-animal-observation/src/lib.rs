@@ -444,7 +444,7 @@ pub fn validate_split(
             for record in records.iter().filter(|record| {
                 record.role != SplitRole::Training
                     && record.start_time <= record.end_time
-                    && record.start_time < earliest_allowed
+                    && record.start_time <= earliest_allowed
             }) {
                 violations.insert(LeakageViolation {
                     reason: ManifestReason::TemporalLeakage,
@@ -741,6 +741,7 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
 /// that source payload bytes were legally available or scientifically valid.
 pub fn manifest_sha256(manifest: &ReferencePackManifest) -> Result<String, serde_json::Error> {
     let mut canonical = manifest.clone();
+    canonical.taxonomy.taxon_ids.sort();
     canonical.fields.sort();
     canonical.requested_operations.sort();
     canonical.permissions.sort();
