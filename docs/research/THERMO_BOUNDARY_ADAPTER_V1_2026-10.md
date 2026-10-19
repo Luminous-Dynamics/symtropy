@@ -27,7 +27,7 @@ and accepts arithmetic balance when:
 
     abs(R) <= relative_tolerance * max(1, S)
 
-The tolerance must be finite and in (0, 1]. All energy magnitudes must be finite and non-negative. Arithmetic accumulation overflow is rejected. Each event ID must be unique across boundary flows and internal transfers.
+The tolerance must be finite and in (0, 0.01] (maximum 1%). All energy magnitudes must be finite and non-negative. Boundary flow magnitudes are sorted and accumulated with compensated summation, making totals independent of the caller's flow-vector order and reducing loss when small and large flows coexist. Arithmetic accumulation overflow is rejected. Each event ID must be unique across boundary flows and internal transfers.
 
 ### Boundary events versus internal movement
 
@@ -49,12 +49,12 @@ No existing production call site is changed by this PR. The new module is export
 
 ## Tests added
 
-Eight focused unit tests cover:
+Nine focused unit tests cover:
 
 1. a balanced boundary with stored energy and in/out flows;
 2. hidden stored-energy drift despite equal total inflows and outflows;
 3. internal transfer not changing the boundary residual;
-4. input event-order invariance;
+4. input event-order invariance, including a mixed-scale test with a real discrepancy that naive summation can erase;
 5. duplicate event IDs across boundary and internal event classes;
 6. unknown and same-store transfer endpoints;
 7. negative/non-finite energy magnitudes, invalid stored energy and tolerance above the 1% cap;
@@ -76,7 +76,7 @@ The next integration task is to map authoritative storage snapshots and event pr
 
 ## Acceptance gates
 
-- All eight new unit tests pass.
+- All nine new unit tests pass.
 - The parent ledger-reference corpus remains 24/24 expected decisions, with all invalid-domain cases rejected.
 - Formatting, locked metadata, crate unit tests and a clean checkout postflight pass on the exact tested SHA.
 - No production correspondence or physical conservation claim is made merely from the adapter passing.
