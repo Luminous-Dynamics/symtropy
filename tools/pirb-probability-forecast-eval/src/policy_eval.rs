@@ -349,8 +349,9 @@ fn scores_for_threshold(
             None
         } else {
             Some(
-                confusion.true_positive as f64 + confusion.false_positive as f64
-            ) .checked_div(scored.len() as f64)
+                (confusion.true_positive + confusion.false_positive) as f64
+                    / scored.len() as f64,
+            )
         },
         coverage_on_test_records: if records.is_empty() {
             None
