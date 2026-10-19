@@ -160,7 +160,7 @@ enum MetamorphicRelation {
     OutputMustMatch,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 struct MetamorphicPair {
     id: String,
@@ -702,8 +702,10 @@ fn build_pairs(cases: &[GeneratedCase]) -> Result<Vec<MetamorphicPair>, String> 
         cases.iter().map(|case| (case.id.as_str(), case)).collect();
     let mut pairs = Vec::new();
     let mut index = 1usize;
+    let mut canonical_cases: Vec<&GeneratedCase> = cases.iter().collect();
+    canonical_cases.sort_by(|left, right| left.id.cmp(&right.id));
 
-    for case in cases {
+    for case in canonical_cases {
         if case.scenario.wording_variant {
             continue;
         }
@@ -1016,8 +1018,8 @@ fn validate_corpus(
         partitions.insert(case.partition.as_str());
         cases_by_id.insert(case.id.as_str(), case);
     }
-    if partitions.len() < 2 {
-        return Err("partitioning produced fewer than two populated partitions".to_string());
+    if partitions.len() != 3 {
+        return Err("partitioning must populate train, dev, and test".to_string());
     }
 
     let mut pair_ids = BTreeSet::new();
@@ -1043,6 +1045,10 @@ fn validate_corpus(
                 pair.id
             ));
         }
+    }
+    let expected_pairs = build_pairs(&corpus.cases)?;
+    if corpus.metamorphic_pairs != expected_pairs {
+        return Err("metamorphic pair registry does not match the canonical generated pair set".to_string());
     }
     Ok(())
 }
@@ -1212,7 +1218,7 @@ mod tests {
             .iter()
             .map(|case| case.partition.as_str())
             .collect();
-        assert!(partitions.len() >= 2);
+        assert_eq!(partitions.len(), 3);
         let by_id: BTreeMap<&str, &GeneratedCase> = corpus
             .cases
             .iter()
@@ -1287,6 +1293,27 @@ mod tests {
         } else {
             "train".to_string()
         };
+        assert!(validate_corpus(&corpus, &ruleset, RULESET_JSON).is_err());
+    }
+
+    #[test]
+    fn pair_ids_are_independent_of_case_order() {
+        let corpus = generate_corpus(23, &ruleset(), RULESET_JSON)
+            .expect("generation succeeds");
+        let canonical = build_pairs(&corpus.cases).expect("pairs rebuild");
+        let mut reversed_cases = corpus.cases.clone();
+        reversed_cases.reverse();
+        let reversed = build_pairs(&reversed_cases).expect("pairs rebuild from reversed cases");
+        assert_eq!(canonical, reversed);
+        assert_eq!(canonical, corpus.metamorphic_pairs);
+    }
+
+    #[test]
+    fn validation_rejects_missing_metamorphic_relation() {
+        let ruleset = ruleset();
+        let mut corpus = generate_corpus(31, &ruleset, RULESET_JSON)
+            .expect("generation succeeds");
+        corpus.metamorphic_pairs.pop();
         assert!(validate_corpus(&corpus, &ruleset, RULESET_JSON).is_err());
     }
 
