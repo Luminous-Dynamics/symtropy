@@ -133,7 +133,9 @@ struct ScenarioResult {
     battery_peak_power_rating_kw: f64,
     peak_power_margin_kw: f64,
     total_distance_km: f64,
-    total_driving_hours: f64,
+    total_travel_hours: f64,
+    total_stationary_segment_hours: f64,
+    total_profiled_segment_hours: f64,
     nontravel_duration_hours: f64,
     total_traction_battery_energy_kwh: f64,
     total_auxiliary_energy_kwh: f64,
@@ -486,7 +488,9 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
     let mut regen_curtailed_total = 0.0;
     let mut unserved_total = 0.0;
     let mut distance_m = 0.0;
-    let mut drive_seconds = 0.0;
+    let mut travel_seconds = 0.0;
+    let mut stationary_segment_seconds = 0.0;
+    let mut profiled_segment_seconds = 0.0;
     let mut max_avg_traction_power: f64 = 0.0;
 
     for segment in &scenario.segments {
@@ -542,7 +546,12 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
         regen_curtailed_total += regen_curtailed;
         unserved_total += unserved;
         distance_m += segment.distance_m;
-        drive_seconds += segment.duration_s;
+        profiled_segment_seconds += segment.duration_s;
+        if segment.distance_m > 0.0 {
+            travel_seconds += segment.duration_s;
+        } else {
+            stationary_segment_seconds += segment.duration_s;
+        }
 
         results.push(SegmentResult {
             segment_id: segment.segment_id.clone(),
@@ -625,7 +634,9 @@ fn simulate(scenario: &Scenario, design: &Design) -> ScenarioResult {
         battery_peak_power_rating_kw: design.battery.rated_peak_power_kw,
         peak_power_margin_kw: peak_margin,
         total_distance_km: distance_m / 1000.0,
-        total_driving_hours: drive_seconds / 3600.0,
+        total_travel_hours: travel_seconds / 3600.0,
+        total_stationary_segment_hours: stationary_segment_seconds / 3600.0,
+        total_profiled_segment_hours: profiled_segment_seconds / 3600.0,
         nontravel_duration_hours: scenario.nontravel_duration_hours,
         total_traction_battery_energy_kwh: total_traction,
         total_auxiliary_energy_kwh: total_aux,
