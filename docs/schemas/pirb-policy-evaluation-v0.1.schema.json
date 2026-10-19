@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-policy-evaluation-v0.1.schema.json",
+  "title": "PIRB Predeclared Response Policy Evaluation Manifest v0.1",
+  "description": "Explicitly hypothetical, aggregate-only policy sensitivity contract. It does not authorize live actions or establish causal impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_id",
+    "evidence_class",
+    "dataset_id",
+    "forecast_archive_sha256",
+    "outcome_release_id",
+    "outcome_release_sha256",
+    "analysis_unit",
+    "lead_months",
+    "target_definition",
+    "policy_kind",
+    "registration",
+    "governance",
+    "action",
+    "thresholds",
+    "capacity",
+    "cost_schedule",
+    "privacy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "policy_id": {
+      "type": "string",
+      "pattern": "^pirb-policy-[a-z0-9-]+$"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "forecast_archive_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "outcome_release_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome_release_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "analysis_unit": {
+      "enum": [
+        "country_month",
+        "prio_grid_month"
+      ]
+    },
+    "lead_months": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 36
+    },
+    "target_definition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_kind": {
+      "enum": [
+        "confirmatory",
+        "exploratory"
+      ]
+    },
+    "registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registered_at_month",
+        "threshold_grid_registered_at_month",
+        "registration_evidence_reference"
+      ],
+      "properties": {
+        "registered_at_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "threshold_grid_registered_at_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "registration_evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "responsible_organization_reference",
+        "approval_reference",
+        "authorization_scope",
+        "human_review_required"
+      ],
+      "properties": {
+        "responsible_organization_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approval_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authorization_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_review_required": {
+          "const": true
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "action_description",
+        "resource_unit",
+        "resource_units_per_alert",
+        "latency_hours"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_units_per_alert": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "latency_hours": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "thresholds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "capacity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_alerts_per_target_month",
+        "max_resource_units_per_target_month"
+      ],
+      "properties": {
+        "max_alerts_per_target_month": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_resource_units_per_target_month": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "cost_schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cost_unit",
+        "utility_if_true_alert_units",
+        "cost_false_alert_units",
+        "cost_missed_event_units",
+        "cost_per_resource_unit_units"
+      ],
+      "properties": {
+        "cost_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "utility_if_true_alert_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_false_alert_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_missed_event_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_per_resource_unit_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "minimum_subgroup_outcomes"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "minimum_subgroup_outcomes": {
+          "type": "integer",
+          "minimum": 2
+        }
+      }
+    },
+    "source_references": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
