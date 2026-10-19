@@ -455,7 +455,12 @@ pub fn build_replay_receipt(
     if let Some(target_taxon) = task.target_taxon_id.as_deref() {
         if target_taxon.trim().is_empty() {
             rejected.insert(ReplayReason::EmptyTargetTaxon);
-        } else if !manifest.taxonomy.taxon_ids.iter().any(|id| id == target_taxon) {
+        } else if !manifest
+            .taxonomy
+            .taxon_ids
+            .iter()
+            .any(|id| id == target_taxon)
+        {
             rejected.insert(ReplayReason::TargetTaxonNotBound);
         } else if !manifest
             .records
@@ -506,7 +511,10 @@ pub fn build_replay_receipt(
         rejected.insert(ReplayReason::InvalidWorkingTreeDigest);
     }
     if !run.working_tree_clean
-        && run.working_tree_sha256.as_deref().is_none_or(|digest| !is_lower_hex(digest, &[64]))
+        && run
+            .working_tree_sha256
+            .as_deref()
+            .is_none_or(|digest| !is_lower_hex(digest, &[64]))
     {
         rejected.insert(ReplayReason::InvalidWorkingTreeDigest);
     }
@@ -533,7 +541,11 @@ pub fn build_replay_receipt(
             rejected.insert(ReplayReason::InvalidOverallStratumId);
         }
         if metric.stratum_kind == MetricStratumKind::Taxon
-            && !manifest.taxonomy.taxon_ids.iter().any(|id| id == &metric.stratum_id)
+            && !manifest
+                .taxonomy
+                .taxon_ids
+                .iter()
+                .any(|id| id == &metric.stratum_id)
         {
             rejected.insert(ReplayReason::TaxonStratumUnbound);
         }
@@ -625,7 +637,11 @@ pub fn build_replay_receipt(
                 rejected.insert(ReplayReason::BaselineMetricMismatch);
             }
             if metric.stratum_kind == MetricStratumKind::Taxon
-                && !manifest.taxonomy.taxon_ids.iter().any(|id| id == &metric.stratum_id)
+                && !manifest
+                    .taxonomy
+                    .taxon_ids
+                    .iter()
+                    .any(|id| id == &metric.stratum_id)
             {
                 rejected.insert(ReplayReason::TaxonStratumUnbound);
             }
@@ -833,9 +849,9 @@ pub fn build_replay_receipt(
                 if interval.lower.is_finite()
                     && interval.upper.is_finite()
                     && interval.lower <= interval.upper
-                    && comparison.mean_difference.is_none_or(|mean| {
-                        mean >= interval.lower && mean <= interval.upper
-                    })
+                    && comparison
+                        .mean_difference
+                        .is_none_or(|mean| mean >= interval.lower && mean <= interval.upper)
                     && interval.confidence_percent > 0
                     && interval.confidence_percent < 100 => {}
             Some(_) => {
@@ -903,8 +919,7 @@ pub fn build_replay_receipt(
         if matches!(
             primary_metric.map(|metric| metric.state),
             Some(MetricState::Missing | MetricState::Abstained | MetricState::Failed)
-        )
-            || primary_metric.is_none()
+        ) || primary_metric.is_none()
         {
             ThresholdOutcome::Incomplete
         } else {
@@ -986,7 +1001,11 @@ pub fn build_replay_receipt(
 fn assess_paired_comparison(
     comparison: &PairedBaselineComparison,
     receipt_disposition: ReplayDisposition,
-) -> (BaselineComparisonOutcome, Option<f64>, Option<ConfidenceInterval>) {
+) -> (
+    BaselineComparisonOutcome,
+    Option<f64>,
+    Option<ConfidenceInterval>,
+) {
     if receipt_disposition != ReplayDisposition::Eligible {
         return (BaselineComparisonOutcome::NotAssessed, None, None);
     }
@@ -1037,10 +1056,7 @@ fn validate_metric(metric: &MetricObservation) -> MetricValidation {
             let Some(value) = metric.value else {
                 return MetricValidation::Incomplete;
             };
-            if !value.is_finite()
-                || metric.sample_count == 0
-                || metric.failure_reason.is_some()
-            {
+            if !value.is_finite() || metric.sample_count == 0 || metric.failure_reason.is_some() {
                 return MetricValidation::InvalidValue;
             }
             let Some(interval) = &metric.interval else {
@@ -1076,7 +1092,10 @@ fn validate_metric(metric: &MetricObservation) -> MetricValidation {
         MetricState::Failed => {
             if metric.value.is_some()
                 || metric.interval.is_some()
-                || metric.failure_reason.as_ref().is_none_or(|reason| reason.trim().is_empty())
+                || metric
+                    .failure_reason
+                    .as_ref()
+                    .is_none_or(|reason| reason.trim().is_empty())
             {
                 MetricValidation::InvalidValue
             } else {
