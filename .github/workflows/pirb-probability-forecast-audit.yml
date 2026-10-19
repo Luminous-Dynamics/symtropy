@@ -199,7 +199,7 @@ jobs:
               and .forecast_variable == "sc_cm_sb_dich_main"
               and .codebook_variable_key == "main_dich"
               and .partition == "eval"
-              and .partition_request_uri_verified == true
+              and .api_route_verified == true
               and .partition_independently_verified == false
               and ([.releases[].response_page_sha256[]] == $expected_pages)
               and ([.releases[].codebook_sha256] | all(. == $codebook_sha))
