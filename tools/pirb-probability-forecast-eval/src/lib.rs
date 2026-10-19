@@ -97,6 +97,7 @@ pub struct ForecastDataset {
     source: SourceContract,
     privacy: PrivacyPolicy,
     temporal_split: TemporalSplit,
+    lead_months: i64,
     records: Vec<ForecastRecord>,
 }
 
@@ -173,6 +174,7 @@ pub struct ForecastEvaluationReceipt {
     forecast_variable: String,
     target_definition: String,
     analysis_unit: AnalysisUnit,
+    lead_months: i64,
     threshold_definition: String,
     forecast_archive_sha256: String,
     forecast_source_reference: String,
@@ -275,6 +277,7 @@ pub fn evaluate(
         forecast_variable: dataset.source.forecast_variable.clone(),
         target_definition: dataset.source.target_definition.clone(),
         analysis_unit: dataset.source.analysis_unit,
+        lead_months: dataset.lead_months,
         threshold_definition: dataset.source.threshold_definition.clone(),
         forecast_archive_sha256: dataset.source.forecast_archive_sha256.clone(),
         forecast_source_reference: dataset.source.forecast_source_reference.clone(),
@@ -354,6 +357,9 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
     if dataset.privacy.minimum_subgroup_outcomes < 2 {
         findings.push("minimum_subgroup_outcomes must be at least 2".to_owned());
     }
+    if !(1..=36).contains(&dataset.lead_months) {
+        findings.push("dataset must declare exactly one valid forecast horizon from 1 to 36 months".to_owned());
+    }
     if dataset.evidence_class == EvidenceClass::AuthorizedHistorical {
         for (name, reference) in [
             ("provider", dataset.source.provider.as_str()),
@@ -399,15 +405,20 @@ fn semantic_errors(dataset: &ForecastDataset) -> Vec<String> {
         if !seen_forecast_ids.insert(record.forecast_id.clone()) {
             findings.push(format!("{} duplicates a forecast_id", record.forecast_id));
         }
+        if record.lead_months != dataset.lead_months {
+            findings.push(format!(
+                "{} lead_months differs from the dataset's declared horizon",
+                record.forecast_id
+            ));
+        }
         let forecast_key = (
-            record.forecast_release_id.clone(),
             record.unit_id.clone(),
             record.target_month,
             record.lead_months,
         );
         if !seen_forecast_keys.insert(forecast_key) {
             findings.push(format!(
-                "{} duplicates a release/unit/target/horizon forecast key",
+                "{} duplicates a unit/target/horizon observation; a new release ID does not make the same outcome independent",
                 record.forecast_id
             ));
         }
@@ -882,6 +893,7 @@ mod tests {
         let r = receipt();
         assert_eq!(r.result, "pass");
         assert_eq!(r.evidence_class, EvidenceClass::Synthetic);
+        assert_eq!(r.lead_months, 1);
         assert_eq!(r.metrics.training.forecast_count, 8);
         assert_eq!(r.metrics.calibration.forecast_count, 4);
         assert_eq!(r.metrics.test.forecast_count, 6);
@@ -1062,7 +1074,33 @@ mod tests {
         assert!(
             semantic_errors(&d)
                 .iter()
-                .any(|e| e.contains("release/unit/target/horizon"))
+                .any(|e| e.contains("unit/target/horizon observation"))
+        );
+    }
+
+    #[test]
+    fn duplicated_unit_target_horizon_is_rejected_even_with_a_new_release_id() {
+        let mut d = dataset();
+        let mut repeated = d.records[0].clone();
+        repeated.forecast_id = "forecast-new-release".to_owned();
+        repeated.forecast_release_id = "synthetic-revised-run".to_owned();
+        d.records.push(repeated);
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("new release ID does not make the same outcome independent"))
+        );
+    }
+
+    #[test]
+    fn dataset_rejects_a_mixed_horizon() {
+        let mut d = dataset();
+        d.records[0].lead_months = 2;
+        d.records[0].input_cutoff_month = d.records[0].target_month - 2;
+        assert!(
+            semantic_errors(&d)
+                .iter()
+                .any(|e| e.contains("differs from the dataset's declared horizon"))
         );
     }
 
