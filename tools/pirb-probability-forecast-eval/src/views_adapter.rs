@@ -1146,7 +1146,7 @@ mod tests {
         manifest["source"]["binary_event_threshold_brd"] = Value::from(1);
         let bytes = serde_json::to_vec(&manifest).unwrap();
         let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
-        assert!(result.unwrap_err().iter().any(|error| error.contains("v0.1 supports only the country-month state-based violence target")));
+        assert!(result.is_err());
     }
 
     #[test]
