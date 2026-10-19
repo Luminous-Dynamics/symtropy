@@ -30,7 +30,7 @@ The environment values supplied through `SYMTROPY_SOURCE_REVISION` and `SYMTROPY
 
 ## Verification boundary
 
-`RunReceipt::verify()` recalculates the receipt's own payload digest. `verify_artifact_bytes()` additionally checks exact input bytes, the caller-supplied serialized parsed model, and the caller-supplied serialized output payload. The CLI verifier parses the saved result envelope, reconstructs the corresponding typed payload, rereads the original input artifact, and reports each digest link separately. It does not authenticate who produced the record, prove that the represented execution actually occurred, or validate scientific correctness.
+`RunReceipt::verify()` recalculates the receipt's own payload digest. `verify_artifact_bytes()` additionally checks exact input bytes, the caller-supplied serialized parsed model, and the caller-supplied serialized output payload. The CLI verifier parses the saved result envelope, reconstructs the corresponding typed payload, rereads the original input artifact, checks experiment/model-schema metadata against the parsed model, and reports each digest link separately. It does not authenticate who produced the record, prove that the represented execution actually occurred, or validate scientific correctness.
 
 A hash can bind identifiers to bytes; it cannot show that the model is correct. Receipts must therefore keep outcome labels separate: planned, rejected, executed, independently reproduced, empirically validated, and accepted for a stated purpose are not interchangeable statuses. A successful serialization or receipt verification is never itself a model-credibility pass.
 
