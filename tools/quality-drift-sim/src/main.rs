@@ -403,16 +403,17 @@ fn verify_benchmark() -> Result<(), String> {
         let fixed_summary = summarize(fixed);
         let condition_summary = summarize(condition);
 
-        if scenario.id == "biased_sensor_negative_control" {
-            if fixed_summary.first_pass_yield <= condition_summary.first_pass_yield
+        if scenario.id == "biased_sensor_negative_control"
+            && (fixed_summary.first_pass_yield <= condition_summary.first_pass_yield
                 || fixed_summary.escape_rate >= condition_summary.escape_rate
-                || fixed_summary.throughput <= condition_summary.throughput
-            {
-                return Err("biased-sensor negative control no longer exposes monitor failure".into());
-            }
-        } else if condition_summary.first_pass_yield <= fixed_summary.first_pass_yield
-            || condition_summary.escape_rate >= fixed_summary.escape_rate
-            || condition_summary.throughput <= fixed_summary.throughput
+                || fixed_summary.throughput <= condition_summary.throughput)
+        {
+            return Err("biased-sensor negative control no longer exposes monitor failure".into());
+        }
+        if scenario.id != "biased_sensor_negative_control"
+            && (condition_summary.first_pass_yield <= fixed_summary.first_pass_yield
+                || condition_summary.escape_rate >= fixed_summary.escape_rate
+                || condition_summary.throughput <= fixed_summary.throughput)
         {
             return Err(format!(
                 "condition-based policy did not beat fixed-cycle baseline on declared scenario {}",
