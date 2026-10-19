@@ -43,11 +43,13 @@ pub enum ClaimKind {
     IndividualMovementEcology,
     PopulationDynamics,
     AcousticSignal,
+    VisualAnimalTracking,
     TaxonIdentity,
 }
 
 fn modality_can_support(modality: ObservationModality, claim: ClaimKind) -> bool {
     match claim {
+        ClaimKind::VisualAnimalTracking => modality == ObservationModality::VideoKeypoints2d,
         ClaimKind::TaxonIdentity => true,
         ClaimKind::VisiblePose2d => matches!(
             modality,
@@ -378,13 +380,18 @@ pub fn validate_split(
                 &mut violations,
             );
         }
-        add_cross_split(
-            format!("track:{}:{}", record.study_id, record.track_id),
-            record.role,
-            ManifestReason::DuplicateObservationLeakage,
-            &mut track_groups,
-            &mut violations,
-        );
+        if !matches!(
+            target,
+            GeneralizationTarget::FutureTime | GeneralizationTarget::WithinSubjectInterpolation
+        ) {
+            add_cross_split(
+                format!("track:{}:{}", record.study_id, record.track_id),
+                record.role,
+                ManifestReason::DuplicateObservationLeakage,
+                &mut track_groups,
+                &mut violations,
+            );
+        }
 
         match target {
             GeneralizationTarget::UnseenSubject => add_cross_split(
@@ -511,7 +518,7 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
             rejected.insert(ManifestReason::DuplicateTaxonBinding);
         }
     }
-    if manifest.taxonomy.mapping_ref.as_deref().is_none_or(str::is_empty) {
+    if manifest.taxonomy.mapping_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
         indeterminate.insert(ManifestReason::MissingTaxonomyMappingReference);
     }
 
@@ -526,10 +533,10 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         if !field_ids.insert(field.id.clone()) {
             rejected.insert(ManifestReason::DuplicateFieldId);
         }
-        if field.quantity && field.unit.as_deref().is_none_or(str::is_empty) {
+        if field.quantity && field.unit.as_deref().is_none_or(|value| value.trim().is_empty()) {
             indeterminate.insert(ManifestReason::MissingQuantityUnit);
         }
-        if field.coordinate && field.coordinate_frame.as_deref().is_none_or(str::is_empty) {
+        if field.coordinate && field.coordinate_frame.as_deref().is_none_or(|value| value.trim().is_empty()) {
             indeterminate.insert(ManifestReason::MissingCoordinateFrame);
         }
         if field.temporal && (manifest.time_basis.is_none() || manifest.sample_interval_ms.is_none()) {
@@ -551,13 +558,9 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
     for permission in &manifest.permissions {
         permissions.entry(permission.operation).or_default().push(permission);
     }
-    for (operation, receipts) in &permissions {
+    for receipts in permissions.values() {
         if receipts.len() > 1 {
             rejected.insert(ManifestReason::DuplicatePermissionReceipt);
-        }
-        if !requested.contains(operation) {
-            // Extra receipts are allowed, but are still validated so revoked or
-            // malformed authority is not hidden in an unused field.
         }
     }
     for operation in &manifest.requested_operations {
@@ -580,17 +583,17 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
                 indeterminate.insert(ManifestReason::PermissionUnknown);
             }
             PermissionDecision::Granted | PermissionDecision::AttributionRequired => {
-                if permission.authority_ref.as_deref().is_none_or(str::is_empty) {
+                if permission.authority_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
                     indeterminate.insert(ManifestReason::MissingPermissionAuthority);
                 }
-                if permission.scope_ref.as_deref().is_none_or(str::is_empty) {
+                if permission.scope_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
                     indeterminate.insert(ManifestReason::MissingPermissionScope);
                 }
-                if permission.reviewed_at.as_deref().is_none_or(str::is_empty) {
+                if permission.reviewed_at.as_deref().is_none_or(|value| value.trim().is_empty()) {
                     indeterminate.insert(ManifestReason::MissingPermissionReviewDate);
                 }
                 if permission.decision == PermissionDecision::AttributionRequired
-                    && permission.attribution.as_deref().is_none_or(str::is_empty)
+                    && permission.attribution.as_deref().is_none_or(|value| value.trim().is_empty())
                 {
                     rejected.insert(ManifestReason::MissingRequiredAttribution);
                 }
@@ -791,7 +794,11 @@ mod tests {
                 permission(DataOperation::LocalAnalysis),
                 permission(DataOperation::EvaluateModel),
             ],
-            declared_supported_claims: vec![ClaimKind::VisiblePose2d, ClaimKind::Kinematics2d],
+            declared_supported_claims: vec![
+                ClaimKind::VisiblePose2d,
+                ClaimKind::Kinematics2d,
+                ClaimKind::VisualAnimalTracking,
+            ],
             requested_claims: vec![ClaimKind::VisiblePose2d],
             generalization: GeneralizationTarget::UnseenSubject,
             minimum_temporal_gap: 0,
