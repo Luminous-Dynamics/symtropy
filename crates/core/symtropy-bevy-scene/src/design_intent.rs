@@ -873,7 +873,7 @@ mod tests {
     #[test]
     fn preference_rating_above_one_hundred_is_rejected() {
         let mut comparison = preference_comparison();
-        comparison.alternatives[0].evaluations[1].preference_rating = Some(101);
+        comparison.alternatives[0].evaluations[2].preference_rating = Some(101);
         assert!(validate_design_comparison_snapshot(&comparison)
             .unwrap_err()
             .contains(&DesignIntentIssue::PreferenceRatingOutOfRange {
