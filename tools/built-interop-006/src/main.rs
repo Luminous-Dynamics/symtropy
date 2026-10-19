@@ -1201,10 +1201,7 @@ mod tests {
         )
     }
 
-    fn delta_gate_producer(
-        source_bytes: &[u8],
-        target_bytes: &[u8],
-        ids_bytes: &[u8],
+    struct DeltaTestConfig {
         status: GateStatus,
         coverage_complete: bool,
         compared: u64,
@@ -1213,7 +1210,14 @@ mod tests {
         lost: u64,
         dropped: u64,
         unresolved: u64,
-        reason: &str,
+        reason: &'static str,
+    }
+
+    fn delta_gate_producer(
+        source_bytes: &[u8],
+        target_bytes: &[u8],
+        ids_bytes: &[u8],
+        config: DeltaTestConfig,
     ) -> ProducerGate {
         let payload = serde_json::json!({
             "policy_id": DELTA_POLICY_ID,
@@ -1225,25 +1229,25 @@ mod tests {
             "source_adapter_report_sha256": "a".repeat(64),
             "target_adapter_report_sha256": "b".repeat(64),
             "supported_profile": DELTA_PROFILE_ID,
-            "comparison_coverage_complete": coverage_complete,
+            "comparison_coverage_complete": config.coverage_complete,
             "counts": {
-                "compared": compared,
-                "preserved": preserved,
-                "changed": changed,
-                "lost": lost,
-                "dropped": dropped,
+                "compared": config.compared,
+                "preserved": config.preserved,
+                "changed": config.changed,
+                "lost": config.lost,
+                "dropped": config.dropped,
                 "added": 0,
-                "unresolved": unresolved
+                "unresolved": config.unresolved
             },
             "findings": [],
-            "decision_reason": reason
+            "decision_reason": config.reason
         });
         let payload_sha256 = sha256_hex(&serde_json::to_vec(&payload).unwrap());
         ProducerGate {
             gate: Gate {
                 gate_id: GateId::ExchangeSemanticPreservation,
                 mandatory: true,
-                status,
+                status: config.status,
                 claim_scope: "synthetic paired preservation test only".into(),
                 limitations: vec!["Not real export/import evidence.".into()],
                 tool: Some(ToolIdentity {
@@ -1591,8 +1595,11 @@ mod tests {
         );
 
         let mut delta_gate = delta_gate_producer(
-            source, target, ids, GateStatus::Pass, true, 1, 1, 0, 0, 0, 0,
-            "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            source, target, ids, DeltaTestConfig {
+                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 1,
+                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+                reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            },
         );
         delta_gate.evidence_payload = None;
         delta_gate.gate.evidence[0].locator = "delta-gate.json".into();
@@ -1662,8 +1669,11 @@ mod tests {
         let target = b"target";
         let ids = b"ids";
         let forged_pass = delta_gate_producer(
-            source, target, ids, GateStatus::Pass, true, 1, 0, 1, 0, 0, 0,
-            "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            source, target, ids, DeltaTestConfig {
+                status: GateStatus::Pass, coverage_complete: true, compared: 1, preserved: 0,
+                changed: 1, lost: 0, dropped: 0, unresolved: 0,
+                reason: "COMPLETE_SUPPORTED_DELTA_WITH_NO_LOSS",
+            },
         );
         assert_eq!(
             verify_embedded_payload(&forged_pass, source, target, ids, "IFC4").unwrap_err(),
@@ -1671,14 +1681,20 @@ mod tests {
         );
 
         let valid_fail = delta_gate_producer(
-            source, target, ids, GateStatus::Fail, false, 1, 0, 1, 0, 0, 1,
-            "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            source, target, ids, DeltaTestConfig {
+                status: GateStatus::Fail, coverage_complete: false, compared: 1, preserved: 0,
+                changed: 1, lost: 0, dropped: 0, unresolved: 1,
+                reason: "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            },
         );
         assert!(verify_embedded_payload(&valid_fail, source, target, ids, "IFC4").is_ok());
 
         let invalid_fail = delta_gate_producer(
-            source, target, ids, GateStatus::Fail, true, 1, 1, 0, 0, 0, 0,
-            "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            source, target, ids, DeltaTestConfig {
+                status: GateStatus::Fail, coverage_complete: true, compared: 1, preserved: 1,
+                changed: 0, lost: 0, dropped: 0, unresolved: 0,
+                reason: "DEFINITE_SOURCE_TO_TARGET_LOSS",
+            },
         );
         assert_eq!(
             verify_embedded_payload(&invalid_fail, source, target, ids, "IFC4").unwrap_err(),
