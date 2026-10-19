@@ -99,6 +99,7 @@ These are targets, not measured results.
 
 ### Geometry and route correctness
 - 100% of route samples are finite and deterministic for a fixed model revision, route, and elapsed time.
+- Unit normalization matches reference conversions for metre, millimetre, international foot, and inch inputs within declared floating-point tolerance; non-finite and overflow inputs are rejected. This is a unit-conversion target, not geometry-transform or georeferencing validation.
 - 100% rejection of duplicate waypoint IDs, invalid coordinates, degenerate look vectors, timeline overlap, invalid comfort-profile values, and violations of the route's explicit speed limit.
 - 0 default automatic starts; every session manifest records the profile, and auto-start is permitted only when the session explicitly opts in. These are acceptance targets, not a substitute for human-factor testing.
 - Zero automated teleport transitions: each accessible-teleport transition requires explicit user confirmation.
