@@ -107,3 +107,24 @@ jobs:
             and (.source_commit | test("^[0-9a-f]{40}$"))
             and ([.world_results[] | select(.robust_policy.feasible == false)] | length == 0)
           ' mine-flex-robustness-receipt.json
+      - name: Emit paired validation and held-out metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id,
+            generator_version,
+            validation_seed_count,
+            held_out_seed_count,
+            total_world_result_count,
+            hard_constraint_violations,
+            robust_policy_feasible_worlds,
+            robust_policy_infeasible_worlds,
+            summaries: [.summaries[] | {
+              split, policy_id, evaluated_worlds, feasible_worlds,
+              infeasible_worlds, feasible_rate_basis_points,
+              mean_cost_units_floor, mean_carbon_units_floor,
+              cost_regret
+            }],
+            paired_comparisons
+          }' mine-flex-robustness-receipt.json
