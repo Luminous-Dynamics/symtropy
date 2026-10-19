@@ -14,6 +14,25 @@ use sha2::{Digest, Sha256};
 pub const FIELD_EVAL_REPORT_SCHEMA_VERSION_V1: u16 = 1;
 pub const FIELD_EVAL_REPORT_CLAIM_CEILING_V1: &str = "Study-report arithmetic and declared cohort partition only. Does not authenticate source evidence, validate individual service lifecycles, estimate sampling uncertainty, establish causal effects, or prove field impact.";
 
+fn serialize_option_u64<S>(value: &Option<u64>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(value) => serializer.serialize_some(&value.to_string()),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_u64<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Option::<String>::deserialize(deserializer)?
+        .map(|value| value.parse::<u64>().map_err(serde::de::Error::custom))
+        .transpose()
+}
+
 fn serialize_u64<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
@@ -180,8 +199,11 @@ pub struct FieldEvalReportAssessmentV1 {
     pub disposition: FieldEvalReportDispositionV1,
     #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
     pub eligible_request_count: u64,
-    #[serde(serialize_with = "serialize_u64", deserialize_with = "deserialize_u64")]
-    pub classified_request_count: u64,
+    #[serde(
+        serialize_with = "serialize_option_u64",
+        deserialize_with = "deserialize_option_u64"
+    )]
+    pub classified_request_count: Option<u64>,
     pub evidence_confirmed_attainment: Option<FieldEvalRateBoundsV1>,
     pub blockers: Vec<FieldEvalReportBlockerV1>,
     pub claim_ceiling: String,
@@ -323,7 +345,8 @@ pub fn assess_field_eval_report_v1(input: &FieldEvalReportInputV1) -> FieldEvalR
         None
     };
 
-    let classified_request_count = classified_total.unwrap_or(0);
+    let classified_request_count =
+        (disposition != FieldEvalReportDispositionV1::Blocked).then(|| classified_total.unwrap_or(0));
     FieldEvalReportAssessmentV1 {
         study_ref: input.study_ref.clone(),
         disposition,
