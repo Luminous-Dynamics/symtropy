@@ -727,7 +727,8 @@ pub fn build_replay_receipt(
         }
         if let Some(interval) = comparison.difference_interval.as_ref()
             && (interval.confidence_percent != task.required_confidence_percent
-                || interval.method_id != task.paired_comparison_method_id)
+                || (!task.paired_comparison_method_id.trim().is_empty()
+                    && interval.method_id != task.paired_comparison_method_id))
         {
             rejected.insert(ReplayReason::UncertaintyProtocolMismatch);
         }
