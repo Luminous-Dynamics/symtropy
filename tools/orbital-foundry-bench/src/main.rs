@@ -117,10 +117,51 @@ impl Design {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ServiceKind {
+    AssemblyRobot,
+    AssemblyInterface,
+    PowerBus,
+    Supply,
+}
+
+impl ServiceKind {
+    fn for_fault(kind: FaultKind) -> Self {
+        match kind {
+            FaultKind::RobotJointFailure => Self::AssemblyRobot,
+            FaultKind::InterfaceMismatch => Self::AssemblyInterface,
+            FaultKind::PowerDomainFailure | FaultKind::CommonCausePowerFailure => Self::PowerBus,
+            FaultKind::ResupplyDelay => Self::Supply,
+        }
+    }
+
+    fn slot(self) -> usize {
+        match self {
+            Self::AssemblyRobot => 0,
+            Self::AssemblyInterface => 1,
+            Self::PowerBus => 2,
+            Self::Supply => 3,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::AssemblyRobot => "assembly_robot",
+            Self::AssemblyInterface => "assembly_interface",
+            Self::PowerBus => "power_bus",
+            Self::Supply => "supply",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct EventOutcome {
     at_tick: u32,
     kind: FaultKind,
+    service: ServiceKind,
+    repair_start_tick: u32,
+    repair_end_tick: u32,
+    queue_delay_ticks: u32,
     spare_units_before: u32,
     spare_units_after: u32,
     recovery_ticks: u32,
@@ -129,6 +170,7 @@ struct EventOutcome {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ScenarioSimulation {
     service_loss_ticks: u32,
+    recovery_elapsed_ticks: u32,
     events: Vec<EventOutcome>,
     spare_units_remaining: u32,
 }
@@ -139,8 +181,10 @@ struct Metrics {
     assembly_ticks: u32,
     interface_families: u32,
     scenario_loss_ticks: [u32; 5],
+    scenario_recovery_elapsed_ticks: [u32; 5],
     sum_service_loss_ticks_across_scenarios: u32,
     worst_case_service_loss_ticks: u32,
+    worst_case_recovery_elapsed_ticks: u32,
     end_of_life_plan_declared: bool,
     hard_gates_pass: bool,
 }
@@ -205,6 +249,7 @@ fn expected_event_kinds(scenario_id: &str) -> Option<&'static [&'static str]> {
         "DELAYED_RESUPPLY" => Some(&["resupply_delay"]),
         "COMMON_CAUSE_FAILURE" => Some(&[
             "robot_joint_failure",
+            "power_domain_failure",
             "common_cause_power_failure",
             "resupply_delay",
         ]),
@@ -398,24 +443,47 @@ fn transition(design: Design, spare_units_remaining: &mut u32, kind: FaultKind) 
 
 fn simulate_scenario(design: Design, scenario: &ScenarioContract) -> Check<ScenarioSimulation> {
     let mut spare_units_remaining = if design.spare_pack { 2 } else { 0 };
+    let mut service_available_at_tick = [0_u32; 4];
     let mut service_loss_ticks = 0_u32;
     let mut outcomes = Vec::with_capacity(scenario.events.len());
+    let first_event_tick = scenario
+        .events
+        .first()
+        .ok_or_else(|| format!("{}: empty event sequence", scenario.id))?
+        .at_tick;
 
     for event in &scenario.events {
+        let service = ServiceKind::for_fault(event.kind);
+        let service_slot = service.slot();
+        let repair_start_tick = event.at_tick.max(service_available_at_tick[service_slot]);
+        let queue_delay_ticks = repair_start_tick - event.at_tick;
         let spare_units_before = spare_units_remaining;
         let recovery_ticks = transition(design, &mut spare_units_remaining, event.kind);
+        let repair_end_tick = add(repair_start_tick, recovery_ticks, "repair end tick")?;
+        service_available_at_tick[service_slot] = repair_end_tick;
         service_loss_ticks = add(service_loss_ticks, recovery_ticks, "scenario service loss")?;
         outcomes.push(EventOutcome {
             at_tick: event.at_tick,
             kind: event.kind,
+            service,
+            repair_start_tick,
+            repair_end_tick,
+            queue_delay_ticks,
             spare_units_before,
             spare_units_after: spare_units_remaining,
             recovery_ticks,
         });
     }
 
+    let last_repair_end_tick = outcomes
+        .iter()
+        .map(|event| event.repair_end_tick)
+        .max()
+        .ok_or_else(|| format!("{}: no repair outcomes", scenario.id))?;
+
     Ok(ScenarioSimulation {
         service_loss_ticks,
+        recovery_elapsed_ticks: last_repair_end_tick - first_event_tick,
         events: outcomes,
         spare_units_remaining,
     })
@@ -452,28 +520,45 @@ fn evaluate_model(design: Design, contract: &Contract) -> Check<Metrics> {
         "assembly duration",
     )?;
 
-    let loss_values: Vec<u32> = contract
+    let simulations: Vec<ScenarioSimulation> = contract
         .scenarios
         .iter()
-        .map(|scenario| simulate_scenario(design, scenario).map(|result| result.service_loss_ticks))
+        .map(|scenario| simulate_scenario(design, scenario))
         .collect::<Check<Vec<_>>>()?;
+    let loss_values: Vec<u32> = simulations
+        .iter()
+        .map(|result| result.service_loss_ticks)
+        .collect();
+    let elapsed_values: Vec<u32> = simulations
+        .iter()
+        .map(|result| result.recovery_elapsed_ticks)
+        .collect();
     let scenario_loss_ticks: [u32; 5] = loss_values
         .try_into()
         .map_err(|_| "scenario count changed during metric computation".to_string())?;
+    let scenario_recovery_elapsed_ticks: [u32; 5] = elapsed_values
+        .try_into()
+        .map_err(|_| "scenario elapsed count changed during metric computation".to_string())?;
     let sum_service_loss_ticks_across_scenarios =
         sum_checked(&scenario_loss_ticks, "scenario loss sum")?;
     let worst_case_service_loss_ticks = *scenario_loss_ticks
         .iter()
         .max()
         .ok_or_else(|| "empty scenario set".to_string())?;
+    let worst_case_recovery_elapsed_ticks = *scenario_recovery_elapsed_ticks
+        .iter()
+        .max()
+        .ok_or_else(|| "empty elapsed scenario set".to_string())?;
 
     Ok(Metrics {
         launch_mass_smu,
         assembly_ticks,
         interface_families: if design.standardized_interfaces { 1 } else { 4 },
         scenario_loss_ticks,
+        scenario_recovery_elapsed_ticks,
         sum_service_loss_ticks_across_scenarios,
         worst_case_service_loss_ticks,
+        worst_case_recovery_elapsed_ticks,
         end_of_life_plan_declared: design.end_of_life_plan,
         hard_gates_pass: (!contract.end_of_life_plan_required || design.end_of_life_plan)
             && worst_case_service_loss_ticks <= contract.max_worst_case_service_loss_ticks,
@@ -482,52 +567,61 @@ fn evaluate_model(design: Design, contract: &Contract) -> Check<Metrics> {
 
 // This oracle does not call transition() or simulate_scenario(). It independently
 // recomputes the fixed event semantics and spare inventory consumption.
-fn oracle_scenario_loss(design: Design, scenario: &ScenarioContract) -> u32 {
+fn oracle_scenario_result(design: Design, scenario: &ScenarioContract) -> (u32, u32) {
+    // Deliberately separate from simulate_scenario()/transition(): duplicate the
+    // tiny domain semantics, then recompute service-local queueing from event time.
     let mut spares = if design.spare_pack { 2_u32 } else { 0_u32 };
-    let mut total = 0_u32;
+    let mut available_at = [0_u32; 4];
+    let mut service_loss = 0_u32;
+    let first_tick = scenario.events.first().map(|event| event.at_tick).unwrap_or(0);
+    let mut final_tick = first_tick;
+
     for event in &scenario.events {
-        let loss = match event.kind {
+        let (service_slot, duration) = match event.kind {
             FaultKind::RobotJointFailure => {
-                if spares == 0 {
-                    6
-                } else {
+                let duration = if spares > 0 {
                     spares -= 1;
                     2
-                }
-            }
-            FaultKind::InterfaceMismatch => {
-                if design.standardized_interfaces {
-                    1
                 } else {
-                    7
-                }
+                    6
+                };
+                (0, duration)
             }
-            FaultKind::PowerDomainFailure => {
-                if design.isolated_power_domains {
-                    1
-                } else {
-                    8
-                }
-            }
+            FaultKind::InterfaceMismatch => (
+                1,
+                if design.standardized_interfaces { 1 } else { 7 },
+            ),
+            FaultKind::PowerDomainFailure => (
+                2,
+                if design.isolated_power_domains { 1 } else { 8 },
+            ),
             FaultKind::ResupplyDelay => {
-                if spares == 0 {
-                    6
-                } else {
+                let duration = if spares > 0 {
                     spares -= 1;
                     2
-                }
-            }
-            FaultKind::CommonCausePowerFailure => {
-                if design.isolated_power_domains {
-                    3
                 } else {
-                    8
-                }
+                    6
+                };
+                (3, duration)
             }
+            FaultKind::CommonCausePowerFailure => (
+                2,
+                if design.isolated_power_domains { 3 } else { 8 },
+            ),
         };
-        total += loss;
+
+        let actual_start = if event.at_tick > available_at[service_slot] {
+            event.at_tick
+        } else {
+            available_at[service_slot]
+        };
+        let end_tick = actual_start + duration;
+        available_at[service_slot] = end_tick;
+        service_loss += duration;
+        final_tick = final_tick.max(end_tick);
     }
-    total
+
+    (service_loss, final_tick - first_tick)
 }
 
 fn oracle_metrics(design: Design, contract: &Contract) -> Metrics {
@@ -542,9 +636,16 @@ fn oracle_metrics(design: Design, contract: &Contract) -> Metrics {
         + u32::from(design.end_of_life_plan);
 
     let scenario_loss_ticks: [u32; 5] =
-        std::array::from_fn(|index| oracle_scenario_loss(design, &contract.scenarios[index]));
+        std::array::from_fn(|index| oracle_scenario_result(design, &contract.scenarios[index]).0);
+    let scenario_recovery_elapsed_ticks: [u32; 5] =
+        std::array::from_fn(|index| oracle_scenario_result(design, &contract.scenarios[index]).1);
     let sum_service_loss_ticks_across_scenarios = scenario_loss_ticks.iter().sum();
     let worst_case_service_loss_ticks = scenario_loss_ticks.iter().copied().max().unwrap_or(0);
+    let worst_case_recovery_elapsed_ticks = scenario_recovery_elapsed_ticks
+        .iter()
+        .copied()
+        .max()
+        .unwrap_or(0);
     let end_of_life_plan_declared = design.end_of_life_plan;
     let hard_gates_pass = (!contract.end_of_life_plan_required || end_of_life_plan_declared)
         && worst_case_service_loss_ticks <= contract.max_worst_case_service_loss_ticks;
@@ -554,8 +655,10 @@ fn oracle_metrics(design: Design, contract: &Contract) -> Metrics {
         assembly_ticks,
         interface_families: if design.standardized_interfaces { 1 } else { 4 },
         scenario_loss_ticks,
+        scenario_recovery_elapsed_ticks,
         sum_service_loss_ticks_across_scenarios,
         worst_case_service_loss_ticks,
+        worst_case_recovery_elapsed_ticks,
         end_of_life_plan_declared,
         hard_gates_pass,
     }
@@ -603,6 +706,7 @@ fn dominates(a: &Metrics, b: &Metrics) -> bool {
         a.launch_mass_smu,
         a.assembly_ticks,
         a.worst_case_service_loss_ticks,
+        a.worst_case_recovery_elapsed_ticks,
         a.sum_service_loss_ticks_across_scenarios,
         a.interface_families,
     ];
@@ -610,6 +714,7 @@ fn dominates(a: &Metrics, b: &Metrics) -> bool {
         b.launch_mass_smu,
         b.assembly_ticks,
         b.worst_case_service_loss_ticks,
+        b.worst_case_recovery_elapsed_ticks,
         b.sum_service_loss_ticks_across_scenarios,
         b.interface_families,
     ];
@@ -662,13 +767,16 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
     let mut candidate_reports = Vec::with_capacity(rows.len());
     for row in &rows {
         let mut scenario_reports = Vec::with_capacity(contract.scenarios.len());
-        for (scenario, expected_loss) in contract
+        for ((scenario, expected_loss), expected_elapsed) in contract
             .scenarios
             .iter()
             .zip(row.metrics.scenario_loss_ticks)
+            .zip(row.metrics.scenario_recovery_elapsed_ticks)
         {
             let simulation = simulate_scenario(row.design, scenario)?;
-            if simulation.service_loss_ticks != expected_loss {
+            if simulation.service_loss_ticks != expected_loss
+                || simulation.recovery_elapsed_ticks != expected_elapsed
+            {
                 return Err(format!("{}: event trace and metric disagree", scenario.id));
             }
             let event_trace: Vec<Value> = simulation
@@ -678,6 +786,10 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
                     json!({
                         "at_tick": event.at_tick,
                         "kind": event.kind.as_str(),
+                        "affected_service": event.service.as_str(),
+                        "repair_start_tick": event.repair_start_tick,
+                        "repair_end_tick": event.repair_end_tick,
+                        "queue_delay_ticks": event.queue_delay_ticks,
                         "spare_units_before": event.spare_units_before,
                         "spare_units_after": event.spare_units_after,
                         "recovery_ticks": event.recovery_ticks
@@ -690,6 +802,7 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
                 "disturbance": &scenario.disturbance,
                 "claim_ceiling": &scenario.claim_ceiling,
                 "service_loss_ticks": simulation.service_loss_ticks,
+                "recovery_elapsed_ticks": simulation.recovery_elapsed_ticks,
                 "spare_units_remaining": simulation.spare_units_remaining,
                 "event_trace": event_trace
             }));
@@ -707,8 +820,10 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
                 "launch_mass_smu": row.metrics.launch_mass_smu,
                 "assembly_ticks": row.metrics.assembly_ticks,
                 "interface_families": row.metrics.interface_families,
+                "scenario_recovery_elapsed_ticks": row.metrics.scenario_recovery_elapsed_ticks,
                 "sum_service_loss_ticks_across_scenarios": row.metrics.sum_service_loss_ticks_across_scenarios,
                 "worst_case_service_loss_ticks": row.metrics.worst_case_service_loss_ticks,
+                "worst_case_recovery_elapsed_ticks": row.metrics.worst_case_recovery_elapsed_ticks,
                 "end_of_life_plan_declared": row.metrics.end_of_life_plan_declared,
                 "hard_gates_pass": row.metrics.hard_gates_pass,
                 "scenario_losses": scenario_reports
@@ -739,6 +854,7 @@ fn report(source_commit: Option<&str>) -> Check<Value> {
             "launch_mass_smu": "minimize",
             "assembly_ticks": "minimize",
             "worst_case_service_loss_ticks": "minimize",
+            "worst_case_recovery_elapsed_ticks": "minimize",
             "sum_service_loss_ticks_across_scenarios": "minimize",
             "interface_families": "minimize"
         },
@@ -828,16 +944,17 @@ mod tests {
     #[test]
     fn frozen_event_sequences_are_explicit_and_ordered() {
         let contract = contract();
-        assert_eq!(contract.scenarios[4].events.len(), 3);
+        assert_eq!(contract.scenarios[4].events.len(), 4);
         assert_eq!(contract.scenarios[4].events[0].at_tick, 2);
         assert_eq!(contract.scenarios[4].events[1].at_tick, 2);
         assert_eq!(contract.scenarios[4].events[2].at_tick, 3);
+        assert_eq!(contract.scenarios[4].events[3].at_tick, 3);
     }
 
     #[test]
     fn nonmonotonic_event_time_fails_closed() {
         let mut value: Value = serde_json::from_slice(FIXTURE_BYTES).unwrap();
-        value["scenarios"][4]["events"][2]["at_tick"] = json!(1);
+        value["scenarios"][4]["events"][3]["at_tick"] = json!(1);
         assert!(parse_contract(&serde_json::to_vec(&value).unwrap()).is_err());
     }
 
@@ -917,14 +1034,38 @@ mod tests {
             end_of_life_plan: true,
         };
         let simulation = simulate_scenario(design, &contract.scenarios[4]).unwrap();
-        assert_eq!(simulation.service_loss_ticks, 7);
+        assert_eq!(simulation.service_loss_ticks, 8);
+        assert_eq!(simulation.recovery_elapsed_ticks, 4);
         assert_eq!(simulation.spare_units_remaining, 0);
         assert_eq!(simulation.events[0].spare_units_before, 2);
         assert_eq!(simulation.events[0].spare_units_after, 1);
         assert_eq!(simulation.events[1].spare_units_before, 1);
         assert_eq!(simulation.events[1].spare_units_after, 1);
         assert_eq!(simulation.events[2].spare_units_before, 1);
-        assert_eq!(simulation.events[2].spare_units_after, 0);
+        assert_eq!(simulation.events[2].spare_units_after, 1);
+        assert_eq!(simulation.events[3].spare_units_before, 1);
+        assert_eq!(simulation.events[3].spare_units_after, 0);
+    }
+
+    #[test]
+    fn repeated_shared_power_fault_waits_for_prior_recovery() {
+        let contract = contract();
+        let shared_power = Design {
+            standardized_interfaces: true,
+            isolated_power_domains: false,
+            spare_pack: true,
+            end_of_life_plan: true,
+        };
+        let simulation = simulate_scenario(shared_power, &contract.scenarios[4]).unwrap();
+        assert_eq!(simulation.events[1].repair_start_tick, 2);
+        assert_eq!(simulation.events[1].repair_end_tick, 10);
+        assert_eq!(simulation.events[2].at_tick, 3);
+        assert_eq!(simulation.events[2].repair_start_tick, 10);
+        assert_eq!(simulation.events[2].queue_delay_ticks, 7);
+        assert_eq!(simulation.events[2].repair_end_tick, 18);
+        assert_eq!(simulation.service_loss_ticks, 20);
+        assert_eq!(simulation.recovery_elapsed_ticks, 16);
+        assert!(!evaluate_model(shared_power, &contract).unwrap().hard_gates_pass);
     }
 
     #[test]
@@ -945,10 +1086,10 @@ mod tests {
             rows.iter()
                 .filter(|row| row.metrics.hard_gates_pass)
                 .count(),
-            4
+            2
         );
         let frontier = pareto_frontier(&rows);
-        assert_eq!(frontier.len(), 4);
+        assert_eq!(frontier.len(), 2);
         assert!(
             frontier
                 .iter()
