@@ -84,23 +84,27 @@ fn run_inspect(path: &str) {
             process::exit(1);
         }
     };
-    let baseline_values = match graph.evaluate() {
-        Ok(values) => values,
-        Err(error) => {
-            eprintln!("experiment graph cannot be evaluated: {error}");
-            process::exit(1);
-        }
+    let baseline_evaluation = match graph.evaluate() {
+        Ok(values) => serde_json::json!({
+            "executed": true,
+            "values": values,
+            "error": null
+        }),
+        Err(error) => serde_json::json!({
+            "executed": false,
+            "values": null,
+            "error": error
+        }),
     };
     print_json(
         serde_json::json!({
             "valid": true,
-            "executed": true,
             "kind": "renderer_neutral_visual_math_projection",
             "projection": projection,
-            "baseline_values": baseline_values,
-            "interpretation_warning": "Formula labels are derived from the executable operator graph. The projection preserves semantic IDs and evidence references but does not prove that equations are scientifically or historically correct."
+            "baseline_evaluation": baseline_evaluation,
+            "interpretation_warning": "Formula labels are derived from the executable operator graph. The projection preserves semantic IDs and evidence references but does not prove that equations are scientifically or historically correct. An incomplete model can still be inspected when its baseline evaluation fails."
         }),
-        "{\"valid\":true,\"executed\":false,\"error\":\"failed to serialize visual projection\"}",
+        "{\"valid\":true,\"error\":\"failed to serialize visual projection\"}",
     );
 }
 
