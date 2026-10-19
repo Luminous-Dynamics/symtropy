@@ -17,7 +17,7 @@ The design system's goal is not to normalize architecture into one approved styl
 - **Accessible teleport:** user selects and confirms each stop. A timer must never silently teleport the person.
 - **Head-tracked VR:** optional XR runtime applies headset pose to an explicit review origin. The route-data enum in this prototype does not implement OpenXR/WebXR, headset I/O, stereoscopic rendering, motion safety, or device support.
 
-The architectural_review module provides validated route metadata, deterministic pose sampling, a Bevy playback component/system, waypoint pose extraction, a user-controlled floating camera, typed revision-pinned review annotations, and a comfort profile pinned into review-session schema v2. Routes start paused by default; autoplay requires an explicit opt-in profile. The default profile slows the route, uses a reduced free-camera speed, disables fast-movement boost and vertical flight, and preserves static-plan review as an option. This is an initial local walkthrough primitive, not a full architectural authoring tool or production model viewer. It does not import IFC or glTF, test collisions, simulate daylight/energy/acoustics, or certify clearance.
+The architectural_review module provides validated route metadata, deterministic pose sampling, a Bevy playback component/system, waypoint pose extraction, a user-controlled floating camera, typed revision-pinned review annotations, a comfort profile, a jurisdiction-rule snapshot reference, and a model representation context pinned into review-session schema v3. Routes start paused by default; autoplay requires an explicit opt-in profile. The default profile slows the route, uses a reduced free-camera speed, disables fast-movement boost and vertical flight, and preserves static-plan review as an option. This is an initial local walkthrough primitive, not a full architectural authoring tool or production model viewer. It does not import IFC or glTF, test collisions, simulate daylight/energy/acoustics, or certify clearance.
 
 ## Occupant agency and comfort
 
@@ -72,6 +72,10 @@ The `OccupantReviewFeedback` contract stores the user's own category, priority, 
 This creates a learning loop: experience a design → record a location- and revision-specific reaction → create a traceable design change → invalidate dependent calculations/route evidence → review the revised design. None of these steps automatically changes binding rules or declares compliance.
 
 ## Version and provenance
+
+Review-session schema v3 records the model's declared source kind and format, fidelity label, source linear unit, coordinate-frame ID, and a non-empty list of known limitations. Fidelity labels are provenance claims, not proof of geometry accuracy: a `SurveyedAsBuiltGeometry` label requires a `SurveyedCapture` source type, but surveyed accuracy still needs independent evidence. A purely synthetic design can be explored without being labelled a measured house. The route API normalizes camera path coordinates to metres; `scale_point_to_review_metres` performs only unit scaling and rejects non-finite/overflow values. It does not transform axes, origins, handedness, or geographic datum; those remain explicit import-adapter responsibilities.
+
+When the session shows binding-rule, binding-conflict, or required-evidence annotations, it also requires a `ReviewJurisdictionContext` that pins the jurisdiction profile and exact composed-rule artifact/digest. Creative exploration can omit legal context, but then cannot present those legal overlays. All digests in this viewer are syntax/manifest metadata until a trusted artifact store verifies actual bytes and the jurisdiction adapter validates legal applicability.
 
 Each review route, session manifest, and capture should reference:
 - immutable design revision ID;
