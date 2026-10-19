@@ -51,15 +51,35 @@ fn aggregation_graph_has_cycle(
         _ => {}
     }
 
-    state.insert(node.to_owned(), 1);
-    if let Some(children) = adjacency.get(node) {
-        for child in children {
-            if aggregation_graph_has_cycle(child, adjacency, state) {
-                return true;
+    // Use an explicit enter/exit stack instead of recursive DFS. The input
+    // schema intentionally has no arbitrary hierarchy-size ceiling, so a
+    // deeply nested but finite graph must not be able to exhaust the process
+    // stack before the audit can return a controlled result.
+    let mut pending = vec![(node.to_owned(), false)];
+    while let Some((current, exiting)) = pending.pop() {
+        if exiting {
+            state.insert(current, 2);
+            continue;
+        }
+
+        match state.get(&current).copied() {
+            Some(1) => return true,
+            Some(2) => continue,
+            _ => {}
+        }
+
+        state.insert(current.clone(), 1);
+        pending.push((current.clone(), true));
+        if let Some(children) = adjacency.get(&current) {
+            for child in children.iter().rev() {
+                match state.get(child).copied() {
+                    Some(1) => return true,
+                    Some(2) => {}
+                    _ => pending.push((child.clone(), false)),
+                }
             }
         }
     }
-    state.insert(node.to_owned(), 2);
     false
 }
 
@@ -706,6 +726,41 @@ mod tests {
             errors
                 .iter()
                 .any(|error| error.contains("aggregation constraint graph contains a cycle"))
+        );
+    }
+
+    #[test]
+    fn cycle_detection_handles_deep_acyclic_and_cyclic_graphs_without_recursion() {
+        const NODE_COUNT: usize = 20_000;
+        let node_id = |index: usize| format!("node-{index:05}");
+        let mut adjacency = BTreeMap::<String, BTreeSet<String>>::new();
+        for index in 0..NODE_COUNT - 1 {
+            adjacency.insert(
+                node_id(index),
+                BTreeSet::from([node_id(index + 1)]),
+            );
+        }
+        adjacency.insert(node_id(NODE_COUNT - 1), BTreeSet::new());
+
+        let mut acyclic_state = BTreeMap::new();
+        assert!(
+            !aggregation_graph_has_cycle(&node_id(0), &adjacency, &mut acyclic_state),
+            "a deep acyclic chain must remain acyclic"
+        );
+        assert_eq!(acyclic_state.len(), NODE_COUNT);
+        assert!(
+            acyclic_state.values().all(|state| *state == 2),
+            "every completed node should be marked fully explored"
+        );
+
+        adjacency
+            .get_mut(&node_id(NODE_COUNT - 1))
+            .expect("last node exists")
+            .insert(node_id(0));
+        let mut cyclic_state = BTreeMap::new();
+        assert!(
+            aggregation_graph_has_cycle(&node_id(0), &adjacency, &mut cyclic_state),
+            "a back-edge from the last node to the root must be detected"
         );
     }
 
