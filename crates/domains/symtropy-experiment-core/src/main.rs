@@ -1,20 +1,17 @@
 // Copyright (C) 2026 Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::{env, fs, process};
+use std::{collections::BTreeMap, env, fs, process};
 use symtropy_experiment_core::ExperimentGraph;
 
 fn usage() -> ! {
-    eprintln!("usage: symtropy-experiment-run <experiment.json>");
+    eprintln!(
+        "usage:\n  symtropy-experiment-run <experiment.json>\n  symtropy-experiment-run sweep <experiment.json> <variable-id> <comma-separated-values>"
+    );
     process::exit(2);
 }
 
-fn main() {
-    let args: Vec<String> = env::args().skip(1).collect();
-    let [path] = args.as_slice() else {
-        usage();
-    };
-
+fn load_graph(path: &str) -> ExperimentGraph {
     let raw = match fs::read_to_string(path) {
         Ok(content) => content,
         Err(error) => {
@@ -23,32 +20,44 @@ fn main() {
         }
     };
 
-    let graph: ExperimentGraph = match serde_json::from_str(&raw) {
+    match serde_json::from_str(&raw) {
         Ok(graph) => graph,
         Err(error) => {
             eprintln!("invalid experiment JSON in '{path}': {error}");
             process::exit(2);
         }
-    };
+    }
+}
 
+fn print_json(value: serde_json::Value, fallback: &str) {
+    match serde_json::to_string_pretty(&value) {
+        Ok(json) => println!("{json}"),
+        Err(error) => {
+            eprintln!("{error}");
+            println!("{fallback}");
+            process::exit(2);
+        }
+    }
+}
+
+fn run_once(path: &str) {
+    let graph = load_graph(path);
     let report = graph.validate();
     if !report.is_valid() {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
+        print_json(
+            serde_json::json!({
                 "valid": false,
                 "experiment_id": graph.id,
                 "issues": report.issues,
-            }))
-            .unwrap_or_else(|_| "{\"valid\":false,\"error\":\"failed to serialize report\"}".to_owned())
+            }),
+            "{\"valid\":false,\"error\":\"failed to serialize validation report\"}",
         );
         process::exit(1);
     }
 
     match graph.evaluate() {
-        Ok(values) => println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
+        Ok(values) => print_json(
+            serde_json::json!({
                 "valid": true,
                 "executed": true,
                 "kind": "acyclic_arithmetic_reference_interpreter",
@@ -56,12 +65,54 @@ fn main() {
                 "experiment_id": graph.id,
                 "values": values,
                 "limitations": graph.limitations,
-            }))
-            .unwrap_or_else(|_| "{\"valid\":true,\"executed\":false,\"error\":\"failed to serialize report\"}".to_owned())
+            }),
+            "{\"valid\":true,\"executed\":false,\"error\":\"failed to serialize report\"}",
         ),
         Err(error) => {
             eprintln!("experiment graph could not be evaluated: {error}");
             process::exit(1);
         }
+    }
+}
+
+fn run_sweep(path: &str, variable_id: &str, values_csv: &str) {
+    let graph = load_graph(path);
+    let values: Vec<String> = values_csv.split(',').map(str::trim).map(str::to_owned).collect();
+    if values.iter().any(String::is_empty) {
+        eprintln!("sweep values must be non-empty comma-separated finite numbers");
+        process::exit(2);
+    }
+
+    match graph.run_parameter_sweep(variable_id, &values) {
+        Ok(points) => print_json(
+            serde_json::json!({
+                "valid": true,
+                "executed": true,
+                "kind": "deterministic_one_parameter_sweep",
+                "schema_version": graph.schema_version,
+                "experiment_id": graph.id,
+                "swept_variable_id": variable_id,
+                "point_count": points.len(),
+                "points": points,
+                "limitations": graph.limitations,
+                "interpretation_warning": "This is a deterministic scenario sweep, not a probabilistic uncertainty interval or global sensitivity analysis."
+            }),
+            "{\"valid\":true,\"executed\":false,\"error\":\"failed to serialize sweep report\"}",
+        ),
+        Err(error) => {
+            eprintln!("experiment sweep could not be executed: {error}");
+            process::exit(1);
+        }
+    }
+}
+
+fn main() {
+    let args: Vec<String> = env::args().skip(1).collect();
+    match args.as_slice() {
+        [path] => run_once(path),
+        [mode, path, variable_id, values_csv] if mode == "sweep" => {
+            run_sweep(path, variable_id, values_csv)
+        }
+        _ => usage(),
     }
 }
