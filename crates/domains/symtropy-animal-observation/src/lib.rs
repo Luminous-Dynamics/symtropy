@@ -279,6 +279,7 @@ pub enum ManifestReason {
     MissingLocationPrivacyPolicy,
     MissingLocationResolution,
     GranularLocationPrivacyViolation,
+    MissingWithinSubjectContinuity,
     InvalidTemporalGap,
 }
 
@@ -436,6 +437,56 @@ pub fn validate_split(
                     group_key: group_key.clone(),
                     roles: roles.iter().copied().collect(),
                 });
+            }
+        }
+    }
+
+    if target == GeneralizationTarget::WithinSubjectInterpolation {
+        let mut windows = BTreeMap::<(String, String, String), Vec<&SplitRecord>>::new();
+        for record in records {
+            windows
+                .entry((
+                    record.study_id.clone(),
+                    record.subject_id.clone(),
+                    record.track_id.clone(),
+                ))
+                .or_default()
+                .push(record);
+        }
+        for ((study_id, subject_id, track_id), group) in &mut windows {
+            group.sort_by(|left, right| {
+                left.start_time
+                    .cmp(&right.start_time)
+                    .then_with(|| left.end_time.cmp(&right.end_time))
+                    .then_with(|| left.record_id.cmp(&right.record_id))
+            });
+            let mut maximum_end_by_role = BTreeMap::<SplitRole, i64>::new();
+            for record in group.iter() {
+                for other_role in [
+                    SplitRole::Training,
+                    SplitRole::Validation,
+                    SplitRole::Test,
+                ] {
+                    if other_role != record.role
+                        && maximum_end_by_role
+                            .get(&other_role)
+                            .is_some_and(|end| *end >= record.start_time)
+                    {
+                        let roles = [other_role, record.role].into_iter().collect::<BTreeSet<_>>();
+                        violations.insert(LeakageViolation {
+                            reason: ManifestReason::TemporalLeakage,
+                            group_key: format!(
+                                "window:{study_id}:{subject_id}:{track_id}:{}",
+                                record.record_id
+                            ),
+                            roles: roles.into_iter().collect(),
+                        });
+                    }
+                }
+                maximum_end_by_role
+                    .entry(record.role)
+                    .and_modify(|maximum| *maximum = (*maximum).max(record.end_time))
+                    .or_insert(record.end_time);
             }
         }
     }
@@ -712,6 +763,23 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
             indeterminate.insert(ManifestReason::MissingRequiredSite);
         }
 
+    }
+
+    if manifest.generalization == GeneralizationTarget::WithinSubjectInterpolation {
+        let mut identity_roles = BTreeMap::<(String, String, String), BTreeSet<SplitRole>>::new();
+        for record in &manifest.records {
+            identity_roles
+                .entry((
+                    record.study_id.clone(),
+                    record.subject_id.clone(),
+                    record.track_id.clone(),
+                ))
+                .or_default()
+                .insert(record.role);
+        }
+        if !identity_roles.values().any(|roles| roles.len() > 1) {
+            indeterminate.insert(ManifestReason::MissingWithinSubjectContinuity);
+        }
     }
 
     let split_report = validate_split(
