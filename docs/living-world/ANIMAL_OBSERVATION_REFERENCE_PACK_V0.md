@@ -44,6 +44,18 @@ The published AP-10K benchmark reports 10,015 images with annotated keypoints sp
 
 The repository's code license and the dataset/annotation/image rights must be checked independently; a public GitHub repository or paper citation does not by itself establish all downstream rights.
 
+### VastMAT multi-animal tracking (preprint dated 2026-09-28)
+
+Preprint: https://arxiv.org/abs/2609.34390
+
+The paper reports 2,947 videos, 1,002,562 annotated frames, 337 animal categories, and 22,883 identity trajectories. Its proposed protocol distinguishes seen categories from category-disjoint unseen categories; the reported strongest baseline HOTA score is 66.37 for seen categories and 52.90 for unseen categories.
+
+This is a particularly relevant **benchmark-protocol candidate** for broad animal visual tracking because it makes unseen-category transfer a first-class evaluation split. However, the preprint says benchmark/code release is planned; the exact public artifact, release revision, data license, source-video permissions, and redistribution/training rights must be located and reviewed before payload ingestion. Do not mark the dataset as available or licensed merely from the paper.
+
+For Symtropy, a compatible adapter could evaluate multi-animal identity association, ID switches, track fragmentation, HOTA/related metrics, and per-category failure/uncertainty on seen and taxon/category-disjoint splits. Keep grouping by original video/recording and derived-frame lineage to prevent leakage.
+
+**Claim ceiling:** bounding boxes/identity trajectories support a declared visual tracking task. They do not by themselves validate pose accuracy, joint mechanics, contact forces, physiology, causal behavior, social cognition, or ecological population truth. The 337 categories are benchmark labels, not proof that the underlying animal kingdom is comprehensively represented.
+
 ### NeuroMechFly v2 / FlyGym
 
 Paper: https://www.nature.com/articles/s41592-024-02497-y
@@ -54,6 +66,10 @@ This is a valuable narrow reference for adult Drosophila sensorimotor control, b
 Rust production code may consume licensed, normalized reference fixtures/manifests; it must not make the research project's Python API a production dependency merely because the reference system uses Python.
 
 ### Movebank Data Repository
+
+The broader Movebank platform reports a different and much larger scope from its curated Data Repository: its official overview, checked 2026-10-19, reports 11.8 billion animal locations, 9.5 billion animal-borne sensor measurements, 10,192 studies, and 1,712 taxa as of September 2026 (https://www.movebank.org/cms/movebank-content/about-movebank). Keep these platform-wide counts separate from any count for the curated Data Repository subset; they have different inclusion criteria and must not be compared as if they described the same collection.
+
+
 
 Official repository: https://www.movebank.org/cms/movebank-content/data-repository
 Official policy: https://www.movebank.org/cms/movebank-content/data-policy
