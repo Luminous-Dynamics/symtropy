@@ -222,7 +222,6 @@ fn negative_control_mutations_are_detected() {
     }
 }
 
-
 #[test]
 fn deterministic_edge_grid_preserves_dissipation_sign() {
     // A deterministic property-style sweep broadens the hand-authored corpus
@@ -251,8 +250,7 @@ fn deterministic_edge_grid_preserves_dissipation_sign() {
                 }
                 if conductance == 0.0 || a == b {
                     assert_eq!(
-                        contribution,
-                        0.0,
+                        contribution, 0.0,
                         "zero-conductance or equal-state edge must dissipate zero"
                     );
                 }
@@ -263,7 +261,6 @@ fn deterministic_edge_grid_preserves_dissipation_sign() {
 
     assert_eq!(checked, 405, "unexpected deterministic property-grid size");
 }
-
 
 #[test]
 fn hostile_edge_and_non_finite_mutations_fail_closed() {
