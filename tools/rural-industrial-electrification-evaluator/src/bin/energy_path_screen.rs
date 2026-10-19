@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{env, fs, process};
+use std::{collections::BTreeSet, env, fs, process};
 
 const CLAIM_CEILING: &str = "Declared-path accounting screen only; not a reactor model, grid study, thermal-hydraulic qualification, electromagnetic safety assessment, or physical fleet result.";
 
@@ -68,8 +68,8 @@ struct PathResult {
     source_energy_kwh: f64,
     delivered_power_kw: f64,
     delivered_energy_kwh: f64,
-    total_source_to_load_loss_kw: f64,
-    total_source_to_load_loss_kwh: f64,
+    source_power_not_delivered_kw: f64,
+    source_power_not_delivered_kwh: f64,
     stages: Vec<StageResult>,
     findings: Vec<String>,
     claim_ceiling: &'static str,
@@ -107,6 +107,14 @@ fn main() {
     if benchmark.schema_version != "0.1.0" {
         eprintln!("unsupported schema_version: {}", benchmark.schema_version);
         process::exit(2);
+    }
+
+    let mut seen_ids = BTreeSet::new();
+    for scenario in &benchmark.scenarios {
+        if !seen_ids.insert(scenario.scenario_id.clone()) {
+            eprintln!("duplicate scenario_id: {}", scenario.scenario_id);
+            process::exit(2);
+        }
     }
 
     let mut results: Vec<PathResult> = benchmark.scenarios.iter().map(evaluate).collect();
@@ -201,8 +209,8 @@ fn evaluate(path: &EnergyPath) -> PathResult {
         source_energy_kwh: source_energy,
         delivered_power_kw: current_power,
         delivered_energy_kwh: delivered_energy,
-        total_source_to_load_loss_kw: total_loss_power,
-        total_source_to_load_loss_kwh: total_loss_energy,
+        source_power_not_delivered_kw: total_loss_power,
+        source_power_not_delivered_kwh: total_loss_energy,
         stages: stage_results,
         findings,
         claim_ceiling: CLAIM_CEILING,
@@ -285,8 +293,8 @@ fn empty_result(path: &EnergyPath, status: Status, findings: Vec<String>) -> Pat
         source_energy_kwh: path.source_available_kw * path.operation_hours,
         delivered_power_kw: 0.0,
         delivered_energy_kwh: 0.0,
-        total_source_to_load_loss_kw: 0.0,
-        total_source_to_load_loss_kwh: 0.0,
+        source_power_not_delivered_kw: 0.0,
+        source_power_not_delivered_kwh: 0.0,
         stages: Vec::new(),
         findings,
         claim_ceiling: CLAIM_CEILING,
@@ -332,7 +340,7 @@ mod tests {
         // 1000 * 0.98 = 980, limited to 950; 950 * 0.95 = 902.5 kW.
         assert_eq!(result.status, Status::FeasibleUnderDeclaredScreen);
         assert!((result.delivered_power_kw - 902.5).abs() < 1e-9);
-        assert!((result.total_source_to_load_loss_kw - 97.5).abs() < 1e-9);
+        assert!((result.source_power_not_delivered_kw - 97.5).abs() < 1e-9);
         assert!((result.delivered_energy_kwh - 1_805.0).abs() < 1e-9);
         assert!((result.stages[0].capacity_curtailed_kw - 30.0).abs() < 1e-9);
     }
