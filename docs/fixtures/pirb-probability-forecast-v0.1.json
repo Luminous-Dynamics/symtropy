@@ -252,5 +252,6 @@
       "outcome": "unknown",
       "outcome_available_month": null
     }
-  ]
+  ],
+  "lead_months": 1
 }
