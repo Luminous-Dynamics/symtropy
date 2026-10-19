@@ -10,6 +10,8 @@
 //! All quantities use explicitly named SI-derived units in field names.
 //! Synthetic fixtures are not empirical mine measurements.
 
+pub mod cascade;
+
 use std::fmt;
 
 /// Evidence must be current, applicable and qualified before it supports an
