@@ -168,5 +168,7 @@ cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin ve
   --report-json crates/domains/symtropy-garden-sim/target/field-report-receipt.v1.json
 ```
 
-The receipt binds the assessment to the exact input bytes with SHA-256 and emits exact integer lower/upper identification bounds. `Blocked` means the counts or declared references do not satisfy the report contract; `NotAssessable` means no eligible request is present and no attainment rate is emitted. Neither state is evidence that a farmer did or did not receive a service. The verifier does not authenticate source records, estimate a confidence interval, or prove causality.
+The receipt binds the assessment to the exact input bytes with SHA-256 and emits exact integer lower/upper identification bounds.
+
+**Synthetic example interpretation (not field data):** the committed fixture has 12 screened requests, 10 eligible and 2 protocol exclusions. The eligible outcomes partition as 4 accepted within window, 1 accepted late, 2 known not accepted, 1 disputed/rework, 1 unknown and 1 follow-up missing. Thus the evidence-confirmed rate is bounded from below by `4/10` and from above by `6/10`; the 2 uncertain cases do not disappear, and the late/disputed cases do not inflate the upper bound. This is only a checker fixture, not a measured service-access result. `Blocked` means the counts or declared references do not satisfy the report contract; `NotAssessable` means no eligible request is present and no attainment rate is emitted. Neither state is evidence that a farmer did or did not receive a service. The verifier does not authenticate source records, estimate a confidence interval, or prove causality.
 
