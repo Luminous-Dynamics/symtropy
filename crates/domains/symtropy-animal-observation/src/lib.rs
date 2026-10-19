@@ -696,7 +696,7 @@ pub fn validate_manifest(manifest: &ReferencePackManifest) -> ManifestAssessment
         }
         if record.taxon_id.trim().is_empty() {
             rejected.insert(ManifestReason::EmptyRecordTaxon);
-        } else if !declared_taxa.contains(&record.taxon_id) {
+        } else if !declared_taxa.is_empty() && !declared_taxa.contains(&record.taxon_id) {
             indeterminate.insert(ManifestReason::RecordTaxonMismatch);
         }
         if record.start_time > record.end_time {
