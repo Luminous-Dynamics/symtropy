@@ -7,6 +7,12 @@ on:
       - "docs/schemas/pirb-probability-forecast-v0.1.schema.json"
       - "docs/fixtures/pirb-probability-forecast-v0.1.json"
       - "docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json"
+      - "docs/fixtures/views-import-manifest-synthetic-v0.1.json"
+      - "docs/fixtures/views-outcomes-synthetic-v0.1.json"
+      - "docs/fixtures/views-spatial-block-map-synthetic-v0.1.json"
+      - "docs/fixtures/views-codebook-synthetic-v0.1.json"
+      - "docs/fixtures/views-api-response-synthetic-*.json"
+      - "docs/schemas/pirb-views-offline-import-v0.1.schema.json"
       - "docs/tech/PIRB_PROBABILITY_FORECAST_EVALUATION_V0_1.md"
       - "tools/pirb-probability-forecast-eval/**"
       - ".github/workflows/pirb-probability-forecast-audit.yml"
@@ -137,6 +143,74 @@ jobs:
           expected_manifest_sha="$(printf '["%s","%s"]' "$expected_input_sha" "$expected_alternate_sha" | sha256sum | awk '{print $1}')"
           cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-outcome-vintage-sensitivity -- --input "$input" --input "$alternate" --source-commit "$source_commit" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)" > pirb-outcome-vintage-sensitivity-receipt.json
           jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_input_sha" --arg alternate_sha "$expected_alternate_sha" --arg manifest_sha "$expected_manifest_sha" --arg lock_sha "$expected_lock_sha" '.result == "pass" and .evaluator == "PIRB outcome-vintage sensitivity comparison" and .source_commit == $source_commit and .source_commit_sha_valid == true and .dependency_lock_sha256 == $lock_sha and .input_manifest_sha256 == $manifest_sha and .vintages[0].input_sha256 == $input_sha and .vintages[1].input_sha256 == $alternate_sha and .same_forecast_inventory_verified == true and .forecast_record_count == 18 and .vintage_count == 2 and .forecast_archive_sha256 == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" and .vintages[0].outcome_release_sha256 == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" and .vintages[1].outcome_release_sha256 == "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" and .vintages[0].changed_test_labels_vs_reference == 0 and .vintages[1].changed_test_labels_vs_reference == 1 and .vintages[0].test_event_count == 2 and .vintages[1].test_event_count == 1 and .causal_effect_estimated == false and .live_decision_authority == false' pirb-outcome-vintage-sensitivity-receipt.json
+
+      - name: Import frozen VIEWS-shaped synthetic archive and score normalized output
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          manifest="docs/fixtures/views-import-manifest-synthetic-v0.1.json"
+          outcomes="docs/fixtures/views-outcomes-synthetic-v0.1.json"
+          block_map="docs/fixtures/views-spatial-block-map-synthetic-v0.1.json"
+          codebook="docs/fixtures/views-codebook-synthetic-v0.1.json"
+          expected_manifest_sha="$(sha256sum "$manifest" | awk '{print $1}')"
+          expected_outcomes_sha="$(sha256sum "$outcomes" | awk '{print $1}')"
+          expected_block_map_sha="$(sha256sum "$block_map" | awk '{print $1}')"
+          expected_codebook_sha="$(sha256sum "$codebook" | awk '{print $1}')"
+          expected_lock_sha="$(sha256sum tools/pirb-probability-forecast-eval/Cargo.lock | awk '{print $1}')"
+          expected_pages="$(printf '%s\n' \
+            docs/fixtures/views-api-response-synthetic-2020-03.json \
+            docs/fixtures/views-api-response-synthetic-2020-04.json \
+            docs/fixtures/views-api-response-synthetic-2020-05.json \
+            docs/fixtures/views-api-response-synthetic-2020-07.json \
+            docs/fixtures/views-api-response-synthetic-2020-08.json \
+            docs/fixtures/views-api-response-synthetic-2020-10.json \
+            docs/fixtures/views-api-response-synthetic-2020-11.json \
+            | while IFS= read -r path; do sha256sum "$path" | awk '{print $1}'; done \
+            | jq -R . | jq -s .)"
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-views-offline-adapter -- \
+            --manifest "$manifest" --outcomes "$outcomes" --block-map "$block_map" \
+            --output pirb-views-normalized.json --receipt pirb-views-import-receipt.json \
+            --source-commit "$source_commit" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
+
+          jq -e --arg source_commit "$source_commit" --arg manifest_sha "$expected_manifest_sha" \
+            --arg outcomes_sha "$expected_outcomes_sha" --arg block_map_sha "$expected_block_map_sha" \
+            --arg codebook_sha "$expected_codebook_sha" --arg lock_sha "$expected_lock_sha" \
+            --argjson expected_pages "$expected_pages" \
+            '
+              .result == "pass"
+              and .evaluator == "PIRB frozen VIEWS offline importer"
+              and .source_commit == $source_commit
+              and .source_commit_sha_valid == true
+              and .dependency_lock_sha256 == $lock_sha
+              and .manifest_sha256 == $manifest_sha
+              and .outcome_snapshot_sha256 == $outcomes_sha
+              and .spatial_block_map_sha256 == $block_map_sha
+              and .forecast_record_count == 28
+              and .release_count == 7
+              and .unit_count == 4
+              and .unknown_outcome_count == 1
+              and .analysis_unit == "country_month"
+              and .lead_months == 1
+              and .forecast_variable == "sc_cm_sb_dich_main"
+              and .codebook_variable_key == "main_dich"
+              and .partition == "eval"
+              and ([.releases[].response_page_sha256[]] == $expected_pages)
+              and ([.releases[].codebook_sha256] | all(. == $codebook_sha))
+              and .normalized_dataset_sha256 != ""
+            ' pirb-views-import-receipt.json
+
+          expected_normalized_sha="$(sha256sum pirb-views-normalized.json | awk '{print $1}')"
+          jq -e --arg dataset_sha "$expected_normalized_sha" \
+            '.dataset_id == "pirb-probability-views-offline-synthetic" and .schema_version == "0.1" and .evidence_class == "synthetic" and .source.forecast_archive_sha256 != "" and .source.outcome_release_sha256 != "" and .records | length == 28' \
+            pirb-views-normalized.json
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-probability-forecast-eval -- \
+            --input pirb-views-normalized.json --source-commit "$source_commit" \
+            --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)" \
+            > pirb-views-score-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_normalized_sha" \
+            '.result == "pass" and .source_commit == $source_commit and .input_sha256 == $input_sha and .evidence_class == "synthetic" and .forecast_record_count == 28 and .metrics.training.forecast_count == 12 and .metrics.calibration.forecast_count == 8 and .metrics.test.forecast_count == 8 and .metrics.test.unknown_outcome_count == 1 and .test_uncertainty.status == "not_estimable" and .causal_effect_estimated == false and .live_decision_authority == false' \
+            pirb-views-score-receipt.json
 
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
