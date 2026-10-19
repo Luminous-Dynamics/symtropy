@@ -257,7 +257,9 @@
       "mutation": "invalid_overall_stratum_id",
       "expected_disposition": "reject",
       "expected_reason_codes": [
-        "invalid_overall_stratum_id"
+        "invalid_overall_stratum_id",
+        "missing_baseline_comparison",
+        "baseline_comparison_stratum_mismatch"
       ],
       "expected_threshold_outcome": "not_assessed",
       "expected_baseline_comparison_outcomes": [
@@ -269,7 +271,8 @@
       "mutation": "taxon_stratum_unbound",
       "expected_disposition": "reject",
       "expected_reason_codes": [
-        "taxon_stratum_unbound"
+        "taxon_stratum_unbound",
+        "missing_baseline_comparison"
       ],
       "expected_threshold_outcome": "not_assessed",
       "expected_baseline_comparison_outcomes": [
@@ -398,7 +401,8 @@
       "mutation": "baseline_unit_mismatch",
       "expected_disposition": "reject",
       "expected_reason_codes": [
-        "baseline_unit_mismatch"
+        "baseline_unit_mismatch",
+        "baseline_comparison_unit_mismatch"
       ],
       "expected_threshold_outcome": "not_assessed",
       "expected_baseline_comparison_outcomes": [
