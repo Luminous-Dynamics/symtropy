@@ -556,8 +556,7 @@ pub fn extract_spectrum_plot_points(
         }
         let normalized_wavelength =
             ((bin.wavelength_m - settings.wavelength_band.min_wavelength_m) / band_width) as f32;
-        let normalized_radiance =
-            settings.radiance_range.normalize(bin.spectral_radiance) as f32;
+        let normalized_radiance = settings.radiance_range.normalize(bin.spectral_radiance) as f32;
         let x = settings.origin_offset_world_units[0]
             + normalized_wavelength * settings.plot_width_world_units;
         let y = settings.origin_offset_world_units[1]
@@ -573,7 +572,9 @@ pub fn extract_spectrum_plot_points(
             spectral_radiance: bin.spectral_radiance,
             normalized_wavelength,
             normalized_radiance,
-            color: settings.color_map.map_normalized(normalized_radiance as f64),
+            color: settings
+                .color_map
+                .map_normalized(normalized_radiance as f64),
         });
     }
     if points.len() < 2 {
@@ -593,13 +594,18 @@ fn validate_spectrum_plot_settings(settings: &SpectrumPlotSettings) -> Result<()
     if settings.coordinate_frame.trim().is_empty() {
         return Err("spectrum plot coordinate frame must not be empty".to_owned());
     }
-    if settings.origin_offset_world_units.iter().any(|value| !value.is_finite())
+    if settings
+        .origin_offset_world_units
+        .iter()
+        .any(|value| !value.is_finite())
         || !settings.plot_width_world_units.is_finite()
         || settings.plot_width_world_units <= 0.0
         || !settings.plot_height_world_units.is_finite()
         || settings.plot_height_world_units <= 0.0
     {
-        return Err("spectrum plot geometry must be finite and have positive dimensions".to_owned());
+        return Err(
+            "spectrum plot geometry must be finite and have positive dimensions".to_owned(),
+        );
     }
     if settings.radiance_unit != FieldUnit::WattPerSquareMeterSteradianPerNanometer
         && settings.radiance_unit != FieldUnit::WattPerSquareMeterSteradianPerMeter
@@ -1094,7 +1100,6 @@ fn project_world_position(position: [f64; 3]) -> Result<[f32; 3], String> {
     Ok(projected)
 }
 
-
 /// Optional read-only renderer. Input layers are producer-supplied observations;
 /// the plugin never simulates or modifies their values.
 pub struct FieldVisualizationPlugin;
@@ -1219,7 +1224,9 @@ fn draw_spectrum_plots(gizmos: &mut Gizmos, layers: &FieldLayerSet) {
     let max_bins_per_profile = settings
         .max_bins_per_profile
         .min(MAX_SPECTRUM_BINS_PER_RENDERED_PROFILE);
-    let total_budget = settings.max_bins_total.min(MAX_SPECTRUM_BINS_RENDERED_TOTAL);
+    let total_budget = settings
+        .max_bins_total
+        .min(MAX_SPECTRUM_BINS_RENDERED_TOTAL);
     if max_profiles == 0 || max_bins_per_profile < 2 || total_budget < 2 {
         return;
     }
@@ -1500,12 +1507,8 @@ mod tests {
     #[test]
     fn spectrum_plot_maps_wavelength_and_radiance_to_fixed_axes() {
         let profile = spectrum_profile();
-        let points = extract_spectrum_plot_points(
-            &profile,
-            &test_spectrum_plot_settings(),
-            1_024,
-        )
-        .expect("valid spectrum should plot");
+        let points = extract_spectrum_plot_points(&profile, &test_spectrum_plot_settings(), 1_024)
+            .expect("valid spectrum should plot");
         assert_eq!(points.len(), 3);
         assert!((points[0].normalized_wavelength - 0.0625).abs() < 1e-6);
         assert!((points[0].normalized_radiance - 0.4).abs() < 1e-6);
