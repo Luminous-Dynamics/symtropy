@@ -100,28 +100,28 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         if output_type != "binary_probability"
             && let Some(metrics) = metrics
         {
-                for metric in metrics.iter().filter_map(Value::as_str) {
-                    let normalized = metric.to_ascii_lowercase();
-                    let probability_only = [
-                        "brier score",
-                        "brier skill",
-                        "log loss",
-                        "log-loss",
-                        "roc-auc",
-                        "roc auc",
-                        "average precision",
-                        "expected calibration error",
-                        "ece",
-                    ]
-                    .iter()
-                    .any(|needle| normalized.contains(needle));
-                    if probability_only {
-                        errors.push(format!(
-                            "provider {} declares output_type {output_type} but registers binary-probability metric {metric}",
-                            id.unwrap_or("<missing>")
-                        ));
-                    }
+            for metric in metrics.iter().filter_map(Value::as_str) {
+                let normalized = metric.to_ascii_lowercase();
+                let probability_only = [
+                    "brier score",
+                    "brier skill",
+                    "log loss",
+                    "log-loss",
+                    "roc-auc",
+                    "roc auc",
+                    "average precision",
+                    "expected calibration error",
+                    "ece",
+                ]
+                .iter()
+                .any(|needle| normalized.contains(needle));
+                if probability_only {
+                    errors.push(format!(
+                        "provider {} declares output_type {output_type} but registers binary-probability metric {metric}",
+                        id.unwrap_or("<missing>")
+                    ));
                 }
+            }
         }
 
         if object_string_at(registration, "governance", "data_authority_status")
@@ -141,10 +141,10 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         if (digest.chars().all(|ch| ch == '0') || digest.chars().all(|ch| ch == '1'))
             && string_at(registration, "evidence_scope") == Some("authorized_historical_evaluation")
         {
-                errors.push(format!(
-                    "provider {} uses a placeholder artifact digest for historical evidence",
-                    id.unwrap_or("<missing>")
-                ));
+            errors.push(format!(
+                "provider {} uses a placeholder artifact digest for historical evidence",
+                id.unwrap_or("<missing>")
+            ));
         }
     }
 
