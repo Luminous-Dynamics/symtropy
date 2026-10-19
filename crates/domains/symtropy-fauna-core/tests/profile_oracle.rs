@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use symtropy_fauna_core::{
-    coverage_report, validate_profile, AnimalProfile, CapabilityClaim, CoverageDeclaration,
-    CoverageError, CoverageState, EvidenceClass, EvidenceState, ReasonCode, TaxonBinding,
-    TaxonomyScope, UsePermission, ValidationDisposition, corpus_sha256, validate_profiles,
+    AnimalProfile, CapabilityClaim, CoverageDeclaration, CoverageError, CoverageState,
+    EvidenceClass, EvidenceState, ReasonCode, TaxonBinding, TaxonomyScope, UsePermission,
+    ValidationDisposition, corpus_sha256, coverage_report, validate_profile, validate_profiles,
 };
 
 const FIXTURE: &str = include_str!("../fixtures/animal-capability-profiles-v1.json");
@@ -188,7 +188,8 @@ fn apply_mutation(mut profile: AnimalProfile, mutation: Mutation) -> AnimalProfi
         }
         Mutation::RealAttributionPresent => {
             profile.capabilities[0].evidence.permission = UsePermission::AttributionRequired;
-            profile.capabilities[0].evidence.attribution = Some("citation:synthetic-test".to_owned());
+            profile.capabilities[0].evidence.attribution =
+                Some("citation:synthetic-test".to_owned());
         }
         Mutation::RealStageRequirementMatched => {
             profile.capabilities[0].stage_requirement = Some("adult".to_owned());
@@ -283,7 +284,9 @@ fn validation_order_is_deterministic_and_duplicate_ids_fail_closed() {
     let results = validate_profiles(&[repeated.clone(), repeated]);
     assert!(results.iter().all(|result| {
         result.disposition == ValidationDisposition::Reject
-            && result.reason_codes.contains(&ReasonCode::DuplicateProfileId)
+            && result
+                .reason_codes
+                .contains(&ReasonCode::DuplicateProfileId)
     }));
 }
 
@@ -300,11 +303,17 @@ fn corpus_digest_is_order_independent_but_evidence_sensitive() {
     let profiles = fixture.archetypes;
     let mut reversed = profiles.clone();
     reversed.reverse();
-    assert_eq!(corpus_sha256(&profiles).unwrap(), corpus_sha256(&reversed).unwrap());
+    assert_eq!(
+        corpus_sha256(&profiles).unwrap(),
+        corpus_sha256(&reversed).unwrap()
+    );
 
     let mut altered = profiles.clone();
     altered[0].capabilities[0].key.push_str("_changed");
-    assert_ne!(corpus_sha256(&profiles).unwrap(), corpus_sha256(&altered).unwrap());
+    assert_ne!(
+        corpus_sha256(&profiles).unwrap(),
+        corpus_sha256(&altered).unwrap()
+    );
 }
 
 #[test]
@@ -324,8 +333,15 @@ fn coverage_scope_cannot_hide_unreviewed_taxa_or_promote_invalid_profiles() {
             state: CoverageState::Covered,
         },
     ];
-    let valid = vec![real_profile("real/1", "TEST:1"), real_profile("real/2", "TEST:2")];
-    assert!(coverage_report(&scope, &declarations, &valid).unwrap().profile_registry_complete);
+    let valid = vec![
+        real_profile("real/1", "TEST:1"),
+        real_profile("real/2", "TEST:2"),
+    ];
+    assert!(
+        coverage_report(&scope, &declarations, &valid)
+            .unwrap()
+            .profile_registry_complete
+    );
     assert_eq!(
         coverage_report(&scope, &declarations, &[real_profile("real/1", "TEST:1")]),
         Err(CoverageError::CoveredWithoutEligibleProfile)
@@ -340,12 +356,27 @@ fn coverage_rejects_duplicate_and_out_of_scope_declarations() {
         taxon_ids: vec!["TEST:1".to_owned()],
     };
     let duplicate = vec![
-        CoverageDeclaration { taxon_id: "TEST:1".to_owned(), state: CoverageState::Covered },
-        CoverageDeclaration { taxon_id: "TEST:1".to_owned(), state: CoverageState::ProfileInProgress },
+        CoverageDeclaration {
+            taxon_id: "TEST:1".to_owned(),
+            state: CoverageState::Covered,
+        },
+        CoverageDeclaration {
+            taxon_id: "TEST:1".to_owned(),
+            state: CoverageState::ProfileInProgress,
+        },
     ];
-    assert_eq!(coverage_report(&scope, &duplicate, &[real_profile("real/1", "TEST:1")]), Err(CoverageError::DuplicateDeclaration));
-    let outside = vec![CoverageDeclaration { taxon_id: "TEST:outside".to_owned(), state: CoverageState::Covered }];
-    assert_eq!(coverage_report(&scope, &outside, &[]), Err(CoverageError::DeclarationOutsideScope));
+    assert_eq!(
+        coverage_report(&scope, &duplicate, &[real_profile("real/1", "TEST:1")]),
+        Err(CoverageError::DuplicateDeclaration)
+    );
+    let outside = vec![CoverageDeclaration {
+        taxon_id: "TEST:outside".to_owned(),
+        state: CoverageState::Covered,
+    }];
+    assert_eq!(
+        coverage_report(&scope, &outside, &[]),
+        Err(CoverageError::DeclarationOutsideScope)
+    );
 }
 
 #[test]
