@@ -27,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pinned Rust toolchain
@@ -60,6 +61,7 @@ jobs:
             and (.candidates | all(.independent_oracle == "pass"))
             and (.candidates | all(.metrics.hard_gates_pass == (.metrics.end_of_life_plan_declared and (.metrics.worst_case_service_loss_ticks <= 12))))
           ' orbital-foundry-reference-receipt.json
+          test "$(jq -r .source_commit orbital-foundry-reference-receipt.json)" = "$source_commit"
 
       - name: Upload deterministic synthetic receipt
         uses: actions/upload-artifact@v4
