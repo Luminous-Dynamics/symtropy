@@ -1574,6 +1574,18 @@ mod tests {
             ids,
         );
         report.ifc_schema_token = Some("IFC2X3".into());
+        let semantic_digest = AdapterSemanticDigest {
+            supported_profile: &report.supported_profile,
+            decision: report.decision,
+            ifc_schema_token: &report.ifc_schema_token,
+            ids_version_evidence: &report.ids_version_evidence,
+            parsed_entity_count: report.parsed_entity_count,
+            applicable_wall_count: report.applicable_wall_count,
+            observations: &report.observations,
+            diagnostics: &report.diagnostics,
+        };
+        report.semantic_result_sha256 =
+            sha256_hex(&serde_json::to_vec(&semantic_digest).unwrap());
         let gate = gate_from_adapter(&report, target, ids).unwrap();
         assert_eq!(gate.status, GateStatus::Unresolved);
     }
