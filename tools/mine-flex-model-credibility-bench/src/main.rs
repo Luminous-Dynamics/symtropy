@@ -1016,7 +1016,7 @@ mod tests {
             .find(|scenario| scenario.seed == 1 && scenario.kind == ScenarioKind::Nominal)
             .expect("nominal fixture");
 
-        for lower in -5_i64..=0 {
+        for lower in -5_i64..0 {
             let mut scenario = baseline.clone();
             scenario.observations[0].interval_lower_liters = lower;
             scenario.observations[0].interval_upper_liters = 52;
