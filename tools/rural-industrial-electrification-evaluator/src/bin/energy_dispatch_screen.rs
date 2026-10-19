@@ -176,8 +176,14 @@ fn validate(scenario: &Scenario) -> Option<String> {
     if scenario.scenario_id.trim().is_empty() || scenario.label.trim().is_empty() {
         return Some("scenario_id_and_label_must_be_nonempty".to_string());
     }
-    if !["synthetic", "measured", "manufacturer", "literature", "estimate"]
-        .contains(&scenario.evidence_class.as_str())
+    if ![
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+    ]
+    .contains(&scenario.evidence_class.as_str())
     {
         return Some("unsupported_evidence_class".to_string());
     }
@@ -205,7 +211,10 @@ fn validate(scenario: &Scenario) -> Option<String> {
     }
     for (name, value) in [
         ("charge_efficiency_fraction", b.charge_efficiency_fraction),
-        ("discharge_efficiency_fraction", b.discharge_efficiency_fraction),
+        (
+            "discharge_efficiency_fraction",
+            b.discharge_efficiency_fraction,
+        ),
     ] {
         if !value.is_finite() || value <= 0.0 || value > 1.0 {
             return Some(format!("{name}_must_be_in_(0,1]"));
@@ -224,10 +233,19 @@ fn validate(scenario: &Scenario) -> Option<String> {
             return Some("slot_duration_must_be_finite_and_positive".to_string());
         }
         for (name, value) in [
-            ("onsite_generation_available_kw", slot.onsite_generation_available_kw),
+            (
+                "onsite_generation_available_kw",
+                slot.onsite_generation_available_kw,
+            ),
             ("grid_import_limit_kw", slot.grid_import_limit_kw),
-            ("critical_load_requested_kw", slot.critical_load_requested_kw),
-            ("flexible_load_requested_kw", slot.flexible_load_requested_kw),
+            (
+                "critical_load_requested_kw",
+                slot.critical_load_requested_kw,
+            ),
+            (
+                "flexible_load_requested_kw",
+                slot.flexible_load_requested_kw,
+            ),
         ] {
             if !value.is_finite() || value < 0.0 {
                 return Some(format!("{name}_must_be_finite_and_nonnegative"));
@@ -256,8 +274,8 @@ fn battery_discharge(
     if requested_output_kwh <= 0.0 || duration_hours <= 0.0 {
         return BatteryFlow { delivered_kwh: 0.0 };
     }
-    let available_output_kwh = (*soc_kwh - config.minimum_soc_kwh).max(0.0)
-        * config.discharge_efficiency_fraction;
+    let available_output_kwh =
+        (*soc_kwh - config.minimum_soc_kwh).max(0.0) * config.discharge_efficiency_fraction;
     let delivered_kwh = requested_output_kwh
         .min(config.maximum_discharge_power_kw * duration_hours)
         .min(available_output_kwh);
@@ -276,11 +294,12 @@ fn battery_charge(
         return 0.0;
     }
     let input_power_limit_kwh = config.maximum_charge_power_kw * duration_hours;
-    let room_input_kwh = (config.capacity_kwh - *soc_kwh).max(0.0)
-        / config.charge_efficiency_fraction;
-    let input_kwh = requested_input_kwh.min(input_power_limit_kwh).min(room_input_kwh);
-    *soc_kwh = (*soc_kwh + input_kwh * config.charge_efficiency_fraction)
-        .min(config.capacity_kwh);
+    let room_input_kwh =
+        (config.capacity_kwh - *soc_kwh).max(0.0) / config.charge_efficiency_fraction;
+    let input_kwh = requested_input_kwh
+        .min(input_power_limit_kwh)
+        .min(room_input_kwh);
+    *soc_kwh = (*soc_kwh + input_kwh * config.charge_efficiency_fraction).min(config.capacity_kwh);
     input_kwh
 }
 
@@ -303,13 +322,10 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
         let critical_from_grid = grid_left.min(critical_after_generation);
         grid_left -= critical_from_grid;
         let critical_shortage_after_grid = critical_after_generation - critical_from_grid;
-        let critical_battery = battery_discharge(
-            critical_shortage_after_grid * dt,
-            dt,
-            b,
-            &mut soc,
-        );
-        let critical_served = critical_from_generation * dt + critical_from_grid * dt
+        let critical_battery =
+            battery_discharge(critical_shortage_after_grid * dt, dt, b, &mut soc);
+        let critical_served = critical_from_generation * dt
+            + critical_from_grid * dt
             + critical_battery.delivered_kwh;
         let critical_requested = slot.critical_load_requested_kw * dt;
         let critical_unserved = (critical_requested - critical_served).max(0.0);
@@ -324,7 +340,8 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
         if critical_unserved <= 1e-9 {
             flexible_from_generation = gen_left.min(slot.flexible_load_requested_kw);
             gen_left -= flexible_from_generation;
-            let flexible_remaining = (slot.flexible_load_requested_kw - flexible_from_generation).max(0.0);
+            let flexible_remaining =
+                (slot.flexible_load_requested_kw - flexible_from_generation).max(0.0);
             flexible_from_grid = grid_left.min(flexible_remaining);
             grid_left -= flexible_from_grid;
             let flexible_after_direct = (flexible_remaining - flexible_from_grid).max(0.0);
@@ -336,7 +353,8 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
 
             // Only surplus generation is used to charge by default; grid charging is explicit.
             let generation_charge_request = gen_left.max(0.0);
-            charge_from_generation = battery_charge(generation_charge_request * dt, dt, b, &mut soc) / dt;
+            charge_from_generation =
+                battery_charge(generation_charge_request * dt, dt, b, &mut soc) / dt;
             gen_left = (gen_left - charge_from_generation).max(0.0);
 
             if slot.allow_grid_charging {
@@ -346,9 +364,8 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
             }
         }
 
-        let flexible_served = flexible_from_generation * dt
-            + flexible_from_grid * dt
-            + flexible_battery_kwh;
+        let flexible_served =
+            flexible_from_generation * dt + flexible_from_grid * dt + flexible_battery_kwh;
         let flexible_requested = slot.flexible_load_requested_kw * dt;
         let flexible_unserved = (flexible_requested - flexible_served).max(0.0);
         let grid_import_kwh = (slot.grid_import_limit_kw - grid_left).max(0.0) * dt;
@@ -359,12 +376,18 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
         let discharge_critical_kwh = critical_battery.delivered_kwh;
         let discharge_output_kwh = discharge_critical_kwh + flexible_battery_kwh;
         let charge_loss_kwh = charge_input_kwh * (1.0 - b.charge_efficiency_fraction);
-        let discharge_loss_kwh = discharge_output_kwh * (1.0 / b.discharge_efficiency_fraction - 1.0);
+        let discharge_loss_kwh =
+            discharge_output_kwh * (1.0 / b.discharge_efficiency_fraction - 1.0);
         let energy_balance_residual = gen_available * dt + grid_import_kwh + discharge_output_kwh
-            - critical_served - flexible_served - charge_input_kwh - generation_curtailed_kwh;
+            - critical_served
+            - flexible_served
+            - charge_input_kwh
+            - generation_curtailed_kwh;
 
         let grid_cost = slot.grid_price_per_kwh.map(|price| price * grid_import_kwh);
-        let grid_emissions = slot.grid_carbon_kg_per_kwh.map(|factor| factor * grid_import_kwh);
+        let grid_emissions = slot
+            .grid_carbon_kg_per_kwh
+            .map(|factor| factor * grid_import_kwh);
 
         rows.push(SlotResult {
             slot_id: slot.slot_id.clone(),
@@ -400,10 +423,14 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
     let flexible_unserved = total(|row| row.flexible_unserved_kwh);
     let total_grid_import = total(|row| row.grid_import_kwh);
     let total_charge = total(|row| row.storage_charge_input_kwh);
-    let total_discharge = total(|row| row.storage_discharge_to_critical_kwh + row.storage_discharge_to_flexible_kwh);
+    let total_discharge =
+        total(|row| row.storage_discharge_to_critical_kwh + row.storage_discharge_to_flexible_kwh);
     let total_losses = total(|row| row.storage_charge_loss_kwh + row.storage_discharge_loss_kwh);
     let total_curtailed = total(|row| row.curtailed_generation_kwh);
-    let max_residual = rows.iter().map(|row| row.energy_balance_residual_kwh.abs()).fold(0.0, f64::max);
+    let max_residual = rows
+        .iter()
+        .map(|row| row.energy_balance_residual_kwh.abs())
+        .fold(0.0, f64::max);
     drop(total);
 
     let status = match (critical_unserved > 1e-9, flexible_unserved > 1e-9) {
@@ -441,7 +468,8 @@ fn simulate(scenario: &Scenario) -> ScenarioResult {
         total_curtailed_generation_kwh: total_curtailed,
         final_storage_soc_kwh: soc,
         estimated_grid_cost: priced.then(|| rows.iter().filter_map(|row| row.grid_cost).sum()),
-        estimated_grid_emissions_kg: carbon_complete.then(|| rows.iter().filter_map(|row| row.grid_emissions_kg).sum()),
+        estimated_grid_emissions_kg: carbon_complete
+            .then(|| rows.iter().filter_map(|row| row.grid_emissions_kg).sum()),
         maximum_absolute_energy_balance_residual_kwh: max_residual,
         slots: rows,
         findings,
@@ -576,8 +604,11 @@ mod tests {
         let out2 = vec![simulate(&b), simulate(&a)];
         let mut o1 = out1;
         let mut o2 = out2;
-        o1.sort_by(|x,y| x.scenario_id.cmp(&y.scenario_id));
-        o2.sort_by(|x,y| x.scenario_id.cmp(&y.scenario_id));
-        assert_eq!(serde_json::to_string(&o1).unwrap(), serde_json::to_string(&o2).unwrap());
+        o1.sort_by(|x, y| x.scenario_id.cmp(&y.scenario_id));
+        o2.sort_by(|x, y| x.scenario_id.cmp(&y.scenario_id));
+        assert_eq!(
+            serde_json::to_string(&o1).unwrap(),
+            serde_json::to_string(&o2).unwrap()
+        );
     }
 }
