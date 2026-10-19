@@ -32,7 +32,15 @@ The proposed system returns three distinct objects:
 
 The system must be able to abstain on source attribution while preserving a justified containment action. It must explain how results change when a record is removed, expires or conflicts with another record. A plausible narrative is not evidence.
 
-## 4. Fixture design
+## 4. Standards interoperability boundary
+
+V0.1's synthetic JSON is a benchmark fixture schema, **not** a GS1 EPCIS-conformant event feed. Do not imply standards conformance from passing this validator.
+
+The next interoperability increment should compose with Mycelix [LEX-NET-015](https://github.com/Luminous-Dynamics/mycelix/issues/1110), which already defines a cross-standard supply-chain traceability bridge and names GS1 EPCIS/CBV 2.0 as a mapping target. Reuse that owner instead of inventing a parallel GS1 adapter or traceability ledger.
+
+The adapter should preserve the source standard/profile version and original evidence commitment; explicitly retain unmapped, missing and contradictory fields; and never invent a handoff to make a path look complete. Map relevant EPCIS event types (including object, aggregation and transformation events) and applicable FDA Critical Tracking Events / Key Data Elements as separate, versioned conformance profiles. Keep these claims distinct: event syntax conformance, issuer identity, observation content, custody interpretation, product conformity and any regulatory interpretation. None implies the others.
+
+## 5. Fixture design
 
 FOOD_TRACEBACK_V0_1.json is synthetic and frozen at schema version 0.1.0. It contains five hand-auditable cases:
 
