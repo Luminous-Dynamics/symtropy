@@ -8,7 +8,7 @@ pub enum Treatment {
     NoCommitments,
     StaticTrust,
     Reciprocity,
-    VerifiableCommitments,
+    EvidenceBasedTrust,
 }
 
 impl Treatment {
@@ -16,7 +16,7 @@ impl Treatment {
         Self::NoCommitments,
         Self::StaticTrust,
         Self::Reciprocity,
-        Self::VerifiableCommitments,
+        Self::EvidenceBasedTrust,
     ];
 
     pub const fn as_str(self) -> &'static str {
@@ -24,7 +24,7 @@ impl Treatment {
             Self::NoCommitments => "no_commitments",
             Self::StaticTrust => "static_trust",
             Self::Reciprocity => "reciprocity",
-            Self::VerifiableCommitments => "verifiable_commitments",
+            Self::EvidenceBasedTrust => "evidence_based_trust",
         }
     }
 }
@@ -38,7 +38,7 @@ pub struct Scenario {
     pub baseline_capacity: f64,
     pub shock_capacity: f64,
     pub observation_noise: f64,
-    pub verification_cost: f64,
+    pub observation_cost: f64,
     pub attestation_tampering_rate: f64,
     pub repair_gain_per_contribution: f64,
     pub trust_learning_rate: f64,
@@ -54,7 +54,7 @@ impl Default for Scenario {
             baseline_capacity: 1.0,
             shock_capacity: 0.45,
             observation_noise: 0.05,
-            verification_cost: 0.15,
+            observation_cost: 0.15,
             attestation_tampering_rate: 0.02,
             repair_gain_per_contribution: 0.00125,
             trust_learning_rate: 0.18,
@@ -77,7 +77,7 @@ impl Scenario {
             ("baseline_capacity", self.baseline_capacity),
             ("shock_capacity", self.shock_capacity),
             ("observation_noise", self.observation_noise),
-            ("verification_cost", self.verification_cost),
+            ("observation_cost", self.observation_cost),
             ("attestation_tampering_rate", self.attestation_tampering_rate),
             ("repair_gain_per_contribution", self.repair_gain_per_contribution),
             ("trust_learning_rate", self.trust_learning_rate),
@@ -94,7 +94,7 @@ impl Scenario {
         }
         for (name, value) in [
             ("observation_noise", self.observation_noise),
-            ("verification_cost", self.verification_cost),
+            ("observation_cost", self.observation_cost),
             ("attestation_tampering_rate", self.attestation_tampering_rate),
             ("trust_learning_rate", self.trust_learning_rate),
         ] {
@@ -122,7 +122,7 @@ pub struct Metrics {
     /// Tick offset from shock start; None means no in-window recovery.
     pub recovery_tick: Option<usize>,
     /// Count of neighbor-evidence checks multiplied by per-check cost.
-    pub verification_overhead: f64,
+    pub observation_overhead: f64,
     /// Repair progress when the declared shock window closes.
     pub repair_progress_at_shock_end: f64,
 }
@@ -212,7 +212,7 @@ pub fn simulate(
     let mut peak_unmet_need: f64 = 0.0;
     let mut contribution_count = 0_usize;
     let mut recovery_tick = None;
-    let mut verification_overhead = 0.0;
+    let mut observation_overhead = 0.0;
     let mut repair_progress_at_shock_end = 0.0;
 
     for tick in 0..scenario.ticks {
@@ -278,7 +278,7 @@ pub fn simulate(
                     / agent.neighbors.len() as f64;
 
                 let mut evidence_rate = 0.0;
-                if treatment == Treatment::VerifiableCommitments {
+                if treatment == Treatment::EvidenceBasedTrust {
                     for (edge, neighbor) in agent.neighbors.iter().copied().enumerate() {
                         let mut observed = if previous_actions[neighbor] { 1.0 } else { 0.0 };
                         if decision_noise_draws[i][edge] < scenario.observation_noise {
@@ -289,8 +289,8 @@ pub fn simulate(
                         }
                         evidence_rate += observed / agent.neighbors.len() as f64;
                     }
-                    verification_overhead +=
-                        scenario.verification_cost * agent.neighbors.len() as f64;
+                    observation_overhead +=
+                        scenario.observation_cost * agent.neighbors.len() as f64;
                 }
 
                 let probability = match treatment {
@@ -307,12 +307,12 @@ pub fn simulate(
                             + 0.22 * urgency
                             + 0.05 * agent.willingness
                     }
-                    Treatment::VerifiableCommitments => {
+                    Treatment::EvidenceBasedTrust => {
                         0.03 + 0.20 * mean_trust
                             + 0.35 * evidence_rate
                             + 0.20 * urgency
                             + 0.05 * agent.willingness
-                            - 0.50 * scenario.verification_cost
+                            - 0.50 * scenario.observation_cost
                     }
                 }
                 .clamp(0.0, 0.95);
@@ -345,7 +345,7 @@ pub fn simulate(
             }
         }
 
-        if treatment == Treatment::VerifiableCommitments {
+        if treatment == Treatment::EvidenceBasedTrust {
             for i in 0..n {
                 for edge in 0..agents[i].neighbors.len() {
                     let neighbor = agents[i].neighbors[edge];
@@ -376,7 +376,7 @@ pub fn simulate(
         unmet_need_inequality_gini: gini_nonnegative(&unmet_by_agent),
         contribution_count,
         recovery_tick,
-        verification_overhead,
+        observation_overhead,
         repair_progress_at_shock_end,
     })
 }
@@ -421,12 +421,12 @@ mod tests {
             assert!(
                 (0.0..=1.0).contains(&metrics.unmet_need_inequality_gini)
             );
-            assert!(metrics.verification_overhead.is_finite());
+            assert!(metrics.observation_overhead.is_finite());
             assert!(metrics.repair_progress_at_shock_end.is_finite());
             assert!((0.0..=1.0).contains(&metrics.repair_progress_at_shock_end));
             assert_eq!(
-                metrics.verification_overhead > 0.0,
-                treatment == Treatment::VerifiableCommitments
+                metrics.observation_overhead > 0.0,
+                treatment == Treatment::EvidenceBasedTrust
             );
         }
     }
@@ -435,7 +435,7 @@ mod tests {
     fn zero_duration_shock_produces_no_repair_contributions() {
         let mut scenario = Scenario::default();
         scenario.shock_duration_ticks = 0;
-        let metrics = simulate(&scenario, 5, Treatment::VerifiableCommitments).unwrap();
+        let metrics = simulate(&scenario, 5, Treatment::EvidenceBasedTrust).unwrap();
         assert_eq!(metrics.contribution_count, 0);
         assert_eq!(metrics.repair_progress_at_shock_end, 0.0);
         assert_eq!(metrics.recovery_tick, None);
