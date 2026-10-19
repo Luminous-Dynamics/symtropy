@@ -73,6 +73,7 @@ enum Mutation {
     InvalidTimeRange,
     ProvenancePromotion,
     UnseenSubjectLeak,
+    CrossStudyLinkedSubjectLeak,
     DuplicateObservationLeak,
     FutureTimeLeak,
     MissingRequiredSite,
@@ -175,6 +176,9 @@ fn apply_mutation(mut manifest: ReferencePackManifest, mutation: Mutation) -> Re
         }
         Mutation::UnseenSubjectLeak => {
             manifest.records[1].study_id = manifest.records[0].study_id.clone();
+            manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
+        }
+        Mutation::CrossStudyLinkedSubjectLeak => {
             manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
         }
         Mutation::DuplicateObservationLeak => {
@@ -525,5 +529,20 @@ fn within_subject_interpolation_without_shared_subject_windows_is_indeterminate(
         result
             .reason_codes
             .contains(&ManifestReason::MissingWithinSubjectContinuity)
+    );
+}
+
+#[test]
+fn unseen_subject_split_rejects_linked_individual_across_different_studies() {
+    let mut manifest = manifest_fixture();
+    manifest.generalization = GeneralizationTarget::UnseenSubject;
+    manifest.records[1].subject_id = manifest.records[0].subject_id.clone();
+    assert_ne!(manifest.records[0].study_id, manifest.records[1].study_id);
+    let result = validate_manifest(&manifest);
+    assert_eq!(result.disposition, ManifestDisposition::Reject);
+    assert!(
+        result
+            .reason_codes
+            .contains(&ManifestReason::SplitIdentityLeakage)
     );
 }
