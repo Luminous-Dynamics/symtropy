@@ -17,6 +17,7 @@ on:
       - "docs/tech/MINE_FLEX_ROBUSTNESS_BENCHMARK_V0_1.md"
       - "docs/tech/MINE_FLEX_RECOURSE_BENCHMARK_V0_1.md"
       - "docs/tech/MINE_FLEX_RISK_BUDGET_BENCHMARK_V0_1.md"
+      - "docs/tech/MINE_FLEX_EXECUTION_BENCHMARK_V0_1.md"
       - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
       - "tools/mine-flex-scheduling-bench/**"
       - ".github/workflows/mine-flex-scheduling-bench.yml"
@@ -239,3 +240,54 @@ jobs:
               selected_worst_case_carbon_units, nondominated_frontier_points
             }]
           }' mine-flex-risk-budget-receipt.json
+
+      - name: Validate physical dispatch executability
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \
+            --executability --source-commit "$source_commit" > mine-flex-execution-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-FLEX-EXEC-001"
+            and .suite_version == "0.1.0"
+            and .validation_seed_count == 32
+            and .held_out_seed_count == 32
+            and .case_count == 64
+            and .world_evaluation_count == 320
+            and .resource_only_optimum_rejected_by_execution_cases > 0
+            and .execution_constrained_cases == 64
+            and .execution_constrained_non_executable_cases == 0
+            and .execution_constrained_non_executable_worlds == 0
+            and .independent_resource_accounting_violations == 0
+            and .execution_envelope.max_ramp_up_batches_per_period == 1
+            and .execution_envelope.max_ramp_down_batches_per_period == 1
+            and .execution_envelope.minimum_up_periods_after_start == 2
+            and .execution_envelope.maximum_starts_per_horizon == 1
+            and (.generated_case_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.summaries[] | select(.evaluated_worlds != 160 or .resource_feasible_worlds != 160 or .physically_executable_worlds + .execution_violation_worlds != 160)] | length == 0)
+            and ([.summaries[] | select(.policy_id == "execution_constrained_robust_min_cost" and (.physically_executable_worlds != 160 or .execution_violation_worlds != 0 or .feasibility_rate_basis_points != 10000))] | length == 0)
+            and ([.case_decisions[] | select(.execution_constrained_execution_audit.executable != true)] | length == 0)
+            and ([.world_evaluations[] | select(.execution_constrained.resource_feasible != true or .execution_constrained.execution_audit.executable != true)] | length == 0)
+          ' mine-flex-execution-receipt.json
+      - name: Emit physical execution metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id, suite_version, generated_case_set_sha256,
+            execution_envelope, case_count, world_evaluation_count,
+            resource_only_optimum_rejected_by_execution_cases,
+            execution_constrained_cases, execution_constrained_non_executable_cases,
+            execution_constrained_non_executable_worlds,
+            independent_resource_accounting_violations, summaries,
+            cases: [.case_decisions[] | {
+              seed, split, resource_robust_candidate_count, execution_robust_candidate_count,
+              resource_only_min_cost_batches, resource_only_worst_case_cost_units,
+              resource_only_execution_audit, execution_constrained_batches,
+              execution_constrained_worst_case_cost_units, execution_constrained_worst_case_carbon_units
+            }]
+          }' mine-flex-execution-receipt.json

@@ -42,3 +42,13 @@ cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml --
 ```
 
 This sweeps explicit carbon headroom constraints (0%, 2.5%, 5%, 10%, 25%, and 100% above the minimum worst-case carbon attainable by any robust-feasible schedule), minimizes worst-case cost under each cap, and emits the nondominated robust cost/carbon frontier plus paired validation/held-out outcomes. The exact contract and claim ceiling are in [MINE-FLEX-PARETO-001](../../docs/tech/MINE_FLEX_RISK_BUDGET_BENCHMARK_V0_1.md). Synthetic integer units only; this is not a site-calibrated controller.
+
+
+Physical dispatch executability audit:
+
+```sh
+cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \
+  --executability --source-commit "$(git rev-parse HEAD)"
+```
+
+This keeps the resource-only robust minimum-cost schedule as a baseline, then applies an independent execution-envelope verifier (ramp-up/down, minimum-up-time and startup-count gates). It selects a separate robust policy whose plan also passes the execution envelope and compares both on paired generated worlds. The coarse integer batch limits are synthetic, not asset-calibrated. See [MINE-FLEX-EXEC-001](../../docs/tech/MINE_FLEX_EXECUTION_BENCHMARK_V0_1.md) for acceptance gates and scope.
