@@ -41,7 +41,6 @@ The receipt records each input digest and outcome release digest, the count of h
 If model probabilities, target definition, analysis unit, forecast horizon, split, or spatial mapping differ, the comparison is invalid and rejected. Such models or definitions require a separate paired model-comparison design; they cannot be conflated with outcome-vintage sensitivity.
 
 
-
 ## Predeclared response-policy sensitivity
 
 The separate \`pirb-policy-evaluation\` tool consumes a normalized historical forecast dataset and a separate policy manifest. It binds the manifest to the dataset ID, forecast archive digest, outcome release ID/digest, analysis unit, target definition and single declared horizon. A confirmatory policy must declare the complete threshold grid as registered strictly before the held-out test period; the tool reports every threshold in the submitted order and never selects a winning threshold.
@@ -54,7 +53,7 @@ This layer estimates aggregate retrospective arithmetic under declared assumptio
 
 ## Offline VIEWS source adapter
 
-The Rust-first \`pirb-views-offline-adapter\` imports only locally archived API JSON, a matching run/codebook snapshot, an explicit outcome snapshot, and a governed spatial block map. Network access is deliberately outside the evaluator. The source manifest records the run ID, exact query URI/filters, response pages, codebook path, response-column mapping, analysis unit, target definition, codebook threshold phrase, partition, attribution/license references and evaluation policy.
+The Rust-first \`pirb-views-offline-adapter\` imports only locally archived API JSON, a matching run/codebook snapshot, an explicit outcome snapshot, and a governed spatial block map. Network access is deliberately outside the evaluator. The source manifest records the run ID, exact query URI/filters, response pages, codebook path, response-column mapping, analysis unit, target definition, codebook threshold phrase, partition, attribution/license references and evaluation policy. The requested partition is currently manifest-declared and is not independently authenticated by the response envelope; the receipt explicitly marks partition verification false.
 
 The importer accepts only the declared binary event-probability variable (\`main_dich\` in the v0.1 contract). It checks that the codebook labels the output as a probability on [0, 1], includes the predeclared threshold and geographic analysis unit, and that the response model metadata matches the manifest. It derives cutoff and forecast-origin months from the versioned run suffix and derives the target month from the declared lead; the returned calendar month and query filter must agree. The normalized contract continues to enforce one lead horizon and a fixed target definition per dataset.
 
