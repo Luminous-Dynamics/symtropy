@@ -4,7 +4,6 @@
   "evidence_class": "synthetic",
   "source": {
     "provider": "synthetic",
-    "forecast_release_id": "synthetic-runset-v1",
     "model_id": "synthetic-probability-model",
     "model_version": "1",
     "forecast_variable": "event_probability",
@@ -12,14 +11,15 @@
     "analysis_unit": "country_month",
     "threshold_definition": "One synthetic event per fictional country-month.",
     "forecast_source_reference": "synthetic:forecast-source",
-    "forecast_release_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "outcome_source_id": "synthetic-outcomes",
     "outcome_release_id": "synthetic-outcomes-v1",
     "outcome_definition": "Synthetic event/no-event label for the declared target month.",
     "outcome_source_reference": "synthetic:outcome-source",
     "outcome_release_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "license_reference": "synthetic:not-a-real-license",
-    "attribution": "Synthetic data generated for PIRB evaluator tests; not empirical evidence."
+    "attribution": "Synthetic data generated for PIRB evaluator tests; not empirical evidence.",
+    "forecast_archive_id": "synthetic-runset-v1",
+    "forecast_archive_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "privacy": {
     "aggregate_only": true,
