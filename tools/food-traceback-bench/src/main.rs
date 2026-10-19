@@ -438,6 +438,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
             "trace_completeness",
             "propagation_rule",
             "safety_rule",
+            "uncertainty_rule",
         ],
         &format!("{at}.expected_behavior"),
     )?;
