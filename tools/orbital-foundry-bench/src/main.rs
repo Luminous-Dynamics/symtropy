@@ -1107,10 +1107,30 @@ mod tests {
     fn metamorphic_spares_never_increase_synthetic_service_loss() {
         let contract = contract();
         for mut design in [
-            Design { standardized_interfaces: false, isolated_power_domains: false, spare_pack: false, end_of_life_plan: false },
-            Design { standardized_interfaces: false, isolated_power_domains: true, spare_pack: false, end_of_life_plan: true },
-            Design { standardized_interfaces: true, isolated_power_domains: false, spare_pack: false, end_of_life_plan: true },
-            Design { standardized_interfaces: true, isolated_power_domains: true, spare_pack: false, end_of_life_plan: true },
+            Design {
+                standardized_interfaces: false,
+                isolated_power_domains: false,
+                spare_pack: false,
+                end_of_life_plan: false,
+            },
+            Design {
+                standardized_interfaces: false,
+                isolated_power_domains: true,
+                spare_pack: false,
+                end_of_life_plan: true,
+            },
+            Design {
+                standardized_interfaces: true,
+                isolated_power_domains: false,
+                spare_pack: false,
+                end_of_life_plan: true,
+            },
+            Design {
+                standardized_interfaces: true,
+                isolated_power_domains: true,
+                spare_pack: false,
+                end_of_life_plan: true,
+            },
         ] {
             let without_spares = evaluate_model(design, &contract).unwrap();
             design.spare_pack = true;
@@ -1120,7 +1140,10 @@ mod tests {
                 .iter()
                 .zip(with_spares.scenario_loss_ticks.iter())
             {
-                assert!(after <= before, "spare pack worsened service loss: {design:?}");
+                assert!(
+                    after <= before,
+                    "spare pack worsened service loss: {design:?}"
+                );
             }
         }
     }
@@ -1177,14 +1200,23 @@ mod tests {
         };
         let bespoke_metrics = evaluate_model(bespoke, &contract).unwrap();
         let standard_metrics = evaluate_model(standardized, &contract).unwrap();
-        assert_eq!(standard_metrics.launch_mass_smu, bespoke_metrics.launch_mass_smu + 8);
-        assert_eq!(standard_metrics.assembly_ticks + 2, bespoke_metrics.assembly_ticks);
+        assert_eq!(
+            standard_metrics.launch_mass_smu,
+            bespoke_metrics.launch_mass_smu + 8
+        );
+        assert_eq!(
+            standard_metrics.assembly_ticks + 2,
+            bespoke_metrics.assembly_ticks
+        );
         assert_eq!(standard_metrics.interface_families, 1);
         assert_eq!(bespoke_metrics.interface_families, 4);
         assert_eq!(bespoke_metrics.scenario_loss_ticks[1], 7);
         assert_eq!(standard_metrics.scenario_loss_ticks[1], 1);
         for i in [0_usize, 2, 3, 4] {
-            assert_eq!(standard_metrics.scenario_loss_ticks[i], bespoke_metrics.scenario_loss_ticks[i]);
+            assert_eq!(
+                standard_metrics.scenario_loss_ticks[i],
+                bespoke_metrics.scenario_loss_ticks[i]
+            );
         }
     }
 
