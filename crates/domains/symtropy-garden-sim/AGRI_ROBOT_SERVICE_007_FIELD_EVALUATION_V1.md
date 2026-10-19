@@ -166,7 +166,7 @@ Stage 0 supports only claims about synthetic model and fixture behavior. Stage 1
 
 ## 11. Executable report-integrity gate
 
-The draft implementation adds `src/field_eval_report.rs`, the `verify-field-eval-report` CLI, and `tests/field_eval_report_independent_oracle.rs` in the existing `symtropy-garden-sim` crate. This tool is a **measurement-layer report checker**, not a second service lifecycle evaluator.
+The draft implementation adds `src/field_eval_report.rs`, the `verify-field-eval-report` CLI, `verify-field-eval-report-manifest`, the frozen 14-case inventory `fixtures/field_eval_report_cases.v1.tsv`, and `tests/field_eval_report_independent_oracle.rs` in the existing `symtropy-garden-sim` crate. The manifest tool verifies that each frozen case still has a corresponding named test; this structural check is distinct from executing the tests. These tools are a **measurement-layer report checker**, not a second service lifecycle evaluator.
 
 For each declared study report it checks:
 - screened requests = eligible requests + protocol exclusions;
