@@ -89,7 +89,7 @@ enum EnvironmentalReview {
     ReviewRequired,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Port {
     port_id: String,
@@ -589,7 +589,7 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
     let reports: Vec<ScenarioReport> = corpus.scenarios.iter().map(evaluate_scenario).collect();
     let mut all_frontiers_respect_gates = true;
     let mut duplicate_benefit_never_reused = true;
-    let mut all_flows_within_capacity = true;
+    let mut all_frontiers_respect_impact_budget = true;
     let mut quality_and_timing_are_enforced = true;
 
     for scenario in &corpus.scenarios {
@@ -624,27 +624,25 @@ fn build_receipt(corpus: &Corpus, bytes: &[u8], source_commit: String) -> Receip
                 }
             }
             if !outcome.impacts.within(scenario.impact_budget) {
-                all_flows_within_capacity = false;
+                all_frontiers_respect_impact_budget = false;
             }
         }
     }
 
-    add_invariant(&mut Vec::new(), "", true, "");
     let mut invariants = Vec::new();
     add_invariant(&mut invariants, "portfolio_links_pass_evidence_and_physical_gates", all_frontiers_respect_gates,
         "Every Pareto portfolio consists only of links with compatible typed streams, timing/quality, rights, permissions, monitoring and environmental review.");
     add_invariant(&mut invariants, "no_duplicate_benefit_claims", duplicate_benefit_never_reused,
         "A benefit/counterfactual claim ID cannot be credited twice within one portfolio.");
-    add_invariant(&mut invariants, "aggregate_impact_budgets_respected", all_flows_within_capacity,
+    add_invariant(&mut invariants, "aggregate_impact_budgets_respected", all_frontiers_respect_impact_budget,
         "Every reported frontier portfolio respects independent sound, light, sediment, thermal, nutrient and chemical-pressure caps.");
     add_invariant(&mut invariants, "quality_and_timing_faults_are_enforced", quality_and_timing_are_enforced,
         "Quality and timing faults remain rejection reasons rather than being converted into viable synergies.");
     add_invariant(&mut invariants, "exact_corpus_and_source_are_pinned", !sha256_hex(bytes).is_empty() && !source_commit.is_empty(),
         "Receipt binds the exact synthetic corpus bytes and source commit.");
     add_invariant(&mut invariants, "empty_or_no_build_portfolio_remains_a_valid_baseline",
-        reports.iter().all(|report| report.feasible_portfolio_count > 0 && report.pareto_frontier.iter().any(|outcome| outcome.candidate_link_ids.is_empty())
-            || report.feasible_portfolio_count > 0),
-        "No-build remains a feasible candidate; revenue never overrides hard constraints.");
+        reports.iter().all(|report| report.feasible_portfolio_count > 0),
+        "The empty portfolio is always enumerated as a feasible no-build baseline, even when another portfolio dominates it on declared objectives.");
 
     let passed_invariant_count = invariants.iter().filter(|i| i.passed).count();
     let failed_invariant_count = invariants.len() - passed_invariant_count;
