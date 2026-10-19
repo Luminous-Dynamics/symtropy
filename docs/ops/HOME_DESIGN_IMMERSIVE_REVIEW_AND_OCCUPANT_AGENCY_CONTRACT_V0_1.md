@@ -73,14 +73,17 @@ This creates a learning loop: experience a design → record a location- and rev
 
 ## Version and provenance
 
-Each review route and capture should reference:
+Each review route, session manifest, and capture should reference:
 - immutable design revision ID;
+- owner-brief revision ID;
+- model artifact ID and digest metadata, plus the canonical review-manifest artifact and digest metadata;
+- viewer build ID and selected review mode (static plan is supported without a route);
 - route ID and version, coordinate frame, units, and selected view mode;
 - renderer and asset versions;
 - which materials, furnishings, lighting, weather, and site conditions are measured, simulated, assumed, or placeholders;
 - optional user annotations tied to the exact revision, not rewritten into the model silently.
 
-A new design revision must make stale captures obvious. Historic captures remain associated with the revision the person actually reviewed. Occupant feedback dispositions are separately pinned to both the source revision and the revision against which the team responded. Implemented feedback needs a change request plus evidence; accessibility/circulation concerns also need independent assessment before being called implemented. A decision not to change a preference is allowed, but must remain a preference decision—not a code failure.
+A new design revision must make stale captures obvious. Historic captures remain associated with the revision the person actually reviewed. The new `DesignReviewSession` API checks that the camera route, annotations, and occupant feedback all belong to the pinned revision and that the manifest records the owner brief, model artifact, viewer build, and snapshot artifact. Digest fields are format-checked only; the actual artifact store must verify the bytes. A review session has no independent permit or compliance authority. Occupant feedback dispositions are separately pinned to both the source revision and the revision against which the team responded. Implemented feedback needs a change request plus evidence; accessibility/circulation concerns also need independent assessment before being called implemented. A decision not to change a preference is allowed, but must remain a preference decision—not a code failure.
 
 ## Privacy and device posture
 
