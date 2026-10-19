@@ -248,6 +248,14 @@ jobs:
               and .policy_id == "pirb-policy-synthetic-capacity-aware"
               and .policy_kind == "confirmatory"
               and .predeclaration_timing_conforms_to_manifest == true
+              and .minimum_warning_window_hours == 48
+              and .latency_window_independently_authenticated == false
+              and (.sensitivity_scenarios | length == 3)
+              and ([.sensitivity_scenarios[] | select(.scenario_id == "scenario-reference-costs")][0].policy_results | length == 3)
+              and ([.sensitivity_scenarios[] | select(.scenario_id == "scenario-high-false-alert-cost")][0].policy_results[] | select(.threshold == 0.6) | .utility_units) == -140
+              and ([.sensitivity_scenarios[] | select(.scenario_id == "scenario-high-false-alert-cost")][0].policy_results[] | select(.threshold == 0.6) | .utility_delta_vs_act_on_none_units) == 160
+              and ([.sensitivity_scenarios[] | select(.scenario_id == "scenario-latency-exceeds-window")][0].policy_results | all(.[]; .status == "review_required" and .latency_feasible == false and .utility_units == null))
+              and ([.sensitivity_scenarios[] | select(.scenario_id == "scenario-latency-exceeds-window")][0].latency_window_independently_authenticated == false)
               and .registration_timestamp_independently_authenticated == false
               and .thresholds_selected_by_evaluator == false
               and .thresholds_evaluated == [0.2, 0.4, 0.6]

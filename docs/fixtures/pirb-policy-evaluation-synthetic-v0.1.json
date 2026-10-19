@@ -50,5 +50,60 @@
   },
   "source_references": [
     "synthetic:fictional-policy-reference"
+  ],
+  "minimum_warning_window_hours": 48,
+  "warning_window_source_reference": "synthetic:declared-minimum-warning-window-v1",
+  "sensitivity_scenarios": [
+    {
+      "scenario_id": "scenario-reference-costs",
+      "scenario_reference": "synthetic:reference consequence schedule and capacity",
+      "minimum_warning_window_hours": 48,
+      "warning_window_source_reference": "synthetic:reference-window-v1",
+      "capacity": {
+        "max_alerts_per_target_month": 1,
+        "max_resource_units_per_target_month": 1
+      },
+      "cost_schedule": {
+        "cost_unit": "synthetic-utility-unit",
+        "utility_if_true_alert_units": 100,
+        "cost_false_alert_units": 20,
+        "cost_missed_event_units": 150,
+        "cost_per_resource_unit_units": 5
+      }
+    },
+    {
+      "scenario_id": "scenario-high-false-alert-cost",
+      "scenario_reference": "synthetic:stress test with higher false-alert and resource costs",
+      "minimum_warning_window_hours": 48,
+      "warning_window_source_reference": "synthetic:reference-window-v1",
+      "capacity": {
+        "max_alerts_per_target_month": 1,
+        "max_resource_units_per_target_month": 1
+      },
+      "cost_schedule": {
+        "cost_unit": "synthetic-utility-unit",
+        "utility_if_true_alert_units": 100,
+        "cost_false_alert_units": 60,
+        "cost_missed_event_units": 150,
+        "cost_per_resource_unit_units": 15
+      }
+    },
+    {
+      "scenario_id": "scenario-latency-exceeds-window",
+      "scenario_reference": "synthetic:stress test with insufficient minimum warning time",
+      "minimum_warning_window_hours": 12,
+      "warning_window_source_reference": "synthetic:tight-warning-window-v1",
+      "capacity": {
+        "max_alerts_per_target_month": 1,
+        "max_resource_units_per_target_month": 1
+      },
+      "cost_schedule": {
+        "cost_unit": "synthetic-utility-unit",
+        "utility_if_true_alert_units": 100,
+        "cost_false_alert_units": 20,
+        "cost_missed_event_units": 150,
+        "cost_per_resource_unit_units": 5
+      }
+    }
   ]
 }
