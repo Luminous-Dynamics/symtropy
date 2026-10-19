@@ -520,7 +520,39 @@ pub fn build_replay_receipt(
     }
     baselines.sort_by(|left, right| left.baseline_id.cmp(&right.baseline_id));
     let mut baseline_ids = BTreeSet::new();
-    for baseline in &baselines {
+    for baseline in &mut baselines {
+        baseline.additional_metrics.sort_by(|left, right| {
+            left.metric_id
+                .cmp(&right.metric_id)
+                .then_with(|| left.stratum_kind.cmp(&right.stratum_kind))
+                .then_with(|| left.stratum_id.cmp(&right.stratum_id))
+        });
+        let mut baseline_metric_keys = BTreeSet::new();
+        baseline_metric_keys.insert((
+            baseline.primary_metric.metric_id.clone(),
+            baseline.primary_metric.stratum_kind,
+            baseline.primary_metric.stratum_id.clone(),
+        ));
+        for metric in &baseline.additional_metrics {
+            let key = (
+                metric.metric_id.clone(),
+                metric.stratum_kind,
+                metric.stratum_id.clone(),
+            );
+            if !baseline_metric_keys.insert(key) {
+                rejected.insert(ReplayReason::DuplicateBaselineMetric);
+            }
+            if metric.stratum_id.trim().is_empty()
+                || (metric.stratum_kind == MetricStratumKind::Overall && metric.stratum_id != "all")
+            {
+                rejected.insert(ReplayReason::BaselineStratumMismatch);
+            }
+            if matches!(validate_metric(metric), MetricValidation::InvalidInterval | MetricValidation::InvalidValue) {
+                rejected.insert(ReplayReason::BaselineMetricNotReported);
+            } else if matches!(validate_metric(metric), MetricValidation::Incomplete) {
+                incomplete.insert(ReplayReason::BaselineMetricNotReported);
+            }
+        }
         if baseline.baseline_id.trim().is_empty() {
             rejected.insert(ReplayReason::EmptyBaselineId);
         }
@@ -614,27 +646,33 @@ pub fn build_replay_receipt(
             rejected.insert(ReplayReason::BaselineComparisonStratumMismatch);
             continue;
         };
-        if candidate_metric.unit != baseline.primary_metric.unit
-            && !(comparison.stratum_kind == MetricStratumKind::Overall
-                && comparison.stratum_id == "all")
+        let baseline_metric = if comparison.stratum_kind == MetricStratumKind::Overall
+            && comparison.stratum_id == "all"
         {
+            Some(&baseline.primary_metric)
+        } else {
+            baseline.additional_metrics.iter().find(|metric| {
+                metric.metric_id == comparison.metric_id
+                    && metric.stratum_kind == comparison.stratum_kind
+                    && metric.stratum_id == comparison.stratum_id
+            })
+        };
+        let Some(baseline_metric) = baseline_metric else {
+            rejected.insert(ReplayReason::MissingBaselineStratumMetric);
+            continue;
+        };
+        if candidate_metric.unit != baseline_metric.unit {
             rejected.insert(ReplayReason::BaselineComparisonUnitMismatch);
         }
-        if comparison.independent_unit_count > candidate_metric.sample_count {
-            rejected.insert(ReplayReason::MissingPairedSamples);
-        }
-        if comparison.stratum_kind == MetricStratumKind::Overall
-            && comparison.stratum_id == "all"
-            && comparison.independent_unit_count > baseline.primary_metric.sample_count
+        if comparison.independent_unit_count > candidate_metric.sample_count
+            || comparison.independent_unit_count > baseline_metric.sample_count
         {
             rejected.insert(ReplayReason::MissingPairedSamples);
         }
         match comparison.mean_difference {
             Some(value) if value.is_finite() => {
-                if comparison.stratum_kind == MetricStratumKind::Overall
-                    && comparison.stratum_id == "all"
-                    && let (Some(candidate_value), Some(baseline_value)) =
-                        (candidate_metric.value, baseline.primary_metric.value)
+                if let (Some(candidate_value), Some(baseline_value)) =
+                    (candidate_metric.value, baseline_metric.value)
                 {
                     let observed_delta = candidate_value - baseline_value;
                     let tolerance = 1e-9 * value.abs().max(observed_delta.abs()).max(1.0);
@@ -670,14 +708,16 @@ pub fn build_replay_receipt(
     }
 
     for baseline in &baselines {
-        let has_primary_comparison = paired_baseline_comparisons.iter().any(|comparison| {
-            comparison.baseline_id == baseline.baseline_id
-                && comparison.metric_id == task.primary_metric_id
-                && comparison.stratum_kind == MetricStratumKind::Overall
-                && comparison.stratum_id == "all"
-        });
-        if !has_primary_comparison {
-            incomplete.insert(ReplayReason::MissingBaselineComparison);
+        for candidate_metric in metrics.iter().filter(|metric| metric.metric_id == task.primary_metric_id) {
+            let has_matching_comparison = paired_baseline_comparisons.iter().any(|comparison| {
+                comparison.baseline_id == baseline.baseline_id
+                    && comparison.metric_id == candidate_metric.metric_id
+                    && comparison.stratum_kind == candidate_metric.stratum_kind
+                    && comparison.stratum_id == candidate_metric.stratum_id
+            });
+            if !has_matching_comparison {
+                incomplete.insert(ReplayReason::MissingBaselineComparison);
+            }
         }
     }
 
