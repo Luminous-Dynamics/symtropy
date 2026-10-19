@@ -1104,6 +1104,91 @@ mod tests {
     }
 
     #[test]
+    fn metamorphic_spares_never_increase_synthetic_service_loss() {
+        let contract = contract();
+        for mut design in [
+            Design { standardized_interfaces: false, isolated_power_domains: false, spare_pack: false, end_of_life_plan: false },
+            Design { standardized_interfaces: false, isolated_power_domains: true, spare_pack: false, end_of_life_plan: true },
+            Design { standardized_interfaces: true, isolated_power_domains: false, spare_pack: false, end_of_life_plan: true },
+            Design { standardized_interfaces: true, isolated_power_domains: true, spare_pack: false, end_of_life_plan: true },
+        ] {
+            let without_spares = evaluate_model(design, &contract).unwrap();
+            design.spare_pack = true;
+            let with_spares = evaluate_model(design, &contract).unwrap();
+            for (before, after) in without_spares
+                .scenario_loss_ticks
+                .iter()
+                .zip(with_spares.scenario_loss_ticks.iter())
+            {
+                assert!(after <= before, "spare pack worsened service loss: {design:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn metamorphic_power_isolation_never_worsens_fault_metrics() {
+        let contract = contract();
+        for standardized_interfaces in [false, true] {
+            for spare_pack in [false, true] {
+                for end_of_life_plan in [false, true] {
+                    let shared = Design {
+                        standardized_interfaces,
+                        isolated_power_domains: false,
+                        spare_pack,
+                        end_of_life_plan,
+                    };
+                    let isolated = Design {
+                        isolated_power_domains: true,
+                        ..shared
+                    };
+                    let shared_metrics = evaluate_model(shared, &contract).unwrap();
+                    let isolated_metrics = evaluate_model(isolated, &contract).unwrap();
+                    for (before, after) in shared_metrics
+                        .scenario_loss_ticks
+                        .iter()
+                        .zip(isolated_metrics.scenario_loss_ticks.iter())
+                    {
+                        assert!(after <= before, "isolation worsened service loss");
+                    }
+                    for (before, after) in shared_metrics
+                        .scenario_recovery_elapsed_ticks
+                        .iter()
+                        .zip(isolated_metrics.scenario_recovery_elapsed_ticks.iter())
+                    {
+                        assert!(after <= before, "isolation worsened recovery elapsed time");
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn metamorphic_interface_standardization_exposes_mass_performance_tradeoff() {
+        let contract = contract();
+        let bespoke = Design {
+            standardized_interfaces: false,
+            isolated_power_domains: true,
+            spare_pack: true,
+            end_of_life_plan: true,
+        };
+        let standardized = Design {
+            standardized_interfaces: true,
+            ..bespoke
+        };
+        let bespoke_metrics = evaluate_model(bespoke, &contract).unwrap();
+        let standard_metrics = evaluate_model(standardized, &contract).unwrap();
+        assert_eq!(standard_metrics.launch_mass_smu, bespoke_metrics.launch_mass_smu + 8);
+        assert_eq!(standard_metrics.assembly_ticks + 2, bespoke_metrics.assembly_ticks);
+        assert_eq!(standard_metrics.interface_families, 1);
+        assert_eq!(bespoke_metrics.interface_families, 4);
+        assert_eq!(bespoke_metrics.scenario_loss_ticks[1], 7);
+        assert_eq!(standard_metrics.scenario_loss_ticks[1], 1);
+        for i in [0_usize, 2, 3, 4] {
+            assert_eq!(standard_metrics.scenario_loss_ticks[i], bespoke_metrics.scenario_loss_ticks[i]);
+        }
+    }
+
+    #[test]
     fn source_commit_binding_rejects_malformed_sha() {
         assert!(validate_source_commit(&"g".repeat(40)).is_err());
         assert!(validate_source_commit(&"a".repeat(39)).is_err());
