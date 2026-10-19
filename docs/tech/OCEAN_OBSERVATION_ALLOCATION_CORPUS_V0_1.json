@@ -43,7 +43,6 @@
           "candidate_id": "shelf-passive-01",
           "stratum_id": "easy_shelf",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -52,13 +51,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "shelf-passive-02",
           "stratum_id": "easy_shelf",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -67,13 +67,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "shelf-passive-03",
           "stratum_id": "easy_shelf",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -82,13 +83,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "shelf-passive-04",
           "stratum_id": "easy_shelf",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -97,13 +99,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "slope-passive-01",
           "stratum_id": "continental_slope",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -112,13 +115,14 @@
             "sound_units": 0,
             "light_units": 1,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "slope-active-02",
           "stratum_id": "continental_slope",
           "observation_mode": "active_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -127,13 +131,14 @@
             "sound_units": 1,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "abyssal-passive-01",
           "stratum_id": "abyssal_plain",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -142,13 +147,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "abyssal-passive-02",
           "stratum_id": "abyssal_plain",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -157,13 +163,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 1
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "abyssal-contact-sample",
           "stratum_id": "abyssal_plain",
           "observation_mode": "contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -172,13 +179,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 1
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "abyssal-rights-unreviewed",
           "stratum_id": "abyssal_plain",
           "observation_mode": "passive_non_contact",
-          "terms_status": "review_required",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -187,13 +195,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "review_required",
+          "use_permission": "unresolved"
         },
         {
           "candidate_id": "abyssal-detection-unknown",
           "stratum_id": "abyssal_plain",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": false,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -202,7 +211,9 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         }
       ]
     },
@@ -236,7 +247,6 @@
           "candidate_id": "hadal-passive-unknown-limit",
           "stratum_id": "deep_hadal",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": false,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -245,13 +255,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "hadal-rights-review-required",
           "stratum_id": "deep_hadal",
           "observation_mode": "passive_non_contact",
-          "terms_status": "review_required",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -260,13 +271,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "review_required",
+          "use_permission": "unresolved"
         },
         {
           "candidate_id": "hadal-active-costly",
           "stratum_id": "deep_hadal",
           "observation_mode": "active_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -275,13 +287,14 @@
             "sound_units": 2,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "hadal-passive-valid",
           "stratum_id": "deep_hadal",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 2,
@@ -290,13 +303,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "slope-passive-valid",
           "stratum_id": "seamount_slope",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -305,13 +319,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "slope-contact",
           "stratum_id": "seamount_slope",
           "observation_mode": "contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -320,7 +335,9 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 1
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         }
       ]
     },
@@ -354,7 +371,6 @@
           "candidate_id": "north-active-sound-over-cap",
           "stratum_id": "north_sector",
           "observation_mode": "active_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -363,13 +379,14 @@
             "sound_units": 2,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "north-passive-low-impact",
           "stratum_id": "north_sector",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -378,13 +395,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "south-active-light-over-cap",
           "stratum_id": "south_sector",
           "observation_mode": "active_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -393,13 +411,14 @@
             "sound_units": 0,
             "light_units": 2,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "south-passive-low-impact",
           "stratum_id": "south_sector",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -408,13 +427,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "south-sediment-over-cap",
           "stratum_id": "south_sector",
           "observation_mode": "active_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -423,13 +443,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 2
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "north-exposure-unknown",
           "stratum_id": "north_sector",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "unknown",
           "effort_units": 1,
@@ -438,7 +459,9 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         }
       ]
     },
@@ -479,7 +502,6 @@
           "candidate_id": "ridge-repeat-01",
           "stratum_id": "accessible_ridge",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -488,13 +510,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "ridge-repeat-02",
           "stratum_id": "accessible_ridge",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -503,13 +526,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "ridge-repeat-03",
           "stratum_id": "accessible_ridge",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -518,13 +542,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "deep-basin-passive",
           "stratum_id": "deep_basin",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -533,13 +558,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "benthic-plain-passive",
           "stratum_id": "benthic_plain",
           "observation_mode": "passive_non_contact",
-          "terms_status": "reviewed",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -548,13 +574,14 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted"
         },
         {
           "candidate_id": "benthic-terms-restricted",
           "stratum_id": "benthic_plain",
           "observation_mode": "passive_non_contact",
-          "terms_status": "restricted",
           "detection_limits_declared": true,
           "exposure_knowledge": "known",
           "effort_units": 1,
@@ -563,7 +590,9 @@
             "sound_units": 0,
             "light_units": 0,
             "sediment_units": 0
-          }
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "restricted"
         }
       ]
     }
