@@ -12,7 +12,17 @@ cargo run --manifest-path tools/rural-industrial-electrification-evaluator/Cargo
   tools/rural-industrial-electrification-evaluator/fixtures/benchmark_v0_1.json
 ```
 
-The report is JSON on stdout. The fixture values are wholly synthetic and illustrate both feasible and blocked/indeterminate cases. They are not measured farm, mine, vehicle or site data.
+The reports are JSON on stdout. The fixture values are wholly synthetic and illustrate feasible, blocked and indeterminate cases. They are not measured farm, mine, vehicle or site data.
+
+Run the separate industrial/mobile energy-path screen:
+
+```sh
+cargo test --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --all-targets
+cargo run --manifest-path tools/rural-industrial-electrification-evaluator/Cargo.toml --bin energy_path_screen -- \
+  tools/rural-industrial-electrification-evaluator/fixtures/energy_paths_v0_1.json
+``
+
+The energy-path screen performs a forward maximum-capacity pass and a backward source-power requirement pass. It reports the power needed to serve the declared load, instead of reporting unused route capacity as energy delivered. Thermal routes require stage temperature-drop inputs and a load-side temperature compatibility check. The conductive and wireless 90 kW / 30-minute examples are matched synthetic comparisons only; their efficiency factors are assumptions, not measured performance.
 
 ## V0.1 method
 
