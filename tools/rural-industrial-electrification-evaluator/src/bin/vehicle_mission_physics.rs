@@ -783,7 +783,8 @@ mod tests {
         a.scenario_id = "z-last".to_string();
         let mut b = sample_scenario(flat_segment());
         b.scenario_id = "a-first".to_string();
-        let design_a = &sample_catalog().designs[0];
+        let catalog = sample_catalog();
+        let design_a = &catalog.designs[0];
         let result_a = simulate(&a, design_a);
         let result_b = simulate(&b, design_a);
         let mut left = vec![result_a.clone(), result_b.clone()];
