@@ -39,12 +39,12 @@ FOOD_TRACEBACK_V0_1.json is synthetic and frozen at schema version 0.1.0. It con
 | Case | Stressor | Required behavior |
 |---|---|---|
 | CLEAN-001 | Complete custody path; one implicated and one unrelated finished lot | Reconstruct the path, retain the affected lot, and exclude the known unrelated lot under the declared complete-coverage assumption |
-| MIX-SPLIT-002 | Two ingredient lots merge into a mix that feeds two finished lots | Propagate exposure through the actual transformation and split; do not assume one input lot maps to one output lot |
+| MIX-SPLIT-002 | Two ingredient lots merge into a mix that feeds two finished lots | Propagate exposure through the actual transformation and split; do not assume one input lot maps to one output lot; preserve source ambiguity and do not force exclusion of FG-B where evidence cannot distinguish the inputs |
 | MISSING-HANDOFF-003 | The ingredient-to-mix custody edge is unknown while an outbreak-associated finished lot is known | Preserve containment of the observed affected lot; mark the upstream source unresolved; do not claim complete trace coverage |
 | CONFLICTED-CUSTODY-004 | Two incompatible upstream custody claims refer to one finished lot | Preserve the conflict, contain the affected lot, and abstain on conclusive source attribution |
 | GENOMIC-NO-ROUTE-005 | A retail sample shares a pathogen profile with a supplier sample, but no custody route connects that supplier to the affected lot | Keep genomic association distinct from material flow; do not assert a supply path or causal source from similarity alone |
 
-The fixture records are event- and evidence-scoped. A verified custody record is not interchangeable with a screening-only pathogen-profile comparison. Unknown and conflicted states are first-class values, not missing values to coerce into verified or false.
+The fixture records are event- and evidence-scoped. A verified custody record, a verified sample-origin record, and a screening-only pathogen-profile comparison have different semantics. Sample-origin metadata identifies what was sampled; it is not a material-flow edge. A profile match can show relatedness without proving that the sampled ingredient caused the outbreak. Unknown and conflicted states are first-class values, not missing values to coerce into verified or false.
 
 All entity IDs, quantities, dates, product lots, sample identifiers and truth labels are invented. No real supplier, product, illness cluster or facility is represented.
 
@@ -55,7 +55,7 @@ Use the same input records, candidate-set definitions and evaluation denominator
 - **B0 — full-information oracle:** computes reachability and affected output lots using complete hidden truth. This is an evaluation upper bound, not a deployable method; its truth access must never leak into other methods.
 - **B1 — naive reachable-upstream union:** returns all reachable upstream ingredient lots and downstream finished lots without distinguishing evidence status. It measures the cost of treating graph presence as sufficient.
 - **B2 — timestamp/locality heuristic:** ranks candidates using declared temporal and locality overlap, but must not treat those features as proof of material transfer. Freeze tie-breaks and missing-value handling before scoring.
-- **B3 — evidence-bounded graph method:** uses only observed records, edge status, time, transformations and provenance. It may abstain. No claim is made that B3 is implemented or superior.
+- **B3 — evidence-bounded graph method:** uses only observed records, edge status, time, transformations and provenance. Sample-origin records are excluded from material-flow reachability. It may abstain. No claim is made that B3 is implemented or superior.
 
 The first implementation can be a small deterministic Rust evaluator. Do not create a second supply-chain ledger, genomic classifier, refrigeration simulator or regulator workflow.
 
@@ -86,8 +86,8 @@ The central visualization is a Pareto frontier between residual affected exposur
 ## 7. Fail-closed invariants
 
 1. **Missing is not negative.** Missing records do not show that a lot is clean, a transfer did not happen, or exposure was zero.
-2. **Association is not custody.** Pathogen similarity, co-location, time overlap, co-purchase or shared parentage are not individually a verified material-flow edge.
-3. **Unknown/conflict remains explicit.** A missing, stale or conflicting transfer cannot be silently promoted to verified.
+2. **Association is not custody.** Pathogen similarity, co-location, time overlap, co-purchase, sample-origin metadata or shared parentage are not individually a verified material-flow edge.
+3. **Unknown/conflict remains explicit.** A missing, stale or conflicting transfer cannot be silently promoted to verified. Sample-origin records must be typed and cannot be traversed as lot-to-lot material movement.
 4. **Containment and attribution are separate.** An affected finished lot can warrant containment even when its source is unknown.
 5. **No unsupported complete-coverage claim.** If required handoffs are unresolved, disclose that the trace and containment scope may be incomplete.
 6. **Evidence is inspectable.** Every candidate and ruled-out alternative retains supporting, contradicting and missing evidence references.
