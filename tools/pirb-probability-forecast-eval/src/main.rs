@@ -21,8 +21,8 @@ fn run() -> Result<(), String> {
         .ok_or_else(|| "usage: pirb-probability-forecast-eval --input DATASET.json [--source-commit SHA] [--rustc-version VERSION] [--cargo-version VERSION]".to_owned())?;
     let input = fs::read(&input_path)
         .map_err(|error| format!("cannot read input {}: {error}", input_path))?;
-    let source_commit = option_value(&args, "--source-commit")?
-        .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
+    let source_commit =
+        option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
     let rustc_version = option_value(&args, "--rustc-version")?
         .unwrap_or_else(|| "UNSPECIFIED_LOCAL_TOOLCHAIN".to_owned());
     let cargo_version = option_value(&args, "--cargo-version")?
