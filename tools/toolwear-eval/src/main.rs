@@ -46,13 +46,17 @@ impl ErrorAccumulator {
         if self.rows == 0 {
             return Err("cannot summarize a metric with zero observations".to_owned());
         }
-        let n = self.rows as f64;
-        let mae = self.absolute_error_sum / n;
-        let rmse = (self.squared_error_sum / n).sqrt();
+        let count = self.rows as f64;
+        let mae = self.absolute_error_sum / count;
+        let rmse = (self.squared_error_sum / count).sqrt();
         if !mae.is_finite() || !rmse.is_finite() {
             return Err("metric computation produced a non-finite result".to_owned());
         }
-        Ok(MetricSummary { rows: self.rows, mae, rmse })
+        Ok(MetricSummary {
+            rows: self.rows,
+            mae,
+            rmse,
+        })
     }
 }
 
@@ -75,16 +79,20 @@ struct ModelResult {
 
 fn parse_csv(text: &str) -> Result<Dataset, String> {
     let mut lines = text.lines();
-    let header_line = lines.next().ok_or_else(|| "source file is empty".to_owned())?;
-    // This narrow parser admits only the pinned numeric feature table. A future
-    // source schema with quoted fields must be reviewed rather than guessed.
+    let header_line = lines
+        .next()
+        .ok_or_else(|| "source file is empty".to_owned())?;
+
+    // This deliberately narrow parser admits the pinned numeric feature table.
+    // A future quoted-field schema must be reviewed rather than guessed.
     if header_line.contains('"') {
-        return Err("quoted CSV headers are outside the pinned source contract".to_owned());
+        return Err("quoted CSV headers are outside the source contract".to_owned());
     }
     let headers: Vec<String> = header_line.split(',').map(str::to_owned).collect();
-    if headers.iter().any(|header| header.is_empty()) {
+    if headers.iter().any(String::is_empty) {
         return Err("header contains an empty column name".to_owned());
     }
+
     let mut unique_headers = BTreeSet::new();
     for header in &headers {
         if !unique_headers.insert(header.as_str()) {
@@ -106,7 +114,7 @@ fn parse_csv(text: &str) -> Result<Dataset, String> {
         }
         if line.contains('"') {
             return Err(format!(
-                "quoted cells are outside the pinned source contract at line {line_number}"
+                "quoted cells are outside the source contract at line {line_number}"
             ));
         }
         let cells: Vec<&str> = line.split(',').collect();
@@ -124,7 +132,10 @@ fn parse_csv(text: &str) -> Result<Dataset, String> {
         let mut values = Vec::with_capacity(cells.len());
         for (column, cell) in cells.iter().enumerate() {
             let value = cell.parse::<f64>().map_err(|_| {
-                format!("non-numeric value at line {line_number}, column {}", headers[column])
+                format!(
+                    "non-numeric value at line {line_number}, column {}",
+                    headers[column]
+                )
             })?;
             if !value.is_finite() {
                 return Err(format!(
@@ -144,40 +155,66 @@ fn parse_csv(text: &str) -> Result<Dataset, String> {
 }
 
 fn column_index(headers: &[String], name: &str) -> Result<usize, String> {
-    headers.iter().position(|header| header == name)
+    headers
+        .iter()
+        .position(|header| header == name)
         .ok_or_else(|| format!("required column is missing: {name}"))
 }
 
 fn validate_locked_source(dataset: &Dataset, source_bytes: &[u8]) -> Result<(), String> {
     if source_bytes.len() != EXPECTED_BYTES {
-        return Err(format!("source byte count mismatch: got {}, expected {}", source_bytes.len(), EXPECTED_BYTES));
+        return Err(format!(
+            "source byte count mismatch: got {}, expected {}",
+            source_bytes.len(),
+            EXPECTED_BYTES
+        ));
     }
     let actual_sha = sha256_hex(source_bytes);
     if actual_sha != EXPECTED_SHA256 {
-        return Err(format!("source SHA-256 mismatch: got {actual_sha}, expected {EXPECTED_SHA256}"));
+        return Err(format!(
+            "source SHA-256 mismatch: got {actual_sha}, expected {EXPECTED_SHA256}"
+        ));
     }
     if dataset.rows.len() != EXPECTED_ROWS {
-        return Err(format!("row count mismatch: got {}, expected {}", dataset.rows.len(), EXPECTED_ROWS));
+        return Err(format!(
+            "row count mismatch: got {}, expected {}",
+            dataset.rows.len(),
+            EXPECTED_ROWS
+        ));
     }
     if dataset.headers.len() != EXPECTED_COLUMNS {
-        return Err(format!("column count mismatch: got {}, expected {}", dataset.headers.len(), EXPECTED_COLUMNS));
+        return Err(format!(
+            "column count mismatch: got {}, expected {}",
+            dataset.headers.len(),
+            EXPECTED_COLUMNS
+        ));
     }
 
     let actual_tools: BTreeSet<u32> = dataset.rows.iter().map(|row| row.tool).collect();
     let expected_tools: BTreeSet<u32> = EXPECTED_TOOLS.into_iter().collect();
     if actual_tools != expected_tools {
-        return Err(format!("tool identity set mismatch: got {:?}, expected {:?}", actual_tools, expected_tools));
+        return Err(format!(
+            "tool identity set mismatch: got {:?}, expected {:?}",
+            actual_tools, expected_tools
+        ));
     }
 
     let text = std::str::from_utf8(source_bytes)
         .map_err(|error| format!("source is not valid UTF-8: {error}"))?;
     let line_count = text.lines().count();
     if line_count != EXPECTED_ROWS + 1 {
-        return Err(format!("physical line count mismatch: got {line_count}, expected {}", EXPECTED_ROWS + 1));
+        return Err(format!(
+            "physical line count mismatch: got {line_count}, expected {}",
+            EXPECTED_ROWS + 1
+        ));
     }
     let unique_rows: HashSet<&str> = text.lines().skip(1).collect();
     if unique_rows.len() != EXPECTED_ROWS {
-        return Err(format!("duplicate source rows detected: {} unique rows among {}", unique_rows.len(), EXPECTED_ROWS));
+        return Err(format!(
+            "duplicate source rows detected: {} unique rows among {}",
+            unique_rows.len(),
+            EXPECTED_ROWS
+        ));
     }
     Ok(())
 }
@@ -186,16 +223,22 @@ fn source_split(tools: &BTreeSet<u32>) -> (BTreeSet<u32>, BTreeSet<u32>) {
     let mut train = BTreeSet::new();
     let mut test = BTreeSet::new();
     for (index, tool) in tools.iter().copied().enumerate() {
-        // Numeric tool IDs sorted ascending; every fourth identity from index zero
-        // is held out. Rows never cross tool groups.
-        if index % 4 == 0 { test.insert(tool); } else { train.insert(tool); }
+        // Numeric IDs are sorted; every fourth identity from index zero is held
+        // out. Records are grouped by tool, never randomly split by row.
+        if index.is_multiple_of(4) {
+            test.insert(tool);
+        } else {
+            train.insert(tool);
+        }
     }
     (train, test)
 }
 
 fn tool_counts(rows: &[&Row]) -> BTreeMap<u32, usize> {
     let mut counts = BTreeMap::new();
-    for row in rows { *counts.entry(row.tool).or_insert(0) += 1; }
+    for row in rows {
+        *counts.entry(row.tool).or_insert(0) += 1;
+    }
     counts
 }
 
@@ -206,10 +249,15 @@ fn fit_tool_balanced_constant(rows: &[&Row], target_index: usize) -> Result<f64,
         entry.0 += row.values[target_index];
         entry.1 += 1;
     }
-    if sums.is_empty() { return Err("cannot fit baseline without training rows".to_owned()); }
-    let mean_of_tool_means = sums.values()
+    if sums.is_empty() {
+        return Err("cannot fit baseline without training rows".to_owned());
+    }
+
+    let mean_of_tool_means = sums
+        .values()
         .map(|(sum, count)| sum / *count as f64)
-        .sum::<f64>() / sums.len() as f64;
+        .sum::<f64>()
+        / sums.len() as f64;
     if !mean_of_tool_means.is_finite() {
         return Err("constant baseline fit is non-finite".to_owned());
     }
@@ -226,7 +274,8 @@ fn fit_tool_balanced_linear(
     let mut x_sum = 0.0;
     let mut y_sum = 0.0;
     for row in rows {
-        let count = counts.get(&row.tool)
+        let count = counts
+            .get(&row.tool)
             .ok_or_else(|| "training tool has no weight denominator".to_owned())?;
         let weight = 1.0 / *count as f64;
         weight_sum += weight;
@@ -236,13 +285,14 @@ fn fit_tool_balanced_linear(
     if weight_sum <= 0.0 || !weight_sum.is_finite() {
         return Err("invalid weighted training denominator".to_owned());
     }
+
     let x_mean = x_sum / weight_sum;
     let y_mean = y_sum / weight_sum;
-
     let mut xx = 0.0;
     let mut xy = 0.0;
     for row in rows {
-        let count = counts.get(&row.tool)
+        let count = counts
+            .get(&row.tool)
             .ok_or_else(|| "training tool has no weight denominator".to_owned())?;
         let weight = 1.0 / *count as f64;
         let dx = row.values[feature_index] - x_mean;
@@ -251,8 +301,11 @@ fn fit_tool_balanced_linear(
         xy += weight * dx * dy;
     }
     if !xx.is_finite() || xx <= f64::EPSILON {
-        return Err(format!("feature column {feature_index} has no usable training variation"));
+        return Err(format!(
+            "feature column {feature_index} has no usable training variation"
+        ));
     }
+
     let slope = xy / xx;
     let intercept = y_mean - slope * x_mean;
     if !slope.is_finite() || !intercept.is_finite() {
@@ -272,21 +325,38 @@ fn evaluate_model(
     let mut pooled = ErrorAccumulator::default();
     let mut by_tool: BTreeMap<u32, ErrorAccumulator> = BTreeMap::new();
     for row in &dataset.rows {
-        if !held_out_tools.contains(&row.tool) { continue; }
+        if !held_out_tools.contains(&row.tool) {
+            continue;
+        }
         let x = feature_index.map_or(0.0, |index| row.values[index]);
         let prediction = intercept + slope * x;
         pooled.push(row.values[target_index], prediction)?;
-        by_tool.entry(row.tool).or_default().push(row.values[target_index], prediction)?;
+        by_tool
+            .entry(row.tool)
+            .or_default()
+            .push(row.values[target_index], prediction)?;
     }
 
     let pooled = pooled.finish()?;
     let mut per_tool = BTreeMap::new();
-    for (tool, errors) in by_tool { per_tool.insert(tool, errors.finish()?); }
-    if per_tool.is_empty() { return Err("held-out split contains no tools".to_owned()); }
+    for (tool, errors) in by_tool {
+        per_tool.insert(tool, errors.finish()?);
+    }
+    if per_tool.is_empty() {
+        return Err("held-out split contains no tools".to_owned());
+    }
+
     let divisor = per_tool.len() as f64;
     let macro_mae = per_tool.values().map(|metric| metric.mae).sum::<f64>() / divisor;
     let macro_rmse = per_tool.values().map(|metric| metric.rmse).sum::<f64>() / divisor;
-    Ok(ModelResult { intercept, slope, pooled, macro_mae, macro_rmse, per_tool })
+    Ok(ModelResult {
+        intercept,
+        slope,
+        pooled,
+        macro_mae,
+        macro_rmse,
+        per_tool,
+    })
 }
 
 fn ids_json(ids: &BTreeSet<u32>) -> String {
@@ -295,41 +365,63 @@ fn ids_json(ids: &BTreeSet<u32>) -> String {
 }
 
 fn metric_json(metric: MetricSummary) -> String {
-    format!("{{\"rows\":{},\"mae\":{:.12},\"rmse\":{:.12}}}", metric.rows, metric.mae, metric.rmse)
+    format!(
+        "{{\"rows\":{},\"mae\":{:.12},\"rmse\":{:.12}}}",
+        metric.rows, metric.mae, metric.rmse
+    )
 }
 
 fn model_json(result: &ModelResult) -> String {
-    let per_tool: Vec<String> = result.per_tool.iter()
+    let per_tool: Vec<String> = result
+        .per_tool
+        .iter()
         .map(|(tool, metric)| format!("\"{tool}\":{}", metric_json(*metric)))
         .collect();
     format!(
         "{{\"intercept\":{:.12},\"slope\":{:.12},\"pooled\":{},\"macro_tool\":{{\"mae\":{:.12},\"rmse\":{:.12}}},\"per_tool\":{{{}}}}}",
-        result.intercept, result.slope, metric_json(result.pooled),
-        result.macro_mae, result.macro_rmse, per_tool.join(",")
+        result.intercept,
+        result.slope,
+        metric_json(result.pooled),
+        result.macro_mae,
+        result.macro_rmse,
+        per_tool.join(",")
     )
 }
 
 fn report(dataset: &Dataset, source_sha: &str) -> Result<String, String> {
     let tool_ids: BTreeSet<u32> = dataset.rows.iter().map(|row| row.tool).collect();
     let (train_tools, test_tools) = source_split(&tool_ids);
-    let train_rows: Vec<&Row> = dataset.rows.iter()
-        .filter(|row| train_tools.contains(&row.tool)).collect();
+    let train_rows: Vec<&Row> = dataset
+        .rows
+        .iter()
+        .filter(|row| train_tools.contains(&row.tool))
+        .collect();
     let train_counts = tool_counts(&train_rows);
     let target_index = column_index(&dataset.headers, "Vb")?;
 
     let constant = fit_tool_balanced_constant(&train_rows, target_index)?;
-    let constant_result = evaluate_model(dataset, &test_tools, target_index, None, constant, 0.0)?;
+    let constant_result =
+        evaluate_model(dataset, &test_tools, target_index, None, constant, 0.0)?;
     let mut models = vec![format!(
         "\"constant_train_tool_balanced\":{}",
         model_json(&constant_result)
     )];
+
     for feature in FEATURES {
         let feature_index = column_index(&dataset.headers, feature)?;
         let (intercept, slope) = fit_tool_balanced_linear(
-            &train_rows, &train_counts, feature_index, target_index
+            &train_rows,
+            &train_counts,
+            feature_index,
+            target_index,
         )?;
         let result = evaluate_model(
-            dataset, &test_tools, target_index, Some(feature_index), intercept, slope
+            dataset,
+            &test_tools,
+            target_index,
+            Some(feature_index),
+            intercept,
+            slope,
         )?;
         models.push(format!("\"ols_{feature}\":{}", model_json(&result)));
     }
@@ -338,70 +430,114 @@ fn report(dataset: &Dataset, source_sha: &str) -> Result<String, String> {
     let test_rows_count = dataset.rows.len() - train_rows_count;
     let split_identity = format!(
         "MFG-DATA-001-SPLIT-V1\nsource_sha256={source_sha}\ntrain_tools={}\ntest_tools={}\n",
-        ids_json(&train_tools), ids_json(&test_tools)
+        ids_json(&train_tools),
+        ids_json(&test_tools)
     );
     let split_sha = sha256_hex(split_identity.as_bytes());
     Ok(format!(
         "{{\"schema_version\":\"0.1.0\",\"model_id\":\"MFG-DATA-001\",\"evidence_class\":\"external_dataset_evaluation_unqualified_for_process_control\",\"source\":{{\"repository\":\"Vicomtech/dataset-machine-tool-wear\",\"commit\":\"fa7941101847541cdd31339d6481ee61d152d80f\",\"file\":\"Dataset_Machine_tool_wear.csv\",\"bytes\":{},\"sha256\":\"{}\",\"license_declared_in_source_file\":\"CC-BY-SA-4.0\",\"label\":\"Vb\",\"label_units\":\"not specified by source; values remain source-native\"}},\"dataset_diagnostics\":{{\"rows\":{},\"columns\":{},\"distinct_tools\":{},\"exact_duplicate_rows\":0,\"non_finite_cells\":0}},\"split\":{{\"method\":\"numeric tool IDs sorted ascending; hold out every fourth tool starting at index zero\",\"identity_sha256\":\"{}\",\"train_tools\":{},\"test_tools\":{},\"train_rows\":{},\"test_rows\":{}}},\"models\":{{{}}},\"limits\":[\"This feature-table benchmark does not validate raw-signal processing or a complete maintenance policy.\",\"Tool IDs are held out as groups; performance on four held-out tools is not evidence of machine-independent generalization.\",\"No prediction interval, maintenance command, manufacturing release, or process-control qualification is emitted.\",\"Vb physical units are not specified by the pinned source README and are not inferred here.\"]}}",
-        EXPECTED_BYTES, source_sha, dataset.rows.len(), dataset.headers.len(), tool_ids.len(),
-        split_sha, ids_json(&train_tools), ids_json(&test_tools), train_rows_count,
-        test_rows_count, models.join(",")
+        EXPECTED_BYTES,
+        source_sha,
+        dataset.rows.len(),
+        dataset.headers.len(),
+        tool_ids.len(),
+        split_sha,
+        ids_json(&train_tools),
+        ids_json(&test_tools),
+        train_rows_count,
+        test_rows_count,
+        models.join(",")
     ))
 }
 
 fn sha256_hex(input: &[u8]) -> String {
     const K: [u32; 64] = [
-        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
-        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
-        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
-        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
-        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
-        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
-        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
-        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xc76c51a3, 0xd192e819, 0xd6990624,
+        0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
+        0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+        0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f,
+        0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb,
+        0xbef9a3f7, 0xc67178f2,
     ];
     let mut padded = input.to_vec();
     let bit_length = (input.len() as u64).wrapping_mul(8);
     padded.push(0x80);
-    while padded.len() % 64 != 56 { padded.push(0); }
+    while padded.len() % 64 != 56 {
+        padded.push(0);
+    }
     padded.extend_from_slice(&bit_length.to_be_bytes());
 
     let mut state = [
-        0x6a09e667u32,0xbb67ae85,0x3c6ef372,0xa54ff53a,
-        0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19
+        0x6a09e667u32,
+        0xbb67ae85,
+        0x3c6ef372,
+        0xa54ff53a,
+        0x510e527f,
+        0x9b05688c,
+        0x1f83d9ab,
+        0x5be0cd19,
     ];
     for block in padded.chunks_exact(64) {
         let mut schedule = [0u32; 64];
         for (index, slot) in schedule.iter_mut().take(16).enumerate() {
             let offset = index * 4;
             *slot = u32::from_be_bytes([
-                block[offset],block[offset+1],block[offset+2],block[offset+3]
+                block[offset],
+                block[offset + 1],
+                block[offset + 2],
+                block[offset + 3],
             ]);
         }
-        for index in 16..64 {
+        let mut index = 16;
+        while index < 64 {
             let a = schedule[index - 15];
             let b = schedule[index - 2];
             let sigma0 = a.rotate_right(7) ^ a.rotate_right(18) ^ (a >> 3);
             let sigma1 = b.rotate_right(17) ^ b.rotate_right(19) ^ (b >> 10);
-            schedule[index] = schedule[index - 16].wrapping_add(sigma0)
-                .wrapping_add(schedule[index - 7]).wrapping_add(sigma1);
+            schedule[index] = schedule[index - 16]
+                .wrapping_add(sigma0)
+                .wrapping_add(schedule[index - 7])
+                .wrapping_add(sigma1);
+            index += 1;
         }
 
         let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h] = state;
-        for index in 0..64 {
+        for (index, constant) in K.iter().enumerate() {
             let sum1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
             let choose = (e & f) ^ ((!e) & g);
-            let temp1 = h.wrapping_add(sum1).wrapping_add(choose)
-                .wrapping_add(K[index]).wrapping_add(schedule[index]);
+            let temp1 = h
+                .wrapping_add(sum1)
+                .wrapping_add(choose)
+                .wrapping_add(*constant)
+                .wrapping_add(schedule[index]);
             let sum0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
             let majority = (a & b) ^ (a & c) ^ (b & c);
             let temp2 = sum0.wrapping_add(majority);
-            h=g; g=f; f=e; e=d.wrapping_add(temp1); d=c; c=b; b=a; a=temp1.wrapping_add(temp2);
+
+            h = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
         }
-        for (slot, value) in state.iter_mut().zip([a,b,c,d,e,f,g,h]) {
+        for (slot, value) in state.iter_mut().zip([a, b, c, d, e, f, g, h]) {
             *slot = slot.wrapping_add(value);
         }
     }
+
     state.iter().map(|value| format!("{value:08x}")).collect()
 }
 
@@ -409,20 +545,27 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 && args[1] == "--help" {
         println!("Usage: toolwear-eval --data PATH");
-        println!("Evaluates the exact pinned Vicomtech machine-tool-wear CSV; rejects other bytes.");
+        println!("Evaluates the exact pinned machine-tool-wear CSV; rejects other bytes.");
         return Ok(());
     }
     if args.len() != 3 || args[1] != "--data" {
         return Err("usage: toolwear-eval --data PATH (or --help)".to_owned());
     }
+
     let source_bytes = fs::read(&args[2])
         .map_err(|error| format!("failed to read source CSV {}: {error}", args[2]))?;
     let source_sha = sha256_hex(&source_bytes);
     if source_sha != EXPECTED_SHA256 {
-        return Err(format!("source SHA-256 mismatch: got {source_sha}, expected {EXPECTED_SHA256}"));
+        return Err(format!(
+            "source SHA-256 mismatch: got {source_sha}, expected {EXPECTED_SHA256}"
+        ));
     }
     if source_bytes.len() != EXPECTED_BYTES {
-        return Err(format!("source byte count mismatch: got {}, expected {}", source_bytes.len(), EXPECTED_BYTES));
+        return Err(format!(
+            "source byte count mismatch: got {}, expected {}",
+            source_bytes.len(),
+            EXPECTED_BYTES
+        ));
     }
     let text = std::str::from_utf8(&source_bytes)
         .map_err(|error| format!("source is not valid UTF-8: {error}"))?;
@@ -445,8 +588,14 @@ mod tests {
 
     #[test]
     fn sha256_matches_standard_vectors() {
-        assert_eq!(sha256_hex(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-        assert_eq!(sha256_hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 
     #[test]
@@ -456,7 +605,8 @@ mod tests {
         assert_eq!(dataset.rows.len(), 2);
         assert_eq!(dataset.headers.len(), 5);
         assert_eq!(dataset.rows[0].tool, 3);
-        assert_eq!(dataset.rows[1].values[column_index(&dataset.headers, "Vb").unwrap()], 2.0);
+        let target = column_index(&dataset.headers, "Vb").unwrap();
+        assert_eq!(dataset.rows[1].values[target], 2.0);
     }
 
     #[test]
@@ -484,9 +634,10 @@ mod tests {
         let dataset = parse_csv(text).expect("valid fixture should parse");
         let rows: Vec<&Row> = dataset.rows.iter().collect();
         let counts = tool_counts(&rows);
-        let y = column_index(&dataset.headers, "Vb").unwrap();
-        let x = column_index(&dataset.headers, "AE_RMS").unwrap();
-        let (intercept, slope) = fit_tool_balanced_linear(&rows, &counts, x, y).unwrap();
+        let target = column_index(&dataset.headers, "Vb").unwrap();
+        let feature = column_index(&dataset.headers, "AE_RMS").unwrap();
+        let (intercept, slope) =
+            fit_tool_balanced_linear(&rows, &counts, feature, target).unwrap();
         assert!((intercept - 1.0).abs() < 1e-10);
         assert!((slope - 2.0).abs() < 1e-10);
     }
@@ -497,8 +648,8 @@ mod tests {
         let dataset = parse_csv(text).expect("valid fixture should parse");
         let rows: Vec<&Row> = dataset.rows.iter().collect();
         let counts = tool_counts(&rows);
-        let y = column_index(&dataset.headers, "Vb").unwrap();
-        let x = column_index(&dataset.headers, "AE_RMS").unwrap();
-        assert!(fit_tool_balanced_linear(&rows, &counts, x, y).is_err());
+        let target = column_index(&dataset.headers, "Vb").unwrap();
+        let feature = column_index(&dataset.headers, "AE_RMS").unwrap();
+        assert!(fit_tool_balanced_linear(&rows, &counts, feature, target).is_err());
     }
 }
