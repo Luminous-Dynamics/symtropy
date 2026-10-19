@@ -1012,6 +1012,22 @@ mod tests {
     }
 
     #[test]
+    fn addition_converts_mixed_angle_units_before_combining_values() {
+        let mut graph = gear_graph();
+        let phase = graph
+            .variables
+            .iter_mut()
+            .find(|variable| variable.id == "variable:phase_offset")
+            .expect("phase offset");
+        phase.unit = "deg".to_owned();
+        phase.value_decimal = Some("180".to_owned());
+
+        let values = graph.evaluate().expect("mixed-unit addition should execute");
+        let output = values["variable:theta_output"].parse::<f64>().unwrap();
+        assert!((output - (std::f64::consts::PI - 2.0)).abs() < 1e-12);
+    }
+
+    #[test]
     fn computed_results_are_returned_in_the_declared_output_unit() {
         let mut graph = gear_graph();
         let output = graph
