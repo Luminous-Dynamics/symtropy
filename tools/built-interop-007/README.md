@@ -33,7 +33,9 @@ The output has the standard gate shape accepted by BUILT-INTEROP-006:
 - `gate.evidence[0].locator = report-json-pointer:/evidence_payload`
 - payload records source/target/IDS hashes and sizes, exact source and target adapter-report hashes, sorted findings, comparison counts and reason.
 
-The assembler can verify the payload digest and resolve the pointer. A follow-up assembler change is needed to verify all three artifact hashes and this tool's config hash at ingestion; the standalone tool does validate them before generating a gate.
+The assembler also independently verifies the payload digest, source/target/IDS byte hashes and lengths, exact supported profile, this tool's pinned config hash, and status/count/reason consistency. The explicit `profile_confirmed` bit prevents an apparent delta under an unconfirmed schema/IDS profile from being promoted to FAIL or PASS.
+
+The payload distinguishes `profile_confirmed` from `comparison_coverage_complete`: a known IFC4/IDS 1.0 profile can still have incomplete identity/observation coverage. A definite change/loss/dropped object becomes FAIL only under the confirmed profile; otherwise the report remains UNRESOLVED. The assembler validates these fields against typed status semantics before accepting the gate.
 
 ## Scope boundaries
 
