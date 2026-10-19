@@ -144,7 +144,30 @@ fn run_once(path: &str) {
             );
         }
         Err(error) => {
-            eprintln!("experiment graph could not be evaluated: {error}");
+            let output_payload = serde_json::json!({
+                "executed": false,
+                "error": &error,
+            });
+            let receipt = run_receipt_value(
+                "run",
+                &raw,
+                &graph,
+                &output_payload,
+                Some(&graph.id),
+                Some(&graph.schema_version),
+                Some(UNIT_REGISTRY_VERSION),
+                settings(&[("numeric_format", "IEEE-754 binary64".to_owned())]),
+            );
+            print_json(
+                serde_json::json!({
+                    "valid": true,
+                    "executed": false,
+                    "experiment_id": graph.id,
+                    "error": error,
+                    "run_receipt": receipt,
+                }),
+                "{"valid":true,"executed":false,"error":"could not serialize failed-run receipt"}",
+            );
             process::exit(1);
         }
     }
@@ -244,7 +267,33 @@ fn run_sweep(path: &str, variable_id: &str, values_csv: &str) {
             );
         }
         Err(error) => {
-            eprintln!("experiment sweep could not be executed: {error}");
+            let output_payload = serde_json::json!({
+                "executed": false,
+                "error": &error,
+            });
+            let receipt = run_receipt_value(
+                "sweep",
+                &raw,
+                &graph,
+                &output_payload,
+                Some(&graph.id),
+                Some(&graph.schema_version),
+                Some(UNIT_REGISTRY_VERSION),
+                settings(&[
+                    ("swept_variable_id", variable_id.to_owned()),
+                    ("sweep_values", values_csv.to_owned()),
+                ]),
+            );
+            print_json(
+                serde_json::json!({
+                    "valid": true,
+                    "executed": false,
+                    "experiment_id": graph.id,
+                    "error": error,
+                    "run_receipt": receipt,
+                }),
+                "{"valid":true,"executed":false,"error":"could not serialize failed-sweep receipt"}",
+            );
             process::exit(1);
         }
     }
@@ -301,7 +350,33 @@ fn run_oscillator(path: &str) {
             );
         }
         Err(error) => {
-            eprintln!("harmonic oscillator could not be simulated: {error}");
+            let output_payload = serde_json::json!({
+                "executed": false,
+                "error": &error,
+            });
+            let receipt = run_receipt_value(
+                "oscillator",
+                &raw,
+                &spec,
+                &output_payload,
+                None,
+                Some(&spec.schema_version),
+                None,
+                settings(&[
+                    ("integrator", format!("{:?}", spec.integrator)),
+                    ("time_step_s", spec.time_step_s.to_string()),
+                    ("duration_s", spec.duration_s.to_string()),
+                ]),
+            );
+            print_json(
+                serde_json::json!({
+                    "valid": true,
+                    "executed": false,
+                    "error": error,
+                    "run_receipt": receipt,
+                }),
+                "{"valid":true,"executed":false,"error":"could not serialize failed-oscillator receipt"}",
+            );
             process::exit(1);
         }
     }
@@ -360,7 +435,33 @@ fn run_oscillator_convergence(path: &str, time_steps_csv: &str) {
             );
         }
         Err(error) => {
-            eprintln!("oscillator convergence study could not be executed: {error}");
+            let output_payload = serde_json::json!({
+                "executed": false,
+                "error": &error,
+            });
+            let receipt = run_receipt_value(
+                "oscillator-convergence",
+                &raw,
+                &spec,
+                &output_payload,
+                None,
+                Some(&spec.schema_version),
+                None,
+                settings(&[
+                    ("integrator", format!("{:?}", spec.integrator)),
+                    ("coarse_to_fine_time_steps_s", time_steps_csv.to_owned()),
+                    ("duration_s", spec.duration_s.to_string()),
+                ]),
+            );
+            print_json(
+                serde_json::json!({
+                    "valid": true,
+                    "executed": false,
+                    "error": error,
+                    "run_receipt": receipt,
+                }),
+                "{"valid":true,"executed":false,"error":"could not serialize failed-convergence receipt"}",
+            );
             process::exit(1);
         }
     }
