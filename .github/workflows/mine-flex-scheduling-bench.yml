@@ -291,3 +291,43 @@ jobs:
               execution_constrained_worst_case_cost_units, execution_constrained_worst_case_carbon_units
             }]
           }' mine-flex-execution-receipt.json
+
+
+      - name: Validate bounded pump/sump state transitions
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml --             --pump-sump --source-commit "$source_commit" > mine-flex-pump-sump-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-FLEX-PUMP-SUMP-001"
+            and .suite_version == "0.1.0"
+            and .case_count == 7
+            and .period_count == 21
+            and .expected_controls_matched == 7
+            and .accepted_cases == 1
+            and .rejected_cases == 6
+            and .hard_violations_in_accepted_cases == 0
+            and .conservation_mismatches == 0
+            and (.generated_case_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.cases[] | select(.executable != .expected_executable)] | length == 0)
+            and ([.cases[] | select(.case_id == "pump-drawdown-low-level" and ([.violations[].code] | index("SUMP_LOW_BOUND_VIOLATION") == null))] | length == 0)
+            and ([.cases[] | select(.case_id == "inflow-high-level" and ([.violations[].code] | index("SUMP_HIGH_BOUND_VIOLATION") == null))] | length == 0)
+            and ([.cases[] | select(.case_id == "minimum-off-time" and ([.violations[].code] | index("MINIMUM_OFF_TIME_NOT_MET") == null))] | length == 0)
+          ' mine-flex-pump-sump-receipt.json
+      - name: Emit pump/sump trajectory metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id, suite_version, generated_case_set_sha256, case_count, period_count,
+            expected_controls_matched, accepted_cases, rejected_cases,
+            hard_violations_in_accepted_cases, conservation_mismatches,
+            cases: [.cases[] | {
+              case_id, expected_executable, executable, startup_count,
+              violation_codes: [.violations[].code]
+            }]
+          }' mine-flex-pump-sump-receipt.json
