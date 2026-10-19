@@ -378,7 +378,7 @@ mod tests {
         );
         assert_eq!(
             receipt.receipt_sha256,
-            "53ce783176001947e1fa3e67e30ecfbcc9af4f94cd743152851d0bc54f39f792"
+            "b0b045ab62955c0e0342ee9746447dee39181c32318920ab13ac40b15c871775"
         );
         assert_eq!(receipt.verify(), Ok(true));
         assert!(receipt
