@@ -171,6 +171,7 @@ pub struct ViewsImportReceipt {
     dataset_id: String,
     evidence_class: EvidenceClass,
     partition: String,
+    partition_independently_verified: bool,
     forecast_archive_id: String,
     forecast_archive_sha256: String,
     manifest_sha256: String,
@@ -958,6 +959,7 @@ pub fn import_views_archive(
         dataset_id: manifest.dataset_id,
         evidence_class: manifest.evidence_class,
         partition: manifest.partition,
+        partition_independently_verified: false,
         forecast_archive_id: manifest.source.forecast_archive_id,
         forecast_archive_sha256,
         manifest_sha256,
@@ -1184,11 +1186,106 @@ mod tests {
     }
 
     #[test]
-    fn incomplete_response_pages_are_rejected() {
+    fn complete_two_page_response_is_imported_and_page_order_is_canonical() {
+        let original: Value = serde_json::from_slice(RESPONSE_2020_03).unwrap();
+        let data = original["data"].as_array().unwrap().clone();
+        assert_eq!(data.len(), 4);
+
+        let mut first_page = original.clone();
+        first_page["metadata"]["page_count"] = Value::from(2);
+        first_page["metadata"]["page_cur"] = Value::from(1);
+        first_page["metadata"]["next_page"] = Value::String("synthetic-page-2".to_owned());
+        first_page["metadata"]["prev_page"] = Value::String(String::new());
+        first_page["data"] = Value::Array(data[..2].to_vec());
+
+        let mut second_page = original;
+        second_page["metadata"]["page_count"] = Value::from(2);
+        second_page["metadata"]["page_cur"] = Value::from(2);
+        second_page["metadata"]["next_page"] = Value::String(String::new());
+        second_page["metadata"]["prev_page"] = Value::String("synthetic-page-1".to_owned());
+        second_page["data"] = Value::Array(data[2..].to_vec());
+
         let mut manifest: Value = serde_json::from_slice(MANIFEST).unwrap();
-        manifest["releases"][0]["response_paths"] = Value::Array(vec![]);
-        let bytes = serde_json::to_vec(&manifest).unwrap();
-        let result = import_views_archive(&bytes, OUTCOMES, BLOCK_MAP, &source_map(), runtime());
-        assert!(result.is_err());
+        manifest["releases"][0]["response_paths"] = Value::Array(vec![
+            Value::String("views-api-response-synthetic-2020-03.json".to_owned()),
+            Value::String("views-api-response-synthetic-page2-2020-03.json".to_owned()),
+        ]);
+        let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+        let mut sources = source_map();
+        sources.insert(
+            "views-api-response-synthetic-2020-03.json".to_owned(),
+            serde_json::to_vec(&first_page).unwrap(),
+        );
+        sources.insert(
+            "views-api-response-synthetic-page2-2020-03.json".to_owned(),
+            serde_json::to_vec(&second_page).unwrap(),
+        );
+
+        let bundle = import_views_archive(
+            &manifest_bytes,
+            OUTCOMES,
+            BLOCK_MAP,
+            &sources,
+            runtime(),
+        )
+        .expect("complete paginated response should import");
+        assert_eq!(bundle.receipt.forecast_record_count, 28);
+        assert_eq!(bundle.receipt.releases[0].response_page_count, 2);
+        assert_eq!(bundle.receipt.releases[0].response_page_sha256.len(), 2);
+    }
+
+    #[test]
+    fn incomplete_response_pages_are_rejected() {
+        let mut sources = source_map();
+        let mut page: Value = serde_json::from_slice(RESPONSE_2020_03).unwrap();
+        page["metadata"]["page_count"] = Value::from(2);
+        page["metadata"]["next_page"] = Value::String(String::new());
+        sources.insert(
+            "views-api-response-synthetic-2020-03.json".to_owned(),
+            serde_json::to_vec(&page).unwrap(),
+        );
+        let result = import_views_archive(MANIFEST, OUTCOMES, BLOCK_MAP, &sources, runtime());
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("non-final response page"))
+        );
+    }
+
+    #[test]
+    fn probabilities_outside_unit_interval_are_rejected_before_normalization() {
+        let mut sources = source_map();
+        let mut page: Value = serde_json::from_slice(RESPONSE_2020_03).unwrap();
+        page["data"][0][3] = Value::from(1.01);
+        sources.insert(
+            "views-api-response-synthetic-2020-03.json".to_owned(),
+            serde_json::to_vec(&page).unwrap(),
+        );
+        let result = import_views_archive(MANIFEST, OUTCOMES, BLOCK_MAP, &sources, runtime());
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("within [0, 1]"))
+        );
+    }
+
+    #[test]
+    fn bounded_count_units_are_not_accepted_as_probabilities() {
+        let mut sources = source_map();
+        let mut codebook: Value = serde_json::from_slice(CODEBOOK).unwrap();
+        codebook["main_dich"]["unit"]["name"] = Value::String("Fatalities".to_owned());
+        sources.insert(
+            "views-codebook-synthetic-v0.1.json".to_owned(),
+            serde_json::to_vec(&codebook).unwrap(),
+        );
+        let result = import_views_archive(MANIFEST, OUTCOMES, BLOCK_MAP, &sources, runtime());
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("declare Probability"))
+        );
     }
 }
