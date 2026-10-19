@@ -78,9 +78,8 @@ fn main() {
         let coarse = &pair[0];
         let fine = &pair[1];
         let ratio = coarse.continuous_position_error / fine.continuous_position_error;
-        let pass = ratio.is_finite()
-            && ratio >= CONVERGENCE_RATIO_MIN
-            && ratio <= CONVERGENCE_RATIO_MAX;
+        let pass =
+            ratio.is_finite() && ratio >= CONVERGENCE_RATIO_MIN && ratio <= CONVERGENCE_RATIO_MAX;
         eprintln!(
             "position_error_halving,{:.17},{:.17},{:.17},{}",
             coarse.dt, fine.dt, ratio, pass
@@ -130,8 +129,7 @@ fn run_case(dt: f64, requested_duration: f64) -> CaseResult {
     // constant acceleration and zero initial velocity:
     // y_n = y_0 + g*dt^2*n*(n+1)/2; v_n = g*n*dt.
     let n = steps as f64;
-    let discrete_y =
-        initial_position.coord(1) + gravity[1] * dt * dt * n * (n + 1.0) * 0.5;
+    let discrete_y = initial_position.coord(1) + gravity[1] * dt * dt * n * (n + 1.0) * 0.5;
     let discrete_vy = gravity[1] * duration;
 
     let continuous_position_error = (observed_y - continuous_y).abs();
