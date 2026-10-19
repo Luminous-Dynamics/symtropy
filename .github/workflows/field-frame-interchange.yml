@@ -1,0 +1,46 @@
+name: FieldFrame Interchange Qualification
+
+on:
+  push:
+    branches: ["feat/field-frame-interchange-v2"]
+    paths:
+      - "crates/bridges/symtropy-render-bridge/**"
+      - "Cargo.lock"
+      - ".github/workflows/field-frame-interchange.yml"
+  pull_request:
+    branches: ["feat/multiphysics-field-visualization"]
+    paths:
+      - "crates/bridges/symtropy-render-bridge/**"
+      - "Cargo.lock"
+      - ".github/workflows/field-frame-interchange.yml"
+
+concurrency:
+  group: field-frame-interchange-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: FieldFrame schema and renderer integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned repository Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Test field visualization and interchange
+        run: cargo test -p symtropy-render-bridge --lib --features field-visualization
+
+      - name: Strict Clippy for field visualization
+        run: cargo clippy -p symtropy-render-bridge --all-targets --features field-visualization -- -D warnings
+
+      - name: Verify workspace build
+        run: cargo check --workspace --all-targets

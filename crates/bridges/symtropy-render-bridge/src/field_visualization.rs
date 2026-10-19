@@ -10,10 +10,15 @@
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 
 const SPEED_OF_LIGHT_M_PER_S: f64 = 299_792_458.0;
 const MAX_FIELD_SAMPLES: usize = 100_000;
 const MAX_FIELD_LAYERS: usize = 256;
+const MAX_FIELD_FRAME_JSON_BYTES: usize = 256 * 1024 * 1024;
+const MAX_FIELD_FRAME_OBSERVATIONS: usize = 1_000_000;
+pub const FIELD_FRAME_SCHEMA_VERSION: u32 = 1;
 const MAX_SCALAR_MARKERS_PER_LAYER: usize = 2_048;
 const MAX_VECTOR_GLYPHS_PER_LAYER: usize = 1_024;
 const MAX_SCALAR_MARKERS_TOTAL: usize = 8_192;
@@ -494,6 +499,206 @@ impl Default for FieldLayerSet {
             vector_layers: Vec::new(),
         }
     }
+}
+
+/// Portable, versioned interchange record for producer-supplied physical fields.
+///
+/// This data format makes no claims about the correctness of a sensor or solver.
+/// Its SHA-256 field is a caller-declared binding to an external source dataset;
+/// this library validates the digest's shape but does not fetch or hash that data.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FieldFrame {
+    pub schema_version: u32,
+    pub frame_id: String,
+    pub producer: String,
+    pub producer_version: String,
+    pub captured_at_unix_ns: Option<u64>,
+    pub source_dataset_sha256: Option<String>,
+    pub scalar_layers: Vec<ScalarFieldLayer>,
+    pub vector_layers: Vec<VectorFieldLayer>,
+    pub spectra: Vec<SpectrumProfile>,
+}
+
+impl FieldFrame {
+    pub fn validate(&self) -> Result<(), String> {
+        validate_field_frame(self)
+    }
+
+    /// Serialize a validated frame to bounded pretty-printed JSON.
+    pub fn to_json(&self) -> Result<String, String> {
+        self.validate()?;
+        let json = serde_json::to_string_pretty(self)
+            .map_err(|error| format!("cannot serialize field frame: {error}"))?;
+        if json.len() > MAX_FIELD_FRAME_JSON_BYTES {
+            return Err("serialized field frame exceeds the 256 MiB interchange limit".to_owned());
+        }
+        Ok(json)
+    }
+
+    /// SHA-256 of the exact pretty-printed JSON bytes returned by to_json().
+    ///
+    /// This binds this serialized frame representation; it is not the digest of
+    /// the original sensor/solver artifact and may change if serialization rules
+    /// change in a future crate version.
+    pub fn serialized_sha256(&self) -> Result<String, String> {
+        let json = self.to_json()?;
+        Ok(format!("{:x}", Sha256::digest(json.as_bytes())))
+    }
+
+    /// Parse a bounded JSON frame and validate the complete dataset before use.
+    pub fn from_json(json: &str) -> Result<Self, String> {
+        if json.len() > MAX_FIELD_FRAME_JSON_BYTES {
+            return Err("field frame JSON exceeds the 256 MiB interchange limit".to_owned());
+        }
+        let frame: Self = serde_json::from_str(json)
+            .map_err(|error| format!("invalid field frame JSON: {error}"))?;
+        frame.validate()?;
+        Ok(frame)
+    }
+
+    /// Create a renderer resource from the scalar/vector layers; spectrum
+    /// profiles remain available on the original frame for plotting or analysis.
+    pub fn to_layer_set(&self) -> Result<FieldLayerSet, String> {
+        self.validate()?;
+        let mut layers = FieldLayerSet::default();
+        layers.scalar_layers.clone_from(&self.scalar_layers);
+        layers.vector_layers.clone_from(&self.vector_layers);
+        Ok(layers)
+    }
+}
+
+/// Validate schema, provenance, layer uniqueness, all sample values and total
+/// observation count. Unlike per-frame glyph extraction, this checks every
+/// supplied sample, not merely the subset requested for display.
+pub fn validate_field_frame(frame: &FieldFrame) -> Result<(), String> {
+    if frame.schema_version != FIELD_FRAME_SCHEMA_VERSION {
+        return Err(format!(
+            "unsupported field frame schema version {}; expected {}",
+            frame.schema_version, FIELD_FRAME_SCHEMA_VERSION
+        ));
+    }
+    if frame.frame_id.trim().is_empty()
+        || frame.producer.trim().is_empty()
+        || frame.producer_version.trim().is_empty()
+    {
+        return Err("field frame requires frame_id, producer, and producer_version".to_owned());
+    }
+    if let Some(digest) = frame.source_dataset_sha256.as_deref()
+        && !is_sha256_digest(digest)
+    {
+        return Err("source_dataset_sha256 must be a 64-character SHA-256 hex digest".to_owned());
+    }
+    if frame.scalar_layers.len() > MAX_FIELD_LAYERS
+        || frame.vector_layers.len() > MAX_FIELD_LAYERS
+        || frame.spectra.len() > MAX_FIELD_LAYERS
+    {
+        return Err(format!(
+            "field frame exceeds the per-kind layer limit of {MAX_FIELD_LAYERS}"
+        ));
+    }
+
+    let mut ids = BTreeSet::new();
+    let mut observation_count = 0_usize;
+    for layer in &frame.scalar_layers {
+        validate_scalar_layer(layer)?;
+        if !ids.insert(layer.metadata.id.as_str()) {
+            return Err(format!("duplicate field layer id {:?}", layer.metadata.id));
+        }
+        observation_count = checked_observation_count(observation_count, layer.samples.len())?;
+        for sample in &layer.samples {
+            project_position(
+                sample.position,
+                layer.metadata.spatial_unit,
+                layer.metadata.world_units_per_meter,
+            )?;
+            if !sample.value.is_finite() {
+                return Err(format!(
+                    "scalar field layer {:?} contains a non-finite value",
+                    layer.metadata.id
+                ));
+            }
+            if sample
+                .uncertainty
+                .is_some_and(|value| !value.is_finite() || value < 0.0)
+            {
+                return Err(format!(
+                    "scalar field layer {:?} contains invalid uncertainty",
+                    layer.metadata.id
+                ));
+            }
+        }
+    }
+
+    for layer in &frame.vector_layers {
+        validate_vector_layer(layer)?;
+        if !ids.insert(layer.metadata.id.as_str()) {
+            return Err(format!("duplicate field layer id {:?}", layer.metadata.id));
+        }
+        observation_count = checked_observation_count(observation_count, layer.samples.len())?;
+        for sample in &layer.samples {
+            project_position(
+                sample.position,
+                layer.metadata.spatial_unit,
+                layer.metadata.world_units_per_meter,
+            )?;
+            if sample.vector.iter().any(|component| !component.is_finite()) {
+                return Err(format!(
+                    "vector field layer {:?} contains a non-finite component",
+                    layer.metadata.id
+                ));
+            }
+            let magnitude = sample
+                .vector
+                .iter()
+                .fold(0.0_f64, |norm, value| norm.hypot(*value));
+            if !magnitude.is_finite() {
+                return Err(format!(
+                    "vector field layer {:?} has an unrepresentable magnitude",
+                    layer.metadata.id
+                ));
+            }
+            if sample
+                .magnitude_uncertainty
+                .is_some_and(|value| !value.is_finite() || value < 0.0)
+            {
+                return Err(format!(
+                    "vector field layer {:?} contains invalid magnitude uncertainty",
+                    layer.metadata.id
+                ));
+            }
+        }
+    }
+
+    for spectrum in &frame.spectra {
+        validate_spectrum_profile(spectrum)?;
+        if !ids.insert(spectrum.id.as_str()) {
+            return Err(format!("duplicate field layer id {:?}", spectrum.id));
+        }
+        observation_count = checked_observation_count(observation_count, spectrum.bins.len())?;
+    }
+
+    if observation_count > MAX_FIELD_FRAME_OBSERVATIONS {
+        return Err(format!(
+            "field frame exceeds the {MAX_FIELD_FRAME_OBSERVATIONS}-observation limit"
+        ));
+    }
+    Ok(())
+}
+
+fn checked_observation_count(current: usize, additional: usize) -> Result<usize, String> {
+    let total = current
+        .checked_add(additional)
+        .ok_or_else(|| "field frame observation count overflow".to_owned())?;
+    if total > MAX_FIELD_FRAME_OBSERVATIONS {
+        return Err(format!(
+            "field frame exceeds the {MAX_FIELD_FRAME_OBSERVATIONS}-observation limit"
+        ));
+    }
+    Ok(total)
+}
+
+fn is_sha256_digest(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1157,6 +1362,122 @@ mod tests {
                 .expect("zero budget")
                 .is_empty()
         );
+    }
+
+    fn test_frame() -> FieldFrame {
+        let mut frame = FieldFrame {
+            schema_version: FIELD_FRAME_SCHEMA_VERSION,
+            frame_id: "frame-0001".to_owned(),
+            producer: "test-thermal-em-solver".to_owned(),
+            producer_version: "0.4.2".to_owned(),
+            captured_at_unix_ns: Some(1_800_000_000_000_000_000),
+            source_dataset_sha256: Some("a".repeat(64)),
+            scalar_layers: vec![ScalarFieldLayer {
+                metadata: metadata(
+                    PhysicalQuantity::Temperature,
+                    FieldUnit::Celsius,
+                    DisplayRange {
+                        min: 0.0,
+                        max: 100.0,
+                    },
+                ),
+                enabled: true,
+                marker_radius: 0.03,
+                samples: vec![ScalarFieldSample {
+                    position: [0.0, 1.0, 0.0],
+                    value: 42.0,
+                    uncertainty: Some(0.5),
+                }],
+            }],
+            vector_layers: vec![VectorFieldLayer {
+                metadata: metadata(
+                    PhysicalQuantity::ElectricFieldVector,
+                    FieldUnit::VoltPerMeter,
+                    DisplayRange {
+                        min: 0.0,
+                        max: 500.0,
+                    },
+                ),
+                enabled: true,
+                vector_scale: 0.8,
+                max_vector_length: 1.0,
+                samples: vec![VectorFieldSample {
+                    position: [0.0, 1.0, 0.0],
+                    vector: [100.0, 10.0, 0.0],
+                    magnitude_uncertainty: Some(0.3),
+                }],
+            }],
+            spectra: vec![spectrum_profile()],
+        };
+        frame.scalar_layers[0].metadata.id = "temperature-layer".to_owned();
+        frame.vector_layers[0].metadata.id = "electric-field-layer".to_owned();
+        frame
+    }
+
+    #[test]
+    fn field_frame_json_round_trip_preserves_units_and_provenance() {
+        let frame = test_frame();
+        let json = frame.to_json().expect("valid frame serializes");
+        let decoded = FieldFrame::from_json(&json).expect("serialized frame validates");
+        assert_eq!(decoded, frame);
+        let visual_layers = decoded.to_layer_set().expect("valid frame maps to layers");
+        assert_eq!(visual_layers.scalar_layers.len(), 1);
+        assert_eq!(visual_layers.vector_layers.len(), 1);
+        assert_eq!(decoded.spectra.len(), 1);
+    }
+
+    #[test]
+    fn serialized_frame_digest_is_stable_and_content_sensitive() {
+        let frame = test_frame();
+        let first = frame
+            .serialized_sha256()
+            .expect("valid frame has a serialized digest");
+        let second = frame
+            .serialized_sha256()
+            .expect("same valid frame has same serialized digest");
+        assert_eq!(first, second);
+        assert!(is_sha256_digest(&first));
+
+        let mut changed = frame.clone();
+        changed.scalar_layers[0].samples[0].value += 0.01;
+        let changed_digest = changed
+            .serialized_sha256()
+            .expect("changed frame still validates");
+        assert_ne!(first, changed_digest);
+    }
+
+    #[test]
+    fn field_frame_rejects_bad_schema_duplicate_ids_and_bad_digest() {
+        let mut frame = test_frame();
+        frame.schema_version += 1;
+        assert!(frame.validate().is_err());
+
+        let mut frame = test_frame();
+        frame.vector_layers[0].metadata.id = frame.scalar_layers[0].metadata.id.clone();
+        assert!(frame.validate().is_err());
+
+        let mut frame = test_frame();
+        frame.source_dataset_sha256 = Some("not-a-digest".to_owned());
+        assert!(frame.validate().is_err());
+    }
+
+    #[test]
+    fn field_frame_validates_every_sample_not_only_render_budget() {
+        let mut frame = test_frame();
+        frame.scalar_layers[0].samples.resize(
+            2_050,
+            ScalarFieldSample {
+                position: [0.0, 0.0, 0.0],
+                value: 1.0,
+                uncertainty: None,
+            },
+        );
+        frame.scalar_layers[0].samples[2_049].value = f64::NAN;
+
+        // The renderer's 2,048-marker extraction never examines this last
+        // sample, but interchange validation must reject the entire frame.
+        assert!(extract_scalar_glyphs(&frame.scalar_layers[0], 2_048).is_ok());
+        assert!(frame.validate().is_err());
     }
 
     #[test]
