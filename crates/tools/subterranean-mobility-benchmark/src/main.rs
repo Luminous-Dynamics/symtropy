@@ -1,11 +1,15 @@
 use subterranean_mobility_benchmark::{
-    evaluate_passage, HazardState, Measurement, Passage, PassageDecisionKind, SupportState,
-    TimedEvidence, TraversalMode, TraversalProfile, TravelDirection,
+    HazardState, Measurement, Passage, PassageDecisionKind, SupportState, TimedEvidence,
+    TravelDirection, TraversalMode, TraversalProfile, evaluate_passage,
 };
 
 fn measurement(value: i64, uncertainty: u64, evidence_id: &str) -> Measurement {
     Measurement {
-        value, uncertainty, observed_at_ms: 100, max_age_ms: 100, evidence_id: evidence_id.to_owned(),
+        value,
+        uncertainty,
+        observed_at_ms: 100,
+        max_age_ms: 100,
+        evidence_id: evidence_id.to_owned(),
     }
 }
 
@@ -52,7 +56,10 @@ fn main() {
 
     match evaluate_passage(&passage, &profile, 150, TravelDirection::Forward) {
         Ok(decision) => {
-            println!("passage={} decision={:?}", decision.passage_id, decision.decision);
+            println!(
+                "passage={} decision={:?}",
+                decision.passage_id, decision.decision
+            );
             println!("reasons={:?}", decision.reasons);
             if decision.decision != PassageDecisionKind::AdmissibleWithinDeclaredEnvelope {
                 std::process::exit(2);

@@ -311,7 +311,10 @@ pub fn evaluate_passage(
         false,
         ReasonCode::MissingClearWidth,
         ReasonCode::StaleClearWidth,
-        |lower, _| (lower < i64::from(profile.required_width_mm)).then_some(ReasonCode::ClearWidthInsufficient),
+        |lower, _| {
+            (lower < i64::from(profile.required_width_mm))
+                .then_some(ReasonCode::ClearWidthInsufficient)
+        },
         &mut reasons,
     )?;
     evaluate_measurement(
@@ -320,7 +323,10 @@ pub fn evaluate_passage(
         false,
         ReasonCode::MissingClearHeight,
         ReasonCode::StaleClearHeight,
-        |lower, _| (lower < i64::from(profile.required_height_mm)).then_some(ReasonCode::ClearHeightInsufficient),
+        |lower, _| {
+            (lower < i64::from(profile.required_height_mm))
+                .then_some(ReasonCode::ClearHeightInsufficient)
+        },
         &mut reasons,
     )?;
     evaluate_measurement(
@@ -329,7 +335,10 @@ pub fn evaluate_passage(
         false,
         ReasonCode::MissingTurnRadius,
         ReasonCode::StaleTurnRadius,
-        |lower, _| (lower < i64::from(profile.required_turn_radius_mm)).then_some(ReasonCode::TurnRadiusInsufficient),
+        |lower, _| {
+            (lower < i64::from(profile.required_turn_radius_mm))
+                .then_some(ReasonCode::TurnRadiusInsufficient)
+        },
         &mut reasons,
     )?;
 
@@ -361,9 +370,15 @@ pub fn evaluate_passage(
     // Step-up/down measurements describe from_node -> to_node. Reversing the
     // segment swaps which physical obstacle is an up-step versus down-step.
     let (step_up, step_down) = if direction == TravelDirection::Forward {
-        (passage.maximum_step_up_mm.as_ref(), passage.maximum_step_down_mm.as_ref())
+        (
+            passage.maximum_step_up_mm.as_ref(),
+            passage.maximum_step_down_mm.as_ref(),
+        )
     } else {
-        (passage.maximum_step_down_mm.as_ref(), passage.maximum_step_up_mm.as_ref())
+        (
+            passage.maximum_step_down_mm.as_ref(),
+            passage.maximum_step_up_mm.as_ref(),
+        )
     };
     evaluate_measurement(
         step_up,
@@ -371,7 +386,9 @@ pub fn evaluate_passage(
         false,
         ReasonCode::MissingStepUp,
         ReasonCode::StaleStepUp,
-        |_, upper| (upper > i64::from(profile.maximum_step_up_mm)).then_some(ReasonCode::StepUpTooHigh),
+        |_, upper| {
+            (upper > i64::from(profile.maximum_step_up_mm)).then_some(ReasonCode::StepUpTooHigh)
+        },
         &mut reasons,
     )?;
     evaluate_measurement(
@@ -380,7 +397,9 @@ pub fn evaluate_passage(
         false,
         ReasonCode::MissingStepDown,
         ReasonCode::StaleStepDown,
-        |_, upper| (upper > i64::from(profile.maximum_step_down_mm)).then_some(ReasonCode::StepDownTooHigh),
+        |_, upper| {
+            (upper > i64::from(profile.maximum_step_down_mm)).then_some(ReasonCode::StepDownTooHigh)
+        },
         &mut reasons,
     )?;
 
@@ -552,7 +571,10 @@ pub fn find_admissible_route(
     if source == destination {
         return Ok(RouteSearchReport {
             disposition: RouteSearchDisposition::AdmissibleRouteFound,
-            route: Some(AdmissibleRoute { nodes: vec![source.to_owned()], traversals: Vec::new() }),
+            route: Some(AdmissibleRoute {
+                nodes: vec![source.to_owned()],
+                traversals: Vec::new(),
+            }),
             expanded_states: 0,
             rejected_edge_directions: 0,
             unknown_edge_directions: 0,
@@ -575,27 +597,41 @@ pub fn find_admissible_route(
             return Err("self-loop passage is not accepted");
         }
         directed_edges.push(DirectedEdge {
-            passage_index: index, from: passage.from_node.clone(), to: passage.to_node.clone(),
+            passage_index: index,
+            from: passage.from_node.clone(),
+            to: passage.to_node.clone(),
             direction: TravelDirection::Forward,
         });
         if passage.bidirectional {
             directed_edges.push(DirectedEdge {
-                passage_index: index, from: passage.to_node.clone(), to: passage.from_node.clone(),
+                passage_index: index,
+                from: passage.to_node.clone(),
+                to: passage.from_node.clone(),
                 direction: TravelDirection::Reverse,
             });
         }
     }
     directed_edges.sort_by(|a, b| {
-        a.from.cmp(&b.from)
+        a.from
+            .cmp(&b.from)
             .then_with(|| a.to.cmp(&b.to))
-            .then_with(|| passages[a.passage_index].id.cmp(&passages[b.passage_index].id))
+            .then_with(|| {
+                passages[a.passage_index]
+                    .id
+                    .cmp(&passages[b.passage_index].id)
+            })
     });
 
     let mut admissible = Vec::new();
     let mut rejected_edge_directions = 0usize;
     let mut unknown_edge_directions = 0usize;
     for edge in directed_edges {
-        let decision = evaluate_passage(&passages[edge.passage_index], profile, now_ms, edge.direction)?;
+        let decision = evaluate_passage(
+            &passages[edge.passage_index],
+            profile,
+            now_ms,
+            edge.direction,
+        )?;
         match decision.decision {
             PassageDecisionKind::AdmissibleWithinDeclaredEnvelope => admissible.push(edge),
             PassageDecisionKind::RejectOutsideEnvelope => rejected_edge_directions += 1,
@@ -611,7 +647,11 @@ pub fn find_admissible_route(
     }
 
     let mut queue = VecDeque::new();
-    queue.push_back(State { node: source.to_owned(), nodes: vec![source.to_owned()], traversals: Vec::new() });
+    queue.push_back(State {
+        node: source.to_owned(),
+        nodes: vec![source.to_owned()],
+        traversals: Vec::new(),
+    });
     let mut expanded_states = 0usize;
     let mut truncated_by_hops = false;
 
@@ -619,7 +659,10 @@ pub fn find_admissible_route(
         if expanded_states >= max_expansions {
             return Ok(RouteSearchReport {
                 disposition: RouteSearchDisposition::SearchLimitExceeded,
-                route: None, expanded_states, rejected_edge_directions, unknown_edge_directions,
+                route: None,
+                expanded_states,
+                rejected_edge_directions,
+                unknown_edge_directions,
             });
         }
         expanded_states += 1;
@@ -627,8 +670,13 @@ pub fn find_admissible_route(
         if state.node == destination {
             return Ok(RouteSearchReport {
                 disposition: RouteSearchDisposition::AdmissibleRouteFound,
-                route: Some(AdmissibleRoute { nodes: state.nodes, traversals: state.traversals }),
-                expanded_states, rejected_edge_directions, unknown_edge_directions,
+                route: Some(AdmissibleRoute {
+                    nodes: state.nodes,
+                    traversals: state.traversals,
+                }),
+                expanded_states,
+                rejected_edge_directions,
+                unknown_edge_directions,
             });
         }
 
@@ -661,7 +709,11 @@ pub fn find_admissible_route(
                     unknown_edge_directions,
                 });
             }
-            queue.push_back(State { node: edge.to.clone(), nodes, traversals });
+            queue.push_back(State {
+                node: edge.to.clone(),
+                nodes,
+                traversals,
+            });
         }
     }
 
@@ -671,7 +723,10 @@ pub fn find_admissible_route(
         } else {
             RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph
         },
-        route: None, expanded_states, rejected_edge_directions, unknown_edge_directions,
+        route: None,
+        expanded_states,
+        rejected_edge_directions,
+        unknown_edge_directions,
     })
 }
 
@@ -681,12 +736,21 @@ mod tests {
 
     fn m(value: i64, uncertainty: u64, id: &str) -> Measurement {
         Measurement {
-            value, uncertainty, observed_at_ms: 100, max_age_ms: 100, evidence_id: id.to_owned(),
+            value,
+            uncertainty,
+            observed_at_ms: 100,
+            max_age_ms: 100,
+            evidence_id: id.to_owned(),
         }
     }
 
     fn timed<T>(value: T, id: &str) -> TimedEvidence<T> {
-        TimedEvidence { value, observed_at_ms: 100, max_age_ms: 100, evidence_id: id.to_owned() }
+        TimedEvidence {
+            value,
+            observed_at_ms: 100,
+            max_age_ms: 100,
+            evidence_id: id.to_owned(),
+        }
     }
 
     fn profile() -> TraversalProfile {
@@ -707,7 +771,10 @@ mod tests {
 
     fn passage(id: &str, from: &str, to: &str) -> Passage {
         Passage {
-            id: id.to_owned(), from_node: from.to_owned(), to_node: to.to_owned(), bidirectional: true,
+            id: id.to_owned(),
+            from_node: from.to_owned(),
+            to_node: to.to_owned(),
+            bidirectional: true,
             clear_width_mm: Some(m(650, 10, "width-1")),
             clear_height_mm: Some(m(900, 10, "height-1")),
             minimum_turn_radius_mm: Some(m(1000, 20, "turn-1")),
@@ -716,14 +783,24 @@ mod tests {
             maximum_step_down_mm: Some(m(60, 5, "step-down-1")),
             traction_permille: Some(m(600, 20, "traction-1")),
             hazard_state: Some(timed(HazardState::NoBlockingHazardObserved, "hazard-1")),
-            vertical_transition: false, vertical_support: None,
+            vertical_transition: false,
+            vertical_support: None,
         }
     }
 
     #[test]
     fn fresh_evidence_inside_conservative_bounds_is_admissible() {
-        let result = evaluate_passage(&passage("p", "s", "d"), &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        assert_eq!(result.decision, PassageDecisionKind::AdmissibleWithinDeclaredEnvelope);
+        let result = evaluate_passage(
+            &passage("p", "s", "d"),
+            &profile(),
+            150,
+            TravelDirection::Forward,
+        )
+        .expect("valid inputs");
+        assert_eq!(
+            result.decision,
+            PassageDecisionKind::AdmissibleWithinDeclaredEnvelope
+        );
         assert!(result.reasons.is_empty());
     }
 
@@ -731,7 +808,8 @@ mod tests {
     fn uncertainty_is_applied_conservatively_to_clearance() {
         let mut p = passage("p", "s", "d");
         p.clear_width_mm = Some(m(510, 20, "width-boundary"));
-        let result = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        let result =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
         assert_eq!(result.decision, PassageDecisionKind::RejectOutsideEnvelope);
         assert!(result.reasons.contains(&ReasonCode::ClearWidthInsufficient));
     }
@@ -740,8 +818,12 @@ mod tests {
     fn missing_required_evidence_is_unknown_not_admissible() {
         let mut p = passage("p", "s", "d");
         p.traction_permille = None;
-        let result = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        assert_eq!(result.decision, PassageDecisionKind::UnknownInsufficientOrStaleEvidence);
+        let result =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        assert_eq!(
+            result.decision,
+            PassageDecisionKind::UnknownInsufficientOrStaleEvidence
+        );
         assert!(result.reasons.contains(&ReasonCode::MissingTraction));
     }
 
@@ -752,8 +834,12 @@ mod tests {
         stale.observed_at_ms = 0;
         stale.max_age_ms = 10;
         p.clear_height_mm = Some(stale);
-        let result = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        assert_eq!(result.decision, PassageDecisionKind::UnknownInsufficientOrStaleEvidence);
+        let result =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        assert_eq!(
+            result.decision,
+            PassageDecisionKind::UnknownInsufficientOrStaleEvidence
+        );
         assert!(result.reasons.contains(&ReasonCode::StaleClearHeight));
     }
 
@@ -761,7 +847,8 @@ mod tests {
     fn known_blocking_hazard_rejects_even_if_dimensions_fit() {
         let mut p = passage("p", "s", "d");
         p.hazard_state = Some(timed(HazardState::BlockingHazard, "inrush"));
-        let result = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        let result =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
         assert_eq!(result.decision, PassageDecisionKind::RejectOutsideEnvelope);
         assert!(result.reasons.contains(&ReasonCode::BlockingHazard));
     }
@@ -770,10 +857,15 @@ mod tests {
     fn directional_grade_changes_when_traversing_in_reverse() {
         let mut p = passage("p", "s", "d");
         p.grade_permille = Some(m(300, 0, "steep-grade"));
-        let forward = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        let reverse = evaluate_passage(&p, &profile(), 150, TravelDirection::Reverse).expect("valid inputs");
+        let forward =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        let reverse =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Reverse).expect("valid inputs");
         assert_eq!(forward.decision, PassageDecisionKind::RejectOutsideEnvelope);
-        assert_eq!(reverse.decision, PassageDecisionKind::AdmissibleWithinDeclaredEnvelope);
+        assert_eq!(
+            reverse.decision,
+            PassageDecisionKind::AdmissibleWithinDeclaredEnvelope
+        );
         assert!(forward.reasons.contains(&ReasonCode::AscentTooSteep));
     }
 
@@ -781,11 +873,14 @@ mod tests {
     fn reversing_a_downhill_segment_checks_the_uphill_limit() {
         let mut p = passage("p", "s", "d");
         p.grade_permille = Some(m(-280, 0, "downhill-grade"));
-        let forward = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward)
-            .expect("valid inputs");
-        let reverse = evaluate_passage(&p, &profile(), 150, TravelDirection::Reverse)
-            .expect("valid inputs");
-        assert_eq!(forward.decision, PassageDecisionKind::AdmissibleWithinDeclaredEnvelope);
+        let forward =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        let reverse =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Reverse).expect("valid inputs");
+        assert_eq!(
+            forward.decision,
+            PassageDecisionKind::AdmissibleWithinDeclaredEnvelope
+        );
         assert_eq!(reverse.decision, PassageDecisionKind::RejectOutsideEnvelope);
         assert!(reverse.reasons.contains(&ReasonCode::AscentTooSteep));
     }
@@ -795,8 +890,10 @@ mod tests {
         let mut p = passage("p", "s", "d");
         p.maximum_step_up_mm = Some(m(130, 0, "up-step"));
         p.maximum_step_down_mm = Some(m(40, 0, "down-step"));
-        let forward = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        let reverse = evaluate_passage(&p, &profile(), 150, TravelDirection::Reverse).expect("valid inputs");
+        let forward =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        let reverse =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Reverse).expect("valid inputs");
         assert!(forward.reasons.contains(&ReasonCode::StepUpTooHigh));
         assert!(!reverse.reasons.contains(&ReasonCode::StepUpTooHigh));
     }
@@ -806,18 +903,37 @@ mod tests {
         let mut p = passage("p", "s", "d");
         p.vertical_transition = true;
         p.vertical_support = None;
-        let unknown = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        assert_eq!(unknown.decision, PassageDecisionKind::UnknownInsufficientOrStaleEvidence);
-        assert!(unknown.reasons.contains(&ReasonCode::MissingQualifiedSupport));
+        let unknown =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        assert_eq!(
+            unknown.decision,
+            PassageDecisionKind::UnknownInsufficientOrStaleEvidence
+        );
+        assert!(
+            unknown
+                .reasons
+                .contains(&ReasonCode::MissingQualifiedSupport)
+        );
 
         p.vertical_support = Some(timed(SupportState::NotQualified, "support-check"));
-        let rejected = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        assert_eq!(rejected.decision, PassageDecisionKind::RejectOutsideEnvelope);
+        let rejected =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        assert_eq!(
+            rejected.decision,
+            PassageDecisionKind::RejectOutsideEnvelope
+        );
         assert!(rejected.reasons.contains(&ReasonCode::SupportNotQualified));
 
-        p.vertical_support = Some(timed(SupportState::QualifiedByResponsibleAuthority, "support-check-2"));
-        let admissible = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
-        assert_eq!(admissible.decision, PassageDecisionKind::AdmissibleWithinDeclaredEnvelope);
+        p.vertical_support = Some(timed(
+            SupportState::QualifiedByResponsibleAuthority,
+            "support-check-2",
+        ));
+        let admissible =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        assert_eq!(
+            admissible.decision,
+            PassageDecisionKind::AdmissibleWithinDeclaredEnvelope
+        );
     }
 
     #[test]
@@ -834,7 +950,8 @@ mod tests {
 
         let mut p = passage("p", "s", "d");
         p.traction_permille = Some(m(1200, 0, "bad-scale"));
-        let result = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("structural inputs valid");
+        let result = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward)
+            .expect("structural inputs valid");
         assert_eq!(result.decision, PassageDecisionKind::RejectOutsideEnvelope);
         assert!(result.reasons.contains(&ReasonCode::TractionInsufficient));
     }
@@ -851,7 +968,8 @@ mod tests {
         let p = passage("p", "s", "d");
         let mut wider = profile();
         wider.required_width_mm = 650;
-        let result = evaluate_passage(&p, &wider, 150, TravelDirection::Forward).expect("valid inputs");
+        let result =
+            evaluate_passage(&p, &wider, 150, TravelDirection::Forward).expect("valid inputs");
         assert_eq!(result.decision, PassageDecisionKind::RejectOutsideEnvelope);
     }
 
@@ -860,7 +978,8 @@ mod tests {
         let mut p = passage("p", "s", "d");
         p.clear_width_mm = Some(m(300, 0, "narrow"));
         p.traction_permille = None;
-        let result = evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
+        let result =
+            evaluate_passage(&p, &profile(), 150, TravelDirection::Forward).expect("valid inputs");
         assert_eq!(result.decision, PassageDecisionKind::RejectOutsideEnvelope);
         assert!(result.reasons.contains(&ReasonCode::ClearWidthInsufficient));
         assert!(result.reasons.contains(&ReasonCode::MissingTraction));
@@ -870,9 +989,18 @@ mod tests {
     fn graph_search_excludes_unknown_edges_and_finds_an_admissible_alternative() {
         let mut unknown = passage("s-a", "s", "a");
         unknown.clear_width_mm = None;
-        let passages = vec![unknown, passage("a-d", "a", "d"), passage("s-b", "s", "b"), passage("b-d", "b", "d")];
-        let report = find_admissible_route(&passages, &profile(), "s", "d", 150, 8, 100).expect("valid graph");
-        assert_eq!(report.disposition, RouteSearchDisposition::AdmissibleRouteFound);
+        let passages = vec![
+            unknown,
+            passage("a-d", "a", "d"),
+            passage("s-b", "s", "b"),
+            passage("b-d", "b", "d"),
+        ];
+        let report = find_admissible_route(&passages, &profile(), "s", "d", 150, 8, 100)
+            .expect("valid graph");
+        assert_eq!(
+            report.disposition,
+            RouteSearchDisposition::AdmissibleRouteFound
+        );
         assert_eq!(report.route.as_ref().unwrap().nodes, vec!["s", "b", "d"]);
         assert!(report.unknown_edge_directions > 0);
     }
@@ -881,17 +1009,30 @@ mod tests {
     fn graph_reports_no_admissible_route_when_required_evidence_is_unknown() {
         let mut p = passage("s-d", "s", "d");
         p.hazard_state = None;
-        let report = find_admissible_route(&[p], &profile(), "s", "d", 150, 4, 20).expect("valid graph");
-        assert_eq!(report.disposition, RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph);
+        let report =
+            find_admissible_route(&[p], &profile(), "s", "d", 150, 4, 20).expect("valid graph");
+        assert_eq!(
+            report.disposition,
+            RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph
+        );
         assert!(report.route.is_none());
         assert!(report.unknown_edge_directions > 0);
     }
 
     #[test]
     fn route_search_cap_does_not_masquerade_as_no_route() {
-        let passages = vec![passage("s-a", "s", "a"), passage("a-d", "a", "d"), passage("s-b", "s", "b"), passage("b-d", "b", "d")];
-        let report = find_admissible_route(&passages, &profile(), "s", "d", 150, 8, 1).expect("valid graph");
-        assert_eq!(report.disposition, RouteSearchDisposition::SearchLimitExceeded);
+        let passages = vec![
+            passage("s-a", "s", "a"),
+            passage("a-d", "a", "d"),
+            passage("s-b", "s", "b"),
+            passage("b-d", "b", "d"),
+        ];
+        let report =
+            find_admissible_route(&passages, &profile(), "s", "d", 150, 8, 1).expect("valid graph");
+        assert_eq!(
+            report.disposition,
+            RouteSearchDisposition::SearchLimitExceeded
+        );
         assert!(report.route.is_none());
     }
 
@@ -905,18 +1046,28 @@ mod tests {
             passage("b-d", "b", "d"),
             passage("c-d", "c", "d"),
         ];
-        let report = find_admissible_route(
-            &passages, &profile(), "s", "d", 150, 4, 2,
-        ).expect("valid graph");
-        assert_eq!(report.disposition, RouteSearchDisposition::SearchLimitExceeded);
+        let report =
+            find_admissible_route(&passages, &profile(), "s", "d", 150, 4, 2).expect("valid graph");
+        assert_eq!(
+            report.disposition,
+            RouteSearchDisposition::SearchLimitExceeded
+        );
         assert!(report.route.is_none());
     }
 
     #[test]
     fn hop_limit_exhaustion_is_not_reported_as_a_complete_no_route_search() {
-        let passages = vec![passage("s-a", "s", "a"), passage("a-b", "a", "b"), passage("b-d", "b", "d")];
-        let report = find_admissible_route(&passages, &profile(), "s", "d", 150, 1, 100).expect("valid graph");
-        assert_eq!(report.disposition, RouteSearchDisposition::SearchLimitExceeded);
+        let passages = vec![
+            passage("s-a", "s", "a"),
+            passage("a-b", "a", "b"),
+            passage("b-d", "b", "d"),
+        ];
+        let report = find_admissible_route(&passages, &profile(), "s", "d", 150, 1, 100)
+            .expect("valid graph");
+        assert_eq!(
+            report.disposition,
+            RouteSearchDisposition::SearchLimitExceeded
+        );
     }
 
     #[test]
@@ -927,11 +1078,18 @@ mod tests {
 
     #[test]
     fn equal_length_route_ties_are_deterministic() {
-        let passages = vec![passage("s-b", "s", "b"), passage("b-d", "b", "d"), passage("s-a", "s", "a"), passage("a-d", "a", "d")];
-        let first = find_admissible_route(&passages, &profile(), "s", "d", 150, 4, 100).expect("valid graph");
+        let passages = vec![
+            passage("s-b", "s", "b"),
+            passage("b-d", "b", "d"),
+            passage("s-a", "s", "a"),
+            passage("a-d", "a", "d"),
+        ];
+        let first = find_admissible_route(&passages, &profile(), "s", "d", 150, 4, 100)
+            .expect("valid graph");
         let mut reversed_input = passages.clone();
         reversed_input.reverse();
-        let second = find_admissible_route(&reversed_input, &profile(), "s", "d", 150, 4, 100).expect("valid graph");
+        let second = find_admissible_route(&reversed_input, &profile(), "s", "d", 150, 4, 100)
+            .expect("valid graph");
         assert_eq!(first, second);
         assert_eq!(first.route.unwrap().nodes, vec!["s", "a", "d"]);
     }

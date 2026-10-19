@@ -5,7 +5,7 @@
 //! so connectivity cannot make an unverified route admissible and network loss
 //! cannot silently rewrite the route evaluator's result.
 
-use super::{read_timed, RouteSearchDisposition, TimedEvidence, TimedRead};
+use super::{RouteSearchDisposition, TimedEvidence, TimedRead, read_timed};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CommunicationsState {
@@ -84,18 +84,28 @@ pub fn assess_egress_coordination(
     match location_read {
         TimedRead::Missing => reasons.push(CoordinationReason::LocalizationMissing),
         TimedRead::Stale => reasons.push(CoordinationReason::LocalizationStale),
-        TimedRead::Fresh(LocalizationState::NoCurrentFix) => reasons.push(CoordinationReason::LocalizationUnavailable),
+        TimedRead::Fresh(LocalizationState::NoCurrentFix) => {
+            reasons.push(CoordinationReason::LocalizationUnavailable)
+        }
         TimedRead::Fresh(LocalizationState::CurrentFixAvailable) => {}
     }
     match plan_read {
         TimedRead::Missing => reasons.push(CoordinationReason::LocalPlanMissing),
         TimedRead::Stale => reasons.push(CoordinationReason::LocalPlanStale),
-        TimedRead::Fresh(LocalPlanState::MissingOrUnverifiedPlan) => reasons.push(CoordinationReason::LocalPlanNotVersionMatched),
+        TimedRead::Fresh(LocalPlanState::MissingOrUnverifiedPlan) => {
+            reasons.push(CoordinationReason::LocalPlanNotVersionMatched)
+        }
         TimedRead::Fresh(LocalPlanState::VersionMatchedPlanAvailable) => {}
     }
 
-    let location_unavailable = matches!(location_read, TimedRead::Fresh(LocalizationState::NoCurrentFix));
-    let plan_unavailable = matches!(plan_read, TimedRead::Fresh(LocalPlanState::MissingOrUnverifiedPlan));
+    let location_unavailable = matches!(
+        location_read,
+        TimedRead::Fresh(LocalizationState::NoCurrentFix)
+    );
+    let plan_unavailable = matches!(
+        plan_read,
+        TimedRead::Fresh(LocalPlanState::MissingOrUnverifiedPlan)
+    );
     let evidence_unknown = matches!(location_read, TimedRead::Missing | TimedRead::Stale)
         || matches!(plan_read, TimedRead::Missing | TimedRead::Stale);
 
@@ -105,7 +115,9 @@ pub fn assess_egress_coordination(
         CoordinationSupportStatus::CoordinationUnknown
     } else {
         match communications {
-            CommunicationsState::LiveAcknowledgedPath => CoordinationSupportStatus::LiveCoordinationAvailable,
+            CommunicationsState::LiveAcknowledgedPath => {
+                CoordinationSupportStatus::LiveCoordinationAvailable
+            }
             CommunicationsState::StoreCarryForwardPending => {
                 reasons.push(CoordinationReason::MessagesAwaitingDelivery);
                 CoordinationSupportStatus::LocalInputsAvailableMessagesDeferred
@@ -123,7 +135,11 @@ pub fn assess_egress_coordination(
     reasons.sort();
     reasons.dedup();
 
-    Ok(EgressCoordinationReport { route_disposition, coordination_status, reasons })
+    Ok(EgressCoordinationReport {
+        route_disposition,
+        coordination_status,
+        reasons,
+    })
 }
 
 #[cfg(test)]
@@ -133,40 +149,88 @@ mod tests {
     const NOW_MS: u64 = 150;
 
     fn localization(value: LocalizationState) -> TimedEvidence<LocalizationState> {
-        TimedEvidence { value, observed_at_ms: 100, max_age_ms: 100, evidence_id: "location-001".to_owned() }
+        TimedEvidence {
+            value,
+            observed_at_ms: 100,
+            max_age_ms: 100,
+            evidence_id: "location-001".to_owned(),
+        }
     }
-    fn plan(value: LocalPlanState) -> TimedEvidence<LocalPlanState> {
-        TimedEvidence { value, observed_at_ms: 100, max_age_ms: 100, evidence_id: "plan-001".to_owned() }
+    fn plan_evidence(value: LocalPlanState) -> TimedEvidence<LocalPlanState> {
+        TimedEvidence {
+            value,
+            observed_at_ms: 100,
+            max_age_ms: 100,
+            evidence_id: "plan-001".to_owned(),
+        }
     }
-    fn assess(route: RouteSearchDisposition, comms: CommunicationsState, loc: Option<&TimedEvidence<LocalizationState>>, plan: Option<&TimedEvidence<LocalPlanState>>) -> EgressCoordinationReport {
+    fn assess(
+        route: RouteSearchDisposition,
+        comms: CommunicationsState,
+        loc: Option<&TimedEvidence<LocalizationState>>,
+        plan: Option<&TimedEvidence<LocalPlanState>>,
+    ) -> EgressCoordinationReport {
         assess_egress_coordination(route, comms, loc, plan, NOW_MS).expect("valid fixture")
     }
 
     #[test]
     fn live_coordination_requires_fresh_location_and_matched_plan() {
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::LiveAcknowledgedPath, Some(&loc), Some(&plan));
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::LiveCoordinationAvailable);
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::LiveAcknowledgedPath,
+            Some(&loc),
+            Some(&plan),
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::LiveCoordinationAvailable
+        );
     }
 
     #[test]
     fn isolation_degrades_coordination_without_mutating_route_disposition() {
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::Isolated, Some(&loc), Some(&plan));
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::OfflinePlanAndLocationAvailable);
-        assert_eq!(r.route_disposition, RouteSearchDisposition::AdmissibleRouteFound);
-        assert!(r.reasons.contains(&CoordinationReason::CommunicationsIsolated));
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::Isolated,
+            Some(&loc),
+            Some(&plan),
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::OfflinePlanAndLocationAvailable
+        );
+        assert_eq!(
+            r.route_disposition,
+            RouteSearchDisposition::AdmissibleRouteFound
+        );
+        assert!(
+            r.reasons
+                .contains(&CoordinationReason::CommunicationsIsolated)
+        );
     }
 
     #[test]
     fn store_carry_forward_is_not_live_delivery() {
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::StoreCarryForwardPending, Some(&loc), Some(&plan));
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::LocalInputsAvailableMessagesDeferred);
-        assert!(r.reasons.contains(&CoordinationReason::MessagesAwaitingDelivery));
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::StoreCarryForwardPending,
+            Some(&loc),
+            Some(&plan),
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::LocalInputsAvailableMessagesDeferred
+        );
+        assert!(
+            r.reasons
+                .contains(&CoordinationReason::MessagesAwaitingDelivery)
+        );
     }
 
     #[test]
@@ -174,50 +238,104 @@ mod tests {
         let mut loc = localization(LocalizationState::CurrentFixAvailable);
         loc.observed_at_ms = 0;
         loc.max_age_ms = 10;
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::LiveAcknowledgedPath, Some(&loc), Some(&plan));
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::CoordinationUnknown);
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::LiveAcknowledgedPath,
+            Some(&loc),
+            Some(&plan),
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::CoordinationUnknown
+        );
         assert!(r.reasons.contains(&CoordinationReason::LocalizationStale));
     }
 
     #[test]
     fn missing_plan_evidence_is_unknown() {
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::Isolated, Some(&loc), None);
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::CoordinationUnknown);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::Isolated,
+            Some(&loc),
+            None,
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::CoordinationUnknown
+        );
         assert!(r.reasons.contains(&CoordinationReason::LocalPlanMissing));
     }
 
     #[test]
     fn explicitly_unavailable_location_or_unverified_plan_blocks_guidance_claim() {
         let loc = localization(LocalizationState::NoCurrentFix);
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::LiveAcknowledgedPath, Some(&loc), Some(&plan));
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::RequiredLocalInputsUnavailable);
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::LiveAcknowledgedPath,
+            Some(&loc),
+            Some(&plan),
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::RequiredLocalInputsUnavailable
+        );
 
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let plan = plan(LocalPlanState::MissingOrUnverifiedPlan);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::Isolated, Some(&loc), Some(&plan));
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::RequiredLocalInputsUnavailable);
+        let plan = plan_evidence(LocalPlanState::MissingOrUnverifiedPlan);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::Isolated,
+            Some(&loc),
+            Some(&plan),
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::RequiredLocalInputsUnavailable
+        );
     }
 
     #[test]
     fn unknown_communications_never_claim_live_coordination() {
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        let r = assess(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::Unknown, Some(&loc), Some(&plan));
-        assert_eq!(r.coordination_status, CoordinationSupportStatus::CoordinationUnknown);
-        assert!(r.reasons.contains(&CoordinationReason::CommunicationsStateUnknown));
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        let r = assess(
+            RouteSearchDisposition::AdmissibleRouteFound,
+            CommunicationsState::Unknown,
+            Some(&loc),
+            Some(&plan),
+        );
+        assert_eq!(
+            r.coordination_status,
+            CoordinationSupportStatus::CoordinationUnknown
+        );
+        assert!(
+            r.reasons
+                .contains(&CoordinationReason::CommunicationsStateUnknown)
+        );
     }
 
     #[test]
     fn no_route_and_search_limit_remain_distinct_during_isolation() {
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        for route in [RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph, RouteSearchDisposition::SearchLimitExceeded] {
-            let r = assess(route, CommunicationsState::Isolated, Some(&loc), Some(&plan));
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        for route in [
+            RouteSearchDisposition::NoAdmissibleRouteInDeclaredGraph,
+            RouteSearchDisposition::SearchLimitExceeded,
+        ] {
+            let r = assess(
+                route,
+                CommunicationsState::Isolated,
+                Some(&loc),
+                Some(&plan),
+            );
             assert_eq!(r.route_disposition, route);
-            assert_eq!(r.coordination_status, CoordinationSupportStatus::OfflinePlanAndLocationAvailable);
+            assert_eq!(
+                r.coordination_status,
+                CoordinationSupportStatus::OfflinePlanAndLocationAvailable
+            );
         }
     }
 
@@ -225,12 +343,30 @@ mod tests {
     fn future_timestamps_and_empty_evidence_ids_are_rejected() {
         let mut loc = localization(LocalizationState::CurrentFixAvailable);
         loc.observed_at_ms = NOW_MS + 1;
-        let plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
-        assert!(assess_egress_coordination(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::LiveAcknowledgedPath, Some(&loc), Some(&plan), NOW_MS).is_err());
+        let plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
+        assert!(
+            assess_egress_coordination(
+                RouteSearchDisposition::AdmissibleRouteFound,
+                CommunicationsState::LiveAcknowledgedPath,
+                Some(&loc),
+                Some(&plan),
+                NOW_MS
+            )
+            .is_err()
+        );
 
         let loc = localization(LocalizationState::CurrentFixAvailable);
-        let mut plan = plan(LocalPlanState::VersionMatchedPlanAvailable);
+        let mut plan = plan_evidence(LocalPlanState::VersionMatchedPlanAvailable);
         plan.evidence_id.clear();
-        assert!(assess_egress_coordination(RouteSearchDisposition::AdmissibleRouteFound, CommunicationsState::LiveAcknowledgedPath, Some(&loc), Some(&plan), NOW_MS).is_err());
+        assert!(
+            assess_egress_coordination(
+                RouteSearchDisposition::AdmissibleRouteFound,
+                CommunicationsState::LiveAcknowledgedPath,
+                Some(&loc),
+                Some(&plan),
+                NOW_MS
+            )
+            .is_err()
+        );
     }
 }
