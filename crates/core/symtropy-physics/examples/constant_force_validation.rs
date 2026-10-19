@@ -60,9 +60,8 @@ fn main() {
         let coarse = &pair[0];
         let fine = &pair[1];
         let ratio = coarse.continuous_position_error / fine.continuous_position_error;
-        let pass = ratio.is_finite()
-            && ratio >= CONVERGENCE_RATIO_MIN
-            && ratio <= CONVERGENCE_RATIO_MAX;
+        let pass =
+            ratio.is_finite() && ratio >= CONVERGENCE_RATIO_MIN && ratio <= CONVERGENCE_RATIO_MAX;
         eprintln!(
             "position_error_halving,{:.17},{:.17},{:.17},{}",
             coarse.dt, fine.dt, ratio, pass
