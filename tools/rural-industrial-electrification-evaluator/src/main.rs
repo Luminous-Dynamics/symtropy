@@ -59,9 +59,9 @@ struct Report {
 }
 
 fn main() {
-    let path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "tools/rural-industrial-electrification-evaluator/fixtures/benchmark_v0_1.json".to_string());
+    let path = env::args().nth(1).unwrap_or_else(|| {
+        "tools/rural-industrial-electrification-evaluator/fixtures/benchmark_v0_1.json".to_string()
+    });
 
     let input = match fs::read_to_string(&path) {
         Ok(value) => value,
@@ -108,7 +108,10 @@ fn evaluate(s: &Scenario) -> ScenarioResult {
         ("demand_kwh_per_shift", s.demand_kwh_per_shift),
         ("pack_nominal_kwh", s.pack_nominal_kwh),
         ("state_of_health_fraction", s.state_of_health_fraction),
-        ("temperature_capacity_fraction", s.temperature_capacity_fraction),
+        (
+            "temperature_capacity_fraction",
+            s.temperature_capacity_fraction,
+        ),
         ("reserve_fraction", s.reserve_fraction),
         ("charger_power_kw", s.charger_power_kw),
         ("charger_efficiency_fraction", s.charger_efficiency_fraction),
@@ -128,7 +131,16 @@ fn evaluate(s: &Scenario) -> ScenarioResult {
 
     if let Some(error) = validate_present_values(s) {
         findings.push(error);
-        return result(s, Status::InvalidInput, None, None, None, None, missing, findings);
+        return result(
+            s,
+            Status::InvalidInput,
+            None,
+            None,
+            None,
+            None,
+            missing,
+            findings,
+        );
     }
 
     let usable = match (
@@ -137,8 +149,9 @@ fn evaluate(s: &Scenario) -> ScenarioResult {
         s.temperature_capacity_fraction,
         s.reserve_fraction,
     ) {
-        (Some(pack), Some(soh), Some(temp), Some(reserve)) =>
-            Some(pack * soh * temp * (1.0 - reserve)),
+        (Some(pack), Some(soh), Some(temp), Some(reserve)) => {
+            Some(pack * soh * temp * (1.0 - reserve))
+        }
         _ => None,
     };
 
@@ -152,8 +165,9 @@ fn evaluate(s: &Scenario) -> ScenarioResult {
         s.site_charge_power_budget_kw,
         s.simultaneous_chargers,
     ) {
-        (Some(charger), Some(site_budget), Some(concurrent)) if concurrent > 0 =>
-            Some(charger.min(site_budget / f64::from(concurrent))),
+        (Some(charger), Some(site_budget), Some(concurrent)) if concurrent > 0 => {
+            Some(charger.min(site_budget / f64::from(concurrent)))
+        }
         _ => None,
     };
 
@@ -189,7 +203,16 @@ fn evaluate(s: &Scenario) -> ScenarioResult {
         Status::FeasibleUnderDeclaredScreen
     };
 
-    result(s, status, usable, grid_energy, effective_power, recharge_hours, missing, findings)
+    result(
+        s,
+        status,
+        usable,
+        grid_energy,
+        effective_power,
+        recharge_hours,
+        missing,
+        findings,
+    )
 }
 
 fn validate_present_values(s: &Scenario) -> Option<String> {
@@ -218,7 +241,10 @@ fn validate_present_values(s: &Scenario) -> Option<String> {
 
     for (name, value) in [
         ("state_of_health_fraction", s.state_of_health_fraction),
-        ("temperature_capacity_fraction", s.temperature_capacity_fraction),
+        (
+            "temperature_capacity_fraction",
+            s.temperature_capacity_fraction,
+        ),
         ("charger_efficiency_fraction", s.charger_efficiency_fraction),
     ] {
         if let Some(number) = value {
@@ -239,7 +265,15 @@ fn validate_present_values(s: &Scenario) -> Option<String> {
     }
 
     if let Some(class) = &s.evidence_class {
-        if !["synthetic", "measured", "manufacturer", "literature", "estimate"].contains(&class.as_str()) {
+        if ![
+            "synthetic",
+            "measured",
+            "manufacturer",
+            "literature",
+            "estimate",
+        ]
+        .contains(&class.as_str())
+        {
             return Some("unsupported_evidence_class".to_string());
         }
     }
@@ -309,7 +343,12 @@ mod tests {
         scenario.demand_kwh_per_shift = Some(100.0);
         let result = evaluate(&scenario);
         assert_eq!(result.status, Status::NotFeasibleUnderDeclaredScreen);
-        assert!(result.findings.iter().any(|f| f == "shift_energy_exceeds_derated_usable_pack_energy"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|f| f == "shift_energy_exceeds_derated_usable_pack_energy")
+        );
     }
 
     #[test]
@@ -318,7 +357,12 @@ mod tests {
         scenario.charge_window_hours = Some(0.25);
         let result = evaluate(&scenario);
         assert_eq!(result.status, Status::NotFeasibleUnderDeclaredScreen);
-        assert!(result.findings.iter().any(|f| f == "recharge_time_exceeds_available_charge_window"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|f| f == "recharge_time_exceeds_available_charge_window")
+        );
     }
 
     #[test]
@@ -327,7 +371,12 @@ mod tests {
         scenario.site_charge_power_budget_kw = None;
         let result = evaluate(&scenario);
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.missing_fields.iter().any(|f| f == "site_charge_power_budget_kw"));
+        assert!(
+            result
+                .missing_fields
+                .iter()
+                .any(|f| f == "site_charge_power_budget_kw")
+        );
         assert!(result.effective_charging_power_kw.is_none());
     }
 
@@ -337,7 +386,12 @@ mod tests {
         scenario.site_charge_power_budget_kw = Some(0.0);
         let result = evaluate(&scenario);
         assert_eq!(result.status, Status::NotFeasibleUnderDeclaredScreen);
-        assert!(result.findings.iter().any(|f| f == "site_power_budget_provides_no_charging_capacity"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|f| f == "site_power_budget_provides_no_charging_capacity")
+        );
     }
 
     #[test]
