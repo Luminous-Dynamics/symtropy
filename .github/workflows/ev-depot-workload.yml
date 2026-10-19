@@ -1,0 +1,62 @@
+name: EV Depot Workload Generator
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-depot-workload/**"
+      - ".github/workflows/ev-depot-workload.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-depot-workload/**"
+      - ".github/workflows/ev-depot-workload.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-depot-workload/Cargo.toml --all -- --check
+      - name: Run tests and negative controls
+        run: cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
+      - name: Generate deterministic simulator corpus
+        run: |
+          cargo run --quiet --manifest-path tools/ev-depot-workload/Cargo.toml -- \
+            --input-report tools/ev-depot-workload/fixtures/audit_report_synthetic_v0_1.json \
+            --output-corpus ev-depot-workload-corpus.json \
+            --output-manifest ev-depot-workload-manifest.json \
+            --fleet-size 2 --seed 17 \
+            --kwh-per-mile 1.8 --pack-capacity-kwh 400 --initial-soc-fraction 0.1 \
+            --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
+            --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
+            --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
+            --charger-ports 2 --site-power-budget-kw 200
+          jq -e '.suite_id == "EV-CHARGE-RESILIENCE-001" and (.scenarios | length == 1) and .scenarios[0].evidence_class == "estimate" and (.scenarios[0].jobs | length == 2) and .scenarios[0].charger_port_count == 2 and .scenarios[0].site_power_budget_kw == 200' ev-depot-workload-corpus.json
+          jq -e '.tool == "ev-depot-workload" and .source_evidence_class_declared_by_caller == "synthetic" and .scenario_evidence_class == "estimate" and (.simulated_jobs | length == 2) and (.audit_report_sha256 | length == 64) and (.assumption_notes | length >= 5)' ev-depot-workload-manifest.json
+      - name: Hash crate, fixture and outputs
+        run: |
+          sha256sum tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-depot-workload/fixtures/audit_report_synthetic_v0_1.json tools/ev-depot-workload/README.md ev-depot-workload-corpus.json ev-depot-workload-manifest.json > ev-depot-workload.sha256
+      - name: Upload reproducible generator evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-depot-workload-${{ github.sha }}
+          path: |
+            ev-depot-workload-corpus.json
+            ev-depot-workload-manifest.json
+            ev-depot-workload.sha256
+            tools/ev-depot-workload/Cargo.toml
+            tools/ev-depot-workload/src/main.rs
+            tools/ev-depot-workload/fixtures/audit_report_synthetic_v0_1.json
+            tools/ev-depot-workload/README.md
+          if-no-files-found: error
+          retention-days: 14
