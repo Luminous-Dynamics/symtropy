@@ -1,0 +1,299 @@
+{
+  "schema_version": "0.1.0",
+  "suite_id": "EV-CHARGE-QUEUE-001",
+  "claim_ceiling": "Synthetic queue benchmarks only. Constant charging efficiency and power caps; no battery taper, charger outages, thermal state, stochastic arrivals or infrastructure recommendation.",
+  "scenarios": [
+    {
+      "scenario_id": "overnight-light-fleet",
+      "label": "Overnight depot AC for a small mixed passenger fleet",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative common-night arrival, 11 kW ports and 22 kW site cap; no local measurement.",
+      "charger_port_count": 2,
+      "port_power_kw": 11,
+      "site_power_budget_kw": 22,
+      "jobs": [
+        {
+          "job_id": "car-01",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 7
+        },
+        {
+          "job_id": "car-02",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 7
+        },
+        {
+          "job_id": "car-03",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 11
+        },
+        {
+          "job_id": "car-04",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 11
+        },
+        {
+          "job_id": "car-05",
+          "arrival_minute": 15,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 7
+        },
+        {
+          "job_id": "car-06",
+          "arrival_minute": 15,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 11
+        },
+        {
+          "job_id": "car-07",
+          "arrival_minute": 30,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 7
+        },
+        {
+          "job_id": "car-08",
+          "arrival_minute": 30,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 11
+        }
+      ]
+    },
+    {
+      "scenario_id": "synchronized-bus-wave",
+      "label": "Synchronized bus return wave at a constrained depot",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative simultaneous high-energy returns; demonstrates deadline and shared-site effects, not actual bus duty.",
+      "charger_port_count": 3,
+      "port_power_kw": 150,
+      "site_power_budget_kw": 240,
+      "jobs": [
+        {
+          "job_id": "bus-01",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 125,
+          "battery_energy_required_kwh": 85,
+          "charging_efficiency_fraction": 0.94,
+          "vehicle_max_acceptance_kw": 200
+        },
+        {
+          "job_id": "bus-02",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 135,
+          "battery_energy_required_kwh": 95,
+          "charging_efficiency_fraction": 0.94,
+          "vehicle_max_acceptance_kw": 200
+        },
+        {
+          "job_id": "bus-03",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 145,
+          "battery_energy_required_kwh": 100,
+          "charging_efficiency_fraction": 0.94,
+          "vehicle_max_acceptance_kw": 200
+        },
+        {
+          "job_id": "bus-04",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 245,
+          "battery_energy_required_kwh": 70,
+          "charging_efficiency_fraction": 0.94,
+          "vehicle_max_acceptance_kw": 200
+        },
+        {
+          "job_id": "bus-05",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 255,
+          "battery_energy_required_kwh": 75,
+          "charging_efficiency_fraction": 0.94,
+          "vehicle_max_acceptance_kw": 200
+        },
+        {
+          "job_id": "bus-06",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 265,
+          "battery_energy_required_kwh": 80,
+          "charging_efficiency_fraction": 0.94,
+          "vehicle_max_acceptance_kw": 200
+        }
+      ]
+    },
+    {
+      "scenario_id": "deadline-policy-oracle",
+      "label": "Minimal oracle where earliest deadline scheduling avoids an FCFS miss",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Hand-computable regression fixture: one 10 kWh job due at minute 120 and one 3 kWh job due at minute 20, with a 10 kW port.",
+      "charger_port_count": 1,
+      "port_power_kw": 10,
+      "site_power_budget_kw": 10,
+      "jobs": [
+        {
+          "job_id": "a-long",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 120,
+          "battery_energy_required_kwh": 10,
+          "charging_efficiency_fraction": 1,
+          "vehicle_max_acceptance_kw": 10
+        },
+        {
+          "job_id": "b-short",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 20,
+          "battery_energy_required_kwh": 3,
+          "charging_efficiency_fraction": 1,
+          "vehicle_max_acceptance_kw": 10
+        }
+      ]
+    },
+    {
+      "scenario_id": "weak-grid-rural-cohort",
+      "label": "Shared rural/farm charging under a weak site supply",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative 25 kW aggregate site cap across heterogeneous vehicle acceptance limits; not a grid-connection study.",
+      "charger_port_count": 4,
+      "port_power_kw": 22,
+      "site_power_budget_kw": 25,
+      "jobs": [
+        {
+          "job_id": "rural-01",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 300,
+          "battery_energy_required_kwh": 15,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 7
+        },
+        {
+          "job_id": "rural-02",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 300,
+          "battery_energy_required_kwh": 22,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 11
+        },
+        {
+          "job_id": "rural-03",
+          "arrival_minute": 5,
+          "departure_deadline_minute": 360,
+          "battery_energy_required_kwh": 18,
+          "charging_efficiency_fraction": 0.92,
+          "vehicle_max_acceptance_kw": 11
+        },
+        {
+          "job_id": "rural-04",
+          "arrival_minute": 10,
+          "departure_deadline_minute": 360,
+          "battery_energy_required_kwh": 35,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 22
+        },
+        {
+          "job_id": "rural-05",
+          "arrival_minute": 15,
+          "departure_deadline_minute": 420,
+          "battery_energy_required_kwh": 12,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 7
+        },
+        {
+          "job_id": "rural-06",
+          "arrival_minute": 15,
+          "departure_deadline_minute": 420,
+          "battery_energy_required_kwh": 25,
+          "charging_efficiency_fraction": 0.92,
+          "vehicle_max_acceptance_kw": 22
+        },
+        {
+          "job_id": "rural-07",
+          "arrival_minute": 30,
+          "departure_deadline_minute": 480,
+          "battery_energy_required_kwh": 20,
+          "charging_efficiency_fraction": 0.9,
+          "vehicle_max_acceptance_kw": 11
+        }
+      ]
+    },
+    {
+      "scenario_id": "mine-swap-pack-rack",
+      "label": "Managed charging rack for exchanged mine battery packs",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Jobs represent packs whose charge must complete before a declared next-use deadline; swaps, handling and pack thermal state are not modeled.",
+      "charger_port_count": 3,
+      "port_power_kw": 120,
+      "site_power_budget_kw": 240,
+      "jobs": [
+        {
+          "job_id": "pack-01",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 150,
+          "battery_energy_required_kwh": 100,
+          "charging_efficiency_fraction": 0.93,
+          "vehicle_max_acceptance_kw": 150
+        },
+        {
+          "job_id": "pack-02",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 175,
+          "battery_energy_required_kwh": 110,
+          "charging_efficiency_fraction": 0.93,
+          "vehicle_max_acceptance_kw": 150
+        },
+        {
+          "job_id": "pack-03",
+          "arrival_minute": 0,
+          "departure_deadline_minute": 200,
+          "battery_energy_required_kwh": 90,
+          "charging_efficiency_fraction": 0.93,
+          "vehicle_max_acceptance_kw": 150
+        },
+        {
+          "job_id": "pack-04",
+          "arrival_minute": 20,
+          "departure_deadline_minute": 225,
+          "battery_energy_required_kwh": 125,
+          "charging_efficiency_fraction": 0.93,
+          "vehicle_max_acceptance_kw": 150
+        },
+        {
+          "job_id": "pack-05",
+          "arrival_minute": 40,
+          "departure_deadline_minute": 250,
+          "battery_energy_required_kwh": 80,
+          "charging_efficiency_fraction": 0.93,
+          "vehicle_max_acceptance_kw": 150
+        },
+        {
+          "job_id": "pack-06",
+          "arrival_minute": 60,
+          "departure_deadline_minute": 275,
+          "battery_energy_required_kwh": 100,
+          "charging_efficiency_fraction": 0.93,
+          "vehicle_max_acceptance_kw": 150
+        }
+      ]
+    }
+  ]
+}
