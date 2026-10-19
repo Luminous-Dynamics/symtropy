@@ -57,7 +57,8 @@
       "output_type": "binary_probability",
       "license_reference": "Review the provider's current data-use and attribution terms before any use.",
       "artifact_digest": "0000000000000000000000000000000000000000000000000000000000000000",
-      "independent_source_capture_verified": false
+      "independent_source_capture_verified": false,
+      "canonical_estimand_id": "views-country-month-brd25-probability"
     },
     {
       "provider_id": "acled-cast",
@@ -74,7 +75,8 @@
       "output_type": "event_count",
       "license_reference": "Review ACLED terms and conditions before any use.",
       "artifact_digest": "1111111111111111111111111111111111111111111111111111111111111111",
-      "independent_source_capture_verified": false
+      "independent_source_capture_verified": false,
+      "canonical_estimand_id": "acled-cast-admin1-four-week-event-count"
     }
   ],
   "comparisons": [
