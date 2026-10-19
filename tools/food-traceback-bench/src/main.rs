@@ -21,12 +21,13 @@ const VALID_STATUSES: [&str; 6] = [
     "conflicted",
     "stale",
 ];
-const VALID_EVIDENCE_TYPES: [&str; 5] = [
+const VALID_EVIDENCE_TYPES: [&str; 6] = [
     "custody_record",
     "transformation_record",
     "retail_receipt",
     "outbreak_association",
     "pathogen_profile_comparison",
+    "sample_origin_record",
 ];
 
 type Check<T> = Result<T, String>;
@@ -145,6 +146,7 @@ fn has_verified_path(records: &[Value], start: &str, end: &str) -> bool {
             || record.get("evidence_type").and_then(Value::as_str)
                 == Some("pathogen_profile_comparison")
             || record.get("evidence_type").and_then(Value::as_str) == Some("outbreak_association")
+            || record.get("evidence_type").and_then(Value::as_str) == Some("sample_origin_record")
         {
             continue;
         }
@@ -341,6 +343,19 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
             {
                 return Err(format!(
                     "{record_at}: pathogen-profile evidence must remain screening_only and relatedness_only_not_custody"
+                ));
+            }
+        }
+        if evidence_type == "sample_origin_record" {
+            let from = text_field(record, "from", &record_at)?;
+            let to = text_field(record, "to", &record_at)?;
+            if status != "verified"
+                || text_field(record, "relation", &record_at)? != "sample_taken_from"
+                || entity_types.get(from).map(String::as_str) != Some("ingredient_lot")
+                || entity_types.get(to).map(String::as_str) != Some("pathogen_sample")
+            {
+                return Err(format!(
+                    "{record_at}: sample origin must be a verified ingredient_lot to pathogen_sample relation"
                 ));
             }
         }
@@ -683,6 +698,17 @@ mod tests {
 
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).expect("checked-in fixture must parse")
+    }
+
+    #[test]
+    fn sample_origin_records_are_not_material_flow_edges() {
+        let records = vec![json!({
+            "status": "verified",
+            "evidence_type": "sample_origin_record",
+            "from": "ING-A",
+            "to": "FG-A"
+        })];
+        assert!(!has_verified_path(&records, "ING-A", "FG-A"));
     }
 
     #[test]
