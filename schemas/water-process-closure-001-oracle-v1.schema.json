@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Water process closure independent oracle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "qualification_status",
+    "claim_ceiling",
+    "independently_hand_calculated",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "water-process-closure-001-oracle-v1"
+    },
+    "qualification_status": {
+      "const": "NotRun"
+    },
+    "claim_ceiling": {
+      "const": "WaterProcessAccountingContractOnly"
+    },
+    "independently_hand_calculated": {
+      "const": true
+    },
+    "results": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "water_balance_status",
+          "material_mass_status",
+          "tracer_status",
+          "lifecycle_status",
+          "overall_disposition"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^WPC-[0-9]{2}$"
+          },
+          "water_balance_status": {
+            "enum": [
+              "ExactBalanced",
+              "ExactUnbalanced",
+              "Invalid",
+              "Incomplete"
+            ]
+          },
+          "material_mass_status": {
+            "enum": [
+              "ExactBalanced",
+              "ExactUnbalanced",
+              "PossibleWithUncertainty",
+              "ImpossibleWithinBounds",
+              "Incomplete",
+              "Invalid"
+            ]
+          },
+          "tracer_status": {
+            "enum": [
+              "NotApplicable",
+              "ExactBalanced",
+              "Unbalanced",
+              "NotAssessable"
+            ]
+          },
+          "lifecycle_status": {
+            "enum": [
+              "ClosedForAccounting",
+              "Indeterminate",
+              "Incomplete"
+            ]
+          },
+          "overall_disposition": {
+            "enum": [
+              "AccountingOnly",
+              "Unbalanced",
+              "Invalid",
+              "Indeterminate",
+              "Incomplete"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
