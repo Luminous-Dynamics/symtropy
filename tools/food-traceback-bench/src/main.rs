@@ -183,7 +183,6 @@ fn candidate_projection(case: &Value) -> Value {
     })
 }
 
-
 fn entity_type_map(input: &Value) -> BTreeMap<String, String> {
     input
         .get("entities")
@@ -412,7 +411,8 @@ fn evaluate_reference_methods(case: &Value, truth: &Value) -> Check<Value> {
         .into_iter()
         .flatten()
         .filter(|record| {
-            record.get("evidence_type")
+            record
+                .get("evidence_type")
                 .and_then(Value::as_str)
                 .is_some_and(is_material_flow_type)
                 && record.get("status").and_then(Value::as_str) != Some("verified")
@@ -984,7 +984,9 @@ mod tests {
         let scenarios = validate_corpus(&corpus).expect("fixture must validate");
         let mixed = scenarios
             .iter()
-            .find(|scenario| scenario.get("case_id").and_then(Value::as_str) == Some("MIX-SPLIT-002"))
+            .find(|scenario| {
+                scenario.get("case_id").and_then(Value::as_str) == Some("MIX-SPLIT-002")
+            })
             .expect("mixed-lot case must exist");
         let b3 = &mixed["reference_comparison"]["B3_evidence_bounded_envelope"];
         assert_eq!(
@@ -999,8 +1001,11 @@ mod tests {
             b3["containment_metrics"]["unnecessary_recall_lot_count"].as_u64(),
             Some(1)
         );
-        let candidate_lots = strings(&b3["containment_metrics"]["candidate_finished_lots"], "candidate_finished_lots")
-            .expect("candidate lot list should be strings");
+        let candidate_lots = strings(
+            &b3["containment_metrics"]["candidate_finished_lots"],
+            "candidate_finished_lots",
+        )
+        .expect("candidate lot list should be strings");
         assert!(candidate_lots.contains(&"FG-B".to_owned()));
     }
 
@@ -1009,10 +1014,17 @@ mod tests {
         let mut corpus = fixture();
         let case = &corpus["cases"][1];
         let truth = &case["oracle_truth"];
-        let original = evaluate_reference_methods(case, truth).expect("baseline evaluation succeeds");
+        let original =
+            evaluate_reference_methods(case, truth).expect("baseline evaluation succeeds");
         let mutable_case = &mut corpus["cases"][1];
-        mutable_case["entities"].as_array_mut().expect("entities array").reverse();
-        mutable_case["observed_records"].as_array_mut().expect("records array").reverse();
+        mutable_case["entities"]
+            .as_array_mut()
+            .expect("entities array")
+            .reverse();
+        mutable_case["observed_records"]
+            .as_array_mut()
+            .expect("records array")
+            .reverse();
         let reordered_truth = mutable_case["oracle_truth"].clone();
         let reordered = evaluate_reference_methods(mutable_case, &reordered_truth)
             .expect("reordered baseline evaluation succeeds");
@@ -1023,8 +1035,11 @@ mod tests {
     fn rejects_sample_origin_record_relabelled_as_material_flow() {
         let mut corpus = fixture();
         corpus["cases"][4]["observed_records"][4]["relation"] = json!("ingredient_used_in");
-        let error = validate_corpus(&corpus).expect_err("sample origin must retain its distinct type");
-        assert!(error.contains("sample origin must be a verified ingredient_lot to pathogen_sample relation"));
+        let error =
+            validate_corpus(&corpus).expect_err("sample origin must retain its distinct type");
+        assert!(error.contains(
+            "sample origin must be a verified ingredient_lot to pathogen_sample relation"
+        ));
     }
 
     #[test]
