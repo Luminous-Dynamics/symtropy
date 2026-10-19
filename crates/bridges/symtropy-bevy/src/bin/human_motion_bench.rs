@@ -621,6 +621,24 @@ fn quaternion_angular_error_rad(a: [f64; 4], b: [f64; 4]) -> Result<f64, BenchEr
     }
 }
 
+/// Extract the Y-up yaw component from an XYZW quaternion. Full geodesic rotation
+/// error remains the primary metric because yaw alone does not capture pitch or roll.
+fn quaternion_yaw_rad(q: [f64; 4]) -> Result<f64, BenchError> {
+    let q = normalize_quaternion(q)?;
+    let [x, y, z, w] = q;
+    let yaw = (2.0 * (w * y + x * z)).atan2(1.0 - 2.0 * (y * y + x * x));
+    if yaw.is_finite() {
+        Ok(yaw)
+    } else {
+        fail("quaternion yaw is not finite")
+    }
+}
+
+fn wrapped_angle_difference_rad(a: f64, b: f64) -> f64 {
+    let delta = a - b;
+    delta.sin().atan2(delta.cos())
+}
+
 fn interpolate_position(
     source_times: &[f64],
     source_positions: &[[f64; 3]],
@@ -981,6 +999,16 @@ struct RootOrientationReport {
     p95_angular_error_deg: f64,
     max_angular_error_rad: f64,
     max_angular_error_deg: f64,
+    mean_signed_yaw_error_rad: f64,
+    mean_signed_yaw_error_deg: f64,
+    mean_absolute_yaw_error_rad: f64,
+    mean_absolute_yaw_error_deg: f64,
+    final_signed_yaw_error_rad: f64,
+    final_signed_yaw_error_deg: f64,
+    p95_absolute_yaw_error_rad: f64,
+    p95_absolute_yaw_error_deg: f64,
+    max_absolute_yaw_error_rad: f64,
+    max_absolute_yaw_error_deg: f64,
 }
 
 fn evaluate_root_orientation(
@@ -997,21 +1025,34 @@ fn evaluate_root_orientation(
         interpolate_quaternions(prediction_times, prediction_rotations, grid_times)?;
 
     let mut errors_rad = Vec::with_capacity(grid_times.len());
+    let mut yaw_errors_rad = Vec::with_capacity(grid_times.len());
     for (reference, prediction) in reference_aligned.iter().zip(&prediction_aligned) {
         errors_rad.push(quaternion_angular_error_rad(*prediction, *reference)?);
+        let reference_yaw = quaternion_yaw_rad(*reference)?;
+        let prediction_yaw = quaternion_yaw_rad(*prediction)?;
+        yaw_errors_rad.push(wrapped_angle_difference_rad(prediction_yaw, reference_yaw));
     }
     if errors_rad.is_empty() {
         return fail("root orientation evaluation requires at least one aligned sample");
     }
     let error_sum: f64 = errors_rad.iter().sum();
-    if !error_sum.is_finite() {
+    let yaw_error_sum: f64 = yaw_errors_rad.iter().sum();
+    let yaw_absolute_sum: f64 = yaw_errors_rad.iter().map(|error| error.abs()).sum();
+    if !error_sum.is_finite() || !yaw_error_sum.is_finite() || !yaw_absolute_sum.is_finite() {
         return fail("root orientation error aggregation overflowed");
     }
     let mean_error_rad = error_sum / errors_rad.len() as f64;
+    let mean_signed_yaw_error_rad = yaw_error_sum / yaw_errors_rad.len() as f64;
+    let mean_absolute_yaw_error_rad = yaw_absolute_sum / yaw_errors_rad.len() as f64;
     let mut ordered_errors = errors_rad;
     ordered_errors.sort_by(f64::total_cmp);
     let p95_error_rad = percentile_nearest_rank(&ordered_errors, 0.95)
         .ok_or_else(|| BenchError("could not compute root orientation P95".to_owned()))?;
+    let mut ordered_yaw_errors: Vec<f64> =
+        yaw_errors_rad.iter().map(|error| error.abs()).collect();
+    ordered_yaw_errors.sort_by(f64::total_cmp);
+    let p95_absolute_yaw_error_rad = percentile_nearest_rank(&ordered_yaw_errors, 0.95)
+        .ok_or_else(|| BenchError("could not compute root yaw P95".to_owned()))?;
 
     let reference_endpoint =
         interpolate_quaternion(reference_times, reference_rotations, overlap_end_sec)?;
@@ -1019,7 +1060,12 @@ fn evaluate_root_orientation(
         interpolate_quaternion(prediction_times, prediction_rotations, overlap_end_sec)?;
     let final_error_rad =
         quaternion_angular_error_rad(prediction_endpoint, reference_endpoint)?;
+    let final_reference_yaw = quaternion_yaw_rad(reference_endpoint)?;
+    let final_prediction_yaw = quaternion_yaw_rad(prediction_endpoint)?;
+    let final_signed_yaw_error_rad =
+        wrapped_angle_difference_rad(final_prediction_yaw, final_reference_yaw);
     let max_error_rad = ordered_errors.last().copied().unwrap_or(0.0);
+    let max_absolute_yaw_error_rad = ordered_yaw_errors.last().copied().unwrap_or(0.0);
     const RAD_TO_DEG: f64 = 180.0 / std::f64::consts::PI;
 
     Ok(RootOrientationReport {
@@ -1032,6 +1078,16 @@ fn evaluate_root_orientation(
         p95_angular_error_deg: p95_error_rad * RAD_TO_DEG,
         max_angular_error_rad: max_error_rad,
         max_angular_error_deg: max_error_rad * RAD_TO_DEG,
+        mean_signed_yaw_error_rad,
+        mean_signed_yaw_error_deg: mean_signed_yaw_error_rad * RAD_TO_DEG,
+        mean_absolute_yaw_error_rad,
+        mean_absolute_yaw_error_deg: mean_absolute_yaw_error_rad * RAD_TO_DEG,
+        final_signed_yaw_error_rad,
+        final_signed_yaw_error_deg: final_signed_yaw_error_rad * RAD_TO_DEG,
+        p95_absolute_yaw_error_rad,
+        p95_absolute_yaw_error_deg: p95_absolute_yaw_error_rad * RAD_TO_DEG,
+        max_absolute_yaw_error_rad,
+        max_absolute_yaw_error_deg: max_absolute_yaw_error_rad * RAD_TO_DEG,
     })
 }
 
@@ -1492,7 +1548,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             "left-foot drift RMS={:.4} m (contact F1={}), ",
             "right-foot drift RMS={:.4} m (contact F1={}), ",
             "event median abs L touchdown/liftoff={}/{}, R touchdown/liftoff={}/{}, ",
-            "root orient P95={}/{}°, root jerk={:.4} m²/s⁶"
+            "root orient P95={}/{}°, yaw P95={}/{}°, root jerk={:.4} m²/s⁶"
         ),
         report.validity,
         report.alignment.samples,
@@ -1532,6 +1588,12 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         report.root_orientation_error
             .as_ref()
             .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_angular_error_deg)),
+        report.root_orientation_error
+            .as_ref()
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_absolute_yaw_error_rad)),
+        report.root_orientation_error
+            .as_ref()
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{:.2}", value.p95_absolute_yaw_error_deg)),
         report.prediction_root_mean_squared_jerk_m2_s6
     );
 
