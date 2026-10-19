@@ -731,7 +731,7 @@ mod receipt_cli_tests {
         model: &M,
         envelope: &Value,
     ) -> symtropy_experiment_core::RunReceiptVerification {
-        let model_bytes = serde_json::to_vec(model).unwrap();
+        let model_bytes = canonical_json_bytes(model).unwrap();
         let output_bytes = canonical_output_payload_bytes(envelope, receipt).unwrap();
         receipt
             .verify_artifact_bytes(input.as_bytes(), &model_bytes, &output_bytes)
