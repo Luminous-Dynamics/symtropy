@@ -168,14 +168,14 @@ pub fn validate_review_annotations_for_revision(
 
         match annotation.kind {
             ReviewAnnotationKind::BindingRequirement | ReviewAnnotationKind::RequiredEvidence => {
-                if !annotation
+                if annotation
                     .source_ref
                     .as_deref()
-                    .is_some_and(|value| !value.trim().is_empty())
-                    || !annotation
+                    .is_none_or(|value| value.trim().is_empty())
+                    || annotation
                         .module_id
                         .as_deref()
-                        .is_some_and(|value| !value.trim().is_empty())
+                        .is_none_or(|value| value.trim().is_empty())
                 {
                     issues.push(ReviewAnnotationIssue::MissingBindingProvenance {
                         annotation_id: annotation.annotation_id.clone(),
@@ -742,11 +742,11 @@ pub fn advance_architectural_review_routes(
             playback.playing = false;
             continue;
         }
-        if let Some(last) = playback.route.waypoints.last() {
-            if playback.elapsed_seconds >= last.arrival_seconds + last.dwell_seconds {
-                playback.elapsed_seconds = last.arrival_seconds + last.dwell_seconds;
-                playback.playing = false;
-            }
+        if let Some(last) = playback.route.waypoints.last()
+            && playback.elapsed_seconds >= last.arrival_seconds + last.dwell_seconds
+        {
+            playback.elapsed_seconds = last.arrival_seconds + last.dwell_seconds;
+            playback.playing = false;
         }
     }
 }
@@ -924,17 +924,16 @@ pub fn validate_occupant_feedback_for_review(
                 });
                 continue;
             }
-            if let Some(waypoint_id) = &item.waypoint_id {
-                if !context_route
+            if let Some(waypoint_id) = &item.waypoint_id
+                && !context_route
                     .waypoints
                     .iter()
                     .any(|waypoint| &waypoint.waypoint_id == waypoint_id)
-                {
-                    issues.push(OccupantFeedbackIssue::UnknownWaypoint {
-                        feedback_id: item.feedback_id.clone(),
-                        waypoint_id: waypoint_id.clone(),
-                    });
-                }
+            {
+                issues.push(OccupantFeedbackIssue::UnknownWaypoint {
+                    feedback_id: item.feedback_id.clone(),
+                    waypoint_id: waypoint_id.clone(),
+                });
             }
         } else if item.waypoint_id.is_some() {
             issues.push(OccupantFeedbackIssue::WaypointWithoutRoute {
@@ -962,10 +961,10 @@ pub fn validate_occupant_feedback_for_review(
         if matches!(
             item.lifecycle,
             OccupantFeedbackLifecycle::Deferred | OccupantFeedbackLifecycle::Resolved
-        ) && !item
+        ) && item
             .disposition_note
             .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
+            .is_none_or(|value| value.trim().is_empty())
         {
             issues.push(OccupantFeedbackIssue::DispositionWithoutExplanation {
                 feedback_id: item.feedback_id.clone(),
