@@ -455,11 +455,23 @@ impl Default for FieldVisualizationConfig {
     }
 }
 
+/// Machine-readable status so malformed sensor data never disappears silently.
+#[derive(Resource, Clone, Debug, Default)]
+pub struct FieldVisualizationStatus {
+    pub scalar_error: Option<FieldValidationError>,
+    pub spectral_error: Option<FieldValidationError>,
+    pub vector_error: Option<FieldValidationError>,
+    pub scalar_glyph_count: usize,
+    pub spectral_glyph_count: usize,
+    pub vector_glyph_count: usize,
+}
+
 pub struct FieldObservabilityPlugin;
 
 impl Plugin for FieldObservabilityPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<FieldVisualizationConfig>()
+            .init_resource::<FieldVisualizationStatus>()
             .add_systems(Update, draw_field_views);
     }
 }
@@ -605,66 +617,86 @@ fn draw_field_views(
     spectral_frame: Option<Res<SpectralCompositeFrame>>,
     vector_frame: Option<Res<VectorFieldFrame>>,
     config: Res<FieldVisualizationConfig>,
+    mut status: ResMut<FieldVisualizationStatus>,
     mut gizmos: Gizmos,
 ) {
+    *status = FieldVisualizationStatus::default();
     if !config.enabled {
         return;
     }
+
     if config.show_scalar_fields
         && let Some(frame) = scalar_frame.as_deref()
-        && let Ok(glyphs) = extract_scalar_glyphs(frame, config.max_scalar_samples)
     {
-        let extent = if config.scalar_cross_half_extent.is_finite() {
-            config.scalar_cross_half_extent.clamp(0.0, 10.0)
-        } else {
-            0.0
-        };
-        if extent > 0.0 {
-            for glyph in glyphs {
-                let p = Vec3::from_array(glyph.position);
-                let color = Color::srgb(glyph.color[0], glyph.color[1], glyph.color[2]);
-                gizmos.line(p - Vec3::X * extent, p + Vec3::X * extent, color);
-                gizmos.line(p - Vec3::Y * extent, p + Vec3::Y * extent, color);
-                gizmos.line(p - Vec3::Z * extent, p + Vec3::Z * extent, color);
+        match extract_scalar_glyphs(frame, config.max_scalar_samples) {
+            Ok(glyphs) => {
+                status.scalar_glyph_count = glyphs.len();
+                let extent = if config.scalar_cross_half_extent.is_finite() {
+                    config.scalar_cross_half_extent.clamp(0.0, 10.0)
+                } else {
+                    0.0
+                };
+                if extent > 0.0 {
+                    for glyph in glyphs {
+                        let p = Vec3::from_array(glyph.position);
+                        let color = Color::srgb(glyph.color[0], glyph.color[1], glyph.color[2]);
+                        gizmos.line(p - Vec3::X * extent, p + Vec3::X * extent, color);
+                        gizmos.line(p - Vec3::Y * extent, p + Vec3::Y * extent, color);
+                        gizmos.line(p - Vec3::Z * extent, p + Vec3::Z * extent, color);
+                    }
+                }
             }
+            Err(error) => status.scalar_error = Some(error),
         }
     }
+
     if config.show_spectral_composite
         && let Some(frame) = spectral_frame.as_deref()
-        && let Ok(glyphs) = extract_spectral_glyphs(frame, config.max_spectral_samples)
     {
-        let extent = if config.scalar_cross_half_extent.is_finite() {
-            config.scalar_cross_half_extent.clamp(0.0, 10.0)
-        } else {
-            0.0
-        };
-        if extent > 0.0 {
-            for glyph in glyphs {
-                let p = Vec3::from_array(glyph.position);
-                let color = Color::srgb(glyph.rgb[0], glyph.rgb[1], glyph.rgb[2]);
-                gizmos.line(p - Vec3::X * extent, p + Vec3::X * extent, color);
-                gizmos.line(p - Vec3::Y * extent, p + Vec3::Y * extent, color);
-                gizmos.line(p - Vec3::Z * extent, p + Vec3::Z * extent, color);
+        match extract_spectral_glyphs(frame, config.max_spectral_samples) {
+            Ok(glyphs) => {
+                status.spectral_glyph_count = glyphs.len();
+                let extent = if config.scalar_cross_half_extent.is_finite() {
+                    config.scalar_cross_half_extent.clamp(0.0, 10.0)
+                } else {
+                    0.0
+                };
+                if extent > 0.0 {
+                    for glyph in glyphs {
+                        let p = Vec3::from_array(glyph.position);
+                        let color = Color::srgb(glyph.rgb[0], glyph.rgb[1], glyph.rgb[2]);
+                        gizmos.line(p - Vec3::X * extent, p + Vec3::X * extent, color);
+                        gizmos.line(p - Vec3::Y * extent, p + Vec3::Y * extent, color);
+                        gizmos.line(p - Vec3::Z * extent, p + Vec3::Z * extent, color);
+                    }
+                }
             }
+            Err(error) => status.spectral_error = Some(error),
         }
     }
+
     if config.show_vector_fields
         && let Some(frame) = vector_frame.as_deref()
-        && let Ok(glyphs) = extract_vector_glyphs(
+    {
+        match extract_vector_glyphs(
             frame,
             config.max_vector_samples,
             config.vector_scale,
             config.max_vector_length,
-        )
-    {
-        for glyph in glyphs {
-            if glyph.display_length <= 0.0 {
-                continue;
+        ) {
+            Ok(glyphs) => {
+                status.vector_glyph_count = glyphs.len();
+                for glyph in glyphs {
+                    if glyph.display_length <= 0.0 {
+                        continue;
+                    }
+                    let p = Vec3::from_array(glyph.origin);
+                    let direction = Vec3::from_array(glyph.direction);
+                    let color = Color::srgb(glyph.color[0], glyph.color[1], glyph.color[2]);
+                    gizmos.line(p, p + direction * glyph.display_length, color);
+                }
             }
-            let p = Vec3::from_array(glyph.origin);
-            let direction = Vec3::from_array(glyph.direction);
-            let color = Color::srgb(glyph.color[0], glyph.color[1], glyph.color[2]);
-            gizmos.line(p, p + direction * glyph.display_length, color);
+            Err(error) => status.vector_error = Some(error),
         }
     }
 }
