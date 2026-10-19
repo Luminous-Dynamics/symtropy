@@ -6,9 +6,8 @@
 //! numbers. IDS conformance and export/import preservation remain separate claims.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -128,7 +127,7 @@ struct Gate {
     evidence: Vec<Evidence>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DeltaCounts {
     compared: usize,
@@ -138,20 +137,6 @@ struct DeltaCounts {
     dropped: usize,
     added: usize,
     unresolved: usize,
-}
-
-impl Default for DeltaCounts {
-    fn default() -> Self {
-        Self {
-            compared: 0,
-            preserved: 0,
-            changed: 0,
-            lost: 0,
-            dropped: 0,
-            added: 0,
-            unresolved: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -189,16 +174,6 @@ struct Output {
     benchmark_id: String,
     gate: Gate,
     evidence_payload: EvidencePayload,
-}
-
-#[derive(Debug)]
-struct Inputs {
-    source_ifc_path: PathBuf,
-    target_ifc_path: PathBuf,
-    ids_path: PathBuf,
-    source_report_path: PathBuf,
-    target_report_path: PathBuf,
-    output_path: Option<PathBuf>,
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
