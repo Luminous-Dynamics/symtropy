@@ -126,6 +126,8 @@ The receipt is evidence of what ran; it is not evidence that the model is valid.
 
 ## Next implementation stages
 
+Before trying to claim real-world social validity, follow the rights-aware external benchmark plan in [EXTERNAL_VALIDATION_PLAN.md](EXTERNAL_VALIDATION_PLAN.md). It identifies human public-goods candidate data, a separate LLM-agent dataset, license gates, grouped holdout splits, and empirical scoring rules.
+
 1. Keep this protocol and primary outcomes fixed before looking at any result that could tune model assumptions.
 2. The initial dependency-free Rust reference scaffold now lives at research/social-dynamics-reference. Run its tests and CSV experiment on a Rust-equipped host; revise any discovered model or implementation defects openly.
 3. Reproduce at least two canonical models and add negative controls before adding cognitive complexity.
