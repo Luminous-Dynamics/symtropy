@@ -1,0 +1,221 @@
+name: Physical Solver CalculiX T3D2 Smoke
+
+on:
+  push:
+    branches: ["feat/phys-calculix-t3d2-smoke-v0-1"]
+    paths:
+      - "research/physical-solver-contract/**"
+      - "schemas/physical-transformation/**"
+      - "docs/research/PHYSICAL_CCX_T3D2_SMOKE_V0_1.md"
+      - ".github/workflows/physical-solver-calculix-smoke.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/physical-solver-contract/**"
+      - "schemas/physical-transformation/**"
+      - "docs/research/PHYSICAL_CCX_T3D2_SMOKE_V0_1.md"
+      - ".github/workflows/physical-solver-calculix-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-solver-calculix-t3d2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calculix-axial-bar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Initialize durable evidence directory
+        shell: bash
+        run: mkdir -p calculix-t3d2-smoke
+
+      - name: Checkout exact source revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Install pinned CalculiX package
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y jq calculix-ccx=2.21-1
+          package_version="$(dpkg-query -W -f='${Version}' calculix-ccx)"
+          test "$package_version" = "2.21-1"
+          ccx_path="$(command -v ccx)"
+          ccx_sha256="$(sha256sum "$ccx_path" | cut -d ' ' -f 1)"
+          source_revision="$(git rev-parse HEAD)"
+          expected_revision="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_revision" = "$expected_revision"
+          {
+            printf 'source_revision=%s\n' "$source_revision"
+            printf 'runner_image=ubuntu-24.04\n'
+            printf 'package=calculix-ccx\n'
+            printf 'package_version=%s\n' "$package_version"
+            printf 'executable_path=%s\n' "$ccx_path"
+            printf 'executable_sha256=%s\n' "$ccx_sha256"
+            printf 'architecture=%s\n' "$(dpkg --print-architecture)"
+            printf '\n--- dpkg package metadata ---\n'
+            dpkg-query -s calculix-ccx
+            printf '\n--- executable file identity ---\n'
+            file "$ccx_path"
+          } > calculix-t3d2-smoke/environment.txt
+          cp "$ccx_path" calculix-t3d2-smoke/ccx-binary
+
+      - name: Format, test and lint the pinned contract crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/physical-solver-contract/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-solver-contract/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-solver-contract/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate request bound to exact scene bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="calculix-t3d2-smoke"
+          scene="schemas/physical-transformation/fixtures/calculix-t3d2-bar-scene-v0.1.json"
+          cp "$scene" "$root/scene.json"
+          scene_sha256="$(sha256sum "$root/scene.json" | cut -d ' ' -f 1)"
+          source_revision="$(git rev-parse HEAD)"
+          expected_revision="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_revision" = "$expected_revision"
+          jq -e . schemas/physical-transformation/physical-scene-truss-v0.1.schema.json >/dev/null
+          jq -e . "$scene" >/dev/null
+          jq --arg revision "$source_revision" --arg scene_sha "$scene_sha256" '
+            .source_revision = $revision
+            | .scene_sha256 = $scene_sha
+          ' schemas/physical-transformation/fixtures/calculix-t3d2-bar-request-template-v0.1.json \
+            > "$root/request.json"
+          jq -e --arg scene_sha "$scene_sha256" --arg revision "$source_revision" '
+            .source_revision == $revision
+            and .scene_sha256 == $scene_sha
+            and .model_fidelity == "continuum_linear_elastic"
+            and .requested_physics == ["static_linear_elastic"]
+            and .required_outputs == ["displacement", "reaction_force"]
+          ' "$root/request.json"
+
+      - name: Invoke CalculiX and verify receipt-bound outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="calculix-t3d2-smoke"
+          package_version="$(dpkg-query -W -f='${Version}' calculix-ccx)"
+          source_revision="$(git rev-parse HEAD)"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml \
+            --bin calculix_t3d2_smoke -- \
+            --request "$root/request.json" \
+            --scene "$root/scene.json" \
+            --artifact-root "$root" \
+            --ccx "$(command -v ccx)" \
+            --validator-revision "$source_revision" \
+            --solver-package-version "$package_version"
+          jq -e '
+            .schema_version == "calculix-execution-evidence-v0.1"
+            and .exit_success == true
+            and (.solver_executable_sha256 | test("^[0-9a-f]{64}$"))
+            and (.adapter_executable_sha256 | test("^[0-9a-f]{64}$"))
+            and (.input_deck_sha256 | test("^[0-9a-f]{64}$"))
+            and .receipt_validation_status == "PASS"
+            and .artifact_verification_status == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+          ' "$root/execution-evidence.json"
+          jq -e '
+            .receipt_contract_validation == "PASS"
+            and .producer_status == "PASS"
+            and .solver_execution_authenticated == false
+          ' "$root/receipt-validation.json"
+          jq -e '
+            .artifact_verification_status == "PASS"
+            and .output_artifact_bytes_verified == true
+            and .input_artifact_bytes_verified == true
+            and .physical_result_qualified == false
+          ' "$root/artifact-verification.json"
+
+      - name: Compare exact displacement and reaction references
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="calculix-t3d2-smoke"
+          request="$root/request.json"
+          receipt="$root/receipt.json"
+          request_sha256="$(sha256sum "$request" | cut -d ' ' -f 1)"
+          request_id="$(jq -r '.request_id' "$request")"
+          scene_sha256="$(jq -r '.scene_sha256' "$request")"
+          scene_revision="$(jq -r '.scene_revision' "$request")"
+
+          jq --arg request_sha "$request_sha256" \
+             --arg request_id "$request_id" \
+             --arg scene_sha "$scene_sha256" \
+             --argjson scene_revision "$scene_revision" '
+            .request_sha256 = $request_sha
+            | .request_id = $request_id
+            | .scene_sha256 = $scene_sha
+            | .scene_revision = $scene_revision
+          ' schemas/physical-transformation/fixtures/calculix-t3d2-bar-tip-displacement-reference-v0.1.json \
+            > "$root/reference-tip-displacement.json"
+          jq --arg request_sha "$request_sha256" \
+             --arg request_id "$request_id" \
+             --arg scene_sha "$scene_sha256" \
+             --argjson scene_revision "$scene_revision" '
+            .request_sha256 = $request_sha
+            | .request_id = $request_id
+            | .scene_sha256 = $scene_sha
+            | .scene_revision = $scene_revision
+          ' schemas/physical-transformation/fixtures/calculix-t3d2-bar-reaction-reference-v0.1.json \
+            > "$root/reference-support-reaction.json"
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" --receipt "$receipt" --artifact-root "$root" \
+            --reference "$root/reference-tip-displacement.json" \
+            --observation-output-id tip-displacement \
+            > "$root/comparison-tip-displacement.json"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" --receipt "$receipt" --artifact-root "$root" \
+            --reference "$root/reference-support-reaction.json" \
+            --observation-output-id support-reaction \
+            > "$root/comparison-support-reaction.json"
+
+          jq -e '
+            .comparison_status == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and (.observable_results | length) == 1
+            and .observable_results[0].observable_id == "tip_ux"
+            and .observable_results[0].within_tolerance == true
+          ' "$root/comparison-tip-displacement.json"
+          jq -e '
+            .comparison_status == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and (.observable_results | length) == 1
+            and .observable_results[0].observable_id == "support_rx"
+            and .observable_results[0].within_tolerance == true
+          ' "$root/comparison-support-reaction.json"
+          jq -n \
+            --arg displacement "$(jq -r '.output_results[0].observable_results[0].scaled_observed_value // .output_results[0].observable_results[0].observed_value // "see-report"' "$root/comparison-tip-displacement.json")" \
+            --arg reaction "$(jq -r '.output_results[0].observable_results[0].scaled_observed_value // .output_results[0].observable_results[0].observed_value // "see-report"' "$root/comparison-support-reaction.json")" \
+            '{note:"Canonical comparison reports are the primary evidence", displacement_report_value:$displacement, reaction_report_value:$reaction}' \
+            > "$root/summary.json"
+
+      - name: Upload complete solver evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calculix-t3d2-smoke-evidence
+          path: calculix-t3d2-smoke/
+          if-no-files-found: warn
+          retention-days: 90
