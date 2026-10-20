@@ -151,6 +151,8 @@ jobs:
           grep -Fq "confidence_gated" rendered-pixel-world.tsv
           grep -Fq "active_revision" rendered-pixel-world.tsv
           grep -Fq "removed_false_persistence_rate" rendered-pixel-world.tsv
+          grep -Fq "fresh_evidence_rate_given_view" rendered-pixel-world.tsv
+          grep -Fq "views_without_fresh_evidence" rendered-pixel-world.tsv
           grep -Fq "budget_violations" rendered-pixel-world.tsv
 
       - name: Upload rendered-pixel world diagnostic report
