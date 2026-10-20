@@ -152,7 +152,10 @@
     "screen_error_violations",
     "allocator_p50_p95_p99_ns",
     "fixture_and_output_digests",
-    "claim_scope"
+    "claim_scope",
+    "reference_scan_p50_p95_p99_ns",
+    "heap_vs_reference_p50_speedup",
+    "reference_matches_heap"
   ],
   "claim_ceiling": [
     "No performance result is measured by this manifest.",
@@ -160,6 +163,7 @@
     "A passing policy test does not prove the geometric error bounds are conservative.",
     "The first implementation does not switch Bevy assets or render-graph state.",
     "A policy-only benchmark does not measure rendering, frame intervals, GPU time, or visual fidelity.",
-    "No superiority claim over Bevy, Unreal, Unity HDRP, or 3DMark is authorized without matched measurements."
+    "No superiority claim over Bevy, Unreal, Unity HDRP, or 3DMark is authorized without matched measurements.",
+    "Heap-versus-scan timing compares two implementations of the same greedy policy only; it is not an industry-engine or full-renderer comparison."
   ]
 }
