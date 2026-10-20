@@ -369,8 +369,8 @@ mod tests {
         let relative = object.relative_to_meters(&origin).expect("same frame");
         let split = object.relative_to_gpu_split(&origin).expect("GPU split");
 
-        for axis in 0..3 {
-            let error = (reconstruct(split, axis) - relative[axis]).abs();
+        for (axis, relative_axis) in relative.iter().enumerate() {
+            let error = (reconstruct(split, axis) - relative_axis).abs();
             assert!(error < 0.02, "axis {axis} error was {error} m");
         }
         let plain_error = (f64::from(relative[0] as f32) - relative[0]).abs();
