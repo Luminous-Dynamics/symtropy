@@ -152,17 +152,18 @@
         "additionalProperties": false,
         "required": [
           "case_id",
+          "evidence_status",
           "group_id",
-          "target_id",
-          "selection_score",
-          "offline_candidate_probability",
           "input_status",
-          "regime_status",
-          "outcome_status",
+          "offline_candidate_probability",
           "outcome",
+          "outcome_status",
           "policy_disposition",
           "reason_code",
-          "served_probability"
+          "regime_status",
+          "selection_score",
+          "served_probability",
+          "target_id"
         ],
         "properties": {
           "case_id": {
@@ -258,6 +259,13 @@
               {
                 "type": "null"
               }
+            ]
+          },
+          "evidence_status": {
+            "enum": [
+              "sufficient",
+              "insufficient",
+              "unknown"
             ]
           }
         },
