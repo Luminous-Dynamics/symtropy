@@ -272,22 +272,19 @@ fn evaluate_case(case: &Value, index: usize) -> Check<Value> {
             "rejection_reasons": reasons
         }));
     }
-    let selected = shortest_plan(&feasible_plans.iter().map(|p| (*p).clone()).collect::<Vec<_>>());
-    // Re-resolve the winning ID from the original projected plans to avoid borrowing temporaries.
     let selected_id = feasible_plans.iter()
         .min_by(|a,b| plan_time(a).cmp(&plan_time(b)).then_with(|| {
             a.get("id").and_then(Value::as_str).unwrap_or("")
                 .cmp(b.get("id").and_then(Value::as_str).unwrap_or(""))
         }))
         .and_then(|p| p.get("id").and_then(Value::as_str));
-    let _ = selected;
 
     let truth = field(case, "oracle_truth", &at)?;
     let actual_blocked: BTreeSet<String> = truth.get("actual_blocked_edge_ids")
         .and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).map(str::to_owned).collect();
     let baseline_edge_violations = baseline_plan.map(|p| {
         p.get("edge_ids").and_then(Value::as_array).into_iter().flatten()
-            .filter_map(Value::as_str).filter(|id| actual_blocked.contains(**id)).count()
+            .filter_map(Value::as_str).filter(|id| actual_blocked.contains(*id)).count()
     }).unwrap_or(0);
     let expected_id = truth.get("expected_candidate_plan_id").and_then(Value::as_str);
     let b3_matches_oracle = selected_id == expected_id;
