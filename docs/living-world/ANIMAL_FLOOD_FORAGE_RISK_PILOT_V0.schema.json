@@ -290,7 +290,9 @@
           "reference_history_fit",
           "forage_recovery_lag_ticks",
           "policy_visible_model_id",
-          "revealed_before_evaluation"
+          "revealed_before_evaluation",
+          "parameter_source",
+          "parameters_disclosed_in_public_fixture"
         ],
         "properties": {
           "id": {
@@ -307,14 +309,30 @@
             "const": "observationally_compatible"
           },
           "forage_recovery_lag_ticks": {
-            "type": "integer",
-            "minimum": 1
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "policy_visible_model_id": {
             "type": "boolean",
             "const": false
           },
           "revealed_before_evaluation": {
+            "type": "boolean"
+          },
+          "parameter_source": {
+            "enum": [
+              "public_candidate_manifest",
+              "sealed_evaluator_manifest"
+            ]
+          },
+          "parameters_disclosed_in_public_fixture": {
             "type": "boolean"
           }
         }
