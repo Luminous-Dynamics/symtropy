@@ -148,7 +148,7 @@ pub struct FinancialActualTotal {
     pub build_id: String,
     pub configuration_sha256: String,
     pub currency_basis_id: String,
-    /// Sum of observed direct financial transactions only.
+    /// Sum of observed direct financial transactions only for this build/configuration/money basis.
     pub amount: f64,
 }
 
@@ -310,11 +310,17 @@ fn find_lineage_cycles<'a>(
 /// - quantity variance only where plan and observed quantities exist for the same build,
 ///   configuration, task, semantic axis, and unit;
 /// - rate-card estimates grouped by build/configuration/stage/money basis/rate revision;
-/// - direct observed financial actuals grouped by build and money basis.
+/// - direct observed financial actuals grouped by build/configuration and money basis.
 ///
 /// An observed quantity costed with a rate card and an invoice for that work are separate
 /// analytical views until an explicit, source-backed allocation reconciles them.
 pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
+    if events.is_empty() {
+        return Err(vec![
+            "ledger contains no events; empty evidence is not a zero-cost build".to_owned(),
+        ]);
+    }
+
     let mut errors = Vec::new();
     let mut event_ids: HashSet<&str> = HashSet::new();
     let mut transaction_refs: HashSet<(&str, &str)> = HashSet::new();
@@ -387,7 +393,10 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
     let mut estimated_costs: BTreeMap<RateCardGroupKey, f64> = BTreeMap::new();
     let mut financials: BTreeMap<CurrencyGroupKey, f64> = BTreeMap::new();
 
-    for event in events {
+    // Stable accumulation order is required; floating-point addition is not associative.
+    let mut ordered_events: Vec<&LedgerEvent> = events.iter().collect();
+    ordered_events.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    for event in ordered_events {
         match &event.kind {
             EventKind::Quantity(quantity) => {
                 let key = QuantityGroupKey {
@@ -778,6 +787,24 @@ mod tests {
             report.quantity_reconciliations[0].observed,
             Some(5_000.0)
         );
+    }
+
+    #[test]
+    fn empty_ledger_is_not_reported_as_zero_cost() {
+        let errors = audit(&[]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("empty evidence is not a zero-cost build")));
+    }
+
+    #[test]
+    fn same_stage_float_aggregation_is_independent_of_input_order() {
+        let first = vec![
+            quantity_event("a-large", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0e16, None),
+            quantity_event("b-small", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None),
+            quantity_event("c-small", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None),
+        ];
+        let mut second = first.clone();
+        second.reverse();
+        assert_eq!(audit(&first).unwrap(), audit(&second).unwrap());
     }
 
     #[test]
