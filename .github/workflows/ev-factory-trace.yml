@@ -1,0 +1,106 @@
+name: EV Factory Trace Contract
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_trace_validate.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json"
+      - "docs/research/EV_FACTORY_TRACE_CONTRACT_V0_1.md"
+      - ".github/workflows/ev-factory-trace.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_trace_validate.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json"
+      - "docs/research/EV_FACTORY_TRACE_CONTRACT_V0_1.md"
+      - ".github/workflows/ev-factory-trace.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse fixture and assert declared synthetic evidence gates
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-TRACE-001"
+            and .schema_version == "0.1.0"
+            and .source_evidence_class == "synthetic"
+            and (.events | length) == 33
+            and (.stations | length) == 3
+            and (.buffers | length) == 2
+            and .complete_cohort == true
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Run trace validator and assert report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_trace_validate -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json \
+            > ev-factory-trace-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-TRACE-001"
+            and .event_count == 33
+            and .job_releases == 2
+            and .accepted_jobs == 2
+            and .scrapped_jobs == 0
+            and .incomplete_jobs_at_trace_end == 0
+            and .equipment_breakdowns == 1
+            and .equipment_repairs == 1
+            and .structural_validation_passed == true
+            and .calibration_and_holdout_nonoverlap == true
+            and .calibration_review_candidate == false
+            and .production_release_authorized == false
+            and .station_operations_completed["inbound-kitting"] == 2
+            and .station_operations_completed["battery-module"] == 3
+            and .station_operations_completed["end-of-line-test"] == 2
+            and .station_rework_starts["battery-module"] == 1
+            and .buffer_peak_occupancy["kit-to-battery"] == 2
+            and .buffer_peak_occupancy["battery-to-eol"] == 1
+            and all(.buffer_final_occupancy[]; . == 0)
+          ' ev-factory-trace-report.json
+      - name: Negative controls - duplicate ID, clock regression, overlap, capacity and unknown field
+        run: |
+          fixture=tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json
+          jq '.events[1].event_id = .events[0].event_id' "$fixture" > invalid-duplicate.json
+          jq '.events[0].timestamp_seconds = 4' "$fixture" > invalid-clock.json
+          jq '.holdout_window.start_seconds = 25' "$fixture" > invalid-window.json
+          jq '.buffers[0].capacity_units = 1' "$fixture" > invalid-buffer.json
+          jq '.unreviewed_override = true' "$fixture" > invalid-unknown-field.json
+          jq '.collection_ended_at_utc = "2026-10-20T00:01:39Z"' "$fixture" > invalid-utc-window.json
+          jq '.source_evidence_class = "measured"' "$fixture" > invalid-measured-zero-digest.json
+          for invalid in invalid-duplicate.json invalid-clock.json invalid-window.json invalid-buffer.json invalid-unknown-field.json invalid-utc-window.json invalid-measured-zero-digest.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_trace_validate -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid trace unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Verify reproducible validation report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_trace_validate -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json \
+            > ev-factory-trace-repeat.json
+          cmp ev-factory-trace-report.json ev-factory-trace-repeat.json
+      - name: Hash source, fixture and report
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_trace_validate.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_trace_v0_1.json \
+            docs/research/EV_FACTORY_TRACE_CONTRACT_V0_1.md \
+            ev-factory-trace-report.json > ev-factory-trace-report.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-trace-validation-report
+          path: |
+            ev-factory-trace-report.json
+            ev-factory-trace-report.sha256
+          if-no-files-found: error

@@ -1,0 +1,322 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-TRACE-001",
+  "trace_id": "synthetic-two-vehicle-flow-v0-1",
+  "collection_window_seconds": 100,
+  "collection_started_at_utc": "2026-10-20T00:00:00Z",
+  "collection_ended_at_utc": "2026-10-20T00:01:40Z",
+  "site_timezone": "Africa/Johannesburg",
+  "clock_basis": "monotonic_seconds_from_collection_start",
+  "time_unit": "seconds",
+  "shift_calendar_id": "synthetic-example-calendar",
+  "source_evidence_class": "synthetic",
+  "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "complete_cohort": true,
+  "calibration_window": {
+    "start_seconds": 0,
+    "end_seconds": 30
+  },
+  "holdout_window": {
+    "start_seconds": 30,
+    "end_seconds": 60
+  },
+  "missingness": [
+    {
+      "field": "all_events",
+      "status": "known_partial",
+      "note": "Fixture includes only events required to test the trace contract; it is not an exhaustive factory log."
+    },
+    {
+      "field": "source_measurements",
+      "status": "unobserved",
+      "note": "No measured PLC/MES/shop-floor data is included; all timestamps and transitions are synthetic."
+    }
+  ],
+  "stations": [
+    {
+      "station_id": "inbound-kitting",
+      "resource_ids": [
+        "kit-1",
+        "kit-2"
+      ],
+      "max_rework_attempts": 1,
+      "note": "Synthetic inbound parts verification and kit assembly."
+    },
+    {
+      "station_id": "battery-module",
+      "resource_ids": [
+        "battery-1",
+        "battery-2"
+      ],
+      "max_rework_attempts": 1,
+      "note": "Synthetic battery module position and fastening sequence; no safe work instruction is implied."
+    },
+    {
+      "station_id": "end-of-line-test",
+      "resource_ids": [
+        "eol-1",
+        "eol-2"
+      ],
+      "max_rework_attempts": 0,
+      "note": "Synthetic final test completion events, not a homologation or product release specification."
+    }
+  ],
+  "buffers": [
+    {
+      "buffer_id": "kit-to-battery",
+      "after_station_id": "inbound-kitting",
+      "capacity_units": 2
+    },
+    {
+      "buffer_id": "battery-to-eol",
+      "after_station_id": "battery-module",
+      "capacity_units": 1
+    }
+  ],
+  "events": [
+    {
+      "event_id": "e001",
+      "timestamp_seconds": 0,
+      "kind": "job_release",
+      "job_id": "job-A"
+    },
+    {
+      "event_id": "e002",
+      "timestamp_seconds": 1,
+      "kind": "job_release",
+      "job_id": "job-B"
+    },
+    {
+      "event_id": "e003",
+      "timestamp_seconds": 2,
+      "kind": "station_start",
+      "job_id": "job-A",
+      "station_id": "inbound-kitting",
+      "resource_id": "kit-1"
+    },
+    {
+      "event_id": "e004",
+      "timestamp_seconds": 3,
+      "kind": "station_start",
+      "job_id": "job-B",
+      "station_id": "inbound-kitting",
+      "resource_id": "kit-2"
+    },
+    {
+      "event_id": "e005",
+      "timestamp_seconds": 10,
+      "kind": "station_end",
+      "job_id": "job-A",
+      "station_id": "inbound-kitting",
+      "resource_id": "kit-1"
+    },
+    {
+      "event_id": "e006",
+      "timestamp_seconds": 10,
+      "kind": "quality_pass",
+      "job_id": "job-A",
+      "station_id": "inbound-kitting"
+    },
+    {
+      "event_id": "e007",
+      "timestamp_seconds": 11,
+      "kind": "buffer_enter",
+      "job_id": "job-A",
+      "buffer_id": "kit-to-battery"
+    },
+    {
+      "event_id": "e008",
+      "timestamp_seconds": 12,
+      "kind": "station_end",
+      "job_id": "job-B",
+      "station_id": "inbound-kitting",
+      "resource_id": "kit-2"
+    },
+    {
+      "event_id": "e009",
+      "timestamp_seconds": 12,
+      "kind": "quality_pass",
+      "job_id": "job-B",
+      "station_id": "inbound-kitting"
+    },
+    {
+      "event_id": "e010",
+      "timestamp_seconds": 13,
+      "kind": "buffer_enter",
+      "job_id": "job-B",
+      "buffer_id": "kit-to-battery"
+    },
+    {
+      "event_id": "e011",
+      "timestamp_seconds": 14,
+      "kind": "buffer_exit",
+      "job_id": "job-A",
+      "buffer_id": "kit-to-battery"
+    },
+    {
+      "event_id": "e012",
+      "timestamp_seconds": 15,
+      "kind": "station_start",
+      "job_id": "job-A",
+      "station_id": "battery-module",
+      "resource_id": "battery-1"
+    },
+    {
+      "event_id": "e013",
+      "timestamp_seconds": 16,
+      "kind": "buffer_exit",
+      "job_id": "job-B",
+      "buffer_id": "kit-to-battery"
+    },
+    {
+      "event_id": "e014",
+      "timestamp_seconds": 17,
+      "kind": "station_start",
+      "job_id": "job-B",
+      "station_id": "battery-module",
+      "resource_id": "battery-2"
+    },
+    {
+      "event_id": "e015",
+      "timestamp_seconds": 26,
+      "kind": "station_end",
+      "job_id": "job-A",
+      "station_id": "battery-module",
+      "resource_id": "battery-1"
+    },
+    {
+      "event_id": "e016",
+      "timestamp_seconds": 26,
+      "kind": "quality_pass",
+      "job_id": "job-A",
+      "station_id": "battery-module"
+    },
+    {
+      "event_id": "e017",
+      "timestamp_seconds": 27,
+      "kind": "buffer_enter",
+      "job_id": "job-A",
+      "buffer_id": "battery-to-eol"
+    },
+    {
+      "event_id": "e018",
+      "timestamp_seconds": 28,
+      "kind": "station_end",
+      "job_id": "job-B",
+      "station_id": "battery-module",
+      "resource_id": "battery-2"
+    },
+    {
+      "event_id": "e019",
+      "timestamp_seconds": 28,
+      "kind": "quality_fail",
+      "job_id": "job-B",
+      "station_id": "battery-module"
+    },
+    {
+      "event_id": "e020",
+      "timestamp_seconds": 29,
+      "kind": "station_start",
+      "job_id": "job-B",
+      "station_id": "battery-module",
+      "resource_id": "battery-2"
+    },
+    {
+      "event_id": "e021",
+      "timestamp_seconds": 30,
+      "kind": "buffer_exit",
+      "job_id": "job-A",
+      "buffer_id": "battery-to-eol"
+    },
+    {
+      "event_id": "e022",
+      "timestamp_seconds": 31,
+      "kind": "station_start",
+      "job_id": "job-A",
+      "station_id": "end-of-line-test",
+      "resource_id": "eol-1"
+    },
+    {
+      "event_id": "e023",
+      "timestamp_seconds": 39,
+      "kind": "station_end",
+      "job_id": "job-B",
+      "station_id": "battery-module",
+      "resource_id": "battery-2"
+    },
+    {
+      "event_id": "e024",
+      "timestamp_seconds": 39,
+      "kind": "quality_pass",
+      "job_id": "job-B",
+      "station_id": "battery-module"
+    },
+    {
+      "event_id": "e025",
+      "timestamp_seconds": 40,
+      "kind": "buffer_enter",
+      "job_id": "job-B",
+      "buffer_id": "battery-to-eol"
+    },
+    {
+      "event_id": "e026",
+      "timestamp_seconds": 41,
+      "kind": "buffer_exit",
+      "job_id": "job-B",
+      "buffer_id": "battery-to-eol"
+    },
+    {
+      "event_id": "e027",
+      "timestamp_seconds": 42,
+      "kind": "station_start",
+      "job_id": "job-B",
+      "station_id": "end-of-line-test",
+      "resource_id": "eol-2"
+    },
+    {
+      "event_id": "e028",
+      "timestamp_seconds": 43,
+      "kind": "station_end",
+      "job_id": "job-A",
+      "station_id": "end-of-line-test",
+      "resource_id": "eol-1"
+    },
+    {
+      "event_id": "e029",
+      "timestamp_seconds": 43,
+      "kind": "quality_pass",
+      "job_id": "job-A",
+      "station_id": "end-of-line-test"
+    },
+    {
+      "event_id": "e030",
+      "timestamp_seconds": 44,
+      "kind": "station_end",
+      "job_id": "job-B",
+      "station_id": "end-of-line-test",
+      "resource_id": "eol-2"
+    },
+    {
+      "event_id": "e031",
+      "timestamp_seconds": 44,
+      "kind": "quality_pass",
+      "job_id": "job-B",
+      "station_id": "end-of-line-test"
+    },
+    {
+      "event_id": "e032",
+      "timestamp_seconds": 50,
+      "kind": "breakdown_start",
+      "station_id": "end-of-line-test",
+      "resource_id": "eol-1"
+    },
+    {
+      "event_id": "e033",
+      "timestamp_seconds": 55,
+      "kind": "repair_complete",
+      "station_id": "end-of-line-test",
+      "resource_id": "eol-1"
+    }
+  ],
+  "claim_ceiling": "This is a synthetic schema/state-machine test fixture, not measured production data and not evidence that any real factory event stream is complete."
+}
