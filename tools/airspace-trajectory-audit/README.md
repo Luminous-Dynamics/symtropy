@@ -31,6 +31,7 @@ Run these commands in an environment with Rust/Cargo installed:
 - cargo test --manifest-path tools/airspace-trajectory-audit/Cargo.toml
 - cargo clippy --manifest-path tools/airspace-trajectory-audit/Cargo.toml --all-targets -- -D warnings
 - cargo fmt --manifest-path tools/airspace-trajectory-audit/Cargo.toml -- --check
+- cargo run --release --manifest-path tools/airspace-trajectory-audit/Cargo.toml --bin benchmark_broadphase
 
 The suite contains 19 unit tests plus six integration tests: 9,225 closed-form comparisons over synchronized parallel paths; 72,600 integer-rational comparisons over sloped/crossing segments and inclusive radii; exact inclusive-boundary tests; and three metamorphic invariants (pair argument-order reversal, collinear waypoint subdivision, and uniform time-origin translation). The rational oracle compares squared-distance numerators with integer arithmetic instead of reusing the production floating-point minimizer. The authoring environment has no local Rust/Cargo toolchain; use the dedicated CI job for exact-head execution.
 
@@ -39,6 +40,8 @@ The suite contains 19 unit tests plus six integration tests: 9,225 closed-form c
 `broadphase_candidate_pairs` generates a deterministic sweep-and-prune candidate list over expanded trajectory AABBs. Candidate indices refer to the original input slice; every returned pair must still go through `audit_trajectory_pair`.
 
 The current implementation deliberately expands each trajectory box by the declared base separation threshold plus that trajectory's uncertainty on each side. This double-counts the base threshold across a pair, increasing false positives rather than risking a missed candidate. The computed margin is rounded upward and bounds are expanded outward by one representable float step. Non-finite bounds fail closed. The input fleet must use one shared frame and vertical datum, and the supplied criteria must cover the full fleet time span; otherwise the function rejects the call so missing time coverage cannot be pruned into a no-conflict claim.
+
+A deterministic release-mode benchmark binary now emits CSV for 10, 100, 1,000 and 10,000 paths, using 11 repetitions per size and reporting p50/p95 runtime, candidate count, all-pairs count and reduction percentage. It asserts that all known paired-path conflicts are represented by the returned candidate set. The CI job runs this binary so the measurements land in the action log; latency is recorded rather than enforced against an ungrounded hardware-independent threshold.
 
 CI includes a 96-trajectory synthetic fleet where broadphase candidates are checked against brute-force pairwise audits. The target is 100% candidate recall for every pairwise `ConflictDetected` result while pruning at least some pairs in this fixed fixture. This is only a bounded regression test; it is not a 10k-fleet performance result and does not constitute interval-arithmetic proof for arbitrary magnitudes. Later work must report candidate recall, false-positive ratio, pair counts, runtime and memory across fixed sizes (10, 100, 1,000, 10,000) on a pinned machine. A false-negative candidate is an unconditional failure; higher false positives are acceptable until performance is measured.
 

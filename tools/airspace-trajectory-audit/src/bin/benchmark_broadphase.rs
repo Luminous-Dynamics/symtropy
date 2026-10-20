@@ -7,7 +7,8 @@ use std::collections::BTreeSet;
 use std::time::Instant;
 
 use symtropy_airspace_trajectory_audit::{
-    SeparationCriteria, Trajectory, TrajectoryPoint, broadphase_candidate_pairs,
+    ConflictDisposition, SeparationCriteria, Trajectory, TrajectoryPoint, audit_trajectory_pair,
+    broadphase_candidate_pairs,
 };
 
 fn point(time_utc_ms: i64, x_m: f64, y_m: f64, z_m: f64) -> TrajectoryPoint {
@@ -96,6 +97,14 @@ fn run_size(count: usize) -> Result<(), Box<dyn std::error::Error>> {
         "fixed paired-path fixture must preserve every expected conflict pair and prune separated groups"
     );
     assert_eq!(final_candidates.len(), expected_conflict_pairs);
+    for &(first, second) in &expected {
+        let report = audit_trajectory_pair(&fleet[first], &fleet[second], &rule)?;
+        assert_eq!(
+            report.disposition,
+            ConflictDisposition::ConflictDetected,
+            "fixed paired workload must contain a known conflict for ({first}, {second})"
+        );
+    }
     elapsed_micros.sort_unstable();
     let p50 = percentile(&elapsed_micros, 50, 100);
     let p95 = percentile(&elapsed_micros, 95, 100);
