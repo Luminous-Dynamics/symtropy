@@ -41,6 +41,17 @@ A 2026 Procedia CIRP paper studies joint online validation and parameter calibra
 
 NIST's July 2026 manufacturing digital-twin workshop report identifies interoperability, verification/validation/uncertainty quantification, cybersecurity and workforce readiness as persistent priorities. The validator treats these as continuing work rather than equating structural validation with trust: https://doi.org/10.6028/NIST.IR.8620. NIST's October 2026 uncertainty guidance covers consistency between simulation uncertainty and measurement/metrology practice: https://doi.org/10.6028/NIST.AMS.100-85.
 
+## Interoperability path: do not invent an island standard
+
+The contract is an internal canonical trace envelope for validation; it should be connected to, not substituted for, established machine semantics:
+
+- **ISO 23247** defines the manufacturing digital-twin framework. ISO's framework overview describes how twins support event detection, predictive maintenance, adaptation and analytics, while the framework does not mandate a single data format or communication protocol. Keep canonical job/station/buffer state separate from transport and source adapters: https://www.iso.org/standard/75066.html and https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso%3A23247%3A-6%3Aed-1%3Av1%3Aen.
+- **OPC UA for Machinery** publishes reusable building blocks for machine identification, component identification and monitoring/operating state; the wider roadmap includes job management, result transfer and energy monitoring. A future adapter should preserve source node IDs, engineering units, source timestamps/status/quality, model version and mapping provenance rather than flattening these into anonymous counters: https://opcfoundation.org/markets-collaboration/opc-ua-for-machinery/ and https://reference.opcfoundation.org/specs/OPC-40001-1.
+- **OPC UA for Machine Tools** has a companion model intended to exchange machine monitoring/job information with MES, SCADA, ERP and analytics systems: https://reference.opcfoundation.org/specs/OPC-40501-1.
+- **NIST manufacturing digital twins** identifies VVUQ and interoperability as technical priorities; its 2026 workshop report adds cybersecurity and workforce readiness as cross-cutting concerns: https://www.nist.gov/programs-projects/digital-twins-advanced-manufacturing and https://doi.org/10.6028/NIST.IR.8620.
+
+Next step: define a source-neutral normalized event envelope plus versioned adapters from actual standards/exports. Maintain both original source event bytes/digest and normalized event digest with a deterministic transformation version. Never claim conformance to ISO 23247 or OPC UA just because the internal fields have similar names; formal mapping and conformance testing are separate deliverables.
+
 ## Provisional gates to measure
 
 | Metric | Initial acceptance target | Interpretation |
