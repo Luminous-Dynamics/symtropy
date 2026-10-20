@@ -39,6 +39,10 @@ jobs:
   analytical-adapter:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Inari's documented x86-64 backend requires Haswell-or-later target features.
+    # This job runs on an x86-64 hosted Ubuntu runner; it is not a portability claim.
+    env:
+      RUSTFLAGS: "-Ctarget-cpu=haswell"
     steps:
       - uses: actions/checkout@v4
         with:
