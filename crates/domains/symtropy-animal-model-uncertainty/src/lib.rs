@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Semantic validation for the frozen animal model-structure uncertainty oracle.
 //!
 //! This validates corpus integrity and fail-closed contract shape. It does not
