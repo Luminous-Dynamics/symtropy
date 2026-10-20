@@ -1,0 +1,579 @@
+{
+  "schema_version": "ANIMAL-MODEL-STRUCTURE-UNCERTAINTY-ORACLE-V1",
+  "status": "synthetic_contract_fixture",
+  "research_snapshot": "2026-10-20",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2244",
+  "note": "Synthetic expected-contract cases only; not empirical model fits, biological truth, or current Symtropy performance.",
+  "case_count": 35,
+  "independent_unit": "episode_population_site_or_ecological_regime_as_declared",
+  "required_run_identity": [
+    "source_commit",
+    "model_structure_id",
+    "model_schema_digest",
+    "equation_or_rule_registry_digest",
+    "parameter_config_digest",
+    "calibration_data_sha256",
+    "test_data_sha256",
+    "independent_unit_manifest_sha256",
+    "model_set_manifest_sha256",
+    "model_weighting_rule",
+    "stochastic_coupling_policy",
+    "evaluator_version",
+    "decision_loss_version",
+    "forecast_horizon",
+    "compute_budget",
+    "uncertainty_method",
+    "preregistered_margins"
+  ],
+  "uncertainty_components": [
+    "aleatoric",
+    "parameter",
+    "structural_model",
+    "observation_or_state"
+  ],
+  "validation_levels": [
+    "conceptual_structure",
+    "state",
+    "process",
+    "system",
+    "decision_robustness"
+  ],
+  "comparison_policy": [
+    "preserve_per_model_forecasts",
+    "do_not_hide_structural_disagreement_in_mean",
+    "missing_model_run_is_incomplete",
+    "missing_metric_is_not_zero",
+    "test_data_must_not_tune_model_weights",
+    "different_structures_need_not_be_pathwise_identical",
+    "budget_mismatch_is_cost_tradeoff",
+    "synthetic_success_is_not_empirical_validation"
+  ],
+  "cases": [
+    {
+      "id": "observational_fit_not_structure",
+      "kind": "identifiability",
+      "setup": "Two mechanisms fit calibration history but diverge under a frozen intervention.",
+      "perturbation": "score_heldout_intervention",
+      "expected": {
+        "required_properties": [
+          "fit and intervention qualification remain separate",
+          "both model forecasts remain available"
+        ]
+      },
+      "fail_if": [
+        "best historical fit automatically qualifies the model"
+      ],
+      "reason": "fit_is_not_identification"
+    },
+    {
+      "id": "observationally_equivalent_forecasts",
+      "kind": "disagreement",
+      "setup": "Two registered models match history but predict different futures.",
+      "perturbation": "forecast_both_models",
+      "expected": {
+        "required_properties": [
+          "per-model forecasts and between-model disagreement are preserved"
+        ]
+      },
+      "fail_if": [
+        "only ensemble mean returned"
+      ],
+      "reason": "do_not_hide_structural_ambiguity"
+    },
+    {
+      "id": "parameter_vs_structure",
+      "kind": "uncertainty_decomposition",
+      "setup": "One ensemble varies coefficients while another changes a causal/process edge.",
+      "perturbation": "decompose_uncertainty",
+      "expected": {
+        "required_properties": [
+          "parameter and structural uncertainty have distinct fields"
+        ]
+      },
+      "fail_if": [
+        "seed/parameter spread stands in for missing mechanism"
+      ],
+      "reason": "uncertainty_sources_differ"
+    },
+    {
+      "id": "seeds_not_structures",
+      "kind": "registry_integrity",
+      "setup": "Ten executions share identical rules and differ only by random seed.",
+      "perturbation": "register_seed_replicates",
+      "expected": {
+        "required_properties": [
+          "replicas share structure ID"
+        ]
+      },
+      "fail_if": [
+        "seed variants inflate structural count"
+      ],
+      "reason": "avoid_ensemble_inflation"
+    },
+    {
+      "id": "structure_identity_changes",
+      "kind": "registry_integrity",
+      "setup": "Candidates differ by trophic edge, process lag or update rule.",
+      "perturbation": "change_structure",
+      "expected": {
+        "required_properties": [
+          "structure digest changes"
+        ]
+      },
+      "fail_if": [
+        "different mechanism reuses identity"
+      ],
+      "reason": "structure_is_result_affecting"
+    },
+    {
+      "id": "weights_test_leakage",
+      "kind": "split_integrity",
+      "setup": "Ensemble weights were chosen after inspecting frozen test results.",
+      "perturbation": "leak_test_into_weights",
+      "expected": {
+        "required_properties": [
+          "run marked invalid or exploratory"
+        ]
+      },
+      "fail_if": [
+        "contaminated result called confirmatory"
+      ],
+      "reason": "test_cannot_tune_weights"
+    },
+    {
+      "id": "grouped_holdout_leakage",
+      "kind": "split_integrity",
+      "setup": "Dependent frames/time blocks from one episode overlap calibration and test.",
+      "perturbation": "overlap_time_blocks",
+      "expected": {
+        "required_properties": [
+          "auditor detects group overlap"
+        ]
+      },
+      "fail_if": [
+        "frame shuffle overrides group rule"
+      ],
+      "reason": "avoid_pseudoreplication"
+    },
+    {
+      "id": "per_model_forecasts_preserved",
+      "kind": "report_integrity",
+      "setup": "Models yield distinct forecasts for one unit and horizon.",
+      "perturbation": "emit_ensemble_report",
+      "expected": {
+        "required_properties": [
+          "individual forecasts remain available beside summaries"
+        ]
+      },
+      "fail_if": [
+        "member forecasts discarded"
+      ],
+      "reason": "preserve_evidence"
+    },
+    {
+      "id": "bimodal_not_mean_only",
+      "kind": "report_integrity",
+      "setup": "Mixture forecasts have separated modes with little mass around the mean.",
+      "perturbation": "summarize_mixture",
+      "expected": {
+        "required_properties": [
+          "modes or model-conditioned distributions are shown"
+        ]
+      },
+      "fail_if": [
+        "mean presented as representative without spread"
+      ],
+      "reason": "mean_may_be_fictional"
+    },
+    {
+      "id": "opposite_effect_signs",
+      "kind": "model_disagreement",
+      "setup": "Plausible models predict opposite intervention-effect directions.",
+      "perturbation": "compare_effect_signs",
+      "expected": {
+        "required_properties": [
+          "direction disagreement reaches decision layer"
+        ]
+      },
+      "fail_if": [
+        "only average sign is exposed"
+      ],
+      "reason": "sign_changes_decisions"
+    },
+    {
+      "id": "model_agreement_not_truth",
+      "kind": "scope_boundary",
+      "setup": "All candidates share an omitted-process limitation.",
+      "perturbation": "report_consensus",
+      "expected": {
+        "required_properties": [
+          "agreement is conditional on model set and omissions"
+        ]
+      },
+      "fail_if": [
+        "consensus described as biological truth"
+      ],
+      "reason": "shared_model_bias"
+    },
+    {
+      "id": "posterior_predictive_holdout",
+      "kind": "predictive_validation",
+      "setup": "A fitted ensemble is checked on held-out observations.",
+      "perturbation": "posterior_predictive_check",
+      "expected": {
+        "required_properties": [
+          "holdout diagnostics are reported without tuning on same set"
+        ]
+      },
+      "fail_if": [
+        "test repeatedly used to select final model"
+      ],
+      "reason": "predictive_check"
+    },
+    {
+      "id": "coverage_and_sharpness",
+      "kind": "calibration",
+      "setup": "Nominal 90% intervals achieve coverage by being excessively broad.",
+      "perturbation": "score_intervals",
+      "expected": {
+        "required_properties": [
+          "coverage and sharpness-sensitive score both reported"
+        ]
+      },
+      "fail_if": [
+        "coverage alone defines superiority"
+      ],
+      "reason": "calibration_needs_sharpness"
+    },
+    {
+      "id": "tipping_event_miscalibration",
+      "kind": "calibration",
+      "setup": "Rare threshold events are undercovered despite acceptable aggregate coverage.",
+      "perturbation": "stratify_threshold_events",
+      "expected": {
+        "required_properties": [
+          "tail calibration and sample uncertainty reported"
+        ]
+      },
+      "fail_if": [
+        "aggregate hides high-risk failures"
+      ],
+      "reason": "tail_calibration"
+    },
+    {
+      "id": "weight_choice_changes_action",
+      "kind": "weight_sensitivity",
+      "setup": "Preferred action flips over defensible model-weight ranges.",
+      "perturbation": "sweep_weights",
+      "expected": {
+        "required_properties": [
+          "flip regions reported"
+        ]
+      },
+      "fail_if": [
+        "one arbitrary weighting called robust"
+      ],
+      "reason": "weight_sensitivity"
+    },
+    {
+      "id": "missing_model_incomplete",
+      "kind": "missingness",
+      "setup": "A preregistered model times out without forecast.",
+      "perturbation": "omit_model_run",
+      "expected": {
+        "required_properties": [
+          "ensemble incomplete or frozen missing-member policy applied"
+        ]
+      },
+      "fail_if": [
+        "missing member silently zeroed/renormalized"
+      ],
+      "reason": "model_set_completeness"
+    },
+    {
+      "id": "missing_metric_not_zero",
+      "kind": "missingness",
+      "setup": "One model lacks a required score in one stratum.",
+      "perturbation": "omit_metric",
+      "expected": {
+        "required_properties": [
+          "comparison becomes incomplete/not_assessed"
+        ]
+      },
+      "fail_if": [
+        "missing becomes numeric zero"
+      ],
+      "reason": "missing_is_not_data"
+    },
+    {
+      "id": "state_fit_process_failure",
+      "kind": "validation_hierarchy",
+      "setup": "Model matches biomass snapshots but violates declared nutrient flux behavior.",
+      "perturbation": "violate_process_flux",
+      "expected": {
+        "required_properties": [
+          "state and process qualification remain separate"
+        ]
+      },
+      "fail_if": [
+        "state RMSE hides process failure"
+      ],
+      "reason": "levels_are_not_substitutable"
+    },
+    {
+      "id": "system_cycle_signature",
+      "kind": "system_validation",
+      "setup": "Model claims predator-prey cycles but only mean abundance is scored.",
+      "perturbation": "evaluate_cycle",
+      "expected": {
+        "required_properties": [
+          "period/phase/amplitude or suitable signature is tested"
+        ]
+      },
+      "fail_if": [
+        "mean error qualifies cycle claim"
+      ],
+      "reason": "validate_emergent_patterns"
+    },
+    {
+      "id": "density_dependence_alternatives",
+      "kind": "structural_alternatives",
+      "setup": "Density-dependent and independent models fit history but diverge at held-out abundance.",
+      "perturbation": "holdout_density",
+      "expected": {
+        "required_properties": [
+          "held-out density response is scored per model"
+        ]
+      },
+      "fail_if": [
+        "fit alone selects mechanism"
+      ],
+      "reason": "equifinality"
+    },
+    {
+      "id": "migration_rule_alternatives",
+      "kind": "structural_alternatives",
+      "setup": "Movement rules fit past occupancy but react differently to a new barrier.",
+      "perturbation": "introduce_barrier",
+      "expected": {
+        "required_properties": [
+          "held-out barrier response evaluated"
+        ]
+      },
+      "fail_if": [
+        "past occupancy proves mechanism"
+      ],
+      "reason": "occupancy_not_enough"
+    },
+    {
+      "id": "trophic_lag_alternatives",
+      "kind": "structural_alternatives",
+      "setup": "Immediate and delayed models share endpoint but differ in transient outcome.",
+      "perturbation": "holdout_transient",
+      "expected": {
+        "required_properties": [
+          "lags/transient metrics separate"
+        ]
+      },
+      "fail_if": [
+        "terminal value hides disagreement"
+      ],
+      "reason": "endpoints_hide_transients"
+    },
+    {
+      "id": "threshold_uncertainty",
+      "kind": "nonlinear_dynamics",
+      "setup": "Plausible structures imply different tipping points.",
+      "perturbation": "sweep_threshold_region",
+      "expected": {
+        "required_properties": [
+          "transition range/uncertainty shown per model"
+        ]
+      },
+      "fail_if": [
+        "one threshold asserted without caveat"
+      ],
+      "reason": "tipping_is_model_dependent"
+    },
+    {
+      "id": "observational_skill_not_interventional",
+      "kind": "interventional_validation",
+      "setup": "Model predicts observed data but fails preregistered intervention response.",
+      "perturbation": "score_intervention",
+      "expected": {
+        "required_properties": [
+          "observational and intervention metrics separate"
+        ]
+      },
+      "fail_if": [
+        "observational skill qualifies intervention claim"
+      ],
+      "reason": "intervention_requires_evidence"
+    },
+    {
+      "id": "worst_case_action_loss",
+      "kind": "decision_robustness",
+      "setup": "Actions have different losses across models; one minimizes frozen worst-case loss.",
+      "perturbation": "evaluate_minimax",
+      "expected": {
+        "required_properties": [
+          "loss and hard constraints fixed before ranking"
+        ]
+      },
+      "fail_if": [
+        "model subset/loss chosen post hoc"
+      ],
+      "reason": "robustness_needs_objective"
+    },
+    {
+      "id": "per_model_regret",
+      "kind": "decision_robustness",
+      "setup": "Chosen action compared with each model's best admissible action.",
+      "perturbation": "calculate_regret",
+      "expected": {
+        "required_properties": [
+          "per-model regret distribution/max reported"
+        ]
+      },
+      "fail_if": [
+        "mean reward hides severe per-model regret"
+      ],
+      "reason": "quantify_fragility"
+    },
+    {
+      "id": "tail_risk_not_hidden",
+      "kind": "decision_robustness",
+      "setup": "One plausible model predicts population collapse while others predict modest loss.",
+      "perturbation": "score_tail_loss",
+      "expected": {
+        "required_properties": [
+          "CVaR/worst-case accompanies average"
+        ]
+      },
+      "fail_if": [
+        "mean alone claims robustness"
+      ],
+      "reason": "preserve_rare_failure"
+    },
+    {
+      "id": "abstain_without_safe_action",
+      "kind": "decision_robustness",
+      "setup": "No action meets the declared constraint across plausible models.",
+      "perturbation": "no_robust_action",
+      "expected": {
+        "required_properties": [
+          "abstain/request evidence/human review"
+        ]
+      },
+      "fail_if": [
+        "unsafe action called universally robust"
+      ],
+      "reason": "do_not_fake_consensus"
+    },
+    {
+      "id": "information_value_net_of_cost",
+      "kind": "value_of_information",
+      "setup": "An observation distinguishes structures with different preferred actions.",
+      "perturbation": "score_information_action",
+      "expected": {
+        "required_properties": [
+          "expected decision-loss reduction compared with measurement cost"
+        ]
+      },
+      "fail_if": [
+        "entropy reduction alone is called value"
+      ],
+      "reason": "decision_relevance"
+    },
+    {
+      "id": "hidden_model_id_denied",
+      "kind": "authority_boundary",
+      "setup": "True model ID is evaluator-only but the controller attempts to query it.",
+      "perturbation": "inject_hidden_model_id",
+      "expected": {
+        "required_properties": [
+          "access denied or leakage recorded"
+        ]
+      },
+      "fail_if": [
+        "privileged label affects policy"
+      ],
+      "reason": "no_model_oracle"
+    },
+    {
+      "id": "stochastic_coupling_semantics",
+      "kind": "comparison_integrity",
+      "setup": "Shared random values correspond only to exogenous terms with equivalent meaning.",
+      "perturbation": "pair_random_streams",
+      "expected": {
+        "required_properties": [
+          "paired/model-specific terms recorded"
+        ]
+      },
+      "fail_if": [
+        "different stochastic terms assumed paired"
+      ],
+      "reason": "pairing_needs_semantics"
+    },
+    {
+      "id": "no_pathwise_identity_across_models",
+      "kind": "comparison_integrity",
+      "setup": "Different structures produce different event histories under the same seed family.",
+      "perturbation": "compare_different_paths",
+      "expected": {
+        "required_properties": [
+          "comparison metric respects declared coupling"
+        ]
+      },
+      "fail_if": [
+        "pathwise mismatch alone invalidates model"
+      ],
+      "reason": "different_mechanisms_differ"
+    },
+    {
+      "id": "ensemble_compute_cost",
+      "kind": "comparison_fairness",
+      "setup": "Ensemble uses more compute than single-model baseline.",
+      "perturbation": "increase_compute",
+      "expected": {
+        "required_properties": [
+          "cost-tradeoff label used unless budgets match"
+        ]
+      },
+      "fail_if": [
+        "unmatched compute gain called apples-to-apples"
+      ],
+      "reason": "quality_has_cost"
+    },
+    {
+      "id": "time_causal_assimilation",
+      "kind": "temporal_integrity",
+      "setup": "Late measurement is replayed as known to an earlier decision.",
+      "perturbation": "shuffle_arrival_times",
+      "expected": {
+        "required_properties": [
+          "only evidence available at decision time is used"
+        ]
+      },
+      "fail_if": [
+        "future data retroactively improve earlier forecast"
+      ],
+      "reason": "no_future_leakage"
+    },
+    {
+      "id": "receipt_and_claim_integrity",
+      "kind": "receipt_integrity_and_scope",
+      "setup": "Receipt lacks model set or loss identity, or synthetic success is described as empirical biology.",
+      "perturbation": "omit_receipt_or_overclaim",
+      "expected": {
+        "required_properties": [
+          "incomplete receipt not assessed; synthetic pass labelled contract consistency"
+        ]
+      },
+      "fail_if": [
+        "missing identity accepted or synthetic fixture called biological validation"
+      ],
+      "reason": "reconstructible_and_scoped_claims"
+    }
+  ]
+}
