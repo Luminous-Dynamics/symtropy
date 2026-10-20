@@ -13,6 +13,18 @@ External benchmarks motivate testing a harder capability:
 
 These are external comparators, not interchangeable scoreboards. See the existing [ActiveArena reproduction track](https://github.com/Luminous-Dynamics/symtropy/issues/2332).
 
+## External frontier reference as of 2026-10-20
+
+A preprint posted on 2026-10-12, *Can a Frontier VLM Serve as a Robot Policy for Memory-Dependent Manipulation?*, reports a frozen GPT-6-Astra model reaching **92.1% (737/800)** on RoboMME in a single run while retaining the full episode in context and directly emitting Cartesian waypoints. The same paper lists 60.8% for the previous best leaderboard entry and 79.1% for a hierarchical GPT-6-Astra + trained-policy system. The human reference is 90.5% but uses RoboMME's privileged oracle-skill interface; the VLM emits waypoints, so those are not perfectly matched systems. The authors explicitly state that their result has not yet been validated by RoboMME maintainers and does not isolate whether history dependence comes from images, descriptions or action history. Sources: [paper/preprint](https://arxiv.org/abs/2610.17350), [RoboMME official benchmark](https://robomme.github.io/).
+
+This is a much more demanding external reference than Symtropy's symbolic mean loss, and those numbers are **not comparable**. The practical path to competitive evidence is:
+1. Reproduce the official RoboMME baseline on a named task subset and preserve the native task success checks, action interface and license.
+2. Hold the vision/action model, prompt, waypoint executor, frame density and reset protocol fixed while swapping only the memory/decision controller.
+3. Run history-removal counterfactuals (latest frame only, image history without textual summaries, text history without earlier images, and recent-window memory) to test if an explicit compact memory beats simply retaining full context.
+4. Report all 16 task results, repeated runs/seed intervals, call count, wall latency, memory/token budget and failures. Never compare our small symbolic loss against the 92.1% success score.
+
+BAVO-Bench adds a complementary physically grounded active-view track: it separates clean, stage-aligned occlusion and random-time occlusion over five bimanual tasks, and reports real-robot recovery rollouts. [Official project](https://hcplab-sysu.github.io/BAVO-Bench/). Symtropy's randomized occlusion work is a unit-testable precursor; it has not reproduced A-FAR or demonstrated physical camera recovery.
+
 ## Paradigm shift
 
 Compare raw observation retention against a compact, versioned set of **query-relevant beliefs**. An observation is not intrinsically valuable: its value depends on which question must be answered, the claim it supports, when the evidence was sourced, and whether a later observation supersedes it.
