@@ -1,0 +1,52 @@
+name: Animal decision qualification focused CI
+
+on:
+  push:
+    branches:
+      - animal-kingdom/decision-adequacy-gate-v0
+    paths:
+      - .github/workflows/animal-decision-qualification-ci.yml
+      - crates/domains/symtropy-animal-model-uncertainty/**
+      - docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json
+      - docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json
+      - docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_EXAMPLE_V1.json
+      - docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ASSESSMENT_RECEIPT_V1.schema.json
+      - docs/living-world/ANIMAL_DECISION_QUALIFICATION_SCOPE_V1.md
+
+concurrency:
+  group: animal-decision-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  focused-check:
+    name: Decision qualification (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: animal-decision-qualification
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run focused Clippy
+        run: cargo clippy -p symtropy-animal-model-uncertainty --all-targets --all-features -- -D warnings
+
+      - name: Run focused tests
+        run: cargo test -p symtropy-animal-model-uncertainty --all-targets --all-features
