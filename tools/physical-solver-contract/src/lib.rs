@@ -1466,6 +1466,48 @@ mod tests {
     }
 
     #[test]
+    fn receipt_physics_partition_must_exactly_cover_requested_physics() {
+        let request: Value = serde_json::from_str(UNSUPPORTED_REQUEST).unwrap();
+        let request_bytes = serde_json::to_vec(&request).unwrap();
+        let mut receipt: Value = serde_json::from_str(UNRESOLVED_RECEIPT).unwrap();
+        receipt["request_sha256"] = Value::String(sha256_hex(&request_bytes));
+        receipt["request_id"] = request["request_id"].clone();
+        receipt["source_revision"] = request["source_revision"].clone();
+
+        assert!(validate_receipt_json(&receipt, Some(&request), Some(&request_bytes)).is_empty());
+
+        // Reporting a capability that was not requested must not be silently accepted.
+        receipt["physics_evaluated"] = serde_json::json!(["topology"]);
+        let extra = validate_receipt_json(&receipt, Some(&request), Some(&request_bytes));
+        assert!(extra.iter().any(|i| i.code == "physics.partition_extra"));
+        assert!(extra.iter().any(|i| i.code == "physics.partition_missing"));
+
+        // Each requested physics capability must be classified exactly once.
+        receipt["physics_evaluated"] = serde_json::json!(["dynamic_response"]);
+        receipt["physics_omitted"] = serde_json::json!(["dynamic_response", "fracture"]);
+        let overlap = validate_receipt_json(&receipt, Some(&request), Some(&request_bytes));
+        assert!(overlap.iter().any(|i| i.code == "physics.overlap"));
+    }
+
+    #[test]
+    fn physics_lists_reject_unknown_labels_duplicates_and_wrong_types() {
+        let mut receipt: Value = serde_json::from_str(UNRESOLVED_RECEIPT).unwrap();
+
+        receipt["physics_evaluated"] = serde_json::json!(["unknown_model"]);
+        let unknown = validate_receipt_json(&receipt, None, None);
+        assert!(unknown.iter().any(|i| i.code == "enum.label"));
+
+        receipt["physics_evaluated"] = serde_json::json!([]);
+        receipt["physics_omitted"] = serde_json::json!(["fracture", "fracture"]);
+        let duplicate = validate_receipt_json(&receipt, None, None);
+        assert!(duplicate.iter().any(|i| i.code == "duplicate"));
+
+        receipt["physics_omitted"] = Value::Null;
+        let wrong_type = validate_receipt_json(&receipt, None, None);
+        assert!(wrong_type.iter().any(|i| i.code == "type.array"));
+    }
+
+    #[test]
     fn pass_receipt_cannot_claim_unsupported_physics_or_missing_outputs() {
         let request: Value = serde_json::from_str(UNSUPPORTED_REQUEST).unwrap();
         let request_bytes = serde_json::to_vec(&request).unwrap();
