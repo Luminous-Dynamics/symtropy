@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant};
 use symtropy_render_bridge::{LodAllocation, LodCandidate, LodDemand, allocate_lod};
