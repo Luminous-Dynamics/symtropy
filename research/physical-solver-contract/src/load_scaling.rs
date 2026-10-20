@@ -39,6 +39,7 @@ struct RelationManifest {
 struct BoundOutput {
     bytes: Vec<u8>,
     output_sha256: String,
+    declared_unit: String,
     verification_report: Value,
     producer_status: String,
 }
@@ -292,6 +293,30 @@ pub fn assess_load_scaling_relation_bytes(
                 ));
             }
         };
+        if baseline_observables
+            .values()
+            .any(|observable| observable.unit != baseline.declared_unit)
+        {
+            return Ok(unresolved(
+                report,
+                format!(
+                    "baseline normalized units disagree with receipt-declared unit for output kind '{}'",
+                    pair.kind
+                ),
+            ));
+        }
+        if scaled_observables
+            .values()
+            .any(|observable| observable.unit != scaled.declared_unit)
+        {
+            return Ok(unresolved(
+                report,
+                format!(
+                    "scaled normalized units disagree with receipt-declared unit for output kind '{}'",
+                    pair.kind
+                ),
+            ));
+        }
         if baseline_observables.keys().collect::<BTreeSet<_>>()
             != scaled_observables.keys().collect::<BTreeSet<_>>()
         {
@@ -571,6 +596,12 @@ fn bind_output(
             "output '{output_id}' did not pass byte verification"
         ));
     }
+    let declared_unit = output
+        .get("unit")
+        .and_then(Value::as_str)
+        .filter(|unit| !unit.trim().is_empty() && unit.len() <= 64)
+        .ok_or_else(|| "scored load-scaling output requires an explicit non-empty unit".to_owned())?
+        .to_owned();
     let expected_sha = req_str(output, "sha256")?;
     if req_str(verified, "observed_sha256")? != expected_sha {
         return Err(format!(
@@ -601,6 +632,7 @@ fn bind_output(
     Ok(BoundOutput {
         bytes,
         output_sha256,
+        declared_unit,
         verification_report: verification_report.clone(),
         producer_status: req_str(verification_report, "producer_status")?.to_owned(),
     })
@@ -1053,6 +1085,16 @@ mod tests {
         let report = assess(&bundle);
         assert_eq!(report["relation_status"], "UNRESOLVED");
         assert_eq!(report["scaled_artifact_verification_status"], "FAIL");
+    }
+
+    #[test]
+    fn receipt_unit_must_match_normalized_observables() {
+        let mut bundle = make_bundle(2.0, 1.0);
+        let mut receipt: Value = serde_json::from_slice(&bundle.baseline_receipt).unwrap();
+        receipt["outputs"][0]["unit"] = json!("mm");
+        bundle.baseline_receipt = serde_json::to_vec(&receipt).unwrap();
+        let report = assess(&bundle);
+        assert_eq!(report["relation_status"], "UNRESOLVED");
     }
 
     #[test]
