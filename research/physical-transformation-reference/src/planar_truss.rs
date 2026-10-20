@@ -169,7 +169,10 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
 
     for node in &nodes {
         if !connected_nodes.contains(&node.id) {
-            return Err(format!("isolated node is not a valid truss node: {}", node.id));
+            return Err(format!(
+                "isolated node is not a valid truss node: {}",
+                node.id
+            ));
         }
     }
 
@@ -211,7 +214,12 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     if !free_dofs.is_empty() {
         let reduced_stiffness: Vec<Vec<f64>> = free_dofs
             .iter()
-            .map(|row| free_dofs.iter().map(|column| stiffness[*row][*column]).collect())
+            .map(|row| {
+                free_dofs
+                    .iter()
+                    .map(|column| stiffness[*row][*column])
+                    .collect()
+            })
             .collect();
         let reduced_loads: Vec<f64> = free_dofs.iter().map(|dof| loads[*dof]).collect();
         let reduced_displacement = solve_dense(reduced_stiffness, reduced_loads)?;
@@ -236,8 +244,7 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         max_abs_applied_load_n = max_abs_applied_load_n.max(loads[row].abs());
     }
     for dof in &free_dofs {
-        max_free_dof_residual_n =
-            max_free_dof_residual_n.max((internal[*dof] - loads[*dof]).abs());
+        max_free_dof_residual_n = max_free_dof_residual_n.max((internal[*dof] - loads[*dof]).abs());
     }
 
     let mut node_results = Vec::with_capacity(nodes.len());
@@ -283,8 +290,7 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
 
         let reaction_x_value = reaction_x.unwrap_or(0.0);
         let reaction_y_value = reaction_y.unwrap_or(0.0);
-        let reaction_node_moment =
-            node.x_m * reaction_y_value - node.y_m * reaction_x_value;
+        let reaction_node_moment = node.x_m * reaction_y_value - node.y_m * reaction_x_value;
         require_finite(reaction_node_moment, "support reaction moment")?;
         reaction_moment += reaction_node_moment;
 
@@ -498,8 +504,7 @@ fn validate_id(value: &str, label: &str) -> Check<()> {
     if value.is_empty()
         || value.len() > 128
         || !value.chars().all(|character| {
-            character.is_ascii_alphanumeric()
-                || matches!(character, '_' | '-' | '.' | ':')
+            character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':')
         })
     {
         return Err(format!("invalid {label}"));
@@ -601,7 +606,12 @@ mod tests {
         let result = solve(&symmetric_two_bar_truss()).expect("stable symmetric truss");
         let expected_displacement = -1_000.0 * 2.0_f64.sqrt() / (0.01 * 200.0e9);
         let expected_bar_force = -1_000.0 / 2.0_f64.sqrt();
-        close(node(&result, "apex").displacement_x_m, 0.0, 1.0e-15, "apex x");
+        close(
+            node(&result, "apex").displacement_x_m,
+            0.0,
+            1.0e-15,
+            "apex x",
+        );
         close(
             node(&result, "apex").displacement_y_m,
             expected_displacement,
@@ -627,25 +637,33 @@ mod tests {
             "bar stress",
         );
         close(
-            node(&result, "left").reaction_x_n.expect("fixed x reaction"),
+            node(&result, "left")
+                .reaction_x_n
+                .expect("fixed x reaction"),
             500.0,
             1.0e-8,
             "left support x reaction",
         );
         close(
-            node(&result, "right").reaction_x_n.expect("fixed x reaction"),
+            node(&result, "right")
+                .reaction_x_n
+                .expect("fixed x reaction"),
             -500.0,
             1.0e-8,
             "right support x reaction",
         );
         close(
-            node(&result, "left").reaction_y_n.expect("fixed y reaction"),
+            node(&result, "left")
+                .reaction_y_n
+                .expect("fixed y reaction"),
             500.0,
             1.0e-8,
             "left support y reaction",
         );
         close(
-            node(&result, "right").reaction_y_n.expect("fixed y reaction"),
+            node(&result, "right")
+                .reaction_y_n
+                .expect("fixed y reaction"),
             500.0,
             1.0e-8,
             "right support y reaction",
@@ -673,7 +691,12 @@ mod tests {
         let base = solve(&base_input).expect("base truss");
 
         let mut doubled_load = base_input.clone();
-        doubled_load.nodes.iter_mut().find(|n| n.id == "apex").unwrap().force_y_n *= 2.0;
+        doubled_load
+            .nodes
+            .iter_mut()
+            .find(|n| n.id == "apex")
+            .unwrap()
+            .force_y_n *= 2.0;
         let result = solve(&doubled_load).expect("doubled load");
         close(
             node(&result, "apex").displacement_y_m / node(&base, "apex").displacement_y_m,
@@ -746,7 +769,11 @@ mod tests {
                 youngs_modulus_pa: 1.0e9,
             }],
         };
-        assert!(solve(&mechanism).unwrap_err().contains("singular or numerically unresolved"));
+        assert!(
+            solve(&mechanism)
+                .unwrap_err()
+                .contains("singular or numerically unresolved")
+        );
 
         let mut invalid = symmetric_two_bar_truss();
         invalid.bars[0].area_m2 = 0.0;
@@ -754,11 +781,19 @@ mod tests {
 
         let mut duplicate_node = symmetric_two_bar_truss();
         duplicate_node.nodes[1].id = "left".to_owned();
-        assert!(solve(&duplicate_node).unwrap_err().contains("duplicate planar truss node ID"));
+        assert!(
+            solve(&duplicate_node)
+                .unwrap_err()
+                .contains("duplicate planar truss node ID")
+        );
 
         let mut duplicate_bar = symmetric_two_bar_truss();
         duplicate_bar.bars[1].id = duplicate_bar.bars[0].id.clone();
-        assert!(solve(&duplicate_bar).unwrap_err().contains("duplicate planar truss bar ID"));
+        assert!(
+            solve(&duplicate_bar)
+                .unwrap_err()
+                .contains("duplicate planar truss bar ID")
+        );
 
         let mut coincident = symmetric_two_bar_truss();
         coincident.nodes[2].x_m = coincident.nodes[0].x_m;
@@ -796,7 +831,11 @@ mod tests {
             bar.area_m2 = 1.0e308;
             bar.youngs_modulus_pa = 1.0e308;
         }
-        assert!(solve(&overflow).unwrap_err().contains("bar axial stiffness"));
+        assert!(
+            solve(&overflow)
+                .unwrap_err()
+                .contains("bar axial stiffness")
+        );
     }
 
     #[test]
@@ -828,6 +867,4 @@ mod tests {
             "scaled axial force",
         );
     }
-
-
 }
