@@ -1,0 +1,170 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-action-value-fixed-capacity-cost-grid-v1",
+  "evidence_scope": "synthetic",
+  "privacy": {
+    "aggregate_only": true,
+    "group_min_count": 3
+  },
+  "provider": {
+    "provider_id": "pirb-synthetic-action-value",
+    "forecast_archive_id": "synthetic-risk-panel-v1",
+    "target_definition": "Invented binary event occurrence in one preregistered future horizon; no real conflict forecasts or outcomes.",
+    "analysis_unit": "opaque synthetic area-period",
+    "horizon": 1,
+    "source_reference": "synthetic:hand-authored-policy-value-golden",
+    "forecast_archive_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "outcome_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "value_unit": "synthetic_harm_units",
+    "attribution": "All rows, event labels, harms, costs and effectiveness assumptions are invented."
+  },
+  "forecast_origin_index": 10,
+  "target_period_index": 11,
+  "preregistration": {
+    "capacity_levels": [
+      1,
+      2,
+      3
+    ],
+    "action_cost_multipliers": [
+      0.5,
+      1,
+      1.5
+    ],
+    "effectiveness_multipliers": [
+      0.5,
+      1,
+      1.5
+    ],
+    "policy_set": [
+      "no_action",
+      "risk_ranked_top_k",
+      "expected_net_benefit_top_k"
+    ],
+    "tie_break": "record_id_ascending",
+    "threshold_selection_on_test": false,
+    "impact_claim_permitted": false
+  },
+  "records": [
+    {
+      "record_id": "row-01",
+      "group_id": "group-east",
+      "target_matched": true,
+      "outcome": "event",
+      "forecast_probability": 0.9,
+      "expected_harm_per_event": 100,
+      "base_action_cost": 12,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-02",
+      "group_id": "group-east",
+      "target_matched": true,
+      "outcome": "no_event",
+      "forecast_probability": 0.8,
+      "expected_harm_per_event": 40,
+      "base_action_cost": 8,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-03",
+      "group_id": "group-east",
+      "target_matched": true,
+      "outcome": "event",
+      "forecast_probability": 0.5,
+      "expected_harm_per_event": 80,
+      "base_action_cost": 10,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-04",
+      "group_id": "group-east",
+      "target_matched": true,
+      "outcome": "no_event",
+      "forecast_probability": 0.2,
+      "expected_harm_per_event": 50,
+      "base_action_cost": 5,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-05",
+      "group_id": "group-west",
+      "target_matched": true,
+      "outcome": "no_event",
+      "forecast_probability": 0.7,
+      "expected_harm_per_event": 60,
+      "base_action_cost": 9,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-06",
+      "group_id": "group-west",
+      "target_matched": true,
+      "outcome": "event",
+      "forecast_probability": 0.6,
+      "expected_harm_per_event": 120,
+      "base_action_cost": 14,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-07",
+      "group_id": "group-west",
+      "target_matched": true,
+      "outcome": "unknown",
+      "forecast_probability": 0.4,
+      "expected_harm_per_event": 70,
+      "base_action_cost": 7,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-08",
+      "group_id": "group-west",
+      "target_matched": true,
+      "outcome": "no_event",
+      "forecast_probability": 0.1,
+      "expected_harm_per_event": 30,
+      "base_action_cost": 3,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-09",
+      "group_id": "group-central",
+      "target_matched": true,
+      "outcome": "event",
+      "forecast_probability": 0.3,
+      "expected_harm_per_event": 150,
+      "base_action_cost": 20,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-10",
+      "group_id": "group-central",
+      "target_matched": true,
+      "outcome": "no_event",
+      "forecast_probability": 0.25,
+      "expected_harm_per_event": 90,
+      "base_action_cost": 6,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-11",
+      "group_id": "group-central",
+      "target_matched": true,
+      "outcome": "no_event",
+      "forecast_probability": 0.15,
+      "expected_harm_per_event": 40,
+      "base_action_cost": 4,
+      "base_intervention_effectiveness": 0.4
+    },
+    {
+      "record_id": "row-12",
+      "group_id": "group-central",
+      "target_matched": true,
+      "outcome": "unknown",
+      "forecast_probability": 0.05,
+      "expected_harm_per_event": 200,
+      "base_action_cost": 25,
+      "base_intervention_effectiveness": 0.4
+    }
+  ]
+}
