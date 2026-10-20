@@ -153,17 +153,29 @@ impl Episode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Kind { Fifo, Reservoir, QueryKeyed }
+enum Kind { Fifo, Reservoir, QueryKeyed, QueryKeyedSelective }
 
 impl Kind {
-    const ALL: [Self; 3] = [Self::Fifo, Self::Reservoir, Self::QueryKeyed];
+    const ALL: [Self; 4] = [
+        Self::Fifo,
+        Self::Reservoir,
+        Self::QueryKeyed,
+        Self::QueryKeyedSelective,
+    ];
     fn name(self) -> &'static str {
         match self {
             Self::Fifo => "fifo",
             Self::Reservoir => "uniform_reservoir",
             Self::QueryKeyed => "query_keyed_latest",
+            Self::QueryKeyedSelective => "query_keyed_selective",
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct DecisionThreshold {
+    min_confidence: u16,
+    max_age: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -200,7 +212,7 @@ impl Memory {
                     if draw < self.cap as u64 { self.entries[draw as usize] = e; }
                 }
             }
-            Kind::QueryKeyed => {
+            Kind::QueryKeyed | Kind::QueryKeyedSelective => {
                 // Query keys are public. The policy receives no hidden truth,
                 // future observation, seed or evaluator annotation.
                 if !self.query.contains(e.key()) { return; }
@@ -226,10 +238,20 @@ impl Memory {
     }
 
     fn decide(&self, tick: usize) -> Option<bool> {
+        self.decide_with_threshold(tick, DecisionThreshold {
+            min_confidence: 0,
+            max_age: FRESHNESS_LIMIT,
+        })
+    }
+
+    fn decide_with_threshold(&self, tick: usize, threshold: DecisionThreshold) -> Option<bool> {
         let mut positive = 0;
         for key in self.query.keys {
             let e = self.freshest(key)?;
-            if !e.fresh_at(tick) { return None; }
+            let age = tick.saturating_sub(usize::from(e.source_tick));
+            if age > threshold.max_age || e.confidence < threshold.min_confidence {
+                return None;
+            }
             positive += usize::from(e.value);
         }
         Some(positive >= 2)
@@ -240,9 +262,26 @@ impl Memory {
 struct Outcome { loss: f64, answered: bool, correct: bool, fresh_claims: usize, entries: usize }
 
 fn evaluate(ep: &Episode, kind: Kind, cap: usize, actor_seed: u64) -> Outcome {
+    evaluate_with_threshold(ep, kind, cap, actor_seed, DecisionThreshold {
+        min_confidence: 0,
+        max_age: FRESHNESS_LIMIT,
+    })
+}
+
+fn evaluate_with_threshold(
+    ep: &Episode,
+    kind: Kind,
+    cap: usize,
+    actor_seed: u64,
+    threshold: DecisionThreshold,
+) -> Outcome {
     let mut memory = Memory::new(kind, cap, ep.query, actor_seed);
     for e in ep.stream.iter().copied() { memory.observe(e); }
-    let decision = memory.decide(HORIZON);
+    let decision = if kind == Kind::QueryKeyedSelective {
+        memory.decide_with_threshold(HORIZON, threshold)
+    } else {
+        memory.decide(HORIZON)
+    };
     let correct = decision.is_some_and(|answer| answer == ep.target_answer());
     Outcome {
         loss: match decision { None => 0.25, Some(_) if correct => 0.0, Some(_) => 1.0 },
@@ -305,8 +344,59 @@ fn seed_for(rep: usize, pair: usize, family: Family) -> u64 {
         ^ (pair as u64).wrapping_mul(0xA24B_AED4_963E_E407))
 }
 
+const CALIBRATION_EPISODES: usize = 256;
+
+fn calibration_seed(index: usize) -> u64 {
+    mix64(ROOT_SEED
+        ^ 0x4341_4C49_4252_4154
+        ^ (index as u64).wrapping_mul(0xD1B5_4A32_D192_ED03))
+}
+
+fn calibrate_threshold() -> DecisionThreshold {
+    // A completely separate development-seed set selects the threshold.
+    // Held-out report seeds never participate in this selection.
+    let confidence_grid = [350_u16, 900_u16];
+    let age_grid = [2_usize, 4_usize, FRESHNESS_LIMIT];
+    let mut best: Option<(f64, DecisionThreshold)> = None;
+
+    for min_confidence in confidence_grid {
+        for max_age in age_grid {
+            let threshold = DecisionThreshold { min_confidence, max_age };
+            let mut loss_sum = 0.0;
+            for index in 0..CALIBRATION_EPISODES {
+                let seed = calibration_seed(index);
+                let ep = Episode::generate(seed, Family::Development);
+                let actor_seed = mix64(seed ^ 0x5345_4C45_4354_4956);
+                loss_sum += evaluate_with_threshold(
+                    &ep,
+                    Kind::QueryKeyedSelective,
+                    3,
+                    actor_seed,
+                    threshold,
+                ).loss;
+            }
+            let mean_loss = loss_sum / CALIBRATION_EPISODES as f64;
+            let replace = match best {
+                None => true,
+                Some((old_loss, old_threshold)) => {
+                    mean_loss < old_loss - 1e-12
+                        || ((mean_loss - old_loss).abs() <= 1e-12
+                            && (threshold.min_confidence > old_threshold.min_confidence
+                                || (threshold.min_confidence == old_threshold.min_confidence
+                                    && threshold.max_age < old_threshold.max_age)))
+                }
+            };
+            if replace { best = Some((mean_loss, threshold)); }
+        }
+    }
+    best.expect("threshold grid is non-empty").1
+}
+
 fn report() {
+    let selective_threshold = calibrate_threshold();
     println!("VIS-MEM-002 causal multi-claim evidence-memory benchmark");
+    println!("selective threshold calibrated on {CALIBRATION_EPISODES} separate development episodes: min_confidence={}, max_age={}",
+        selective_threshold.min_confidence, selective_threshold.max_age);
     println!("8 claims; public majority query over 3; 48 revealed events; source time can differ from arrival time");
     println!("paired policies, correlated distractor bursts, changing claims, delayed and occasionally corrupted evidence");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
@@ -324,7 +414,7 @@ fn report() {
                         let actor_seed = mix64(seed
                             ^ (pi as u64 + 1).wrapping_mul(0xD1B5_4A32_D192_ED03)
                             ^ (cap as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
-                        let outcome = evaluate(&ep, kind, cap, actor_seed);
+                        let outcome = evaluate_with_threshold(&ep, kind, cap, actor_seed, selective_threshold);
                         let cell = pi * CAPS.len() + ci;
                         if pi == 0 {
                             fifo_loss = outcome.loss;
