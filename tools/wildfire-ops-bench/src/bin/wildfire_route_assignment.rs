@@ -320,7 +320,12 @@ fn evaluate_assignment(
             "route_edge_ids": route.edge_ids
         }));
     }
-    expanded.sort_by_key(|demand| demand.get("id").and_then(Value::as_str).unwrap_or(""));
+    expanded.sort_by(|a, b| {
+        a.get("id")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .cmp(b.get("id").and_then(Value::as_str).unwrap_or(""))
+    });
     sim_case["demands"] = json!(expanded);
     let simulation = network::simulate_case(&sim_case)?;
     let unserved = uint(&simulation, "unserved_or_stranded_vehicles", "simulation")?;
@@ -438,7 +443,7 @@ fn evaluation_json(evaluation: &Evaluation, demands: &[Demand], units: &[Unit]) 
     })
 }
 
-fn evaluate_case(case: &Value, index: usize) -> Check<Value> {
+fn evaluate_case(case: &Value, _index: usize) -> Check<Value> {
     let case_id = text(case, "case_id", "case")?;
     let (demands, units) = parse_case(case)?;
     let baseline = best_assignment(case, &demands, &units, false)?;
