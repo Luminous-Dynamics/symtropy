@@ -1,0 +1,52 @@
+name: Wildfire SUMO Trip Metrics
+
+on:
+  push:
+    branches: ["research/wildfire-sumo-trip-metrics-fix"]
+    paths:
+      - "tools/wildfire-ops-bench/**"
+      - "docs/tech/WILDFIRE_SUMO_TRIP_METRICS_V0_1.md"
+      - ".github/workflows/wildfire-sumo-trip-metrics.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/wildfire-ops-bench/**"
+      - "docs/tech/WILDFIRE_SUMO_TRIP_METRICS_V0_1.md"
+      - ".github/workflows/wildfire-sumo-trip-metrics.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wildfire-sumo-trip-metrics-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Format benchmark tools
+        run: cargo fmt --manifest-path tools/wildfire-ops-bench/Cargo.toml --check
+
+      - name: Run SUMO metrics parser and negative-control tests
+        run: cargo test --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_sumo_metrics
+
+      - name: Confirm exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          printf 'source_commit=%s\n' "$source_commit" >> "$GITHUB_STEP_SUMMARY"
