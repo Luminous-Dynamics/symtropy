@@ -674,7 +674,8 @@ fn require_schema_string_array_exact(
     let actual: Vec<&str> = values.iter().filter_map(Value::as_str).collect();
     let actual_set: BTreeSet<&str> = actual.iter().copied().collect();
     let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
-    if actual.len() != values.len() || actual.len() != expected.len() || actual_set != expected_set {
+    if actual.len() != values.len() || actual.len() != expected.len() || actual_set != expected_set
+    {
         errors.push(format!("{label} do not match the frozen contract"));
     }
 }
