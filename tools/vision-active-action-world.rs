@@ -600,7 +600,11 @@ fn mean_resource(summary: &RunSummaryV1, key: &str) -> Option<f64> {
 }
 
 fn run_report() -> Result<(), EvaluationError> {
-    let worlds = generate_worlds(EPISODE_COUNT, ROOT_SEED);
+    let development_worlds = generate_worlds(EPISODE_COUNT, ROOT_SEED);
+    let held_out_worlds = generate_held_out_worlds(
+        EPISODE_COUNT,
+        ROOT_SEED ^ 0xD1B5_4A32_D192_ED03,
+    );
     let policies = [
         Policy::AlwaysCheap,
         Policy::AlwaysEscalate,
@@ -609,37 +613,48 @@ fn run_report() -> Result<(), EvaluationError> {
         Policy::DeterministicRandom,
         Policy::SequentialEvidence,
     ];
-    let profile = resource_profile(worlds.len());
+    let profile = resource_profile(development_worlds.len());
 
     println!("VIS-ACT-002 causal synthetic active-vision pilot");
-    println!("Causal generated outcomes; not real sensors, not a powered study, abstract resource units only.");
-    println!("episodes={} latency_budget={} sensor_action_budget={}", worlds.len(), profile["latency_unit"].run_budget.unwrap(), profile["sensor_action"].run_budget.unwrap());
-    println!("policy_seed_replicates=16 on the same world set; these are not independent world samples.");
-    println!("policy\tseed_replicates\tmean_loss\tmin_loss\tmax_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\tlatency_units_per_episode\tsensor_actions_per_episode");
+    println!("Action-conditioned outcomes generated from hidden target identity and sensor/action rules.");
+    println!("Not real sensors, not a powered study, abstract resource units only.");
+    println!(
+        "episodes_per_profile={} latency_budget={} sensor_action_budget={}",
+        development_worlds.len(),
+        profile["latency_unit"].run_budget.unwrap(),
+        profile["sensor_action"].run_budget.unwrap()
+    );
+    println!("Random baseline repeats 16 policy seeds on the same worlds; not independent world samples.");
+    println!("profile\tpolicy\tseed_replicates\tmean_loss\tmin_loss\tmax_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\tlatency_units_per_episode\tsensor_actions_per_episode");
 
-    for policy in policies {
-        let repetitions = if matches!(policy, Policy::DeterministicRandom) { 16 } else { 1 };
-        let mut summaries = Vec::with_capacity(repetitions);
-        for policy_seed in 0..repetitions {
-            summaries.push(evaluate_policy(policy, &worlds, policy_seed as u64)?);
+    for (profile_name, worlds) in [
+        ("development_levels", development_worlds.as_slice()),
+        ("held_out_severity_levels", held_out_worlds.as_slice()),
+    ] {
+        for policy in policies {
+            let repetitions = if matches!(policy, Policy::DeterministicRandom) { 16 } else { 1 };
+            let mut summaries = Vec::with_capacity(repetitions);
+            for policy_seed in 0..repetitions {
+                summaries.push(evaluate_policy(policy, worlds, policy_seed as u64)?);
+            }
+            let mean_loss = summaries.iter().map(|summary| summary.mean_realized_loss).sum::<f64>()
+                / summaries.len() as f64;
+            let min_loss = summaries.iter().map(|summary| summary.mean_realized_loss).fold(f64::INFINITY, f64::min);
+            let max_loss = summaries.iter().map(|summary| summary.mean_realized_loss).fold(f64::NEG_INFINITY, f64::max);
+            let mean_regret = summaries.iter().map(|summary| summary.mean_regret_vs_run_budget_oracle).sum::<f64>()
+                / summaries.len() as f64;
+            let mean_action_value = summaries.iter().map(mean_action_value).sum::<f64>() / summaries.len() as f64;
+            let latency_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "latency_unit")).sum::<f64>()
+                / summaries.len() as f64;
+            let sensor_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "sensor_action")).sum::<f64>()
+                / summaries.len() as f64;
+
+            println!(
+                "{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.3}\t{:.3}",
+                profile_name, policy.name(), repetitions, mean_loss, min_loss, max_loss,
+                mean_regret, mean_action_value, latency_per_episode, sensor_per_episode
+            );
         }
-        let mean_loss = summaries.iter().map(|summary| summary.mean_realized_loss).sum::<f64>()
-            / summaries.len() as f64;
-        let min_loss = summaries.iter().map(|summary| summary.mean_realized_loss).fold(f64::INFINITY, f64::min);
-        let max_loss = summaries.iter().map(|summary| summary.mean_realized_loss).fold(f64::NEG_INFINITY, f64::max);
-        let mean_regret = summaries.iter().map(|summary| summary.mean_regret_vs_run_budget_oracle).sum::<f64>()
-            / summaries.len() as f64;
-        let mean_action_value = summaries.iter().map(mean_action_value).sum::<f64>() / summaries.len() as f64;
-        let latency_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "latency_unit")).sum::<f64>()
-            / summaries.len() as f64;
-        let sensor_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "sensor_action")).sum::<f64>()
-            / summaries.len() as f64;
-
-        println!(
-            "{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.3}\t{:.3}",
-            policy.name(), repetitions, mean_loss, min_loss, max_loss,
-            mean_regret, mean_action_value, latency_per_episode, sensor_per_episode
-        );
     }
     Ok(())
 }
@@ -723,8 +738,22 @@ mod tests {
     }
 
     #[test]
+    fn held_out_profile_uses_severity_levels_absent_from_development() {
+        let development = generate_worlds(EPISODE_COUNT, ROOT_SEED);
+        let held_out = generate_held_out_worlds(EPISODE_COUNT, ROOT_SEED ^ 11);
+        let dev_occlusion: Vec<u16> = development.iter().map(|world| world.occlusion_milli).collect();
+        let dev_blur: Vec<u16> = development.iter().map(|world| world.blur_milli).collect();
+        let dev_distractor: Vec<u16> = development.iter().map(|world| world.distractor_salience_milli).collect();
+        let dev_novelty: Vec<u16> = development.iter().map(|world| world.novelty_milli).collect();
+        assert!(held_out.iter().any(|world| !dev_occlusion.contains(&world.occlusion_milli)));
+        assert!(held_out.iter().any(|world| !dev_blur.contains(&world.blur_milli)));
+        assert!(held_out.iter().any(|world| !dev_distractor.contains(&world.distractor_salience_milli)));
+        assert!(held_out.iter().any(|world| !dev_novelty.contains(&world.novelty_milli)));
+    }
+
+    #[test]
     fn actor_policy_api_accepts_only_public_observation_and_policy_seed() {
-        let world = generate_world(3, 77);
+        let world = generate_world(3, 77, WorldProfile::DevelopmentLevels);
         let observation = world.initial_observation();
         let action = Policy::SequentialEvidence.propose(observation, 0);
         assert!(observation.action_available(action));
