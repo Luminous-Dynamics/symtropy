@@ -397,6 +397,22 @@ mod tests {
         assert_eq!(result.vector.metadata_complete_count, 1);
     }
 
+
+    #[test]
+    fn unknown_required_tool_class_blocks_complete_assessment() {
+        let world = world_with_two_connections();
+        let mut profile = known_profile("AB", 5, ConnectorKind::ReversibleFastener);
+        profile.required_tool_class = RequiredToolClass::Unknown;
+        let result = assess(
+            &world,
+            vec![profile, known_profile("BC", 12, ConnectorKind::CutRequired)],
+        )
+        .expect("unknown tool class is representable");
+        assert_eq!(result.status, AssessmentStatus::Unresolved);
+        assert_eq!(result.vector.required_tool_class.unknown, 1);
+        assert_eq!(result.unresolved_connection_ids, vec!["AB"]);
+    }
+
     #[test]
     fn duplicate_and_foreign_connection_profiles_fail_closed() {
         let world = world_with_two_connections();
