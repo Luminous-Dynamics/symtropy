@@ -477,9 +477,23 @@ mod tests {
         );
         let minimum_weights = &graze_retreat["minimizing_weights"];
         let maximum_weights = &graze_retreat["maximizing_weights"];
-        assert!((minimum_weights["predator_coupled"].as_f64().expect("weight") - 0.8).abs() < 1e-9);
+        assert!(
+            (minimum_weights["predator_coupled"]
+                .as_f64()
+                .expect("weight")
+                - 0.8)
+                .abs()
+                < 1e-9
+        );
         assert!((minimum_weights["predator_weak"].as_f64().expect("weight") - 0.2).abs() < 1e-9);
-        assert!((maximum_weights["predator_coupled"].as_f64().expect("weight") - 0.4).abs() < 1e-9);
+        assert!(
+            (maximum_weights["predator_coupled"]
+                .as_f64()
+                .expect("weight")
+                - 0.4)
+                .abs()
+                < 1e-9
+        );
         assert!((maximum_weights["predator_weak"].as_f64().expect("weight") - 0.6).abs() < 1e-9);
         for weights in [minimum_weights, maximum_weights] {
             let sum = weights
