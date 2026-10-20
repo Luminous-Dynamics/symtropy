@@ -11,8 +11,9 @@ use std::{env, fs, process};
 const SCHEMA_BYTES: &[u8] =
     include_bytes!("../../../docs/schemas/pirb-policy-impact-registration-v0.1.schema.json");
 #[cfg(test)]
-const FIXTURE_BYTES: &[u8] =
-    include_bytes!("../../../docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json");
+const FIXTURE_BYTES: &[u8] = include_bytes!(
+    "../../../docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json"
+);
 
 fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
@@ -72,7 +73,9 @@ fn gates_for_independent_review(registration: &Value) -> Vec<&'static str> {
     if string_at(design, "analysis_plan_reference").is_none_or(str::is_empty)
         || string_at(design, "analysis_plan_sha256").is_none_or(is_placeholder_digest)
     {
-        missing.push("a non-placeholder preregistered analysis plan reference and digest are required");
+        missing.push(
+            "a non-placeholder preregistered analysis plan reference and digest are required",
+        );
     }
     if string_at(design, "estimand_reference").is_none_or(str::is_empty) {
         missing.push("a prespecified causal estimand reference is missing");
@@ -90,7 +93,9 @@ fn gates_for_independent_review(registration: &Value) -> Vec<&'static str> {
         || string_at(counterfactual, "diagnostics_plan").is_none_or(str::is_empty)
         || string_at(counterfactual, "sensitivity_analysis_plan").is_none_or(str::is_empty)
     {
-        missing.push("identification assumptions, diagnostics, or sensitivity analysis plan is missing");
+        missing.push(
+            "identification assumptions, diagnostics, or sensitivity analysis plan is missing",
+        );
     }
     if !matches!(
         string_at(design, "interference_assessment"),
@@ -163,7 +168,8 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     let mut errors = Vec::new();
     let evidence_scope = string_at(registration, "evidence_scope").unwrap_or_default();
     let design_type = string_at(&registration["design"], "design_type").unwrap_or_default();
-    let effect_status = string_at(&registration["causal_lane"], "effect_status").unwrap_or_default();
+    let effect_status =
+        string_at(&registration["causal_lane"], "effect_status").unwrap_or_default();
     let eligibility = string_at(
         &registration["causal_lane"],
         "independent_review_eligibility",
@@ -171,10 +177,12 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     .unwrap_or_default();
 
     if registration["forecast_lane"]["heldout_scoring_separate"].as_bool() != Some(true)
-        || registration["causal_lane"]["forecast_and_impact_lanes_separate"].as_bool()
-            != Some(true)
+        || registration["causal_lane"]["forecast_and_impact_lanes_separate"].as_bool() != Some(true)
     {
-        errors.push("forecast verification and policy-impact evaluation must remain separate lanes".to_owned());
+        errors.push(
+            "forecast verification and policy-impact evaluation must remain separate lanes"
+                .to_owned(),
+        );
     }
     if registration["causal_lane"]["causal_effect_estimated"].as_bool() != Some(false)
         || !registration["causal_lane"]["effect_estimate"].is_null()
@@ -223,7 +231,10 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         }
         "authorized_historical" => {
             if effect_status == "synthetic_method_test_only" {
-                errors.push("authorized historical evidence cannot use synthetic_method_test_only status".to_owned());
+                errors.push(
+                    "authorized historical evidence cannot use synthetic_method_test_only status"
+                        .to_owned(),
+                );
             }
             if eligibility == "eligible_for_independent_review" {
                 let gates = gates_for_independent_review(registration);
@@ -238,14 +249,22 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         _ => errors.push("unsupported evidence_scope".to_owned()),
     }
 
-    if eligibility == "eligible_for_independent_review" && evidence_scope != "authorized_historical" {
-        errors.push("independent-review eligibility requires authorized_historical evidence".to_owned());
+    if eligibility == "eligible_for_independent_review" && evidence_scope != "authorized_historical"
+    {
+        errors.push(
+            "independent-review eligibility requires authorized_historical evidence".to_owned(),
+        );
     }
-    if !matches!(eligibility, "not_identified" | "eligible_for_independent_review") {
+    if !matches!(
+        eligibility,
+        "not_identified" | "eligible_for_independent_review"
+    ) {
         errors.push("unsupported independent_review_eligibility".to_owned());
     }
     if !matches!(effect_status, "unestimated" | "synthetic_method_test_only") {
-        errors.push("unsupported effect_status; this validator does not estimate causal effects".to_owned());
+        errors.push(
+            "unsupported effect_status; this validator does not estimate causal effects".to_owned(),
+        );
     }
 
     errors.sort();
@@ -265,8 +284,11 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
         ]);
     }
 
-    let registration: Value = serde_json::from_slice(input)
-        .map_err(|error| vec![format!("policy-impact registration JSON is invalid: {error}")])?;
+    let registration: Value = serde_json::from_slice(input).map_err(|error| {
+        vec![format!(
+            "policy-impact registration JSON is invalid: {error}"
+        )]
+    })?;
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
         vec![format!("embedded policy-impact schema JSON is invalid: {error}")]
     })?;
@@ -276,7 +298,9 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
         )]
     })?;
     let validator = jsonschema::draft202012::new(&schema).map_err(|error| {
-        vec![format!("cannot build policy-impact schema validator: {error}")]
+        vec![format!(
+            "cannot build policy-impact schema validator: {error}"
+        )]
     })?;
     let mut errors = validator
         .iter_errors(&registration)
@@ -362,8 +386,7 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("cannot read policy-impact registration {input_path}: {error}"))?;
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
-    let receipt =
-        validate_contract(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
+    let receipt = validate_contract(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -414,7 +437,11 @@ mod tests {
         value["causal_lane"]["independent_review_eligibility"] =
             json!("eligible_for_independent_review");
         let errors = validate(&value).expect_err("synthetic data is not external causal evidence");
-        assert!(errors.iter().any(|error| error.contains("cannot qualify a real-world impact evaluation")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("cannot qualify a real-world impact evaluation"))
+        );
     }
 
     #[test]
@@ -428,10 +455,23 @@ mod tests {
         value["governance"]["publication_review_status"] = json!("approved");
         value["governance"]["data_authority_reference"] = json!("reviewed-authority-record");
         value["governance"]["disclosure_review_reference"] = json!("reviewed-disclosure-record");
-        let errors = validate(&value).expect_err("before/after lacks a supported identification design");
-        assert!(errors.iter().any(|error| error.contains("without satisfying gates")));
-        assert!(errors.iter().any(|error| error.contains("not a supported randomized/quasi-experimental pairing")));
-        assert!(errors.iter().any(|error| error.contains("counterfactual is not defined")));
+        let errors =
+            validate(&value).expect_err("before/after lacks a supported identification design");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("without satisfying gates"))
+        );
+        assert!(
+            errors.iter().any(
+                |error| error.contains("not a supported randomized/quasi-experimental pairing")
+            )
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("counterfactual is not defined"))
+        );
     }
 
     #[test]
@@ -462,7 +502,10 @@ mod tests {
         value["governance"]["data_authority_reference"] = json!("reviewed-authority-record");
         value["governance"]["disclosure_review_reference"] = json!("reviewed-disclosure-record");
         let receipt = validate(&value).expect("complete declarations may enter independent review");
-        assert_eq!(receipt["independent_review_eligibility"], "eligible_for_independent_review");
+        assert_eq!(
+            receipt["independent_review_eligibility"],
+            "eligible_for_independent_review"
+        );
         assert_eq!(receipt["causal_effect_estimated"], false);
         assert_eq!(receipt["effect_estimate"], Value::Null);
         assert_eq!(receipt["causal_impact_established"], false);
@@ -484,7 +527,11 @@ mod tests {
         value["outcome_lane"]["reporting_shift_assessment"] = json!("assessed_no_material_shift");
         value["action_lane"]["receipt_or_adherence_recorded"] = json!(false);
         let errors = validate(&value).expect_err("assignment alone is not treatment delivery");
-        assert!(errors.iter().any(|error| error.contains("without satisfying gates")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("without satisfying gates"))
+        );
     }
 
     #[test]
@@ -493,7 +540,11 @@ mod tests {
         value["causal_lane"]["causal_effect_estimated"] = json!(true);
         value["causal_lane"]["effect_estimate"] = json!(2.3);
         let errors = validate(&value).expect_err("this validator never accepts effect estimates");
-        assert!(errors.iter().any(|error| error.contains("never accepts a claimed causal effect estimate")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("never accepts a claimed causal effect estimate"))
+        );
     }
 
     #[test]
@@ -503,14 +554,23 @@ mod tests {
         value["policy_comparison"]["comparison_policies"] =
             json!(["synthetic_current_practice", "intensive_response"]);
         let errors = validate(&value).expect_err("policy regret needs no-action comparator");
-        assert!(errors.iter().any(|error| error.contains("no_action baseline")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("no_action baseline"))
+        );
     }
 
     #[test]
     fn followup_must_extend_beyond_forecast_issue_cutoff() {
         let mut value = fixture();
         value["outcome_lane"]["follow_up_end_index"] = json!(10);
-        let errors = validate(&value).expect_err("outcome timing must be posterior to forecast issue");
-        assert!(errors.iter().any(|error| error.contains("follow-up end index")));
+        let errors =
+            validate(&value).expect_err("outcome timing must be posterior to forecast issue");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("follow-up end index"))
+        );
     }
 }
