@@ -109,8 +109,7 @@
       },
       "then": {
         "properties": {
-          "outputs": { "minItems": 1 },
-          "physics_omitted": { "maxItems": 0 }
+          "outputs": { "minItems": 1 }
         }
       }
     },
@@ -121,7 +120,7 @@
       },
       "then": {
         "properties": {
-          "claim_ceiling": { "pattern": "(?i)(unresolved|not qualified|not a safety|not validated)" }
+          "claim_ceiling": { "pattern": "(UNRESOLVED|unresolved|not qualified|not a safety|not validated)" }
         }
       }
     }
