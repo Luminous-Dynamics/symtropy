@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: semantic-lod-\${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
+  group: semantic-lod-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -54,7 +54,7 @@ jobs:
       - name: Upload policy-only benchmark receipt
         uses: actions/upload-artifact@v4
         with:
-          name: semantic-lod-policy-benchmark-\${{ github.sha }}
+          name: semantic-lod-policy-benchmark-${{ github.sha }}
           path: target/semantic-lod-report.json
           if-no-files-found: error
           retention-days: 30
