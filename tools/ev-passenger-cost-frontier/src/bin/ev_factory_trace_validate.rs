@@ -214,6 +214,64 @@ fn nonempty(name: &str, value: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn parse_utc_seconds(value: &str) -> Result<i64, String> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+    {
+        return Err("utc_timestamp_must_use_YYYY_MM_DDTHH_MM_SSZ".into());
+    }
+    let parse = |start: usize, end: usize| -> Result<i64, String> {
+        let part = &value[start..end];
+        if !part.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err("utc_timestamp_has_non_numeric_component".into());
+        }
+        part.parse::<i64>()
+            .map_err(|_| "utc_timestamp_component_out_of_range".to_string())
+    };
+    let year = parse(0, 4)?;
+    let month = parse(5, 7)?;
+    let day = parse(8, 10)?;
+    let hour = parse(11, 13)?;
+    let minute = parse(14, 16)?;
+    let second = parse(17, 19)?;
+    if !(1970..=9999).contains(&year)
+        || !(1..=12).contains(&month)
+        || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute)
+        || !(0..=59).contains(&second)
+    {
+        return Err("utc_timestamp_component_out_of_range".into());
+    }
+    let leap_year = |year: i64| year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = |year: i64, month: i64| -> i64 {
+        match month {
+            1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+            4 | 6 | 9 | 11 => 30,
+            2 if leap_year(year) => 29,
+            2 => 28,
+            _ => 0,
+        }
+    };
+    if day < 1 || day > days_in_month(year, month) {
+        return Err("utc_timestamp_day_out_of_range".into());
+    }
+    let mut days = 0_i64;
+    for y in 1970..year {
+        days += if leap_year(y) { 366 } else { 365 };
+    }
+    for m in 1..month {
+        days += days_in_month(year, m);
+    }
+    days += day - 1;
+    Ok((((days * 24 + hour) * 60 + minute) * 60) + second)
+}
+
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -279,6 +337,18 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
     }
     if !valid_sha256(&trace.source_sha256) {
         return Err("source_sha256_must_be_64_hex_characters".into());
+    }
+    if trace.source_evidence_class != EvidenceClass::Synthetic
+        && trace.source_sha256.bytes().all(|byte| byte == b'0')
+    {
+        return Err("non_synthetic_evidence_cannot_use_synthetic_zero_digest_sentinel".into());
+    }
+    let collection_start = parse_utc_seconds(&trace.collection_started_at_utc)?;
+    let collection_end = parse_utc_seconds(&trace.collection_ended_at_utc)?;
+    let expected_window = i64::try_from(trace.collection_window_seconds)
+        .map_err(|_| "collection_window_exceeds_utc_timestamp_range".to_string())?;
+    if collection_end <= collection_start || collection_end - collection_start != expected_window {
+        return Err("utc_collection_interval_must_match_declared_window_seconds".into());
     }
     validate_window(
         "calibration_window",
@@ -853,6 +923,28 @@ mod tests {
         let mut value = fixture_value();
         value["unreviewed_override"] = Value::Bool(true);
         assert!(serde_json::from_value::<Trace>(value).is_err());
+    }
+
+    #[test]
+    fn measured_evidence_cannot_use_synthetic_zero_digest_sentinel() {
+        let mut trace = fixture();
+        trace.source_evidence_class = EvidenceClass::Measured;
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("synthetic_zero_digest_sentinel")
+        );
+    }
+
+    #[test]
+    fn utc_collection_interval_must_match_declared_window() {
+        let mut trace = fixture();
+        trace.collection_ended_at_utc = "2026-10-20T00:01:39Z".into();
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("interval_must_match")
+        );
     }
 
     #[test]
