@@ -16,6 +16,8 @@ pub const EMBEDDED_ORACLE: &str =
 pub const EMBEDDED_SCHEMA: &str =
     include_str!("../../../../docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ORACLE_V1.schema.json");
 
+const EXPECTED_CASE_COUNT: usize = 52;
+
 const REQUIRED_ROOT_FIELDS: &[&str] = &[
     "schema_version",
     "status",
@@ -133,6 +135,13 @@ fn validate_oracle_value(oracle: &Value, schema: &Value) -> Result<usize, Vec<St
         ));
     }
 
+    if cases.len() != EXPECTED_CASE_COUNT {
+        errors.push(format!(
+            "V1 fixture must contain exactly {EXPECTED_CASE_COUNT} cases, got {}",
+            cases.len()
+        ));
+    }
+
     let mut case_ids = BTreeSet::new();
     for (index, case) in cases.iter().enumerate() {
         validate_case(case, index, &mut case_ids, &mut errors);
@@ -168,7 +177,7 @@ fn validate_oracle_value(oracle: &Value, schema: &Value) -> Result<usize, Vec<St
         &mut errors,
     );
 
-    validate_schema_contract(schema, cases.len(), &mut errors);
+    validate_schema_contract(schema, EXPECTED_CASE_COUNT, &mut errors);
 
     if errors.is_empty() {
         Ok(cases.len())
@@ -665,7 +674,7 @@ mod tests {
         fixture["required_run_identity"]
             .as_array_mut()
             .expect("identity list")
-            .retain(|value| value.as_str() != Some("pre_reveal_prediction_digest"));
+            .retain(|value| value.as_str() != Some("cases"));
         let errors =
             validate_oracle_json(&fixture.to_string()).expect_err("missing identity must fail");
         assert!(
@@ -717,6 +726,27 @@ mod tests {
         let errors = validate_oracle_json(&fixture.to_string())
             .expect_err("changed uncertainty layer must fail");
         assert!(errors.iter().any(|e| e.contains("uncertainty_layers")));
+    }
+
+    #[test]
+    fn v1_case_count_cannot_be_redefined_with_a_matching_schema() {
+        let mut fixture = parsed_fixture();
+        let mut additional = fixture["cases"][0].clone();
+        additional["id"] = Value::String("additional_case_52".to_owned());
+        fixture["cases"]
+            .as_array_mut()
+            .expect("cases array")
+            .push(additional);
+        fixture["case_count"] = Value::from(53);
+        let mut schema: Value =
+            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        schema["properties"]["case_count"]["const"] = Value::from(53);
+        schema["properties"]["cases"]["minItems"] = Value::from(53);
+        schema["properties"]["cases"]["maxItems"] = Value::from(53);
+
+        let errors = validate_oracle_value(&fixture, &schema)
+            .expect_err("V1 size must be frozen in code as well as schema");
+        assert!(errors.iter().any(|e| e.contains("exactly 52 cases")));
     }
 
     #[test]
