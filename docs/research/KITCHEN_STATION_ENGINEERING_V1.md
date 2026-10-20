@@ -201,6 +201,8 @@ Benchmark at least one mainstream workstation sink and one conventional sink/rac
 
 ## 6.3. Evidence record contract and metric registry
 
+Physical eligibility additionally consults registry-declared categorical `qualifying_values`: for example, a `cleaning_endpoint` measured as `fail` cannot be rescued by a low water-use value or a manually marked passing gate. This only checks internal consistency of the submitted record, not the truth of the measurement itself.
+
 The benchmark is now paired with two machine-readable contracts:
 - `KITCHEN_STATION_RECORD_SCHEMA_V1.json` describes the per-trial record, candidate/protocol digests, metric status, uncertainty, raw artifacts and non-compensatory safety gates.
 - `KITCHEN_STATION_METRIC_REGISTRY_V1.json` catalogs every primary metric ID in the scenario matrix, its canonical mapping, unit policy, value shape, direction and comparison limits.
