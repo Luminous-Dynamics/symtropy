@@ -715,6 +715,24 @@ fn parse_comparison_report(
     let mut primary = None;
     for (index, item) in results.iter().enumerate() {
         let at = format!("comparison report.observable_results[{index}]");
+        exact_keys(
+            item,
+            &[
+                "observable_id",
+                "unit",
+                "reference_value",
+                "observed_value",
+                "absolute_error",
+                "relative_error",
+                "relative_error_defined",
+                "relative_error_status",
+                "absolute_tolerance",
+                "relative_tolerance",
+                "allowed_absolute_error",
+                "within_tolerance",
+            ],
+            &at,
+        )?;
         let id = token(get_str(item, "observable_id", &at)?, "report observable ID")?;
         if !ids.insert(id.clone()) {
             return Err(format!("{at}.observable_id is duplicated"));
@@ -757,6 +775,39 @@ fn parse_comparison_report(
         if item.get("within_tolerance").and_then(Value::as_bool) != Some(expected_within_tolerance) {
             return Err(format!("{at}.within_tolerance is inconsistent with its errors"));
         }
+
+        let relative_error_defined = item
+            .get("relative_error_defined")
+            .and_then(Value::as_bool)
+            .ok_or_else(|| format!("{at}.relative_error_defined must be boolean"))?;
+        let relative_error_status = get_str(item, "relative_error_status", &at)?;
+        let relative_error = item
+            .get("relative_error")
+            .ok_or_else(|| format!("{at}.relative_error is missing"))?;
+        if expected_value == 0.0 {
+            if relative_error_defined
+                || relative_error_status != "undefined_zero_reference"
+                || !relative_error.is_null()
+            {
+                return Err(format!("{at} zero-reference relative-error semantics are inconsistent"));
+            }
+        } else {
+            let expected_relative_error = computed_error / expected_value.abs();
+            if expected_relative_error.is_finite() {
+                if !relative_error_defined
+                    || relative_error_status != "computed"
+                    || relative_error.as_f64() != Some(expected_relative_error)
+                {
+                    return Err(format!("{at} relative error is inconsistent"));
+                }
+            } else if !relative_error_defined
+                || relative_error_status != "overflow"
+                || !relative_error.is_null()
+            {
+                return Err(format!("{at} relative-error overflow status is inconsistent"));
+            }
+        }
+
         if !expected_within_tolerance {
             any_failing = true;
         }
