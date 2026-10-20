@@ -577,8 +577,7 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
     )?;
     let deconstruction_step_count = deconstruction_plan.steps.len();
     deconstruction::execute(&mut deconstruction_world, &deconstruction_plan)?;
-    let deconstruction_recovered_component_count =
-        deconstruction_world.recovered_component_count();
+    let deconstruction_recovered_component_count = deconstruction_world.recovered_component_count();
     let deconstruction_recovered_mass_mg = deconstruction_world.recovered_mass_mg()?;
 
     let outcome = FixtureOutcome {
