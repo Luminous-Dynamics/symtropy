@@ -55,7 +55,10 @@ impl SourcePermission {
     fn allows_use(self) -> bool {
         matches!(
             self,
-            Self::PublicOpen | Self::PermissionGranted | Self::RestrictedAuthorized | Self::NotApplicable
+            Self::PublicOpen
+                | Self::PermissionGranted
+                | Self::RestrictedAuthorized
+                | Self::NotApplicable
         )
     }
 }
@@ -198,9 +201,7 @@ impl BenchmarkCase {
         {
             return Err(CaseValidationError::InvalidTarget);
         }
-        if !is_sha256(&self.input_digest_sha256)
-            || !is_sha256(&self.config_digest_sha256)
-        {
+        if !is_sha256(&self.input_digest_sha256) || !is_sha256(&self.config_digest_sha256) {
             return Err(CaseValidationError::InvalidCaseDigest);
         }
         if self.sources.is_empty() {
@@ -214,9 +215,7 @@ impl BenchmarkCase {
                 || !nonblank(&source.dataset_version)
                 || !is_sha256(&source.digest_sha256)
             {
-                return Err(CaseValidationError::InvalidSource(
-                    source.source_id.clone(),
-                ));
+                return Err(CaseValidationError::InvalidSource(source.source_id.clone()));
             }
             let source_key = key(&source.source_id);
             if !source_ids.insert(source_key) {
@@ -254,9 +253,7 @@ impl BenchmarkCase {
                     .is_some_and(|value| !value.is_finite() || value < 0.0)
                 || metric.threshold.is_some_and(|value| !value.is_finite())
             {
-                return Err(CaseValidationError::InvalidMetric(
-                    metric.metric_id.clone(),
-                ));
+                return Err(CaseValidationError::InvalidMetric(metric.metric_id.clone()));
             }
             if metric.baseline_required && self.baseline.is_none() {
                 return Err(CaseValidationError::MissingBaselineForClaim);
@@ -298,7 +295,11 @@ fn validate_case_evidence(
         if !nonblank(&record.suite_id) || !nonblank(&record.detail) {
             return Err(CaseValidationError::EmptyEvidenceSuite);
         }
-        if record.source_uri.as_deref().is_some_and(|uri| !uri.starts_with("https://")) {
+        if record
+            .source_uri
+            .as_deref()
+            .is_some_and(|uri| !uri.starts_with("https://"))
+        {
             return Err(CaseValidationError::EmptyEvidenceSuite);
         }
         if !suite_keys.insert((record.class, key(&record.suite_id))) {
@@ -318,25 +319,37 @@ fn validate_case_evidence(
         ClaimTier::PublishedReference => vec![
             vec![super::EvidenceClass::StructuralInvariant],
             vec![super::EvidenceClass::AnalyticalOrManufactured],
-            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+            vec![
+                super::EvidenceClass::PublishedBenchmark,
+                super::EvidenceClass::ReferenceDifferential,
+            ],
         ],
         ClaimTier::HeldOutObservation => vec![
             vec![super::EvidenceClass::StructuralInvariant],
             vec![super::EvidenceClass::AnalyticalOrManufactured],
-            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+            vec![
+                super::EvidenceClass::PublishedBenchmark,
+                super::EvidenceClass::ReferenceDifferential,
+            ],
             vec![super::EvidenceClass::HeldOutObservation],
         ],
         ClaimTier::DecisionImpact => vec![
             vec![super::EvidenceClass::StructuralInvariant],
             vec![super::EvidenceClass::AnalyticalOrManufactured],
-            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+            vec![
+                super::EvidenceClass::PublishedBenchmark,
+                super::EvidenceClass::ReferenceDifferential,
+            ],
             vec![super::EvidenceClass::HeldOutObservation],
             vec![super::EvidenceClass::DecisionImpact],
         ],
         ClaimTier::Operational => vec![
             vec![super::EvidenceClass::StructuralInvariant],
             vec![super::EvidenceClass::AnalyticalOrManufactured],
-            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+            vec![
+                super::EvidenceClass::PublishedBenchmark,
+                super::EvidenceClass::ReferenceDifferential,
+            ],
             vec![super::EvidenceClass::HeldOutObservation],
             vec![super::EvidenceClass::DecisionImpact],
             vec![super::EvidenceClass::OperationalSkill],
@@ -390,15 +403,10 @@ fn validate_comparison(
     Ok(())
 }
 
-fn validate_split_identities(
-    splits: &[SplitAssignment],
-) -> Result<(), CaseValidationError> {
+fn validate_split_identities(splits: &[SplitAssignment]) -> Result<(), CaseValidationError> {
     let mut samples = BTreeSet::new();
     for split in splits {
-        if !nonblank(&split.sample_id)
-            || !nonblank(&split.event_id)
-            || !nonblank(&split.region_id)
-        {
+        if !nonblank(&split.sample_id) || !nonblank(&split.event_id) || !nonblank(&split.region_id) {
             return Err(CaseValidationError::InvalidSplit(split.sample_id.clone()));
         }
         if !samples.insert(key(&split.sample_id)) {
@@ -483,7 +491,8 @@ pub enum ResultValidationError {
 impl BenchmarkResult {
     /// Validate the result against its declared case and claim ceiling.
     pub fn validate_against(&self, case: &BenchmarkCase) -> Result<(), ResultValidationError> {
-        case.validate().map_err(ResultValidationError::CaseInvalid)?;
+        case.validate()
+            .map_err(ResultValidationError::CaseInvalid)?;
         if self.schema != RESULT_SCHEMA_V1 {
             return Err(ResultValidationError::InvalidResultSchema);
         }
@@ -834,7 +843,7 @@ mod tests {
     }
 
     #[test]
-    fn claim_ceiling_never_implies_operational_readiness() {
+    fn decision_impact_claim_requires_explicit_decision_evidence() {
         let mut spec = heldout_case();
         spec.claim_ceiling = ClaimTier::DecisionImpact;
         spec.decision_utility_spec = Some("pre-registered cost-loss policy".into());
