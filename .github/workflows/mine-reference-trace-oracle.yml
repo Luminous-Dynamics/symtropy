@@ -75,7 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          /tmp/mine-reference-venv/bin/python tools/mine-reference-trace-oracle/reference/compare_traces.py --expected reference-traces-upstream.json --actual reference-traces-rust.json
+          /tmp/mine-reference-venv/bin/python tools/mine-reference-trace-oracle/reference/compare_traces.py --expected reference-traces-upstream.json --actual reference-traces-rust.json --golden tools/mine-reference-trace-oracle/fixtures/reference-trace-expected-v0.1.json
 
       - name: Retain parity evidence
         if: always()
@@ -84,6 +84,7 @@ jobs:
           name: mine-reference-traces-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             tools/mine-reference-trace-oracle/fixtures/reference-trace-inputs-v0.1.json
+            tools/mine-reference-trace-oracle/fixtures/reference-trace-expected-v0.1.json
             reference-traces-upstream.json
             reference-traces-rust.json
           if-no-files-found: warn
