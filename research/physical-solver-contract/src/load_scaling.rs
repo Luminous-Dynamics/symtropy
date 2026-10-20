@@ -205,6 +205,12 @@ pub fn assess_load_scaling_relation_bytes(
             ));
         }
     };
+    if baseline_receipt.get("adapter") != scaled_receipt.get("adapter") {
+        return Ok(unresolved(
+            report,
+            "baseline and scaled receipts do not have identical solver/adapter build identity and configuration",
+        ));
+    }
 
     let mut output_results = Vec::with_capacity(manifest.output_pairs.len());
     let mut violation_count = 0usize;
@@ -1092,6 +1098,16 @@ mod tests {
         let mut receipt: Value = serde_json::from_slice(&bundle.baseline_receipt).unwrap();
         receipt["outputs"][0]["unit"] = json!("mm");
         bundle.baseline_receipt = serde_json::to_vec(&receipt).unwrap();
+        let report = assess(&bundle);
+        assert_eq!(report["relation_status"], "UNRESOLVED");
+    }
+
+    #[test]
+    fn different_solver_adapter_identity_is_unresolved() {
+        let mut bundle = make_bundle(2.0, 1.0);
+        let mut receipt: Value = serde_json::from_slice(&bundle.scaled_receipt).unwrap();
+        receipt["adapter"]["configuration_sha256"] = json!("e".repeat(64));
+        bundle.scaled_receipt = serde_json::to_vec(&receipt).unwrap();
         let report = assess(&bundle);
         assert_eq!(report["relation_status"], "UNRESOLVED");
     }
