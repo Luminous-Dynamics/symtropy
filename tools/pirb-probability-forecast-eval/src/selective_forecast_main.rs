@@ -71,7 +71,10 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         .iter()
         .filter_map(Value::as_f64)
         .collect::<Vec<_>>();
-    if levels.last().is_none_or(|level| (*level - 1.0).abs() > f64::EPSILON) {
+    if levels
+        .last()
+        .is_none_or(|level| (*level - 1.0).abs() > f64::EPSILON)
+    {
         errors.push("coverage_levels must end at 1.0".to_owned());
     }
     if levels.windows(2).any(|pair| pair[0] >= pair[1]) {
@@ -106,18 +109,20 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                 ));
             }
             if evidence != "sufficient" {
-                errors.push(format!(
-                    "scored record {id} requires sufficient evidence"
-                ));
+                errors.push(format!("scored record {id} requires sufficient evidence"));
             }
             if freshness != "fresh" {
                 errors.push(format!("scored record {id} requires fresh inputs"));
             }
             if support != "in_support" {
-                errors.push(format!("scored record {id} must be in the supported input domain"));
+                errors.push(format!(
+                    "scored record {id} must be in the supported input domain"
+                ));
             }
             if !target_matched {
-                errors.push(format!("scored record {id} must match the registered target"));
+                errors.push(format!(
+                    "scored record {id} must match the registered target"
+                ));
             }
         } else {
             if probability_present || selection_score_present {
@@ -230,26 +235,18 @@ fn score_value(value: Option<f64>) -> Value {
     value.map_or(Value::Null, |number| json!(number))
 }
 
-fn risk_coverage_curve(
-    scored: &[&Value],
-    coverage_levels: &[f64],
-    epsilon: f64,
-) -> Vec<Value> {
+fn risk_coverage_curve(scored: &[&Value], coverage_levels: &[f64], epsilon: f64) -> Vec<Value> {
     if scored.is_empty() {
         return Vec::new();
     }
     let mut ranked = scored.to_vec();
     ranked.sort_by(|left, right| {
         let left_score = number_at(left, "selection_score").expect("scored rows have rank score");
-        let right_score =
-            number_at(right, "selection_score").expect("scored rows have rank score");
+        let right_score = number_at(right, "selection_score").expect("scored rows have rank score");
         right_score
             .partial_cmp(&left_score)
             .unwrap_or(Ordering::Equal)
-            .then_with(|| {
-                string_at(left, "record_id")
-                    .cmp(&string_at(right, "record_id"))
-            })
+            .then_with(|| string_at(left, "record_id").cmp(&string_at(right, "record_id")))
     });
 
     coverage_levels
@@ -376,15 +373,24 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         ]);
     }
 
-    let registration: Value = serde_json::from_slice(input)
-        .map_err(|error| vec![format!("selective forecast registration JSON is invalid: {error}")])?;
-    let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
-        .map_err(|error| vec![format!("embedded selective forecast schema is invalid: {error}")])?;
+    let registration: Value = serde_json::from_slice(input).map_err(|error| {
+        vec![format!(
+            "selective forecast registration JSON is invalid: {error}"
+        )]
+    })?;
+    let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
+        vec![format!(
+            "embedded selective forecast schema is invalid: {error}"
+        )]
+    })?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
         vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
     })?;
-    let validator = jsonschema::draft202012::new(&schema)
-        .map_err(|error| vec![format!("cannot build selective forecast validator: {error}")])?;
+    let validator = jsonschema::draft202012::new(&schema).map_err(|error| {
+        vec![format!(
+            "cannot build selective forecast validator: {error}"
+        )]
+    })?;
     let mut errors = validator
         .iter_errors(&registration)
         .map(|error| format!("{} at {}", error, error.instance_path()))
@@ -408,11 +414,8 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         .copied()
         .filter(|record| string_at(record, "disposition") == Some("scored"))
         .collect::<Vec<_>>();
-    let epsilon = number_at(
-        &registration["preregistration"],
-        "probability_clip_epsilon",
-    )
-    .expect("schema validation requires probability_clip_epsilon");
+    let epsilon = number_at(&registration["preregistration"], "probability_clip_epsilon")
+        .expect("schema validation requires probability_clip_epsilon");
     let coverage_levels = registration["preregistration"]["coverage_levels"]
         .as_array()
         .expect("schema validation requires coverage_levels")
@@ -453,12 +456,10 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         string_at(&registration, "registration_id").expect("schema validates registration_id");
     let input_sha256 = sha256_hex(input);
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
-    let forecast_archive_sha256 =
-        string_at(&registration["provider"], "forecast_archive_sha256")
-            .expect("schema validates archive digest");
-    let outcome_snapshot_sha256 =
-        string_at(&registration["provider"], "outcome_snapshot_sha256")
-            .expect("schema validates outcome digest");
+    let forecast_archive_sha256 = string_at(&registration["provider"], "forecast_archive_sha256")
+        .expect("schema validates archive digest");
+    let outcome_snapshot_sha256 = string_at(&registration["provider"], "outcome_snapshot_sha256")
+        .expect("schema validates outcome digest");
     let receipt_commitment_sha256 = sha256_hex(
         format!(
             "pirb-selective-forecast-receipt-v0.1\n{registration_id}\n{source_commit}\n{schema_sha256}\n{input_sha256}"
@@ -515,12 +516,12 @@ fn run() -> Result<(), String> {
         "usage: pirb-selective-forecast-audit --input REGISTRATION.json [--source-commit SHA]"
             .to_owned()
     })?;
-    let input = fs::read(&input_path)
-        .map_err(|error| format!("cannot read selective forecast registration {input_path}: {error}"))?;
+    let input = fs::read(&input_path).map_err(|error| {
+        format!("cannot read selective forecast registration {input_path}: {error}")
+    })?;
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
-    let receipt =
-        validate_and_audit(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
+    let receipt = validate_and_audit(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -575,9 +576,17 @@ mod tests {
         let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
             .expect("synthetic fixture contract validates");
         assert_eq!(receipt["unknown_outcome_count"], 2);
-        assert_eq!(receipt["metric_semantics"]["unknown_outcomes_imputed_to_no_event"], false);
-        assert_eq!(receipt["metric_semantics"]["abstention_means_no_event"], false);
-        let summaries = receipt["non_scored_disposition_summary"].as_array().unwrap();
+        assert_eq!(
+            receipt["metric_semantics"]["unknown_outcomes_imputed_to_no_event"],
+            false
+        );
+        assert_eq!(
+            receipt["metric_semantics"]["abstention_means_no_event"],
+            false
+        );
+        let summaries = receipt["non_scored_disposition_summary"]
+            .as_array()
+            .unwrap();
         let stale = summaries
             .iter()
             .find(|summary| summary["disposition"] == "abstain_stale_inputs")
@@ -617,7 +626,11 @@ mod tests {
         let mut value = fixture();
         value["records"][0]["input_freshness"] = json!("stale");
         let errors = audit(&value).expect_err("stale inputs require explicit abstention");
-        assert!(errors.iter().any(|error| error.contains("requires fresh inputs")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("requires fresh inputs"))
+        );
     }
 
     #[test]
@@ -625,7 +638,11 @@ mod tests {
         let mut value = fixture();
         value["records"][4]["forecast_probability"] = json!(0.01);
         let errors = audit(&value).expect_err("abstained cases do not publish a scored forecast");
-        assert!(errors.iter().any(|error| error.contains("must not publish")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must not publish"))
+        );
     }
 
     #[test]
@@ -633,7 +650,11 @@ mod tests {
         let mut value = fixture();
         value["records"][9]["evidence_status"] = json!("sufficient");
         let errors = audit(&value).expect_err("reason code must match the evidence state");
-        assert!(errors.iter().any(|error| error.contains("without insufficient evidence")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("without insufficient evidence"))
+        );
     }
 
     #[test]
@@ -641,15 +662,24 @@ mod tests {
         let mut value = fixture();
         value["records"][0]["target_matched"] = json!(false);
         let errors = audit(&value).expect_err("target mismatch requires abstention");
-        assert!(errors.iter().any(|error| error.contains("must match the registered target")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must match the registered target"))
+        );
     }
 
     #[test]
     fn unknown_outcome_disposition_requires_an_unknown_label_and_clean_inputs() {
         let mut value = fixture();
         value["records"][5]["outcome"] = json!("no_event");
-        let errors = audit(&value).expect_err("known labels cannot use unknown-outcome disposition");
-        assert!(errors.iter().any(|error| error.contains("with a known outcome")));
+        let errors =
+            audit(&value).expect_err("known labels cannot use unknown-outcome disposition");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("with a known outcome"))
+        );
     }
 
     #[test]
@@ -658,7 +688,11 @@ mod tests {
         let first_id = value["records"][0]["record_id"].clone();
         value["records"][1]["record_id"] = first_id;
         let errors = audit(&value).expect_err("duplicate row IDs must fail closed");
-        assert!(errors.iter().any(|error| error.contains("record ID is duplicated")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("record ID is duplicated"))
+        );
     }
 
     #[test]
@@ -666,7 +700,11 @@ mod tests {
         let mut value = fixture();
         value["preregistration"]["coverage_levels"] = json!([0.5, 0.25]);
         let errors = audit(&value).expect_err("coverage levels must be ordered and exhaustive");
-        assert!(errors.iter().any(|error| error.contains("strictly increasing")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("strictly increasing"))
+        );
         assert!(errors.iter().any(|error| error.contains("end at 1.0")));
     }
 
