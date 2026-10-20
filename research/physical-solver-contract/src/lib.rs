@@ -652,8 +652,11 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
 
     let receipt: Value = serde_json::from_slice(receipt_bytes)
         .map_err(|error| format!("invalid solver receipt JSON: {error}"))?;
+    let receipt_object = receipt
+        .as_object()
+        .ok_or_else(|| "receipt must be object".to_owned())?;
     allowed_keys(
-        object(&receipt, "receipt", "receipt")?,
+        receipt_object,
         &[
             "schema_version",
             "request_id",
