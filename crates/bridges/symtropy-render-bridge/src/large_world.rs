@@ -429,9 +429,11 @@ mod tests {
             target.relative_to_f32_with_error_budget(&origin, 0.0005),
             Err(LargeWorldError::RenderPrecisionBudgetExceeded)
         );
-        assert!(target
-            .relative_to_f32_with_error_budget(&origin, 0.002)
-            .is_ok());
+        assert!(
+            target
+                .relative_to_f32_with_error_budget(&origin, 0.002)
+                .is_ok()
+        );
     }
 
     #[test]
