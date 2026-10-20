@@ -87,7 +87,9 @@ pub enum ProjectionError {
 /// error bound itself is valid for the entire representation transition.
 ///
 /// This does not replace view-frustum clipping and does not establish a mesh
-/// simplification error bound.
+/// simplification error bound. Arithmetic uses ordinary f64 operations rather
+/// than directed-rounding interval arithmetic; a certification-grade hard gate
+/// must add outward-rounded numerical evaluation and independent qualification.
 pub fn projected_error_bound_px(
     world_error_bound_units: f64,
     model: ProjectionModel,
@@ -134,13 +136,26 @@ pub fn projected_error_bound_px(
                 return Err(ProjectionError::ErrorReachesCameraPlane);
             }
 
-            let focal_length_px =
-                viewport_height / (2.0 * (vertical_fov_radians / 2.0).tan());
-            let denominator =
-                min_camera_depth_units * (min_camera_depth_units - world_error_bound_units);
-            focal_length_px * world_error_bound_units
-                * (min_camera_depth_units + max_radial_distance_units)
-                / denominator
+            let tangent = (vertical_fov_radians / 2.0).tan();
+            let focal_length_px = viewport_height / (2.0 * tangent);
+            let relative_error = world_error_bound_units / min_camera_depth_units;
+            let relative_radius = max_radial_distance_units / min_camera_depth_units;
+
+            if !focal_length_px.is_finite()
+                || focal_length_px <= 0.0
+                || !relative_error.is_finite()
+                || !(0.0..1.0).contains(&relative_error)
+                || !relative_radius.is_finite()
+            {
+                return Err(ProjectionError::UnrepresentableResult);
+            }
+
+            let amplification = (1.0 + relative_radius) / (1.0 - relative_error);
+            let base_error = focal_length_px * relative_error;
+            if !amplification.is_finite() || !base_error.is_finite() {
+                return Err(ProjectionError::UnrepresentableResult);
+            }
+            base_error * amplification
         }
         ProjectionModel::Orthographic {
             vertical_span_units,
@@ -149,7 +164,7 @@ pub fn projected_error_bound_px(
             if !vertical_span_units.is_finite() || vertical_span_units <= 0.0 {
                 return Err(ProjectionError::InvalidOrthographicSpan);
             }
-            world_error_bound_units * viewport_height / vertical_span_units
+            (world_error_bound_units / vertical_span_units) * viewport_height
         }
     };
 
