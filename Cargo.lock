@@ -8904,6 +8904,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-animal-ecology-oracle"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "symtropy-basin"
 version = "0.1.0"
 dependencies = [
