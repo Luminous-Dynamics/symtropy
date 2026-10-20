@@ -393,7 +393,8 @@ mod tests {
     #[test]
     fn duplicate_case_ids_fail_closed() {
         let mut fixture = parsed_fixture();
-        fixture["cases"][1]["id"] = fixture["cases"][0]["id"].clone();
+        let first_id = fixture["cases"][0]["id"].clone();
+        fixture["cases"][1]["id"] = first_id;
         let errors =
             validate_oracle_json(&fixture.to_string()).expect_err("duplicate IDs must fail closed");
         assert!(errors.iter().any(|e| e.contains("duplicates")));
