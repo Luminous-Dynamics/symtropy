@@ -52,14 +52,16 @@
         "value": 0.00016666666666666666,
         "unit": "m",
         "relative_tolerance": 0.01,
-        "absolute_tolerance": 0.000001
+        "absolute_tolerance": 0.000001,
+        "semantics": "free_tip_transverse_displacement_magnitude"
       },
       {
         "quantity": "maximum_bending_stress_pa",
         "value": 2500000,
         "unit": "Pa",
         "relative_tolerance": 0.05,
-        "absolute_tolerance": 1
+        "absolute_tolerance": 1,
+        "semantics": "maximum_outer_fiber_bending_stress_magnitude_from_declared_section"
       }
     ],
     "source_revision": "26015cc5a1ebae4e2fe68f493196f4c832836928"
