@@ -377,6 +377,176 @@ jobs:
             and .physical_result_qualified == false
           ' solver-contract-numerical-comparison-unit-mismatch.json
 
+      - name: Assess receipt-backed mesh refinement series
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_request="schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+          root="solver-contract-mesh-study"
+          rm -rf "$root" solver-contract-mesh-study-tampered-mesh solver-contract-mesh-study-tampered-output
+          mkdir -p "$root"
+          for index in 0 1 2; do
+            case "$index" in
+              0) level="coarse"; h="1.0"; elements=2; dofs=10; value="1.5" ;;
+              1) level="medium"; h="0.5"; elements=16; dofs=40; value="0.75" ;;
+              2) level="fine"; h="0.25"; elements=128; dofs=160; value="0.5625" ;;
+            esac
+            level_dir="$root/levels/$level"
+            mkdir -p "$level_dir"
+            scene_revision="$((index + 1))"
+            printf -v scene_sha '%064x' "$((index + 1))"
+            jq --arg request_id "mesh-$level" \
+              --arg scene_sha "$scene_sha" \
+              --argjson scene_revision "$scene_revision" \
+              '.request_id = $request_id | .scene_sha256 = $scene_sha | .scene_revision = $scene_revision' \
+              "$base_request" > "$level_dir/request.json"
+            request_sha256="$(sha256sum "$level_dir/request.json" | cut -d ' ' -f 1)"
+            source_revision="$(jq -r '.source_revision' "$level_dir/request.json")"
+            printf 'synthetic mesh fixture %s\n' "$level" > "$level_dir/mesh.inp"
+            printf '{"synthetic_auxiliary":true}\n' > "$level_dir/stress.json"
+            mesh_sha256="$(sha256sum "$level_dir/mesh.inp" | cut -d ' ' -f 1)"
+            jq -n \
+              --arg request_sha256 "$request_sha256" \
+              --arg request_id "mesh-$level" \
+              --arg scene_sha "$scene_sha" \
+              --argjson scene_revision "$scene_revision" \
+              --arg case_id "linear-bar-test" \
+              --argjson value "$value" \
+              '{
+                schema_version:"physical-normalized-observables-v0.1",
+                request_sha256:$request_sha256,
+                request_id:$request_id,
+                scene_sha256:$scene_sha,
+                scene_revision:$scene_revision,
+                case_id:$case_id,
+                observables:[{observable_id:"end_displacement_m",value:$value,unit:"m"}]
+              }' > "$level_dir/normalized.json"
+            normalized_sha256="$(sha256sum "$level_dir/normalized.json" | cut -d ' ' -f 1)"
+            stress_sha256="$(sha256sum "$level_dir/stress.json" | cut -d ' ' -f 1)"
+            jq -n \
+              --arg request_sha256 "$request_sha256" \
+              --arg request_id "mesh-$level" \
+              --arg revision "$source_revision" \
+              --arg normalized_sha "$normalized_sha256" \
+              --arg stress_sha "$stress_sha256" \
+              --arg level "$level" \
+              --slurpfile request "$level_dir/request.json" '
+              {
+                schema_version:"physical-solver-receipt-v0.1",
+                request_id:$request_id,
+                request_sha256:$request_sha256,
+                source_revision:$revision,
+                adapter:{
+                  adapter_id:"synthetic-mesh-study-fixture",
+                  version:"0.1.0",
+                  executable_sha256:("b" * 64),
+                  configuration_sha256:("c" * 64),
+                  solver_name:"synthetic-test-only",
+                  solver_version:"0.1.0",
+                  solver_build_ref:"fixture-only:no-solver-executed"
+                },
+                status:"PASS",
+                evidence_class:"synthetic",
+                physics_evaluated:$request[0].requested_physics,
+                physics_omitted:[],
+                convergence:{
+                  state:"converged",
+                  iterations:1,
+                  residual:0.0,
+                  mesh_refinement_evaluated:false,
+                  details:"Synthetic mesh-refinement fixture; no solver executed."
+                },
+                outputs:[
+                  {output_id:"normalized",kind:"displacement",sha256:$normalized_sha,media_type:"application/json",unit:"m",artifact_ref:("levels/" + $level + "/normalized.json")},
+                  {output_id:"aux-stress",kind:"stress",sha256:$stress_sha,media_type:"application/json",unit:"Pa",artifact_ref:("levels/" + $level + "/stress.json")}
+                ],
+                uncertainty:{state:"unknown",method:null,summary:"No physical uncertainty is represented."},
+                validity_envelope:{
+                  supported_geometry:"synthetic fixture only",
+                  supported_material_model:"synthetic fixture only",
+                  load_regime:"synthetic fixture only",
+                  limitations:["No numerical or physical result is asserted."]
+                },
+                claim_ceiling:"Synthetic receipt fixture only; not physical qualification.",
+                diagnostics:[]
+              }' > "$level_dir/receipt.json"
+          done
+
+          coarse_mesh="$(sha256sum "$root/levels/coarse/mesh.inp" | cut -d ' ' -f 1)"
+          medium_mesh="$(sha256sum "$root/levels/medium/mesh.inp" | cut -d ' ' -f 1)"
+          fine_mesh="$(sha256sum "$root/levels/fine/mesh.inp" | cut -d ' ' -f 1)"
+          jq -n \
+            --arg coarse_mesh "$coarse_mesh" \
+            --arg medium_mesh "$medium_mesh" \
+            --arg fine_mesh "$fine_mesh" '
+            {
+              schema_version:"physical-mesh-refinement-study-v0.1",
+              study_id:"linear-bar-convergence-fixture",
+              case_id:"linear-bar-test",
+              observable_id:"end_displacement_m",
+              unit:"m",
+              dimension:1,
+              trend_expectation:"monotone_expected",
+              refinement_ratio_relative_tolerance:0.05,
+              expected_order_min:1.5,
+              reference:{
+                value:0.5,
+                unit:"m",
+                method:"analytical_exact",
+                identity:"frozen synthetic second-order oracle",
+                source_ref:"test-oracle://mesh-convergence-v1"
+              },
+              acceptance:{
+                max_fine_absolute_error:0.1,
+                max_fine_relative_error:0.2
+              },
+              levels:[
+                {level_id:"coarse",h_m:1.0,element_count:2,dof_count:10,mesh_sha256:$coarse_mesh,mesh_ref:"levels/coarse/mesh.inp",request_ref:"levels/coarse/request.json",receipt_ref:"levels/coarse/receipt.json",output_id:"normalized"},
+                {level_id:"medium",h_m:0.5,element_count:16,dof_count:40,mesh_sha256:$medium_mesh,mesh_ref:"levels/medium/mesh.inp",request_ref:"levels/medium/request.json",receipt_ref:"levels/medium/receipt.json",output_id:"normalized"},
+                {level_id:"fine",h_m:0.25,element_count:128,dof_count:160,mesh_sha256:$fine_mesh,mesh_ref:"levels/fine/mesh.inp",request_ref:"levels/fine/request.json",receipt_ref:"levels/fine/receipt.json",output_id:"normalized"}
+              ]
+            }' > "$root/study.json"
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --mesh-study "$root/study.json" --artifact-root "$root" > "$root/report.json"
+          jq -e '
+            .study_status == "PASS"
+            and .mesh_convergence_status == "PASS"
+            and .fine_mesh_accuracy_status == "PASS"
+            and .all_level_receipt_and_output_bytes_verified == true
+            and .solver_build_identity_constant_across_levels == true
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and (.observed_order_finest_three > 1.999 and .observed_order_finest_three < 2.001)
+            and (.richardson_extrapolated_value > 0.499999 and .richardson_extrapolated_value < 0.500001)
+          ' "$root/report.json"
+
+          cp -a "$root" solver-contract-mesh-study-tampered-mesh
+          printf 'tampered mesh bytes\n' > solver-contract-mesh-study-tampered-mesh/levels/coarse/mesh.inp
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --mesh-study solver-contract-mesh-study-tampered-mesh/study.json \
+            --artifact-root solver-contract-mesh-study-tampered-mesh \
+            > solver-contract-mesh-study-tampered-mesh/report.json
+          jq -e '
+            .study_status == "UNRESOLVED"
+            and .all_level_receipt_and_output_bytes_verified == false
+            and any(.diagnostics[]; contains("mesh_sha256"))
+            and .physical_result_qualified == false
+          ' solver-contract-mesh-study-tampered-mesh/report.json
+
+          cp -a "$root" solver-contract-mesh-study-tampered-output
+          printf 'tampered normalized observation\n' > solver-contract-mesh-study-tampered-output/levels/fine/normalized.json
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --mesh-study solver-contract-mesh-study-tampered-output/study.json \
+            --artifact-root solver-contract-mesh-study-tampered-output \
+            > solver-contract-mesh-study-tampered-output/report.json
+          jq -e '
+            .study_status == "UNRESOLVED"
+            and .all_level_receipt_and_output_bytes_verified == false
+            and any(.diagnostics[]; contains("artifact verification"))
+            and .physical_result_qualified == false
+          ' solver-contract-mesh-study-tampered-output/report.json
+
       - name: Upload validation receipts and reports
         uses: actions/upload-artifact@v4
         with:
@@ -385,6 +555,8 @@ jobs:
             solver-contract-*-receipt.json
             solver-contract-*verification.json
             solver-contract-numerical-comparison-*.json
+            solver-contract-mesh-study*/study.json
+            solver-contract-mesh-study*/report.json
           if-no-files-found: error
           retention-days: 90
 
