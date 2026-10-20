@@ -25,7 +25,7 @@ All costs are denominated in **synthetic_cost_unit**, not ZAR, EUR or USD. Value
 
 For each family and strategy, discounted total cost is:
 
-- upfront acquisition + refurbishment + installation + expected reuse-failure fallback;
+- upfront acquisition + refurbishment + installation, with expected reuse-failure fallback shown as a separate cost component and counted exactly once;
 - discounted annual contract cost using the declared full-horizon or active-fraction payment basis;
 - discounted maintenance, scaled by active fraction;
 - discounted idle carrying cost, scaled by the idle fraction;
