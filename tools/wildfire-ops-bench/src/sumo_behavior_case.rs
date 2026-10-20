@@ -165,6 +165,15 @@ pub fn evaluate(case: &Value, root: &Path) -> Check<Value> {
             "ended": count(&final_attrs, "ended")?,
             "step_record_count": steps.len()
         },
+        "comparability": {
+            "status": "not_comparable",
+            "reasons": [
+                "edge capacity and finite storage are not calibrated between the abstract model and SUMO",
+                "shelter total and accessibility gates are not enforced equivalently in SUMO",
+                "SUMO closure rerouting differs from fixed-route entry blocking",
+                "exported coordinates and lengths are synthetic"
+            ]
+        },
         "claim_boundary": "native SUMO observations over synthetic demand; not cross-model equivalence or safety evidence"
     }))
 }
