@@ -91,7 +91,7 @@
       "outcome_status": "known",
       "outcome": 1,
       "policy_disposition": "abstained",
-      "reason_code": "low_selection_score",
+      "reason_code": "abstain_low_selection_score",
       "served_probability": null
     },
     {
@@ -106,7 +106,7 @@
       "outcome_status": "known",
       "outcome": 1,
       "policy_disposition": "abstained",
-      "reason_code": "stale_inputs",
+      "reason_code": "abstain_stale_inputs",
       "served_probability": null
     },
     {
@@ -121,7 +121,7 @@
       "outcome_status": "known",
       "outcome": 0,
       "policy_disposition": "abstained",
-      "reason_code": "out_of_support",
+      "reason_code": "abstain_out_of_support",
       "served_probability": null
     },
     {
@@ -136,7 +136,7 @@
       "outcome_status": "unknown",
       "outcome": null,
       "policy_disposition": "abstained",
-      "reason_code": "target_mismatch",
+      "reason_code": "abstain_target_mismatch",
       "served_probability": null
     },
     {
@@ -166,7 +166,7 @@
       "outcome_status": "known",
       "outcome": 1,
       "policy_disposition": "abstained",
-      "reason_code": "unknown_regime",
+      "reason_code": "abstain_unknown_regime",
       "served_probability": null
     },
     {
@@ -181,7 +181,7 @@
       "outcome_status": "known",
       "outcome": 1,
       "policy_disposition": "abstained",
-      "reason_code": "unknown_inputs",
+      "reason_code": "abstain_unknown_inputs",
       "served_probability": null
     },
     {
@@ -196,7 +196,7 @@
       "outcome_status": "known",
       "outcome": 0,
       "policy_disposition": "abstained",
-      "reason_code": "insufficient_evidence",
+      "reason_code": "abstain_insufficient_evidence",
       "served_probability": null
     },
     {
@@ -211,8 +211,15 @@
       "outcome_status": "unknown",
       "outcome": null,
       "policy_disposition": "abstained",
-      "reason_code": "stale_inputs",
+      "reason_code": "abstain_stale_inputs",
       "served_probability": null
     }
-  ]
+  ],
+  "governance": {
+    "data_authority_status": "not_applicable",
+    "data_authority_reference": "synthetic-fixture-no-provider-data",
+    "disclosure_review_status": "not_applicable",
+    "disclosure_review_reference": "synthetic-fixture-no-public-sensitive-data",
+    "independent_source_capture_verified": false
+  }
 }
