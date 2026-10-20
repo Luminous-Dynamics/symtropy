@@ -823,6 +823,13 @@ mod tests {
             value["rows"][idx]["assumed_effectiveness"] = json!(0.5);
             value["rows"][idx]["action_cost"] = json!(10.0);
         }
+        let row_count = value["rows"].as_array().unwrap().len();
+        for idx in 2..row_count {
+            if value["rows"][idx]["forecast_disposition"] == "forecast_issued" {
+                value["rows"][idx]["offline_candidate_probability"] = json!(0.2);
+                value["rows"][idx]["served_probability"] = json!(0.2);
+            }
+        }
         let rows = value["rows"].as_array().unwrap().iter().collect::<Vec<_>>();
         let selected = select_indices(&rows, AllocationPolicy::RiskRanked, 1, 1.0, 1.0);
         assert_eq!(rows[selected[0]]["case_id"], "case-001");
