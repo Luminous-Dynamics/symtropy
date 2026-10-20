@@ -1,0 +1,55 @@
+name: Furnishing Layout Scaling Baseline v0.2
+
+on:
+  pull_request:
+    branches: ["feat/furnishing-functional-envelope-oracle-v0-2-20261020"]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/furnishing-layout-audit/Cargo.toml"
+      - "tools/furnishing-layout-audit/benches/functional_envelope_scaling.rs"
+      - ".github/workflows/furnishing-layout-scaling-baseline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: Exact-head v0.2 brute-force baseline
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_head="${{ github.event.pull_request.head.sha }}"
+          test "$(git rev-parse HEAD)" = "$expected_head"
+          echo "Baseline source SHA: $expected_head"
+      - name: Record benchmark machine provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version --verbose
+          uname -a
+          lscpu || true
+          free -h || true
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/furnishing-layout-audit/Cargo.toml -- --check
+      - name: Run known-truth and mutation tests
+        run: cargo test --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Benchmark identical 25/100/1000/10000 workload on v0.2 baseline
+        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_scaling
