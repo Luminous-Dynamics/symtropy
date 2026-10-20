@@ -73,9 +73,8 @@ jobs:
           set -euo pipefail
           for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
             for size in 10 50 100; do
-              ports="${size}"
-              if [ "${ports}" -gt 30 ]; then ports=30; fi
-              site_budget="$((ports * 150))"
+              ports="$(((size + 1) / 2))"
+              site_budget="$((45 * size))"
               for seed in 101 202 303; do
                 id="${fleet}-n${size}-seed${seed}"
                 corpus="benchmark-artifacts/conditions/${id}.corpus.json"
@@ -116,6 +115,8 @@ jobs:
                     seed: $seed,
                     nominal_pack_capacity_kwh: 1100,
                     initial_soc_fraction: 0.1,
+                    charger_port_count: $((($n + 1) / 2)),
+                    declared_base_site_budget_kw: (45 * $n),
                     evidence_class: "estimate",
                     policies: [.results[] | {
                       scenario_id, policy, job_count,
@@ -160,6 +161,8 @@ jobs:
               fleet_size: $group[0].fleet_size,
               nominal_pack_capacity_kwh: $group[0].nominal_pack_capacity_kwh,
               initial_soc_fraction: $group[0].initial_soc_fraction,
+              charger_port_count: $group[0].charger_port_count,
+              declared_base_site_budget_kw: $group[0].declared_base_site_budget_kw,
               seed_count: ($group|length),
               seeds: [$group[].seed],
               fcfs_minimum_sampled_kw_per_vehicle:
