@@ -118,7 +118,10 @@ pub fn dispatch_request_bytes(
         "UNRESOLVED"
     };
     let outputs = if evaluation_status == "PASS" {
-        adapter_receipt.get("outputs").cloned().unwrap_or(Value::Null)
+        adapter_receipt
+            .get("outputs")
+            .cloned()
+            .unwrap_or(Value::Null)
     } else {
         Value::Null
     };
@@ -183,10 +186,14 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
     let mut seen = BTreeSet::new();
     for physics in &requested_physics {
         if !KNOWN_PHYSICS.contains(&physics.as_str()) {
-            return Err(format!("request.requested_physics has unsupported value '{physics}'"));
+            return Err(format!(
+                "request.requested_physics has unsupported value '{physics}'"
+            ));
         }
         if !seen.insert(physics.as_str()) {
-            return Err(format!("request.requested_physics contains duplicate value '{physics}'"));
+            return Err(format!(
+                "request.requested_physics contains duplicate value '{physics}'"
+            ));
         }
     }
     let inputs = value
@@ -207,7 +214,9 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
             .and_then(Value::as_str)
             .ok_or_else(|| format!("request.units.{key} must be a string"))?;
         if actual != *expected {
-            return Err(format!("request.units.{key} must be '{expected}', got '{actual}'"));
+            return Err(format!(
+                "request.units.{key} must be '{expected}', got '{actual}'"
+            ));
         }
     }
     Ok(DispatchRequest {
@@ -297,7 +306,9 @@ fn exact_map_keys(actual: &Map<String, Value>, expected: &[&str], at: &str) -> C
     let missing: Vec<_> = expected_set.difference(&actual_set).copied().collect();
     let unknown: Vec<_> = actual_set.difference(&expected_set).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
-        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
     }
     Ok(())
 }
@@ -337,9 +348,9 @@ fn required_string_array(value: &Value, key: &str, at: &str) -> Check<Vec<String
 fn validate_token(value: &str, label: &str) -> Check<()> {
     if value.is_empty()
         || value.len() > 128
-        || !value
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':'))
+        || !value.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':')
+        })
     {
         return Err(format!("invalid {label}"));
     }
@@ -352,7 +363,9 @@ fn validate_revision(revision: &str, label: &str) -> Check<()> {
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
-        return Err(format!("{label} must be a 40-character lowercase hexadecimal Git SHA-1"));
+        return Err(format!(
+            "{label} must be a 40-character lowercase hexadecimal Git SHA-1"
+        ));
     }
     Ok(())
 }
@@ -412,12 +425,8 @@ mod tests {
 
     #[test]
     fn unsupported_physics_yields_no_backend_and_no_formula_evaluation() {
-        let receipt = dispatch_request_bytes(
-            &fixture("unsupported-fracture-v0.1.json"),
-            REV,
-            REV,
-        )
-        .expect("unsupported physics is a dispatch abstention");
+        let receipt = dispatch_request_bytes(&fixture("unsupported-fracture-v0.1.json"), REV, REV)
+            .expect("unsupported physics is a dispatch abstention");
         assert_eq!(receipt["selection_status"], "UNRESOLVED");
         assert_eq!(receipt["evaluation_status"], "NOT_EVALUATED");
         assert_eq!(receipt["selected_backend"], Value::Null);
@@ -450,9 +459,13 @@ mod tests {
         assert_eq!(receipt["outputs"], Value::Null);
         assert_eq!(receipt["adapter_receipt"], Value::Null);
         assert_eq!(receipt["model_evaluation_attempted"], false);
-        assert!(receipt["diagnostics"].as_array().unwrap().iter().any(|value| {
-            value.as_str().unwrap().contains("no registered backend")
-        }));
+        assert!(
+            receipt["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| { value.as_str().unwrap().contains("no registered backend") })
+        );
     }
 
     #[test]
@@ -469,9 +482,13 @@ mod tests {
         assert_eq!(receipt["outputs"], Value::Null);
         assert_eq!(receipt["adapter_receipt"]["result_status"], "UNRESOLVED");
         assert_eq!(receipt["model_evaluation_attempted"], true);
-        assert!(receipt["diagnostics"].as_array().unwrap().iter().any(|value| {
-            value.as_str().unwrap().contains("could not be completed")
-        }));
+        assert!(
+            receipt["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| { value.as_str().unwrap().contains("could not be completed") })
+        );
     }
 
     #[test]
