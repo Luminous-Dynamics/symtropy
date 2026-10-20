@@ -59,3 +59,16 @@ See [PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md](../../docs/research/PHYSICAL_ANALYT
 ## Bounded analytical input uncertainty (API preview)
 
 The [interval enclosure method](../../docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md), tracked by [PHYS-UQ-001 #2292](https://github.com/Luminous-Dynamics/symtropy/issues/2292), is integrated into the public JSON request and receipt contract on the UQ branch. Each bound includes finite endpoints, an explicit SI unit, a provenance class, and a source locator. The receipt reports lower/nominal/upper and finite width, or leaves enclosures null when bounds were not supplied or propagation remains unresolved. Bounds are deterministic ranges, not statistical confidence intervals, and their declared provenance is not independently certified.
+
+
+## Capability-first solver dispatch v0.1
+
+A first allowlisted dispatcher is included for [PHYS-DISPATCH-001 #2319](https://github.com/Luminous-Dynamics/symtropy/issues/2319), with the proposed integration in [draft PR #2349](https://github.com/Luminous-Dynamics/symtropy/pull/2349).
+
+- The versioned manifest at `schemas/physical-transformation/physical-solver-capabilities-v0.1.json` currently registers exactly one backend: the in-process analytical reference implementation, qualified only at the `closed_form_equation_contract` tier for the three named static-linear-elastic cases.
+- Dispatch must match case, exact assumption profile, every requested physics class, and the unit vocabulary. Zero compatible backends, an unsupported case, unsupported physics, unit mismatch, or ambiguous matches produce `UNRESOLVED` without a nested adapter receipt or numerical outputs.
+- Receipts bind the raw request byte digest, the dispatcher and adapter revisions, and the capability-manifest SHA-256. They preserve the nested formula receipt and never claim physical validation.
+- Current bounded requests use the same `physical-analytical-request-v0.1` contract as the adapter: `input_bounds.inputs` carries the bounds and their declared unit/basis/source locator. A separate competing v0.2 interval contract is intentionally not used in this dispatcher slice.
+- Dispatch v0.1 does not launch external processes or remote services. An external FEM, fracture, contact, or dynamics solver may be added only after it has its own audited executor, capability manifest entry, independent benchmark qualification, convergence/equilibrium checks where applicable, and explicit claim ceiling.
+
+The exact-head workflow asserts three end-to-end cases: supported point input selects the reference backend; supported bounded input preserves the output enclosure; unsupported fracture yields an abstention with no model evaluation and no external solver invocation. This establishes routing and receipt behavior only—not the physical correctness of untested cases or real-world structural safety.
