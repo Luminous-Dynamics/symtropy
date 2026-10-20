@@ -73,7 +73,7 @@ jobs:
             and .outcome_snapshot.release_sha256 == "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
             and (.outcome_snapshot.rows | length == 8)
             and ([.outcome_snapshot.rows[] | select(.status == "unknown" and .observed_count == null and .outcome_available_index == null)] | length == 1)
-            and ([.outcome_snapshot.rows[] | select(.status == "matured" and (.outcome_available_index > .forecast_origin_index))] | length == 0)
+            and (.target_period_index as $target | ([.outcome_snapshot.rows[] | select(.status == "matured" and .outcome_available_index <= $target)] | length == 0))
           ' docs/fixtures/pirb-hierarchy-sample-score-synthetic-v0.2.json > /dev/null
 
       - name: Run schema, metric, maturity, and negative-control tests
