@@ -609,15 +609,11 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
 
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
     let input_sha256 = sha256_hex(input);
-    let sample_rows_sha256 = sha256_hex(
-        &serde_json::to_vec(&registration["sample_rows"])
-            .expect("validated sample rows serialize deterministically"),
-    );
     let registration_id =
         string_at(&registration, "registration_id").expect("schema validated registration_id");
     let source_commit_sha256 = sha256_hex(
         format!(
-            "pirb-joint-sample-coherence-receipt-v0.1\n{registration_id}\n{source_commit}\n{schema_sha256}\n{input_sha256}\n{sample_rows_sha256}"
+            "pirb-joint-sample-coherence-receipt-v0.1\n{registration_id}\n{source_commit}\n{schema_sha256}\n{input_sha256}"
         )
         .as_bytes(),
     );
@@ -633,7 +629,6 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         "source_commit_pinned": source_commit != "UNPINNED_LOCAL_RUN",
         "input_sha256": input_sha256,
         "schema_sha256": schema_sha256,
-        "sample_rows_sha256": sample_rows_sha256,
         "forecast_artifact_sha256": registration["provider"]["forecast_artifact_sha256"],
         "hierarchy_sha256": registration["provider"]["hierarchy_sha256"],
         "reconciliation_method_sha256": registration["sample_policy"]["method_sha256"],
