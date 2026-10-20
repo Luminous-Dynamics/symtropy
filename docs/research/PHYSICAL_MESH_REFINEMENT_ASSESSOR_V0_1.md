@@ -51,11 +51,14 @@ This follows established V&V practice, not a claim of a new convergence theory. 
 The example shows the manifest shape, not a valid complete three-level study or benchmark result. A real manifest must list at least three levels, each ordered coarse-to-fine, with strictly decreasing characteristic mesh size and increasing element and degree-of-freedom counts. v0.1 supports one scalar quantity of interest per study and 3–10 levels.
 
 Every level:
-- hashes the actual mesh bytes incrementally and compares against mesh_sha256;
+- requires the receipt to declare `input_artifacts` with `input_id="mesh"`, `kind="finite_element_mesh"`, the same mesh SHA-256 and the exact same relative mesh path as the study manifest;
+- hashes the receipt-declared mesh bytes incrementally under the canonical artifact root; a study-only mesh digest without matching receipt input provenance is unresolved;
 - reads the exact request/receipt under the study root;
 - requires receipt consistency, producer PASS, solver-reported convergence and verified output artifact bytes;
 - checks the normalized observation against exact request ID, request digest, scene digest/revision, case ID, quantity ID and unit;
 - requires a stable source revision and matching adapter/build/configuration identity across levels.
+
+Legacy receipts that omit input artifacts can still be checked for output-byte identity by the generic verifier, but they cannot qualify a mesh-refinement level.
 
 Paths must remain below the canonical study root. Unsupported, malformed, missing or changed evidence results in a non-PASS/unresolved study, not a default zero. The report retains per-level request, mesh, receipt and output digests.
 
