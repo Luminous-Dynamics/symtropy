@@ -43,6 +43,23 @@ const UNIT_KEYS: &[&str] = &[
     "second_moment",
     "distributed_load",
 ];
+const EXPECTED_UNITS: &[(&str, &str)] = &[
+    ("length", "m"),
+    ("force", "N"),
+    ("area", "m^2"),
+    ("stress", "Pa"),
+    ("second_moment", "m^4"),
+    ("distributed_load", "N/m"),
+];
+const KNOWN_PHYSICS: &[&str] = &[
+    "static_linear_elastic",
+    "dynamic_response",
+    "nonlinear_material",
+    "fracture",
+    "rigid_contact",
+    "granular_contact",
+    "thermal_coupling",
+];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SelectionStatus {
@@ -285,14 +302,25 @@ fn validate_manifest(manifest: &Value) -> Check<()> {
         if physics.is_empty() {
             return Err(format!("{at}.supported_physics must not be empty"));
         }
+        if let Some(unsupported) = physics
+            .iter()
+            .find(|physics| !KNOWN_PHYSICS.contains(&physics.as_str()))
+        {
+            return Err(format!("{at}.supported_physics contains unsupported value '{unsupported}'"));
+        }
 
         let supported_units = backend
             .get("supported_units")
             .and_then(Value::as_object)
             .ok_or_else(|| format!("{at}.supported_units must be an object"))?;
         exact_keys_map(supported_units, UNIT_KEYS, &format!("{at}.supported_units"))?;
-        for key in UNIT_KEYS {
-            nonempty_map_string(supported_units, key, &format!("{at}.supported_units"))?;
+        for (key, expected_unit) in EXPECTED_UNITS {
+            let actual = nonempty_map_string(supported_units, key, &format!("{at}.supported_units"))?;
+            if actual != *expected_unit {
+                return Err(format!(
+                    "{at}.supported_units.{key} must be '{expected_unit}', got '{actual}'"
+                ));
+            }
         }
 
         let cases = backend
@@ -336,12 +364,14 @@ fn validate_manifest(manifest: &Value) -> Check<()> {
         {
             return Err(format!("{at}.real_world_validation_status is unsupported"));
         }
-        if backend
+        let external_solver_invoked = backend
             .get("external_solver_invoked")
             .and_then(Value::as_bool)
-            .is_none()
-        {
-            return Err(format!("{at}.external_solver_invoked must be boolean"));
+            .ok_or_else(|| format!("{at}.external_solver_invoked must be boolean"))?;
+        if implementation == "in_process_reference" && external_solver_invoked {
+            return Err(format!(
+                "{at}.external_solver_invoked must be false for an in-process reference backend"
+            ));
         }
         nonempty_string(backend, "claim_ceiling", &at)?;
     }
