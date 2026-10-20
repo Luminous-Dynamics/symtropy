@@ -5,6 +5,7 @@ on:
     branches: ["research/physical-analytical-adapter-v0-1"]
     paths:
       - "research/physical-analytical-adapter/**"
+      - "docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md"
       - "research/physical-transformation-reference/**"
       - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
       - "research/physical-analytical-adapter/README.md"
@@ -18,6 +19,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "research/physical-analytical-adapter/**"
+      - "docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md"
       - "research/physical-transformation-reference/**"
       - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
       - "research/physical-analytical-adapter/README.md"
@@ -61,7 +63,13 @@ jobs:
           jq empty schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json
           jq -e '.properties.case_id.enum == ["axial_bar","cantilever_tip_load","simply_supported_uniform_load"]' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e '.properties.input_bounds.properties.schema_version.const == "physical-input-bounds-v0.1"' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e 'getpath(["$defs","inputBound","required"]) | index("basis") != null' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e 'getpath(["$defs","inputBound","required"]) | index("source_ref") != null' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
           jq -e '.properties.result_status.enum == ["PASS","UNRESOLVED"] and .properties.evidence_class.const == "analytical_reference"' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+          jq -e '(.required | index("output_enclosures") != null) and (.required | index("real_world_validation_status") != null)' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+          jq -e 'getpath(["$defs","outputEnclosure","required"]) | index("width") != null' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+          jq -e 'getpath(["$defs","inputBound","required"]) | index("source_ref") != null' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
 
       - name: Check formatting
         run: cargo fmt --manifest-path research/physical-analytical-adapter/Cargo.toml --all -- --check
@@ -125,6 +133,34 @@ jobs:
             and (.physics_omitted | index("fracture") != null)
             and (.diagnostics | length > 0)
           ' analytical-adapter-unsupported-receipt.json
+
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/analytical-bar-bounds-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-bar-bounds-receipt.json
+          jq -e --arg revision "$source_commit" '
+            .result_status == "PASS"
+            and .adapter_revision == $revision
+            and .input_bounds.schema_version == "physical-input-bounds-v0.1"
+            and .uncertainty_method == "deterministic_interval_outward_rounded_v0.1"
+            and .real_world_validation_status == "UNRESOLVED"
+            and (.output_enclosures | has("axial_stress_pa"))
+            and (.output_enclosures | has("axial_strain"))
+            and (.output_enclosures | has("extension_m"))
+            and (.output_enclosures | to_entries | all(.[]; (.value.lower <= .value.nominal) and (.value.nominal <= .value.upper) and (.value.lower | isfinite) and (.value.nominal | isfinite) and (.value.upper | isfinite) and (.value.width >= 0) and (.value.width | isfinite)))
+            and .output_enclosures.axial_stress_pa.unit == "Pa"
+            and .output_enclosures.axial_stress_pa.nominal == .outputs.axial_stress_pa
+          ' analytical-adapter-bar-bounds-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/cantilever-force-crosses-zero-bounds-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-zero-crossing-receipt.json
+          jq -e '
+            .result_status == "PASS"
+            and .output_enclosures.maximum_bending_stress_pa.lower == 0
+            and (.output_enclosures.tip_deflection_m.lower <= .output_enclosures.tip_deflection_m.nominal)
+            and (.output_enclosures.tip_deflection_m.nominal <= .output_enclosures.tip_deflection_m.upper)
+          ' analytical-adapter-zero-crossing-receipt.json
 
       - name: Upload analytical reference receipts
         uses: actions/upload-artifact@v4
