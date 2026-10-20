@@ -832,10 +832,14 @@ impl Accumulator {
         self.label_updates_applied += label_updates_applied;
         self.independent_gate_audit_mismatches += audit_mismatches;
         self.target_labels_missing += outcomes.iter().filter(|o| o.coverage.is_none()).count();
-        let stream_coverage = outcomes.iter().filter_map(|outcome| outcome.coverage).collect::<Vec<_>>();
+        let stream_coverage = outcomes
+            .iter()
+            .filter_map(|outcome| outcome.coverage)
+            .collect::<Vec<_>>();
         if !stream_coverage.is_empty() {
             let covered = stream_coverage.iter().filter(|value| **value).count();
-            self.stream_coverages.push(covered as f64 / stream_coverage.len() as f64);
+            self.stream_coverages
+                .push(covered as f64 / stream_coverage.len() as f64);
         }
         if let Some(onset) = stream.kind.incident_start() {
             self.coverage_recovery_attempts += 1;
@@ -899,8 +903,7 @@ impl Accumulator {
         } else {
             Some(self.coverage_count as f64 / self.coverage_denominator as f64)
         };
-        let signed_coverage_error =
-            empirical_coverage.map(|coverage| coverage - TARGET_COVERAGE);
+        let signed_coverage_error = empirical_coverage.map(|coverage| coverage - TARGET_COVERAGE);
         let absolute_coverage_error = signed_coverage_error.map(f64::abs);
         let mean_stream_coverage = if self.stream_coverages.is_empty() {
             None
@@ -1079,23 +1082,22 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
             || summary.stream_coverage_count != per_cell_stream_count
             || summary.coverage_recovery_successes > summary.coverage_recovery_attempts
             || summary.coverage_recovery_attempts > per_cell_stream_count
-            || summary.coverage_recovery_rate.is_some_and(|rate| {
-                !rate.is_finite() || !(0.0..=1.0).contains(&rate)
-            })
-            || (summary.coverage_recovery_attempts == 0
-                && summary.coverage_recovery_rate.is_some())
-            || summary.absolute_coverage_error.is_some_and(|error| {
-                !error.is_finite() || !(0.0..=1.0).contains(&error)
-            })
-            || summary.mean_stream_coverage.is_some_and(|coverage| {
-                !coverage.is_finite() || !(0.0..=1.0).contains(&coverage)
-            })
-            || summary.p05_stream_coverage.is_some_and(|coverage| {
-                !coverage.is_finite() || !(0.0..=1.0).contains(&coverage)
-            })
-            || summary.p95_stream_coverage.is_some_and(|coverage| {
-                !coverage.is_finite() || !(0.0..=1.0).contains(&coverage)
-            })
+            || summary
+                .coverage_recovery_rate
+                .is_some_and(|rate| !rate.is_finite() || !(0.0..=1.0).contains(&rate))
+            || (summary.coverage_recovery_attempts == 0 && summary.coverage_recovery_rate.is_some())
+            || summary
+                .absolute_coverage_error
+                .is_some_and(|error| !error.is_finite() || !(0.0..=1.0).contains(&error))
+            || summary
+                .mean_stream_coverage
+                .is_some_and(|coverage| !coverage.is_finite() || !(0.0..=1.0).contains(&coverage))
+            || summary
+                .p05_stream_coverage
+                .is_some_and(|coverage| !coverage.is_finite() || !(0.0..=1.0).contains(&coverage))
+            || summary
+                .p95_stream_coverage
+                .is_some_and(|coverage| !coverage.is_finite() || !(0.0..=1.0).contains(&coverage))
     }) {
         return Err("summary dimensions or numeric metrics are invalid".to_owned());
     }
@@ -1343,12 +1345,7 @@ mod tests {
         let calibration = calibration_residuals();
         let mut cop_threshold = 0.0;
         let mut cop_integrator = 0.0;
-        update_cop_state(
-            &calibration,
-            &mut cop_threshold,
-            &mut cop_integrator,
-            false,
-        );
+        update_cop_state(&calibration, &mut cop_threshold, &mut cop_integrator, false);
         assert!((cop_threshold - 0.27).abs() < 1e-12);
         assert!((cop_integrator - 0.0975).abs() < 1e-12);
     }
