@@ -4,10 +4,13 @@
   "title": "Physical Normalized Observables v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "request_sha256", "case_id", "observables"],
+  "required": ["schema_version", "request_sha256", "request_id", "scene_sha256", "scene_revision", "case_id", "observables"],
   "properties": {
     "schema_version": { "const": "physical-normalized-observables-v0.1" },
     "request_sha256": { "$ref": "#/$defs/sha256" },
+    "request_id": { "$ref": "#/$defs/token" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
     "case_id": { "$ref": "#/$defs/token" },
     "observables": {
       "type": "array",
