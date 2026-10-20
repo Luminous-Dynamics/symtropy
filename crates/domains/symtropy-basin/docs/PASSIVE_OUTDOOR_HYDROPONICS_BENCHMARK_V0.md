@@ -21,6 +21,26 @@ Scale passive hydroponics as a federation of independently isolatable growing mo
 
 These sources motivate tests; they do not prove that an outdoor passive design will outperform a local field crop.
 
+## Recent comparison evidence: do not benchmark against a straw man
+
+A 2026 UK comparative life-cycle / cost assessment of hydroponic and in-field lettuce production reported an average hydroponic trial yield of 1.52 kg/m² for its trial, versus 4.34 kg/m² for the secondary-source in-field comparator. Its findings favored in-field production on overall costs and environmental impacts in the studied context; the authors also investigated low-input hydroponics. This is a bounded study with different data sources and specific assumptions, not a universal ranking: https://doi.org/10.1016/j.sftr.2026.101875
+
+A 2025 US-context lettuce LCA found controlled-environment hydroponics had much higher energy use than open-field production in its studied configuration, largely due to artificial lighting and climate control; it concluded natural-light, lower-energy approaches are important for reducing impacts. The paper reports large geographic differences in irrigation water use for field lettuce, so climate/location can change which trade-off matters most: https://doi.org/10.1007/s11367-025-02463-6
+
+These comparisons change our benchmark in three ways:
+
+1. **A passive system must beat a strong low-input reference, not just an LED-heavy vertical farm.** Include an active but sunlight-first hydroponic comparator and a good local field/soil comparator.
+2. **Report the functional unit and boundary every time.** Yield per crop-cycle is not annual yield. Marketable fresh mass is not automatically edible/safe mass. Water added to the reservoir is not necessarily the same as total water use. Electricity for pumps is not the whole farm energy footprint.
+3. **A win on one metric must not conceal a loss elsewhere.** Report per-metric confidence intervals and cost/impact assumptions before discussing a Pareto improvement. If passive outdoor loses on yield or labor but wins on resilience or energy, report that trade-off rather than folding it into one weighted score.
+
+The literature values above should appear in the benchmark's source manifest as external comparator context, not as target thresholds and not as calibrated data for Johannesburg.
+
+## Local stress regime
+
+South Africa's Department of Agriculture noted on 2 September 2026 that the South African Weather Service expected El Niño conditions through the 2026/27 summer season, with many areas facing below-normal rainfall and higher temperatures. This is a national/seasonal risk signal, not a plot-level Johannesburg forecast: https://www.gov.za/news/media-statements/agriculture-el-nino-weather-climate-02-sep-2026
+
+Accordingly, the first Highveld scenario matrix should include a dry/hot season profile, extended no-rain intervals, high maximum air and solution temperatures, and water restrictions as candidate stressors. It must also include actual local weather measurements before physical qualification; a seasonal outlook must not be promoted into a point forecast.
+
 ## Design hypotheses
 
 1. **Distributed passive modules beat one giant reservoir on failure containment.** An isolated leak, pathogen episode, or incorrect nutrient mix should affect only one bounded cell or zone.
@@ -81,6 +101,8 @@ The 20% water-productivity and 10% yield non-inferiority values are hypotheses f
 - Reuse Mycelix's environment-neutral production reference and physical-observation contracts rather than creating duplicate identity/currentness/provenance layers: https://github.com/Luminous-Dynamics/mycelix/issues/3229 and https://github.com/Luminous-Dynamics/mycelix/issues/3231
 
 The new kernel owns only reservoir mass bookkeeping. It is not a replacement for domain-qualified hydrology, crop physiology, water-quality, thermal, or pathogen models.
+
+The dedicated Sol-Atlas site-envelope tranche is tracked at https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/188. It owns site-screening evidence and geography-specific scenario readiness; it must not infer farm-scale performance from coarse grid-cell data.
 
 ## Cross-repository responsibility boundaries
 
