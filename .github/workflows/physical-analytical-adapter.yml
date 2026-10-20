@@ -11,6 +11,9 @@ on:
       - "research/physical-analytical-adapter/README.md"
       - "schemas/physical-transformation/analytical-fixtures/**"
       - "schemas/physical-transformation/physical-analytical-*.schema.json"
+      - "schemas/physical-transformation/physical-solver-capabilities-v0.1.json"
+      - "schemas/physical-transformation/physical-solver-capabilities-v0.1.schema.json"
+      - "schemas/physical-transformation/physical-solver-dispatch-receipt-v0.1.schema.json"
       - ".github/workflows/physical-analytical-adapter.yml"
       - ".github/workflows/physical-transformation-reference.yml"
   pull_request:
@@ -58,6 +61,12 @@ jobs:
           jq empty schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
           jq empty schemas/physical-transformation/physical-analytical-request-v0.2.schema.json
           jq empty schemas/physical-transformation/physical-analytical-receipt-v0.2.schema.json
+          jq empty schemas/physical-transformation/physical-solver-capabilities-v0.1.json
+          jq empty schemas/physical-transformation/physical-solver-capabilities-v0.1.schema.json
+          jq empty schemas/physical-transformation/physical-solver-dispatch-receipt-v0.1.schema.json
+          jq -e '.properties.schema_version.const == "physical-solver-capabilities-v0.1" and (.properties.backends.minItems >= 1)' schemas/physical-transformation/physical-solver-capabilities-v0.1.schema.json
+          jq -e '.properties.schema_version.const == "physical-solver-dispatch-receipt-v0.1" and .properties.external_solver_invoked.const == false' schemas/physical-transformation/physical-solver-dispatch-receipt-v0.1.schema.json
+          jq -e '.backends | length == 1 and .[0].backend_id == "symtropy-analytical-reference" and .[0].dispatch_eligible == true and .[0].real_world_validation_status == "UNRESOLVED"' schemas/physical-transformation/physical-solver-capabilities-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json
@@ -176,6 +185,48 @@ jobs:
             and .output_intervals.maximum_bending_stress_pa.lower <= .outputs.maximum_bending_stress_pa
             and .outputs.maximum_bending_stress_pa <= .output_intervals.maximum_bending_stress_pa.upper
           ' analytical-adapter-simply-supported-bounds-receipt.json
+
+
+      - name: Run allowlisted dispatch receipts at exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-solver-dispatch -- \
+            --request schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json \
+            --dispatcher-revision "$source_commit" \
+            --adapter-revision "$source_commit" > physical-solver-dispatch-selected-receipt.json
+          jq -e --arg revision "$source_commit" '
+            .schema_version == "physical-solver-dispatch-receipt-v0.1"
+            and .dispatcher_revision == $revision
+            and .selection_status == "SELECTED"
+            and .evaluation_status == "PASS"
+            and .selected_backend.backend_id == "symtropy-analytical-reference"
+            and .selected_backend.qualification_tier == "closed_form_equation_contract"
+            and .model_evaluation_attempted == true
+            and .external_solver_invoked == false
+            and .outputs.axial_stress_pa > 99999
+            and .outputs.axial_stress_pa < 100001
+            and (.manifest_sha256 | test("^[0-9a-f]{64}$"))
+            and .adapter_receipt.result_status == "PASS"
+          ' physical-solver-dispatch-selected-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-solver-dispatch -- \
+            --request schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json \
+            --dispatcher-revision "$source_commit" \
+            --adapter-revision "$source_commit" > physical-solver-dispatch-unresolved-receipt.json
+          jq -e '
+            .selection_status == "UNRESOLVED"
+            and .evaluation_status == "NOT_EVALUATED"
+            and .selected_backend == null
+            and .outputs == null
+            and .model_evaluation_attempted == false
+            and .external_solver_invoked == false
+            and (.physics_omitted | index("fracture") != null)
+            and .adapter_receipt.result_status == "UNRESOLVED"
+          ' physical-solver-dispatch-unresolved-receipt.json
 
       - name: Upload analytical reference receipts
         uses: actions/upload-artifact@v4
