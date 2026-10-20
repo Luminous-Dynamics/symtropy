@@ -157,7 +157,7 @@ fn verify_manifest(
 fn verify_declared_path(manifest: &Value, key: &str, actual: &Path) -> Result<(), String> {
     let declared = string_at(manifest, "$manifest", key)?;
     let actual = actual.to_string_lossy();
-    if declared != actual {
+    if declared != actual.as_ref() {
         return Err(format!(
             "$manifest.{key}: path mismatch; declared {declared:?}, received {actual:?}"
         ));
