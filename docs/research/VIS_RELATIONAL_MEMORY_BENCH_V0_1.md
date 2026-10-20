@@ -53,3 +53,30 @@ rustc --edition=2024 -O tools/vision-relational-memory-bench.rs -o /tmp/vis-mem-
 ```
 
 The dedicated workflow pins Rust 1.96.0, checks out and verifies the event's exact source head, tests the benchmark, replays the report byte-for-byte, checks required rows, and uploads a SHA-256 receipt.
+
+
+## First exact-head measurements
+
+The first report was generated on source head `6c4cb3f58693036c5c2b5d5425f1bc019dcfb6f8` by [focused run #39484808095](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39484808095). The workflow passed all 8 tests, repeated the full report byte-for-byte, checked its SHA-256, and uploaded the report artifact.
+
+At capacity 3, the paired development result is promising but the held-out result is not:
+
+| Family / policy | Mean loss ↓ | Answer rate ↑ | Accuracy when answered ↑ | Fresh query-claim coverage ↑ |
+| --- | ---: | ---: | ---: | ---: |
+| Development / FIFO | 0.2467 | 0.0443 | 0.8235 | 0.5000 |
+| Development / query-keyed latest | 0.1784 | 0.4844 | 0.8978 | 0.8082 |
+| Held-out / FIFO | 0.2513 | 0.0156 | 0.6667 | 0.3325 |
+| Held-out / query-keyed latest | 0.2513 | 0.0990 | 0.7368 | 0.5278 |
+
+The development paired loss delta (query-keyed minus FIFO) is **-0.0684**, with 95% bootstrap interval **[-0.0885, -0.0469]**. On held-out episodes the point delta is **0.0000**, with interval **[-0.0117, 0.0130]**. The held-out result does not qualify as an improvement. Query-keyed retention increases answer coverage from 1.56% to 9.90%, but 73.68% answered accuracy is below the 75% break-even accuracy implied by this benchmark's incorrect=1 / abstain=0.25 loss. More answers alone are not a win.
+
+Uniform reservoir does not answer any held-out episodes at capacities 1, 2, 3, 4 or 8 in this first run; at capacity 8 it also fails to improve mean loss over abstention. That is a result of this stream generator, not a general indictment of reservoir sampling. The query-keyed policy uses at most three entries even when the configured cap is 4 or 8, so those larger capacities do not create more queried-claim slots.
+
+## Interpretation and next experiment
+
+The central result is a **development-to-held-out collapse**: query-keyed latest-source-time memory improves the development loss but not held-out loss under higher claim drift, delays and corruption. The next experiment should isolate this generalization gap rather than tune the policy directly against held-out scores:
+1. add evaluator-only strata for recent truth changes, delayed out-of-order arrivals and low-confidence/corrupted latest evidence;
+2. calibrate a selective answering threshold on development episodes only, freeze it, then report held-out risk/coverage and paired loss;
+3. retain the same task loss, seed pairs, memory budgets and report integrity checks.
+
+These strata are diagnostic labels for the evaluator only; they must not enter the memory policy. A calibrated policy is accepted only if the frozen development-selected threshold improves the held-out paired loss interval without hiding answer coverage or subgroup regressions.
