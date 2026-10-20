@@ -32,6 +32,7 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -69,6 +70,26 @@ jobs:
             > ev-localization-cost-report.json
           jq -e '
             .benchmark_id == "EV-LOCALIZATION-001"
+            and .result_count == 16
+            and all(.results[]; .economics_evidence_status == "needs_evidence")
+          ' ev-localization-cost-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_frontier -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json \
+            > ev-factory-design-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-DESIGN-001"
+            and .base_currency == "USD"
+            and .scenario_count == 36
+            and all(.results[]; .target_good_vehicles_per_year > 0)
+            and all(.results[]; .bottleneck_good_capacity_per_year >= .target_good_vehicles_per_year)
+            and all(.results[]; .building_area_sqm > 0)
+            and all(.results[]; .total_installed_capex_usd > 0)
+            and all(.results[]; .production_release_ready == false)
+            and all(.results[]; .local_code_gate == "unknown")
+            and all(.results[]; .battery_process_safety_gate == "unknown")
+          ' ev-factory-design-report.json
+          jq -e '
+            .benchmark_id == "EV-LOCALIZATION-001"
             and .baseline_observed_retail_price == 341900
             and .target_retail_price_ceiling == 307710
             and .result_count == 16
@@ -86,12 +107,15 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json \
             tools/ev-passenger-cost-frontier/src/main.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_localization_frontier.rs \
-            ev-passenger-cost-report.json ev-localization-cost-report.json > ev-passenger-cost-report.sha256
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_frontier.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json \
+            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-passenger-cost-frontier-report
           path: |
             ev-passenger-cost-report.json
             ev-localization-cost-report.json
+            ev-factory-design-report.json
             ev-passenger-cost-report.sha256
           if-no-files-found: error
