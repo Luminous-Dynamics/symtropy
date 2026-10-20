@@ -33,6 +33,11 @@ const BOOTSTRAPS: usize = 2_000;
 // Independent seed domain for the frozen VOI replication (the policy itself is unchanged).
 const ROOT_SEED: u64 = 0x9B05_688C_2B3E_6C1F;
 const PRIOR_SENSOR_BASE_PER_THOUSAND: f64 = 32.5;
+const PRIOR_DISTRACTOR_PER_THOUSAND: f64 = 375.0;
+const CONFIDENCE_TIERS: [(u16, f64); 3] = [(950, 0.75), (850, 0.20), (650, 0.05)];
+const DELAY_PRIORS: [(usize, f64); 6] = [
+    (0, 0.167), (1, 0.167), (2, 0.292), (3, 0.125), (4, 0.125), (5, 0.124),
+];
 
 fn mix64(mut x: u64) -> u64 {
     x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -299,13 +304,21 @@ impl HazardStats {
     }
 }
 
-fn majority_decision(probabilities: [f64; QUERY_COUNT]) -> Option<bool> {
+fn majority_true_probability(probabilities: [f64; QUERY_COUNT]) -> f64 {
     let [p0, p1, p2] = probabilities;
-    let p_majority_true =
-        p0 * p1 * (1.0 - p2)
+    p0 * p1 * (1.0 - p2)
         + p0 * (1.0 - p1) * p2
         + (1.0 - p0) * p1 * p2
-        + p0 * p1 * p2;
+        + p0 * p1 * p2
+}
+
+fn terminal_decision_risk(probabilities: [f64; QUERY_COUNT]) -> f64 {
+    let majority_true = majority_true_probability(probabilities).clamp(0.0, 1.0);
+    majority_true.min(1.0 - majority_true).min(0.25)
+}
+
+fn majority_decision(probabilities: [f64; QUERY_COUNT]) -> Option<bool> {
+    let p_majority_true = majority_true_probability(probabilities);
     if p_majority_true > 0.75 {
         Some(true)
     } else if p_majority_true < 0.25 {
@@ -323,6 +336,7 @@ enum PolicyKind {
     StalestFirst,
     MaxUncertainty,
     ValueOfInformation,
+    ExpectedTaskLossReduction,
 }
 
 impl PolicyKind {
@@ -333,6 +347,7 @@ impl PolicyKind {
         Self::StalestFirst,
         Self::MaxUncertainty,
         Self::ValueOfInformation,
+        Self::ExpectedTaskLossReduction,
     ];
 
     fn name(self) -> &'static str {
@@ -343,6 +358,7 @@ impl PolicyKind {
             Self::StalestFirst => "stalest_first",
             Self::MaxUncertainty => "max_uncertainty",
             Self::ValueOfInformation => "value_of_information",
+            Self::ExpectedTaskLossReduction => "expected_task_loss_reduction",
         }
     }
 }
@@ -429,7 +445,83 @@ impl PolicyState {
                 });
                 Self::tie_break(scores, tick)
             }
+            PolicyKind::ExpectedTaskLossReduction => {
+                let scores = self.expected_task_loss_reduction_scores(tick);
+                let best = scores.iter().copied().fold(0.0_f64, f64::max);
+                if best <= 1e-12 {
+                    tick % QUERY_COUNT
+                } else {
+                    Self::tie_break(scores, tick)
+                }
+            }
         }
+    }
+
+    fn expected_task_loss_reduction_scores(&self, tick: usize) -> [f64; QUERY_COUNT] {
+        let terminal_now = self.probabilities(HORIZON - 1);
+        let current_risk = terminal_decision_risk(terminal_now);
+        let current_at_tick = self.probabilities(tick);
+
+        std::array::from_fn(|claim_index| {
+            let hazard = self.hazard[claim_index].rate();
+            let mut expected_risk_given_relevant = 0.0;
+
+            for (delay, delay_weight) in DELAY_PRIORS {
+                let source_tick = tick.saturating_sub(delay);
+                // A hypothetical observation older than retained source-time
+                // evidence would be ignored and adds no decision value.
+                if self.last[claim_index]
+                    .is_some_and(|last| usize::from(last.source_tick) > source_tick)
+                {
+                    expected_risk_given_relevant += delay_weight * current_risk;
+                    continue;
+                }
+
+                let effective_gap = tick.saturating_sub(source_tick);
+                let p_tick = current_at_tick[claim_index];
+                let p_source = 0.5 + (p_tick - 0.5)
+                    * (1.0 - 2.0 * hazard).powi(effective_gap as i32);
+
+                for (confidence, confidence_weight) in CONFIDENCE_TIERS {
+                    let corruption = conditional_corruption_rate(
+                        PRIOR_SENSOR_BASE_PER_THOUSAND.round() as u64,
+                        confidence,
+                    ) as f64 / 1_000.0;
+                    let p_observed_true =
+                        p_source * (1.0 - corruption) + (1.0 - p_source) * corruption;
+
+                    let p_latent_true_if_observed_true =
+                        (p_source * (1.0 - corruption) / p_observed_true.max(1e-12))
+                            .clamp(0.0, 1.0);
+                    let p_latent_true_if_observed_false =
+                        (p_source * corruption / (1.0 - p_observed_true).max(1e-12))
+                            .clamp(0.0, 1.0);
+
+                    let terminal_gap = HORIZON - 1 - source_tick;
+                    let persistence = (1.0 - 2.0 * hazard).powi(terminal_gap as i32);
+                    let p_terminal_if_true_observation = 0.5
+                        + (p_latent_true_if_observed_true - 0.5) * persistence;
+                    let p_terminal_if_false_observation = 0.5
+                        + (p_latent_true_if_observed_false - 0.5) * persistence;
+
+                    let mut true_case = terminal_now;
+                    true_case[claim_index] = p_terminal_if_true_observation;
+                    let mut false_case = terminal_now;
+                    false_case[claim_index] = p_terminal_if_false_observation;
+
+                    let risk = p_observed_true * terminal_decision_risk(true_case)
+                        + (1.0 - p_observed_true) * terminal_decision_risk(false_case);
+                    expected_risk_given_relevant +=
+                        delay_weight * confidence_weight * risk;
+                }
+            }
+
+            // A requested view may be diverted to an irrelevant hot distractor.
+            let distractor_probability = PRIOR_DISTRACTOR_PER_THOUSAND / 1_000.0;
+            let expected_risk = distractor_probability * current_risk
+                + (1.0 - distractor_probability) * expected_risk_given_relevant;
+            (current_risk - expected_risk).max(0.0)
+        })
     }
 
     fn observe(&mut self, action: usize, evidence: Evidence) {
@@ -591,7 +683,8 @@ fn report() {
     println!("VIS-ACT-004 active evidence acquisition benchmark");
     println!("Fixed observation budget: {HORIZON} requests per episode; 3 public query claims; 5 distractor claims");
     println!("Potential observations are pre-generated by (episode,tick,requested-key). Each policy sees only the result for its chosen action.");
-    println!("Policies: round_robin, uniform_random, least_observed, stalest_first, max_uncertainty, value_of_information");
+    println!("Policies: round_robin, uniform_random, least_observed, stalest_first, max_uncertainty, value_of_information, expected_task_loss_reduction");
+    println!("Expected-risk scores integrate frozen public confidence/delay/distractor priors and terminal abstention-aware Bayes risk; hidden episode parameters are not consulted.");
     println!("Confidence is sampled independently; only the evaluator has the latent truth and true nuisance profile.");
     println!("Loss: correct=0, abstain=0.25, incorrect=1. Deltas are paired episode-loss differences vs round-robin.");
     println!("family\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requested_per_claim\tmean_relevant_per_claim\twasted_observation_rate\tallocation_imbalance\tlogical_state_bytes\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
@@ -801,6 +894,26 @@ mod tests {
         state.observe(0, Evidence { key: 0, value: true, source_tick: 8, arrival_tick: 8, confidence: 950 });
         state.observe(0, Evidence { key: 0, value: false, source_tick: 3, arrival_tick: 9, confidence: 950 });
         assert_eq!(state.last[0].unwrap().source_tick, 8);
+    }
+
+    #[test]
+    fn expected_task_loss_selector_is_deterministic_and_returns_a_valid_action() {
+        let episode = ActiveEpisode::generate(0xE7A5_0001, Family::HeldOut);
+        let mut state = PolicyState::new(PolicyKind::ExpectedTaskLossReduction, 77);
+        let first = state.expected_task_loss_reduction_scores(0);
+        let second = state.expected_task_loss_reduction_scores(0);
+        assert_eq!(first, second);
+        assert!(first.iter().all(|score| score.is_finite() && *score >= 0.0));
+        let action = state.choose_action(0);
+        assert!(action < QUERY_COUNT);
+        assert_eq!(episode.observations.len(), HORIZON);
+    }
+
+    #[test]
+    fn terminal_risk_is_zero_when_the_majority_cannot_change() {
+        assert_eq!(terminal_decision_risk([1.0, 1.0, 0.5]), 0.0);
+        assert_eq!(terminal_decision_risk([0.0, 0.0, 0.5]), 0.0);
+        assert!((terminal_decision_risk([0.5, 0.5, 0.5]) - 0.25).abs() < 1e-12);
     }
 
     #[test]
