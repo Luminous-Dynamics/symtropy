@@ -26,6 +26,12 @@ A paired-world test constructs two worlds with the same exogenous observation se
 
 The policy interface receives only a public observation and a policy seed. It receives no world object, target identity, episode ID, world seed, future observation or evaluator outcome. The evaluator attaches candidate outcomes only after the action has been selected and budget-guarded. This is a code-structure boundary for synthetic research—not a formal proof against covert channels or a replacement for the orchestrator-owned stream required by Symtropy #1282.
 
+### Policy baselines
+
+The world runner compares seven policies: always-cheap, always-escalate, confidence-threshold, surprise-only, deterministic-random, sequential-evidence, and **nuisance-matched**. The nuisance-matched policy is a hand-coded hypothesis baseline: choose a new view when the current view is strongly occluded, spend more compute on a visible but blurred frame, and prefer a fresh temporal sample for high novelty when feasible. It is not learned, and the thresholds are not claimed to be optimal. The goal is to test whether matching an action to a visible failure mode is more robust across held-out severity levels.
+
+The causal-world harness runs 17 evaluator tests plus 9 world/policy tests (26 total). The earlier hand-authored harness is run separately and contains 24 tests.
+
 ## Resources and baseline interpretation
 
 Resource axes are named `synthetic_latency_unit` and `synthetic_sensor_action`. They are abstract units, not milliseconds, FLOPs, watts, energy or claims about real hardware. All policies use the same trial/run budgets and canonical presentation order. The random baseline is repeated across 16 policy seeds on the same generated worlds; those repeats are not independent world samples or a confidence interval.
