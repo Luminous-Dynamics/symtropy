@@ -62,6 +62,7 @@ struct BenchmarkReport {
     status: String,
     fixture_id: String,
     fixture_sha256: String,
+    cargo_lock_sha256: String,
     source_revision: String,
     rustc_version: String,
     os: String,
@@ -118,6 +119,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     let manifest_bytes = fs::read(&options.manifest_path)?;
     let fixture_sha256 = sha256_hex(&manifest_bytes);
+    let cargo_lock_bytes = fs::read("Cargo.lock")?;
+    let cargo_lock_sha256 = sha256_hex(&cargo_lock_bytes);
     let manifest: Manifest = serde_json::from_slice(&manifest_bytes)?;
     validate_manifest(&manifest)?;
 
@@ -149,6 +152,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         status: "measured_policy_only_no_rendering".to_owned(),
         fixture_id: manifest.fixture_id,
         fixture_sha256,
+        cargo_lock_sha256,
         source_revision,
         rustc_version,
         os: env::consts::OS.to_owned(),
@@ -498,7 +502,11 @@ fn allocation_sha256(allocation: &LodAllocation) -> Result<String, Box<dyn Error
 
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut output = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        output.push_str(&format!("{byte:02x}"));
+    }
+    output
 }
 
 fn command_text(command: &str, args: &[&str]) -> Result<String, Box<dyn Error>> {
