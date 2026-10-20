@@ -379,7 +379,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use symtropy_animal_model_uncertainty::decision::PreferenceStability;
 
     #[test]
     fn scores_committed_two_model_synthetic_example() {
