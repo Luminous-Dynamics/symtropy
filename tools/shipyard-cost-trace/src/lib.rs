@@ -104,6 +104,7 @@ struct RateCardGroupKey {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct CurrencyGroupKey {
     build_id: String,
+    configuration_sha256: String,
     currency_basis_id: String,
 }
 
@@ -145,6 +146,7 @@ pub struct RateCardCostTotal {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FinancialActualTotal {
     pub build_id: String,
+    pub configuration_sha256: String,
     pub currency_basis_id: String,
     /// Sum of observed direct financial transactions only.
     pub amount: f64,
@@ -248,6 +250,37 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
     }
 }
 
+fn visit_lineage<'a>(
+    event_id: &'a str,
+    events_by_id: &BTreeMap<&'a str, &'a LedgerEvent>,
+    visiting: &mut HashSet<&'a str>,
+    visited: &mut HashSet<&'a str>,
+    errors: &mut Vec<String>,
+) {
+    if visited.contains(event_id) {
+        return;
+    }
+    if !visiting.insert(event_id) {
+        errors.push(format!("{event_id}: cyclic related-event lineage"));
+        return;
+    }
+    if let Some(event) = events_by_id.get(event_id) {
+        for related_id in &event.related_event_ids {
+            if events_by_id.contains_key(related_id.as_str()) {
+                visit_lineage(
+                    related_id.as_str(),
+                    events_by_id,
+                    visiting,
+                    visited,
+                    errors,
+                );
+            }
+        }
+    }
+    visiting.remove(event_id);
+    visited.insert(event_id);
+}
+
 /// Reconcile a ledger without converting absent evidence to zero.
 ///
 /// Output families are deliberately non-additive:
@@ -312,6 +345,24 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         }
     }
 
+    if errors.is_empty() {
+        let events_by_id: BTreeMap<&str, &LedgerEvent> = events
+            .iter()
+            .map(|event| (event.event_id.as_str(), event))
+            .collect();
+        let mut visiting: HashSet<&str> = HashSet::new();
+        let mut visited: HashSet<&str> = HashSet::new();
+        for event in events {
+            visit_lineage(
+                event.event_id.as_str(),
+                &events_by_id,
+                &mut visiting,
+                &mut visited,
+                &mut errors,
+            );
+        }
+    }
+
     if !errors.is_empty() {
         errors.sort();
         errors.dedup();
@@ -360,6 +411,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
             EventKind::FinancialActual(transaction) => {
                 let key = CurrencyGroupKey {
                     build_id: event.build_id.clone(),
+                    configuration_sha256: event.configuration_sha256.clone(),
                     currency_basis_id: transaction.currency_basis_id.clone(),
                 };
                 let prior = financials.get(&key).copied().unwrap_or(0.0);
@@ -418,6 +470,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         .into_iter()
         .map(|(key, amount)| FinancialActualTotal {
             build_id: key.build_id,
+            configuration_sha256: key.configuration_sha256,
             currency_basis_id: key.currency_basis_id,
             amount,
         })
@@ -661,6 +714,27 @@ mod tests {
         let actual = quantity_event("actual", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
         let errors = audit(&[event, actual]).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("later evidence stage")));
+    }
+
+    #[test]
+    fn lineage_cycle_is_rejected() {
+        let mut first = quantity_event("first", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut second = quantity_event("second", Stage::Observed, CONFIG_A, "weld-01", "labor", 2.0, None);
+        first.related_event_ids.push("second".to_owned());
+        second.related_event_ids.push("first".to_owned());
+        let errors = audit(&[first, second]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("cyclic related-event lineage")));
+    }
+
+    #[test]
+    fn financial_actuals_for_distinct_configuration_revisions_are_not_merged() {
+        let mut revised = financial_event("invoice-revised", "inv-43:line-1", 125.0);
+        revised.configuration_sha256 = CONFIG_B.to_owned();
+        let original = financial_event("invoice-original", "inv-42:line-1", 200.0);
+        let report = audit(&[original, revised]).unwrap();
+        assert_eq!(report.financial_actuals.len(), 2);
+        assert!(report.financial_actuals.iter().any(|row| row.configuration_sha256 == CONFIG_A && row.amount == 200.0));
+        assert!(report.financial_actuals.iter().any(|row| row.configuration_sha256 == CONFIG_B && row.amount == 125.0));
     }
 
     #[test]
