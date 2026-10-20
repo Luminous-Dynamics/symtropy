@@ -372,7 +372,6 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         }
     }
 
-    let target_id = string_at(policy, "target_id").unwrap_or_default();
     let Some(rows) = registration.get("rows").and_then(Value::as_array) else {
         return vec!["rows must be an array after schema validation".to_owned()];
     };
@@ -711,7 +710,7 @@ mod tests {
     #[test]
     fn disposition_and_reason_must_match_the_registered_policy() {
         let mut value = fixture();
-        value["rows"][4]["reason_code"] = json!("low_selection_score");
+        value["rows"][4]["reason_code"] = json!("abstain_low_selection_score");
         let errors = evaluate(&value).expect_err("reason cannot contradict stale-input gate");
         assert!(errors.iter().any(|error| error.contains("reason_code inconsistent")));
     }
