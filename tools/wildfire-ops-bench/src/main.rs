@@ -536,7 +536,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         field(case, "hazard_observations", &at)?,
         &format!("{at}.hazard_observations"),
     )?;
-    let observation_ids = unique_ids(observations, &format!("{at}.hazard_observations"))?;
+    let _observation_ids = unique_ids(observations, &format!("{at}.hazard_observations"))?;
     for (i, observation) in observations.iter().enumerate() {
         let p = format!("{at}.hazard_observations[{i}]");
         require_keys(
@@ -728,7 +728,7 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         field(case, "common_cause_groups", &at)?,
         &format!("{at}.common_cause_groups"),
     )?;
-    let group_ids = unique_ids(groups, &format!("{at}.common_cause_groups"))?;
+    let _group_ids = unique_ids(groups, &format!("{at}.common_cause_groups"))?;
     for (i, group) in groups.iter().enumerate() {
         let p = format!("{at}.common_cause_groups[{i}]");
         require_keys(
@@ -870,7 +870,7 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
     )?
     .iter()
     .map(|v| text(v, "corpus.allowed_observation_kinds").map(str::to_owned))
-    .collect::<Check<_>>()?
+    .collect::<Check<Vec<String>>>()?
     .into_iter()
     .collect();
     let expected_kinds: BTreeSet<String> =
