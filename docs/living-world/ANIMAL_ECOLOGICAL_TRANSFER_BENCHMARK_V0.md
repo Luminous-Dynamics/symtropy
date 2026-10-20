@@ -181,6 +181,10 @@ This is a **benchmark tranche inside existing convergence work**, not a competin
 
 ### Frozen scenario
 
+The machine-readable pilot is [`ANIMAL_FLOOD_FORAGE_RISK_PILOT_V0.json`](ANIMAL_FLOOD_FORAGE_RISK_PILOT_V0.json), with a paired [JSON Schema](ANIMAL_FLOOD_FORAGE_RISK_PILOT_V0.schema.json). A Rust semantic validator checks its time intervals, map bounds, corridor/flood connection, policy-budget parity, denied hidden inputs, model roles, and hard invariants. This manifest is still a contract specification; it does not execute the scenario.
+
+**Blinding boundary:** the public fixture exposes the two candidate mechanisms so they can be reproduced, but intentionally leaves the blind challenger's mechanism parameter as `null`. A real blinded evaluation must obtain the challenger's contents from a separately controlled evaluator-only manifest, pin that artifact's digest in each result receipt, and lock candidate predictions before revealing it. If no such protected challenge artifact and independent custodian exist, report the challenger portion as `not_assessed`; do not treat a public placeholder as an actual blind test.
+
 - The world contains two refuges connected by habitat corridors, a finite forage/water budget, an explicit current/depth field, and a declared predator-encounter process.
 - The focal animal receives local observations with a specified detection/latency/noise contract. Exact refuge coordinates, future flood state, causal intervention labels, and the simulator's hidden model ID remain evaluator-only.
 - At a frozen time, a flood changes current, depth, and corridor connectivity. A concurrent resource shortage creates a genuinely held-out combination, not seen as a full combination in tuning.
