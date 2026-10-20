@@ -578,8 +578,22 @@ mod tests {
             .iter()
             .find(|candidate| candidate["observation_id"] == "OBS-MAIN")
             .expect("critical observation");
-        assert_eq!(candidate["gross_expected_cost_reduction"], 14.0);
-        assert_eq!(candidate["net_value_of_information"], 13.0);
+        assert!(
+            (candidate["gross_expected_cost_reduction"]
+                .as_f64()
+                .expect("gross value")
+                - 14.0)
+                .abs()
+                < 1e-8
+        );
+        assert!(
+            (candidate["net_value_of_information"]
+                .as_f64()
+                .expect("net value")
+                - 13.0)
+                .abs()
+                < 1e-8
+        );
     }
 
     #[test]
@@ -613,8 +627,22 @@ mod tests {
             .iter()
             .find(|candidate| candidate["observation_id"] == "OBS-BRIDGE")
             .expect("bridge observation");
-        assert_eq!(candidate["gross_expected_cost_reduction"], 45.0);
-        assert_eq!(candidate["net_value_of_information"], 42.0);
+        assert!(
+            (candidate["gross_expected_cost_reduction"]
+                .as_f64()
+                .expect("gross value")
+                - 45.0)
+                .abs()
+                < 1e-8
+        );
+        assert!(
+            (candidate["net_value_of_information"]
+                .as_f64()
+                .expect("net value")
+                - 42.0)
+                .abs()
+                < 1e-8
+        );
     }
 
     #[test]
