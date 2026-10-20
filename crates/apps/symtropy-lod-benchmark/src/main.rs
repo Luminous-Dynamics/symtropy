@@ -15,7 +15,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
-use symtropy_render_bridge::{allocate_lod, LodAllocation, LodCandidate, LodDemand};
+use symtropy_render_bridge::{LodAllocation, LodCandidate, LodDemand, allocate_lod};
 
 const DEFAULT_MANIFEST: &str = "benchmarks/render/SEMANTIC-LOD-01.json";
 const DEFAULT_OUTPUT: &str = "target/semantic-lod-report.json";
@@ -199,9 +199,8 @@ fn parse_args() -> Result<Options, Box<dyn Error>> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--manifest" => {
-                options.manifest_path = PathBuf::from(
-                    args.next().ok_or("--manifest requires a path")?,
-                );
+                options.manifest_path =
+                    PathBuf::from(args.next().ok_or("--manifest requires a path")?);
             }
             "--output" => {
                 options.output_path =
@@ -283,22 +282,40 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), Box<dyn Error>> {
         if workload.importance_rule != "1 + (entity_id modulo 10)" {
             return Err(format!("unsupported importance rule in {}", workload.workload_id).into());
         }
-        let entity_count_u64 = u64::try_from(workload.entity_count)
-            .map_err(|_| format!("entity count cannot be represented for {}", workload.workload_id))?;
-        if workload.selected_entity_ids.iter().any(|id| *id == 0 || *id > entity_count_u64)
-            || workload.critical_entity_ids.iter().any(|id| *id == 0 || *id > entity_count_u64)
+        let entity_count_u64 = u64::try_from(workload.entity_count).map_err(|_| {
+            format!(
+                "entity count cannot be represented for {}",
+                workload.workload_id
+            )
+        })?;
+        if workload
+            .selected_entity_ids
+            .iter()
+            .any(|id| *id == 0 || *id > entity_count_u64)
+            || workload
+                .critical_entity_ids
+                .iter()
+                .any(|id| *id == 0 || *id > entity_count_u64)
         {
             return Err(format!("protected IDs outside workload {}", workload.workload_id).into());
         }
         let mut protected_ids = std::collections::HashSet::new();
         for id in &workload.selected_entity_ids {
             if !protected_ids.insert(*id) {
-                return Err(format!("duplicate selected entity ID {id} in {}", workload.workload_id).into());
+                return Err(format!(
+                    "duplicate selected entity ID {id} in {}",
+                    workload.workload_id
+                )
+                .into());
             }
         }
         for id in &workload.critical_entity_ids {
             if !protected_ids.insert(*id) {
-                return Err(format!("duplicate/overlapping critical entity ID {id} in {}", workload.workload_id).into());
+                return Err(format!(
+                    "duplicate/overlapping critical entity ID {id} in {}",
+                    workload.workload_id
+                )
+                .into());
             }
         }
         let profile_exists = manifest
@@ -335,7 +352,13 @@ fn run_workload(
     for _ in 0..warmup_samples {
         let allocation = allocate_lod(&demands, budget_units, profile.max_screen_error_px)
             .map_err(|error| format!("warm-up failed for {}: {error:?}", workload.workload_id))?;
-        validate_allocation(&allocation, workload, candidate_specs, profile.max_screen_error_px, budget_units)?;
+        validate_allocation(
+            &allocation,
+            workload,
+            candidate_specs,
+            profile.max_screen_error_px,
+            budget_units,
+        )?;
     }
 
     let mut elapsed_ns = Vec::with_capacity(samples);
@@ -346,7 +369,9 @@ fn run_workload(
     for _ in 0..samples {
         let start = Instant::now();
         let allocation = allocate_lod(&demands, budget_units, profile.max_screen_error_px)
-            .map_err(|error| format!("allocation failed for {}: {error:?}", workload.workload_id))?;
+            .map_err(|error| {
+                format!("allocation failed for {}: {error:?}", workload.workload_id)
+            })?;
         let elapsed = start.elapsed();
         elapsed_ns.push(duration_nanos(elapsed)?);
 
@@ -369,15 +394,22 @@ fn run_workload(
     }
 
     if !repeat_outputs_identical {
-        return Err(format!("allocation output was not deterministic for {}", workload.workload_id).into());
+        return Err(format!(
+            "allocation output was not deterministic for {}",
+            workload.workload_id
+        )
+        .into());
     }
 
     let allocation = last_allocation.ok_or("benchmark generated no allocations")?;
     let mut quality_rank_histogram = BTreeMap::new();
     for choice in &allocation.choices {
-        *quality_rank_histogram.entry(choice.quality_rank).or_insert(0) += 1;
+        *quality_rank_histogram
+            .entry(choice.quality_rank)
+            .or_insert(0) += 1;
     }
-    let protected_entity_count = workload.selected_entity_ids.len() + workload.critical_entity_ids.len();
+    let protected_entity_count =
+        workload.selected_entity_ids.len() + workload.critical_entity_ids.len();
     let protected_demotion_count = allocation
         .choices
         .iter()
@@ -386,7 +418,10 @@ fn run_workload(
                 || workload.critical_entity_ids.contains(&choice.entity_id))
                 && (!choice.protected
                     || choice.quality_rank
-                        != candidate_specs.last().map(|candidate| candidate.quality_rank).unwrap_or_default())
+                        != candidate_specs
+                            .last()
+                            .map(|candidate| candidate.quality_rank)
+                            .unwrap_or_default())
         })
         .count();
     let screen_error_violations = allocation
@@ -407,11 +442,8 @@ fn run_workload(
 
     for _ in 0..reference_scan_samples {
         let start = Instant::now();
-        let signature = reference_scan_signature(
-            &demands,
-            budget_units,
-            profile.max_screen_error_px,
-        )?;
+        let signature =
+            reference_scan_signature(&demands, budget_units, profile.max_screen_error_px)?;
         reference_elapsed_ns.push(duration_nanos(start.elapsed())?);
         if let Some(previous) = &reference_signature {
             if previous != &signature {
@@ -433,8 +465,7 @@ fn run_workload(
         .into());
     }
 
-    let final_cost_fraction_of_finest =
-        allocation.total_cost_units as f64 / finest_total as f64;
+    let final_cost_fraction_of_finest = allocation.total_cost_units as f64 / finest_total as f64;
     elapsed_ns.sort_unstable();
     reference_elapsed_ns.sort_unstable();
     let allocator_p50_ns = percentile(&elapsed_ns, 0.50);
@@ -523,23 +554,38 @@ fn validate_allocation(
     let computed_cost = allocation
         .choices
         .iter()
-        .try_fold(0_u64, |total, choice| total.checked_add(u64::from(choice.cost_units)))
+        .try_fold(0_u64, |total, choice| {
+            total.checked_add(u64::from(choice.cost_units))
+        })
         .ok_or("choice cost overflow")?;
     if computed_cost != allocation.total_cost_units {
         return Err(format!("cost ledger mismatch in {}", workload.workload_id).into());
     }
-    let finest_rank = candidates.last().ok_or("missing finest candidate")?.quality_rank;
+    let finest_rank = candidates
+        .last()
+        .ok_or("missing finest candidate")?
+        .quality_rank;
     for choice in &allocation.choices {
         if choice.screen_error_px > max_screen_error_px {
-            return Err(format!("screen-error ceiling violated for entity {}", choice.entity_id).into());
+            return Err(format!(
+                "screen-error ceiling violated for entity {}",
+                choice.entity_id
+            )
+            .into());
         }
         let protected = workload.selected_entity_ids.contains(&choice.entity_id)
             || workload.critical_entity_ids.contains(&choice.entity_id);
         if protected && (!choice.protected || choice.quality_rank != finest_rank) {
-            return Err(format!("protected detail degraded for entity {}", choice.entity_id).into());
+            return Err(
+                format!("protected detail degraded for entity {}", choice.entity_id).into(),
+            );
         }
     }
-    if allocation.choices.windows(2).any(|pair| pair[0].entity_id >= pair[1].entity_id) {
+    if allocation
+        .choices
+        .windows(2)
+        .any(|pair| pair[0].entity_id >= pair[1].entity_id)
+    {
         return Err("allocation output is not strictly sorted by entity ID".into());
     }
     Ok(())
@@ -549,18 +595,22 @@ fn allocation_signature(allocation: &LodAllocation) -> AllocationSignature {
     allocation
         .choices
         .iter()
-        .map(|choice| (
-            choice.entity_id,
-            choice.representation_id,
-            choice.quality_rank,
-            choice.cost_units,
-            choice.protected,
-        ))
+        .map(|choice| {
+            (
+                choice.entity_id,
+                choice.representation_id,
+                choice.quality_rank,
+                choice.cost_units,
+                choice.protected,
+            )
+        })
         .collect()
 }
 
 fn allocation_sha256(allocation: &LodAllocation) -> Result<String, Box<dyn Error>> {
-    Ok(sha256_hex(&serde_json::to_vec(&allocation_signature(allocation))?))
+    Ok(sha256_hex(&serde_json::to_vec(&allocation_signature(
+        allocation,
+    ))?))
 }
 
 fn reference_scan_signature(
@@ -572,10 +622,13 @@ fn reference_scan_signature(
         .iter()
         .map(|demand| demand.candidates.len().saturating_sub(1))
         .collect();
-    let mut total_cost = demands.iter().try_fold(0_u64, |total, demand| {
-        let candidate = demand.candidates.last()?;
-        total.checked_add(u64::from(candidate.cost_units))
-    }).ok_or("reference cost overflow or empty candidate list")?;
+    let mut total_cost = demands
+        .iter()
+        .try_fold(0_u64, |total, demand| {
+            let candidate = demand.candidates.last()?;
+            total.checked_add(u64::from(candidate.cost_units))
+        })
+        .ok_or("reference cost overflow or empty candidate list")?;
 
     while total_cost > budget_units {
         let mut best: Option<(f64, u64, usize, u64)> = None;
@@ -653,7 +706,8 @@ fn command_text(command: &str, args: &[&str]) -> Result<String, Box<dyn Error>> 
 }
 
 fn duration_nanos(duration: Duration) -> Result<u64, Box<dyn Error>> {
-    u64::try_from(duration.as_nanos()).map_err(|_| "duration does not fit in u64 nanoseconds".into())
+    u64::try_from(duration.as_nanos())
+        .map_err(|_| "duration does not fit in u64 nanoseconds".into())
 }
 
 fn percentile(sorted_values: &[u64], quantile: f64) -> u64 {
@@ -661,7 +715,9 @@ fn percentile(sorted_values: &[u64], quantile: f64) -> u64 {
         return 0;
     }
     let one_based_index = ((sorted_values.len() as f64) * quantile).ceil() as usize;
-    sorted_values[one_based_index.saturating_sub(1).min(sorted_values.len() - 1)]
+    sorted_values[one_based_index
+        .saturating_sub(1)
+        .min(sorted_values.len() - 1)]
 }
 
 #[cfg(test)]
@@ -686,14 +742,13 @@ mod tests {
 
     #[test]
     fn heap_allocator_matches_independent_scan_reference() {
-        let candidate = |quality_rank, representation_id, screen_error_px, cost_units| {
-            LodCandidate {
+        let candidate =
+            |quality_rank, representation_id, screen_error_px, cost_units| LodCandidate {
                 quality_rank,
                 representation_id,
                 screen_error_px,
                 cost_units,
-            }
-        };
+            };
         let demands = vec![
             LodDemand {
                 entity_id: 1,
@@ -741,8 +796,8 @@ mod tests {
             },
         ];
         let heap = allocate_lod(&demands, 22, 2.0).expect("policy allocation should be feasible");
-        let reference =
-            reference_scan_signature(&demands, 22, 2.0).expect("reference allocation should be feasible");
+        let reference = reference_scan_signature(&demands, 22, 2.0)
+            .expect("reference allocation should be feasible");
         assert_eq!(allocation_signature(&heap), reference);
     }
 
@@ -753,8 +808,18 @@ mod tests {
             fixture_id: "SEMANTIC-LOD-01".to_owned(),
             screen_error_profiles: vec![],
             candidate_representations: vec![
-                CandidateSpec { quality_rank: 1, representation_id_offset: 1, screen_error_px: 2.0, cost_units: 3 },
-                CandidateSpec { quality_rank: 0, representation_id_offset: 2, screen_error_px: 4.0, cost_units: 1 },
+                CandidateSpec {
+                    quality_rank: 1,
+                    representation_id_offset: 1,
+                    screen_error_px: 2.0,
+                    cost_units: 3,
+                },
+                CandidateSpec {
+                    quality_rank: 0,
+                    representation_id_offset: 2,
+                    screen_error_px: 4.0,
+                    cost_units: 1,
+                },
             ],
             scaling_workloads: vec![],
         };
