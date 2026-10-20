@@ -98,7 +98,10 @@ pub fn score_model_ensemble(
         }
         for (action, loss) in &model.action_losses {
             if action.trim().is_empty() {
-                errors.push(format!("model '{}' contains an empty action name", model.model_id));
+                errors.push(format!(
+                    "model '{}' contains an empty action name",
+                    model.model_id
+                ));
             }
             if !loss.is_finite() || *loss < 0.0 {
                 errors.push(format!(
@@ -169,16 +172,18 @@ pub fn score_model_ensemble(
         }
         let cvar_loss = weighted_tail_loss / tail_mass;
         let max_regret = if admissible_across_all_models {
-            per_model_regret.values().filter_map(|regret| *regret).reduce(f64::max)
+            per_model_regret
+                .values()
+                .filter_map(|regret| *regret)
+                .reduce(f64::max)
         } else {
             None
         };
 
-        if !expected_loss.is_finite()
-            || !worst_case_loss.is_finite()
-            || !cvar_loss.is_finite()
-        {
-            errors.push(format!("action '{action}' produced a non-finite risk summary"));
+        if !expected_loss.is_finite() || !worst_case_loss.is_finite() || !cvar_loss.is_finite() {
+            errors.push(format!(
+                "action '{action}' produced a non-finite risk summary"
+            ));
             continue;
         }
 
@@ -209,10 +214,7 @@ mod tests {
             .into_iter()
             .map(str::to_owned)
             .collect();
-        let second_actions = ["retreat", "wait"]
-            .into_iter()
-            .map(str::to_owned)
-            .collect();
+        let second_actions = ["retreat", "wait"].into_iter().map(str::to_owned).collect();
 
         vec![
             ModelOutcome {
@@ -241,7 +243,10 @@ mod tests {
     #[test]
     fn reports_expected_worst_case_and_tail_loss() {
         let scores = score_model_ensemble(&example_models(), 0.9).expect("valid models");
-        let graze = scores.iter().find(|score| score.action == "graze").expect("graze score");
+        let graze = scores
+            .iter()
+            .find(|score| score.action == "graze")
+            .expect("graze score");
         assert!((graze.expected_loss - 4.8).abs() < 1e-9);
         assert_eq!(graze.worst_case_loss, 9.0);
         assert_eq!(graze.cvar_loss, 9.0);
@@ -252,7 +257,10 @@ mod tests {
     #[test]
     fn safe_action_has_complete_regret_and_lower_tail_risk() {
         let scores = score_model_ensemble(&example_models(), 0.9).expect("valid models");
-        let wait = scores.iter().find(|score| score.action == "wait").expect("wait score");
+        let wait = scores
+            .iter()
+            .find(|score| score.action == "wait")
+            .expect("wait score");
         assert!(wait.admissible_across_all_models);
         assert_eq!(wait.expected_loss, 3.0);
         assert_eq!(wait.worst_case_loss, 3.0);
@@ -264,8 +272,13 @@ mod tests {
     fn incomplete_action_set_is_rejected() {
         let mut models = example_models();
         models[1].action_losses.remove("wait");
-        let errors = score_model_ensemble(&models, 0.9).expect_err("missing model/action must fail");
-        assert!(errors.iter().any(|error| error.contains("action set differs")));
+        let errors =
+            score_model_ensemble(&models, 0.9).expect_err("missing model/action must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("action set differs"))
+        );
     }
 
     #[test]
@@ -273,7 +286,11 @@ mod tests {
         let mut models = example_models();
         models[0].weight = 0.4;
         let errors = score_model_ensemble(&models, 0.9).expect_err("bad weights must fail");
-        assert!(errors.iter().any(|error| error.contains("weights must sum to one")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("weights must sum to one"))
+        );
     }
 
     #[test]
@@ -281,7 +298,11 @@ mod tests {
         let mut models = example_models();
         models[1].model_id = models[0].model_id.clone();
         let errors = score_model_ensemble(&models, 0.9).expect_err("duplicate model IDs must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate model id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate model id"))
+        );
     }
 
     #[test]
@@ -289,19 +310,27 @@ mod tests {
         let mut models = example_models();
         models[0].action_losses.insert("wait".to_owned(), f64::NAN);
         let errors = score_model_ensemble(&models, 0.9).expect_err("NaN loss must fail");
-        assert!(errors.iter().any(|error| error.contains("finite and non-negative")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("finite and non-negative"))
+        );
     }
 
     #[test]
     fn cvar_alpha_must_be_strictly_between_zero_and_one() {
         let errors = score_model_ensemble(&example_models(), 1.0).expect_err("alpha 1 must fail");
-        assert!(errors.iter().any(|error| error.contains("cvar_alpha")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("cvar_alpha"))
+        );
     }
 
     #[test]
     fn cvar_alpha_zero_is_rejected() {
-        let errors = score_model_ensemble(&example_models(), 0.0)
-            .expect_err("alpha zero must fail");
+        let errors =
+            score_model_ensemble(&example_models(), 0.0).expect_err("alpha zero must fail");
         assert!(errors.iter().any(|error| error.contains("cvar_alpha")));
     }
 
@@ -311,6 +340,10 @@ mod tests {
         models[0].admissible_actions = ["graze"].into_iter().map(str::to_owned).collect();
         models[1].admissible_actions = ["retreat"].into_iter().map(str::to_owned).collect();
         let scores = score_model_ensemble(&models, 0.9).expect("valid outcomes");
-        assert!(scores.iter().all(|score| !score.admissible_across_all_models));
+        assert!(
+            scores
+                .iter()
+                .all(|score| !score.admissible_across_all_models)
+        );
     }
 }
