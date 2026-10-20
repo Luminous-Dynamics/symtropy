@@ -871,9 +871,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_stations_and_zero_demand() {
         let mut bad = cost_fixture();
-        bad.templates[0]
-            .station_processes
-            .push(bad.templates[0].station_processes[0].clone());
+        let duplicate = bad.templates[0].station_processes[0].clone();
+        bad.templates[0].station_processes.push(duplicate);
         assert!(validate_catalog(&bad).is_err());
         let mut zero = cost_fixture();
         zero.demand_cases_good_units_per_year = vec![0];
