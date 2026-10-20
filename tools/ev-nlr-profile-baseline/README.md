@@ -45,8 +45,18 @@ The command emits JSON to stdout with p50/p95 daily energy and instantaneous pea
 - exact source/tool/output digests are emitted in an artifact; and
 - source CSVs are downloaded at a pinned revision, not stored in this repository.
 
-## Claim limits / next benchmark step
+## Direct comparison against the published 81-profile bundle
 
-These are **modeled reference-style profiles**, not measurements. The duty patterns are public operational summaries; charging windows, kWh/mile, 100 kW fixed power, and random sample stream are model parameters. Minimum-power does not enforce a vehicle/EVSE maximum input rating and must remain labeled as the source paper's idealized baseline.
+The companion focused workflow now downloads the public 81-profile ZIP at run time, hashes the archive, and compares each matching average / minimum-peak / maximum-peak curve against the generated output. It records:
 
-The next validation step is a true side-by-side comparison against the public 81-profile ZIP. Compare 15-minute profile MAE/RMSE, daily energy-integral residual, instantaneous peak, peak timing and distribution quantiles, using identical vocations, fleet sizes, strategies, kWh/mile and sample rules. Any discrepancy caused by the sampler must be distinguished from algorithm/implementation error. Only after baseline reproduction should this tool be used to claim a better-than-NLR strategy.
+- 15-minute profile MAE, RMSE and maximum absolute error in kW;
+- daily energy-integral difference (kWh) and relative energy error;
+- 15-minute peak-power difference and peak-time difference in minutes.
+
+The exact bundle SHA-256 is embedded in each comparison report and included in the checksum artifact; the ZIP and raw source tables are not committed to this repository. The reference CSV reader fails closed unless columns contain the expected time/power labels, there are exactly 96 quarter-hour records, and timestamps match 00:00, 00:15, ... 23:45.
+
+This is a direct comparison layer, not yet proof of bit-for-bit reproduction. The Rust LCG samples with replacement rather than reproducing NLR's Python random/Pandas sampling; sample selection variance can therefore contribute to profile error even with matching algorithm rules. Review error distributions across all 81 curves, compare matched source assumptions, and isolate sampling error from algorithmic error before claiming superiority.
+
+## Claim limits
+
+These are **modeled reference-style profiles**, not measurements. The duty patterns are published operational summaries; charging windows, kWh/mile, 100 kW fixed power, and the Rust random sample stream are model parameters. Minimum-power does not enforce a vehicle/EVSE maximum input rating and remains an idealized reference baseline.
