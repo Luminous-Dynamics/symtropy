@@ -57,6 +57,7 @@ The current implementation reports changeover and sequence counters and applies 
 
 ## Required controls
 
+- **No-setup homogeneous-product control:** an explicit unit test sets a single product variant, zeros each station's setup duration and compares FIFO against variant-aware output in the same fixed seed. The detailed per-scenario and sequence-statistic results must match exactly.
 - **No-setup homogeneous-product control:** changeover time is zero and variant count is one. Setup-aware and FIFO dispatch should be identical; an output difference is a bug or unmodeled side effect.
 - **Mixed-variant setup stress:** vary batch size, changeover duration, queue capacity and aging threshold.
 - **Starvation control:** generate sustained arrivals of one variant while the queue contains an old alternate variant; verify the oldest job is selected after the bound.
