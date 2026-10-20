@@ -101,17 +101,17 @@ jobs:
           jq -e '
             .result == "pass"
             and .benchmark_id == "WILDFIRE-TRAFFIC-001"
-            and .scenario_count == 3
+            and .scenario_count == 4
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit == env.SOURCE_COMMIT)
-            and (.cases | length == 3)
+            and (.cases | length == 4)
             and (.cases | all(.status == "pass"))
-            and (.scorecard.case_count == 3)
-            and (.scorecard.B1_static_free_flow.selected_infeasible_count == 1)
+            and (.scorecard.case_count == 4)
+            and (.scorecard.B1_static_free_flow.selected_infeasible_count == 2)
             and (.scorecard.B1_static_free_flow.expected_dynamic_choice_matches == 0)
-            and (.scorecard.B2_capacity_aware_cell_model.selected_count == 3)
+            and (.scorecard.B2_capacity_aware_cell_model.selected_count == 4)
             and (.scorecard.B2_capacity_aware_cell_model.abstention_count == 0)
-            and (.scorecard.B2_capacity_aware_cell_model.expected_dynamic_choice_matches == 3)
+            and (.scorecard.B2_capacity_aware_cell_model.expected_dynamic_choice_matches == 4)
             and (.cases | all(.paths | all(.simulation.mass_balance_ok == true)))
           ' wildfire-traffic-ctm-receipt.json
 

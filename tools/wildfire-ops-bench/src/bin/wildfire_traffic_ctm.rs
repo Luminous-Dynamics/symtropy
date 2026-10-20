@@ -5,10 +5,11 @@ use std::fs;
 use std::process::ExitCode;
 
 const VERSION: &str = "0.1.0";
-const CASE_IDS: [&str; 3] = [
+const CASE_IDS: [&str; 4] = [
     "FREEFLOW_MISRANKS_BOTTLENECK_001",
     "CLOSURE_DURING_DEPARTURE_WAVE_002",
     "SHELTER_RECEIVING_BOTTLENECK_003",
+    "ACCESSIBLE_SHELTER_HARD_GATE_004",
 ];
 
 type Check<T> = Result<T, String>;
@@ -464,6 +465,18 @@ mod tests {
             results[2]["B2_capacity_aware_cell_model"]["selected_path_id"],
             "THROUGHPUT_SHELTER"
         );
+        assert_eq!(
+            results[3]["B1_static_free_flow"]["selected_path_id"],
+            "FAST_INACCESSIBLE_SHELTER"
+        );
+        assert_eq!(
+            results[3]["B1_static_free_flow"]["selected_operationally_feasible"],
+            false
+        );
+        assert_eq!(
+            results[3]["B2_capacity_aware_cell_model"]["selected_path_id"],
+            "ACCESSIBLE_ALTERNATIVE"
+        );
     }
 
     #[test]
@@ -478,6 +491,46 @@ mod tests {
                 .unwrap_or(0)
                 > 0
         );
+    }
+
+    #[test]
+    fn accessible_shelter_capacity_is_a_hard_gate() {
+        let results = validate_fixture(&fixture()).expect("fixture validates");
+        assert_eq!(
+            results[3]["paths"][0]["accessible_capacity_feasible"],
+            false
+        );
+        assert_eq!(
+            results[3]["B2_capacity_aware_cell_model"]["selected_path_id"],
+            "ACCESSIBLE_ALTERNATIVE"
+        );
+    }
+
+    #[test]
+    fn no_accessible_capacity_causes_explicit_abstention() {
+        let mut fixture = fixture();
+        for path in fixture["cases"][3]["paths"]
+            .as_array_mut()
+            .expect("paths")
+        {
+            path["accessible_capacity"] = serde_json::json!(1);
+        }
+        let results = validate_fixture(&fixture).expect("synthetic constraints remain valid");
+        assert_eq!(
+            results[3]["B2_capacity_aware_cell_model"]["selected_path_id"],
+            Value::Null
+        );
+        assert_eq!(
+            results[3]["B2_capacity_aware_cell_model"]["abstained"],
+            true
+        );
+    }
+
+    #[test]
+    fn zero_road_capacity_is_rejected() {
+        let mut fixture = fixture();
+        fixture["cases"][0]["paths"][0]["capacity_per_step"] = serde_json::json!(0);
+        assert!(validate_fixture(&fixture).is_err());
     }
 
     #[test]

@@ -22,7 +22,7 @@ It is not yet a general directed road-network CTM, does not model merges/diverge
 - **B2 — capacity-aware cell simulation:** simulate the same total demand on each candidate independently, reject choices that fail to deliver all demand or violate either shelter capacity, then choose the feasible path with the smallest observed clearance step; abstain if none qualifies.
 - **B0 — synthetic oracle label:** expected route ID for scoring only. It is never used by B1/B2 to select a path.
 
-The frozen fixture includes three cases: low-free-flow-time but low-throughput corridor; closure during a departure wave; and a shelter receiving bottleneck. The model reports arrival-step percentiles, queue vehicle-steps, completion/stranding, maximum occupancy, maximum observed flow, closure enforcement and mass conservation separately.
+The frozen fixture includes four cases: low-free-flow-time but low-throughput corridor; closure during a departure wave; a shelter receiving bottleneck; and a hard accessibility-capacity gate. The model reports arrival-step percentiles, queue vehicle-steps, completion/stranding, maximum occupancy, maximum observed flow, closure enforcement and mass conservation separately.
 
 ## Invariants and limits
 

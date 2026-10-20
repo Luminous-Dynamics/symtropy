@@ -101,6 +101,37 @@
       "oracle_truth": {
         "expected_dynamic_path_id": "THROUGHPUT_SHELTER"
       }
+    },
+    {
+      "case_id": "ACCESSIBLE_SHELTER_HARD_GATE_004",
+      "demand_vehicles": 20,
+      "assisted_vehicle_demand": 8,
+      "max_steps": 100,
+      "paths": [
+        {
+          "id": "FAST_INACCESSIBLE_SHELTER",
+          "cells": 2,
+          "capacity_per_step": 8,
+          "jam_occupancy": 16,
+          "sink_capacity_per_step": 8,
+          "shelter_capacity": 30,
+          "accessible_capacity": 4,
+          "closed_from_step": null
+        },
+        {
+          "id": "ACCESSIBLE_ALTERNATIVE",
+          "cells": 3,
+          "capacity_per_step": 5,
+          "jam_occupancy": 10,
+          "sink_capacity_per_step": 5,
+          "shelter_capacity": 30,
+          "accessible_capacity": 10,
+          "closed_from_step": null
+        }
+      ],
+      "oracle_truth": {
+        "expected_dynamic_path_id": "ACCESSIBLE_ALTERNATIVE"
+      }
     }
   ]
 }
