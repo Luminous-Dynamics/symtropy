@@ -28,7 +28,8 @@
       0.5,
       1
     ],
-    "minimum_group_report_count": 3
+    "minimum_group_report_count": 3,
+    "value_unit": "synthetic expected-harm/action-cost units"
   },
   "privacy": {
     "aggregate_only": true,
@@ -154,5 +155,6 @@
       "outcome_status": "known",
       "outcome": 1
     }
-  ]
+  ],
+  "outcome_as_of_index": 14
 }
