@@ -224,8 +224,11 @@ pub fn validate_manifest(manifest: &AuditManifest) -> Result<(), Vec<String>> {
     if manifest.schema_version != 1 {
         errors.push(format!("unsupported manifest schema_version {}", manifest.schema_version));
     }
-    if manifest.upstream_commit.trim().is_empty() {
-        errors.push("manifest upstream_commit is empty".to_string());
+    let commit = manifest.upstream_commit.trim();
+    if !(commit.len() == 40 || commit.len() == 64)
+        || !commit.chars().all(|c| c.is_ascii_hexdigit())
+    {
+        errors.push("manifest upstream_commit must be a 40- or 64-character hex revision".to_string());
     }
     for (name, digest) in [
         ("checkpoint_sha256", &manifest.checkpoint_sha256),
@@ -247,14 +250,14 @@ fn expected_key(task: &str, mode: &str) -> String {
     format!("{task}/{mode}")
 }
 
-fn meta_signature(meta: &Meta) -> (Option<&str>, Option<&str>, Option<&str>, Option<&str>, Option<f64>, Option<f64>) {
+fn meta_signature(meta: &Meta) -> (Option<&str>, Option<&str>, Option<&str>, Option<&str>, Option<u64>, Option<u64>) {
     (
         meta.model.as_deref(),
         meta.camera.as_deref(),
         meta.robot.as_deref(),
         meta.checkpoint.as_deref(),
-        meta.episode_length_s,
-        meta.robot_ctrl_rate,
+        meta.episode_length_s.map(f64::to_bits),
+        meta.robot_ctrl_rate.map(f64::to_bits),
     )
 }
 
@@ -295,15 +298,31 @@ fn parse_cell(path: &Path, run_label: &str, expected_episodes: usize) -> Result<
             path.display()
         ));
     }
-    if !data.episodes.iter().all(|episode| episode.success || !episode.success) {
-        errors.push(format!("{}: impossible success flag", path.display()));
+
+    let ids_complete = !data.episodes.is_empty()
+        && data.episodes.iter().all(|episode| episode.episode_id.is_some());
+    let unique_ids: BTreeSet<String> = data.episodes.iter()
+        .filter_map(|episode| episode.episode_id.as_ref())
+        .map(value_identity)
+        .collect();
+    if ids_complete && unique_ids.len() != data.episodes.len() {
+        errors.push(format!("{}: duplicate episode_id values prevent reliable pairing", path.display()));
+    }
+    let seeds_complete = !data.episodes.is_empty()
+        && data.episodes.iter().all(|episode| episode.seed.is_some());
+    let unique_seeds: BTreeSet<String> = data.episodes.iter()
+        .filter_map(|episode| episode.seed.as_ref())
+        .map(value_identity)
+        .collect();
+    if seeds_complete && unique_seeds.len() != data.episodes.len() {
+        errors.push(format!("{}: duplicate seed values prevent reliable pairing", path.display()));
     }
 
     let successes = data.episodes.iter().filter(|episode| episode.success).count();
     let proportion = wilson_proportion(successes, data.episodes.len());
     let galt = summarize_galt(&data.episodes);
-    let episode_ids_present = !data.episodes.is_empty() && data.episodes.iter().all(|episode| episode.episode_id.is_some());
-    let seeds_present = !data.episodes.is_empty() && data.episodes.iter().all(|episode| episode.seed.is_some());
+    let episode_ids_present = ids_complete && unique_ids.len() == data.episodes.len();
+    let seeds_present = seeds_complete && unique_seeds.len() == data.episodes.len();
 
     Ok(CellResult {
         run_label: run_label.to_string(),
@@ -369,7 +388,11 @@ pub fn audit_run(
         match parse_cell(&path, label, expected_episodes) {
             Ok(cell) => {
                 let key = expected_key(&cell.meta.task, &cell.meta.eval_mode);
-                found.insert(key.clone());
+                if !found.insert(key.clone()) {
+                    status.unexpected_cells.push(format!("duplicate:{key}"));
+                    status.errors.push(format!("{}: duplicate task/mode cell {key}", cell.file_name));
+                    continue;
+                }
                 if !expected.contains(&key) {
                     status.unexpected_cells.push(key.clone());
                     status.errors.push(format!("{}: unexpected task/mode cell {key}", path.display()));
@@ -439,7 +462,13 @@ pub fn audit_run(
 }
 
 pub fn cross_run_pairing_ready(runs: &[RunData]) -> bool {
-    if runs.len() < 2 || runs.iter().any(|run| !run.status.episode_ids_present || !run.status.seeds_present) {
+    if runs.len() < 2 || runs.iter().any(|run| {
+        !run.status.episode_ids_present
+            || !run.status.seeds_present
+            || !run.status.missing_cells.is_empty()
+            || !run.status.unexpected_cells.is_empty()
+            || !run.status.errors.is_empty()
+    }) {
         return false;
     }
 
