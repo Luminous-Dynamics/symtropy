@@ -1,0 +1,39 @@
+name: Shallow Water Reference Kernel
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-shallow-water/**"
+      - ".github/workflows/shallow-water-reference.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: shallow-water-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Qualify shallow-water reference (exact checkout)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check crate formatting
+        run: cargo fmt --package symtropy-shallow-water -- --check
+
+      - name: Run shallow-water numerical tests
+        run: cargo test --locked -p symtropy-shallow-water
+
+      - name: Run shallow-water Clippy
+        run: cargo clippy --locked -p symtropy-shallow-water --all-targets -- -D warnings
