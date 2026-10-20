@@ -18,10 +18,12 @@ use symtropy_animal_model_uncertainty::experiment_design::{
     ObservationDesign, ObservationValue, score_observation_designs,
 };
 
-const SYNTHETIC_EXAMPLE: &str =
-    include_str!("../../../../../docs/living-world/ANIMAL_MODEL_OBSERVATION_DESIGNS_EXAMPLE_V1.json");
-const EMBEDDED_INPUT_SCHEMA: &str =
-    include_str!("../../../../../docs/living-world/ANIMAL_MODEL_OBSERVATION_DESIGNS_V1.schema.json");
+const SYNTHETIC_EXAMPLE: &str = include_str!(
+    "../../../../../docs/living-world/ANIMAL_MODEL_OBSERVATION_DESIGNS_EXAMPLE_V1.json"
+);
+const EMBEDDED_INPUT_SCHEMA: &str = include_str!(
+    "../../../../../docs/living-world/ANIMAL_MODEL_OBSERVATION_DESIGNS_V1.schema.json"
+);
 const EMBEDDED_REPORT_SCHEMA: &str = include_str!(
     "../../../../../docs/living-world/ANIMAL_MODEL_OBSERVATION_DESIGN_REPORT_V1.schema.json"
 );
@@ -44,10 +46,19 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
     Ok(())
 }
 
-fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<ObservationDesign>), String> {
+fn parse_input(
+    root: &Value,
+) -> Result<(String, Vec<ModelOutcome>, Vec<ObservationDesign>), String> {
     ensure_only_fields(
         root,
-        &["schema_version", "status", "scenario", "note", "models", "designs"],
+        &[
+            "schema_version",
+            "status",
+            "scenario",
+            "note",
+            "models",
+            "designs",
+        ],
         "input",
     )?;
     if root.get("schema_version").and_then(Value::as_str)
@@ -133,7 +144,9 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
             admissible_actions.insert(action.to_owned());
         }
         if admissible_actions.len() != action_values.len() {
-            return Err(format!("{prefix}.admissible_actions contains duplicate values"));
+            return Err(format!(
+                "{prefix}.admissible_actions contains duplicate values"
+            ));
         }
         models.push(ModelOutcome {
             model_id,
@@ -153,7 +166,11 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
         let prefix = format!("designs[{index}]");
         ensure_only_fields(
             value,
-            &["observation_id", "loss_equivalent_cost", "outcome_likelihoods"],
+            &[
+                "observation_id",
+                "loss_equivalent_cost",
+                "outcome_likelihoods",
+            ],
             &prefix,
         )?;
         let observation_id = value
@@ -192,9 +209,9 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
                         "{outcome_prefix} contains invalid model identifier '{model_id}'"
                     ));
                 }
-                let probability = probability_value.as_f64().ok_or_else(|| {
-                    format!("{outcome_prefix}.{model_id} must be a number")
-                })?;
+                let probability = probability_value
+                    .as_f64()
+                    .ok_or_else(|| format!("{outcome_prefix}.{model_id} must be a number"))?;
                 probabilities.insert(model_id.clone(), probability);
             }
             outcome_likelihoods.insert(outcome.clone(), probabilities);
@@ -256,7 +273,9 @@ fn build_report(
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
     let Some(path) = arguments.next() else {
-        eprintln!("usage: score_animal_observation_designs <designs.json> (options: --help, --example, --input-schema, --report-schema)");
+        eprintln!(
+            "usage: score_animal_observation_designs <designs.json> (options: --help, --example, --input-schema, --report-schema)"
+        );
         process::exit(2);
     };
     if arguments.next().is_some() {
@@ -338,11 +357,14 @@ mod tests {
 
     #[test]
     fn committed_example_scores_expected_decision_value() {
-        let root: Value =
-            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON must parse");
+        let root: Value = serde_json::from_str(SYNTHETIC_EXAMPLE)
+            .expect("example JSON must parse");
         let (scenario, models, designs) = parse_input(&root).expect("valid example");
         let values = score_observation_designs(&models, &designs).expect("valid likelihoods");
-        assert_eq!(scenario, "two_ecological_structures_require_different_actions");
+        assert_eq!(
+            scenario,
+            "two_ecological_structures_require_different_actions"
+        );
         assert_eq!(values.len(), 1);
         let value = &values[0];
         assert!((value.baseline_expected_loss - 5.0).abs() < 1e-9);
@@ -365,10 +387,21 @@ mod tests {
             report["schema_version"].as_str(),
             schema["properties"]["schema_version"]["const"].as_str()
         );
-        assert_eq!(report["status"].as_str(), Some("scored_observation_designs_conditional_on_declared_model_set"));
-        assert_eq!(report["input_sha256"].as_str(), Some(sha256_hex(SYNTHETIC_EXAMPLE.as_bytes()).as_str()));
+        assert_eq!(
+            report["status"].as_str(),
+            Some("scored_observation_designs_conditional_on_declared_model_set")
+        );
+        assert_eq!(
+            report["input_sha256"].as_str(),
+            Some(sha256_hex(SYNTHETIC_EXAMPLE.as_bytes()).as_str())
+        );
         assert_eq!(report["observation_count"].as_u64(), Some(1));
-        assert_eq!(report["ranked_observations"][0]["outcomes"].as_array().map(Vec::len), Some(2));
+        assert_eq!(
+            report["ranked_observations"][0]["outcomes"]
+                .as_array()
+                .map(Vec::len),
+            Some(2)
+        );
     }
 
     #[test]
@@ -399,7 +432,10 @@ mod tests {
     fn scorer_rejects_missing_model_likelihood() {
         let mut root: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON must parse");
-        root["designs"][0]["outcome_likelihoods"]["cue_a"].as_object_mut().expect("likelihoods").remove("structure_b");
+        root["designs"][0]["outcome_likelihoods"]["cue_a"]
+            .as_object_mut()
+            .expect("likelihoods")
+            .remove("structure_b");
         let (_, models, designs) = parse_input(&root).expect("shape may parse");
         assert!(score_observation_designs(&models, &designs).is_err());
     }
