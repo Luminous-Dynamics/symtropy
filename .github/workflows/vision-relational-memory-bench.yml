@@ -78,6 +78,9 @@ jobs:
           grep -Fq "root_mean_prior_sensor_base_mse" vis-relational-memory.tsv
           grep -Fq "PAIRSENSOR" vis-relational-memory.tsv
           grep -Fq "joint_minus_uniform_grid_prior" vis-relational-memory.tsv
+          grep -Fq "Joint transition/noise identifiability diagnostic" vis-relational-memory.tsv
+          grep -Fq "uniform_prior_sensor_mae" vis-relational-memory.tsv
+          test "$(grep -c '^CALIBRATION' vis-relational-memory.tsv)" -eq 211
           grep -Fq "confidence is sampled independently" vis-relational-memory.tsv
           grep -Fq "conditional corruption p per tier" vis-relational-memory.tsv
           grep -Fq "selective threshold calibrated on 256 separate development episodes" vis-relational-memory.tsv
