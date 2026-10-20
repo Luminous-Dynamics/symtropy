@@ -772,6 +772,15 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
         }
     }
 
+    let declared_fidelity = string(&request, "model_fidelity", "request")?;
+    for physics in &physics_evaluated {
+        if !fidelity_supports_physics(&declared_fidelity, physics) {
+            return Err(format!(
+                "receipt claims '{physics}' evaluated outside the declared model fidelity '{declared_fidelity}'"
+            ));
+        }
+    }
+
     let convergence = object(&receipt, "convergence", "receipt")?;
     exact_keys(
         &Value::Object(convergence.clone()),
@@ -962,6 +971,17 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
         return Err(
             "receipt.diagnostics must contain strings no longer than 2048 bytes".to_owned(),
         );
+    }
+
+    if ["FAIL", "UNRESOLVED"].contains(&status.as_str())
+        && diagnostics
+            .iter()
+            .filter_map(Value::as_str)
+            .all(|text| text.trim().is_empty())
+    {
+        return Err(format!(
+            "{status} receipt requires at least one non-empty diagnostic"
+        ));
     }
 
     if status == "PASS" {
@@ -1236,7 +1256,11 @@ mod tests {
             } else {
                 "Synthetic contract test only; no physical qualification."
             },
-            "diagnostics": []
+            "diagnostics": if status == "PASS" {
+                json!([])
+            } else {
+                json!(["Synthetic fixture disposition; no real solver execution is asserted."])
+            }
         })
     }
 
@@ -1326,6 +1350,39 @@ mod tests {
         let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
         let error = validate_solver_receipt_bytes(&request_bytes, &receipt_bytes).unwrap_err();
         assert!(error.contains("outside the declared model fidelity"));
+    }
+
+    #[test]
+    fn unresolved_receipt_cannot_claim_out_of_fidelity_physics_was_evaluated() {
+        let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "UNRESOLVED");
+        receipt["physics_evaluated"] = json!(["dynamic_response"]);
+        receipt["physics_omitted"] = json!(["fracture"]);
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        let error = validate_solver_receipt_bytes(&request_bytes, &receipt_bytes).unwrap_err();
+        assert!(error.contains("evaluated outside the declared model fidelity"));
+    }
+
+    #[test]
+    fn fail_and_unresolved_receipts_need_a_diagnostic() {
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "FAIL");
+        receipt["diagnostics"] = json!([]);
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            validate_solver_receipt_bytes(&request_bytes, &receipt_bytes)
+                .unwrap_err()
+                .contains("FAIL receipt requires")
+        );
+
+        let mut receipt = solver_receipt(&request_bytes, "UNRESOLVED");
+        receipt["diagnostics"] = json!([""]);
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            validate_solver_receipt_bytes(&request_bytes, &receipt_bytes)
+                .unwrap_err()
+                .contains("UNRESOLVED receipt requires")
+        );
     }
 
     #[test]
