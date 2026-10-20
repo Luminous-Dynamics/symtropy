@@ -19,14 +19,15 @@ The adapter retains detailed `PlannerFault` values locally and maps them to port
 
 ## Generic agent-boundary gates
 
-The benchmark also covers the generic Symtropy agent API, not just the concrete Symthaea adapter. The typed `RoboticAgent::tick_motor_plan_with` path should enforce the following before a result can be treated as accepted:
+The benchmark also covers the generic Symtropy agent API, not just the concrete Symthaea adapter. The typed `MotorPlanner::plan_result` contract performs preflight input validation and postflight status/shape/finiteness checks; `RoboticAgent::tick_motor_plan_with` adds agent-state, danger-context, and `can_act()` gates, then independently checks the returned result again. The returned `MotorPlanResult` is serializable with stable snake_case fault names and marked `must_use` so callers receive a compiler warning if they discard it. The preferred typed path should enforce the following before a result can be treated as accepted:
 
 - Non-finite observation values are rejected before `RoboticAgent::tick` runs, so corrupted sensor input cannot mutate agent state before rejection.
 - Non-finite danger context is rejected before `tick`.
 - A post-tick gain outside the finite `[0, 1]` contract is rejected before the planner runs.
 - If `can_act()` is false, the planner must not be called and the typed result must report `AgentNotAuthorized`.
-- A planner that returns the wrong number of commands or any non-finite command is reported as `InvalidOutput`.
+- A planner that returns the wrong number of commands or any non-finite command is reported as `InvalidOutput`, even when `plan_result` is called directly instead of through an agent.
 - If a planner reports `Rejected`, candidate commands must not leak out as accepted output; the typed result retains the rejection category.
+- The `MotorPlanResult` serializes with stable snake_case fault/status names so logs can record the exact contract outcome; serialization does not itself make the record a signed or independently verified attestation.
 - The legacy vector-only method remains for compatibility and cannot preserve typed status. Safety-/integrity-sensitive call sites should use the typed result and implement the platform-specific fallback.
 
 These are software API invariants, not proof that returning a zero vector is the correct physical safe state. That fallback decision belongs to platform-specific control and independent safety mechanisms.
