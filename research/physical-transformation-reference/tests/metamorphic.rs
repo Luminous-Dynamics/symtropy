@@ -73,8 +73,7 @@ fn cantilever_obeys_force_span_and_stiffness_scaling() {
         "cantilever stress vs force",
     );
 
-    let doubled_span = cantilever_tip_load(100.0, 4.0, 200.0e9, 8.0e-6, 0.1)
-        .expect("doubled span");
+    let doubled_span = cantilever_tip_load(100.0, 4.0, 200.0e9, 8.0e-6, 0.1).expect("doubled span");
     close(
         doubled_span.tip_deflection_m,
         8.0 * base.tip_deflection_m,
