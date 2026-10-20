@@ -722,6 +722,7 @@ fn run_report() {
 
 fn main() {
     run_report();
+    randomized_timing::run_report();
 }
 
 #[cfg(test)]
@@ -902,5 +903,578 @@ mod tests {
             run_episode(present, Policy::ActiveRevision).loss,
             run_episode(present, Policy::ActiveRevision).loss
         );
+    }
+}
+
+
+// VIS-ACT-005 adds an event-driven wrapper around the same RGB renderer.
+// The base RGB pixel tests remain intact; these tests vary occlusion timing,
+// observation delay, and action success independently of task-stage timing.
+mod randomized_timing {
+    use super::*;
+
+    const HORIZON: u8 = 6;
+    const DECISION_DEADLINE: u8 = HORIZON;
+    const LATENCY_BUDGET: u64 = 16;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct TimedWorld {
+        visual: HiddenWorld,
+        occlusion_onset: u8,
+        occlusion_duration: u8,
+        view_delay: u8,
+        view_available: bool,
+        view_successful: bool,
+    }
+
+    impl TimedWorld {
+        fn generated(seed: u64, terminal_present: bool, family: SceneFamily) -> Self {
+            let visual = HiddenWorld::generated(seed, terminal_present, family);
+            // Separate random domains: event timing is not correlated with the
+            // target, render noise, action availability, or action success.
+            let onset_domain = 0x5449_4D45_4F4E_5345;
+            let duration_domain = 0x5449_4D45_4455_5241;
+            let delay_domain = 0x5649_4557_4445_4C59;
+            let availability_domain = 0x5449_4D45_4156_4149;
+            let success_domain = 0x5449_4D45_5355_4343;
+
+            let occlusion_onset = match family {
+                SceneFamily::Development => 1 + (unit_milli(seed, onset_domain) % 3) as u8,
+                SceneFamily::HeldOut => 2 + (unit_milli(seed, onset_domain) % 3) as u8,
+            };
+            let occlusion_duration = match family {
+                SceneFamily::Development => 1 + (unit_milli(seed, duration_domain) % 3) as u8,
+                SceneFamily::HeldOut => 2 + (unit_milli(seed, duration_domain) % 3) as u8,
+            };
+            let view_delay = match family {
+                SceneFamily::Development => 1 + (unit_milli(seed, delay_domain) % 3) as u8,
+                SceneFamily::HeldOut => 2 + (unit_milli(seed, delay_domain) % 3) as u8,
+            };
+            let view_available = unit_milli(seed, availability_domain) >= 180;
+            let view_success_threshold = match family {
+                SceneFamily::Development => 100,
+                SceneFamily::HeldOut => 350,
+            };
+            let view_successful = unit_milli(seed, success_domain) >= view_success_threshold;
+
+            Self {
+                visual,
+                occlusion_onset,
+                occlusion_duration,
+                view_delay,
+                view_available,
+                view_successful,
+            }
+        }
+
+        fn natural_reveal_tick(self) -> u8 {
+            self.occlusion_onset.saturating_add(self.occlusion_duration)
+        }
+
+        fn paired_with(self, terminal_present: bool) -> Self {
+            Self {
+                visual: HiddenWorld {
+                    terminal_present,
+                    ..self.visual
+                },
+                ..self
+            }
+        }
+
+        fn frame(
+            self,
+            tick: u8,
+            attempted: bool,
+            receipt: Option<ViewReceipt>,
+        ) -> RgbFrame {
+            let natural_reveal_tick = self.natural_reveal_tick();
+            let action_reveals = receipt.is_some_and(|r| {
+                r.completion_tick == tick
+                    && r.completion_tick <= DECISION_DEADLINE
+                    && r.completion_tick < natural_reveal_tick
+                    && r.executed
+                    && r.successful
+            });
+            let naturally_revealed = tick == natural_reveal_tick;
+
+            let mut frame = if tick < self.occlusion_onset {
+                // Stable pre-intervention view. The paired branch's pixels are
+                // identical because terminal truth is not rendered pre-reveal.
+                self.visual.render(0, false)
+            } else if action_reveals || naturally_revealed {
+                // A completed successful action or a short natural visibility
+                // window gives one informative frame; the obstruction returns
+                // on later steps. This makes memory carry the evidence.
+                let revealed_world = HiddenWorld {
+                    side_view_successful: true,
+                    ..self.visual
+                };
+                revealed_world.render(2, true)
+            } else {
+                // Alternate two deterministic noise realizations while keeping
+                // the hidden target covered.
+                self.visual.render(if tick % 2 == 0 { 3 } else { 1 }, false)
+            };
+
+            frame.tick = tick;
+            frame.side_view_available = tick >= self.occlusion_onset
+                && tick < natural_reveal_tick
+                && tick < DECISION_DEADLINE
+                && self.view_available
+                && !attempted;
+            frame
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ViewReceipt {
+        requested_tick: u8,
+        completion_tick: u8,
+        executed: bool,
+        successful: bool,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum TimedPolicy {
+        NoMemory,
+        LastObservation,
+        BoundedFifo,
+        ConfidenceGated,
+        ProvenancePassive,
+        ActiveRevision,
+        FixedSweep,
+    }
+
+    impl TimedPolicy {
+        const ALL: [Self; 7] = [
+            Self::NoMemory,
+            Self::LastObservation,
+            Self::BoundedFifo,
+            Self::ConfidenceGated,
+            Self::ProvenancePassive,
+            Self::ActiveRevision,
+            Self::FixedSweep,
+        ];
+
+        fn name(self) -> &'static str {
+            match self {
+                Self::NoMemory => "no_memory",
+                Self::LastObservation => "last_observation",
+                Self::BoundedFifo => "bounded_fifo",
+                Self::ConfidenceGated => "confidence_gated",
+                Self::ProvenancePassive => "provenance_memory_passive",
+                Self::ActiveRevision => "active_revision",
+                Self::FixedSweep => "fixed_sweep",
+            }
+        }
+
+        fn memory_policy(self) -> Policy {
+            match self {
+                Self::NoMemory => Policy::NoMemory,
+                Self::LastObservation => Policy::LastObservation,
+                Self::BoundedFifo | Self::FixedSweep => Policy::BoundedFifo,
+                Self::ConfidenceGated => Policy::ConfidenceGated,
+                Self::ProvenancePassive => Policy::ProvenancePassive,
+                Self::ActiveRevision => Policy::ActiveRevision,
+            }
+        }
+
+        fn propose(self, frame: &RgbFrame, attempted: bool) -> Action {
+            match self {
+                // The fixed-sweep baseline acts at two predeclared ticks when
+                // possible, rather than reacting to pixels. A shared one-view
+                // budget makes this a fair fixed schedule, not free scanning.
+                Self::FixedSweep => {
+                    if matches!(frame.tick, 2 | 4)
+                        && frame.side_view_available
+                        && !attempted
+                    {
+                        Action::ChangeView
+                    } else {
+                        Action::Wait
+                    }
+                }
+                _ => self.memory_policy().propose(frame, attempted),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct TimedResult {
+        truth: bool,
+        decision: Decision,
+        loss: f64,
+        attempt: bool,
+        executed: bool,
+        completed: bool,
+        fresh_view_evidence: bool,
+        view_returned_no_fresh_evidence: bool,
+        natural_or_view_recovery_steps: Option<u8>,
+        latency_units: u64,
+        budget_violations: u64,
+    }
+
+    fn run_episode(world: TimedWorld, policy: TimedPolicy) -> TimedResult {
+        let memory_policy = policy.memory_policy();
+        let mut memory = Memory::new(memory_policy);
+        let mut attempted = false;
+        let mut executed = false;
+        let mut completed = false;
+        let mut fresh_view_evidence = false;
+        let mut latency_units = 0_u64;
+        let mut budget_violations = 0_u64;
+        let mut receipt: Option<ViewReceipt> = None;
+        let mut recovery_steps = None;
+        let mut terminal = world.frame(0, false, None);
+
+        for tick in 0..=HORIZON {
+            let frame = world.frame(tick, attempted, receipt);
+            let evidence = perceive(&frame);
+
+            if tick >= world.occlusion_onset
+                && recovery_steps.is_none()
+                && evidence.cue != Cue::Occluded
+            {
+                recovery_steps = Some(tick.saturating_sub(world.occlusion_onset));
+            }
+
+            if let Some(r) = receipt {
+                if r.completion_tick == tick && tick <= DECISION_DEADLINE {
+                    completed = true;
+                    fresh_view_evidence |= r.executed
+                        && r.successful
+                        && tick < world.natural_reveal_tick()
+                        && evidence.cue != Cue::Occluded;
+                }
+            }
+
+            memory.observe(&frame);
+            terminal = frame;
+
+            if tick == HORIZON {
+                break;
+            }
+
+            // One unit for a decision/observation opportunity, regardless of
+            // whether it produces useful evidence.
+            latency_units = latency_units.saturating_add(1);
+
+            if attempted {
+                continue;
+            }
+
+            let proposed = policy.propose(&frame, attempted);
+            if proposed == Action::ChangeView {
+                attempted = true;
+                // Attempt, execution and information are distinct. A policy
+                // request is charged even when legality or budget rejects it.
+                if frame.side_view_available
+                    && latency_units.saturating_add(3) <= LATENCY_BUDGET
+                {
+                    executed = true;
+                    latency_units += 3;
+                    receipt = Some(ViewReceipt {
+                        requested_tick: tick,
+                        completion_tick: tick.saturating_add(world.view_delay),
+                        executed: true,
+                        successful: world.view_successful,
+                    });
+                } else {
+                    budget_violations += 1;
+                    receipt = Some(ViewReceipt {
+                        requested_tick: tick,
+                        completion_tick: tick.saturating_add(world.view_delay),
+                        executed: false,
+                        successful: false,
+                    });
+                }
+            }
+        }
+
+        let decision = memory.decide(memory_policy, &terminal);
+        let loss = match decision {
+            Decision::Present if world.visual.terminal_present => 0.0,
+            Decision::Absent if !world.visual.terminal_present => 0.0,
+            Decision::Abstain => 0.25,
+            _ => 1.0,
+        };
+        let view_returned_no_fresh_evidence = executed && !fresh_view_evidence;
+
+        if latency_units > LATENCY_BUDGET || u64::from(executed) > 1 {
+            budget_violations += 1;
+        }
+
+        TimedResult {
+            truth: world.visual.terminal_present,
+            decision,
+            loss,
+            attempt: attempted,
+            executed,
+            completed,
+            fresh_view_evidence,
+            view_returned_no_fresh_evidence,
+            natural_or_view_recovery_steps: recovery_steps,
+            latency_units,
+            budget_violations,
+        }
+    }
+
+    #[derive(Debug, Default, Clone, Copy)]
+    struct Aggregate {
+        episodes: u64,
+        loss_sum: f64,
+        answered: u64,
+        correct_answered: u64,
+        abstentions: u64,
+        view_attempts: u64,
+        executed_views: u64,
+        completed_views: u64,
+        fresh_views: u64,
+        views_without_fresh: u64,
+        recovery_steps_sum: u64,
+        recovery_observations: u64,
+        budget_violations: u64,
+        latency_sum: u64,
+        correct_decisions: u64,
+    }
+
+    impl Aggregate {
+        fn record(&mut self, result: TimedResult) {
+            self.episodes += 1;
+            self.loss_sum += result.loss;
+            self.view_attempts += u64::from(result.attempt);
+            self.executed_views += u64::from(result.executed);
+            self.completed_views += u64::from(result.completed);
+            self.fresh_views += u64::from(result.fresh_view_evidence);
+            self.views_without_fresh += u64::from(result.view_returned_no_fresh_evidence);
+            self.budget_violations += result.budget_violations;
+            self.latency_sum += result.latency_units;
+            if let Some(steps) = result.natural_or_view_recovery_steps {
+                self.recovery_steps_sum += u64::from(steps);
+                self.recovery_observations += 1;
+            }
+
+            match result.decision {
+                Decision::Abstain => self.abstentions += 1,
+                decision => {
+                    self.answered += 1;
+                    let correct = matches!(
+                        (decision, result.truth),
+                        (Decision::Present, true) | (Decision::Absent, false)
+                    );
+                    if correct {
+                        self.correct_answered += 1;
+                        self.correct_decisions += 1;
+                    }
+                }
+            }
+        }
+
+        fn mean_loss(self) -> f64 {
+            self.loss_sum / self.episodes.max(1) as f64
+        }
+
+        fn rate(numerator: u64, denominator: u64) -> String {
+            if denominator == 0 {
+                "NA".to_string()
+            } else {
+                format!("{:.4}", numerator as f64 / denominator as f64)
+            }
+        }
+    }
+
+    fn seed_for(replicate: usize, pair: usize, family: SceneFamily) -> u64 {
+        let family_domain = match family {
+            SceneFamily::Development => 0x5449_4D45_4445_564C,
+            SceneFamily::HeldOut => 0x5449_4D45_484F_4C44,
+        };
+        mix64(
+            ROOT_SEED
+                ^ family_domain
+                ^ (replicate as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                ^ (pair as u64).wrapping_mul(0xD1B5_4A32_D192_ED03),
+        )
+    }
+
+    fn run_report() {
+        println!("VIS-ACT-005 randomized-timing and delayed-view diagnostic");
+        println!("event-driven onset/duration/delay; transient RGB evidence; hidden view-success outcomes");
+        println!("fixed-sweep baseline included; resource units remain synthetic");
+        println!("family\\tpolicy\\tepisodes\\tmean_loss\\tanswered_accuracy\\tabstention_rate\\tview_attempts_per_episode\\texecuted_views\\tcompleted_views\\tfresh_evidence_rate_per_executed_view\\tviews_without_fresh_evidence\\tmean_recovery_steps\\tlatency_units_per_episode\\tbudget_violations");
+
+        for family in [SceneFamily::Development, SceneFamily::HeldOut] {
+            for policy in TimedPolicy::ALL {
+                let mut aggregate = Aggregate::default();
+                for replicate in 0..WORLD_REPLICATES {
+                    for pair in 0..PAIRS_PER_REPLICATE {
+                        let seed = seed_for(replicate, pair, family);
+                        let persistent = TimedWorld::generated(seed, true, family);
+                        let removed = persistent.paired_with(false);
+                        aggregate.record(run_episode(persistent, policy));
+                        aggregate.record(run_episode(removed, policy));
+                    }
+                }
+
+                let mean_recovery = if aggregate.recovery_observations == 0 {
+                    "NA".to_string()
+                } else {
+                    format!(
+                        "{:.3}",
+                        aggregate.recovery_steps_sum as f64
+                            / aggregate.recovery_observations as f64
+                    )
+                };
+                println!(
+                    "{}\\t{}\\t{}\\t{:.4}\\t{}\\t{}\\t{:.3}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{:.3}\\t{}",
+                    family.name(),
+                    policy.name(),
+                    aggregate.episodes,
+                    aggregate.mean_loss(),
+                    Aggregate::rate(aggregate.correct_answered, aggregate.answered),
+                    Aggregate::rate(aggregate.abstentions, aggregate.episodes),
+                    aggregate.view_attempts as f64 / aggregate.episodes.max(1) as f64,
+                    aggregate.executed_views,
+                    aggregate.completed_views,
+                    Aggregate::rate(aggregate.fresh_views, aggregate.executed_views),
+                    aggregate.views_without_fresh,
+                    mean_recovery,
+                    aggregate.latency_sum as f64 / aggregate.episodes.max(1) as f64,
+                    aggregate.budget_violations,
+                );
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        fn paired(seed: u64, family: SceneFamily) -> (TimedWorld, TimedWorld) {
+            let persistent = TimedWorld::generated(seed, true, family);
+            (persistent, persistent.paired_with(false))
+        }
+
+        #[test]
+        fn paired_hidden_branches_share_randomized_timing_and_action_outcomes() {
+            for family in [SceneFamily::Development, SceneFamily::HeldOut] {
+                let (present, removed) = paired(0xCAFE_BABE, family);
+                assert_eq!(present.occlusion_onset, removed.occlusion_onset);
+                assert_eq!(present.occlusion_duration, removed.occlusion_duration);
+                assert_eq!(present.view_delay, removed.view_delay);
+                assert_eq!(present.view_available, removed.view_available);
+                assert_eq!(present.view_successful, removed.view_successful);
+            }
+        }
+
+        #[test]
+        fn timing_distributions_vary_independently_and_repeat_exactly() {
+            for family in [SceneFamily::Development, SceneFamily::HeldOut] {
+                let first = TimedWorld::generated(29, true, family);
+                assert_eq!(first, TimedWorld::generated(29, true, family));
+
+                let worlds: Vec<TimedWorld> = (0..128)
+                    .map(|seed| TimedWorld::generated(seed, true, family))
+                    .collect();
+                assert!(worlds.iter().map(|w| w.occlusion_onset).collect::<std::collections::BTreeSet<_>>().len() > 1);
+                assert!(worlds.iter().map(|w| w.occlusion_duration).collect::<std::collections::BTreeSet<_>>().len() > 1);
+                assert!(worlds.iter().map(|w| w.view_delay).collect::<std::collections::BTreeSet<_>>().len() > 1);
+            }
+        }
+
+        #[test]
+        fn branch_pixels_are_identical_before_the_first_legal_reveal() {
+            let (present, removed) = paired(0x1234_5678, SceneFamily::HeldOut);
+            for tick in 0..=DECISION_DEADLINE {
+                let frame_a = present.frame(tick, false, None);
+                let frame_b = removed.frame(tick, false, None);
+                if tick < present.natural_reveal_tick() {
+                    assert_eq!(frame_a.pixels, frame_b.pixels, "tick {tick}");
+                }
+            }
+        }
+
+        #[test]
+        fn delayed_success_only_reveals_at_completion_tick() {
+            let (present, removed) = paired(0x1122_3344, SceneFamily::Development);
+            let receipt = ViewReceipt {
+                requested_tick: present.occlusion_onset,
+                completion_tick: present.occlusion_onset + 2,
+                executed: true,
+                successful: true,
+            };
+            assert_eq!(
+                perceive(&present.frame(receipt.requested_tick, true, Some(receipt))).cue,
+                Cue::Occluded
+            );
+            let p = present.frame(receipt.completion_tick, true, Some(receipt));
+            let r = removed.frame(receipt.completion_tick, true, Some(receipt));
+            if receipt.completion_tick < present.natural_reveal_tick() {
+                assert_eq!(perceive(&p).cue, Cue::Present);
+                assert_eq!(perceive(&r).cue, Cue::Absent);
+            }
+        }
+
+        #[test]
+        fn failed_view_is_completed_but_has_no_fresh_evidence_credit() {
+            let (world, _) = paired(0xFACE_1234, SceneFamily::HeldOut);
+            let failed = TimedWorld {
+                view_available: true,
+                view_successful: false,
+                occlusion_onset: 2,
+                occlusion_duration: 4,
+                view_delay: 1,
+                ..world
+            };
+            let result = run_episode(failed, TimedPolicy::ActiveRevision);
+            assert!(result.attempt);
+            assert!(result.executed);
+            assert!(result.completed);
+            assert!(!result.fresh_view_evidence);
+            assert!(result.view_returned_no_fresh_evidence);
+            assert_eq!(result.budget_violations, 0);
+        }
+
+        #[test]
+        fn deadline_late_action_cannot_claim_fresh_view_evidence() {
+            let (world, _) = paired(0xFEED_4321, SceneFamily::HeldOut);
+            let late = TimedWorld {
+                view_available: true,
+                view_successful: true,
+                occlusion_onset: 4,
+                occlusion_duration: 4,
+                view_delay: 4,
+                ..world
+            };
+            let result = run_episode(late, TimedPolicy::ActiveRevision);
+            assert!(result.attempt);
+            assert!(result.executed);
+            assert!(!result.fresh_view_evidence);
+            assert!(result.view_returned_no_fresh_evidence);
+        }
+
+        #[test]
+        fn fixed_sweep_uses_schedule_not_hidden_timing_or_rgb_labels() {
+            let (world, _) = paired(0xABCD, SceneFamily::Development);
+            let occluded = world.frame(world.occlusion_onset, false, None);
+            if occluded.side_view_available {
+                assert_eq!(TimedPolicy::FixedSweep.propose(&occluded, false), Action::Wait);
+            }
+            let sweep = world.frame(2, false, None);
+            if sweep.side_view_available {
+                assert_eq!(TimedPolicy::FixedSweep.propose(&sweep, false), Action::ChangeView);
+            }
+        }
+
+        #[test]
+        fn every_timed_policy_stays_within_budgets_and_is_deterministic() {
+            let world = TimedWorld::generated(0x9911, false, SceneFamily::HeldOut);
+            for policy in TimedPolicy::ALL {
+                let a = run_episode(world, policy);
+                let b = run_episode(world, policy);
+                assert_eq!(a.loss, b.loss);
+                assert!(a.latency_units <= LATENCY_BUDGET);
+                assert_eq!(a.budget_violations, 0);
+            }
+        }
     }
 }
