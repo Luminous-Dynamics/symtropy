@@ -112,6 +112,15 @@ pub struct RepairScheduleReport {
     pub evidence_class: super::EvidenceClass,
     pub task_schedule: Vec<ScheduledTask>,
     pub total_work_makespan_hours: f64,
+    /// Lower bound from precedence critical path, ignoring crew contention.
+    pub critical_path_lower_bound_hours: f64,
+    /// Maximum per-skill workload divided by that skill's available crew count.
+    pub skill_workload_lower_bound_hours: f64,
+    /// Maximum of the two preceding valid makespan lower bounds.
+    pub makespan_lower_bound_hours: f64,
+    /// max(0, makespan - lower_bound) / lower_bound. This is excess over a lower
+    /// bound, not an optimality gap unless the bound is proven tight.
+    pub excess_over_lower_bound_fraction: f64,
     /// None until a valid inspection task is complete and external re-entry
     /// authorization is explicitly Satisfied.
     pub authorized_service_ready_hours: Option<f64>,
@@ -394,6 +403,59 @@ pub fn schedule_repairs(scenario: &RepairScheduleScenario) -> RepairScheduleEval
         .max_by(f64::total_cmp)
         .unwrap_or(0.0);
 
+    let mut critical_finish_by_id: BTreeMap<String, f64> = BTreeMap::new();
+    let mut critical_path_lower_bound_hours: f64 = 0.0;
+    for scheduled_task in &task_schedule {
+        let task = task_by_id[scheduled_task.task_id.as_str()];
+        let critical_start = task
+            .predecessors
+            .iter()
+            .map(|predecessor| critical_finish_by_id[predecessor])
+            .max_by(f64::total_cmp)
+            .unwrap_or(0.0);
+        let critical_finish = critical_start + task.duration_hours;
+        if !critical_finish.is_finite() {
+            return invalid(&scenario.scenario_id, "ARITHMETIC_OVERFLOW:CRITICAL_PATH");
+        }
+        critical_finish_by_id.insert(task.task_id.clone(), critical_finish);
+        critical_path_lower_bound_hours = critical_path_lower_bound_hours.max(critical_finish);
+    }
+
+    let crew_count_by_skill: BTreeMap<&str, u32> = scenario
+        .crews
+        .iter()
+        .map(|crew| (crew.skill_id.as_str(), crew.available_crews))
+        .collect();
+    let mut skill_workload_hours_by_skill: BTreeMap<String, f64> = BTreeMap::new();
+    for task in &scenario.tasks {
+        for req in &task.crew_requirements {
+            let workload = skill_workload_hours_by_skill
+                .entry(req.skill_id.clone())
+                .or_insert(0.0);
+            *workload += task.duration_hours * req.crews_required as f64;
+            if !workload.is_finite() {
+                return invalid(&scenario.scenario_id, "ARITHMETIC_OVERFLOW:SKILL_WORKLOAD");
+            }
+        }
+    }
+    let mut skill_workload_lower_bound_hours: f64 = 0.0;
+    for (skill_id, workload) in &skill_workload_hours_by_skill {
+        let available_crews = crew_count_by_skill[skill_id.as_str()] as f64;
+        skill_workload_lower_bound_hours =
+            skill_workload_lower_bound_hours.max(*workload / available_crews);
+    }
+    let makespan_lower_bound_hours = critical_path_lower_bound_hours
+        .max(skill_workload_lower_bound_hours);
+    if !makespan_lower_bound_hours.is_finite() || makespan_lower_bound_hours <= 0.0 {
+        return invalid(&scenario.scenario_id, "INVALID_MAKESPAN_LOWER_BOUND");
+    }
+    let excess_over_lower_bound_fraction =
+        ((total_work_makespan - makespan_lower_bound_hours).max(0.0))
+            / makespan_lower_bound_hours;
+    if !excess_over_lower_bound_fraction.is_finite() {
+        return invalid(&scenario.scenario_id, "ARITHMETIC_OVERFLOW:LOWER_BOUND_GAP");
+    }
+
     let mut crew_hours_by_skill: BTreeMap<String, f64> = BTreeMap::new();
     for task in &scenario.tasks {
         let scheduled = &schedule[&task.task_id];
@@ -452,6 +514,10 @@ pub fn schedule_repairs(scenario: &RepairScheduleScenario) -> RepairScheduleEval
             evidence_class: scenario.evidence_class,
             task_schedule,
             total_work_makespan_hours: total_work_makespan,
+            critical_path_lower_bound_hours,
+            skill_workload_lower_bound_hours,
+            makespan_lower_bound_hours,
+            excess_over_lower_bound_fraction,
             authorized_service_ready_hours,
             crew_hours_by_skill,
         }),
@@ -558,6 +624,10 @@ mod tests {
         assert_eq!(lookup["post-event-inspection"].finish_hour, 9.0);
         assert_eq!(report.authorized_service_ready_hours, Some(9.0));
         assert_eq!(report.total_work_makespan_hours, 9.0);
+        assert_eq!(report.critical_path_lower_bound_hours, 9.0);
+        assert_eq!(report.skill_workload_lower_bound_hours, 6.0);
+        assert_eq!(report.makespan_lower_bound_hours, 9.0);
+        assert_eq!(report.excess_over_lower_bound_fraction, 0.0);
     }
 
     #[test]
@@ -622,6 +692,10 @@ mod tests {
         assert_eq!(lookup["post-event-inspection"].start_hour, 7.0);
         assert_eq!(report.authorized_service_ready_hours, Some(8.0));
         assert_eq!(report.crew_hours_by_skill["maintenance"], 7.0);
+        assert_eq!(report.critical_path_lower_bound_hours, 5.0);
+        assert_eq!(report.skill_workload_lower_bound_hours, 7.0);
+        assert_eq!(report.makespan_lower_bound_hours, 7.0);
+        assert!((report.excess_over_lower_bound_fraction - (1.0 / 7.0)).abs() < 1.0e-9);
     }
 
     #[test]
