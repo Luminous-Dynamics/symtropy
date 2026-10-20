@@ -19,21 +19,27 @@ fn hash(bytes: &[u8]) -> String {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
-        return Err("usage: wildfire_sumo_behavior <fixture.json> <sumo-output-root> <source-commit>".into());
+        return Err(
+            "usage: wildfire_sumo_behavior <fixture.json> <sumo-output-root> <source-commit>"
+                .into(),
+        );
     }
     if args[3].len() != 40 || !args[3].bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("source commit must be a 40-character hexadecimal SHA".into());
     }
     let fixture_path = Path::new(&args[1]);
-    let fixture_bytes = fs::read(fixture_path).map_err(|e| format!("read fixture: {e}"))?;
-    let fixture: Value = serde_json::from_slice(&fixture_bytes)
-        .map_err(|e| format!("parse fixture: {e}"))?;
+    let fixture_bytes =
+        fs::read(fixture_path).map_err(|e| format!("read fixture: {e}"))?;
+    let fixture: Value =
+        serde_json::from_slice(&fixture_bytes).map_err(|e| format!("parse fixture: {e}"))?;
     if fixture.get("benchmark_id").and_then(Value::as_str) != Some("WILDFIRE-NETWORK-001")
         || fixture.get("classification").and_then(Value::as_str) != Some("synthetic_only")
     {
         return Err("fixture ID/classification mismatch".into());
     }
-    let cases = fixture.get("cases").and_then(Value::as_array)
+    let cases = fixture
+        .get("cases")
+        .and_then(Value::as_array)
         .ok_or_else(|| "fixture cases must be an array".to_owned())?;
     if cases.len() != 6 {
         return Err("expected exactly six frozen synthetic cases".into());
@@ -54,8 +60,8 @@ fn run() -> Result<(), String> {
         "claim_boundary": "SUMO-native observations over synthetic fixtures; source capacity/storage, closure, sink and accessibility semantics are not yet matched to Symtropy"
     });
     let out = root.join("sumo-behavior-summary.json");
-    let bytes = serde_json::to_vec_pretty(&report)
-        .map_err(|e| format!("serialize summary: {e}"))?;
+    let bytes =
+        serde_json::to_vec_pretty(&report).map_err(|e| format!("serialize summary: {e}"))?;
     fs::write(&out, &bytes).map_err(|e| format!("write {}: {e}", out.display()))?;
     println!("{}", String::from_utf8_lossy(&bytes));
     Ok(())
