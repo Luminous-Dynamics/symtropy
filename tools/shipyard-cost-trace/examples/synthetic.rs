@@ -21,8 +21,8 @@ fn main() {
                 quantity: 10.0,
                 unit: "hour".to_owned(),
                 rate: Some(QuantityRate {
-                    unit_rate: 500.0,
-                    currency_basis_id: "ZAR-2026-SA-demo".to_owned(),
+                    unit_rate: 50_000.0,
+                    currency_basis_id: "ZAR-cent-2026-SA-demo".to_owned(),
                     rate_card_ref: "fixture:rate-card-v1".to_owned(),
                 }),
             }),
@@ -58,7 +58,7 @@ fn main() {
             related_event_ids: vec!["observed-weld-hours".to_owned()],
             kind: EventKind::FinancialActual(FinancialTransaction {
                 transaction_ref: "invoice-0001:line-1".to_owned(),
-                amount: 6_800.0,
+                amount_minor_units: 680_000,
                 currency_basis_id: "ZAR-2026-SA-demo".to_owned(),
             }),
         },
