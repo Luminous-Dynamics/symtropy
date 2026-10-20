@@ -17,6 +17,23 @@ const SCHEMA_BYTES: &[u8] =
 const FIXTURE_BYTES: &[u8] =
     include_bytes!("../../../docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json");
 
+#[derive(Debug, Clone)]
+struct AuditRuntime {
+    dependency_lock_sha256: String,
+    rustc_version: String,
+    cargo_version: String,
+}
+
+impl AuditRuntime {
+    fn unpinned() -> Self {
+        Self {
+            dependency_lock_sha256: "UNPINNED_LOCAL_RUN".to_owned(),
+            rustc_version: "UNPINNED_LOCAL_RUN".to_owned(),
+            cargo_version: "UNPINNED_LOCAL_RUN".to_owned(),
+        }
+    }
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
 }
@@ -306,6 +323,14 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
 }
 
 fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<String>> {
+    validate_and_audit_with_runtime(input, source_commit, &AuditRuntime::unpinned())
+}
+
+fn validate_and_audit_with_runtime(
+    input: &[u8],
+    source_commit: &str,
+    runtime: &AuditRuntime,
+) -> Result<Value, Vec<String>> {
     if source_commit != "UNPINNED_LOCAL_RUN"
         && (source_commit.len() != 40
             || !source_commit
@@ -683,7 +708,10 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
     let input_sha256 = sha256_hex(input);
     let receipt_commitment_sha256 = sha256_hex(
         format!(
-            "pirb-hierarchy-coherence-receipt-v0.1\n{registration_id}\n{source_commit}\n{schema_sha256}\n{input_sha256}"
+            "pirb-hierarchy-coherence-receipt-v0.1\n{registration_id}\n{source_commit}\n{schema_sha256}\n{input_sha256}\n{}\n{}\n{}",
+            runtime.dependency_lock_sha256,
+            runtime.rustc_version,
+            runtime.cargo_version
         )
         .as_bytes(),
     );
@@ -697,6 +725,9 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         "forecast_release_id": registration["provider"]["forecast_release_id"],
         "source_commit": source_commit,
         "source_commit_pinned": source_commit != "UNPINNED_LOCAL_RUN",
+        "dependency_lock_sha256": runtime.dependency_lock_sha256,
+        "rustc_version": runtime.rustc_version,
+        "cargo_version": runtime.cargo_version,
         "input_sha256": input_sha256,
         "schema_sha256": schema_sha256,
         "forecast_artifact_sha256": registration["provider"]["forecast_artifact_sha256"],
@@ -743,14 +774,35 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
 fn run() -> Result<(), String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     let input_path = option_value(&args, "--input")?.ok_or_else(|| {
-        "usage: pirb-hierarchy-coherence-audit --input REGISTRATION.json [--source-commit SHA]"
+        "usage: pirb-hierarchy-coherence-audit --input REGISTRATION.json [--source-commit SHA] [--dependency-lock-sha256 SHA256] [--rustc-version VERSION] [--cargo-version VERSION]"
             .to_owned()
     })?;
     let input = fs::read(&input_path)
         .map_err(|error| format!("cannot read hierarchy registration {input_path}: {error}"))?;
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
-    let receipt = validate_and_audit(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
+    let runtime = AuditRuntime {
+        dependency_lock_sha256: option_value(&args, "--dependency-lock-sha256")?
+            .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned()),
+        rustc_version: option_value(&args, "--rustc-version")?
+            .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned()),
+        cargo_version: option_value(&args, "--cargo-version")?
+            .unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned()),
+    };
+    if runtime.dependency_lock_sha256 != "UNPINNED_LOCAL_RUN"
+        && (runtime.dependency_lock_sha256.len() != 64
+            || !runtime
+                .dependency_lock_sha256
+                .chars()
+                .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase()))
+    {
+        return Err(
+            "dependency lock digest must be 64 lowercase hexadecimal characters or UNPINNED_LOCAL_RUN"
+                .to_owned(),
+        );
+    }
+    let receipt = validate_and_audit_with_runtime(&input, &source_commit, &runtime)
+        .map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
