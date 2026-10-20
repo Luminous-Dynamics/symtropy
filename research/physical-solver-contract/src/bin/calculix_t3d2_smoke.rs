@@ -149,14 +149,11 @@ fn run() -> Check<()> {
 
     let data_path = root.join("bar.dat");
     let status_path = root.join("bar.sta");
-    let data_bytes = fs::read(&data_path)
-        .map_err(|error| format!("CalculiX did not produce bar.dat: {error}"))?;
-    let status_bytes = fs::read(&status_path)
-        .map_err(|error| format!("CalculiX did not produce bar.sta: {error}"))?;
-    if data_bytes.len() as u64 > MAX_LOG_BYTES || status_bytes.len() as u64 > MAX_LOG_BYTES {
-        return Err("CalculiX output exceeded the 32 MiB parser budget".to_owned());
-    }
+    let data_bytes = fs::read(&data_path).ok();
+    let status_bytes = fs::read(&status_path).ok();
 
+    // Persist the failure/exit record before interpreting solver outputs. Even a
+    // crash or missing file leaves a machine-readable provenance artifact.
     let execution_evidence = json!({
         "schema_version": "calculix-execution-evidence-v0.1",
         "case_id": CASE_ID,
@@ -172,8 +169,8 @@ fn run() -> Check<()> {
         "exit_success": solver_output.status.success(),
         "stdout_sha256": sha256_hex(&solver_output.stdout),
         "stderr_sha256": sha256_hex(&solver_output.stderr),
-        "dat_sha256": sha256_hex(&data_bytes),
-        "sta_sha256": sha256_hex(&status_bytes),
+        "dat_sha256": data_bytes.as_ref().map(|bytes| sha256_hex(bytes)),
+        "sta_sha256": status_bytes.as_ref().map(|bytes| sha256_hex(bytes)),
         "physical_result_qualified": false,
         "real_world_validation_status": "UNRESOLVED",
         "claim_ceiling": "one-element T3D2 axial-bar smoke case only; not general solver qualification"
@@ -181,9 +178,16 @@ fn run() -> Check<()> {
     write_json(&root.join("execution-evidence.json"), &execution_evidence)?;
     if !solver_output.status.success() {
         return Err(format!(
-            "CalculiX exited unsuccessfully with {:?}; logs and raw outputs were retained",
+            "CalculiX exited unsuccessfully with {:?}; stdout, stderr and execution evidence were retained",
             solver_output.status.code()
         ));
+    }
+    let data_bytes = data_bytes
+        .ok_or_else(|| "CalculiX exited successfully but did not produce bar.dat".to_owned())?;
+    let status_bytes = status_bytes
+        .ok_or_else(|| "CalculiX exited successfully but did not produce bar.sta".to_owned())?;
+    if data_bytes.len() as u64 > MAX_LOG_BYTES || status_bytes.len() as u64 > MAX_LOG_BYTES {
+        return Err("CalculiX output exceeded the 32 MiB parser budget".to_owned());
     }
 
     let dat_text = std::str::from_utf8(&data_bytes)
