@@ -90,6 +90,8 @@ const MODEL_KEYS: &[&str] = &[
     "forage_recovery_lag_ticks",
     "policy_visible_model_id",
     "revealed_before_evaluation",
+    "parameter_source",
+    "parameters_disclosed_in_public_fixture",
 ];
 const AGENT_KEYS: &[&str] = &[
     "profile_id",
@@ -841,19 +843,31 @@ pub fn validate_pilot_manifest(
         }
         require_exact_string(model, "reference_history_fit", "observationally_compatible", &path)?;
         require_exact_bool(model, "policy_visible_model_id", false, &path)?;
-        let lag = required_u64(model, "forage_recovery_lag_ticks", &path)?;
-        if lag == 0 || !lags.insert(lag) {
-            return Err(ValidationError::new(
-                "pilot models must have distinct positive forage-recovery lags",
-            ));
-        }
+        let disclosed = required_bool(model, "parameters_disclosed_in_public_fixture", &path)?;
+        let parameter_source = required_string(model, "parameter_source", &path)?;
+        let lag_value = model
+            .get("forage_recovery_lag_ticks")
+            .ok_or_else(|| ValidationError::new(format!("{path}.forage_recovery_lag_ticks is required")))?;
         let revealed = required_bool(model, "revealed_before_evaluation", &path)?;
         match required_string(model, "role", &path)? {
             "candidate_structure" => {
                 candidate_count += 1;
+                let lag = lag_value.as_u64().ok_or_else(|| {
+                    ValidationError::new(format!("{path}.forage_recovery_lag_ticks must be a positive integer for candidate structures"))
+                })?;
+                if lag == 0 || !lags.insert(lag) {
+                    return Err(ValidationError::new(
+                        "candidate structures must have distinct positive forage-recovery lags",
+                    ));
+                }
                 if !revealed {
                     return Err(ValidationError::new(
                         "registered candidate structures must be visible to the evaluator before evaluation",
+                    ));
+                }
+                if !disclosed || parameter_source != "public_candidate_manifest" {
+                    return Err(ValidationError::new(
+                        "candidate structure parameters must match the public candidate manifest",
                     ));
                 }
             }
@@ -862,6 +876,14 @@ pub fn validate_pilot_manifest(
                 if revealed {
                     return Err(ValidationError::new(
                         "blind challenger must remain unrevealed before evaluation",
+                    ));
+                }
+                if !lag_value.is_null()
+                    || disclosed
+                    || parameter_source != "sealed_evaluator_manifest"
+                {
+                    return Err(ValidationError::new(
+                        "blind challenger parameters must remain absent from the public fixture and come from a sealed evaluator manifest",
                     ));
                 }
             }
@@ -928,12 +950,12 @@ pub fn validate_pilot_manifest(
     for permitted in sensory["permitted_observations"].as_array().ok_or_else(|| {
         ValidationError::new("pilot permitted_observations must be an array")
     })? {
-        if let Some(name) = permitted.as_str() {
-            if required_denied_inputs.contains(&name) {
-                return Err(ValidationError::new(format!(
-                    "sensor input {name} is both permitted and denied"
-                )));
-            }
+        if let Some(name) = permitted.as_str()
+            && required_denied_inputs.contains(&name)
+        {
+            return Err(ValidationError::new(format!(
+                "sensor input {name} is both permitted and denied"
+            )));
         }
     }
 
@@ -1157,6 +1179,43 @@ pub fn validate_pilot_manifest(
         .ok_or_else(|| ValidationError::new("pilot seed schema is required"))?;
     require_schema_integer(seed_schema, "minItems", 10)?;
     require_schema_bool(seed_schema, "uniqueItems", true, "pilot seed schema")?;
+
+    let model_registry_schema = schema_properties
+        .get("model_registry")
+        .ok_or_else(|| ValidationError::new("pilot schema.properties.model_registry is required"))?;
+    require_schema_integer(model_registry_schema, "minItems", 3)?;
+    require_schema_integer(model_registry_schema, "maxItems", 3)?;
+    let model_items = model_registry_schema
+        .get("items")
+        .ok_or_else(|| ValidationError::new("pilot model schema items are required"))?;
+    require_schema_required_fields(model_items, MODEL_KEYS, "pilot model schema items")?;
+    let model_properties = model_items
+        .get("properties")
+        .ok_or_else(|| ValidationError::new("pilot model schema properties are required"))?;
+    let model_property_object = model_properties
+        .as_object()
+        .ok_or_else(|| ValidationError::new("pilot model schema properties must be an object"))?;
+    check_exact_keys(model_property_object, MODEL_KEYS, "pilot model schema properties")?;
+    let lag_schema = model_properties
+        .get("forage_recovery_lag_ticks")
+        .ok_or_else(|| ValidationError::new("pilot recovery lag schema is required"))?;
+    let lag_alternatives = lag_schema
+        .get("oneOf")
+        .and_then(Value::as_array)
+        .ok_or_else(|| ValidationError::new("pilot recovery lag schema must declare oneOf"))?;
+    if lag_alternatives.len() != 2
+        || !lag_alternatives.iter().any(|value| {
+            value.get("type").and_then(Value::as_str) == Some("integer")
+                && value.get("minimum").and_then(Value::as_u64) == Some(1)
+        })
+        || !lag_alternatives.iter().any(|value| {
+            value.get("type").and_then(Value::as_str) == Some("null")
+        })
+    {
+        return Err(ValidationError::new(
+            "pilot recovery lag schema must allow positive candidate integers and a null sealed challenger value",
+        ));
+    }
 
     Ok(PilotValidationReport {
         scenario_id: required_string(&root, "scenario_id", "pilot")?.to_owned(),
@@ -1474,6 +1533,28 @@ mod tests {
         ]);
         let input = serde_json::to_string(&pilot).expect("mutated pilot serializes");
         assert!(validate_pilot_manifest(&input, COMMITTED_PILOT_SCHEMA_JSON).is_err());
+    }
+
+    #[test]
+    fn blind_challenger_parameters_must_remain_sealed() {
+        let mut pilot: Value =
+            serde_json::from_str(COMMITTED_PILOT_JSON).expect("pilot fixture parses");
+        pilot["model_registry"][2]["forage_recovery_lag_ticks"] = json!(180);
+        pilot["model_registry"][2]["parameters_disclosed_in_public_fixture"] = json!(true);
+        let input = serde_json::to_string(&pilot).expect("mutated pilot serializes");
+        assert!(validate_pilot_manifest(&input, COMMITTED_PILOT_SCHEMA_JSON).is_err());
+    }
+
+    #[test]
+    fn model_registry_schema_cannot_drop_sealed_parameter_fields() {
+        let mut schema: Value =
+            serde_json::from_str(COMMITTED_PILOT_SCHEMA_JSON).expect("pilot schema parses");
+        schema["properties"]["model_registry"]["items"]["required"]
+            .as_array_mut()
+            .expect("model required is an array")
+            .retain(|value| value.as_str() != Some("parameter_source"));
+        let input = serde_json::to_string(&schema).expect("mutated schema serializes");
+        assert!(validate_pilot_manifest(COMMITTED_PILOT_JSON, &input).is_err());
     }
 
     #[test]
