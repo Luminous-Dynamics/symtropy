@@ -54,8 +54,7 @@ impl Rect {
     }
 
     fn inside_room(self, width: f64, depth: f64) -> bool {
-        self.x + self.width <= width + 1e-9
-            && self.y + self.depth <= depth + 1e-9
+        self.x + self.width <= width + 1e-9 && self.y + self.depth <= depth + 1e-9
     }
 
     fn overlaps(self, other: Self) -> bool {
@@ -72,7 +71,12 @@ struct ItemSize {
     depth: f64,
 }
 
-fn unique_ids(items: &[Value], key: &str, label: &str, errors: &mut Vec<String>) -> BTreeSet<String> {
+fn unique_ids(
+    items: &[Value],
+    key: &str,
+    label: &str,
+    errors: &mut Vec<String>,
+) -> BTreeSet<String> {
     let mut ids = BTreeSet::new();
     for (index, item) in items.iter().enumerate() {
         let Some(id) = text(item, key) else {
@@ -138,8 +142,7 @@ fn actual_expected_outcome(
             }
         }
         "required_geometry_evidence" => {
-            if text(field(scenario, "room")?, "geometry_evidence_state")?
-                == "unknown_for_real_site"
+            if text(field(scenario, "room")?, "geometry_evidence_state")? == "unknown_for_real_site"
             {
                 Some("indeterminate")
             } else {
@@ -192,7 +195,9 @@ fn preference_relation(left: &Value, right: &Value) -> Option<&'static str> {
 
 fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
     if text(scenario, "scope") != Some("synthetic_only") {
-        errors.push(format!("{label}: non-synthetic scope is outside this auditor's claim boundary"));
+        errors.push(format!(
+            "{label}: non-synthetic scope is outside this auditor's claim boundary"
+        ));
     }
 
     let Some(room) = field(scenario, "room") else {
@@ -207,8 +212,11 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
         errors.push(format!("{label}: room.depth_m must be numeric"));
         return;
     };
-    if !room_width.is_finite() || room_width <= 0.0 || !room_depth.is_finite() || room_depth <= 0.0 {
-        errors.push(format!("{label}: room dimensions must be positive and finite"));
+    if !room_width.is_finite() || room_width <= 0.0 || !room_depth.is_finite() || room_depth <= 0.0
+    {
+        errors.push(format!(
+            "{label}: room dimensions must be positive and finite"
+        ));
     }
 
     let Some(catalog) = array(scenario, "catalog") else {
@@ -218,11 +226,15 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
     let catalog_ids = unique_ids(catalog, "item_id", &format!("{label}.catalog"), errors);
     let mut sizes = BTreeMap::new();
     for item in catalog {
-        let Some(id) = text(item, "item_id") else { continue };
+        let Some(id) = text(item, "item_id") else {
+            continue;
+        };
         let width = field(item, "width_m").and_then(Value::as_f64);
         let depth = field(item, "depth_m").and_then(Value::as_f64);
         if !positive_finite(field(item, "width_m")) || !positive_finite(field(item, "depth_m")) {
-            errors.push(format!("{label}.catalog.{id}: width/depth must be positive and finite"));
+            errors.push(format!(
+                "{label}.catalog.{id}: width/depth must be positive and finite"
+            ));
             continue;
         }
         if let (Some(width), Some(depth)) = (width, depth) {
@@ -236,7 +248,9 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
     };
     let zone_ids = unique_ids(zones, "zone_id", &format!("{label}.zones"), errors);
     for zone in zones {
-        let Some(zone_id) = text(zone, "zone_id") else { continue };
+        let Some(zone_id) = text(zone, "zone_id") else {
+            continue;
+        };
         let Some(rect_value) = field(zone, "rect") else {
             errors.push(format!("{label}.zones.{zone_id}: missing rect"));
             continue;
@@ -246,7 +260,9 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
             continue;
         };
         if !rect.is_valid() || !rect.inside_room(room_width, room_depth) {
-            errors.push(format!("{label}.zones.{zone_id}: rectangle is invalid or outside nominal room"));
+            errors.push(format!(
+                "{label}.zones.{zone_id}: rectangle is invalid or outside nominal room"
+            ));
         }
     }
 
@@ -254,17 +270,28 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
         errors.push(format!("{label}: missing requirements"));
         return;
     };
-    let requirement_ids = unique_ids(requirements, "requirement_id", &format!("{label}.requirements"), errors);
+    let requirement_ids = unique_ids(
+        requirements,
+        "requirement_id",
+        &format!("{label}.requirements"),
+        errors,
+    );
     for requirement in requirements {
-        let Some(requirement_id) = text(requirement, "requirement_id") else { continue };
+        let Some(requirement_id) = text(requirement, "requirement_id") else {
+            continue;
+        };
         if let Some(target) = text(requirement, "target_zone_id") {
             if !zone_ids.contains(target) {
-                errors.push(format!("{label}.requirements.{requirement_id}: unknown target zone {target:?}"));
+                errors.push(format!(
+                    "{label}.requirements.{requirement_id}: unknown target zone {target:?}"
+                ));
             }
         }
         if let Some(target) = text(requirement, "target_item_id") {
             if !catalog_ids.contains(target) {
-                errors.push(format!("{label}.requirements.{requirement_id}: unknown target item {target:?}"));
+                errors.push(format!(
+                    "{label}.requirements.{requirement_id}: unknown target item {target:?}"
+                ));
             }
         }
         if text(requirement, "classification") == Some("unknown_requires_review")
@@ -281,11 +308,18 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
     if alternatives.is_empty() {
         errors.push(format!("{label}: alternatives must not be empty"));
     }
-    unique_ids(alternatives, "alternative_id", &format!("{label}.alternatives"), errors);
+    unique_ids(
+        alternatives,
+        "alternative_id",
+        &format!("{label}.alternatives"),
+        errors,
+    );
 
     let mut any_unresolved_mandatory = false;
     for alternative in alternatives {
-        let Some(alternative_id) = text(alternative, "alternative_id") else { continue };
+        let Some(alternative_id) = text(alternative, "alternative_id") else {
+            continue;
+        };
         let Some(placements) = array(alternative, "placements") else {
             errors.push(format!("{label}.{alternative_id}: missing placements"));
             continue;
@@ -298,23 +332,34 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
         );
         for item_id in &placement_ids {
             if !catalog_ids.contains(item_id) {
-                errors.push(format!("{label}.{alternative_id}: placement references unknown item {item_id:?}"));
+                errors.push(format!(
+                    "{label}.{alternative_id}: placement references unknown item {item_id:?}"
+                ));
             }
         }
 
         let mut geometry = Vec::new();
         for placement in placements {
-            let Some(item_id) = text(placement, "item_id") else { continue };
-            let Some(rotation) = field(placement, "rotation_degrees").and_then(Value::as_u64) else {
-                errors.push(format!("{label}.{alternative_id}.{item_id}: missing numeric rotation_degrees"));
+            let Some(item_id) = text(placement, "item_id") else {
+                continue;
+            };
+            let Some(rotation) = field(placement, "rotation_degrees").and_then(Value::as_u64)
+            else {
+                errors.push(format!(
+                    "{label}.{alternative_id}.{item_id}: missing numeric rotation_degrees"
+                ));
                 continue;
             };
             if ![0, 90, 180, 270].contains(&rotation) {
-                errors.push(format!("{label}.{alternative_id}.{item_id}: unsupported rotation {rotation}"));
+                errors.push(format!(
+                    "{label}.{alternative_id}.{item_id}: unsupported rotation {rotation}"
+                ));
                 continue;
             }
             let Some((_, rect)) = placement_rect(placement, &sizes) else {
-                errors.push(format!("{label}.{alternative_id}.{item_id}: cannot derive footprint"));
+                errors.push(format!(
+                    "{label}.{alternative_id}.{item_id}: cannot derive footprint"
+                ));
                 continue;
             };
             if !rect.is_valid() || !rect.inside_room(room_width, room_depth) {
@@ -338,9 +383,16 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
             errors.push(format!("{label}.{alternative_id}: missing expected_checks"));
             continue;
         };
-        let check_ids = unique_ids(checks, "requirement_id", &format!("{label}.{alternative_id}.expected_checks"), errors);
+        let check_ids = unique_ids(
+            checks,
+            "requirement_id",
+            &format!("{label}.{alternative_id}.expected_checks"),
+            errors,
+        );
         for check in checks {
-            let Some(requirement_id) = text(check, "requirement_id") else { continue };
+            let Some(requirement_id) = text(check, "requirement_id") else {
+                continue;
+            };
             if !requirement_ids.contains(requirement_id) {
                 errors.push(format!("{label}.{alternative_id}: check references unknown requirement {requirement_id:?}"));
                 continue;
@@ -351,7 +403,9 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
             else {
                 continue;
             };
-            if let Some(expected) = actual_expected_outcome(scenario, requirement, placements, &sizes) {
+            if let Some(expected) =
+                actual_expected_outcome(scenario, requirement, placements, &sizes)
+            {
                 if text(check, "outcome") != Some(expected) {
                     errors.push(format!(
                         "{label}.{alternative_id}.{requirement_id}: expected outcome should be {expected:?}, got {:?}",
@@ -361,7 +415,8 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
             }
             if text(requirement, "classification") == Some("unknown_requires_review")
                 && text(check, "outcome") == Some("indeterminate")
-                && field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool) == Some(true)
+                && field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool)
+                    == Some(true)
             {
                 any_unresolved_mandatory = true;
             }
@@ -371,11 +426,12 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
         // as a technically assessed layout.
         let hard_failure = checks.iter().any(|check| {
             let requirement_id = text(check, "requirement_id");
-            let requirement = requirements.iter().find(|requirement| {
-                text(requirement, "requirement_id") == requirement_id
-            });
+            let requirement = requirements
+                .iter()
+                .find(|requirement| text(requirement, "requirement_id") == requirement_id);
             requirement.is_some_and(|requirement| {
-                field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool) == Some(true)
+                field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool)
+                    == Some(true)
                     && matches!(text(check, "outcome"), Some("fail" | "indeterminate"))
             })
         });
@@ -406,17 +462,25 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
         // Every placed object identity may appear at most once. Keep this
         // separate from geometric overlap so diagnostics identify bad inputs.
         if placement_ids.len() != placements.len() {
-            errors.push(format!("{label}.{alternative_id}: duplicate item placement"));
+            errors.push(format!(
+                "{label}.{alternative_id}: duplicate item placement"
+            ));
         }
         if check_ids.len() != checks.len() {
-            errors.push(format!("{label}.{alternative_id}: duplicate requirement check"));
+            errors.push(format!(
+                "{label}.{alternative_id}: duplicate requirement check"
+            ));
         }
     }
 
     if any_unresolved_mandatory
-        && alternatives.iter().any(|alternative| text(alternative, "promotion_disposition") != Some("blocked"))
+        && alternatives
+            .iter()
+            .any(|alternative| text(alternative, "promotion_disposition") != Some("blocked"))
     {
-        errors.push(format!("{label}: unknown required site evidence must block every alternative"));
+        errors.push(format!(
+            "{label}: unknown required site evidence must block every alternative"
+        ));
     }
 }
 
@@ -473,7 +537,7 @@ pub fn audit_fixtures(document: &Value) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::audit_fixtures;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
     use std::{fs, path::PathBuf};
 
     fn baseline() -> Value {
@@ -500,7 +564,11 @@ mod tests {
             let first = doc["scenarios"][0].clone();
             doc["scenarios"].as_array_mut().unwrap().push(first);
         });
-        assert!(errors.iter().any(|error| error.contains("duplicate scenario_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate scenario_id"))
+        );
     }
 
     #[test]
@@ -517,25 +585,35 @@ mod tests {
         let errors = errors_after(baseline(), |doc| {
             doc["scenarios"][3]["alternatives"][0]["placements"][1]["x_m"] = json!(3.0);
         });
-        assert!(errors.iter().any(|error| error.contains("outside nominal room")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("outside nominal room"))
+        );
     }
 
     #[test]
     fn expected_clear_route_outcome_cannot_be_forged() {
         let errors = errors_after(baseline(), |doc| {
-            doc["scenarios"][0]["alternatives"][0]["expected_checks"][0]["outcome"] =
-                json!("pass");
+            doc["scenarios"][0]["alternatives"][0]["expected_checks"][0]["outcome"] = json!("pass");
         });
-        assert!(errors.iter().any(|error| error.contains("expected outcome should be \"fail\"")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected outcome should be \"fail\""))
+        );
     }
 
     #[test]
     fn unknown_site_geometry_cannot_be_claimed_as_pass() {
         let errors = errors_after(baseline(), |doc| {
-            doc["scenarios"][3]["alternatives"][0]["expected_checks"][0]["outcome"] =
-                json!("pass");
+            doc["scenarios"][3]["alternatives"][0]["expected_checks"][0]["outcome"] = json!("pass");
         });
-        assert!(errors.iter().any(|error| error.contains("expected outcome should be \"indeterminate\"")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected outcome should be \"indeterminate\""))
+        );
     }
 
     #[test]
@@ -544,7 +622,11 @@ mod tests {
             doc["scenarios"][3]["alternatives"][1]["promotion_disposition"] =
                 json!("candidate_only");
         });
-        assert!(errors.iter().any(|error| error.contains("must block every alternative")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must block every alternative"))
+        );
     }
 
     #[test]
@@ -553,7 +635,12 @@ mod tests {
             doc["scenarios"][0]["alternatives"][1]["placements"][2]["x_m"] = json!(1.5);
             doc["scenarios"][0]["alternatives"][1]["placements"][2]["y_m"] = json!(3.0);
         });
-        assert!(errors.iter().any(|error| error.contains("furniture bed overlaps console") || error.contains("furniture console overlaps bed")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("furniture bed overlaps console")
+                    || error.contains("furniture console overlaps bed"))
+        );
     }
 
     #[test]
@@ -562,7 +649,11 @@ mod tests {
             doc["scenarios"][0]["alternatives"][0]["promotion_disposition"] =
                 json!("candidate_only");
         });
-        assert!(errors.iter().any(|error| error.contains("must remain blocked")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must remain blocked"))
+        );
     }
 
     #[test]
