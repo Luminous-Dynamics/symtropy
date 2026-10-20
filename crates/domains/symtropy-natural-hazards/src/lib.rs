@@ -400,10 +400,10 @@ impl HazardRunReceipt {
         if !is_sha256(&self.input_digest_sha256) {
             return Err(ReceiptValidationError::InvalidInputDigest);
         }
-        if let Some(digest) = &self.output_digest_sha256 {
-            if !is_sha256(digest) {
-                return Err(ReceiptValidationError::InvalidOutputDigest);
-            }
+        if let Some(digest) = &self.output_digest_sha256
+            && !is_sha256(digest)
+        {
+            return Err(ReceiptValidationError::InvalidOutputDigest);
         }
         if self.status == RunStatus::Pass && self.output_digest_sha256.is_none() {
             return Err(ReceiptValidationError::PassingRunMissingOutputDigest);
