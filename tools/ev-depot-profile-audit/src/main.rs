@@ -431,50 +431,58 @@ mod tests {
     fn expected_csv() -> Vec<u8> {
         let mut csv = String::from("time,avg_power_kw\n");
         for index in 0..EXPECTED_INTERVALS {
-            csv.push_str(&format!("{},{}\n", expected_time(index), if index < 4 { 100.0 } else { 0.0 }));
+            csv.push_str(&format!(
+                "{},{}\n",
+                expected_time(index),
+                if index < 4 { 100.0 } else { 0.0 }
+            ));
         }
         csv.into_bytes()
     }
 
     #[test]
     fn parses_profile_filename_for_each_strategy_and_profile_class() {
-        let average = parse_profile_filename(
-            "fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv",
-        )
-        .unwrap();
+        let average =
+            parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv")
+                .unwrap();
         assert_eq!(average.fleet_id, "fleet1-beverage-delivery");
         assert_eq!(average.fleet_size, 10);
         assert_eq!(average.strategy, "immediate");
         assert_eq!(average.profile_class, "average");
 
-        let minimum = parse_profile_filename(
-            "fleet3-food-delivery_100vehs_min-prof_min_power_15min.csv",
-        )
-        .unwrap();
+        let minimum =
+            parse_profile_filename("fleet3-food-delivery_100vehs_min-prof_min_power_15min.csv")
+                .unwrap();
         assert_eq!(minimum.strategy, "min_power");
         assert_eq!(minimum.profile_class, "min_peak");
 
-        let peak = parse_profile_filename(
-            "fleet2-warehouse-delivery_50vehs_peak-prof_delayed_15min.csv",
-        )
-        .unwrap();
+        let peak =
+            parse_profile_filename("fleet2-warehouse-delivery_50vehs_peak-prof_delayed_15min.csv")
+                .unwrap();
         assert_eq!(peak.strategy, "delayed");
         assert_eq!(peak.profile_class, "peak_peak");
     }
 
     #[test]
     fn rejects_unknown_fleet_resolution_and_strategy() {
-        assert!(parse_profile_filename("fleet4-other_10vehs_avg-prof_immediate_15min.csv").is_err());
-        assert!(parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_immediate_1min.csv").is_err());
-        assert!(parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_random_15min.csv").is_err());
+        assert!(
+            parse_profile_filename("fleet4-other_10vehs_avg-prof_immediate_15min.csv").is_err()
+        );
+        assert!(
+            parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_immediate_1min.csv")
+                .is_err()
+        );
+        assert!(
+            parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_random_15min.csv")
+                .is_err()
+        );
     }
 
     #[test]
     fn audits_96_bins_and_conserves_daily_energy_integral() {
-        let metadata = parse_profile_filename(
-            "fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv",
-        )
-        .unwrap();
+        let metadata =
+            parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv")
+                .unwrap();
         let csv = expected_csv();
         let profile = audit_csv(&metadata.filename, &csv, &metadata).unwrap();
         assert_eq!(profile.interval_count, 96);
@@ -483,23 +491,33 @@ mod tests {
         assert_eq!(profile.mean_power_kw, 100.0 / 24.0);
         assert_eq!(profile.nonzero_interval_count, 4);
         assert_eq!(profile.zero_interval_count, 92);
-        assert_eq!(profile.first_nonzero_interval_start.as_deref(), Some("00:00:00"));
-        assert_eq!(profile.last_nonzero_interval_start.as_deref(), Some("00:45:00"));
+        assert_eq!(
+            profile.first_nonzero_interval_start.as_deref(),
+            Some("00:00:00")
+        );
+        assert_eq!(
+            profile.last_nonzero_interval_start.as_deref(),
+            Some("00:45:00")
+        );
     }
 
     #[test]
     fn rejects_time_gaps_and_malformed_power_values() {
-        let metadata = parse_profile_filename(
-            "fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv",
-        )
-        .unwrap();
+        let metadata =
+            parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv")
+                .unwrap();
         let csv = String::from_utf8(expected_csv()).unwrap().replace("00:15:00,100", "00:30:00,100");
         assert!(audit_csv(&metadata.filename, csv.as_bytes(), &metadata)
             .unwrap_err().contains("time_sequence_mismatch"));
 
-        let csv = String::from_utf8(expected_csv()).unwrap().replace("00:00:00,100", "00:00:00,NaN");
-        assert!(audit_csv(&metadata.filename, csv.as_bytes(), &metadata)
-            .unwrap_err().contains("finite_and_nonnegative"));
+        let csv = String::from_utf8(expected_csv())
+            .unwrap()
+            .replace("00:00:00,100", "00:00:00,NaN");
+        assert!(
+            audit_csv(&metadata.filename, csv.as_bytes(), &metadata)
+                .unwrap_err()
+                .contains("finite_and_nonnegative")
+        );
     }
 
     #[test]
@@ -509,11 +527,17 @@ mod tests {
         )
         .unwrap();
         let too_short = "time,avg_power_kw\n00:00:00,1\n";
-        assert!(audit_csv(&metadata.filename, too_short.as_bytes(), &metadata)
-            .unwrap_err().contains("expected_96_intervals"));
+        assert!(
+            audit_csv(&metadata.filename, too_short.as_bytes(), &metadata)
+                .unwrap_err()
+                .contains("expected_96_intervals")
+        );
         let wrong_schema = "time,power\n00:00:00,1\n";
-        assert!(audit_csv(&metadata.filename, wrong_schema.as_bytes(), &metadata)
-            .unwrap_err().contains("required_power_column_missing"));
+        assert!(
+            audit_csv(&metadata.filename, wrong_schema.as_bytes(), &metadata)
+                .unwrap_err()
+                .contains("required_power_column_missing")
+        );
     }
 
     #[test]
