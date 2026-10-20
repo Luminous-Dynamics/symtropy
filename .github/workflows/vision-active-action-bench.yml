@@ -1,0 +1,76 @@
+name: Visual Active Action Diagnostic Pilot
+
+on:
+  push:
+    branches: ["feat/vis-act-evaluator-main-20261020"]
+    paths:
+      - "tools/vision-active-action-reference.rs"
+      - "tools/vision-active-action-benchmark.rs"
+      - "tools/vision-active-action-reference/**"
+      - "tools/vision-active-action-benchmark/**"
+      - ".github/workflows/vision-active-action-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-active-action-reference.rs"
+      - "tools/vision-active-action-benchmark.rs"
+      - "tools/vision-active-action-reference/**"
+      - "tools/vision-active-action-benchmark/**"
+      - ".github/workflows/vision-active-action-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vision-active-action-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Compile and run reference plus synthetic negative-control tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-action-benchmark.rs -o /tmp/vis-act-tests
+          /tmp/vis-act-tests
+
+      - name: Compile and execute the diagnostic pilot
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-action-benchmark.rs -o /tmp/vis-act-bench
+          /tmp/vis-act-bench | tee vis-act-pilot.tsv
+          grep -Fq "always_cheap" vis-act-pilot.tsv
+          grep -Fq "always_escalate" vis-act-pilot.tsv
+          grep -Fq "confidence_threshold" vis-act-pilot.tsv
+          grep -Fq "surprise_only" vis-act-pilot.tsv
+          grep -Fq "deterministic_random" vis-act-pilot.tsv
+          grep -Fq "sequential_evidence" vis-act-pilot.tsv
+
+      - name: Upload synthetic diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-synthetic-diagnostic
+          path: vis-act-pilot.tsv
+          if-no-files-found: error
+          retention-days: 14
