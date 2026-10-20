@@ -107,6 +107,65 @@ fn validate_provenance(value: &Value, path: &str, issues: &mut Vec<ValidationIss
     }
 }
 
+const KNOWN_PHYSICS: &[&str] = &[
+    "topology",
+    "static_linear_elastic",
+    "dynamic_response",
+    "nonlinear_material",
+    "fracture",
+    "rigid_contact",
+    "granular_contact",
+    "thermal_coupling",
+];
+
+fn validate_string_set_field(
+    value: &Value,
+    key: &str,
+    path: &str,
+    allowed: &[&str],
+    issues: &mut Vec<ValidationIssue>,
+) -> Option<BTreeSet<String>> {
+    let Some(items) = value.get(key).and_then(Value::as_array) else {
+        issue(
+            issues,
+            format!("{path}.{key}"),
+            "type.array",
+            "field must be an array of unique strings",
+        );
+        return None;
+    };
+
+    let mut seen = BTreeSet::new();
+    for (index, item) in items.iter().enumerate() {
+        let item_path = format!("{path}.{key}[{index}]");
+        match item.as_str() {
+            Some(label) if allowed.contains(&label) => {
+                if !seen.insert(label.to_owned()) {
+                    issue(
+                        issues,
+                        item_path,
+                        "duplicate",
+                        "array entries must be unique",
+                    );
+                }
+            }
+            Some(_) => issue(
+                issues,
+                item_path,
+                "enum.label",
+                "array contains an unknown label",
+            ),
+            None => issue(
+                issues,
+                item_path,
+                "type.string",
+                "array entries must be strings",
+            ),
+        }
+    }
+    Some(seen)
+}
+
 fn check_unique_tokens(
     values: &[Value],
     path: &str,
@@ -945,6 +1004,31 @@ pub fn validate_receipt_json(
         );
     }
 
+    let evaluated = validate_string_set_field(
+        receipt,
+        "physics_evaluated",
+        "$",
+        KNOWN_PHYSICS,
+        &mut issues,
+    );
+    let omitted = validate_string_set_field(
+        receipt,
+        "physics_omitted",
+        "$",
+        KNOWN_PHYSICS,
+        &mut issues,
+    );
+    if let (Some(evaluated), Some(omitted)) = (&evaluated, &omitted) {
+        for physics in evaluated.intersection(omitted) {
+            issue(
+                &mut issues,
+                "$.physics_evaluated",
+                "physics.overlap",
+                &format!("physics capability '{physics}' cannot be both evaluated and omitted"),
+            );
+        }
+    }
+
     let Some(adapter) = receipt.get("adapter").and_then(Value::as_object) else {
         issue(
             &mut issues,
@@ -1211,40 +1295,66 @@ pub fn validate_receipt_json(
             }
         }
 
-        if status == Some("PASS") {
-            let fidelity = request
-                .get("model_fidelity")
-                .and_then(Value::as_str)
-                .unwrap_or("");
-            if let Some(physics) = request.get("requested_physics").and_then(Value::as_array) {
-                for (index, item) in physics.iter().enumerate() {
-                    let requested = item.as_str().unwrap_or("");
-                    if !compatible_physics(fidelity, requested) {
-                        issue(
-                            &mut issues,
-                            format!("request.requested_physics[{index}]"),
-                            "pass.unsupported_physics",
-                            "PASS is forbidden when requested physics is incompatible with model fidelity",
-                        );
-                    }
-                    let evaluated = receipt
-                        .get("physics_evaluated")
-                        .and_then(Value::as_array)
-                        .is_some_and(|a| a.iter().any(|v| v.as_str() == Some(requested)));
-                    let omitted = receipt
-                        .get("physics_omitted")
-                        .and_then(Value::as_array)
-                        .is_some_and(|a| a.iter().any(|v| v.as_str() == Some(requested)));
-                    if !evaluated || omitted {
-                        issue(
-                            &mut issues,
-                            format!("$.physics_evaluated[{index}]"),
-                            "pass.physics_not_evaluated",
-                            "PASS requires every requested physics capability to be evaluated and not omitted",
-                        );
+        if let Some(physics) = request.get("requested_physics").and_then(Value::as_array) {
+            let requested: BTreeSet<String> = physics
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect();
+
+            if let (Some(evaluated_set), Some(omitted_set)) = (&evaluated, &omitted) {
+                let reported: BTreeSet<String> = evaluated_set
+                    .union(omitted_set)
+                    .cloned()
+                    .collect();
+
+                for extra in reported.difference(&requested) {
+                    issue(
+                        &mut issues,
+                        "$.physics_evaluated",
+                        "physics.partition_extra",
+                        &format!("receipt reports unrequested physics capability '{extra}'"),
+                    );
+                }
+                for missing in requested.difference(&reported) {
+                    issue(
+                        &mut issues,
+                        "$.physics_evaluated",
+                        "physics.partition_missing",
+                        &format!("receipt does not classify requested physics capability '{missing}'"),
+                    );
+                }
+
+                if status == Some("PASS") {
+                    for physics_name in &requested {
+                        if !compatible_physics(
+                            request
+                                .get("model_fidelity")
+                                .and_then(Value::as_str)
+                                .unwrap_or(""),
+                            physics_name,
+                        ) {
+                            issue(
+                                &mut issues,
+                                "$.status",
+                                "pass.unsupported_physics",
+                                "PASS is forbidden when requested physics is incompatible with model fidelity",
+                            );
+                        }
+                        if !evaluated_set.contains(physics_name) || omitted_set.contains(physics_name) {
+                            issue(
+                                &mut issues,
+                                "$.physics_evaluated",
+                                "pass.physics_not_evaluated",
+                                &format!("PASS requires requested physics '{physics_name}' to be evaluated and not omitted"),
+                            );
+                        }
                     }
                 }
             }
+        }
+
+        if status == Some("PASS") {
             if let (Some(required), Some(outputs)) = (
                 request.get("required_outputs").and_then(Value::as_array),
                 receipt.get("outputs").and_then(Value::as_array),
