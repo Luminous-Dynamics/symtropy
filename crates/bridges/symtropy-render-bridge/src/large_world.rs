@@ -156,10 +156,7 @@ impl LargeWorldPosition {
     /// Shift by metres without adding a large displacement directly to the
     /// current local offset. Use explicit cell deltas for larger movements than
     /// one f64 can decompose with a reliable within-cell remainder.
-    pub fn offset_by_meters(
-        &self,
-        delta_m: [f64; 3],
-    ) -> Result<Self, LargeWorldError> {
+    pub fn offset_by_meters(&self, delta_m: [f64; 3]) -> Result<Self, LargeWorldError> {
         let mut next_cell = self.cell;
         let mut next_local = self.local_m;
 
@@ -204,16 +201,12 @@ impl LargeWorldPosition {
     }
 
     /// Camera-relative metre coordinates, computed from the integer cell delta.
-    pub fn relative_to_meters(
-        &self,
-        origin: &Self,
-    ) -> Result<[f64; 3], LargeWorldError> {
+    pub fn relative_to_meters(&self, origin: &Self) -> Result<[f64; 3], LargeWorldError> {
         self.ensure_same_frame(origin)?;
         let mut relative = [0.0; 3];
 
         for axis in 0..3 {
-            let cell_delta =
-                i128::from(self.cell[axis]) - i128::from(origin.cell[axis]);
+            let cell_delta = i128::from(self.cell[axis]) - i128::from(origin.cell[axis]);
             let coarse = cell_delta as f64 * WORLD_CELL_SIZE_METERS;
             let value = coarse + (self.local_m[axis] - origin.local_m[axis]);
             if !value.is_finite() {
@@ -239,16 +232,15 @@ impl LargeWorldPosition {
         let mut low = [0.0_f32; 3];
 
         for axis in 0..3 {
-            let cell_delta =
-                i128::from(self.cell[axis]) - i128::from(origin.cell[axis]);
+            let cell_delta = i128::from(self.cell[axis]) - i128::from(origin.cell[axis]);
             let coarse = cell_delta as f64 * WORLD_CELL_SIZE_METERS;
             let high_part = coarse as f32;
             if !high_part.is_finite() {
                 return Err(LargeWorldError::NonFiniteRelativePosition);
             }
 
-            let residual = (coarse - f64::from(high_part))
-                + (self.local_m[axis] - origin.local_m[axis]);
+            let residual =
+                (coarse - f64::from(high_part)) + (self.local_m[axis] - origin.local_m[axis]);
             let middle_part = residual as f32;
             let low_part = (residual - f64::from(middle_part)) as f32;
             if !residual.is_finite() || !middle_part.is_finite() || !low_part.is_finite() {
@@ -279,8 +271,7 @@ impl LargeWorldPosition {
         let mut output = [0.0_f32; 3];
         for axis in 0..3 {
             let rounded = relative[axis] as f32;
-            if !rounded.is_finite()
-                || (f64::from(rounded) - relative[axis]).abs() > max_abs_error_m
+            if !rounded.is_finite() || (f64::from(rounded) - relative[axis]).abs() > max_abs_error_m
             {
                 return Err(LargeWorldError::RenderPrecisionBudgetExceeded);
             }
@@ -315,9 +306,7 @@ mod tests {
     }
 
     fn reconstruct(split: GpuRelativePosition, axis: usize) -> f64 {
-        f64::from(split.high[axis])
-            + f64::from(split.middle[axis])
-            + f64::from(split.low[axis])
+        f64::from(split.high[axis]) + f64::from(split.middle[axis]) + f64::from(split.low[axis])
     }
 
     #[test]
@@ -327,11 +316,7 @@ mod tests {
             Err(LargeWorldError::InvalidLocalOffset)
         );
         assert_eq!(
-            LargeWorldPosition::from_cell_local(
-                FRAME,
-                [0; 3],
-                [0.0, WORLD_CELL_SIZE_METERS, 0.0]
-            ),
+            LargeWorldPosition::from_cell_local(FRAME, [0; 3], [0.0, WORLD_CELL_SIZE_METERS, 0.0]),
             Err(LargeWorldError::InvalidLocalOffset)
         );
         assert_eq!(
@@ -410,11 +395,7 @@ mod tests {
     #[test]
     fn refuses_comparisons_between_untransformed_reference_frames() {
         let object = pos([1, 0, 0], [0.0; 3]);
-        let other = LargeWorldPosition::from_cell_local(
-            CoordinateFrameId(2),
-            [0; 3],
-            [0.0; 3],
-        )
+        let other = LargeWorldPosition::from_cell_local(CoordinateFrameId(2), [0; 3], [0.0; 3])
         .expect("other frame");
         assert_eq!(
             object.relative_to_meters(&other),
