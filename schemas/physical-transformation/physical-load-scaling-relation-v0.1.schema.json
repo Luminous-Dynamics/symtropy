@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-load-scaling-relation-v0.1.schema.json",
+  "title": "Physical Load-Scaling Relation v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "relation_id",
+    "case_id",
+    "baseline_request_sha256",
+    "scaled_request_sha256",
+    "load_scale_factor",
+    "absolute_tolerance",
+    "relative_tolerance",
+    "output_pairs"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-load-scaling-relation-v0.1" },
+    "relation_id": { "$ref": "#/$defs/token" },
+    "case_id": { "$ref": "#/$defs/token" },
+    "baseline_request_sha256": { "$ref": "#/$defs/sha256" },
+    "scaled_request_sha256": { "$ref": "#/$defs/sha256" },
+    "load_scale_factor": { "type": "number", "exclusiveMinimum": 0, "not": { "const": 1 } },
+    "absolute_tolerance": { "type": "number", "minimum": 0 },
+    "relative_tolerance": { "type": "number", "minimum": 0 },
+    "output_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["output_kind", "baseline_output_id", "scaled_output_id"],
+        "properties": {
+          "output_kind": { "$ref": "#/$defs/token" },
+          "baseline_output_id": { "$ref": "#/$defs/token" },
+          "scaled_output_id": { "$ref": "#/$defs/token" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
