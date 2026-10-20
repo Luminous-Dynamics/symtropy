@@ -12,6 +12,9 @@
 
 #![forbid(unsafe_code)]
 
+mod stoker;
+pub use stoker::{StokerState, stoker_dam_break};
+
 /// One finite-volume cell. Discharge is q = h*u per unit channel width.
 ///
 /// Units: depth and bed elevation in metres; discharge in m²/s.
