@@ -103,3 +103,16 @@ The first result should answer: **does the system reliably catch known circulati
 ## Current validation boundary
 
 The JSON schema and fixture files were created on a research branch. JSON syntax and basic nominal room-bound checks were mirrored independently during authoring. No formal JSON Schema validator, Rust compiler, Rust test suite, physical-performance solver, usability study, or hosted CI pass is claimed. Geometry-reference validation, full overlap analysis, and all hostile controls remain future work. This is a benchmark specification—not a furniture optimizer or a qualified interior-design product.
+
+
+## Marketplace composition
+
+The furnishing benchmark now has a proposed, effects-disabled offer-profile companion in [Mycelix PR #5251](https://github.com/Luminous-Dynamics/mycelix/pull/5251). Keep the concerns separated:
+
+- Symtropy exports a revision-pinned design context, geometry/zone constraints, units, evidence state, and which geometric checks were actually performed.
+- Mycelix Marketplace returns existing listing references and source-attributed item/offer profiles. The profile must not duplicate authoritative price, availability, seller, order or transaction state.
+- Symthaea can propose alternatives and explain trade-offs, but a missing or unlicensed geometry asset cannot be treated as a verified fit.
+- Reuse, repair and refurbished candidates belong in the shortlist, but seller assertions about reclaimed material, repairability or sustainability remain unverified unless sourced evidence justifies a stronger claim.
+- Exploration is read-only and effects-disabled. No buyer authorization, checkout, reservation, payment or public floor-plan disclosure is implied by a compatibility check.
+
+The current Marketplace implementation is pre-alpha; the new profile is a contract proposal, not a functioning adapter. Do not change the production Marketplace transaction path until the profile is mapped field-by-field to its existing wire contracts and its independent checks pass.
