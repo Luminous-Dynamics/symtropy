@@ -55,8 +55,7 @@ impl Workload {
         let row = index / side.max(1);
         let column = index % side.max(1);
         let next_row = row + 1;
-        let vertical_overlap =
-            self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON;
+        let vertical_overlap = self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON;
         let next_row_intrudes = vertical_overlap
             && next_row < side
             && (-1isize..=1).any(|delta_column| {
@@ -69,11 +68,7 @@ impl Workload {
                     && (delta_column.unsigned_abs() as f64) * self.pitch()
                         < ITEM_WIDTH - GEOMETRY_EPSILON
             });
-        if next_row_intrudes {
-            "fail"
-        } else {
-            "pass"
-        }
+        if next_row_intrudes { "fail" } else { "pass" }
     }
 
     fn promotion_disposition(self, item_count: usize, side: usize) -> &'static str {
