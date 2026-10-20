@@ -353,7 +353,7 @@ fn simulate_case(case: &Value) -> Check<Value> {
     let mut step_metrics = Vec::new();
     let mut target_cursor = BTreeMap::<String, String>::new();
     let mut closure_blocked_entry_attempts = 0u64;
-    let mut storage_blocked_step_count = 0u64;
+    let mut storage_limited_step_count = 0u64;
     let mut free_flow_lower_bound = 0u64;
 
     for demand in &demands {
@@ -654,11 +654,11 @@ fn simulate_case(case: &Value) -> Check<Value> {
         max_source_queue = max_source_queue.max(source_queue);
         max_network_queue = max_network_queue.max(network_queue);
         queue_vehicle_steps += source_queue + network_queue;
-        storage_blocked_step_count += edges
+        storage_limited_step_count += edges
             .iter()
             .enumerate()
             .filter(|(i, edge)| {
-                edge_vehicles[*i].len() as u64 >= edge.storage
+                edge.storage.saturating_sub(edge_vehicles[*i].len() as u64) < edge.capacity
                     && stream_queues
                         .iter()
                         .any(|stream| stream.iter().any(|request| request.target_edge == Some(*i)))
@@ -786,7 +786,7 @@ fn simulate_case(case: &Value) -> Check<Value> {
         "queue_vehicle_steps": queue_vehicle_steps,
         "max_source_queue": max_source_queue,
         "max_network_queue": max_network_queue,
-        "storage_blocked_step_count": storage_blocked_step_count,
+        "storage_limited_step_count": storage_limited_step_count,
         "closure_blocked_entry_attempts": closure_blocked_entry_attempts,
         "mass_balance_ok": all_mass_balances,
         "capacity_checks_ok": all_capacity_checks,
@@ -934,7 +934,7 @@ mod tests {
         let case = &results[1];
         assert_eq!(case["served_vehicles"], 8);
         assert_eq!(case["unserved_or_stranded_vehicles"], 0);
-        assert!(case["storage_blocked_step_count"].as_u64().unwrap_or(0) > 0);
+        assert!(case["storage_limited_step_count"].as_u64().unwrap_or(0) > 0);
         for edge in case["edges"].as_array().expect("edges") {
             assert!(
                 edge["max_occupancy"].as_u64().unwrap_or(u64::MAX)
