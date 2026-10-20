@@ -29,10 +29,17 @@ pub struct Connection {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Operation {
     InstallComponent(Component),
-    RemoveComponent { id: String },
+    RemoveComponent {
+        id: String,
+    },
     CreateConnection(Connection),
-    RemoveConnection { id: String },
-    SetSupport { component_id: String, active: bool },
+    RemoveConnection {
+        id: String,
+    },
+    SetSupport {
+        component_id: String,
+        active: bool,
+    },
     RecoverComponent {
         component_id: String,
         reused_mg: u64,
@@ -93,10 +100,12 @@ impl World {
     }
 
     pub fn recovered_mass_mg(&self) -> Check<u64> {
-        self.recovered_components.values().try_fold(0_u64, |sum, record| {
-            sum.checked_add(record.input_mass_mg)
-                .ok_or_else(|| "recovered mass total overflow".to_owned())
-        })
+        self.recovered_components
+            .values()
+            .try_fold(0_u64, |sum, record| {
+                sum.checked_add(record.input_mass_mg)
+                    .ok_or_else(|| "recovered mass total overflow".to_owned())
+            })
     }
 
     /// Apply one event transactionally: any rejected operation leaves every
@@ -210,17 +219,23 @@ impl World {
                     .ok_or_else(|| format!("unknown component to recover: {component_id}"))?;
 
                 if self.recovered_components.contains_key(&component_id) {
-                    return Err(format!("component already has recovery record: {component_id}"));
+                    return Err(format!(
+                        "component already has recovery record: {component_id}"
+                    ));
                 }
                 if self.active_supports.contains(&component_id) {
-                    return Err(format!("cannot recover supported component: {component_id}"));
+                    return Err(format!(
+                        "cannot recover supported component: {component_id}"
+                    ));
                 }
                 if self
                     .connections
                     .values()
                     .any(|connection| connection.a == component_id || connection.b == component_id)
                 {
-                    return Err(format!("cannot recover connected component: {component_id}"));
+                    return Err(format!(
+                        "cannot recover connected component: {component_id}"
+                    ));
                 }
 
                 MassLedger {
@@ -716,7 +731,6 @@ mod tests {
         assert_eq!(world.component_count(), 0);
     }
 
-
     #[test]
     fn component_recovery_is_atomic_and_binds_ledger_to_declared_component_mass() {
         let mut world = World::default();
@@ -797,7 +811,10 @@ mod tests {
             .expect("balanced recovery succeeds after preconditions are satisfied");
         assert_eq!(world.component_count(), 1);
         assert_eq!(world.recovered_component_count(), 1);
-        assert_eq!(world.recovered_mass_mg().expect("valid recovered mass"), 1_000);
+        assert_eq!(
+            world.recovered_mass_mg().expect("valid recovered mass"),
+            1_000
+        );
         let after_recovery = world.canonical_snapshot();
         let revision_after_recovery = world.revision();
         assert!(
@@ -814,7 +831,11 @@ mod tests {
         );
         assert_eq!(world.canonical_snapshot(), after_recovery);
         assert_eq!(world.revision(), revision_after_recovery);
-        assert!(world.canonical_snapshot().contains("recovered|A|steel|1000|500|300|50|100|50"));
+        assert!(
+            world
+                .canonical_snapshot()
+                .contains("recovered|A|steel|1000|500|300|50|100|50")
+        );
     }
 
     #[test]
