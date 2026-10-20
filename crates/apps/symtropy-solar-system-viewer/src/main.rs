@@ -150,6 +150,12 @@ struct BodyVisual {
 }
 
 #[derive(Component)]
+struct SkyStar {
+    direction: Vec3,
+    size_factor: f32,
+}
+
+#[derive(Component)]
 struct OrbitSegment {
     start: LargeWorldPosition,
     end: LargeWorldPosition,
@@ -390,6 +396,48 @@ fn setup(
         LocalFeature,
     ));
 
+    // Camera-relative synthetic starfield. These are angular background markers,
+    // not catalog stars with physical distance or ephemeris coordinates.
+    let star_mesh = meshes.add(Sphere::new(1.0).mesh().uv(8, 6));
+    let star_palette = [
+        Color::srgb(0.50, 0.64, 0.88),
+        Color::srgb(0.78, 0.84, 0.96),
+        Color::srgb(1.0, 0.90, 0.70),
+    ];
+    let star_materials: Vec<Handle<StandardMaterial>> = star_palette
+        .into_iter()
+        .map(|color| {
+            materials.add(StandardMaterial {
+                base_color: color,
+                unlit: true,
+                ..default()
+            })
+        })
+        .collect();
+    const STAR_COUNT: usize = 512;
+    let golden_angle = PI * (3.0 - 5.0_f64.sqrt());
+    for index in 0..STAR_COUNT {
+        let z = 1.0 - 2.0 * (index as f64 + 0.5) / STAR_COUNT as f64;
+        let radial = (1.0 - z * z).sqrt();
+        let angle = golden_angle * index as f64;
+        let direction = Vec3::new(
+            (radial * angle.cos()) as f32,
+            (radial * angle.sin()) as f32,
+            z as f32,
+        );
+        let size_factor = 0.65 + ((index * 37 % 101) as f32 / 100.0) * 0.7;
+        commands.spawn((
+            Mesh3d(star_mesh.clone()),
+            MeshMaterial3d(star_materials[index % star_materials.len()].clone()),
+            Transform::default(),
+            Visibility::Visible,
+            SkyStar {
+                direction,
+                size_factor,
+            },
+        ));
+    }
+
     commands.spawn((
         DirectionalLight {
             illuminance: 12_000.0,
@@ -535,7 +583,8 @@ fn update_scene(
     mut body_query: Query<(&BodyVisual, &mut Transform, &mut Visibility), (With<BodyVisual>, Without<SolarCamera>)>,
     mut tile_query: Query<(&mut Transform, &mut Visibility), (With<SurfaceTile>, Without<BodyVisual>, Without<LocalFeature>, Without<SolarCamera>)>,
     mut feature_query: Query<(&mut Transform, &mut Visibility), (With<LocalFeature>, Without<BodyVisual>, Without<SurfaceTile>, Without<SolarCamera>)>,
-    mut orbit_query: Query<(&OrbitSegment, &mut Transform, &mut Visibility), (With<OrbitSegment>, Without<BodyVisual>, Without<SurfaceTile>, Without<LocalFeature>, Without<SolarCamera>)>,
+    mut orbit_query: Query<(&OrbitSegment, &mut Transform, &mut Visibility), (With<OrbitSegment>, Without<BodyVisual>, Without<SurfaceTile>, Without<LocalFeature>, Without<SolarCamera>, Without<SkyStar>)>,
+    mut star_query: Query<(&SkyStar, &mut Transform, &mut Visibility), (With<SkyStar>, Without<BodyVisual>, Without<SurfaceTile>, Without<LocalFeature>, Without<OrbitSegment>, Without<SolarCamera>)>,
     mut camera_query: Query<(&mut Transform, &mut Projection), With<SolarCamera>>,
 ) {
     state.bands = [0; 6];
@@ -724,6 +773,15 @@ fn update_scene(
         }
     }
 
+    let star_depth = state.far_m * 0.94;
+    let star_radius = star_depth * (FOV_RADIANS / 2.0).tan()
+        / f64::from(VIEWPORT_HEIGHT_PX) * 0.5;
+    for (star, mut transform, mut visibility) in &mut star_query {
+        transform.translation = star.direction * star_depth as f32;
+        transform.scale = Vec3::splat((star_radius as f32) * star.size_factor);
+        *visibility = Visibility::Visible;
+    }
+
     let focus_relative = state
         .focus_position
         .relative_to_meters(&state.camera_position)
@@ -756,7 +814,7 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
         "camera settled"
     };
     let message = format!(
-        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
+        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS + SYNTHETIC STARS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nSynthetic sky markers are angular background only; orbit-line widths are exaggerated.\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
         state.stage.label(),
         movement,
         state.visible_bodies,
