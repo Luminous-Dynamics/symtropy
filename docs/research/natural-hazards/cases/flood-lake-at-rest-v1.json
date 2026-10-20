@@ -1,0 +1,86 @@
+{
+  "schema": "symtropy.natural_hazard_case.v1",
+  "case_id": "flood.synthetic.lake-at-rest.v1",
+  "claim_ceiling": "analytical_or_manufactured",
+  "target": {
+    "quantity": "water_depth",
+    "units": "m",
+    "spatial_support": "cell-centred grid over a closed synthetic basin",
+    "coordinate_reference": "local Cartesian grid with metre coordinates",
+    "valid_start_unix_s": 1800000000,
+    "valid_end_unix_s": 1800003600,
+    "observation_operator": "cell mean at model-valid time"
+  },
+  "sources": [
+    {
+      "source_id": "synthetic-initial-condition",
+      "publisher": "Symtropy test fixture",
+      "dataset_version": "v1",
+      "permission": "not_applicable",
+      "digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "limitations": [
+        "Synthetic contract fixture only",
+        "Not a historical observation or operational forecast"
+      ]
+    }
+  ],
+  "reference": {
+    "model_id": "analytic-lake-at-rest",
+    "version": "v1",
+    "comparability_statement": "Same water-depth target, units, support, mask and valid times",
+    "uncertainty_statement": "Manufactured solution; numerical tolerance must be justified by the solver"
+  },
+  "baseline": {
+    "model_id": "static-water-baseline",
+    "version": "v1",
+    "comparability_statement": "Same synthetic initial state and scoring support",
+    "uncertainty_statement": "Deterministic baseline; does not represent real-world predictive uncertainty"
+  },
+  "metrics": [
+    {
+      "metric_id": "max_depth_error",
+      "units": "m",
+      "baseline_required": true,
+      "tolerance": 0.000001,
+      "threshold": null
+    }
+  ],
+  "evidence": [
+    {
+      "class": "structural_invariant",
+      "status": "pass",
+      "suite_id": "closed-basin-budget-v1",
+      "source_uri": null,
+      "detail": "Fixture specifies a structural-budget test only"
+    },
+    {
+      "class": "analytical_or_manufactured",
+      "status": "pass",
+      "suite_id": "lake-at-rest-analytic-v1",
+      "source_uri": null,
+      "detail": "Fixture includes a named analytical target; no solver result is asserted here"
+    }
+  ],
+  "splits": [
+    {
+      "sample_id": "calibration-sample-001",
+      "event_id": "synthetic-event-calibration",
+      "region_id": "synthetic-region-a",
+      "role": "calibration"
+    },
+    {
+      "sample_id": "holdout-sample-001",
+      "event_id": "synthetic-event-holdout",
+      "region_id": "synthetic-region-b",
+      "role": "holdout"
+    }
+  ],
+  "input_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "config_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "decision_utility_spec": null,
+  "operational_context": null,
+  "limitations": [
+    "Fixture tests schema decoding and claim gates only",
+    "No hydrodynamic solver output, observed event or empirical skill is represented"
+  ]
+}
