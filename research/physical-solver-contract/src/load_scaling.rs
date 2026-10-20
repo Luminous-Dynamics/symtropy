@@ -3,7 +3,9 @@
 //! This is numerical code verification, not physical validation.
 
 use crate::{
-    reference_compare::{MAX_NORMALIZED_BYTES, ObservedObservable, parse_observation, safe_relative_path},
+    reference_compare::{
+        MAX_NORMALIZED_BYTES, ObservedObservable, parse_observation, safe_relative_path,
+    },
     sha256_hex, verify_solver_output_artifact_bytes,
 };
 use serde_json::{Value, json};
@@ -77,23 +79,41 @@ pub fn assess_load_scaling_relation_bytes(
 
     let baseline_request: Value = match serde_json::from_slice(baseline_request_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("baseline request JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("baseline request JSON is invalid: {error}"),
+            ));
+        }
     };
     let scaled_request: Value = match serde_json::from_slice(scaled_request_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("scaled request JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("scaled request JSON is invalid: {error}"),
+            ));
+        }
     };
     if let Err(reason) = validate_request_relation(&baseline_request, &scaled_request, &manifest) {
         return Ok(unresolved(report, reason));
     }
 
-    let paired_kinds: BTreeSet<&str> = manifest.output_pairs.iter().map(|pair| pair.kind.as_str()).collect();
+    let paired_kinds: BTreeSet<&str> = manifest
+        .output_pairs
+        .iter()
+        .map(|pair| pair.kind.as_str())
+        .collect();
     let requested_kinds: BTreeSet<&str> = req_array(&baseline_request, "required_outputs")?
-        .iter().map(|value| value.as_str().unwrap_or("")).collect();
+        .iter()
+        .map(|value| value.as_str().unwrap_or(""))
+        .collect();
     if paired_kinds != requested_kinds {
         return Ok(unresolved(
             report,
-            format!("output pairs must cover the exact required output inventory; requested={requested_kinds:?}, paired={paired_kinds:?}"),
+            format!(
+                "output pairs must cover the exact required output inventory; requested={requested_kinds:?}, paired={paired_kinds:?}"
+            ),
         ));
     }
 
@@ -103,7 +123,12 @@ pub fn assess_load_scaling_relation_bytes(
         artifact_root,
     ) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("baseline receipt/artifact verification failed: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("baseline receipt/artifact verification failed: {error}"),
+            ));
+        }
     };
     let scaled_verification = match verify_solver_output_artifact_bytes(
         scaled_request_bytes,
@@ -111,40 +136,73 @@ pub fn assess_load_scaling_relation_bytes(
         artifact_root,
     ) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("scaled receipt/artifact verification failed: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("scaled receipt/artifact verification failed: {error}"),
+            ));
+        }
     };
-    report["baseline_artifact_verification_status"] =
-        baseline_verification.get("artifact_verification_status").cloned().unwrap_or(Value::Null);
-    report["scaled_artifact_verification_status"] =
-        scaled_verification.get("artifact_verification_status").cloned().unwrap_or(Value::Null);
-    report["baseline_output_artifact_bytes_verified"] =
-        baseline_verification.get("output_artifact_bytes_verified").cloned().unwrap_or(Value::Bool(false));
-    report["scaled_output_artifact_bytes_verified"] =
-        scaled_verification.get("output_artifact_bytes_verified").cloned().unwrap_or(Value::Bool(false));
-    report["baseline_producer_status"] =
-        baseline_verification.get("producer_status").cloned().unwrap_or(Value::Null);
-    report["scaled_producer_status"] =
-        scaled_verification.get("producer_status").cloned().unwrap_or(Value::Null);
+    report["baseline_artifact_verification_status"] = baseline_verification
+        .get("artifact_verification_status")
+        .cloned()
+        .unwrap_or(Value::Null);
+    report["scaled_artifact_verification_status"] = scaled_verification
+        .get("artifact_verification_status")
+        .cloned()
+        .unwrap_or(Value::Null);
+    report["baseline_output_artifact_bytes_verified"] = baseline_verification
+        .get("output_artifact_bytes_verified")
+        .cloned()
+        .unwrap_or(Value::Bool(false));
+    report["scaled_output_artifact_bytes_verified"] = scaled_verification
+        .get("output_artifact_bytes_verified")
+        .cloned()
+        .unwrap_or(Value::Bool(false));
+    report["baseline_producer_status"] = baseline_verification
+        .get("producer_status")
+        .cloned()
+        .unwrap_or(Value::Null);
+    report["scaled_producer_status"] = scaled_verification
+        .get("producer_status")
+        .cloned()
+        .unwrap_or(Value::Null);
     if baseline_verification["artifact_verification_status"] != "PASS"
         || scaled_verification["artifact_verification_status"] != "PASS"
         || baseline_verification["output_artifact_bytes_verified"] != true
         || scaled_verification["output_artifact_bytes_verified"] != true
     {
-        return Ok(unresolved(report, "both runs must pass receipt-bound output-byte verification"));
+        return Ok(unresolved(
+            report,
+            "both runs must pass receipt-bound output-byte verification",
+        ));
     }
     if baseline_verification["producer_status"] != "PASS"
         || scaled_verification["producer_status"] != "PASS"
     {
-        return Ok(unresolved(report, "both producer receipts must be PASS before scoring a relation"));
+        return Ok(unresolved(
+            report,
+            "both producer receipts must be PASS before scoring a relation",
+        ));
     }
 
     let baseline_receipt: Value = match serde_json::from_slice(baseline_receipt_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("baseline receipt JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("baseline receipt JSON is invalid: {error}"),
+            ));
+        }
     };
     let scaled_receipt: Value = match serde_json::from_slice(scaled_receipt_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("scaled receipt JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("scaled receipt JSON is invalid: {error}"),
+            ));
+        }
     };
 
     let mut output_results = Vec::with_capacity(manifest.output_pairs.len());
@@ -155,24 +213,52 @@ pub fn assess_load_scaling_relation_bytes(
 
     for pair in &manifest.output_pairs {
         let baseline = match bind_output(
-            artifact_root, &baseline_receipt, &baseline_verification, &pair.baseline_id, &pair.kind,
+            artifact_root,
+            &baseline_receipt,
+            &baseline_verification,
+            &pair.baseline_id,
+            &pair.kind,
         ) {
             Ok(value) => value,
-            Err(reason) => return Ok(unresolved(report, format!("baseline output '{}': {reason}", pair.baseline_id))),
+            Err(reason) => {
+                return Ok(unresolved(
+                    report,
+                    format!("baseline output '{}': {reason}", pair.baseline_id),
+                ));
+            }
         };
         let scaled = match bind_output(
-            artifact_root, &scaled_receipt, &scaled_verification, &pair.scaled_id, &pair.kind,
+            artifact_root,
+            &scaled_receipt,
+            &scaled_verification,
+            &pair.scaled_id,
+            &pair.kind,
         ) {
             Ok(value) => value,
-            Err(reason) => return Ok(unresolved(report, format!("scaled output '{}': {reason}", pair.scaled_id))),
+            Err(reason) => {
+                return Ok(unresolved(
+                    report,
+                    format!("scaled output '{}': {reason}", pair.scaled_id),
+                ));
+            }
         };
         let baseline_value: Value = match serde_json::from_slice(&baseline.bytes) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("baseline normalized output JSON is invalid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("baseline normalized output JSON is invalid: {error}"),
+                ));
+            }
         };
         let scaled_value: Value = match serde_json::from_slice(&scaled.bytes) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("scaled normalized output JSON is invalid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("scaled normalized output JSON is invalid: {error}"),
+                ));
+            }
         };
         let baseline_observables = match parse_observation(
             &baseline_value,
@@ -183,7 +269,12 @@ pub fn assess_load_scaling_relation_bytes(
             &manifest.case_id,
         ) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("baseline normalized output is not bound/valid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("baseline normalized output is not bound/valid: {error}"),
+                ));
+            }
         };
         let scaled_observables = match parse_observation(
             &scaled_value,
@@ -194,12 +285,23 @@ pub fn assess_load_scaling_relation_bytes(
             &manifest.case_id,
         ) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("scaled normalized output is not bound/valid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("scaled normalized output is not bound/valid: {error}"),
+                ));
+            }
         };
         if baseline_observables.keys().collect::<BTreeSet<_>>()
             != scaled_observables.keys().collect::<BTreeSet<_>>()
         {
-            return Ok(unresolved(report, format!("observable inventory differs for output kind '{}'", pair.kind)));
+            return Ok(unresolved(
+                report,
+                format!(
+                    "observable inventory differs for output kind '{}'",
+                    pair.kind
+                ),
+            ));
         }
         let (results, violations, unresolved, count) = compare_observables(
             &baseline_observables,
@@ -295,12 +397,18 @@ fn compare_observables(
             continue;
         }
         let within = error <= allowed;
-        if !within { violations += 1; }
+        if !within {
+            violations += 1;
+        }
         let (relative_error, relative_status) = if expected == 0.0 {
             (Value::Null, "undefined_zero_expected_value")
         } else {
             let value = error / expected.abs();
-            if value.is_finite() { (json!(value), "computed") } else { (Value::Null, "overflow") }
+            if value.is_finite() {
+                (json!(value), "computed")
+            } else {
+                (Value::Null, "overflow")
+            }
         };
         results.push(json!({
             "observable_id": id,
@@ -326,8 +434,12 @@ fn validate_request_relation(
     scaled: &Value,
     manifest: &RelationManifest,
 ) -> Check<()> {
-    let baseline_object = baseline.as_object().ok_or_else(|| "baseline request must be an object".to_owned())?;
-    let scaled_object = scaled.as_object().ok_or_else(|| "scaled request must be an object".to_owned())?;
+    let baseline_object = baseline
+        .as_object()
+        .ok_or_else(|| "baseline request must be an object".to_owned())?;
+    let scaled_object = scaled
+        .as_object()
+        .ok_or_else(|| "scaled request must be an object".to_owned())?;
     let fidelity = req_str(baseline, "model_fidelity")?;
     if !["analytical_linear_elastic", "continuum_linear_elastic"].contains(&fidelity) {
         return Err("load-scaling relation requires analytical_linear_elastic or continuum_linear_elastic fidelity".to_owned());
@@ -336,7 +448,9 @@ fn validate_request_relation(
     if physics.as_slice() != ["static_linear_elastic"] {
         return Err("load-scaling relation only supports static_linear_elastic as the sole requested physics".to_owned());
     }
-    if req_str(scaled, "model_fidelity")? != fidelity || req_string_array(scaled, "requested_physics")? != physics {
+    if req_str(scaled, "model_fidelity")? != fidelity
+        || req_string_array(scaled, "requested_physics")? != physics
+    {
         return Err("baseline and scaled requests must declare the same eligible model fidelity and physics".to_owned());
     }
     if req_str(baseline, "request_id")? == req_str(scaled, "request_id")? {
@@ -346,13 +460,20 @@ fn validate_request_relation(
         || req_u64(baseline, "scene_revision")? != req_u64(scaled, "scene_revision")?
         || req_str(baseline, "coordinate_frame_id")? != req_str(scaled, "coordinate_frame_id")?
     {
-        return Err("baseline and scaled requests must bind the same scene revision and coordinate frame".to_owned());
+        return Err(
+            "baseline and scaled requests must bind the same scene revision and coordinate frame"
+                .to_owned(),
+        );
     }
     // The only top-level semantic difference permitted is request_id and force vectors.
     for (key, value) in baseline_object {
-        if key == "request_id" || key == "loads" { continue; }
+        if key == "request_id" || key == "loads" {
+            continue;
+        }
         if scaled_object.get(key) != Some(value) {
-            return Err(format!("scaled request changes non-load input field '{key}'"));
+            return Err(format!(
+                "scaled request changes non-load input field '{key}'"
+            ));
         }
     }
     for key in scaled_object.keys() {
@@ -363,23 +484,42 @@ fn validate_request_relation(
     let baseline_loads = req_array(baseline, "loads")?;
     let scaled_loads = req_array(scaled, "loads")?;
     if baseline_loads.is_empty() || baseline_loads.len() != scaled_loads.len() {
-        return Err("baseline and scaled requests must contain the same non-empty load inventory".to_owned());
+        return Err(
+            "baseline and scaled requests must contain the same non-empty load inventory"
+                .to_owned(),
+        );
     }
-    for (index, (base_load, scaled_load)) in baseline_loads.iter().zip(scaled_loads.iter()).enumerate() {
-        if req_str(base_load, "kind")? != "point_force" || req_str(scaled_load, "kind")? != "point_force" {
-            return Err(format!("load {index} is outside v0.1 point_force-only scope"));
+    for (index, (base_load, scaled_load)) in
+        baseline_loads.iter().zip(scaled_loads.iter()).enumerate()
+    {
+        if req_str(base_load, "kind")? != "point_force"
+            || req_str(scaled_load, "kind")? != "point_force"
+        {
+            return Err(format!(
+                "load {index} is outside v0.1 point_force-only scope"
+            ));
         }
-        let base_obj = base_load.as_object().ok_or_else(|| format!("loads[{index}] must be an object"))?;
-        let scaled_obj = scaled_load.as_object().ok_or_else(|| format!("scaled loads[{index}] must be an object"))?;
+        let base_obj = base_load
+            .as_object()
+            .ok_or_else(|| format!("loads[{index}] must be an object"))?;
+        let scaled_obj = scaled_load
+            .as_object()
+            .ok_or_else(|| format!("scaled loads[{index}] must be an object"))?;
         for (key, value) in base_obj {
-            if key == "vector_xyz" { continue; }
+            if key == "vector_xyz" {
+                continue;
+            }
             if scaled_obj.get(key) != Some(value) {
-                return Err(format!("scaled load {index} changes load metadata field '{key}'"));
+                return Err(format!(
+                    "scaled load {index} changes load metadata field '{key}'"
+                ));
             }
         }
         for key in scaled_obj.keys() {
             if key != "vector_xyz" && !base_obj.contains_key(key) {
-                return Err(format!("scaled load {index} adds load metadata field '{key}'"));
+                return Err(format!(
+                    "scaled load {index} adds load metadata field '{key}'"
+                ));
             }
         }
         let base_vector = req_vec3(base_load, "vector_xyz", &format!("loads[{index}]"))?;
@@ -405,37 +545,59 @@ fn bind_output(
     expected_kind: &str,
 ) -> Check<BoundOutput> {
     let outputs = req_array(receipt, "outputs")?;
-    let matches: Vec<&Value> = outputs.iter().filter(|output| {
-        output.get("output_id").and_then(Value::as_str) == Some(output_id)
-    }).collect();
-    if matches.len() != 1 { return Err(format!("receipt must contain exactly one output ID '{output_id}'")); }
+    let matches: Vec<&Value> = outputs
+        .iter()
+        .filter(|output| output.get("output_id").and_then(Value::as_str) == Some(output_id))
+        .collect();
+    if matches.len() != 1 {
+        return Err(format!(
+            "receipt must contain exactly one output ID '{output_id}'"
+        ));
+    }
     let output = matches[0];
     if req_str(output, "kind")? != expected_kind {
         return Err(format!("output kind is not '{expected_kind}'"));
     }
-    let results = verification_report.get("artifact_results").and_then(Value::as_array)
+    let results = verification_report
+        .get("artifact_results")
+        .and_then(Value::as_array)
         .ok_or_else(|| "artifact verifier omitted artifact_results".to_owned())?;
-    let verified = results.iter().find(|item| item.get("output_id").and_then(Value::as_str) == Some(output_id))
+    let verified = results
+        .iter()
+        .find(|item| item.get("output_id").and_then(Value::as_str) == Some(output_id))
         .ok_or_else(|| format!("output '{output_id}' is missing a verifier entry"))?;
     if verified.get("status").and_then(Value::as_str) != Some("PASS") {
-        return Err(format!("output '{output_id}' did not pass byte verification"));
+        return Err(format!(
+            "output '{output_id}' did not pass byte verification"
+        ));
     }
     let expected_sha = req_str(output, "sha256")?;
     if req_str(verified, "observed_sha256")? != expected_sha {
-        return Err(format!("output '{output_id}' verifier digest differs from receipt"));
+        return Err(format!(
+            "output '{output_id}' verifier digest differs from receipt"
+        ));
     }
-    let root = fs::canonicalize(artifact_root).map_err(|error| format!("cannot canonicalize artifact root: {error}"))?;
+    let root = fs::canonicalize(artifact_root)
+        .map_err(|error| format!("cannot canonicalize artifact root: {error}"))?;
     let path = safe_relative_path(req_str(output, "artifact_ref")?)?;
     let candidate = root.join(path);
-    let canonical = fs::canonicalize(&candidate).map_err(|error| format!("cannot resolve output: {error}"))?;
-    if !canonical.starts_with(&root) { return Err("output resolves outside the canonical artifact root".to_owned()); }
-    let metadata = fs::metadata(&canonical).map_err(|error| format!("cannot inspect output: {error}"))?;
+    let canonical =
+        fs::canonicalize(&candidate).map_err(|error| format!("cannot resolve output: {error}"))?;
+    if !canonical.starts_with(&root) {
+        return Err("output resolves outside the canonical artifact root".to_owned());
+    }
+    let metadata =
+        fs::metadata(&canonical).map_err(|error| format!("cannot inspect output: {error}"))?;
     if !metadata.is_file() || metadata.len() > MAX_NORMALIZED_BYTES {
-        return Err("normalized output is not a regular file within the parser byte budget".to_owned());
+        return Err(
+            "normalized output is not a regular file within the parser byte budget".to_owned(),
+        );
     }
     let bytes = fs::read(&canonical).map_err(|error| format!("cannot read output: {error}"))?;
     let output_sha256 = sha256_hex(&bytes);
-    if output_sha256 != expected_sha { return Err("normalized output bytes changed after receipt verification".to_owned()); }
+    if output_sha256 != expected_sha {
+        return Err("normalized output bytes changed after receipt verification".to_owned());
+    }
     Ok(BoundOutput {
         bytes,
         output_sha256,
@@ -445,18 +607,27 @@ fn bind_output(
 }
 
 fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
-    let value: Value = serde_json::from_slice(bytes).map_err(|error| format!("invalid load-scaling manifest JSON: {error}"))?;
+    let value: Value = serde_json::from_slice(bytes)
+        .map_err(|error| format!("invalid load-scaling manifest JSON: {error}"))?;
     exact_keys(
         &value,
         &[
-            "schema_version", "relation_id", "case_id", "baseline_request_sha256",
-            "scaled_request_sha256", "load_scale_factor", "absolute_tolerance",
-            "relative_tolerance", "output_pairs"
+            "schema_version",
+            "relation_id",
+            "case_id",
+            "baseline_request_sha256",
+            "scaled_request_sha256",
+            "load_scale_factor",
+            "absolute_tolerance",
+            "relative_tolerance",
+            "output_pairs",
         ],
         "load-scaling manifest",
     )?;
     if req_str(&value, "schema_version")? != MANIFEST_SCHEMA {
-        return Err(format!("manifest.schema_version must equal '{MANIFEST_SCHEMA}'"));
+        return Err(format!(
+            "manifest.schema_version must equal '{MANIFEST_SCHEMA}'"
+        ));
     }
     let relation_id = req_token(&value, "relation_id")?;
     let case_id = req_token(&value, "case_id")?;
@@ -466,7 +637,9 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
     valid_sha(&scaled_request_sha256, "manifest.scaled_request_sha256")?;
     let scale_factor = req_number(&value, "load_scale_factor")?;
     if scale_factor <= 0.0 || scale_factor == 1.0 {
-        return Err("manifest.load_scale_factor must be finite, positive and different from 1".to_owned());
+        return Err(
+            "manifest.load_scale_factor must be finite, positive and different from 1".to_owned(),
+        );
     }
     let absolute_tolerance = req_number(&value, "absolute_tolerance")?;
     let relative_tolerance = req_number(&value, "relative_tolerance")?;
@@ -474,29 +647,53 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
         return Err("load-scaling tolerances must be non-negative".to_owned());
     }
     let pairs = req_array(&value, "output_pairs")?;
-    if pairs.is_empty() { return Err("manifest.output_pairs must be non-empty".to_owned()); }
+    if pairs.is_empty() {
+        return Err("manifest.output_pairs must be non-empty".to_owned());
+    }
     let mut output_pairs = Vec::with_capacity(pairs.len());
     let mut baseline_ids = BTreeSet::new();
     let mut scaled_ids = BTreeSet::new();
     let mut kinds = BTreeSet::new();
     for (index, pair) in pairs.iter().enumerate() {
         let at = format!("manifest.output_pairs[{index}]");
-        exact_keys(pair, &["output_kind", "baseline_output_id", "scaled_output_id"], &at)?;
+        exact_keys(
+            pair,
+            &["output_kind", "baseline_output_id", "scaled_output_id"],
+            &at,
+        )?;
         let kind = req_token(pair, "output_kind")?;
         let baseline_id = req_token(pair, "baseline_output_id")?;
         let scaled_id = req_token(pair, "scaled_output_id")?;
-        if !kinds.insert(kind.clone()) || !baseline_ids.insert(baseline_id.clone()) || !scaled_ids.insert(scaled_id.clone()) {
+        if !kinds.insert(kind.clone())
+            || !baseline_ids.insert(baseline_id.clone())
+            || !scaled_ids.insert(scaled_id.clone())
+        {
             return Err(format!("{at} duplicates an output kind or output ID"));
         }
-        output_pairs.push(OutputPair { kind, baseline_id, scaled_id });
+        output_pairs.push(OutputPair {
+            kind,
+            baseline_id,
+            scaled_id,
+        });
     }
     Ok(RelationManifest {
-        relation_id, case_id, baseline_request_sha256, scaled_request_sha256,
-        scale_factor, absolute_tolerance, relative_tolerance, output_pairs
+        relation_id,
+        case_id,
+        baseline_request_sha256,
+        scaled_request_sha256,
+        scale_factor,
+        absolute_tolerance,
+        relative_tolerance,
+        output_pairs,
     })
 }
 
-fn base_report(manifest: &RelationManifest, manifest_sha: &str, baseline_sha: &str, scaled_sha: &str) -> Value {
+fn base_report(
+    manifest: &RelationManifest,
+    manifest_sha: &str,
+    baseline_sha: &str,
+    scaled_sha: &str,
+) -> Value {
     json!({
         "schema_version":"physical-load-scaling-relation-report-v0.1",
         "relation_status":"UNRESOLVED",
@@ -531,50 +728,93 @@ fn unresolved(mut report: Value, reason: impl Into<String>) -> Value {
     report
 }
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
-    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{at} must be an object"))?;
     let expected: BTreeSet<&str> = expected.iter().copied().collect();
     let actual: BTreeSet<&str> = object.keys().map(String::as_str).collect();
     let missing: Vec<_> = expected.difference(&actual).copied().collect();
     let unknown: Vec<_> = actual.difference(&expected).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
-        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
     }
     Ok(())
 }
 fn req_str<'a>(value: &'a Value, key: &str) -> Check<&'a str> {
-    value.get(key).and_then(Value::as_str).ok_or_else(|| format!("{key} must be a string"))
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("{key} must be a string"))
 }
 fn req_u64(value: &Value, key: &str) -> Check<u64> {
-    value.get(key).and_then(Value::as_u64).ok_or_else(|| format!("{key} must be a non-negative integer"))
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| format!("{key} must be a non-negative integer"))
 }
 fn req_number(value: &Value, key: &str) -> Check<f64> {
-    value.get(key).and_then(Value::as_f64).filter(|n| n.is_finite()).ok_or_else(|| format!("{key} must be finite numeric"))
+    value
+        .get(key)
+        .and_then(Value::as_f64)
+        .filter(|n| n.is_finite())
+        .ok_or_else(|| format!("{key} must be finite numeric"))
 }
 fn req_array<'a>(value: &'a Value, key: &str) -> Check<&'a Vec<Value>> {
-    value.get(key).and_then(Value::as_array).ok_or_else(|| format!("{key} must be an array"))
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .ok_or_else(|| format!("{key} must be an array"))
 }
 fn req_string_array(value: &Value, key: &str) -> Check<Vec<String>> {
-    req_array(value, key)?.iter().map(|item| item.as_str().map(str::to_owned).ok_or_else(|| format!("{key} entries must be strings"))).collect()
+    req_array(value, key)?
+        .iter()
+        .map(|item| {
+            item.as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| format!("{key} entries must be strings"))
+        })
+        .collect()
 }
 fn req_token(value: &Value, key: &str) -> Check<String> {
     let value = req_str(value, key)?;
-    if value.is_empty() || value.len() > 128 || !value.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | ':')) {
+    if value.is_empty()
+        || value.len() > 128
+        || !value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | ':'))
+    {
         return Err(format!("{key} must be a stable token"));
     }
     Ok(value.to_owned())
 }
 fn valid_sha(value: &str, label: &str) -> Check<()> {
-    if value.len() != 64 || !value.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
-        return Err(format!("{label} must be 64 lowercase hexadecimal characters"));
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(format!(
+            "{label} must be 64 lowercase hexadecimal characters"
+        ));
     }
     Ok(())
 }
 fn req_vec3(value: &Value, key: &str, at: &str) -> Check<[f64; 3]> {
-    let values = value.get(key).and_then(Value::as_array).ok_or_else(|| format!("{at}.{key} must be a three-component vector"))?;
-    if values.len() != 3 { return Err(format!("{at}.{key} must contain exactly three components")); }
+    let values = value
+        .get(key)
+        .and_then(Value::as_array)
+        .ok_or_else(|| format!("{at}.{key} must be a three-component vector"))?;
+    if values.len() != 3 {
+        return Err(format!("{at}.{key} must contain exactly three components"));
+    }
     let mut output = [0.0; 3];
     for (index, item) in values.iter().enumerate() {
-        output[index] = item.as_f64().filter(|n| n.is_finite()).ok_or_else(|| format!("{at}.{key}[{index}] must be finite numeric"))?;
+        output[index] = item
+            .as_f64()
+            .filter(|n| n.is_finite())
+            .ok_or_else(|| format!("{at}.{key}[{index}] must be finite numeric"))?;
     }
     Ok(output)
 }
@@ -582,7 +822,11 @@ fn req_vec3(value: &Value, key: &str, at: &str) -> Check<[f64; 3]> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, path::PathBuf, sync::atomic::{AtomicUsize, Ordering}};
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     static NEXT: AtomicUsize = AtomicUsize::new(0);
 
@@ -595,13 +839,16 @@ mod tests {
         manifest: Vec<u8>,
     }
     impl Drop for Bundle {
-        fn drop(&mut self) { let _ = fs::remove_dir_all(&self.root); }
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
     }
 
     fn make_bundle(alpha: f64, scaled_output_multiplier: f64) -> Bundle {
         let mut baseline: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
-        )).unwrap();
+        ))
+        .unwrap();
         baseline["request_id"] = json!("fixture:load-scale-baseline");
         baseline["requested_physics"] = json!(["static_linear_elastic"]);
         baseline["required_outputs"] = json!(["displacement"]);
@@ -619,7 +866,8 @@ mod tests {
         let frame = baseline["coordinate_frame_id"].as_str().unwrap();
         let root = std::env::temp_dir().join(format!(
             "symtropy-load-scaling-{}-{}",
-            std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&root).unwrap();
 
@@ -652,7 +900,13 @@ mod tests {
         fs::write(root.join("baseline-displacement.json"), &b_bytes).unwrap();
         fs::write(root.join("scaled-displacement.json"), &s_bytes).unwrap();
 
-        fn receipt(request: &Value, request_bytes: &[u8], output_id: &str, path: &str, output_bytes: &[u8]) -> Value {
+        fn receipt(
+            request: &Value,
+            request_bytes: &[u8],
+            output_id: &str,
+            path: &str,
+            output_bytes: &[u8],
+        ) -> Value {
             json!({
                 "schema_version":"physical-solver-receipt-v0.1",
                 "request_id":request["request_id"],
@@ -686,8 +940,22 @@ mod tests {
                 "diagnostics":[]
             })
         }
-        let baseline_receipt = serde_json::to_vec(&receipt(&baseline, &baseline_request, "baseline-displacement", "baseline-displacement.json", &b_bytes)).unwrap();
-        let scaled_receipt = serde_json::to_vec(&receipt(&scaled, &scaled_request, "scaled-displacement", "scaled-displacement.json", &s_bytes)).unwrap();
+        let baseline_receipt = serde_json::to_vec(&receipt(
+            &baseline,
+            &baseline_request,
+            "baseline-displacement",
+            "baseline-displacement.json",
+            &b_bytes,
+        ))
+        .unwrap();
+        let scaled_receipt = serde_json::to_vec(&receipt(
+            &scaled,
+            &scaled_request,
+            "scaled-displacement",
+            "scaled-displacement.json",
+            &s_bytes,
+        ))
+        .unwrap();
         let manifest = json!({
             "schema_version":MANIFEST_SCHEMA,
             "relation_id":"fixture-load-scaling-relation",
@@ -705,16 +973,20 @@ mod tests {
             baseline_receipt,
             scaled_request,
             scaled_receipt,
-            manifest:serde_json::to_vec(&manifest).unwrap()
+            manifest: serde_json::to_vec(&manifest).unwrap(),
         }
     }
 
     fn assess(bundle: &Bundle) -> Value {
         assess_load_scaling_relation_bytes(
-            &bundle.baseline_request, &bundle.baseline_receipt,
-            &bundle.scaled_request, &bundle.scaled_receipt,
-            &bundle.root, &bundle.manifest
-        ).unwrap()
+            &bundle.baseline_request,
+            &bundle.baseline_receipt,
+            &bundle.scaled_request,
+            &bundle.scaled_receipt,
+            &bundle.root,
+            &bundle.manifest,
+        )
+        .unwrap()
     }
 
     #[test]
@@ -738,17 +1010,24 @@ mod tests {
     fn exact_zero_expected_value_has_no_invented_relative_error() {
         let report = assess(&make_bundle(2.0, 1.0));
         let outputs = report["output_results"].as_array().unwrap();
-        let zero = outputs[0]["observable_results"].as_array().unwrap().iter()
-            .find(|value| value["observable_id"] == "tip_uy").unwrap();
+        let zero = outputs[0]["observable_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|value| value["observable_id"] == "tip_uy")
+            .unwrap();
         assert_eq!(zero["relative_error"], Value::Null);
-        assert_eq!(zero["relative_error_status"], "undefined_zero_expected_value");
+        assert_eq!(
+            zero["relative_error_status"],
+            "undefined_zero_expected_value"
+        );
     }
 
     #[test]
     fn wrong_request_load_factor_is_unresolved() {
         let mut bundle = make_bundle(2.0, 1.0);
         let mut scaled: Value = serde_json::from_slice(&bundle.scaled_request).unwrap();
-        scaled["loads"][0]["vector_xyz"] = json!([1500.0,0.0,0.0]);
+        scaled["loads"][0]["vector_xyz"] = json!([1500.0, 0.0, 0.0]);
         bundle.scaled_request = serde_json::to_vec(&scaled).unwrap();
         let mut manifest: Value = serde_json::from_slice(&bundle.manifest).unwrap();
         manifest["scaled_request_sha256"] = json!(sha256_hex(&bundle.scaled_request));
