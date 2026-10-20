@@ -372,7 +372,11 @@ fn outward_upper(value: f64, margin: f64) -> Result<f64, AuditInputError> {
         return Err(AuditInputError::NumericOverflow);
     }
     let outward = expanded.next_up();
-    if outward.is_finite() { Ok(outward) } else { Err(AuditInputError::NumericOverflow) }
+    if outward.is_finite() {
+        Ok(outward)
+    } else {
+        Err(AuditInputError::NumericOverflow)
+    }
 }
 
 /// Audit two trajectories against explicit, time-bounded separation criteria.
