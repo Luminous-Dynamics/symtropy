@@ -38,6 +38,7 @@ const PRIOR_DISTRACTOR_PER_THOUSAND: f64 = 375.0;
 // Fixed, declared terminal-risk threshold expressed in task-loss units per request.
 // This is a transparent satisficing baseline, not an optimal stopping solver.
 const STOP_COST_PER_OBSERVATION: f64 = 0.04;
+const STOP_COST_GRID: [f64; 4] = [0.01, 0.04, 0.08, 0.12];
 const CONFIDENCE_TIERS: [(u16, f64); 3] = [(950, 0.75), (850, 0.20), (650, 0.05)];
 const DELAY_PRIORS: [(usize, f64); 6] = [
     (0, 0.167), (1, 0.167), (2, 0.292), (3, 0.125), (4, 0.125), (5, 0.124),
@@ -379,6 +380,7 @@ struct PolicyState {
     hazard: [HazardStats; QUERY_COUNT],
     action_rng: Rng,
     estimated_scoring_work_units: u64,
+    stop_cost_per_observation: f64,
 }
 
 impl PolicyState {
@@ -391,6 +393,7 @@ impl PolicyState {
             hazard: [HazardStats::default(); QUERY_COUNT],
             action_rng: Rng::new(seed),
             estimated_scoring_work_units: 0,
+            stop_cost_per_observation: STOP_COST_PER_OBSERVATION,
         }
     }
 
@@ -465,7 +468,7 @@ impl PolicyState {
             }
             PolicyKind::RiskThresholdStop => {
                 let terminal_risk = terminal_decision_risk(self.probabilities(HORIZON - 1));
-                if terminal_risk <= STOP_COST_PER_OBSERVATION {
+                if terminal_risk <= self.stop_cost_per_observation {
                     QUERY_COUNT // sentinel: stop sensing; run loop must not reveal a response
                 } else {
                     let probabilities = self.probabilities(tick);
@@ -609,8 +612,20 @@ fn run_policy_with_budget(
     seed: u64,
     budget: usize,
 ) -> RunResult {
+    run_policy_with_budget_and_stop_cost(episode, kind, seed, budget, STOP_COST_PER_OBSERVATION)
+}
+
+fn run_policy_with_budget_and_stop_cost(
+    episode: &ActiveEpisode,
+    kind: PolicyKind,
+    seed: u64,
+    budget: usize,
+    stop_cost_per_observation: f64,
+) -> RunResult {
     assert!(budget > 0 && budget <= HORIZON);
+    assert!(stop_cost_per_observation >= 0.0 && stop_cost_per_observation <= 0.25);
     let mut policy = PolicyState::new(kind, seed);
+    policy.stop_cost_per_observation = stop_cost_per_observation;
     let mut actions = Vec::with_capacity(budget);
 
     for tick in 0..budget {
