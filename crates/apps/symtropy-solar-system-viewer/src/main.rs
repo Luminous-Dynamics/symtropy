@@ -70,7 +70,10 @@ impl ViewStage {
     }
 
     fn is_surface_view(self) -> bool {
-        matches!(self, Self::LocalInspection | Self::PlanetSurface | Self::ReturnToLocal)
+        matches!(
+            self,
+            Self::LocalInspection | Self::PlanetSurface | Self::ReturnToLocal
+        )
     }
 
     fn stage_clip(self) -> (f64, f64) {
@@ -352,11 +355,13 @@ fn focus_for_stage(
         ViewStage::LocalInspection | ViewStage::PlanetSurface | ViewStage::ReturnToLocal => {
             surface_feature
         }
-        ViewStage::LowOrbit => bodies
-            .iter()
-            .find(|body| body.id == "earth")
-            .expect("Earth is catalogued")
-            .position,
+        ViewStage::LowOrbit => {
+            bodies
+                .iter()
+                .find(|body| body.id == "earth")
+                .expect("Earth is catalogued")
+                .position
+        }
         ViewStage::EarthMoon => bodies
             .iter()
             .find(|body| body.id == "earth")
@@ -364,11 +369,13 @@ fn focus_for_stage(
             .position
             .offset_by_meters([MOON_MEAN_DISTANCE_M * 0.5, 0.0, 0.0])
             .expect("Earth-Moon midpoint is representable"),
-        ViewStage::InnerSystem | ViewStage::OuterSystem => bodies
-            .iter()
-            .find(|body| body.id == "sun")
-            .expect("Sun is catalogued")
-            .position,
+        ViewStage::InnerSystem | ViewStage::OuterSystem => {
+            bodies
+                .iter()
+                .find(|body| body.id == "sun")
+                .expect("Sun is catalogued")
+                .position
+        }
     }
 }
 
@@ -603,20 +610,16 @@ fn advance_transition(time: Res<Time>, mut state: ResMut<ViewerState>) {
         state.precision_rejections = state.precision_rejections.saturating_add(1);
     }
 
-    if let Some(focus) =
-        interpolate_position(movement.start_focus, movement.goal_focus, fraction)
-    {
+    if let Some(focus) = interpolate_position(movement.start_focus, movement.goal_focus, fraction) {
         state.focus_position = focus;
     } else {
         state.precision_rejections = state.precision_rejections.saturating_add(1);
     }
 
-    state.near_m = (movement.start_near.ln() * (1.0 - fraction)
-        + movement.goal_near.ln() * fraction)
-        .exp();
-    state.far_m = (movement.start_far.ln() * (1.0 - fraction)
-        + movement.goal_far.ln() * fraction)
-        .exp();
+    state.near_m =
+        (movement.start_near.ln() * (1.0 - fraction) + movement.goal_near.ln() * fraction).exp();
+    state.far_m =
+        (movement.start_far.ln() * (1.0 - fraction) + movement.goal_far.ln() * fraction).exp();
 
     if raw >= 1.0 {
         state.camera_position = movement.goal_camera;
@@ -653,8 +656,7 @@ fn render_radius_for_band(
     };
     target_diameter_px.map_or(physical_radius_m, |target_px| {
         let marker_radius_m =
-            target_px * distance_m * (FOV_RADIANS / 2.0).tan()
-                / f64::from(viewport_height_px);
+            target_px * distance_m * (FOV_RADIANS / 2.0).tan() / f64::from(viewport_height_px);
         physical_radius_m.max(marker_radius_m)
     })
 }
@@ -791,8 +793,9 @@ fn update_scene(
 
         let visual_radius =
             render_radius_for_band(body.physical_radius_m, distance_m, band, viewport_height_px);
-        state.max_radius_exaggeration =
-            state.max_radius_exaggeration.max(visual_radius / body.physical_radius_m);
+        state.max_radius_exaggeration = state
+            .max_radius_exaggeration
+            .max(visual_radius / body.physical_radius_m);
 
         transform.translation = Vec3::new(relative_f32[0], relative_f32[1], relative_f32[2]);
         transform.scale = Vec3::splat(visual_radius as f32);
@@ -801,7 +804,10 @@ fn update_scene(
 
     let orbit_paths_visible = matches!(
         state.stage,
-        ViewStage::LowOrbit | ViewStage::EarthMoon | ViewStage::InnerSystem | ViewStage::OuterSystem
+        ViewStage::LowOrbit
+            | ViewStage::EarthMoon
+            | ViewStage::InnerSystem
+            | ViewStage::OuterSystem
     );
     for (segment, mut transform, mut visibility) in &mut orbit_query {
         if !orbit_paths_visible {
@@ -825,12 +831,14 @@ fn update_scene(
                 continue;
             }
         };
-        let start_distance = start_relative[0].hypot(start_relative[1]).hypot(start_relative[2]);
-        let end_distance = end_relative[0].hypot(end_relative[1]).hypot(end_relative[2]);
+        let start_distance = start_relative[0]
+            .hypot(start_relative[1])
+            .hypot(start_relative[2]);
+        let end_distance = end_relative[0]
+            .hypot(end_relative[1])
+            .hypot(end_relative[2]);
         let pixel_error_budget = |distance: f64| {
-            (2.0 * (FOV_RADIANS / 2.0).tan() * distance
-                / f64::from(viewport_height_px)
-                * 0.05)
+            (2.0 * (FOV_RADIANS / 2.0).tan() * distance / f64::from(viewport_height_px) * 0.05)
                 .max(0.001)
         };
         let start_f32 = segment.start.relative_to_f32_with_error_budget(
@@ -864,7 +872,10 @@ fn update_scene(
         state.visible_orbit_segments += 1;
     }
 
-    let surface_relative = match state.surface_feature.relative_to_meters(&state.camera_position) {
+    let surface_relative = match state
+        .surface_feature
+        .relative_to_meters(&state.camera_position)
+    {
         Ok(relative) => Some(relative),
         Err(_) => {
             state.precision_rejections = state.precision_rejections.saturating_add(1);
@@ -875,11 +886,8 @@ fn update_scene(
     for (mut transform, mut visibility) in &mut tile_query {
         if tile_size > 0.0 {
             if let Some(relative) = surface_relative {
-                transform.translation = Vec3::new(
-                    relative[0] as f32,
-                    relative[1] as f32,
-                    relative[2] as f32,
-                );
+                transform.translation =
+                    Vec3::new(relative[0] as f32, relative[1] as f32, relative[2] as f32);
                 transform.scale = Vec3::new(tile_size, 1.0, tile_size);
                 *visibility = Visibility::Visible;
             } else {
@@ -891,7 +899,10 @@ fn update_scene(
     }
 
     for (mut transform, mut visibility) in &mut feature_query {
-        if matches!(state.stage, ViewStage::LocalInspection | ViewStage::ReturnToLocal) {
+        if matches!(
+            state.stage,
+            ViewStage::LocalInspection | ViewStage::ReturnToLocal
+        ) {
             let feature_position = state
                 .surface_feature
                 .offset_by_meters([0.0, 1.0, 0.0])
@@ -911,15 +922,17 @@ fn update_scene(
     }
 
     let star_depth = state.far_m * 0.94;
-    let star_radius = star_depth * (FOV_RADIANS / 2.0).tan()
-        / f64::from(viewport_height_px) * 0.5;
+    let star_radius = star_depth * (FOV_RADIANS / 2.0).tan() / f64::from(viewport_height_px) * 0.5;
     for (star, mut transform, mut visibility) in &mut star_query {
         transform.translation = star.direction * star_depth as f32;
         transform.scale = Vec3::splat((star_radius as f32) * star.size_factor);
         *visibility = Visibility::Visible;
     }
 
-    let focus_relative = match state.focus_position.relative_to_meters(&state.camera_position) {
+    let focus_relative = match state
+        .focus_position
+        .relative_to_meters(&state.camera_position)
+    {
         Ok(relative) => Some(relative),
         Err(_) => {
             state.precision_rejections = state.precision_rejections.saturating_add(1);
@@ -1034,7 +1047,13 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(
             Update,
-            (handle_controls, advance_transition, update_scene, update_hud).chain(),
+            (
+                handle_controls,
+                advance_transition,
+                update_scene,
+                update_hud,
+            )
+                .chain(),
         )
         .run();
 }
@@ -1047,7 +1066,10 @@ mod tests {
     fn illustrative_catalog_reaches_neptune_scale() {
         let bodies = make_catalog();
         let sun = bodies.iter().find(|body| body.id == "sun").expect("Sun");
-        let neptune = bodies.iter().find(|body| body.id == "neptune").expect("Neptune");
+        let neptune = bodies
+            .iter()
+            .find(|body| body.id == "neptune")
+            .expect("Neptune");
         let delta = neptune
             .position
             .relative_to_meters(&sun.position)
@@ -1065,9 +1087,7 @@ mod tests {
         assert_eq!(first, second);
         assert!(first.iter().all(|star| {
             let norm = star.direction.length();
-            (norm - 1.0).abs() < 1e-5
-                && star.size_factor.is_finite()
-                && star.size_factor > 0.0
+            (norm - 1.0).abs() < 1e-5 && star.size_factor.is_finite() && star.size_factor > 0.0
         }));
     }
 
@@ -1114,7 +1134,10 @@ mod tests {
         );
         assert!(visual_radius > radius);
         let bodies = make_catalog();
-        let earth = bodies.iter().find(|body| body.id == "earth").expect("Earth");
+        let earth = bodies
+            .iter()
+            .find(|body| body.id == "earth")
+            .expect("Earth");
         assert_eq!(earth.physical_radius_m, radius);
         assert_eq!(earth.position, world_position(AU_M, 0.0, 0.0));
     }
