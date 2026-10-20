@@ -643,6 +643,15 @@ mod tests {
             report.reconciled_operation_day_profiles[1].last_on_shift_end_second,
             Some(18 * 3600)
         );
+        assert_eq!(report.reconciled_operation_day_segments.len(), 8);
+        assert_eq!(
+            report
+                .reconciled_operation_day_segments
+                .iter()
+                .map(|segment| segment.duration_seconds)
+                .sum::<u32>(),
+            2 * DAY_SECONDS
+        );
         assert!(report.operation_day_reconciliation_issues.is_empty());
         assert_eq!(report.daily_vmt_miles.p50, Some(65.0));
         assert_eq!(report.daily_vmt_miles.p95, Some(90.0));
