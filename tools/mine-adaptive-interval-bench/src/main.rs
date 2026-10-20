@@ -357,8 +357,12 @@ fn generate_stream(seed: u64, split: Split, kind: ScenarioKind) -> Stream {
             } else {
                 0
             };
+            // The present-state monitor is a distinct deterministic measurement
+            // channel, with a separate seed stream from the forecast target labels.
+            // Real deployment must establish this separation from sensor timing/data.
+            let monitor_error = tick_error(seed.wrapping_add(7_919), kind, tick);
             let monitor_residual_abs = if telemetry_available {
-                Some(error.abs())
+                Some(monitor_error.abs())
             } else {
                 None
             };
@@ -550,6 +554,10 @@ fn evaluate_stream(
     calibration: &[f64],
     fixed_radius: f64,
 ) -> Check<(Vec<StepOutcome>, usize, usize)> {
+    let uses_online_labels = !matches!(
+        policy,
+        Policy::FixedSplitIntervalOnly | Policy::FixedSplitTrustGated
+    );
     let mut online_radius = fixed_radius;
     let mut history = calibration.to_vec();
     let mut pending_labels: VecDeque<(usize, f64)> = VecDeque::new();
@@ -561,13 +569,16 @@ fn evaluate_stream(
     let mut gate_radii = Vec::with_capacity(stream.ticks.len());
 
     for tick in &stream.ticks {
-        while pending_labels
-            .front()
-            .is_some_and(|(ready_at, _)| *ready_at <= tick.tick)
+        while uses_online_labels
+            && pending_labels
+                .front()
+                .is_some_and(|(ready_at, _)| *ready_at <= tick.tick)
         {
             let (_, residual) = pending_labels.pop_front().expect("front item was checked");
             history.push(residual);
-            online_radius = online_radius_update(online_radius, residual);
+            if policy == Policy::OnlineResidualFeedbackIntervalOnly {
+                online_radius = online_radius_update(online_radius, residual);
+            }
             label_updates_applied += 1;
         }
 
@@ -603,7 +614,7 @@ fn evaluate_stream(
             hard_control: is_hard_control(tick, radius),
         });
 
-        if tick.target_label_available {
+        if uses_online_labels && tick.target_label_available {
             let residual = (tick.target - tick.prediction).abs();
             let ready_at = tick
                 .tick
