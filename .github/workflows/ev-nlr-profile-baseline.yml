@@ -55,30 +55,52 @@ jobs:
           jq -e '.operation_days_input_rows == 76 and .schedule_input_rows == 234' nlr-fleet1-beverage-delivery-audit.json
           jq -e '.operation_days_input_rows == 100 and .schedule_input_rows == 302' nlr-fleet2-warehouse-delivery-audit.json
           jq -e '.operation_days_input_rows == 236 and .schedule_input_rows == 782' nlr-fleet3-food-delivery-audit.json
+      - name: Download published 81-profile NLR reference bundle
+        run: |
+          curl --fail --show-error --silent --location --retry 3 --retry-all-errors \
+            https://data.nlr.gov/system/files/162/15min-depot-charging-profiles.zip \
+            -o "${RUNNER_TEMP}/15min-depot-charging-profiles.zip"
+          unzip -q "${RUNNER_TEMP}/15min-depot-charging-profiles.zip" -d "${RUNNER_TEMP}/published-nlr-profiles"
+          test "$(find "${RUNNER_TEMP}/published-nlr-profiles" -type f -name '*.csv' | wc -l)" -ge 81
+          sha256sum "${RUNNER_TEMP}/15min-depot-charging-profiles.zip" > nlr-published-profile-bundle.sha256
+          PROFILE_DIR="${RUNNER_TEMP}/published-nlr-profiles"
+          find "${PROFILE_DIR}" -type f -name '*_avg-prof_*_15min.csv' | head -n 3
       - name: Generate 81 NLR-style reference curves across 27 matched cases
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p nlr-reference-profiles
+          PROFILE_DIR="${RUNNER_TEMP}/published-nlr-profiles"
+          PROFILE_BUNDLE_SHA256="$(cut -d' ' -f1 nlr-published-profile-bundle.sha256)"
           for vocation in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
             audit="nlr-${vocation}-audit.json"
             for fleet_size in 10 50 100; do
               for strategy in immediate delayed min_power; do
                 output="nlr-reference-profiles/${vocation}-fleet-${fleet_size}-${strategy}.json"
+                average_ref="$(find "${PROFILE_DIR}" -type f -name "${vocation}_${fleet_size}vehs_avg-prof_${strategy}_15min.csv" -print -quit)"
+                minimum_ref="$(find "${PROFILE_DIR}" -type f -name "${vocation}_${fleet_size}vehs_min-prof_${strategy}_15min.csv" -print -quit)"
+                maximum_ref="$(find "${PROFILE_DIR}" -type f -name "${vocation}_${fleet_size}vehs_peak-prof_${strategy}_15min.csv" -print -quit)"
+                test -n "${average_ref}" && test -n "${minimum_ref}" && test -n "${maximum_ref}"
                 cargo run --quiet --manifest-path tools/ev-nlr-profile-baseline/Cargo.toml -- \
                   --input-report "${audit}" \
                   --fleet-size "${fleet_size}" \
                   --strategy "${strategy}" \
-                  --samples 50 --seed 0 --kwh-per-mile 1.8 --charger-power-kw 100 > "${output}"
-                jq -e --arg vocation "${vocation}" --arg strategy "${strategy}" --argjson fleet_size "${fleet_size}" '
+                  --samples 50 --seed 0 --kwh-per-mile 1.8 --charger-power-kw 100 \
+                  --reference-average-csv "${average_ref}" \
+                  --reference-minimum-peak-csv "${minimum_ref}" \
+                  --reference-maximum-peak-csv "${maximum_ref}" \
+                  --reference-bundle-sha256 "${PROFILE_BUNDLE_SHA256}" > "${output}"
+                jq -e --arg vocation "${vocation}" --arg strategy "${strategy}" --argjson fleet_size "${fleet_size}" --arg bundle "${PROFILE_BUNDLE_SHA256}" '
                   .source_fleet_id == $vocation and .strategy == $strategy and .fleet_size == $fleet_size and
                   .sample_count == 50 and .profile_resolution_minutes == 15 and .profile_intervals_per_day == 96 and
                   .profile_evidence_class == "model_reimplementation" and
+                  .published_reference_bundle_sha256 == $bundle and .published_profile_comparison != null and
                   (.daily_average_profile|length == 96) and (.daily_minimum_peak_profile|length == 96) and (.daily_maximum_peak_profile|length == 96) and
                   all(.daily_average_profile[]; .average_power_kw >= 0) and
                   all(.daily_minimum_peak_profile[]; .average_power_kw >= 0) and
                   all(.daily_maximum_peak_profile[]; .average_power_kw >= 0) and
-                  all(.samples[]; . as $sample | (($sample.energy_reconciliation_residual_kwh|fabs) <= ($sample.instantaneous_peak_kw / 3600 + 0.000001)))
+                  all(.samples[]; . as $sample | (($sample.energy_reconciliation_residual_kwh|fabs) <= ($sample.instantaneous_peak_kw / 3600 + 0.000001))) and
+                  ([.published_profile_comparison.average_profile,.published_profile_comparison.minimum_peak_profile,.published_profile_comparison.maximum_peak_profile] | all(.[]; .mean_absolute_error_kw >= 0 and .root_mean_square_error_kw >= 0 and .maximum_absolute_error_kw >= 0))
                 ' "${output}"
               done
             done
@@ -92,6 +114,7 @@ jobs:
               source_dataset_id:"nlr-hdev-depot-charging-2021",
               source_revision:"61530df51f6cd7d64f014ebbf8714cef24c8ca70",
               evidence_class:"model_reimplementation",
+              published_reference_bundle_sha256:.[0].published_reference_bundle_sha256,
               reference_profile_count:(length*3),
               case_count:length,
               profile_resolution_minutes:15,
@@ -116,14 +139,22 @@ jobs:
                 instantaneous_peak_kw,
                 daily_minimum_peak_profile,
                 daily_average_profile,
-                daily_maximum_peak_profile
-              })
+                daily_maximum_peak_profile,
+                published_profile_comparison
+              }),
+              comparison_metrics:[
+                .[] as $case |
+                ({source_fleet_id:$case.source_fleet_id,fleet_size:$case.fleet_size,strategy:$case.strategy,profile_type:"average"} + $case.published_profile_comparison.average_profile),
+                ({source_fleet_id:$case.source_fleet_id,fleet_size:$case.fleet_size,strategy:$case.strategy,profile_type:"minimum_peak"} + $case.published_profile_comparison.minimum_peak_profile),
+                ({source_fleet_id:$case.source_fleet_id,fleet_size:$case.fleet_size,strategy:$case.strategy,profile_type:"maximum_peak"} + $case.published_profile_comparison.maximum_peak_profile)
+              ]
             }
           ' nlr-reference-profiles/*.json > ev-nlr-reference-profile-index.json
-          jq -e '.case_count == 27 and .reference_profile_count == 81 and (.cases|length == 27) and (.cases|map(.source_fleet_id)|unique|length == 3) and (.cases|map(.strategy)|unique|length == 3) and (.cases|map(.fleet_size)|unique|length == 3)' ev-nlr-reference-profile-index.json
+          jq -e '.case_count == 27 and .reference_profile_count == 81 and (.cases|length == 27) and (.comparison_metrics|length == 81) and (.published_reference_bundle_sha256|length == 64) and (.cases|map(.source_fleet_id)|unique|length == 3) and (.cases|map(.strategy)|unique|length == 3) and (.cases|map(.fleet_size)|unique|length == 3)' ev-nlr-reference-profile-index.json
+          jq -r '.comparison_metrics[] | [.source_fleet_id,.fleet_size,.strategy,.profile_type,.mean_absolute_error_kw,.root_mean_square_error_kw,.daily_integral_error_kwh,.relative_daily_integral_error_fraction,.peak_15min_error_kw,.peak_timing_error_minutes] | @tsv' ev-nlr-reference-profile-index.json
       - name: Hash source summaries, tool and generated profiles
         run: |
-          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-nlr-profile-baseline/Cargo.toml tools/ev-nlr-profile-baseline/src/main.rs nlr-fleet1-beverage-delivery-audit.json nlr-fleet2-warehouse-delivery-audit.json nlr-fleet3-food-delivery-audit.json nlr-reference-profiles/*.json ev-nlr-reference-profile-index.json > ev-nlr-reference-profile.sha256
+          sha256sum "${RUNNER_TEMP}/15min-depot-charging-profiles.zip" tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-nlr-profile-baseline/Cargo.toml tools/ev-nlr-profile-baseline/src/main.rs nlr-fleet1-beverage-delivery-audit.json nlr-fleet2-warehouse-delivery-audit.json nlr-fleet3-food-delivery-audit.json nlr-reference-profiles/*.json ev-nlr-reference-profile-index.json > ev-nlr-reference-profile.sha256
           (cd "${RUNNER_TEMP}" && sha256sum fleet1-beverage-delivery-veh_op_days.csv fleet1-beverage-delivery-veh_schedules.csv fleet2-warehouse-delivery-veh_op_days.csv fleet2-warehouse-delivery-veh_schedules.csv fleet3-food-delivery-veh_op_days.csv fleet3-food-delivery-veh_schedules.csv) >> ev-nlr-reference-profile.sha256
       - name: Upload reproducible reference profile evidence
         uses: actions/upload-artifact@v4
@@ -135,5 +166,6 @@ jobs:
             nlr-fleet3-food-delivery-audit.json
             ev-nlr-reference-profile-index.json
             ev-nlr-reference-profile.sha256
+            nlr-published-profile-bundle.sha256
           if-no-files-found: error
           retention-days: 14
