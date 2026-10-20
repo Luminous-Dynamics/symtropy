@@ -346,7 +346,6 @@ impl LandscapeScenarioManifest {
         }
     }
 }
-}
 
 fn validate_sha256(value: &str, path: &'static str, violations: &mut Vec<ContractViolation>) {
     if value.len() != 64
