@@ -38,3 +38,13 @@ Frozen acceptance checks require the closure and shelter capacity cases to impro
 ## Claim boundary
 
 Exact enumeration is intentionally limited to tiny synthetic instances and is not a scalable traffic assignment algorithm. Because the oracle uses the same queue model as the candidate evaluator, this shows an optimization benefit *inside that model*, not superiority to SUMO, a full Cell Transmission Model, or real-world traffic. The next external comparison must freeze SUMO version, DUA configuration, demand, network, closure semantics and resource budget, and keep model mismatches explicit.
+
+## Generated perturbation gate
+
+A deterministic parameter-sweep test now runs 32 variations on each of the four frozen topologies (128 total). It varies per-edge capacity, storage and travel time, plus demand departure steps, while keeping route candidates and vehicle inventory bounded. Every variant reruns both B1 and exhaustive B2 and requires:
+
+- B2's lexicographic objective is never worse than B1, since B1 is itself a feasible candidate in the declared search space.
+- Both simulations preserve mass balance and pass their declared capacity checks.
+- The enumerator stays within its explicit 100,000-assignment budget.
+
+This is a property-style correctness stress test on small synthetic scenarios; it is not a randomized real-world benchmark, a scalability result, or a SOTA comparison. Seeds are derived deterministically from case index and sample index, so failures are reproducible.
