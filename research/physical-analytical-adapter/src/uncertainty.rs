@@ -107,10 +107,11 @@ impl Interval {
         if exponent <= 0 {
             return Err("interval positive_power exponent must be positive".to_owned());
         }
-        let low = self.lower.powi(exponent);
-        let high = self.upper.powi(exponent);
-        finite_values(&[low, high], "interval power")?;
-        Self::new(outward_down(low)?, outward_up(high)?)
+        let mut result = Self::exact(1.0)?;
+        for _ in 0..exponent {
+            result = result.multiply(self)?;
+        }
+        Ok(result)
     }
 
     fn scale_positive(self, factor: f64) -> Check<Self> {
