@@ -1,0 +1,12 @@
+[package]
+name = "aquatic-process-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Exact process-transfer closure oracle for a synthetic aquatic compartment."
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
