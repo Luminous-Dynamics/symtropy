@@ -22,51 +22,322 @@
     "output_units",
     "reference_oracle_tolerances",
     "diagnostics",
-    "claim_ceiling"
+    "claim_ceiling",
+    "inputs",
+    "input_bounds",
+    "output_enclosures",
+    "uncertainty_method",
+    "real_world_validation_status"
   ],
   "properties": {
-    "schema_version": { "const": "physical-analytical-receipt-v0.1" },
-    "request_id": { "type": "string" },
-    "request_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-    "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "adapter_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "case_id": { "enum": ["axial_bar", "cantilever_tip_load", "simply_supported_uniform_load"] },
-    "evidence_class": { "const": "analytical_reference" },
-    "result_status": { "enum": ["PASS", "UNRESOLVED"] },
-    "computation_method": { "const": "closed_form_analytical_reference" },
-    "requested_physics": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
-    "physics_omitted": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
-    "assumption_profile": { "type": "string" },
-    "assumptions": { "type": "string" },
-    "outputs": { "type": ["object", "null"] },
-    "output_units": { "type": "object" },
+    "schema_version": {
+      "const": "physical-analytical-receipt-v0.1"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "adapter_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "case_id": {
+      "enum": [
+        "axial_bar",
+        "cantilever_tip_load",
+        "simply_supported_uniform_load"
+      ]
+    },
+    "evidence_class": {
+      "const": "analytical_reference"
+    },
+    "result_status": {
+      "enum": [
+        "PASS",
+        "UNRESOLVED"
+      ]
+    },
+    "computation_method": {
+      "const": "closed_form_analytical_reference"
+    },
+    "requested_physics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "physics_omitted": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "assumption_profile": {
+      "type": "string"
+    },
+    "assumptions": {
+      "type": "string"
+    },
+    "outputs": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "output_units": {
+      "type": "object"
+    },
     "reference_oracle_tolerances": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["relative_tolerance", "absolute_tolerance", "scope"],
+      "required": [
+        "relative_tolerance",
+        "absolute_tolerance",
+        "scope"
+      ],
       "properties": {
-        "relative_tolerance": { "type": "number", "minimum": 0 },
-        "absolute_tolerance": { "type": "number", "minimum": 0 },
-        "scope": { "type": "string" }
+        "relative_tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "absolute_tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "scope": {
+          "type": "string"
+        }
       }
     },
-    "diagnostics": { "type": "array", "items": { "type": "string" } },
-    "claim_ceiling": { "type": "string", "minLength": 1 }
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inputs": {
+      "type": "object"
+    },
+    "input_bounds": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/inputBounds"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output_enclosures": {
+      "anyOf": [
+        {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/outputEnclosure"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "uncertainty_method": {
+      "enum": [
+        "none_input_bounds_not_supplied",
+        "deterministic_interval_outward_rounded_v0.1",
+        "not_executed_unresolved"
+      ]
+    },
+    "real_world_validation_status": {
+      "const": "UNRESOLVED"
+    }
   },
   "allOf": [
     {
-      "if": { "properties": { "result_status": { "const": "PASS" } }, "required": ["result_status"] },
+      "if": {
+        "properties": {
+          "result_status": {
+            "const": "PASS"
+          }
+        },
+        "required": [
+          "result_status"
+        ]
+      },
       "then": {
         "properties": {
-          "outputs": { "type": "object" },
-          "physics_omitted": { "maxItems": 0 },
-          "diagnostics": { "maxItems": 0 }
+          "outputs": {
+            "type": "object"
+          },
+          "physics_omitted": {
+            "maxItems": 0
+          },
+          "diagnostics": {
+            "maxItems": 0
+          }
         }
       }
     },
     {
-      "if": { "properties": { "result_status": { "const": "UNRESOLVED" } }, "required": ["result_status"] },
-      "then": { "properties": { "outputs": { "type": "null" }, "diagnostics": { "minItems": 1 } } }
+      "if": {
+        "properties": {
+          "result_status": {
+            "const": "UNRESOLVED"
+          }
+        },
+        "required": [
+          "result_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outputs": {
+            "type": "null"
+          },
+          "diagnostics": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "input_bounds": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "input_bounds"
+        ]
+      },
+      "then": {
+        "properties": {
+          "output_enclosures": {
+            "type": "null"
+          },
+          "uncertainty_method": {
+            "const": "none_input_bounds_not_supplied"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_status": {
+            "const": "PASS"
+          },
+          "input_bounds": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "result_status",
+          "input_bounds"
+        ]
+      },
+      "then": {
+        "properties": {
+          "output_enclosures": {
+            "type": "object",
+            "minProperties": 1
+          },
+          "uncertainty_method": {
+            "const": "deterministic_interval_outward_rounded_v0.1"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_status": {
+            "const": "UNRESOLVED"
+          },
+          "input_bounds": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "result_status",
+          "input_bounds"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outputs": {
+            "type": "null"
+          },
+          "output_enclosures": {
+            "type": "null"
+          },
+          "uncertainty_method": {
+            "const": "not_executed_unresolved"
+          }
+        }
+      }
     }
-  ]
+  ],
+  "$defs": {
+    "inputBounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "physical-input-bounds-v0.1"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/inputBound"
+          }
+        }
+      }
+    },
+    "outputEnclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower",
+        "nominal",
+        "upper",
+        "unit"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "nominal": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
 }
