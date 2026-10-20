@@ -66,9 +66,9 @@
   ],
   "interpretation": {
     "proposed_100k_p95_target_ms": 1000,
-    "below_proposed_1s_target_in_both_single_sample_observations": true,
+    "single_sample_100k_values_below_target": true,
     "p95_gate_demonstrated": false,
-    "reason": "The 100k tier is single-sample in each run. The runs also used different CPU models, so they establish two successful point observations, not an SLA.",
+    "reason": "The 100k tier is one timed sample in each run; repeated lower-tier observations do not imply a 100k p95.",
     "memory_gate_demonstrated": false
   },
   "limitations": [
@@ -130,7 +130,89 @@
         "Different CPU model from the earlier observation; timings are not a same-host trend.",
         "Peak memory was not profiled."
       ]
+    },
+    {
+      "workflow_run_id": 39483630137,
+      "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39483630137",
+      "exact_source_sha": "a55a43a15d4647ceb8a3d16a2e95c3e2a88f894f",
+      "runner_image": "ubuntu-24.04",
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "host_kernel": "Linux runnervmxehtw 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64",
+      "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+      "visible_vcpus": 4,
+      "reported_memory_gib": 15,
+      "test_results": {
+        "passed": 26,
+        "failed": 0,
+        "formatting": "passed",
+        "clippy_warnings_denied": "passed",
+        "exact_head": "passed"
+      },
+      "measurements": [
+        {
+          "items": 10000,
+          "iterations": 3,
+          "findings": 0,
+          "p50_ms": 55.457,
+          "p95_ms": 76.827,
+          "percentile_method": "nearest rank"
+        },
+        {
+          "items": 25000,
+          "iterations": 5,
+          "findings": 0,
+          "p50_ms": 147.125,
+          "p95_ms": 162.513,
+          "percentile_method": "nearest rank"
+        },
+        {
+          "items": 50000,
+          "iterations": 1,
+          "findings": 0,
+          "single_sample_ms": 303.824
+        },
+        {
+          "items": 100000,
+          "iterations": 1,
+          "findings": 0,
+          "single_sample_ms": 618.301
+        }
+      ],
+      "stress_matrix": [
+        {
+          "workload": "sparse_grid",
+          "items": 10000,
+          "iterations": 1,
+          "expected_collisions": 0,
+          "observed_collisions": 0,
+          "unexpected_findings": 0,
+          "single_sample_ms": 52.461
+        },
+        {
+          "workload": "tight_functional_clearance",
+          "items": 10000,
+          "iterations": 1,
+          "expected_collisions": 0,
+          "observed_collisions": 0,
+          "unexpected_findings": 0,
+          "single_sample_ms": 50.774
+        },
+        {
+          "workload": "dense_footprint_overlap",
+          "items": 10000,
+          "iterations": 1,
+          "expected_collisions": 39402,
+          "observed_collisions": 39402,
+          "unexpected_findings": 0,
+          "single_sample_ms": 59.619
+        }
+      ],
+      "limitations": [
+        "Single-sample 50k and 100k latencies do not establish p95 or SLA.",
+        "Same CPU model as prior follow-up but a separate hosted runner execution; timings vary between runs.",
+        "Peak memory was not profiled."
+      ]
     }
   ],
-  "latest_follow_up_observation_id": 39483408682
+  "latest_follow_up_observation_id": 39483630137
 }

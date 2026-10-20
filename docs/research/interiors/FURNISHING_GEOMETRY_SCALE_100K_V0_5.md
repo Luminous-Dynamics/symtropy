@@ -16,7 +16,7 @@ Rather than run a potentially hour-long brute-force scan at 25k/50k/100k, this c
 - Hard assertion: every generated item has the expected pass outcome and the oracle emits zero findings. Any finding fails the benchmark rather than becoming a slower result.
 - The benchmark uses the nearest-rank empirical quantile (ceil(n*p)-1). Report p50/p95 only for the tiers with repeated samples. The 50k and 100k timings must be labelled single-sample latency; the 25k tier has five samples to make its p95 less fragile than a two-sample "p95."
 - The workflow records exact source SHA, Rust version, OS, CPU and memory. Peak memory is not yet measured.
-- First run #39483177535 reported 100,000 items at 760.021 ms in one sample on an AMD EPYC 7763 runner; the latest follow-up run #39483408682 reported 566.416 ms in one sample on an Intel Xeon Platinum 8573C runner. Both had zero findings. These are separate point observations, not p95 estimates, and the CPU difference prevents interpreting the lower value as a speed trend. See the [full scale receipts](evidence/FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json).
+- Three exact-head runs reported 100,000 items at 760.021 ms (AMD EPYC 7763, run #39483177535), 566.416 ms (Intel Xeon Platinum 8573C, run #39483408682), and 618.301 ms (Intel Xeon Platinum 8573C, run #39483630137); every run emitted zero findings. These are separate point observations, not p95 estimates or a same-host trend. See the [full scale receipts](evidence/FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json).
 
 ## Proposed gates
 

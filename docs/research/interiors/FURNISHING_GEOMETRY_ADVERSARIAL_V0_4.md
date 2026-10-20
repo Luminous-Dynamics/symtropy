@@ -57,11 +57,11 @@ The focused [Furnishing Layout Audit run #39481555651](https://github.com/Lumino
 
 The 10,000-item measurements use one sample, so they are not p50/p95 estimates. The runner reported Ubuntu 24.04, Rust 1.96.0, four visible vCPUs on an AMD EPYC 9V45 host and 15 GiB memory. These are diagnostic hosted-runner observations, not a production SLA. The matched v0.2 baseline remains in progress; no speedup ratio is claimed.
 
-## Indexed-only scale extension — run #39483177535
+## Indexed-only scale extension — three exact-head runs
 
-The v0.5 indexed-only scale probe passed exact-head runs #39483177535 at source SHA `3295b485b3aec4e017091938b5ffa8a897bd592c` and #39483408682 at source SHA `8b81f4016e00fe2c4b6a4c58a77e6e88da65f9e6`. Both emitted 0 findings at every tier. First run: 10k p95 80.155 ms (3 iterations), 25k p95 185.398 ms (5), 50k 373.744 ms (single sample), 100k 760.021 ms (single sample). Follow-up run: 10k p95 62.204 ms, 25k p95 143.889 ms, 50k 274.389 ms, and 100k 566.416 ms (last two single samples). The first ran on a 4-vCPU AMD EPYC 7763; the follow-up on a 4-vCPU Intel Xeon Platinum 8573C. The outputs, machine provenance and claim limits are archived in [the scale receipt](evidence/FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json).
+The v0.5 indexed-only scale probe passed exact-head runs #39483177535 (`3295b485b3aec4e017091938b5ffa8a897bd592c`), #39483408682 (`8b81f4016e00fe2c4b6a4c58a77e6e88da65f9e6`) and #39483630137 (`a55a43a15d4647ceb8a3d16a2e95c3e2a88f894f`). All emitted 0 findings at every tier. The latest run measured 10k p95 76.827 ms (3 iterations), 25k p95 162.513 ms (5), 50k 303.824 ms and 100k 618.301 ms (single samples). Across three runs, 100k single-sample latencies were 760.021, 566.416 and 618.301 ms on AMD EPYC 7763 / Intel Xeon Platinum 8573C hosted runners. The outputs and machine provenance are archived in [the scale receipt](evidence/FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json).
 
-Both 100k observations are below the proposed 1 s target as point observations, but neither establishes p95 or a memory gate. The different CPU models make them non-comparable as a performance trend. No 25k/50k/100k brute-force comparison was run. The same-host A/B evidence at 10k remains [PR #2392](https://github.com/Luminous-Dynamics/symtropy/pull/2392). These are kernel timings, not physical/accessibility validation.
+All three 100k observations are below the proposed 1 s target as point observations, but they do not establish p95 or a memory gate. No 25k/50k/100k brute-force comparison was run. The same-host A/B evidence at 10k remains [PR #2392](https://github.com/Luminous-Dynamics/symtropy/pull/2392). These are kernel timings, not physical/accessibility validation.
 
 ## Claim boundary
 
