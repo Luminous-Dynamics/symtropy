@@ -249,7 +249,12 @@ pub fn validate_artifacts(
     require_schema_const(properties, "status", "synthetic_contract_fixture")?;
     require_schema_const(properties, "case_count", "51")?;
 
-    for key in ["research_snapshot", "note", "tracking_issue", "independent_unit"] {
+    for key in [
+        "research_snapshot",
+        "note",
+        "tracking_issue",
+        "independent_unit",
+    ] {
         require_schema_string(properties, key, "type", "string")?;
         let property_schema = properties
             .get(key)
@@ -260,15 +265,15 @@ pub fn validate_artifacts(
     require_schema_string(properties, "tracking_issue", "format", "uri")?;
     require_schema_string(properties, "case_count", "type", "integer")?;
     require_string_array_schema(
-        properties
-            .get("required_run_identity")
-            .ok_or_else(|| ValidationError::new("schema.properties.required_run_identity is required"))?,
+        properties.get("required_run_identity").ok_or_else(|| {
+            ValidationError::new("schema.properties.required_run_identity is required")
+        })?,
         "schema.properties.required_run_identity",
     )?;
     require_string_array_schema(
-        properties
-            .get("comparison_policy")
-            .ok_or_else(|| ValidationError::new("schema.properties.comparison_policy is required"))?,
+        properties.get("comparison_policy").ok_or_else(|| {
+            ValidationError::new("schema.properties.comparison_policy is required")
+        })?,
         "schema.properties.comparison_policy",
     )?;
 
@@ -282,7 +287,12 @@ pub fn validate_artifacts(
     let item_schema = cases_schema
         .get("items")
         .ok_or_else(|| ValidationError::new("schema.properties.cases.items is required"))?;
-    require_exact_string(item_schema, "type", "object", "schema.properties.cases.items")?;
+    require_exact_string(
+        item_schema,
+        "type",
+        "object",
+        "schema.properties.cases.items",
+    )?;
     require_schema_bool(
         item_schema,
         "additionalProperties",
@@ -297,15 +307,19 @@ pub fn validate_artifacts(
     let item_property_object = item_properties
         .as_object()
         .ok_or_else(|| ValidationError::new("schema cases.items.properties must be an object"))?;
-    check_exact_keys(item_property_object, CASE_KEYS, "schema cases.items.properties")?;
+    check_exact_keys(
+        item_property_object,
+        CASE_KEYS,
+        "schema cases.items.properties",
+    )?;
 
     require_schema_string(item_properties, "id", "type", "string")?;
     require_schema_string(item_properties, "id", "pattern", "^[a-z][a-z0-9_]*$")?;
     for key in ["kind", "setup", "perturbation", "reason"] {
         require_schema_string(item_properties, key, "type", "string")?;
-        let property_schema = item_properties
-            .get(key)
-            .ok_or_else(|| ValidationError::new(format!("schema case property {key} is required")))?;
+        let property_schema = item_properties.get(key).ok_or_else(|| {
+            ValidationError::new(format!("schema case property {key} is required"))
+        })?;
         require_schema_integer(property_schema, "minLength", 1)?;
     }
 
