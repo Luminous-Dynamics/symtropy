@@ -566,7 +566,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     .get_mut(station)
                     .and_then(|runtime| runtime.servers.get_mut(server))
                     .ok_or_else(|| "repair_event_references_missing_server".to_string())?;
-                if matches!(target.state, ServerState::Down) {
+                if matches!(&target.state, ServerState::Down) {
                     target.state = ServerState::Idle;
                 }
             }
@@ -699,7 +699,7 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
             state.buffers[index - 1].is_empty()
         };
         for server in &runtime.servers {
-            match server.state {
+            match &server.state {
                 ServerState::Busy { .. } => runtime.metrics.busy_seconds += dt,
                 ServerState::WaitingOutput { .. } => runtime.metrics.blocked_seconds += dt,
                 ServerState::Down => runtime.metrics.down_seconds += dt,
@@ -777,9 +777,10 @@ fn complete_operation(
             station_attempts: station_attempts + 1,
             service_seconds_for_job: service_seconds_for_job.saturating_add(rework_seconds),
         };
+        let completion_at = state.now.saturating_add(rework_seconds);
         schedule_event(
             state,
-            state.now.saturating_add(rework_seconds),
+            completion_at,
             EventKind::OperationComplete {
                 station: station_index,
                 server: server_index,
@@ -830,7 +831,7 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
             let server_count = state.stations[station_index].servers.len();
             for server_index in 0..server_count {
                 let waiting = matches!(
-                    state.stations[station_index].servers[server_index].state,
+                    &state.stations[station_index].servers[server_index].state,
                     ServerState::WaitingOutput { .. }
                 );
                 if !waiting {
@@ -883,7 +884,7 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
             let server_count = state.stations[station_index].servers.len();
             for server_index in 0..server_count {
                 if !matches!(
-                    state.stations[station_index].servers[server_index].state,
+                    &state.stations[station_index].servers[server_index].state,
                     ServerState::Idle
                 ) {
                     continue;
