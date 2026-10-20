@@ -4,9 +4,9 @@ use std::process::ExitCode;
 use symtropy_physical_transformation_bench::{Corpus, evaluate_corpus};
 
 fn main() -> ExitCode {
-    let path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "tools/physical-transformation-bench/fixtures/physical_transformation_v0_1.json".to_string());
+    let path = env::args().nth(1).unwrap_or_else(|| {
+        "tools/physical-transformation-bench/fixtures/physical_transformation_v0_1.json".to_string()
+    });
 
     let bytes = match fs::read(&path) {
         Ok(bytes) => bytes,
