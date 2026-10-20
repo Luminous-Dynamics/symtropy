@@ -477,6 +477,14 @@ mod tests {
             schema["properties"]["model_weight_intervals"]["items"]["required"],
             json!(["model_id", "lower", "upper"])
         );
+        assert_eq!(
+            schema["properties"]["model_set_registry_sha256"]["pattern"].as_str(),
+            Some("^[0-9a-f]{64}$")
+        );
+        assert_eq!(
+            schema["properties"]["required_challenge_family_manifest_sha256"]["pattern"].as_str(),
+            Some("^[0-9a-f]{64}$")
+        );
         assert!(
             example["models"]
                 .as_array()
@@ -716,6 +724,34 @@ mod tests {
             parse_input(&input)
                 .expect_err("unknown field must fail")
                 .contains("unknown field")
+        );
+    }
+
+    #[test]
+    fn expected_scope_digests_are_optional_but_strict_when_supplied() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input["model_set_registry_sha256"] =
+            Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        input["required_challenge_family_manifest_sha256"] =
+            Value::String("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned());
+        assert!(parse_input(&input).is_ok());
+
+        input["model_set_registry_sha256"] = Value::String("not-a-digest".to_owned());
+        assert!(
+            parse_input(&input)
+                .expect_err("malformed registry digest must fail")
+                .contains("model_set_registry_sha256")
+        );
+
+        input["model_set_registry_sha256"] =
+            Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        input["required_challenge_family_manifest_sha256"] =
+            Value::String("ABCDEF".to_owned());
+        assert!(
+            parse_input(&input)
+                .expect_err("malformed challenge manifest digest must fail")
+                .contains("required_challenge_family_manifest_sha256")
         );
     }
 
