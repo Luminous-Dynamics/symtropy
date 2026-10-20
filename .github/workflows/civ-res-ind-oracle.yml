@@ -9,6 +9,7 @@ on:
       - Cargo.lock
       - docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json
       - docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json
+      - docs/research/CIV_RESILIENCE_RESTART_BENCHMARK_V0_2.md
       - tools/civ-res-ind-oracle/**
       - .github/workflows/civ-res-ind-oracle.yml
   pull_request:
@@ -17,6 +18,7 @@ on:
       - Cargo.lock
       - docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json
       - docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json
+      - docs/research/CIV_RESILIENCE_RESTART_BENCHMARK_V0_2.md
       - tools/civ-res-ind-oracle/**
       - .github/workflows/civ-res-ind-oracle.yml
   workflow_dispatch:
