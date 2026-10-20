@@ -1,0 +1,54 @@
+{
+  "benchmark_id": "synthetic-robustness-fixture",
+  "cases": [
+    {
+      "vocation": "synthetic-vocation",
+      "fleet_size": 10,
+      "seed": 1,
+      "report": {
+        "capacity_frontiers": [
+          {
+            "policy": "fcfs",
+            "points": [
+              {
+                "fraction_of_declared_base_capacity": 0.5,
+                "installed_site_power_budget_kw": 50,
+                "meets_service_target": true
+              },
+              {
+                "fraction_of_declared_base_capacity": 1,
+                "installed_site_power_budget_kw": 100,
+                "meets_service_target": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "vocation": "synthetic-vocation",
+      "fleet_size": 10,
+      "seed": 2,
+      "report": {
+        "capacity_frontiers": [
+          {
+            "policy": "fcfs",
+            "points": [
+              {
+                "fraction_of_declared_base_capacity": 0.5,
+                "installed_site_power_budget_kw": 50,
+                "meets_service_target": false
+              },
+              {
+                "fraction_of_declared_base_capacity": 1,
+                "installed_site_power_budget_kw": 100,
+                "meets_service_target": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "source_evidence_class": "synthetic"
+}
