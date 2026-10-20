@@ -258,6 +258,24 @@ Each row reports hazard MAE/RMSE and sensor-base MAE/RMSE, alongside an evidence
 
 The focused workflow checks that all 210 length × hazard × sensor-rate rows are present and deterministic. If the estimation curves do not improve with more observations, that is a model correctness or likelihood-computation failure. If they improve but the 48-tick end-task results remain poor, it instead suggests the full task stream is too sparse or confounded for this parameter grid to deliver a useful decision benefit. Neither outcome alone is evidence of robotic performance.
 
+## First joint-parameter sample-complexity measurements
+
+The tabular-format correction and identifiability sweep passed exact-head qualification at `dedce9a7938acd4cae31e30138465347f9e86c6a`: [focused workflow #39499784246](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39499784246) passed **24 tests**, repeated report bytes exactly, validated the main and 210 calibration-row TSV schemas, checked the digest, and uploaded [artifact #12299740901](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39499784246/artifacts/12299740901). Cross-platform CI for this same source head was still in progress when recorded.
+
+Averaged equally across all 42 on-grid hazard × sensor-rate combinations (24 trajectories per combination), estimation error falls as more observations per claim are supplied:
+
+| Source observations per claim | Hazard MAE ↓ | Hazard RMSE ↓ | Sensor-base MAE ↓ | Sensor-base RMSE ↓ | Uniform-prior sensor MAE |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 | 0.0663 | 0.0769 | 0.0210 | 0.0220 | 0.0225 |
+| 16 | 0.0490 | 0.0604 | 0.0194 | 0.0212 | 0.0225 |
+| 32 | 0.0350 | 0.0461 | 0.0173 | 0.0198 | 0.0225 |
+| 64 | 0.0237 | 0.0332 | 0.0149 | 0.0175 | 0.0225 |
+| 128 | 0.0135 | 0.0205 | 0.0121 | 0.0144 | 0.0225 |
+
+This makes the bottleneck clearer. The joint filter can learn both parameters when data are plentiful and generated on its model grid. At 8 source observations per claim—the approximate evidence volume expected under the current 48-event, three-claim stream with distractor bursts—its hazard error is still high and its sensor-rate estimate only modestly beats the prior. At 128 observations it performs much better, but that is 16 times the per-claim evidence available at the approximate task operating point.
+
+**Research implication:** the next paradigm shift should be active evidence acquisition, not automatically making the posterior larger. The agent should choose which claim to inspect next based on how much that observation is expected to change the task decision, how quickly the claim may drift, and the sensing/action budget. This needs its own matched-budget benchmark with round-robin, random, least-recently-observed and uncertainty/value-of-information policies. These calibration curves are synthetic-only and on-grid; they do not establish external robot performance.
+
 ## Reproduce
 
 ```sh
