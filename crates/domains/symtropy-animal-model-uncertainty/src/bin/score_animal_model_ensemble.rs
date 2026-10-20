@@ -25,7 +25,8 @@ use std::process;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use symtropy_animal_model_uncertainty::decision::{
-    ActionRisk, ModelOutcome, ModelWeightInterval, WeightSensitivity, score_model_ensemble,
+    ActionPreferenceRange, ActionRisk, ModelOutcome, ModelWeightInterval, PreferenceStability,
+    WeightSensitivity, compare_actions_under_weight_uncertainty, score_model_ensemble,
     score_weight_sensitivity,
 };
 
@@ -186,6 +187,28 @@ fn sha256_hex(bytes: &[u8]) -> String {
     encoded
 }
 
+fn score_action_preferences(
+    models: &[ModelOutcome],
+    scores: &[ActionRisk],
+    intervals: Option<&[ModelWeightInterval]>,
+) -> Result<Vec<ActionPreferenceRange>, Vec<String>> {
+    let Some(intervals) = intervals else {
+        return Ok(Vec::new());
+    };
+    let mut comparisons = Vec::new();
+    for (index, first) in scores.iter().enumerate() {
+        for second in scores.iter().skip(index + 1) {
+            comparisons.push(compare_actions_under_weight_uncertainty(
+                models,
+                &first.action,
+                &second.action,
+                intervals,
+            )?);
+        }
+    }
+    Ok(comparisons)
+}
+
 fn build_report(
     raw_input: &str,
     root: &Value,
@@ -193,6 +216,7 @@ fn build_report(
     cvar_alpha: f64,
     scores: &[ActionRisk],
     weight_sensitivity: &[WeightSensitivity],
+    action_preferences: &[ActionPreferenceRange],
 ) -> Value {
     json!({
         "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
@@ -218,6 +242,13 @@ fn build_report(
             "maximum_expected_loss": result.maximum_expected_loss,
             "minimizing_weights": result.minimizing_weights,
             "maximizing_weights": result.maximizing_weights
+        })).collect::<Vec<Value>>(),
+        "action_preference": action_preferences.iter().map(|result| json!({
+            "first_action": result.first_action,
+            "second_action": result.second_action,
+            "minimum_loss_difference": result.minimum_loss_difference,
+            "maximum_loss_difference": result.maximum_loss_difference,
+            "stability": result.stability.as_str()
         })).collect::<Vec<Value>>()
     })
 }
@@ -282,6 +313,20 @@ fn main() {
         }
     }
 
+    let action_preferences = match score_action_preferences(
+        &models,
+        &scores,
+        model_weight_intervals.as_deref(),
+    ) {
+        Ok(comparisons) => comparisons,
+        Err(errors) => {
+            for error in errors {
+                eprintln!("action-preference analysis rejected input: {error}");
+            }
+            process::exit(1);
+        }
+    };
+
     let output = build_report(
         &raw,
         &root,
@@ -289,6 +334,7 @@ fn main() {
         cvar_alpha,
         &scores,
         &weight_sensitivity,
+        &action_preferences,
     );
     println!(
         "{}",
@@ -367,6 +413,8 @@ mod tests {
             alpha,
             &scores,
             &weight_sensitivity,
+            &score_action_preferences(&models, &scores, intervals.as_deref())
+                .expect("valid pairwise model-weight comparisons"),
         );
         let schema: Value =
             serde_json::from_str(EMBEDDED_REPORT_SCHEMA).expect("report schema should parse");
@@ -399,6 +447,34 @@ mod tests {
             .expect("graze sensitivity");
         assert!((graze["minimum_expected_loss"].as_f64().expect("minimum") - 3.4).abs() < 1e-9);
         assert!((graze["maximum_expected_loss"].as_f64().expect("maximum") - 6.2).abs() < 1e-9);
+        assert_eq!(
+            report["action_preference"].as_array().map(Vec::len),
+            Some(3)
+        );
+        let graze_retreat = report["action_preference"]
+            .as_array()
+            .expect("action preference array")
+            .iter()
+            .find(|item| {
+                item["first_action"] == "graze" && item["second_action"] == "retreat"
+            })
+            .expect("graze/retreat comparison");
+        assert_eq!(
+            graze_retreat["stability"].as_str(),
+            Some("ranking_can_flip")
+        );
+        let retreat_wait = report["action_preference"]
+            .as_array()
+            .expect("action preference array")
+            .iter()
+            .find(|item| {
+                item["first_action"] == "retreat" && item["second_action"] == "wait"
+            })
+            .expect("retreat/wait comparison");
+        assert_eq!(
+            retreat_wait["stability"].as_str(),
+            Some("second_strictly_better")
+        );
         assert_eq!(
             schema["properties"]["weight_sensitivity"]["type"].as_str(),
             Some("array")
