@@ -1,0 +1,96 @@
+{
+  "schema_version": "solver-benchmark-manifest-v0.1",
+  "benchmark_id": "PHYS-SOLVER-QUAL-001-CANTILEVER-01",
+  "execution_state": "planned",
+  "solver_candidate": {
+    "name": "code_aster",
+    "role": "candidate first general structural-mechanics backend; not installed or qualified by this manifest",
+    "version_pin": null,
+    "binary_sha256": null,
+    "configuration_sha256": null
+  },
+  "verification_level": "analytical_equation_verification",
+  "case": {
+    "case_id": "cantilever_tip_load",
+    "description": "Prismatic linear-elastic Euler-Bernoulli cantilever with a transverse point force at the free tip",
+    "physics": [
+      "static_linear_elastic"
+    ],
+    "units": {
+      "length": "m",
+      "force": "N",
+      "stress": "Pa",
+      "youngs_modulus": "Pa",
+      "second_moment": "m^4"
+    },
+    "geometry_material_loads": {
+      "span_m": 2,
+      "youngs_modulus_pa": 200000000000,
+      "second_moment_area_m4": 0.000008,
+      "outer_fiber_distance_m": 0.1,
+      "tip_force_n": 100
+    },
+    "boundary_conditions": [
+      "root translations and rotations fixed",
+      "free tip except for applied transverse force"
+    ],
+    "assumptions": [
+      "small deflection",
+      "constant cross-section",
+      "linear elasticity",
+      "Euler-Bernoulli beam kinematics",
+      "no contact, fracture, plasticity or dynamic response"
+    ]
+  },
+  "reference": {
+    "kind": "closed_form_analytical",
+    "source_url": "https://github.com/Luminous-Dynamics/symtropy/tree/research/physical-analytical-adapter-v0-1",
+    "source_permission": "open_verified",
+    "outputs": [
+      {
+        "quantity": "tip_deflection_m",
+        "value": 0.00016666666666666666,
+        "unit": "m",
+        "relative_tolerance": 0.01,
+        "absolute_tolerance": 0.000001
+      },
+      {
+        "quantity": "maximum_bending_stress_pa",
+        "value": 2500000,
+        "unit": "Pa",
+        "relative_tolerance": 0.05,
+        "absolute_tolerance": 1
+      }
+    ]
+  },
+  "input_fixture": {
+    "path": "schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json",
+    "sha256": null,
+    "content_class": "synthetic"
+  },
+  "mesh_plan": {
+    "element_family": "beam element supported by the chosen solver",
+    "refinement_levels": [
+      1,
+      2,
+      4
+    ],
+    "record_required": true
+  },
+  "acceptance": {
+    "maximum_deflection_relative_error": 0.01,
+    "maximum_stress_relative_error": 0.05,
+    "maximum_reaction_balance_residual": 0.001,
+    "require_convergence_evidence": true,
+    "negative_controls": [
+      "unsupported element",
+      "missing support boundary",
+      "invalid unit",
+      "nonconverged solve",
+      "missing output field",
+      "stale request or binary digest",
+      "corrupt solver output"
+    ]
+  },
+  "claim_ceiling": "planned benchmark only; no external solver execution, model validation, structural certification, or collapse prediction"
+}
