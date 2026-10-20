@@ -1055,12 +1055,14 @@ mod tests {
             .find(|source| source["id"] == "bnef-bev-pack-average-2025")
             .expect("BNEF BEV pack benchmark");
         assert_eq!(bev_pack["value"].as_f64(), Some(99.0));
-        assert!((ledger["derived_checks"]["global_bev_pack_reference_42kwh_ZAR"]
-            .as_f64()
-            .expect("42 kWh benchmark")
-            - 68_364.5886)
-            .abs()
-            < 1e-4);
+        assert!(
+            (ledger["derived_checks"]["global_bev_pack_reference_42kwh_ZAR"]
+                .as_f64()
+                .expect("42 kWh benchmark")
+                - 68_364.5886)
+                .abs()
+                < 1e-4
+        );
         let volume_rows = ledger["scenario_calculations_from_synthetic_cost_fixture"]
             ["fixed_program_amortization_ZAR_per_vehicle"]
             .as_array()
