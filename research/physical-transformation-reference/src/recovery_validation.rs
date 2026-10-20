@@ -351,7 +351,6 @@ pub fn compare(world: &World, observations: Vec<RecoveryObservation>) -> Check<R
             && component.contaminated_delta_mg == 0
             && component.waste_delta_mg == 0
             && component.unaccounted_delta_mg == 0
-            && component.observed_mass_residual_mg == 0
     }) {
         PlanAgreement::ExactMatch
     } else {
@@ -529,6 +528,22 @@ mod tests {
         assert_eq!(result.aggregate.waste_delta_mg, Some(60));
         assert_eq!(result.aggregate.unaccounted_delta_mg, Some(-10));
         assert_eq!(result.aggregate.observed_mass_residual_mg, Some(40));
+    }
+
+
+    #[test]
+    fn exact_plan_match_can_include_declared_nonzero_unaccounted_mass() {
+        let world = recovered_world();
+        let mut observation = synthetic_observation("A");
+        observation.reused_mg = 500;
+        observation.recycled_mg = 300;
+        observation.contaminated_mg = 50;
+        observation.waste_mg = 100;
+        let result = compare(&world, vec![observation]).expect("exact plan match");
+        assert_eq!(result.evidence_status, EvidenceStatus::Synthetic);
+        assert_eq!(result.plan_agreement, PlanAgreement::ExactMatch);
+        assert_eq!(result.aggregate.observed_mass_residual_mg, Some(50));
+        assert_eq!(result.aggregate.unaccounted_delta_mg, Some(0));
     }
 
     #[test]
