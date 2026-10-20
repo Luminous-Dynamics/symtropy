@@ -1,6 +1,10 @@
 # EV Capacity Robustness Aggregator v0.1
 
-Standalone Rust aggregator for repeated EV depot simulations. It converts a set of scenario-specific capacity frontiers into **empirical service reliability frontiers**, one grouped by fleet vocation, fleet size and charging policy.
+Standalone Rust aggregator for repeated EV depot simulations. It converts a set of scenario-specific capacity frontiers into **empirical service reliability frontiers**, grouped by fleet vocation, fleet size, connector-release assumption and scheduling policy.
+
+## Connector occupancy is a first-class uncertainty
+
+A vehicle that finishes charging may remain plugged in until the driver returns. Assuming every connector becomes instantly reusable at charge completion can materially understate the port count and grid-capacity interaction. The matrix therefore separates two boundary policies: `release_on_charge_completion` assumes immediate connector turnover, while `hold_until_departure` reserves the port until the vehicle departs. Neither is a universal truth: the first is optimistic without verified unplug/repositioning logistics; the second may be conservative if a valet or automatic cable system can move vehicles. The current workload model does not implement a valet, connector relocation delay, or labor cost, so results are reported separately rather than blended into one average.
 
 ## Why this is a paradigm shift
 
@@ -10,11 +14,11 @@ It preserves every failed seed and reports the Wilson 95% binomial interval besi
 
 ## Inputs
 
-A tab-separated run manifest with four columns:
+A tab-separated run manifest with five columns:
 
 ```text
-fleet_size    seed    vocation    report_path
-10             0       fleet1-beverage-delivery    results/fleet1-beverage-delivery-fleet-10-seed-0.json
+fleet_size    seed    vocation    port_release_policy    report_path
+10             0       fleet1-beverage-delivery    release_on_charge_completion    results/fleet1-beverage-delivery-fleet-10-seed-0-release_on_charge_completion.json
 ```
 
 The actual columns are tab-separated, not space-separated. Each report must be a simulation JSON output from `tools/ev-fleet-resilience`, with an estimate-only scenario, an FCFS result and an earliest-departure-first result, plus matching 20-point frontiers. Each pair of policy results must use identical job IDs and requested energies.
@@ -35,11 +39,11 @@ cargo run --quiet --manifest-path tools/ev-capacity-robustness/Cargo.toml -- \
   --coverage-target 0.95
 ```
 
-Report paths in the run manifest are interpreted relative to the process working directory. The input file must contain every seed from 0 through `expected-seeds - 1` for every vocation/fleet-size combination. Duplicate coordinates, missing seeds, missing policies, mismatched job denominators, invalid energy accounting, missing/untrue power-limit flags, incomplete frontiers, or wrong evidence classes cause a hard failure.
+Report paths in the run manifest are interpreted relative to the process working directory. The input file must contain every seed from 0 through `expected-seeds - 1` for every vocation/fleet-size/connector-release combination. The matrix must contain both `release_on_charge_completion` and `hold_until_departure`. Duplicate coordinates, missing seeds, missing policies, mismatched job denominators, invalid energy accounting, missing/untrue power-limit flags, incomplete frontiers, or wrong evidence classes cause a hard failure.
 
 ## Outputs and metrics
 
-For every vocation × fleet size × policy:
+For every vocation × fleet size × connector-release policy × scheduler:
 - robust minimum *sampled* site power (kW) and kW per vehicle;
 - 20 capacity points at 5% intervals of port-nameplate capacity;
 - the number/proportion of workload resamples meeting 95% deadline completion and 95% battery-energy service at each point;
@@ -51,13 +55,15 @@ The robust minimum is the first sampled capacity where the empirical feasibility
 
 ## Current matrix
 
-The companion focused workflow runs 180 estimates:
+The companion focused workflow runs 360 assumption-driven estimates (180 duty samples × two connector-release assumptions):
 - three pinned NLR source vocations (beverage delivery, warehouse delivery and food delivery);
 - fleet sizes 10, 50 and 100;
-- 20 deterministic seeds per vocation/fleet-size pair;
+- 20 deterministic seeds per vocation/fleet-size/connector-release pair;
 - one charging port per two trucks, rounded up;
+- two connector-release boundary conditions: `release_on_charge_completion` (optimistic immediate connector turnover) and `hold_until_departure` (vehicle occupies its port for the entire parking interval);
+- both FCFS and earliest-departure-first scheduling under each connector assumption.
 - 150 kW declared port nameplate, scaled site nameplate, and fixed declared energy/SOH/temperature/efficiency/acceptance assumptions;
-- FCFS and earliest-departure-first on identical jobs.
+- FCFS and earliest-departure-first on identical jobs within each connector assumption.
 
 The source data are the NLR/NREL duty-cycle tables pinned at `61530df51f6cd7d64f014ebbf8714cef24c8ca70`; they are published operational summaries, not metered charge sessions. Charge jobs are generated as `estimate` evidence from VMT, shift boundaries and explicit assumptions. Raw source CSV files are downloaded transiently for the run but are not included in the uploaded artifact.
 
