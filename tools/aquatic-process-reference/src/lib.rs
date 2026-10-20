@@ -56,7 +56,9 @@ impl EcosystemState {
     /// a budget identity fails, or the step ID has already been committed.
     pub fn apply_step(&mut self, step: &ProcessStep) -> Result<StepReceipt, StepError> {
         if self.applied_step_ids.contains(&step.step_id) {
-            return Err(StepError::DuplicateStepId { step_id: step.step_id });
+            return Err(StepError::DuplicateStepId {
+                step_id: step.step_id,
+            });
         }
 
         let before = self.stocks;
@@ -108,8 +110,8 @@ impl EcosystemState {
         }
 
         let oxygen_after = u128::from(next.dissolved_oxygen_umol);
-        let oxygen_sources = u128::from(step.photosynthesis_o2_umol)
-            + u128::from(step.reaeration_o2_in_umol);
+        let oxygen_sources =
+            u128::from(step.photosynthesis_o2_umol) + u128::from(step.reaeration_o2_in_umol);
         let oxygen_sinks = u128::from(step.reaeration_o2_out_umol)
             + u128::from(step.respiration_o2_umol)
             + u128::from(step.decomposition_o2_umol);
@@ -242,7 +244,7 @@ fn update_stock(
 
 #[cfg(test)]
 mod tests {
-    use super::{update_stock, Compartment, EcosystemState, ProcessStep, StepError, Stocks};
+    use super::{Compartment, EcosystemState, ProcessStep, StepError, Stocks, update_stock};
 
     const INPUTS: &str = include_str!("../fixtures/process_steps_v0.csv");
     const EXPECTED: &str = include_str!("../fixtures/expected_stocks_v0.csv");
@@ -311,7 +313,10 @@ mod tests {
             cases += 1;
         }
         assert_eq!(cases, 4);
-        assert!(expected_lines.next().is_none(), "unexpected extra oracle rows");
+        assert!(
+            expected_lines.next().is_none(),
+            "unexpected extra oracle rows"
+        );
     }
 
     #[test]
@@ -425,29 +430,22 @@ mod tests {
         let receipt = state.apply_step(&step).expect("valid transfer");
         assert_eq!(total_before, state.stocks.nutrient_total_umol());
         assert_eq!(receipt.nutrient_before_umol, receipt.nutrient_after_umol);
-        assert_eq!(state.stocks, Stocks {
-            dissolved_p_umol: 63,
-            living_biomass_p_umol: 22,
-            water_detritus_p_umol: 6,
-            sediment_organic_p_umol: 4,
-            dissolved_oxygen_umol: 0,
-        });
+        assert_eq!(
+            state.stocks,
+            Stocks {
+                dissolved_p_umol: 63,
+                living_biomass_p_umol: 22,
+                water_detritus_p_umol: 6,
+                sediment_organic_p_umol: 4,
+                dissolved_oxygen_umol: 0,
+            }
+        );
     }
 
     #[test]
     fn stock_flux_algebra_is_independent_of_term_order() {
-        let forward = update_stock(
-            80,
-            &[20, 3],
-            &[10, 5],
-            Compartment::DissolvedNutrient,
-        );
-        let permuted = update_stock(
-            80,
-            &[3, 20],
-            &[5, 10],
-            Compartment::DissolvedNutrient,
-        );
+        let forward = update_stock(80, &[20, 3], &[10, 5], Compartment::DissolvedNutrient);
+        let permuted = update_stock(80, &[3, 20], &[5, 10], Compartment::DissolvedNutrient);
         assert_eq!(forward, Ok(88));
         assert_eq!(permuted, forward);
     }
@@ -458,7 +456,10 @@ mod tests {
         // inputs at integration boundaries, not by inventing a value in this kernel.
         let mut state = EcosystemState::new(Stocks::default());
         state
-            .apply_step(&ProcessStep { step_id: 1, ..ProcessStep::default() })
+            .apply_step(&ProcessStep {
+                step_id: 1,
+                ..ProcessStep::default()
+            })
             .expect("known zero state may advance");
         assert_eq!(state.stocks, Stocks::default());
     }
