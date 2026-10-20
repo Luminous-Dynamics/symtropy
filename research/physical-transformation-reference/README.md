@@ -9,6 +9,8 @@
 - Stable component/connection IDs, explicit material labels, and declared integer-milligram accounting fields.
 - Deterministic connected-component analysis after structural-graph changes.
 - A conserved mass ledger partitioned into reused, recycled, contaminated, waste, and unaccounted outputs.
+- Two closed-form mechanics references: a uniform linear-elastic axial bar and a small-deflection Euler-Bernoulli cantilever under a tip point load.
+- Explicit units, positive-domain checks, non-finite/overflow rejection, signed load behavior, and frozen known-answer outputs for stress, strain, extension, deflection and bending stress.
 - Frozen synthetic fixture: three components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one.
 - Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, unbalanced mass, numeric overflow and malformed identifiers.
 - Independent integration tests pin the expected graph and ledger outcomes.
@@ -30,7 +32,7 @@ The CLI emits one JSON receipt. The source commit binds the receipt to versioned
 
 Treat destruction, construction and repair as the same state-transition problem. A broken connection modifies topology, a removed component requires valid preconditions, and a rejected event cannot partially mutate the world. Material accounting follows the same principle: all outputs must reconcile to declared input, with unknown mass kept visible rather than disappearing into an aggregate “recycling rate.”
 
-This is intentionally a small slice. Graph connectivity does not prove whether a building is stable, whether an element will actually fall, or how stress redistributes. The current mass fields are declared accounting values, not sensor measurements or verified material properties.
+This is intentionally a small slice. Graph connectivity does not prove whether a building is stable, whether an element will actually fall, or how stress redistributes. The current mass fields are declared accounting values, not sensor measurements or verified material properties. The two mechanics fixtures verify only their closed-form idealizations; they do not validate a mesh, nonlinear constitutive law, real connection behavior, dynamic collapse, or solver integration.
 
 ## Comparison with the field
 
@@ -42,8 +44,8 @@ This is intentionally a small slice. Graph connectivity does not prove whether a
 
 ## Benchmark ladder
 
-1. **Software invariants (now):** deterministic replay, transactional rejection, graph connectivity and exact integer mass balance.
-2. **Analytical mechanics:** unit-aware bar/beam/cantilever cases with independently computed answers and tolerances.
+1. **Software invariants (implemented slice):** deterministic replay, transactional rejection, graph connectivity and exact integer mass balance.
+2. **Analytical mechanics (initial slice implemented):** unit-aware axial-bar and cantilever-tip-load cases with independently pinned expected values and declared tolerances.
 3. **Solver adapter:** pin solver/version, boundary conditions, mesh and convergence information; report error and residuals.
 4. **Physical fracture/contact:** use a rights-cleared measured dataset or controlled instrumented experiment, including uncertainty and held-out cases.
 5. **Construction planning:** temporary supports, connection prerequisites, assembly sequence and tool accessibility.
