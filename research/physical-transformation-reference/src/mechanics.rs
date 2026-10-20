@@ -256,8 +256,7 @@ mod tests {
         let doubled_span = simply_supported_uniform_load(1_000.0, 8.0, 200.0e9, 8.0e-6, 0.1)
             .expect("valid doubled-span beam");
         assert!(
-            (doubled_span.midspan_deflection_m / base.midspan_deflection_m - 16.0).abs()
-                <= 1.0e-12
+            (doubled_span.midspan_deflection_m / base.midspan_deflection_m - 16.0).abs() <= 1.0e-12
         );
         assert!(
             (doubled_span.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 4.0).abs()
