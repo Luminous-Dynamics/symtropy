@@ -562,4 +562,205 @@ mod tests {
     fn tsv_sanitization_drops_newlines_and_tabs() {
         assert_eq!(tsv("a\tb\nc"), "a b c");
     }
+
+    fn fixture_dir(label: &str) -> PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock after UNIX epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "tavis-result-audit-{label}-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&path).expect("create fixture directory");
+        path
+    }
+
+    fn write_fixture_run(
+        dir: &Path,
+        tasks_and_modes: &[(&str, &str, usize)],
+        include_ids: bool,
+        identity_salt: &str,
+    ) {
+        fs::create_dir_all(dir).expect("create run directory");
+        for (task, mode, successes) in tasks_and_modes {
+            let episodes: Vec<Value> = (0..2)
+                .map(|index| {
+                    let identity = format!("{identity_salt}-{task}-{mode}-{index}");
+                    serde_json::json!({
+                        "success": index < *successes,
+                        "length_steps": 10,
+                        "length_s": 0.5,
+                        "wall_clock_s": 1.0,
+                        "episode_id": if include_ids { Some(Value::String(identity.clone())) } else { None },
+                        "seed": if include_ids { Some(Value::String(identity)) } else { None },
+                        "extra": {
+                            "galt_s": 0.75,
+                            "galt_reason": "ok",
+                            "galt_arm": "right"
+                        }
+                    })
+                })
+                .collect();
+            let result = serde_json::json!({
+                "meta": {
+                    "timestamp": "2026-10-20T00:00:00",
+                    "checkpoint": "/fixture/checkpoint",
+                    "model": "pi0",
+                    "camera": "headcam",
+                    "robot": "gr1t2",
+                    "suite": "tavis-head",
+                    "task": task,
+                    "eval_mode": mode,
+                    "episodes_requested": 2,
+                    "episode_length_s": 20.0,
+                    "robot_ctrl_rate": 20.0
+                },
+                "episodes": episodes,
+                "summary": {
+                    "success_rate": *successes as f64 / 2.0,
+                    "n_episodes": 2,
+                    "n_successful": successes
+                }
+            });
+            let path = dir.join(format!("{task}_{mode}.json"));
+            fs::write(path, serde_json::to_vec_pretty(&result).unwrap())
+                .expect("write fixture result");
+        }
+    }
+
+    fn expected_fixture_tasks() -> Vec<String> {
+        vec!["alpha".to_string(), "beta".to_string()]
+    }
+
+    fn one_mode() -> Vec<String> {
+        vec!["id".to_string()]
+    }
+
+    #[test]
+    fn audit_run_flags_missing_task_mode_cells_and_never_silently_completes_them() {
+        let dir = fixture_dir("missing-cell");
+        write_fixture_run(&dir, &[("alpha", "id", 1)], true, "same");
+
+        let run = audit_run(
+            "smoke",
+            &dir,
+            &expected_fixture_tasks(),
+            &one_mode(),
+            2,
+        )
+        .unwrap();
+
+        assert_eq!(run.status.missing_cells, vec!["beta/id".to_string()]);
+        assert!(!run.status.errors.is_empty());
+        assert_eq!(run.cells.len(), 1);
+
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn pairing_is_unavailable_when_official_rows_have_no_ids_or_seeds() {
+        let dir_a = fixture_dir("no-ids-a");
+        let dir_b = fixture_dir("no-ids-b");
+        let cells = [("alpha", "id", 1), ("beta", "id", 1)];
+        write_fixture_run(&dir_a, &cells, false, "a");
+        write_fixture_run(&dir_b, &cells, false, "a");
+
+        let tasks = expected_fixture_tasks();
+        let modes = one_mode();
+        let a = audit_run("headcam", &dir_a, &tasks, &modes, 2).unwrap();
+        let b = audit_run("fixedcam", &dir_b, &tasks, &modes, 2).unwrap();
+
+        assert!(!a.status.episode_ids_present);
+        assert!(!a.status.seeds_present);
+        assert!(!cross_run_pairing_ready(&[a, b]));
+
+        fs::remove_dir_all(dir_a).unwrap();
+        fs::remove_dir_all(dir_b).unwrap();
+    }
+
+    #[test]
+    fn pairing_requires_equal_unique_seed_and_episode_id_sets_across_runs() {
+        let dir_a = fixture_dir("paired-a");
+        let dir_b = fixture_dir("paired-b");
+        let cells = [("alpha", "id", 1), ("beta", "id", 1)];
+        write_fixture_run(&dir_a, &cells, true, "shared-seed");
+        write_fixture_run(&dir_b, &cells, true, "different-seed");
+
+        let tasks = expected_fixture_tasks();
+        let modes = one_mode();
+        let a = audit_run("controller-a", &dir_a, &tasks, &modes, 2).unwrap();
+        let b = audit_run("controller-b", &dir_b, &tasks, &modes, 2).unwrap();
+
+        assert!(a.status.pairing_ready);
+        assert!(b.status.pairing_ready);
+        assert!(!cross_run_pairing_ready(&[a, b]));
+
+        fs::remove_dir_all(dir_a).unwrap();
+        fs::remove_dir_all(dir_b).unwrap();
+    }
+
+    #[test]
+    fn pairing_is_ready_only_when_all_cell_ids_and_seeds_match() {
+        let dir_a = fixture_dir("same-pair-a");
+        let dir_b = fixture_dir("same-pair-b");
+        let cells = [("alpha", "id", 2), ("beta", "id", 0)];
+        write_fixture_run(&dir_a, &cells, true, "shared");
+        write_fixture_run(&dir_b, &cells, true, "shared");
+
+        let tasks = expected_fixture_tasks();
+        let modes = one_mode();
+        let a = audit_run("headcam", &dir_a, &tasks, &modes, 2).unwrap();
+        let b = audit_run("fixedcam", &dir_b, &tasks, &modes, 2).unwrap();
+
+        assert!(cross_run_pairing_ready(&[a, b]));
+
+        fs::remove_dir_all(dir_a).unwrap();
+        fs::remove_dir_all(dir_b).unwrap();
+    }
+
+    #[test]
+    fn duplicate_episode_ids_and_seeds_are_rejected_for_pairing() {
+        let dir = fixture_dir("duplicate-identifiers");
+        let mut result = serde_json::json!({
+            "meta": {
+                "timestamp": "2026-10-20T00:00:00",
+                "checkpoint": "/fixture/checkpoint",
+                "model": "pi0",
+                "camera": "headcam",
+                "robot": "gr1t2",
+                "suite": "tavis-head",
+                "task": "alpha",
+                "eval_mode": "id",
+                "episodes_requested": 2,
+                "episode_length_s": 20.0,
+                "robot_ctrl_rate": 20.0
+            },
+            "episodes": [
+                {"success": true, "episode_id": "duplicate", "seed": "duplicate", "extra": {}},
+                {"success": false, "episode_id": "duplicate", "seed": "duplicate", "extra": {}}
+            ],
+            "summary": {"success_rate": 0.5, "n_episodes": 2, "n_successful": 1}
+        });
+        fs::write(dir.join("alpha_id.json"), serde_json::to_vec_pretty(&result).unwrap())
+            .expect("write duplicate fixture");
+
+        let run = audit_run(
+            "duplicate",
+            &dir,
+            &["alpha".to_string()],
+            &one_mode(),
+            2,
+        )
+        .unwrap();
+        assert!(!run.status.episode_ids_present);
+        assert!(!run.status.seeds_present);
+        assert!(run.status.errors.iter().any(|error| error.contains("duplicate episode_id")));
+        assert!(run.status.errors.iter().any(|error| error.contains("duplicate seed")));
+
+        // Avoid retaining an unnecessary mutable binding in this fixture:
+        result["summary"]["n_successful"] = Value::from(1);
+        fs::remove_dir_all(dir).unwrap();
+    }
 }
