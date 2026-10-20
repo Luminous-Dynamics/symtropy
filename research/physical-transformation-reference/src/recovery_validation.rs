@@ -113,17 +113,17 @@ pub struct RecoveryFixtureSummary {
 /// Compare observation records against declared recovery records in the world.
 /// Missing observations remain missing; unknown/derived/mixed evidence cannot
 /// promote the result to MEASURED.
-pub fn compare(
-    world: &World,
-    observations: Vec<RecoveryObservation>,
-) -> Check<RecoveryComparison> {
+pub fn compare(world: &World, observations: Vec<RecoveryObservation>) -> Check<RecoveryComparison> {
     if world.recovered_components.is_empty() {
         return Err("no recovered components exist in the source state".to_owned());
     }
 
     let mut by_component = BTreeMap::<String, RecoveryObservation>::new();
     for observation in observations {
-        validate_token(&observation.component_id, "recovery observation component ID")?;
+        validate_token(
+            &observation.component_id,
+            "recovery observation component ID",
+        )?;
         if observation.observed_input_mass_mg == 0 {
             return Err(format!(
                 "observation {} has zero input mass",
@@ -148,7 +148,9 @@ pub fn compare(
         }
         let id = observation.component_id.clone();
         if by_component.insert(id.clone(), observation).is_some() {
-            return Err(format!("duplicate recovery observation for component: {id}"));
+            return Err(format!(
+                "duplicate recovery observation for component: {id}"
+            ));
         }
     }
 
@@ -214,7 +216,8 @@ pub fn compare(
                 ));
             }
         }
-        if observation.evidence_class == EvidenceClass::Measured && !source_and_calibration_present {
+        if observation.evidence_class == EvidenceClass::Measured && !source_and_calibration_present
+        {
             diagnostics.push(format!(
                 "measured observation {} lacks source or calibration provenance",
                 planned.component_id
@@ -226,7 +229,10 @@ pub fn compare(
                 planned.component_id
             ));
         }
-        if matches!(observation.evidence_class, EvidenceClass::Derived | EvidenceClass::Unknown) {
+        if matches!(
+            observation.evidence_class,
+            EvidenceClass::Derived | EvidenceClass::Unknown
+        ) {
             diagnostics.push(format!(
                 "observation {} is not wholly measured or wholly synthetic",
                 planned.component_id
@@ -250,7 +256,8 @@ pub fn compare(
             reused_delta_mg: i128::from(observation.reused_mg) - i128::from(planned.reused_mg),
             planned_recycled_mg: planned.recycled_mg,
             observed_recycled_mg: observation.recycled_mg,
-            recycled_delta_mg: i128::from(observation.recycled_mg) - i128::from(planned.recycled_mg),
+            recycled_delta_mg: i128::from(observation.recycled_mg)
+                - i128::from(planned.recycled_mg),
             planned_contaminated_mg: planned.contaminated_mg,
             observed_contaminated_mg: observation.contaminated_mg,
             contaminated_delta_mg: i128::from(observation.contaminated_mg)
@@ -297,9 +304,15 @@ pub fn compare(
             add_i128(&mut sums.input_mass_delta_mg, component.input_mass_delta_mg)?;
             add_i128(&mut sums.reused_delta_mg, component.reused_delta_mg)?;
             add_i128(&mut sums.recycled_delta_mg, component.recycled_delta_mg)?;
-            add_i128(&mut sums.contaminated_delta_mg, component.contaminated_delta_mg)?;
+            add_i128(
+                &mut sums.contaminated_delta_mg,
+                component.contaminated_delta_mg,
+            )?;
             add_i128(&mut sums.waste_delta_mg, component.waste_delta_mg)?;
-            add_i128(&mut sums.unaccounted_delta_mg, component.unaccounted_delta_mg)?;
+            add_i128(
+                &mut sums.unaccounted_delta_mg,
+                component.unaccounted_delta_mg,
+            )?;
             add_i128(
                 &mut sums.observed_mass_residual_mg,
                 component.observed_mass_residual_mg,
@@ -307,7 +320,9 @@ pub fn compare(
         }
         sums
     } else {
-        diagnostics.push("aggregate deltas withheld because observation coverage is incomplete".to_owned());
+        diagnostics.push(
+            "aggregate deltas withheld because observation coverage is incomplete".to_owned(),
+        );
         AggregateRecoveryDelta::default()
     };
 
@@ -398,7 +413,9 @@ pub fn run_reference_fixture() -> Check<RecoveryFixtureSummary> {
         || summary.waste_delta_mg != Some(60)
         || summary.unaccounted_delta_mg != Some(-10)
     {
-        return Err(format!("frozen recovery comparison failed known-answer contract: {summary:?}"));
+        return Err(format!(
+            "frozen recovery comparison failed known-answer contract: {summary:?}"
+        ));
     }
     Ok(summary)
 }
@@ -496,8 +513,7 @@ mod tests {
 
         let mut incomplete = measured_observation("A");
         incomplete.calibration_ref = None;
-        let result =
-            compare(&world, vec![incomplete]).expect("missing calibration is unresolved");
+        let result = compare(&world, vec![incomplete]).expect("missing calibration is unresolved");
         assert_eq!(result.status, ComparisonStatus::Unresolved);
         assert!(
             result
@@ -571,7 +587,12 @@ mod tests {
             compare(&world, vec![observation]).expect("over-output is evidence, not parse failure");
         assert_eq!(result.status, ComparisonStatus::Synthetic);
         assert_eq!(result.aggregate.observed_mass_residual_mg, Some(-100));
-        assert!(result.diagnostics.iter().any(|value| value.contains("mass residual")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|value| value.contains("mass residual"))
+        );
     }
 
     #[test]
