@@ -92,7 +92,7 @@ jobs:
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
 
-          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-analytical-adapter -- \
             --request schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json \
             --adapter-revision "$source_commit" > analytical-adapter-bar-receipt.json
           jq -e --arg revision "$source_commit" '
@@ -107,7 +107,7 @@ jobs:
             and (.request_sha256 | test("^[0-9a-f]{64}$"))
           ' analytical-adapter-bar-receipt.json
 
-          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-analytical-adapter -- \
             --request schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json \
             --adapter-revision "$source_commit" > analytical-adapter-cantilever-receipt.json
           jq -e '
@@ -117,7 +117,7 @@ jobs:
             and .outputs.maximum_bending_stress_pa > 2499999
           ' analytical-adapter-cantilever-receipt.json
 
-          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-analytical-adapter -- \
             --request schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json \
             --adapter-revision "$source_commit" > analytical-adapter-simply-supported-receipt.json
           jq -e '
@@ -129,7 +129,7 @@ jobs:
             and .outputs.maximum_bending_stress_pa < 25000001
           ' analytical-adapter-simply-supported-receipt.json
 
-          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-analytical-adapter -- \
             --request schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json \
             --adapter-revision "$source_commit" > analytical-adapter-unsupported-receipt.json
           jq -e '
@@ -140,7 +140,7 @@ jobs:
           ' analytical-adapter-unsupported-receipt.json
 
 
-          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-analytical-adapter -- \
             --request schemas/physical-transformation/analytical-fixtures/analytical-bar-bounds-v0.1.json \
             --adapter-revision "$source_commit" > analytical-adapter-bar-bounds-receipt.json
           jq -e --arg revision "$source_commit" '
@@ -157,7 +157,7 @@ jobs:
             and .output_enclosures.axial_stress_pa.nominal == .outputs.axial_stress_pa
           ' analytical-adapter-bar-bounds-receipt.json
 
-          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-analytical-adapter -- \
             --request schemas/physical-transformation/analytical-fixtures/cantilever-force-crosses-zero-bounds-v0.1.json \
             --adapter-revision "$source_commit" > analytical-adapter-zero-crossing-receipt.json
           jq -e '
