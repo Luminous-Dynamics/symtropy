@@ -35,6 +35,14 @@ struct DistributionSummary {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+struct FamilyBaselineResult {
+    family_id: String,
+    source_report_sha256: String,
+    baseline_mean_good_units_per_hour: f64,
+    replication_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 struct FamilyStationResult {
     family_id: String,
     source_report_sha256: String,
@@ -82,6 +90,7 @@ struct Report {
     shared_replication_seeds: Vec<u64>,
     practical_equivalence_margin_units_per_hour: f64,
     input_family_digests: BTreeMap<String, String>,
+    family_baseline_results: Vec<FamilyBaselineResult>,
     family_station_results: Vec<FamilyStationResult>,
     family_pair_comparisons: Vec<FamilyPairComparison>,
     station_scores: Vec<RobustStationScore>,
@@ -251,8 +260,11 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         } else {
             let station_id = scenario_to_station[&scenario_id].as_ref().expect("validated station");
             let delta = field_f64(outcome, "paired_good_units_per_hour_delta_vs_baseline")?;
-            if (stored_baseline - baseline_rates.get(&seed).copied().unwrap_or(stored_baseline)).abs() > 1e-9 {
-                return Err("baseline_outcome_must_be_emitted_before_interventions_for_each_seed".into());
+            let expected_baseline = baseline_rates.get(&seed)
+                .copied()
+                .ok_or_else(|| "baseline_outcome_must_be_emitted_before_interventions_for_each_seed".to_string())?;
+            if (stored_baseline - expected_baseline).abs() > 1e-9 {
+                return Err("seed_outcome_baseline_rate_mismatch".into());
             }
             if (delta - (output - stored_baseline)).abs() > 1e-9 {
                 return Err("stored_paired_delta_does_not_match_output_minus_baseline".into());
@@ -338,6 +350,7 @@ fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
         }
     }
 
+    let mut family_baseline_results = Vec::new();
     let mut family_station_results = Vec::new();
     let mut family_pair_comparisons = Vec::new();
     let mut per_family_station_mean = BTreeMap::<String, BTreeMap<String, f64>>::new();
@@ -345,6 +358,12 @@ fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
     let mut input_family_digests = BTreeMap::new();
     for family in &families {
         input_family_digests.insert(family.family_id.clone(), family.sha256.clone());
+        family_baseline_results.push(FamilyBaselineResult {
+            family_id: family.family_id.clone(),
+            source_report_sha256: family.sha256.clone(),
+            baseline_mean_good_units_per_hour: family.baseline_mean_good_units_per_hour,
+            replication_count: family.replication_seeds.len(),
+        });
         let family_means: BTreeMap<String, f64> = family.gains_by_station.iter()
             .map(|(station, rows)| (station.clone(), rows.values().sum::<f64>() / rows.len() as f64))
             .collect();
@@ -461,6 +480,7 @@ fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
         shared_replication_seeds: seed_reference,
         practical_equivalence_margin_units_per_hour: PRACTICAL_MARGIN,
         input_family_digests,
+        family_baseline_results,
         family_station_results,
         family_pair_comparisons,
         station_scores: scores,
@@ -557,6 +577,67 @@ mod tests {
         clear.mean_confidence_95_lower=Some(-0.2);
         clear.mean_confidence_95_upper=Some(0.3);
         assert_eq!(paired_decision(&clear,0.05),"inconclusive_under_paired_interval");
+    }
+
+    fn family(id: &str, a: &[f64], b: &[f64]) -> FamilyInput {
+        let seeds: Vec<u64> = (1..=a.len() as u64).collect();
+        FamilyInput {
+            family_id: id.to_string(),
+            sha256: format!("{:0<64}", id),
+            replication_seeds: seeds.clone(),
+            baseline_mean_good_units_per_hour: 10.0,
+            gains_by_station: BTreeMap::from([
+                ("a".to_string(), seeds.iter().copied().zip(a.iter().copied()).collect()),
+                ("b".to_string(), seeds.iter().copied().zip(b.iter().copied()).collect()),
+            ]),
+        }
+    }
+
+    #[test]
+    fn robust_winner_requires_paired_margin_to_hold_in_every_family() {
+        let inputs = vec![
+            family("nominal", &[0.8; 5], &[0.0; 5]),
+            family("supply", &[0.8; 5], &[0.0; 5]),
+            family("setup", &[0.8; 5], &[0.0; 5]),
+            family("repair", &[0.8; 5], &[0.0; 5]),
+            family("buffers", &[0.8; 5], &[0.0; 5]),
+        ];
+        let report = evaluate(inputs).expect("robust synthetic inputs");
+        assert_eq!(report.robust_best_station_id.as_deref(), Some("a"));
+        assert_eq!(report.family_pair_comparisons.len(), 5);
+        assert_eq!(report.family_count, 5);
+        assert!(report.production_release_authorized == false);
+        assert!(report.results_are_synthetic_model_conditional);
+    }
+
+    #[test]
+    fn regime_switch_causes_cross_family_abstention() {
+        let inputs = vec![
+            family("nominal", &[0.8; 5], &[0.0; 5]),
+            family("supply", &[0.8; 5], &[0.0; 5]),
+            family("setup", &[0.0; 5], &[0.8; 5]),
+            family("repair", &[0.0; 5], &[0.8; 5]),
+            family("buffers", &[0.0; 5], &[0.8; 5]),
+        ];
+        let report = evaluate(inputs).expect("regime-switch inputs");
+        assert_eq!(report.robust_best_station_id, None);
+        assert_eq!(report.recommendation_status, "no_unique_cross_family_winner_abstain");
+    }
+
+    #[test]
+    fn practical_equivalence_does_not_force_a_robust_winner() {
+        let inputs = vec![
+            family("nominal", &[0.02; 5], &[0.0; 5]),
+            family("supply", &[0.02; 5], &[0.0; 5]),
+            family("setup", &[0.02; 5], &[0.0; 5]),
+            family("repair", &[0.02; 5], &[0.0; 5]),
+            family("buffers", &[0.02; 5], &[0.0; 5]),
+        ];
+        let report = evaluate(inputs).expect("equivalence inputs");
+        assert_eq!(report.robust_best_station_id, None);
+        assert!(report.family_pair_comparisons.iter().all(|comparison| {
+            comparison.decision == "practically_equivalent_within_declared_margin"
+        }));
     }
 
     #[test]
