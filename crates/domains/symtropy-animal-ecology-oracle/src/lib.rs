@@ -770,4 +770,39 @@ mod tests {
         let schema_input = serde_json::to_string(&schema).expect("mutated schema serializes");
         assert!(validate_artifacts(&oracle_input, &schema_input).is_err());
     }
+
+    #[test]
+    fn empty_expected_property_list_fails_closed() {
+        let mut oracle: Value =
+            serde_json::from_str(COMMITTED_ORACLE_JSON).expect("oracle fixture parses");
+        oracle["cases"][0]["expected"]["required_properties"] = json!([]);
+        let input = serde_json::to_string(&oracle).expect("mutated oracle serializes");
+        assert!(validate_oracle(&input).is_err());
+    }
+
+    #[test]
+    fn schema_identity_cannot_be_retargeted() {
+        let mut schema: Value =
+            serde_json::from_str(COMMITTED_SCHEMA_JSON).expect("schema fixture parses");
+        schema["$id"] = json!("https://example.invalid/schema.json");
+        let input = serde_json::to_string(&schema).expect("mutated schema serializes");
+        assert!(validate_artifacts(COMMITTED_ORACLE_JSON, &input).is_err());
+    }
+
+    #[test]
+    fn root_schema_cannot_allow_undeclared_fields() {
+        let mut schema: Value =
+            serde_json::from_str(COMMITTED_SCHEMA_JSON).expect("schema fixture parses");
+        schema["additionalProperties"] = json!(true);
+        let input = serde_json::to_string(&schema).expect("mutated schema serializes");
+        assert!(validate_artifacts(COMMITTED_ORACLE_JSON, &input).is_err());
+    }
+
+    #[test]
+    fn calendar_validation_handles_leap_year_boundaries() {
+        assert!(is_valid_iso_date("2024-02-29"));
+        assert!(!is_valid_iso_date("2023-02-29"));
+        assert!(!is_valid_iso_date("1900-02-29"));
+        assert!(is_valid_iso_date("2000-02-29"));
+    }
 }
