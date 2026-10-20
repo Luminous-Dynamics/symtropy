@@ -580,34 +580,40 @@ fn validate_and_own(report: SimulationReport, coordinate: &Coordinate) -> Result
 fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Result<(RobustReport, String), String> {
     let mut fleet_sizes = BTreeSet::<usize>::new();
     let mut vocations = BTreeSet::<String>::new();
-    let mut grouped = BTreeMap::<(String, usize), Vec<&Run>>::new();
+    let mut port_release_policies = BTreeSet::<String>::new();
+    let mut grouped = BTreeMap::<(String, usize, String), Vec<&Run>>::new();
     for run in runs {
         fleet_sizes.insert(run.coordinate.fleet_size);
         vocations.insert(run.coordinate.vocation.clone());
-        grouped.entry((run.coordinate.vocation.clone(), run.coordinate.fleet_size)).or_default().push(run);
+        port_release_policies.insert(run.coordinate.port_release_policy.clone());
+        grouped.entry((run.coordinate.vocation.clone(), run.coordinate.fleet_size, run.coordinate.port_release_policy.clone())).or_default().push(run);
     }
     if fleet_sizes.len() < options.minimum_fleet_sizes || vocations.len() < options.minimum_vocations {
         return Err(format!("matrix_too_small:fleet_sizes={},vocations={}", fleet_sizes.len(), vocations.len()));
     }
 
-    let expected_group_count = fleet_sizes.len() * vocations.len();
+    let expected_release_modes: BTreeSet<String> = ["release_on_charge_completion".to_string(), "hold_until_departure".to_string()].into_iter().collect();
+    if port_release_policies != expected_release_modes {
+        return Err("matrix_must_include_both_port_release_policies".into());
+    }
+    let expected_group_count = fleet_sizes.len() * vocations.len() * port_release_policies.len();
     if grouped.len() != expected_group_count {
-        return Err(format!("incomplete_vocation_fleet_cross_product:expected_groups={expected_group_count},actual_groups={}", grouped.len()));
+        return Err(format!("incomplete_vocation_fleet_release_cross_product:expected_groups={expected_group_count},actual_groups={}", grouped.len()));
     }
     let mut policy_aggregates = Vec::<PolicyAggregate>::new();
-    for ((vocation, fleet_size), group_runs) in &grouped {
+    for ((vocation, fleet_size, port_release_policy), group_runs) in &grouped {
         if group_runs.len() != options.expected_seeds {
-            return Err(format!("seed_count_mismatch:vocation={vocation},fleet_size={fleet_size},expected={},actual={}", options.expected_seeds, group_runs.len()));
+            return Err(format!("seed_count_mismatch:vocation={vocation},fleet_size={fleet_size},port_release_policy={port_release_policy},expected={},actual={}", options.expected_seeds, group_runs.len()));
         }
         let seeds: BTreeSet<u64> = group_runs.iter().map(|run| run.coordinate.seed).collect();
         let expected_seeds: BTreeSet<u64> = (0..options.expected_seeds as u64).collect();
         if seeds != expected_seeds {
-            return Err(format!("seed_coordinates_incomplete:vocation={vocation},fleet_size={fleet_size}"));
+            return Err(format!("seed_coordinates_incomplete:vocation={vocation},fleet_size={fleet_size},port_release_policy={port_release_policy}"));
         }
         let expected_base = (fleet_size.div_ceil(2) * 150) as f64;
         for run in group_runs {
             for frontier in &run.source_report.frontiers {
-                if (frontier.base_site_power_budget_kw - expected_base).abs() > EPSILON {
+                if frontier.port_release_policy != *port_release_policy || (frontier.base_site_power_budget_kw - expected_base).abs() > EPSILON {
                     return Err(format!("base_site_budget_mismatch:vocation={vocation},fleet_size={fleet_size},seed={}", run.coordinate.seed));
                 }
             }
@@ -617,8 +623,8 @@ fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Re
             let mut run_results = Vec::<(&Run, &PolicyResultOwned)>::new();
             let mut run_frontiers = Vec::<(&Run, &FrontierOwned)>::new();
             for run in group_runs {
-                let result = run.source_report.results.iter().find(|r| r.policy == policy).ok_or("missing policy result")?;
-                let frontier = run.source_report.frontiers.iter().find(|f| f.policy == policy).ok_or("missing policy frontier")?;
+                let result = run.source_report.results.iter().find(|r| r.policy == policy && r.port_release_policy == *port_release_policy).ok_or("missing policy result for port release mode")?;
+                let frontier = run.source_report.frontiers.iter().find(|f| f.policy == policy && f.port_release_policy == *port_release_policy).ok_or("missing policy frontier for port release mode")?;
                 run_results.push((run, result));
                 run_frontiers.push((run, frontier));
             }
@@ -680,6 +686,7 @@ fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Re
             policy_aggregates.push(PolicyAggregate {
                 vocation: vocation.clone(),
                 fleet_size: *fleet_size,
+                port_release_policy: port_release_policy.clone(),
                 policy: policy.to_string(),
                 replicate_count: run_results.len(),
                 jobs_per_replicate,
@@ -701,12 +708,13 @@ fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Re
             });
         }
     }
-    policy_aggregates.sort_by(|a, b| a.vocation.cmp(&b.vocation).then(a.fleet_size.cmp(&b.fleet_size)).then(a.policy.cmp(&b.policy)));
+    policy_aggregates.sort_by(|a, b| a.vocation.cmp(&b.vocation).then(a.fleet_size.cmp(&b.fleet_size)).then(a.port_release_policy.cmp(&b.port_release_policy)).then(a.policy.cmp(&b.policy)));
 
     let receipts = runs.iter().map(|run| RunReceipt {
         vocation: run.coordinate.vocation.clone(),
         fleet_size: run.coordinate.fleet_size,
         seed: run.coordinate.seed,
+        port_release_policy: run.coordinate.port_release_policy.clone(),
         report_sha256: run.report_sha256.clone(),
         source_evidence_reference: run.source_evidence_reference.clone(),
     }).collect();
@@ -719,6 +727,7 @@ fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Re
         fleet_sizes: fleet_sizes.into_iter().collect(),
         vocations: vocations.into_iter().collect(),
         policies: vec!["fcfs".into(), "earliest_departure_first".into()],
+        port_release_policies: port_release_policies.into_iter().collect(),
         empirical_capacity_coverage_target: options.coverage_target,
         per_run_service_targets: ServiceTargets {
             minimum_deadline_completion_fraction: SERVICE_TARGET,
@@ -801,19 +810,19 @@ fn run(options: Options) -> Result<(), String> {
             source_report: owned,
         });
     }
-    let mut coordinate_groups = BTreeMap::<(String, usize), BTreeSet<u64>>::new();
+    let mut coordinate_groups = BTreeMap::<(String, usize, String), BTreeSet<u64>>::new();
     for run in &runs {
-        coordinate_groups.entry((run.coordinate.vocation.clone(), run.coordinate.fleet_size)).or_default().insert(run.coordinate.seed);
+        coordinate_groups.entry((run.coordinate.vocation.clone(), run.coordinate.fleet_size, run.coordinate.port_release_policy.clone())).or_default().insert(run.coordinate.seed);
     }
     let expected_coordinate_groups = coordinate_groups.len();
     let expected_rows = expected_coordinate_groups * options.expected_seeds;
     if runs.len() != expected_rows {
         return Err(format!("run_manifest_row_count_mismatch:expected={expected_rows},actual={}", runs.len()));
     }
-    for ((vocation, fleet_size), seeds) in &coordinate_groups {
+    for ((vocation, fleet_size, release_policy), seeds) in &coordinate_groups {
         let expected: BTreeSet<u64> = (0..options.expected_seeds as u64).collect();
         if seeds != &expected {
-            return Err(format!("seed_set_mismatch:vocation={vocation},fleet_size={fleet_size}"));
+            return Err(format!("seed_set_mismatch:vocation={vocation},fleet_size={fleet_size},port_release_policy={release_policy}"));
         }
     }
     let (report, csv) = aggregate(&runs, &options, sha256(&manifest_bytes))?;
