@@ -121,9 +121,9 @@ The hard subgroup remains important: when at least one queried claim changed aft
 
 Several other factor slices are still inconclusive. In particular the high claim-flip-rate stratum's hazard-aware delta is -0.0223 with 95% CI [-0.0516, +0.0121], which includes zero. These subgroup analyses are exploratory, overlapping, and involve multiple comparisons; they must not be presented as independent confirmatory discoveries.
 
-## Frozen-seed confirmation — passed on an independent seed root
+## Independent-seed replication — passed, with post-selection caveat
 
-The algorithm and factorized generator were frozen, then the report seed root was changed to `0xA54F_F53A_5F1D_36F1`. The resulting exact source head was `649acdd38e0fe49c13c9a0575f4cea079564ec1f`; [focused workflow #39487343659](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487343659) passed all 14 tests, report determinism, schema/strata checks and the SHA receipt. The report artifact is [vis-relational-memory-report #12293388387](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487343659/artifacts/12293388387). Documentation-only commit `55583e5945006da9b0bd6dc2e136bd107526168c` subsequently passed its exact-head focused PR workflow [#39487456373](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487456373). The ordinary cross-platform CI for that documentation head was still in progress when this note was written.
+After selecting the hazard-aware hypothesis from earlier exploratory strata, the algorithm and factorized generator were frozen and the report seed root was changed to `0xA54F_F53A_5F1D_36F1`. This is an independent-seed replication, **not a fully preregistered confirmatory study**, because the candidate design followed inspection of earlier benchmark outputs. The resulting exact source head was `649acdd38e0fe49c13c9a0575f4cea079564ec1f`; [focused workflow #39487343659](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487343659) passed all 14 tests, report determinism, schema/strata checks and the SHA receipt. The report artifact is [vis-relational-memory-report #12293388387](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487343659/artifacts/12293388387). Documentation-only commit `55583e5945006da9b0bd6dc2e136bd107526168c` subsequently passed its exact-head focused PR workflow [#39487456373](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487456373). The ordinary cross-platform CI for that documentation head was still in progress when this note was written.
 
 Independent-seed held-out results at capacity 3:
 
@@ -141,9 +141,9 @@ The hardest subgroup remains unresolved. In the 244 held-out episodes where at l
 
 Interpretation: the independent-seed result supports a real synthetic benefit from estimating information lifetime, but the benefit is not yet robustly shown on the particular episodes where the world changes after observation. Next priorities are a third untouched seed root or a preregistered stress suite, confidence-interval-aware subgroup reporting, and external evaluation with benchmark-native task-success metrics. Do not tune against the current confirmation seeds.
 
-## Frozen-seed confirmation required
+## Next: truly preregistered external evaluation required
 
-Before using the hazard result as an engineering acceptance claim, freeze the algorithm and scoring contract, choose a distinct fixed seed root not used in earlier reports, re-run the factorized suite unchanged, and publish the new exact-head report. Then reproduce the same memory-policy delta on a native external task subset (ActiveArena) while holding model/backbone, action decoder, task seeds and environment fixed. No SOTA claim is warranted until that reproduction is completed with the benchmark-native metrics.
+Before using the hazard result as an engineering acceptance claim, preregister the algorithm and scoring contract **before** accessing the next held-out results, choose a new seed root and factor distributions not used in earlier reports, re-run the factorized suite unchanged, and publish the new exact-head report. Then reproduce the same memory-policy delta on a native external task subset (ActiveArena) while holding model/backbone, action decoder, task seeds and environment fixed. No SOTA claim is warranted until that reproduction is completed with the benchmark-native metrics.
 
 ## Limits
 
