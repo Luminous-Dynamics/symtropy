@@ -972,7 +972,8 @@ mod tests {
     #[test]
     fn receipt_binds_dependency_lock_and_toolchain_versions() {
         let runtime = AuditRuntime {
-            dependency_lock_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            dependency_lock_sha256:
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             rustc_version: "rustc 1.96.0".to_owned(),
             cargo_version: "cargo 1.96.0".to_owned(),
         };
@@ -982,12 +983,16 @@ mod tests {
             &runtime,
         )
         .expect("runtime-pinned fixture is valid");
-        assert_eq!(receipt["dependency_lock_sha256"], runtime.dependency_lock_sha256);
+        assert_eq!(
+            receipt["dependency_lock_sha256"],
+            runtime.dependency_lock_sha256
+        );
         assert_eq!(receipt["rustc_version"], runtime.rustc_version);
         assert_eq!(receipt["cargo_version"], runtime.cargo_version);
 
         let changed_runtime = AuditRuntime {
-            dependency_lock_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+            dependency_lock_sha256:
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
             ..runtime.clone()
         };
         let changed_receipt = validate_and_audit_with_runtime(
