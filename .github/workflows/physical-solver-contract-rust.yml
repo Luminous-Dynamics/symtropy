@@ -221,14 +221,22 @@ jobs:
           request_sha256="$(sha256sum "$request" | cut -d ' ' -f 1)"
           request_id="$(jq -r '.request_id' "$request")"
           source_revision="$(jq -r '.source_revision' "$request")"
+          scene_sha256="$(jq -r '.scene_sha256' "$request")"
+          scene_revision="$(jq -r '.scene_revision' "$request")"
           case_id="fixture-bar-reference"
 
           jq -n \
             --arg digest "$request_sha256" \
+            --arg request_id "$request_id" \
+            --arg scene_sha256 "$scene_sha256" \
+            --argjson scene_revision "$scene_revision" \
             --arg case_id "$case_id" \
             '{
               schema_version:"physical-normalized-observables-v0.1",
               request_sha256:$digest,
+              request_id:$request_id,
+              scene_sha256:$scene_sha256,
+              scene_revision:$scene_revision,
               case_id:$case_id,
               observables:[{observable_id:"fixture_displacement_m",value:0.125,unit:"m"}]
             }' > "$artifact_root/normalized.json"
@@ -289,11 +297,17 @@ jobs:
 
           jq -n \
             --arg digest "$request_sha256" \
+            --arg request_id "$request_id" \
+            --arg scene_sha256 "$scene_sha256" \
+            --argjson scene_revision "$scene_revision" \
             --arg case_id "$case_id" '
             {
               schema_version:"physical-reference-observables-v0.1",
               reference_id:"fixture-known-answer-v1",
               case_id:$case_id,
+              request_id:$request_id,
+              scene_sha256:$scene_sha256,
+              scene_revision:$scene_revision,
               request_sha256:$digest,
               comparison_protocol_id:"fixture-tolerance-v1",
               oracle:{
