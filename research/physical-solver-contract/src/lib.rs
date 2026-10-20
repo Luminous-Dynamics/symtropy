@@ -1670,6 +1670,41 @@ mod tests {
     }
 
     #[test]
+    fn streamed_hash_matches_reference_across_multiple_chunks() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+
+        // Cross multiple 64 KiB reads and include a non-aligned final chunk.
+        let contents: Vec<u8> = (0..(3 * 64 * 1024 + 17))
+            .map(|index| ((index * 31 + 7) % 256) as u8)
+            .collect();
+        let first_ref = receipt["outputs"][0]["artifact_ref"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        fs::write(root.join(first_ref), &contents).expect("large test artifact is written");
+        receipt["outputs"][0]["sha256"] = json!(sha256_hex(&contents));
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("streamed verifier accepts matching multi-chunk artifact bytes");
+        assert_eq!(report["artifact_verification_status"], "PASS");
+        assert_eq!(report["artifact_results"][0]["status"], "PASS");
+        assert_eq!(
+            report["artifact_results"][0]["observed_sha256"],
+            sha256_hex(&contents)
+        );
+        assert_eq!(
+            report["artifact_results"][0]["byte_length"],
+            contents.len() as u64
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[test]
     fn changed_output_bytes_report_failure_not_a_verified_bundle() {
         let root = temporary_artifact_root();
         let request_bytes = fixture("analytical-bar-request-v0.1.json");
