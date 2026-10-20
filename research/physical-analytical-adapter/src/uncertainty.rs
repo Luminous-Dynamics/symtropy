@@ -658,4 +658,72 @@ mod tests {
         ((bits >> 11) as f64) / ((1_u64 << 53) as f64)
     }
 
+    #[test]
+    fn doubling_force_or_distributed_load_doubles_all_linear_response_enclosures() {
+        let cases: Vec<CaseFixture> = vec![
+            (
+                "axial_bar",
+                vec![
+                    ("force_n", 1_000.0, 900.0, 1_100.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("area_m2", 0.01, 0.009, 0.011),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                ],
+            ),
+            (
+                "cantilever_tip_load",
+                vec![
+                    ("force_n", 100.0, -110.0, 110.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+            (
+                "simply_supported_uniform_load",
+                vec![
+                    ("load_n_per_m", 1_000.0, 900.0, 1_100.0),
+                    ("length_m", 4.0, 3.8, 4.2),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+        ];
+
+        for (case_id, entries) in cases {
+            let (nominal, bounds) = fixture(&entries);
+            let base = propagate(case_id, &nominal, &bounds).expect("base interval case");
+            let load_key = if case_id == "simply_supported_uniform_load" {
+                "load_n_per_m"
+            } else {
+                "force_n"
+            };
+            let mut scaled_nominal = nominal.clone();
+            *scaled_nominal.get_mut(load_key).expect("load input exists") *= 2.0;
+            let mut scaled_bounds = bounds.clone();
+            let load = scaled_bounds.get_mut(load_key).expect("load interval exists");
+            load.lower *= 2.0;
+            load.upper *= 2.0;
+            let doubled =
+                propagate(case_id, &scaled_nominal, &scaled_bounds).expect("doubled interval case");
+
+            assert_eq!(base.keys().collect::<Vec<_>>(), doubled.keys().collect::<Vec<_>>());
+            for (output, interval) in &base {
+                let doubled_interval = doubled.get(output).expect("matching output");
+                assert_near(doubled_interval.lower, interval.lower * 2.0);
+                assert_near(doubled_interval.upper, interval.upper * 2.0);
+            }
+        }
+    }
+
+    fn assert_near(observed: f64, expected: f64) {
+        let tolerance = expected.abs().max(1.0) * 1.0e-12;
+        assert!(
+            (observed - expected).abs() <= tolerance,
+            "observed {observed:.17e}, expected {expected:.17e}, tolerance {tolerance:.17e}"
+        );
+    }
+
 }
