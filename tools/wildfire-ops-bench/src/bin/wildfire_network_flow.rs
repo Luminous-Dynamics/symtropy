@@ -42,7 +42,6 @@ struct Sink {
 #[derive(Clone, Debug)]
 struct Demand {
     id: String,
-    origin_node: String,
     sink_index: usize,
     route: Vec<usize>,
     vehicles: u64,
@@ -271,7 +270,6 @@ fn read_demands(
         }
         demands.push(Demand {
             id,
-            origin_node,
             sink_index,
             route,
             vehicles,
@@ -447,11 +445,6 @@ fn simulate_case(case: &Value) -> Check<Value> {
         let mut sink_accessible_entries = vec![0u64; sinks.len()];
         let mut removals: Vec<BTreeSet<(usize, u64)>> = vec![BTreeSet::new(); edges.len()];
         let mut staged_edges: Vec<Vec<Vehicle>> = vec![Vec::new(); edges.len()];
-        let mut source_queue_before = runtime
-            .iter()
-            .map(|state| state.spec.vehicles - state.next_vehicle)
-            .sum::<u64>();
-
         for requests in &stream_queues {
             for request in requests {
                 if let Some(edge_index) = request.target_edge {
@@ -541,8 +534,7 @@ fn simulate_case(case: &Value) -> Check<Value> {
                         }
                         if let Some(sink_index) = request.target_sink {
                             if request.vehicle.accessible
-                                && sink_accessible_entries[sink_index]
-                                    + sink_accessible_arrived[sink_index]
+                                && sink_accessible_arrived[sink_index]
                                     >= sinks[sink_index].accessible_capacity
                             {
                                 continue;
@@ -680,8 +672,7 @@ fn simulate_case(case: &Value) -> Check<Value> {
             "sink_entries": sinks.iter().enumerate().map(|(i,s)|(s.id.clone(),sink_entries[i])).collect::<BTreeMap<_,_>>()
         }));
 
-        source_queue_before = source_queue;
-        if source_queue_before == 0 && network_queue == 0 && served == total_demand {
+        if source_queue == 0 && network_queue == 0 && served == total_demand {
             clearance_step = Some(step);
             break;
         }
