@@ -31,7 +31,7 @@ This is arithmetic for the evaluator, not an online allocator, observation engin
 
 - Candidate costs are declared estimates used for per-trial action eligibility; actual charged values are recorded separately.
 - Actual energy is not inferred from latency, FLOPs, GPU time, or sensor counts. Use a calibrated power measurement or mark it NOT_MEASURED.
-- Run-wide budgets are checked against actual totals, but this reference does **not** solve the combinatorial run-wide budget-allocation oracle. Its counterfactual minimum is per-trial and must not be described as a globally budget-constrained oracle.
+- The run-level reference uses an exact bounded dynamic program over declared run-budget axes (up to 100,000 unique resource states). It fails closed rather than silently approximating when the cap is exceeded or no globally feasible plan exists. This oracle uses declared candidate cost estimates, not measured costs; actual budget compliance is reported separately from measured charges.
 - A fresh observation is counted only when an eligible acquisition action executed and the declared sensor channel actually returned an observation. Render output, predictions and unexecuted views are not fresh evidence.
 - It does not implement a policy, action feasibility engine, belief update, active camera control, or model comparison.
 - Tests authored here are not evidence of passing until the standalone command executes successfully on the exact commit.
