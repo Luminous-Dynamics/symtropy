@@ -400,8 +400,9 @@ fn exact_keys_with_optional(
     let required_set: BTreeSet<&str> = required.iter().copied().collect();
     let mut allowed: BTreeSet<&str> = required_set.clone();
     allowed.extend(optional.iter().copied());
-    let missing: Vec<_> = required_set.difference(&actual.keys().map(String::as_str).collect()).copied().collect();
-    let unknown: Vec<_> = actual.keys().map(String::as_str).filter(|key| !allowed.contains(key)).collect();
+    let actual_set: BTreeSet<&str> = actual.keys().map(String::as_str).collect();
+    let missing: Vec<_> = required_set.difference(&actual_set).copied().collect();
+    let unknown: Vec<_> = actual_set.difference(&allowed).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
         return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
     }
