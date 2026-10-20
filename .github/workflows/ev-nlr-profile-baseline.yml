@@ -78,7 +78,7 @@ jobs:
                   all(.daily_average_profile[]; .average_power_kw >= 0) and
                   all(.daily_minimum_peak_profile[]; .average_power_kw >= 0) and
                   all(.daily_maximum_peak_profile[]; .average_power_kw >= 0) and
-                  all(.samples[]; ((.energy_reconciliation_residual_kwh|fabs) <= (.instantaneous_peak_kw / 3600 + 0.000001)))
+                  all(.samples[]; . as $sample | (($sample.energy_reconciliation_residual_kwh|fabs) <= ($sample.instantaneous_peak_kw / 3600 + 0.000001)))
                 ' "${output}"
               done
             done
