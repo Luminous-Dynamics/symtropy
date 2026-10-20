@@ -144,6 +144,12 @@ jobs:
               benchmark_id:.benchmark_id,
               evidence_class:.evidence_class,
               resamples_per_vocation_and_fleet_size:.resamples_per_vocation_and_fleet_size,
+              vocations:.vocations,
+              fleet_sizes:.fleet_sizes,
+              pack_capacity_kwh_by_vocation:.pack_capacity_kwh_by_vocation,
+              fleet_port_rule:.fleet_port_rule,
+              base_grid_connection_kw_per_vehicle:.base_grid_connection_kw_per_vehicle,
+              sample_resolution_percent:.sample_resolution_percent,
               service_target:.service_target,
               sampled_minimum_capacity_distribution:(
                 $individual | sort_by([.vocation,.fleet_size,.policy]) | group_by([.vocation,.fleet_size,.policy]) |
