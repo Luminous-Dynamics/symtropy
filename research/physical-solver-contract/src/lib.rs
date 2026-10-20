@@ -965,6 +965,7 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
     }
 
     if status == "PASS" {
+        validate_pass_request_preconditions(&request)?;
         if outputs.is_empty() {
             return Err("PASS receipt must contain at least one output artifact".to_owned());
         }
@@ -1012,6 +1013,47 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
         "output_artifact_bytes_verified": false,
         "claim_ceiling": "receipt/request consistency only; producer execution, output bytes, numerical correctness, and physical validity are not authenticated"
     }))
+}
+
+fn validate_pass_request_preconditions(request: &Value) -> Check<()> {
+    let fidelity = string(request, "model_fidelity", "request")?;
+    let request_frame = string(request, "coordinate_frame_id", "request")?;
+    for (index, load) in array(request, "loads", "request")?.iter().enumerate() {
+        let load_frame = string(load, "coordinate_frame_id", &format!("request.loads[{index}]"))?;
+        if load_frame != request_frame {
+            return Err(format!(
+                "PASS request load {index} uses frame '{load_frame}' without a declared transform to '{request_frame}'"
+            ));
+        }
+    }
+    if fidelity == "graph_topology"
+        && strings(request, "required_outputs", "request")?
+            .iter()
+            .any(|output| output != "topology")
+    {
+        return Err("PASS request asks graph_topology for non-topological outputs".to_owned());
+    }
+    if fidelity == "analytical_linear_elastic" {
+        if array(request, "materials", "request")?.is_empty() {
+            return Err("PASS analytical request requires material declarations".to_owned());
+        }
+        if array(request, "loads", "request")?.is_empty() {
+            return Err("PASS analytical request requires at least one load".to_owned());
+        }
+        if array(request, "boundary_conditions", "request")?.is_empty() {
+            return Err("PASS analytical request requires boundary conditions".to_owned());
+        }
+        for (index, material) in array(request, "materials", "request")?.iter().enumerate() {
+            for key in ["youngs_modulus_pa", "poisson_ratio", "density_kg_m3"] {
+                if material.get(key).is_none_or(Value::is_null) {
+                    return Err(format!(
+                        "PASS analytical request has unresolved material property request.materials[{index}].{key}"
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn fidelity_supports_physics(fidelity: &str, physics: &str) -> bool {
