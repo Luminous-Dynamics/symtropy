@@ -108,7 +108,13 @@ The matched same-host run [#39481984586](https://github.com/Luminous-Dynamics/sy
 
 The full measurement record lives in [baseline PR #2392](https://github.com/Luminous-Dynamics/symtropy/pull/2392), file `FURNISHING_GEOMETRY_AB_RUN_39481984586.json`. The 10,000-item tiers use one sample per implementation and the listed ratios are *single-sample latency ratios*, not p95 estimates. The result is compelling evidence of a local kernel speedup for this specific synthetic distribution, not a production SLA or general SOTA victory. Peak memory, realistic/held-out rooms, 3D geometry and human/task outcomes are still unmeasured.
 
-## 6. Near-term execution order
+## 6. Indexed-only scale extension
+
+The indexed-only sparse probe passed [run #39483177535](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39483177535) and follow-up [run #39483408682](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39483408682). Both emitted zero findings at 10k, 25k, 50k and 100k item/task tiers. The follow-up, on a 4-vCPU Intel Xeon Platinum 8573C runner, measured 10k p95 62.204 ms (3 samples), 25k p95 143.889 ms (5 samples), 50k 274.389 ms and 100k 566.416 ms (single samples). The earlier 100k sample on a 4-vCPU AMD EPYC 7763 runner was 760.021 ms. The full receipt with exact source SHAs and machine metadata is archived at [FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json](https://github.com/Luminous-Dynamics/symtropy/blob/a55a43a15d4647ceb8a3d16a2e95c3e2a88f894f/docs/research/interiors/evidence/FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json).
+
+These two 100k values are single-sample point observations—not p95 or an SLA—and they come from different CPUs. The proposed p95-under-1-second target is not yet qualified, and peak memory is unmeasured. The brute-force comparison was only run through 10k.
+
+## 7. Near-term execution order
 
 1. Finish v0.4 sparse/tight/dense stress matrix with independent pair-count assertions.
 2. Complete the matched v0.2 brute-force run using the identical stress generator; archive exact SHAs, runner info, output counts and timings.
