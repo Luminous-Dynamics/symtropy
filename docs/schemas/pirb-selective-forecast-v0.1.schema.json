@@ -65,17 +65,18 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "target_id",
-        "forecast_origin_index",
-        "target_period_index",
-        "selection_model_sha256",
-        "selection_features_cutoff_index",
-        "deployed_threshold",
-        "threshold_grid",
+        "abstain_on_shifted_regime",
         "abstain_on_stale_inputs",
         "abstain_on_unknown_inputs",
-        "abstain_on_shifted_regime",
-        "abstain_on_unknown_regime"
+        "abstain_on_unknown_regime",
+        "deployed_threshold",
+        "forecast_origin_index",
+        "minimum_group_report_count",
+        "selection_features_cutoff_index",
+        "selection_model_sha256",
+        "target_id",
+        "target_period_index",
+        "threshold_grid"
       ],
       "properties": {
         "target_id": {
@@ -124,6 +125,11 @@
         },
         "abstain_on_unknown_regime": {
           "const": true
+        },
+        "minimum_group_report_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Groups below this denominator are suppressed in the aggregate receipt."
         }
       }
     },
