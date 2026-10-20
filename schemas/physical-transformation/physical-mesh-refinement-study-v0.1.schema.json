@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-mesh-refinement-study-v0.1.schema.json",
+  "title": "Physical Mesh Refinement Study v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "study_id", "case_id", "request_id",
+    "request_sha256", "scene_sha256", "scene_revision",
+    "reference_id", "reference_sha256", "comparison_protocol_id",
+    "primary_observable_id", "mesh_family_id", "mesh_generator_identity",
+    "refinement_method", "minimum_levels", "require_strictly_decreasing_error", "levels"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-mesh-refinement-study-v0.1" },
+    "study_id": { "$ref": "#/$defs/token" },
+    "case_id": { "$ref": "#/$defs/token" },
+    "request_id": { "$ref": "#/$defs/token" },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "reference_id": { "$ref": "#/$defs/token" },
+    "reference_sha256": { "$ref": "#/$defs/sha256" },
+    "comparison_protocol_id": { "$ref": "#/$defs/token" },
+    "primary_observable_id": { "$ref": "#/$defs/token" },
+    "mesh_family_id": { "$ref": "#/$defs/token" },
+    "mesh_generator_identity": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "refinement_method": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "minimum_levels": { "type": "integer", "minimum": 3, "maximum": 32 },
+    "require_strictly_decreasing_error": { "type": "boolean" },
+    "levels": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["level_id", "mesh_size_h_m", "degrees_of_freedom", "comparison_report_sha256"],
+        "properties": {
+          "level_id": { "$ref": "#/$defs/token" },
+          "mesh_size_h_m": { "type": "number", "exclusiveMinimum": 0 },
+          "degrees_of_freedom": { "type": "integer", "minimum": 1 },
+          "comparison_report_sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
