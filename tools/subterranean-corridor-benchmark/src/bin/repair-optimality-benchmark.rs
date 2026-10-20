@@ -10,8 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use subterranean_corridor_benchmark::{
     EvidenceClass, GateState,
     repair::{
-        schedule_repairs, CrewPool, CrewRequirement, RepairScheduleScenario, RepairTask,
-        RepairTaskKind,
+        CrewPool, CrewRequirement, RepairScheduleScenario, RepairTask, RepairTaskKind,
+        schedule_repairs,
     },
 };
 
@@ -57,9 +57,7 @@ struct Comparison {
     exact: ExactResult,
 }
 
-fn exact_minimum_makespan(
-    scenario: &RepairScheduleScenario,
-) -> Result<ExactResult, String> {
+fn exact_minimum_makespan(scenario: &RepairScheduleScenario) -> Result<ExactResult, String> {
     if scenario.tasks.is_empty() {
         return Err("EXACT_ORACLE_REQUIRES_TASKS".to_owned());
     }
@@ -75,9 +73,7 @@ fn exact_minimum_makespan(
         .iter()
         .map(|task| (task.task_id.clone(), task))
         .collect();
-    if by_id.len() != scenario.tasks.len()
-        || by_id.keys().any(|task_id| task_id.trim().is_empty())
-    {
+    if by_id.len() != scenario.tasks.len() || by_id.keys().any(|task_id| task_id.trim().is_empty()) {
         return Err("EXACT_ORACLE_EMPTY_OR_DUPLICATE_TASK_ID".to_owned());
     }
 
@@ -131,13 +127,7 @@ fn exact_minimum_makespan(
     let mut remaining: BTreeSet<String> = by_id.keys().cloned().collect();
     let mut order = Vec::with_capacity(scenario.tasks.len());
     let mut state = SearchState::default();
-    enumerate_orders(
-        &by_id,
-        &capacities,
-        &mut order,
-        &mut remaining,
-        &mut state,
-    )?;
+    enumerate_orders(&by_id, &capacities, &mut order, &mut remaining, &mut state)?;
 
     if state.orders_evaluated == 0 || !state.makespan_hours.is_finite() {
         return Err("EXACT_ORACLE_NO_PRECEDENCE_FEASIBLE_SCHEDULE".to_owned());
@@ -179,13 +169,11 @@ fn enumerate_orders(
     let ready: Vec<String> = remaining
         .iter()
         .filter(|task_id| {
-            by_id
-                .get(*task_id)
-                .is_some_and(|task| {
-                    task.predecessors
-                        .iter()
-                        .all(|predecessor| already_placed.contains(predecessor.as_str()))
-                })
+            by_id.get(*task_id).is_some_and(|task| {
+                task.predecessors
+                    .iter()
+                    .all(|predecessor| already_placed.contains(predecessor.as_str()))
+            })
         })
         .cloned()
         .collect();
@@ -247,14 +235,7 @@ fn serial_schedule_for_order(
             if !finish.is_finite() {
                 return Err(format!("EXACT_ORACLE_TIME_OVERFLOW:{task_id}"));
             }
-            if resources_fit(
-                start,
-                finish,
-                task,
-                &placed,
-                by_id,
-                capacities,
-            ) {
+            if resources_fit(start, finish, task, &placed, by_id, capacities) {
                 found = Some((start, finish));
                 break;
             }
@@ -387,9 +368,27 @@ fn hand_checked_fixture() -> RepairScheduleScenario {
         "e-joint-repair",
     ];
     let mut tasks = vec![
-        repair_task("a-assessment", RepairTaskKind::Assessment, 8.0, vec![], &["B"]),
-        repair_task("b-assessment", RepairTaskKind::Assessment, 10.0, vec![], &["B"]),
-        repair_task("c-clearance", RepairTaskKind::Clearance, 1.0, vec![], &["C"]),
+        repair_task(
+            "a-assessment",
+            RepairTaskKind::Assessment,
+            8.0,
+            vec![],
+            &["B"],
+        ),
+        repair_task(
+            "b-assessment",
+            RepairTaskKind::Assessment,
+            10.0,
+            vec![],
+            &["B"],
+        ),
+        repair_task(
+            "c-clearance",
+            RepairTaskKind::Clearance,
+            1.0,
+            vec![],
+            &["C"],
+        ),
         repair_task("d-repair", RepairTaskKind::Repair, 12.0, vec![], &["B"]),
         repair_task(
             "e-joint-repair",
@@ -531,7 +530,10 @@ fn run_benchmark() -> Result<(), String> {
         hand_gap / hand.exact.makespan_hours,
         hand.exact.orders_evaluated
     );
-    println!("hand_checked_exact_order={}", hand.exact.best_order.join(","));
+    println!(
+        "hand_checked_exact_order={}",
+        hand.exact.best_order.join(",")
+    );
 
     let mut gap_sum = 0.0;
     let mut max_gap = 0.0_f64;
@@ -553,7 +555,9 @@ fn run_benchmark() -> Result<(), String> {
         gap_sum / GENERATED_FIXTURES as f64,
         max_gap
     );
-    println!("interpretation=exact_only_for_each_enumerated_small_fixture_no_SOTA_or_field_accuracy_claim");
+    println!(
+        "interpretation=exact_only_for_each_enumerated_small_fixture_no_SOTA_or_field_accuracy_claim"
+    );
     Ok(())
 }
 
@@ -614,7 +618,8 @@ mod tests {
         scenario.service_enabling_task_ids = vec!["oversize-00".to_owned()];
         scenario.post_event_inspection_task_id = "oversize-00".to_owned();
         scenario.tasks[0].kind = RepairTaskKind::PostEventInspection;
-        let error = exact_minimum_makespan(&scenario).expect_err("oracle must refuse oversized case");
+        let error =
+            exact_minimum_makespan(&scenario).expect_err("oracle must refuse oversized case");
         assert!(error.starts_with("EXACT_ORACLE_TASK_LIMIT_EXCEEDED"));
     }
 }
