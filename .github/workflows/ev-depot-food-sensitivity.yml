@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/ev-depot-duty-audit/**"
       - "tools/ev-depot-workload/**"
+      - "tools/ev-depot-confidence-audit/**"
       - "tools/ev-fleet-resilience/**"
       - ".github/workflows/ev-depot-food-sensitivity.yml"
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - "tools/ev-depot-duty-audit/**"
       - "tools/ev-depot-workload/**"
+      - "tools/ev-depot-confidence-audit/**"
       - "tools/ev-fleet-resilience/**"
       - ".github/workflows/ev-depot-food-sensitivity.yml"
   workflow_dispatch:
@@ -33,9 +35,11 @@ jobs:
         run: |
           cargo fmt --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all -- --check
           cargo fmt --manifest-path tools/ev-depot-workload/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-depot-confidence-audit/Cargo.toml --all -- --check
           cargo fmt --manifest-path tools/ev-fleet-resilience/Cargo.toml --all -- --check
           cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
           cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-depot-confidence-audit/Cargo.toml --all-targets
           cargo test --manifest-path tools/ev-fleet-resilience/Cargo.toml --all-targets
       - name: Audit pinned NLR food-delivery duty data
         shell: bash
@@ -218,13 +222,24 @@ jobs:
           jq --slurpfile robust ev-food-sensitivity-frontier.json '. + {empirical_95pct_scenario_capacity_frontier:$robust[0]}' ev-food-sensitivity-summary.json > ev-food-sensitivity-summary.tmp
           mv ev-food-sensitivity-summary.tmp ev-food-sensitivity-summary.json
           jq -e '.empirical_95pct_scenario_capacity_frontier | length == 36' ev-food-sensitivity-summary.json
+      - name: Calculate exact-confidence frontiers for food sensitivity resamples
+        run: |
+          jq '{cases: [.cases[] | {
+            vocation: ("kwh-" + (.kwh_per_mile | tostring) + "-ports-" + .port_mode),
+            fleet_size,
+            seed,
+            report
+          }]}' ev-food-sensitivity-cases.json > ev-food-confidence-cases.json
+          cargo run --quiet --manifest-path tools/ev-depot-confidence-audit/Cargo.toml -- \
+            ev-food-confidence-cases.json --confidence 0.95 --target 0.95 ev-food-confidence-summary.json
+          jq -e '.benchmark_id == "EV-DEPOT-CONFIDENCE-001" and .input_case_count == 540 and .observation_count == 21600 and (.conditions | length == 720) and (.frontiers | length == 36) and all(.conditions[]; .trials == 30 and .confidence_level == 0.95 and .target_pass_probability == 0.95 and .exact_one_sided_lower_confidence_bound <= 0.90498 and .exact_one_sided_lower_confidence_bound <= .empirical_pass_rate + 0.000000001) and all(.frontiers[]; .minimum_sampled_capacity_statistically_demonstrating_target_kw == null and .trials_at_demonstrated_capacity == null)' ev-food-confidence-summary.json
       - name: Print paired sensitivity results
         run: |
           jq -r '.sampled_minimum_capacity_distribution[] | [.kwh_per_mile,.port_mode,.fleet_size,.policy,.resamples,.infeasible_at_or_below_120_kw_per_vehicle,.p50_minimum_sampled_kw_per_vehicle,.p95_minimum_sampled_kw_per_vehicle,.p95_missed_departure_fraction_at_120_kw_per_vehicle,.minimum_energy_service_fraction_at_120_kw_per_vehicle] | @tsv' ev-food-sensitivity-summary.json
           jq -r '.empirical_95pct_scenario_capacity_frontier[] | [.kwh_per_mile,.port_mode,.fleet_size,.policy,.minimum_capacity_kw_per_vehicle,.empirical_pass_rate_at_capacity,.threshold_met_within_120_kw_per_vehicle] | @tsv' ev-food-sensitivity-summary.json
       - name: Hash code, source and sensitivity outputs
         run: |
-          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-food-duty-audit-report.json ev-food-sensitivity-cases.json ev-food-sensitivity-summary.json ev-food-sensitivity-frontier.json > ev-food-sensitivity.sha256
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs tools/ev-depot-confidence-audit/Cargo.toml tools/ev-depot-confidence-audit/src/main.rs nlr-food-duty-audit-report.json ev-food-sensitivity-cases.json ev-food-sensitivity-summary.json ev-food-sensitivity-frontier.json ev-food-confidence-cases.json ev-food-confidence-summary.json > ev-food-sensitivity.sha256
           (cd "${RUNNER_TEMP}" && sha256sum food-veh_op_days.csv food-veh_schedules.csv) >> ev-food-sensitivity.sha256
       - name: Upload paired sensitivity evidence (no raw source data)
         uses: actions/upload-artifact@v4
@@ -235,6 +250,7 @@ jobs:
             ev-food-sensitivity-cases.json
             ev-food-sensitivity-summary.json
             ev-food-sensitivity-frontier.json
+            ev-food-confidence-summary.json
             ev-food-sensitivity.sha256
           if-no-files-found: error
           retention-days: 14
