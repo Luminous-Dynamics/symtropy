@@ -375,7 +375,13 @@ fn run_workload(
         let elapsed = start.elapsed();
         elapsed_ns.push(duration_nanos(elapsed)?);
 
-        validate_allocation(&allocation, workload, candidate_specs, profile.max_screen_error_px, budget_units)?;
+        validate_allocation(
+            &allocation,
+            workload,
+            candidate_specs,
+            profile.max_screen_error_px,
+            budget_units,
+        )?;
         let digest = allocation_sha256(&allocation)?;
         if let Some(previous) = &output_sha {
             if previous != &digest {
