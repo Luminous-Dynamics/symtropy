@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
-    validate_request_bytes, validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
+    reference_compare::compare_reference_observables, validate_request_bytes,
+    validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
 use std::{env, fs, path::Path, process::ExitCode};
 
@@ -19,6 +20,8 @@ fn run() -> Result<(), String> {
     let mut request_path: Option<String> = None;
     let mut receipt_path: Option<String> = None;
     let mut artifact_root: Option<String> = None;
+    let mut reference_path: Option<String> = None;
+    let mut observation_output_id: Option<String> = None;
     let mut validator_revision: Option<String> = None;
     let mut i = 0;
     while i < args.len() {
@@ -56,6 +59,28 @@ fn run() -> Result<(), String> {
                 );
                 i += 2;
             }
+            "--reference" => {
+                if reference_path.is_some() {
+                    return Err("--reference may be supplied only once".to_owned());
+                }
+                reference_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--reference requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--observation-output-id" => {
+                if observation_output_id.is_some() {
+                    return Err("--observation-output-id may be supplied only once".to_owned());
+                }
+                observation_output_id = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--observation-output-id requires an ID".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
             "--validator-revision" => {
                 if validator_revision.is_some() {
                     return Err("--validator-revision may be supplied only once".to_owned());
@@ -72,7 +97,7 @@ fn run() -> Result<(), String> {
     }
 
     let request_path = request_path.ok_or_else(|| {
-        "usage: physical-solver-contract --request <path> --validator-revision <git-sha> OR --request <path> --receipt <receipt-path> [--artifact-root <directory>]".to_owned()
+        "usage: physical-solver-contract --request <path> --validator-revision <git-sha> OR --request <path> --receipt <receipt-path> [--artifact-root <directory>] [--reference <manifest.json> --observation-output-id <output-id>]".to_owned()
     })?;
     let request_bytes = fs::read(&request_path)
         .map_err(|error| format!("could not read {request_path}: {error}"))?;
@@ -83,17 +108,39 @@ fn run() -> Result<(), String> {
         }
         let receipt_bytes = fs::read(&receipt_path)
             .map_err(|error| format!("could not read {receipt_path}: {error}"))?;
-        match artifact_root {
-            Some(root) => verify_solver_output_artifact_bytes(
+        match (reference_path, observation_output_id, artifact_root) {
+            (Some(reference_path), Some(output_id), Some(root)) => {
+                let reference_bytes = fs::read(&reference_path)
+                    .map_err(|error| format!("could not read {reference_path}: {error}"))?;
+                compare_reference_observables(
+                    &request_bytes,
+                    &receipt_bytes,
+                    Path::new(&root),
+                    &output_id,
+                    &reference_bytes,
+                )?
+            }
+            (Some(_), _, _) => {
+                return Err(
+                    "--reference requires --observation-output-id and --artifact-root".to_owned(),
+                );
+            }
+            (None, Some(_), _) => {
+                return Err("--observation-output-id requires --reference".to_owned());
+            }
+            (None, None, Some(root)) => verify_solver_output_artifact_bytes(
                 &request_bytes,
                 &receipt_bytes,
                 Path::new(&root),
             )?,
-            None => validate_solver_receipt_bytes(&request_bytes, &receipt_bytes)?,
+            (None, None, None) => validate_solver_receipt_bytes(&request_bytes, &receipt_bytes)?,
         }
     } else {
-        if artifact_root.is_some() {
-            return Err("--artifact-root requires --receipt".to_owned());
+        if artifact_root.is_some() || reference_path.is_some() || observation_output_id.is_some() {
+            return Err(
+                "--artifact-root, --reference and --observation-output-id require --receipt"
+                    .to_owned(),
+            );
         }
         let revision = validator_revision.ok_or_else(|| {
             "request validation requires --validator-revision <git-sha>".to_owned()

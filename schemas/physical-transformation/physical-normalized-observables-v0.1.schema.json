@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-normalized-observables-v0.1.schema.json",
+  "title": "Physical Normalized Observables v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_sha256", "request_id", "scene_sha256", "scene_revision", "case_id", "observables"],
+  "properties": {
+    "schema_version": { "const": "physical-normalized-observables-v0.1" },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "request_id": { "$ref": "#/$defs/token" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "case_id": { "$ref": "#/$defs/token" },
+    "observables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observable_id", "value", "unit"],
+        "properties": {
+          "observable_id": { "$ref": "#/$defs/token" },
+          "value": { "type": "number" },
+          "unit": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

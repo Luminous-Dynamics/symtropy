@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-numerical-comparison-report-v0.1.schema.json",
+  "title": "Physical Numerical Comparison Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "comparison_status", "comparison_method",
+    "comparison_protocol_id", "reference_id", "reference_sha256",
+    "oracle_method", "oracle_identity", "oracle_source_ref",
+    "request_sha256", "case_id", "request_id", "scene_sha256", "scene_revision", "observation_output_id",
+    "artifact_verification_status", "producer_status",
+    "numerical_observable_comparison", "physical_result_qualified",
+    "real_world_validation_status", "diagnostics", "observable_results",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-numerical-comparison-report-v0.1" },
+    "comparison_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "comparison_method": { "const": "per_observable_absolute_plus_relative_tolerance" },
+    "comparison_protocol_id": { "$ref": "#/$defs/token" },
+    "reference_id": { "$ref": "#/$defs/token" },
+    "reference_sha256": { "$ref": "#/$defs/sha256" },
+    "oracle_method": { "enum": ["analytical_exact", "independent_numerical"] },
+    "oracle_identity": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "oracle_source_ref": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "case_id": { "$ref": "#/$defs/token" },
+    "request_id": { "$ref": "#/$defs/token" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "observation_output_id": { "$ref": "#/$defs/token" },
+    "observation_artifact_sha256": { "$ref": "#/$defs/sha256" },
+    "artifact_verification_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "producer_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "numerical_observable_comparison": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "physical_result_qualified": { "const": false },
+    "real_world_validation_status": { "const": "UNRESOLVED" },
+    "diagnostics": { "type": "array", "items": { "type": "string", "maxLength": 2048 } },
+    "observable_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "observable_id", "unit", "reference_value", "observed_value",
+          "absolute_error", "relative_error", "relative_error_defined",
+          "relative_error_status", "absolute_tolerance", "relative_tolerance",
+          "allowed_absolute_error", "within_tolerance"
+        ],
+        "properties": {
+          "observable_id": { "$ref": "#/$defs/token" },
+          "unit": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "reference_value": { "type": "number" },
+          "observed_value": { "type": "number" },
+          "absolute_error": { "type": "number", "minimum": 0 },
+          "relative_error": { "type": ["number", "null"], "minimum": 0 },
+          "relative_error_defined": { "type": "boolean" },
+          "relative_error_status": { "enum": ["computed", "undefined_zero_reference", "overflow"] },
+          "absolute_tolerance": { "type": "number", "minimum": 0 },
+          "relative_tolerance": { "type": "number", "minimum": 0 },
+          "allowed_absolute_error": { "type": "number", "minimum": 0 },
+          "within_tolerance": { "type": "boolean" }
+        }
+      }
+    },
+    "claim_ceiling": { "type": "string", "minLength": 1, "maxLength": 2048 }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
