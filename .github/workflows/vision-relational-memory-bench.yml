@@ -64,6 +64,7 @@ jobs:
           test "$(grep -c $'^held_out\t' vis-relational-memory.tsv)" -eq 15
           sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
           sha256sum -c vis-relational-memory.sha256
+          cat vis-relational-memory.tsv
 
       - name: Upload reproducible report
         uses: actions/upload-artifact@v4
