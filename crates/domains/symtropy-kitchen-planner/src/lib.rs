@@ -524,6 +524,41 @@ pub fn build_schedule(
     Ok(receipt)
 }
 
+/// Build a simple serial baseline over the same plan. It uses one synthetic
+/// exclusive resource across all tasks, then removes that implementation-only
+/// resource from the receipt. The result is checked against the original plan.
+/// Tight maximum-lag constraints may make a serial baseline unavailable; that
+/// must be reported rather than relaxing the input constraints.
+pub fn build_serial_baseline(
+    plan: &KitchenPlanV1,
+) -> Result<KitchenScheduleReceiptV1, ScheduleError> {
+    let mut serial_plan = plan.clone();
+    let mut serial_resource = "__symtropy_serial_baseline_resource_v1".to_owned();
+    while plan
+        .tasks
+        .iter()
+        .any(|task| task.resource_ids.contains(&serial_resource))
+    {
+        serial_resource.push('_');
+    }
+
+    for task in &mut serial_plan.tasks {
+        task.resource_ids.push(serial_resource.clone());
+    }
+
+    let mut receipt = build_schedule(&serial_plan)?;
+    for task in &mut receipt.tasks {
+        task.resource_ids.retain(|resource| resource != &serial_resource);
+    }
+    receipt.scheduler_id = "stable_serial_topological_baseline_v1".to_owned();
+
+    let report = validate_schedule(plan, &receipt);
+    if !report.is_valid() {
+        return Err(ScheduleError::VerificationFailed(report.violations));
+    }
+    Ok(receipt)
+}
+
 /// Check any proposed schedule independently against all declared constraints.
 pub fn validate_schedule(
     plan: &KitchenPlanV1,
