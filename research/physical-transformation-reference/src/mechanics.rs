@@ -297,7 +297,6 @@ mod tests {
         assert!(simply_supported_uniform_load(f64::NAN, 4.0, 200.0e9, 1.0, 0.1).is_err());
     }
 
-
     #[test]
     fn axial_bar_obeys_force_length_area_and_modulus_scaling_laws() {
         let base = axial_bar(1_000.0, 2.0, 0.01, 200.0e9).expect("base bar");
@@ -338,15 +337,35 @@ mod tests {
             cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.2).expect("doubled outer fiber");
 
         assert!((doubled_force.tip_deflection_m / base.tip_deflection_m - 2.0).abs() < 1.0e-12);
-        assert!((doubled_force.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!(
+            (doubled_force.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs()
+                < 1.0e-12
+        );
         assert!((doubled_span.tip_deflection_m / base.tip_deflection_m - 8.0).abs() < 1.0e-12);
-        assert!((doubled_span.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!(
+            (doubled_span.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs()
+                < 1.0e-12
+        );
         assert!((doubled_modulus.tip_deflection_m / base.tip_deflection_m - 0.5).abs() < 1.0e-12);
-        assert!((doubled_modulus.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 1.0).abs() < 1.0e-12);
+        assert!(
+            (doubled_modulus.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 1.0)
+                .abs()
+                < 1.0e-12
+        );
         assert!((doubled_inertia.tip_deflection_m / base.tip_deflection_m - 0.5).abs() < 1.0e-12);
-        assert!((doubled_inertia.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 0.5).abs() < 1.0e-12);
-        assert!((doubled_outer_fiber.tip_deflection_m / base.tip_deflection_m - 1.0).abs() < 1.0e-12);
-        assert!((doubled_outer_fiber.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!(
+            (doubled_inertia.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 0.5)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (doubled_outer_fiber.tip_deflection_m / base.tip_deflection_m - 1.0).abs() < 1.0e-12
+        );
+        assert!(
+            (doubled_outer_fiber.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0)
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -362,14 +381,40 @@ mod tests {
         let doubled_outer_fiber = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.2)
             .expect("doubled outer fiber");
 
-        assert!((doubled_load.midspan_deflection_m / base.midspan_deflection_m - 2.0).abs() < 1.0e-12);
-        assert!((doubled_load.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
-        assert!((doubled_modulus.midspan_deflection_m / base.midspan_deflection_m - 0.5).abs() < 1.0e-12);
-        assert!((doubled_modulus.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 1.0).abs() < 1.0e-12);
-        assert!((doubled_inertia.midspan_deflection_m / base.midspan_deflection_m - 0.5).abs() < 1.0e-12);
-        assert!((doubled_inertia.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 0.5).abs() < 1.0e-12);
-        assert!((doubled_outer_fiber.midspan_deflection_m / base.midspan_deflection_m - 1.0).abs() < 1.0e-12);
-        assert!((doubled_outer_fiber.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!(
+            (doubled_load.midspan_deflection_m / base.midspan_deflection_m - 2.0).abs() < 1.0e-12
+        );
+        assert!(
+            (doubled_load.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (doubled_modulus.midspan_deflection_m / base.midspan_deflection_m - 0.5).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (doubled_modulus.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 1.0)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (doubled_inertia.midspan_deflection_m / base.midspan_deflection_m - 0.5).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (doubled_inertia.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 0.5)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (doubled_outer_fiber.midspan_deflection_m / base.midspan_deflection_m - 1.0).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (doubled_outer_fiber.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0)
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
