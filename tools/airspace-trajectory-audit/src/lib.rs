@@ -245,18 +245,34 @@ pub fn audit_trajectory_pair(
         b.vertical_uncertainty_bound_m,
     )?;
 
-    let a_start = a.points.first().ok_or(AuditInputError::InvalidTrajectory(
-        "at least two trajectory points are required",
-    ))?.time_utc_ms;
-    let a_end = a.points.last().ok_or(AuditInputError::InvalidTrajectory(
-        "at least two trajectory points are required",
-    ))?.time_utc_ms;
-    let b_start = b.points.first().ok_or(AuditInputError::InvalidTrajectory(
-        "at least two trajectory points are required",
-    ))?.time_utc_ms;
-    let b_end = b.points.last().ok_or(AuditInputError::InvalidTrajectory(
-        "at least two trajectory points are required",
-    ))?.time_utc_ms;
+    let a_start = a
+        .points
+        .first()
+        .ok_or(AuditInputError::InvalidTrajectory(
+            "at least two trajectory points are required",
+        ))?
+        .time_utc_ms;
+    let a_end = a
+        .points
+        .last()
+        .ok_or(AuditInputError::InvalidTrajectory(
+            "at least two trajectory points are required",
+        ))?
+        .time_utc_ms;
+    let b_start = b
+        .points
+        .first()
+        .ok_or(AuditInputError::InvalidTrajectory(
+            "at least two trajectory points are required",
+        ))?
+        .time_utc_ms;
+    let b_end = b
+        .points
+        .last()
+        .ok_or(AuditInputError::InvalidTrajectory(
+            "at least two trajectory points are required",
+        ))?
+        .time_utc_ms;
 
     let overlap_start = a_start.max(b_start);
     let overlap_end = a_end.min(b_end);
@@ -276,8 +292,8 @@ pub fn audit_trajectory_pair(
         ));
     }
 
-    let criteria_covers_declared_overlap = criteria.valid_from_utc_ms <= overlap_start
-        && criteria.valid_until_utc_ms >= overlap_end;
+    let criteria_covers_declared_overlap =
+        criteria.valid_from_utc_ms <= overlap_start && criteria.valid_until_utc_ms >= overlap_end;
     let evaluated_start = overlap_start.max(criteria.valid_from_utc_ms);
     let evaluated_end = overlap_end.min(criteria.valid_until_utc_ms);
 
@@ -444,9 +460,7 @@ fn evaluate_segment_pair(
         return Err(AuditInputError::NumericOverflow);
     }
 
-    if horizontal_separation_m <= horizontal_bound_m
-        && vertical_separation_m <= vertical_bound_m
-    {
+    if horizontal_separation_m <= horizontal_bound_m && vertical_separation_m <= vertical_bound_m {
         let span_ms = end_utc_ms - start_utc_ms;
         let offset_f = (span_ms as f64) * u;
         if !offset_f.is_finite() || offset_f < 0.0 || offset_f > span_ms as f64 {
@@ -540,8 +554,14 @@ fn sort_and_deduplicate_conflicts(mut events: Vec<ConflictEvent>) -> Vec<Conflic
     events.sort_by(|left, right| {
         left.closest_approach_utc_ms
             .cmp(&right.closest_approach_utc_ms)
-            .then_with(|| left.horizontal_separation_m.total_cmp(&right.horizontal_separation_m))
-            .then_with(|| left.vertical_separation_m.total_cmp(&right.vertical_separation_m))
+            .then_with(|| {
+                left.horizontal_separation_m
+                    .total_cmp(&right.horizontal_separation_m)
+            })
+            .then_with(|| {
+                left.vertical_separation_m
+                    .total_cmp(&right.vertical_separation_m)
+            })
             .then_with(|| left.segment_a_index.cmp(&right.segment_a_index))
             .then_with(|| left.segment_b_index.cmp(&right.segment_b_index))
     });
@@ -632,7 +652,9 @@ fn validate_criteria(criteria: &SeparationCriteria) -> Result<(), AuditInputErro
         return Err(AuditInputError::InvalidCriteria("criteria id is empty"));
     }
     if criteria.revision.trim().is_empty() {
-        return Err(AuditInputError::InvalidCriteria("criteria revision is empty"));
+        return Err(AuditInputError::InvalidCriteria(
+            "criteria revision is empty",
+        ));
     }
     if criteria.jurisdiction.trim().is_empty() {
         return Err(AuditInputError::InvalidCriteria("jurisdiction is empty"));
@@ -750,7 +772,10 @@ mod tests {
         (
             trajectory(
                 "A",
-                vec![point(0, 0.0, 0.0, 100.0), point(10_000, 1_000.0, 0.0, 100.0)],
+                vec![
+                    point(0, 0.0, 0.0, 100.0),
+                    point(10_000, 1_000.0, 0.0, 100.0),
+                ],
                 0.0,
                 0.0,
             ),
@@ -796,13 +821,19 @@ mod tests {
     fn distant_parallel_paths_are_not_a_declared_conflict() {
         let a = trajectory(
             "A",
-            vec![point(0, 0.0, 0.0, 100.0), point(10_000, 1_000.0, 0.0, 100.0)],
+            vec![
+                point(0, 0.0, 0.0, 100.0),
+                point(10_000, 1_000.0, 0.0, 100.0),
+            ],
             0.0,
             0.0,
         );
         let b = trajectory(
             "B",
-            vec![point(0, 0.0, 500.0, 100.0), point(10_000, 1_000.0, 500.0, 100.0)],
+            vec![
+                point(0, 0.0, 500.0, 100.0),
+                point(10_000, 1_000.0, 500.0, 100.0),
+            ],
             0.0,
             0.0,
         );
@@ -817,13 +848,19 @@ mod tests {
     fn horizontal_threshold_is_inclusive_at_tangency() {
         let a = trajectory(
             "A",
-            vec![point(0, 0.0, 0.0, 100.0), point(10_000, 1_000.0, 0.0, 100.0)],
+            vec![
+                point(0, 0.0, 0.0, 100.0),
+                point(10_000, 1_000.0, 0.0, 100.0),
+            ],
             0.0,
             0.0,
         );
         let b = trajectory(
             "B",
-            vec![point(0, 0.0, 100.0, 100.0), point(10_000, 1_000.0, 100.0, 100.0)],
+            vec![
+                point(0, 0.0, 100.0, 100.0),
+                point(10_000, 1_000.0, 100.0, 100.0),
+            ],
             0.0,
             0.0,
         );
@@ -836,13 +873,19 @@ mod tests {
     fn uncertainty_expands_conservative_centerline_bound() {
         let a = trajectory(
             "A",
-            vec![point(0, 0.0, 0.0, 100.0), point(10_000, 1_000.0, 0.0, 100.0)],
+            vec![
+                point(0, 0.0, 0.0, 100.0),
+                point(10_000, 1_000.0, 0.0, 100.0),
+            ],
             10.1,
             0.0,
         );
         let b = trajectory(
             "B",
-            vec![point(0, 0.0, 120.0, 100.0), point(10_000, 1_000.0, 120.0, 100.0)],
+            vec![
+                point(0, 0.0, 120.0, 100.0),
+                point(10_000, 1_000.0, 120.0, 100.0),
+            ],
             10.1,
             0.0,
         );
@@ -855,13 +898,19 @@ mod tests {
     fn vertical_boundary_is_inclusive() {
         let a = trajectory(
             "A",
-            vec![point(0, 0.0, 0.0, 100.0), point(10_000, 1_000.0, 0.0, 100.0)],
+            vec![
+                point(0, 0.0, 0.0, 100.0),
+                point(10_000, 1_000.0, 0.0, 100.0),
+            ],
             0.0,
             0.0,
         );
         let b = trajectory(
             "B",
-            vec![point(0, 0.0, 0.0, 150.0), point(10_000, 1_000.0, 0.0, 150.0)],
+            vec![
+                point(0, 0.0, 0.0, 150.0),
+                point(10_000, 1_000.0, 0.0, 150.0),
+            ],
             0.0,
             0.0,
         );
@@ -874,13 +923,19 @@ mod tests {
     fn trajectory_windows_without_time_overlap_report_no_temporal_overlap() {
         let a = trajectory(
             "A",
-            vec![point(0, 0.0, 0.0, 100.0), point(10_000, 1_000.0, 0.0, 100.0)],
+            vec![
+                point(0, 0.0, 0.0, 100.0),
+                point(10_000, 1_000.0, 0.0, 100.0),
+            ],
             0.0,
             0.0,
         );
         let b = trajectory(
             "B",
-            vec![point(20_000, 500.0, -500.0, 100.0), point(30_000, 500.0, 500.0, 100.0)],
+            vec![
+                point(20_000, 500.0, -500.0, 100.0),
+                point(30_000, 500.0, 500.0, 100.0),
+            ],
             0.0,
             0.0,
         );
@@ -916,13 +971,19 @@ mod tests {
     fn partial_criteria_without_detected_conflict_remains_not_assessable() {
         let a = trajectory(
             "A",
-            vec![point(0, 0.0, 0.0, 100.0), point(10_000, 1_000.0, 0.0, 100.0)],
+            vec![
+                point(0, 0.0, 0.0, 100.0),
+                point(10_000, 1_000.0, 0.0, 100.0),
+            ],
             0.0,
             0.0,
         );
         let b = trajectory(
             "B",
-            vec![point(0, 0.0, 500.0, 100.0), point(10_000, 1_000.0, 500.0, 100.0)],
+            vec![
+                point(0, 0.0, 500.0, 100.0),
+                point(10_000, 1_000.0, 500.0, 100.0),
+            ],
             0.0,
             0.0,
         );
@@ -1007,7 +1068,10 @@ mod tests {
         );
         let b = trajectory(
             "B",
-            vec![point(10_000, 10.0, 0.0, 100.0), point(20_000, 20.0, 0.0, 100.0)],
+            vec![
+                point(10_000, 10.0, 0.0, 100.0),
+                point(20_000, 20.0, 0.0, 100.0),
+            ],
             0.0,
             0.0,
         );

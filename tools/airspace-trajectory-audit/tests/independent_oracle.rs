@@ -66,26 +66,17 @@ fn exhaustive_constant_relative_position_grid_matches_closed_form_oracle() {
             for dy in -20_i32..=20 {
                 for dz in -12_i32..=12 {
                     let a = trajectory("A", 0.0, 0.0, horizontal_a, vertical_a);
-                    let b = trajectory(
-                        "B",
-                        f64::from(dy),
-                        f64::from(dz),
-                        horizontal_b,
-                        vertical_b,
-                    );
+                    let b = trajectory("B", f64::from(dy), f64::from(dz), horizontal_b, vertical_b);
 
                     // For synchronized parallel tracks with constant relative position, this
                     // closed-form oracle is exact: the Euclidean horizontal distance is |dy|,
                     // the vertical distance is |dz|, and uncertainty expands each threshold.
                     let horizontal_limit =
-                        criteria.minimum_horizontal_separation_m
-                            + horizontal_a
-                            + horizontal_b;
+                        criteria.minimum_horizontal_separation_m + horizontal_a + horizontal_b;
                     let vertical_limit =
                         criteria.minimum_vertical_separation_m + vertical_a + vertical_b;
-                    let expected_conflict =
-                        f64::from(dy).abs() <= horizontal_limit
-                            && f64::from(dz).abs() <= vertical_limit;
+                    let expected_conflict = f64::from(dy).abs() <= horizontal_limit
+                        && f64::from(dz).abs() <= vertical_limit;
 
                     let report = audit_trajectory_pair(&a, &b, &criteria)
                         .expect("the bounded analytical fixture must be valid");
@@ -174,8 +165,14 @@ fn assert_same_geometric_decision(
     transformed: &symtropy_airspace_trajectory_audit::ConflictAuditReport,
 ) {
     assert_eq!(baseline.disposition, transformed.disposition);
-    assert_eq!(baseline.temporal_overlap_utc_ms, transformed.temporal_overlap_utc_ms);
-    assert_eq!(baseline.evaluated_window_utc_ms, transformed.evaluated_window_utc_ms);
+    assert_eq!(
+        baseline.temporal_overlap_utc_ms,
+        transformed.temporal_overlap_utc_ms
+    );
+    assert_eq!(
+        baseline.evaluated_window_utc_ms,
+        transformed.evaluated_window_utc_ms
+    );
     assert_eq!(
         baseline.criteria_covers_declared_overlap,
         transformed.criteria_covers_declared_overlap
@@ -213,8 +210,7 @@ fn reversing_pair_argument_order_preserves_the_complete_report() {
 fn collinear_waypoint_subdivision_preserves_the_geometric_decision() {
     let (a, b) = crossing_pair_for_metamorphic_tests();
     let rule = criteria();
-    let baseline =
-        audit_trajectory_pair(&a, &b, &rule).expect("continuous paths must be valid");
+    let baseline = audit_trajectory_pair(&a, &b, &rule).expect("continuous paths must be valid");
 
     // Both trajectories are split at their exact midpoint. The physical piecewise-linear
     // path is unchanged; only its representation and segment indices differ.
@@ -266,8 +262,14 @@ fn assert_same_geometric_decision_except_time(
     shift_ms: i64,
 ) {
     assert_eq!(baseline.disposition, shifted.disposition);
-    assert_eq!(baseline.effective_horizontal_bound_m, shifted.effective_horizontal_bound_m);
-    assert_eq!(baseline.effective_vertical_bound_m, shifted.effective_vertical_bound_m);
+    assert_eq!(
+        baseline.effective_horizontal_bound_m,
+        shifted.effective_horizontal_bound_m
+    );
+    assert_eq!(
+        baseline.effective_vertical_bound_m,
+        shifted.effective_vertical_bound_m
+    );
     assert_eq!(baseline.conflicts.len(), shifted.conflicts.len());
 
     let (overlap_start, overlap_end) = baseline.temporal_overlap_utc_ms.unwrap();
@@ -290,4 +292,3 @@ fn assert_same_geometric_decision_except_time(
         assert_eq!(left.vertical_separation_m, right.vertical_separation_m);
     }
 }
-
