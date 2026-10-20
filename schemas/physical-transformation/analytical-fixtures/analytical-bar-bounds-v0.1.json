@@ -27,22 +27,30 @@
       "force_n": {
         "lower": 900,
         "upper": 1100,
-        "unit": "N"
+        "unit": "N",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       },
       "length_m": {
         "lower": 1.9,
         "upper": 2.1,
-        "unit": "m"
+        "unit": "m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       },
       "area_m2": {
         "lower": 0.009,
         "upper": 0.011,
-        "unit": "m^2"
+        "unit": "m^2",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       },
       "youngs_modulus_pa": {
         "lower": 195000000000,
         "upper": 205000000000,
-        "unit": "Pa"
+        "unit": "Pa",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       }
     }
   }
