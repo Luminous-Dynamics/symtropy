@@ -340,7 +340,7 @@ enum PolicyKind {
 }
 
 impl PolicyKind {
-    const ALL: [Self; 6] = [
+    const ALL: [Self; 7] = [
         Self::RoundRobin,
         Self::UniformRandom,
         Self::LeastObserved,
@@ -910,11 +910,6 @@ mod tests {
         for tick in HORIZON - 4..HORIZON {
             episode.truth[tick][QUERY_KEYS[0]] = !episode.truth[tick][QUERY_KEYS[0]];
         }
-        let released = vec![
-            Evidence { key: QUERY_KEYS[0] as u8, value: false, source_tick: 5, arrival_tick: 5, confidence: 650 },
-            Evidence { key: QUERY_KEYS[0] as u8, value: true, source_tick: 2, arrival_tick: 12, confidence: 650 },
-            Evidence { key: QUERY_KEYS[1] as u8, value: true, source_tick: 3, arrival_tick: 12, confidence: 850 },
-        ];
         let strata = episode.evaluator_strata(Family::HeldOut);
         assert!(strata[0]); // truth changed after latest source evidence
         assert!(strata[1]); // later-arriving old source timestamp
