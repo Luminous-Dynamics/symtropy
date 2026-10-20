@@ -51,8 +51,8 @@ jobs:
           mv receipt.tmp culinary-experience-contract-receipt.json
           jq -e '
             .result == "pass"
-            and .scenario_count == 12
-            and .metric_count == 25
+            and .scenario_count == 13
+            and .metric_count == 28
             and .required_gate_entries >= 40
             and (.contract_sha256 | length == 2 and all(.[]; test("^[a-f0-9]{64}$")))
             and (.source_commit | test("^[a-f0-9]{40}$"))
