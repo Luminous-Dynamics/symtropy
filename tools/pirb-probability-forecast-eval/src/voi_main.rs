@@ -165,10 +165,6 @@ fn source_is_admissible(
             "source {source_id} has an unsupported source_status"
         )]);
     }
-    if evidence_scope == "synthetic" && status == "authorized" {
-        // An explicitly authorized synthetic source is acceptable, though
-        // source provenance remains a declared input rather than authentication.
-    }
     let available_by = integer_at(source, "available_by_index").unwrap_or_default();
     if available_by > decision_deadline {
         return Ok(Some("arrives_after_decision_deadline"));
@@ -645,30 +641,6 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
         .map(|evaluation| evaluation.report.clone())
         .collect::<Vec<_>>();
 
-    let source_choice = |evaluation: Option<&SourceEvaluation>, metric_name: &str| {
-        evaluation.map_or_else(
-            || {
-                json!({
-                    "source_id": Value::Null,
-                    metric_name: Value::Null,
-                    "net_evsi": Value::Null
-                })
-            },
-            |evaluation| {
-                let metric_value = match metric_name {
-                    "net_evsi" => evaluation.net_evsi,
-                    "acquisition_cost" => Some(evaluation.acquisition_cost),
-                    "signal_entropy_nats" => evaluation.signal_entropy_nats,
-                    _ => None,
-                };
-                json!({
-                    "source_id": evaluation.source_id,
-                    metric_name: metric_value,
-                    "net_evsi": evaluation.net_evsi
-                })
-            },
-        )
-    };
 
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
     let input_sha256 = sha256_hex(input);
@@ -705,9 +677,18 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
         "source_count": source_evaluations.len(),
         "sources": source_reports,
         "strategy_baselines": {
-            "highest_net_evsi_positive_source": source_choice(net_choice, "net_evsi"),
-            "lowest_cost_admissible_source": source_choice(cost_choice, "acquisition_cost"),
-            "highest_signal_entropy_admissible_source": source_choice(entropy_choice, "signal_entropy_nats")
+            "highest_net_evsi_positive_source": net_choice.map_or_else(
+                || json!({"source_id": Value::Null, "net_evsi": Value::Null}),
+                |evaluation| json!({"source_id": evaluation.source_id, "net_evsi": evaluation.net_evsi})
+            ),
+            "lowest_cost_admissible_source": cost_choice.map_or_else(
+                || json!({"source_id": Value::Null, "acquisition_cost": Value::Null, "net_evsi": Value::Null}),
+                |evaluation| json!({"source_id": evaluation.source_id, "acquisition_cost": evaluation.acquisition_cost, "net_evsi": evaluation.net_evsi})
+            ),
+            "highest_signal_entropy_admissible_source": entropy_choice.map_or_else(
+                || json!({"source_id": Value::Null, "signal_entropy_nats": Value::Null, "net_evsi": Value::Null}),
+                |evaluation| json!({"source_id": evaluation.source_id, "signal_entropy_nats": evaluation.signal_entropy_nats, "net_evsi": evaluation.net_evsi})
+            )
         },
         "claims": {
             "schema_and_probability_contract_validated": true,
