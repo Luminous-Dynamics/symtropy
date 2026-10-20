@@ -103,7 +103,10 @@ impl SimulationRun {
         if self.peak_memory_bytes == 0 {
             return Err(EfficiencyError::InvalidPeakMemory);
         }
-        if self.energy_joules.is_some_and(|value| !value.is_finite() || value <= 0.0) {
+        if self
+            .energy_joules
+            .is_some_and(|value| !value.is_finite() || value <= 0.0)
+        {
             return Err(EfficiencyError::InvalidEnergy);
         }
         if self.quality_errors.is_empty() {
@@ -182,10 +185,11 @@ pub fn compare_runs(
     }
     let quality_violations = evaluate_quality_budget(candidate, budget)?;
     let wall_time_speedup = reference.wall_time_seconds / candidate.wall_time_seconds;
-    let peak_memory_ratio =
-        candidate.peak_memory_bytes as f64 / reference.peak_memory_bytes as f64;
+    let peak_memory_ratio = candidate.peak_memory_bytes as f64 / reference.peak_memory_bytes as f64;
     let energy_ratio = match (reference.energy_joules, candidate.energy_joules) {
-        (Some(reference_energy), Some(candidate_energy)) => Some(candidate_energy / reference_energy),
+        (Some(reference_energy), Some(candidate_energy)) => {
+            Some(candidate_energy / reference_energy)
+        }
         (None, None) => None,
         _ => return Err(EfficiencyError::EnergyCoverageMismatch),
     };
@@ -245,7 +249,10 @@ fn ensure_comparable(
     reference: &SimulationRun,
     candidate: &SimulationRun,
 ) -> Result<(), EfficiencyError> {
-    if !reference.case_digest_sha256.eq_ignore_ascii_case(&candidate.case_digest_sha256) {
+    if !reference
+        .case_digest_sha256
+        .eq_ignore_ascii_case(&candidate.case_digest_sha256)
+    {
         return Err(EfficiencyError::DifferentCase);
     }
     if reference.hardware_fingerprint != candidate.hardware_fingerprint {
@@ -290,7 +297,13 @@ fn dominates(a: &SimulationRun, b: &SimulationRun) -> bool {
 mod tests {
     use super::*;
 
-    fn run(id: &str, time: f64, memory: u64, depth_error: f64, arrival_error: f64) -> SimulationRun {
+    fn run(
+        id: &str,
+        time: f64,
+        memory: u64,
+        depth_error: f64,
+        arrival_error: f64,
+    ) -> SimulationRun {
         SimulationRun {
             run_id: id.into(),
             case_digest_sha256: "a".repeat(64),
@@ -319,7 +332,10 @@ mod tests {
     }
 
     fn close(actual: f64, expected: f64) {
-        assert!((actual - expected).abs() <= 1.0e-12, "expected {expected}, got {actual}");
+        assert!(
+            (actual - expected).abs() <= 1.0e-12,
+            "expected {expected}, got {actual}"
+        );
     }
 
     #[test]
@@ -349,8 +365,11 @@ mod tests {
     fn strict_dominance_requires_no_quality_or_resource_regression() {
         let reference = run("uniform-fine", 10.0, 1_000, 0.10, 2.0);
         let candidate = run("better-everywhere", 5.0, 800, 0.05, 1.0);
-        assert!(compare_runs(&reference, &candidate, &budget()).unwrap()
-            .candidate_strictly_dominates_reference);
+        assert!(
+            compare_runs(&reference, &candidate, &budget())
+                .unwrap()
+                .candidate_strictly_dominates_reference
+        );
     }
 
     #[test]
@@ -370,11 +389,17 @@ mod tests {
         let reference = run("reference", 10.0, 1_000, 0.01, 0.2);
         let mut different_case = run("candidate", 5.0, 800, 0.05, 1.0);
         different_case.case_digest_sha256 = "b".repeat(64);
-        assert_eq!(compare_runs(&reference, &different_case, &budget()), Err(EfficiencyError::DifferentCase));
+        assert_eq!(
+            compare_runs(&reference, &different_case, &budget()),
+            Err(EfficiencyError::DifferentCase)
+        );
 
         let mut different_hardware = run("candidate", 5.0, 800, 0.05, 1.0);
         different_hardware.hardware_fingerprint = "gpu-model-b".into();
-        assert_eq!(compare_runs(&reference, &different_hardware, &budget()), Err(EfficiencyError::DifferentHardware));
+        assert_eq!(
+            compare_runs(&reference, &different_hardware, &budget()),
+            Err(EfficiencyError::DifferentHardware)
+        );
     }
 
     #[test]
@@ -382,23 +407,41 @@ mod tests {
         let reference = run("reference", 10.0, 1_000, 0.01, 0.2);
         let mut candidate = run("candidate", 5.0, 800, 0.05, 1.0);
         candidate.energy_joules = None;
-        assert_eq!(compare_runs(&reference, &candidate, &budget()), Err(EfficiencyError::EnergyCoverageMismatch));
-        assert_eq!(pareto_frontier(&[reference, candidate]), Err(EfficiencyError::EnergyCoverageMismatch));
+        assert_eq!(
+            compare_runs(&reference, &candidate, &budget()),
+            Err(EfficiencyError::EnergyCoverageMismatch)
+        );
+        assert_eq!(
+            pareto_frontier(&[reference, candidate]),
+            Err(EfficiencyError::EnergyCoverageMismatch)
+        );
     }
 
     #[test]
     fn invalid_measurements_and_tolerances_fail_closed() {
         let invalid_time = run("invalid", f64::NAN, 100, 0.1, 1.0);
-        assert_eq!(invalid_time.validate(), Err(EfficiencyError::InvalidWallTime));
+        assert_eq!(
+            invalid_time.validate(),
+            Err(EfficiencyError::InvalidWallTime)
+        );
         let invalid_error = run("invalid-error", 1.0, 100, -0.1, 1.0);
-        assert_eq!(invalid_error.validate(), Err(EfficiencyError::InvalidQualityError("depth_rmse_m".into())));
+        assert_eq!(
+            invalid_error.validate(),
+            Err(EfficiencyError::InvalidQualityError("depth_rmse_m".into()))
+        );
 
         let invalid_budget = QualityBudget {
             max_error_by_metric: [("depth_rmse_m".into(), f64::NAN)].into_iter().collect(),
         };
         assert_eq!(
-            compare_runs(&run("reference", 2.0, 100, 0.1, 1.0), &run("candidate", 1.0, 90, 0.1, 1.0), &invalid_budget),
-            Err(EfficiencyError::InvalidQualityTolerance("depth_rmse_m".into()))
+            compare_runs(
+                &run("reference", 2.0, 100, 0.1, 1.0),
+                &run("candidate", 1.0, 90, 0.1, 1.0),
+                &invalid_budget
+            ),
+            Err(EfficiencyError::InvalidQualityTolerance(
+                "depth_rmse_m".into()
+            ))
         );
     }
 
@@ -406,7 +449,10 @@ mod tests {
     fn empty_frontier_and_duplicate_ids_are_rejected() {
         assert_eq!(pareto_frontier(&[]), Err(EfficiencyError::NoRuns));
         assert_eq!(
-            pareto_frontier(&[run("same", 10.0, 1_000, 0.01, 0.2), run("same", 5.0, 800, 0.05, 1.0)]),
+            pareto_frontier(&[
+                run("same", 10.0, 1_000, 0.01, 0.2),
+                run("same", 5.0, 800, 0.05, 1.0)
+            ]),
             Err(EfficiencyError::DuplicateRunId("same".into()))
         );
     }
@@ -416,6 +462,9 @@ mod tests {
         let reference = run("reference", 10.0, 1_000, 0.01, 0.2);
         let mut candidate = run("candidate", 5.0, 800, 0.05, 1.0);
         candidate.quality_errors.remove("arrival_time_abs_s");
-        assert_eq!(compare_runs(&reference, &candidate, &budget()), Err(EfficiencyError::MetricSetMismatch));
+        assert_eq!(
+            compare_runs(&reference, &candidate, &budget()),
+            Err(EfficiencyError::MetricSetMismatch)
+        );
     }
 }
