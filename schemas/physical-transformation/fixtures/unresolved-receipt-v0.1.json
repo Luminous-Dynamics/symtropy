@@ -14,8 +14,8 @@
   },
   "status": "UNRESOLVED",
   "evidence_class": "synthetic",
-  "physics_evaluated": ["topology"],
-  "physics_omitted": ["dynamic_response", "fracture", "contact"],
+  "physics_evaluated": [],
+  "physics_omitted": ["dynamic_response", "fracture"],
   "convergence": {
     "state": "not_applicable",
     "iterations": null,
