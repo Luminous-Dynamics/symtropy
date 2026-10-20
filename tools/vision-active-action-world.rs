@@ -599,6 +599,32 @@ fn mean_resource(summary: &RunSummaryV1, key: &str) -> Option<f64> {
     Some(*value as f64 / summary.scores.len() as f64)
 }
 
+fn mean_loss_for_stratum(
+    summary: &RunSummaryV1,
+    worlds: &[HiddenWorld],
+    predicate: impl Fn(HiddenWorld) -> bool,
+) -> Option<f64> {
+    let mut total = 0.0;
+    let mut count = 0usize;
+    for score in &summary.scores {
+        let world = worlds.iter().find(|world| world.episode_id == score.trial_id)?;
+        if predicate(*world) {
+            total += score.realized_task_loss;
+            count += 1;
+        }
+    }
+    if count == 0 { None } else { Some(total / count as f64) }
+}
+
+fn mean_optional(values: impl Iterator<Item = Option<f64>>) -> Option<f64> {
+    let values: Vec<f64> = values.flatten().collect();
+    if values.is_empty() {
+        None
+    } else {
+        Some(values.iter().sum::<f64>() / values.len() as f64)
+    }
+}
+
 fn run_report() -> Result<(), EvaluationError> {
     let development_worlds = generate_worlds(EPISODE_COUNT, ROOT_SEED);
     let held_out_worlds = generate_held_out_worlds(
@@ -625,7 +651,7 @@ fn run_report() -> Result<(), EvaluationError> {
         profile["sensor_action"].run_budget.unwrap()
     );
     println!("Random baseline repeats 16 policy seeds on the same worlds; not independent world samples.");
-    println!("profile\tpolicy\tseed_replicates\tmean_loss\tmin_loss\tmax_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\tlatency_units_per_episode\tsensor_actions_per_episode");
+    println!("profile\tpolicy\tseed_replicates\tmean_loss\tmin_loss\tmax_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\thigh_occlusion_loss\thigh_blur_loss\thigh_distractor_loss\thigh_novelty_loss\tlatency_units_per_episode\tsensor_actions_per_episode");
 
     for (profile_name, worlds) in [
         ("development_levels", development_worlds.as_slice()),
@@ -644,15 +670,24 @@ fn run_report() -> Result<(), EvaluationError> {
             let mean_regret = summaries.iter().map(|summary| summary.mean_regret_vs_run_budget_oracle).sum::<f64>()
                 / summaries.len() as f64;
             let mean_action_value = summaries.iter().map(mean_action_value).sum::<f64>() / summaries.len() as f64;
+            let high_occlusion_loss = mean_optional(summaries.iter().map(|summary|
+                mean_loss_for_stratum(summary, worlds, |world| world.occlusion_milli >= 700)));
+            let high_blur_loss = mean_optional(summaries.iter().map(|summary|
+                mean_loss_for_stratum(summary, worlds, |world| world.blur_milli >= 700)));
+            let high_distractor_loss = mean_optional(summaries.iter().map(|summary|
+                mean_loss_for_stratum(summary, worlds, |world| world.distractor_salience_milli >= 900)));
+            let high_novelty_loss = mean_optional(summaries.iter().map(|summary|
+                mean_loss_for_stratum(summary, worlds, |world| world.novelty_milli >= 900)));
             let latency_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "latency_unit")).sum::<f64>()
                 / summaries.len() as f64;
             let sensor_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "sensor_action")).sum::<f64>()
                 / summaries.len() as f64;
 
             println!(
-                "{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.3}\t{:.3}",
+                "{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:?}\t{:?}\t{:?}\t{:?}\t{:.3}\t{:.3}",
                 profile_name, policy.name(), repetitions, mean_loss, min_loss, max_loss,
-                mean_regret, mean_action_value, latency_per_episode, sensor_per_episode
+                mean_regret, mean_action_value, high_occlusion_loss, high_blur_loss,
+                high_distractor_loss, high_novelty_loss, latency_per_episode, sensor_per_episode
             );
         }
     }
