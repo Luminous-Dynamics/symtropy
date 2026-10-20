@@ -342,7 +342,11 @@ mod tests {
     fn cvar_alpha_zero_is_rejected() {
         let errors =
             score_model_ensemble(&example_models(), 0.0).expect_err("alpha zero must fail");
-        assert!(errors.iter().any(|error| error.contains("cvar_alpha")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("cvar_alpha"))
+        );
     }
 
     #[test]
