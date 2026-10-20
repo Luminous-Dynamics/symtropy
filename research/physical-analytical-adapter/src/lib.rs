@@ -1,10 +1,10 @@
-pub mod uncertainty;
-
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Executes only three qualified closed-form reference cases.
 //!
 //! PASS means that the named formula evaluated under its declared assumptions.
 //! It is not a finding about the safety of a real structure.
+
+pub mod uncertainty;
 
 use physical_transformation_reference::mechanics::{
     axial_bar, cantilever_tip_load, simply_supported_uniform_load,
