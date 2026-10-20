@@ -182,8 +182,9 @@ pub fn assess(world: &World, profiles: Vec<ConnectorProfile>) -> Check<DfdAssess
                 vector.effort_declared_count += 1;
                 if let Some(current) = vector.declared_effort_total_person_minutes {
                     vector.declared_effort_total_person_minutes = Some(
-                        current.checked_add(minutes)
-                            .ok_or_else(|| "declared DfD effort total overflow".to_owned())?
+                        current
+                            .checked_add(minutes)
+                            .ok_or_else(|| "declared DfD effort total overflow".to_owned())?,
                     );
                 }
             }
@@ -255,24 +256,28 @@ mod tests {
     fn world_with_two_connections() -> World {
         let mut world = World::default();
         for id in ["A", "B", "C"] {
-            world.apply(Event {
-                id: format!("install-{id}"),
-                operation: Operation::InstallComponent(Component {
-                    id: id.to_owned(),
-                    material: "steel".to_owned(),
-                    mass_mg: 1_000,
-                }),
-            }).expect("component installation");
+            world
+                .apply(Event {
+                    id: format!("install-{id}"),
+                    operation: Operation::InstallComponent(Component {
+                        id: id.to_owned(),
+                        material: "steel".to_owned(),
+                        mass_mg: 1_000,
+                    }),
+                })
+                .expect("component installation");
         }
         for (id, a, b) in [("AB", "A", "B"), ("BC", "B", "C")] {
-            world.apply(Event {
-                id: format!("connect-{id}"),
-                operation: Operation::CreateConnection(Connection {
-                    id: id.to_owned(),
-                    a: a.to_owned(),
-                    b: b.to_owned(),
-                }),
-            }).expect("connection creation");
+            world
+                .apply(Event {
+                    id: format!("connect-{id}"),
+                    operation: Operation::CreateConnection(Connection {
+                        id: id.to_owned(),
+                        a: a.to_owned(),
+                        b: b.to_owned(),
+                    }),
+                })
+                .expect("connection creation");
         }
         world
     }
@@ -304,7 +309,8 @@ mod tests {
                     ..known_profile("BC", 12, ConnectorKind::CutRequired)
                 },
             ],
-        ).expect("known profiles");
+        )
+        .expect("known profiles");
         assert_eq!(result.status, AssessmentStatus::Complete);
         assert_eq!(result.vector.connection_count, 2);
         assert_eq!(result.vector.connector_kinds.reversible_fastener, 1);
@@ -321,8 +327,11 @@ mod tests {
     #[test]
     fn missing_connector_semantics_are_unresolved_not_silently_scored() {
         let world = world_with_two_connections();
-        let result = assess(&world, vec![known_profile("AB", 5, ConnectorKind::ReversibleFastener)])
-            .expect("missing profile remains assessable as unknown");
+        let result = assess(
+            &world,
+            vec![known_profile("AB", 5, ConnectorKind::ReversibleFastener)],
+        )
+        .expect("missing profile remains assessable as unknown");
         assert_eq!(result.status, AssessmentStatus::Unresolved);
         assert_eq!(result.vector.connector_kinds.unknown, 1);
         assert_eq!(result.vector.tool_access.unknown, 1);
@@ -336,8 +345,11 @@ mod tests {
         let world = world_with_two_connections();
         let mut profile = known_profile("AB", 3, ConnectorKind::ReversibleFastener);
         profile.damage_risk = DamageRisk::Unknown;
-        let result = assess(&world, vec![profile, known_profile("BC", 4, ConnectorKind::CutRequired)])
-            .expect("unknown risk is representable");
+        let result = assess(
+            &world,
+            vec![profile, known_profile("BC", 4, ConnectorKind::CutRequired)],
+        )
+        .expect("unknown risk is representable");
         assert_eq!(result.status, AssessmentStatus::Unresolved);
         assert_eq!(result.unresolved_connection_ids, vec!["AB"]);
         assert_eq!(result.vector.damage_risk.unknown, 1);
@@ -355,7 +367,10 @@ mod tests {
             ],
         );
         assert!(duplicate.unwrap_err().contains("duplicate DfD profile"));
-        let foreign = assess(&world, vec![known_profile("XZ", 2, ConnectorKind::CutRequired)]);
+        let foreign = assess(
+            &world,
+            vec![known_profile("XZ", 2, ConnectorKind::CutRequired)],
+        );
         assert!(foreign.unwrap_err().contains("unknown connection"));
     }
 
@@ -368,7 +383,6 @@ mod tests {
         let right = assess(&world, vec![b, a]).expect("right order");
         assert_eq!(left, right);
     }
-
 
     #[test]
     fn missing_effort_stays_unresolved_even_when_later_profiles_have_effort() {
