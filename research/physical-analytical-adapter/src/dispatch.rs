@@ -165,7 +165,9 @@ pub fn dispatch_request_bytes(
 fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
     let schema_version = required_string(value, "schema_version", "request")?;
     if schema_version != REQUEST_SCHEMA_V01 {
-        return Err(format!("request.schema_version is unsupported: {schema_version}"));
+        return Err(format!(
+            "request.schema_version is unsupported: {schema_version}"
+        ));
     }
     exact_keys_with_optional(value, REQUEST_KEYS_V01, &["input_bounds"], "request")?;
     let request_id = required_string(value, "request_id", "request")?;
@@ -228,11 +230,21 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
     })
 }
 
-fn validate_input_bounds(case_id: &str, inputs: &Map<String, Value>, contract: &Value) -> Check<()> {
-    exact_keys(contract, &["schema_version", "inputs"], "request.input_bounds")?;
+fn validate_input_bounds(
+    case_id: &str,
+    inputs: &Map<String, Value>,
+    contract: &Value,
+) -> Check<()> {
+    exact_keys(
+        contract,
+        &["schema_version", "inputs"],
+        "request.input_bounds",
+    )?;
     let schema_version = required_string(contract, "schema_version", "request.input_bounds")?;
     if schema_version != "physical-input-bounds-v0.1" {
-        return Err("request.input_bounds.schema_version must be 'physical-input-bounds-v0.1'".to_owned());
+        return Err(
+            "request.input_bounds.schema_version must be 'physical-input-bounds-v0.1'".to_owned(),
+        );
     }
     let bound_map = contract
         .get("inputs")
@@ -241,14 +253,24 @@ fn validate_input_bounds(case_id: &str, inputs: &Map<String, Value>, contract: &
     let expected: &[&str] = match case_id {
         "axial_bar" => &["force_n", "length_m", "area_m2", "youngs_modulus_pa"],
         "cantilever_tip_load" => &[
-            "force_n", "length_m", "youngs_modulus_pa", "second_moment_area_m4",
+            "force_n",
+            "length_m",
+            "youngs_modulus_pa",
+            "second_moment_area_m4",
             "outer_fiber_distance_m",
         ],
         "simply_supported_uniform_load" => &[
-            "load_n_per_m", "length_m", "youngs_modulus_pa", "second_moment_area_m4",
+            "load_n_per_m",
+            "length_m",
+            "youngs_modulus_pa",
+            "second_moment_area_m4",
             "outer_fiber_distance_m",
         ],
-        _ => return Err(format!("cannot validate bounds for unsupported case '{case_id}'")),
+        _ => {
+            return Err(format!(
+                "cannot validate bounds for unsupported case '{case_id}'"
+            ));
+        }
     };
     exact_map_keys(bound_map, expected, "request.input_bounds.inputs")?;
     const BOUND_KEYS: &[&str] = &["lower", "upper", "unit", "basis", "source_ref"];
@@ -295,7 +317,8 @@ fn validate_input_bounds(case_id: &str, inputs: &Map<String, Value>, contract: &
             "datasheet_tolerance",
             "engineering_estimate",
             "scenario_bound",
-        ].contains(&basis.as_str())
+        ]
+        .contains(&basis.as_str())
         {
             return Err(format!("{at}.basis is unsupported"));
         }
@@ -311,14 +334,16 @@ fn validate_input_bounds(case_id: &str, inputs: &Map<String, Value>, contract: &
 }
 
 fn finite_number(value: &Map<String, Value>, key: &str, at: &str) -> Check<f64> {
-    value.get(key)
+    value
+        .get(key)
         .and_then(Value::as_f64)
         .filter(|number| number.is_finite())
         .ok_or_else(|| format!("{at}.{key} must be finite numeric"))
 }
 
 fn required_string_map(value: &Map<String, Value>, key: &str, at: &str) -> Check<String> {
-    value.get(key)
+    value
+        .get(key)
         .and_then(Value::as_str)
         .map(str::to_owned)
         .ok_or_else(|| format!("{at}.{key} must be a string"))
@@ -404,7 +429,9 @@ fn exact_keys_with_optional(
     let missing: Vec<_> = required_set.difference(&actual_set).copied().collect();
     let unknown: Vec<_> = actual_set.difference(&allowed).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
-        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
     }
     Ok(())
 }
@@ -613,11 +640,8 @@ mod tests {
 
     #[test]
     fn bounded_v01_request_dispatches_with_current_provenance_enclosures() {
-        let receipt = dispatch_request_bytes(
-            &fixture("analytical-bar-bounds-v0.1.json"),
-            REV,
-            REV,
-        ).expect("bounded v0.1 request should dispatch");
+        let receipt = dispatch_request_bytes(&fixture("analytical-bar-bounds-v0.1.json"), REV, REV)
+            .expect("bounded v0.1 request should dispatch");
         assert_eq!(receipt["request_schema_version"], REQUEST_SCHEMA_V01);
         assert_eq!(receipt["selection_status"], "SELECTED");
         assert_eq!(receipt["evaluation_status"], "PASS");
@@ -640,8 +664,8 @@ mod tests {
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-bounds-v0.1.json")).unwrap();
         request["input_bounds"]["inputs"]["force_n"]["lower"] = json!(1_001.0);
-        let error = dispatch_request_bytes(&request.to_string().into_bytes(), REV, REV)
-            .unwrap_err();
+        let error =
+            dispatch_request_bytes(&request.to_string().into_bytes(), REV, REV).unwrap_err();
         assert!(error.contains("must contain its nominal input"));
     }
 
