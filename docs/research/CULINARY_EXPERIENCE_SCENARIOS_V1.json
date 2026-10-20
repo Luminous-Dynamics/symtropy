@@ -101,7 +101,7 @@
         "food_cost_per_completed_serving",
         "energy_wh_per_completed_serving",
         "water_l_per_completed_serving",
-        "accessible_task_success_fraction",
+        "accessibility_task_success_fraction",
         "avoidable_edible_discard_g_per_serving"
       ],
       "required_gates": [
