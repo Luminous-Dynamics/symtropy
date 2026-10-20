@@ -4,7 +4,7 @@
   "research_snapshot": "2026-10-20",
   "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2214",
   "note": "All cases are synthetic expected-contract tests, not empirical animal observations, validated biological mechanisms, or current Symtropy performance results.",
-  "case_count": 47,
+  "case_count": 51,
   "independent_unit": "episode_or_individual_or_ecology_regime_as_declared",
   "required_run_identity": [
     "source_commit",
@@ -798,6 +798,78 @@
         "asset is reused solely because it was once downloadable"
       ],
       "reason": "rights_are_scoped_to_source_and_intended_use"
+    },
+    {
+      "id": "aquatic_current_field_shift",
+      "kind": "aquatic_ecology_and_sensor_grounding",
+      "setup": "The simulated aquatic current vector field changes while the animal's initial state and local sensor contract remain fixed; exact global flow values are world truth, not direct policy inputs.",
+      "perturbation": "change_current_vector_field",
+      "expected": {
+        "required_properties": [
+          "flow field and boundary conditions are manifest-bound",
+          "movement/drift and energy costs use the simulated flow, not rendered appearance",
+          "agent access is limited to permitted local evidence"
+        ]
+      },
+      "fail_if": [
+        "controller reads hidden global current vectors",
+        "visible water animation is treated as validated hydrodynamics"
+      ],
+      "reason": "separate fluid dynamics, local evidence, and rendering"
+    },
+    {
+      "id": "flood_changes_habitat_connectivity",
+      "kind": "hydrological_regime_shift",
+      "setup": "A flood changes depth and disables a previously traversable crossing at a declared event time while downstream habitat and sensor visibility are not necessarily changed.",
+      "perturbation": "flood_and_remove_traversable_edge",
+      "expected": {
+        "required_properties": [
+          "traversability changes according to declared depth/capability constraints",
+          "event time and connectivity delta are recorded",
+          "routes through the disabled crossing are rejected or replanned"
+        ]
+      },
+      "fail_if": [
+        "route remains valid only because the rendered scene looks unchanged",
+        "future flood connectivity leaks before event time"
+      ],
+      "reason": "hydraulic state governs connectivity, not visual plausibility"
+    },
+    {
+      "id": "trophic_cascade_with_lags",
+      "kind": "multi_trophic_ecology",
+      "setup": "An intervention changes a declared predator-prey pressure and may affect a downstream resource through an explicit interaction chain with specified delays.",
+      "perturbation": "change_one_trophic_interaction",
+      "expected": {
+        "required_properties": [
+          "effect propagation respects the declared causal graph and lag windows",
+          "direct and mediated effects are reported separately",
+          "no unsupported instant global equilibration is assumed"
+        ]
+      },
+      "fail_if": [
+        "downstream species update before any permitted causal path or lag",
+        "aggregate outcome hides adverse subgroup/population effects"
+      ],
+      "reason": "ecological interaction networks are dynamic and delayed"
+    },
+    {
+      "id": "unsupported_habitat_transition",
+      "kind": "capability_scope_boundary",
+      "setup": "A modeled animal is asked to traverse a habitat requiring a locomotion capability whose evidence is unknown, restricted, or synthetic-only for a real-species claim.",
+      "perturbation": "request_unsupported_habitat_transition",
+      "expected": {
+        "required_properties": [
+          "capability evidence class and taxon scope are checked",
+          "scenario is marked synthetic, not_assessed, or infeasible when support is absent",
+          "the agent does not receive unearned capability privileges"
+        ]
+      },
+      "fail_if": [
+        "generic movement is treated as proof of aquatic/climbing/flying competence",
+        "synthetic-only profile is reported as measured biology"
+      ],
+      "reason": "habitat capability cannot be inferred from visual or generic locomotion"
     }
   ]
 }
