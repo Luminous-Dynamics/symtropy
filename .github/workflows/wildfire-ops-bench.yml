@@ -196,17 +196,22 @@ jobs:
             --mount "type=bind,src=$PWD/wildfire-sumo-export,dst=/data" \
             "$image" bash -lc '
               set -euo pipefail
-              netconvert --version > /data/netconvert-version.txt 2>&1
-              sumo --version > /data/sumo-version.txt 2>&1
+              echo "SUMO container started"
+              command -v netconvert
+              command -v sumo
+              netconvert --version 2>&1 | tee /data/netconvert-version.txt
+              sumo --version 2>&1 | tee /data/sumo-version.txt
               grep -q "Version 1.27.1" /data/netconvert-version.txt
               grep -q "Version 1.27.1" /data/sumo-version.txt
               for case_dir in /data/*/; do
                 test -f "$case_dir/manifest.json" || continue
+                echo "Building network for $(basename "$case_dir")"
                 netconvert \
                   --node-files "$case_dir/nodes.nod.xml" \
                   --edge-files "$case_dir/edges.edg.xml" \
                   --output-file "$case_dir/network.net.xml"
-                sumo \
+                echo "Running SUMO smoke simulation for $(basename "$case_dir")"
+                if ! sumo \
                   --net-file "$case_dir/network.net.xml" \
                   --route-files "$case_dir/demand.rou.xml" \
                   --additional-files "$case_dir/closures.add.xml" \
@@ -215,7 +220,11 @@ jobs:
                   --no-step-log true \
                   --duration-log.disable true \
                   --tripinfo-output "$case_dir/tripinfo.xml" \
-                  > "$case_dir/sumo-smoke.stdout.log" 2> "$case_dir/sumo-smoke.stderr.log"
+                  > "$case_dir/sumo-smoke.stdout.log" 2> "$case_dir/sumo-smoke.stderr.log"; then
+                  cat "$case_dir/sumo-smoke.stdout.log"
+                  cat "$case_dir/sumo-smoke.stderr.log"
+                  exit 1
+                fi
                 test -s "$case_dir/tripinfo.xml"
               done
             '
