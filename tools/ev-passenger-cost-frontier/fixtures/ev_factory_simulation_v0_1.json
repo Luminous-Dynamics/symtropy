@@ -115,5 +115,7 @@
     20261037,
     20261038,
     20261039
-  ]
+  ],
+  "dispatch_policy": "fifo",
+  "max_variant_skip_seconds": 600
 }
