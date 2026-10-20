@@ -1174,8 +1174,10 @@ mod tests {
     fn unknown_schema_version_fails_closed_without_falling_back_to_v01() {
         let mut doc = functional_baseline();
         doc["schema_version"] = json!("0.9.9");
-        assert!(audit_document(&doc).iter().any(|error| error.contains("unsupported schema_version")));
+        assert!(
+            audit_document(&doc)
+                .iter()
+                .any(|error| error.contains("unsupported schema_version"))
+        );
     }
-
-
 }
