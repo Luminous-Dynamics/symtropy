@@ -963,9 +963,8 @@ mod tests {
     #[test]
     fn duplicate_component_ids_are_rejected() {
         let mut catalog = minimal_catalog();
-        catalog.candidates[0]
-            .components
-            .push(catalog.candidates[0].components[0].clone());
+        let first_component = catalog.candidates[0].components[0].clone();
+        catalog.candidates[0].components.push(first_component);
         assert!(
             validate_catalog(&catalog)
                 .unwrap_err()
