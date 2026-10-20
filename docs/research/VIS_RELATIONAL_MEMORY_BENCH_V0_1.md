@@ -174,6 +174,31 @@ The policy was added after inspecting earlier experimental outcomes; it is there
 
 This is a symbolic evidence-stream benchmark. It isolates memory selection, source-time/provenance and decision behavior. It does not test visual perception, natural language understanding, 3D geometry, manipulation, physical safety, actual wall time, hardware memory, GPU use, or energy. Passing it is a diagnostic step—not proof of external benchmark superiority or deployment readiness.
 
+## Corrected-confidence and gap-aware report — exploratory
+
+The current confidence model and gap-aware policy passed exact-head qualification on source head `962518ca78bbe6af2d23aa89baab6fc851a3ff09`:
+- [Focused run #39497178036](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39497178036) passed **19 tests**, exact-head verification, byte-for-byte report replay, row/strata checks and SHA validation.
+- [Report artifact #12296939420](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39497178036/artifacts/12296939420), archive SHA-256 `d39f3ba47bf24089ffe8c1e514d01d03ff4b20325ceb653a78ffbf7e9db48463`.
+- The ordinary cross-platform CI for that same head was pending at the last check; this is not a claim that the full PR CI was green.
+
+Under the corrected, noisy-confidence generator at capacity 3:
+
+| Policy | Mean loss ↓ | Answer rate ↑ | Answered accuracy ↑ | Logical state bytes | Delta vs FIFO (paired 95% CI) |
+| --- | ---: | ---: | ---: | ---: | --- |
+| FIFO | 0.2441 | 3.39% | 92.31% | 18 | baseline |
+| Query-keyed latest | 0.2422 | 28.12% | 77.78% | 18 | -0.0020 [-0.0221, +0.0208] |
+| Query-keyed selective | 0.2422 | 28.12% | 77.78% | 18 | -0.0020 [-0.0234, +0.0189] |
+| Query-keyed hazard-aware | **0.2077** | **42.97%** | **84.85%** | 48 | **-0.0365 [-0.0599, -0.0124]** |
+| Query-keyed gap-aware | 0.2194 | 36.20% | 83.45% | 126 | -0.0247 [-0.0482, -0.0013] |
+
+The simpler naive hazard-aware estimator still beats FIFO on held-out loss in this corrected model. However, the more principled gap-aware posterior does **not** improve on it. The direct paired contrast is reported explicitly: **gap-aware minus naive-hazard loss = +0.0117**, 95% CI **[+0.0033, +0.0202]** on 384 held-out episodes. The development contrast is +0.0085, 95% CI [-0.0007, +0.0176]. This is a negative result for the proposed complexity increase: the gap-aware implementation has about **2.6×** the logical state cost (126 vs 48 bytes), lower answer coverage, and worse held-out loss under this generator.
+
+That does not falsify the source-time-gap likelihood math. It rejects the broader claim that adding this small posterior grid improves decision quality in this particular limited-evidence benchmark. Possible causes—coarse hazard grid, fixed prior, sparse high-confidence transitions, or imperfect observation-reliability modeling—need diagnostic evidence before choosing another algorithm. Do not keep the gap-aware policy as the preferred path just because it is more Bayesian-looking.
+
+On held-out episodes where a queried fact changed after the latest source evidence (221 episodes), naive hazard loss was 0.2523 versus FIFO 0.2466 (delta +0.0057, 95% CI [-0.0294, +0.0441]); gap-aware loss was 0.2658 (delta +0.0192, 95% CI [-0.0136, +0.0532]). Neither establishes improvement on surprise changes, and gap-aware is no better on that subgroup. On the high maximum-delay stratum, naive hazard delta was -0.0491 [-0.0771, -0.0199] while gap-aware was -0.0315 [-0.0584, -0.0023]. These overlapping subgroup results are exploratory, not independent confirmation.
+
+**Decision:** keep the corrected confidence channel. Keep the gap-aware implementation as a comparison baseline, but do not promote it over the simpler hazard estimator without a new frozen hypothesis and measured advantage. The next useful experiment is to audit/calibrate the observation-reliability mapping and report transition-hazard estimation error (evaluator-only), not add further state to chase the scalar loss.
+
 ## Reproduce
 
 ```sh
