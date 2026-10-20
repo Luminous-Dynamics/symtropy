@@ -177,9 +177,9 @@ impl ApparentSizeBand {
 
 /// Strictly increasing pixel thresholds between apparent-size bands.
 ///
-/// The five thresholds respectively separate subpixel/point-like, point-like/
-—resolved-disc, disc/body-proxy, body-proxy/regional, and regional/surface
-/// detail. They are explicit configuration, not universal perceptual truths.
+/// The five thresholds separate subpixel/point-like, point-like/resolved-disc,
+/// disc/body-proxy, body-proxy/regional, and regional/surface detail. They are
+/// explicit configuration, not universal perceptual truths.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ApparentSizeProfile {
     pub subpixel_max_px: f64,
@@ -565,9 +565,16 @@ mod tests {
             latch.update(f64::NAN, PROFILE),
             Err(ApparentScaleError::InvalidProjectedDiameter)
         );
+        let invalid_profile = ApparentSizeProfile {
+            subpixel_max_px: 1.0,
+            point_source_max_px: 0.5,
+            resolved_disc_max_px: 2.0,
+            body_proxy_max_px: 64.0,
+            regional_detail_max_px: 256.0,
+        };
         assert_eq!(
-            latch.update(1.0, ApparentSizeProfile::new(1.0, 0.5, 2.0, 64.0, 256.0).unwrap_err()),
-            Err(ApparentScaleError::InvalidProjectedDiameter)
+            latch.update(1.0, invalid_profile),
+            Err(ApparentScaleError::InvalidSizeThresholds)
         );
     }
 }
