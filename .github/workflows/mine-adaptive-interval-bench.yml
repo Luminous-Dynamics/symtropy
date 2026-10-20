@@ -61,8 +61,8 @@ jobs:
             and .ticks_per_stream == 64
             and .stream_count == 768
             and .tick_count == 49152
-            and .policy_count == 7
-            and .summary_count == 168
+            and .policy_count == 9
+            and .summary_count == 216
             and .nominal_coverage_percent == 90
             and .max_telemetry_age_periods == 1
             and .healthy_ticks_required_for_reentry == 3
