@@ -1,9 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeSet,
-    env, fs,
-    process,
-};
+use std::{collections::BTreeSet, env, fs, process};
 
 const CLAIM_CEILING: &str = "Parametric cost-envelope arithmetic only. Synthetic fixture results are not supplier quotes, achievable retail pricing, a manufacturing plan, a safety finding, homologation, or proof of superiority.";
 
@@ -369,7 +365,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if !catalog.market.price_source_url.starts_with("https://") {
         return Err("market_price_source_must_be_https".to_string());
     }
-    finite_positive("observed_retail_price", catalog.market.observed_retail_price)?;
+    finite_positive(
+        "observed_retail_price",
+        catalog.market.observed_retail_price,
+    )?;
     fraction("undercut_fraction", catalog.market.undercut_fraction, false)?;
     fraction("vat_fraction", catalog.market.vat_fraction, true)?;
     fraction(
@@ -387,7 +386,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         return Err("minimum_seats_must_be_positive".to_string());
     }
     finite_nonnegative("minimum_payload_kg", catalog.target.minimum_payload_kg)?;
-    finite_positive("minimum_declared_range_km", catalog.target.minimum_declared_range_km)?;
+    finite_positive(
+        "minimum_declared_range_km",
+        catalog.target.minimum_declared_range_km,
+    )?;
     finite_positive(
         "maximum_declared_consumption_kwh_per_100km",
         catalog.target.maximum_declared_consumption_kwh_per_100km,
@@ -401,7 +403,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     let mut candidate_ids = BTreeSet::new();
     for candidate in &catalog.candidates {
         if !candidate_ids.insert(candidate.candidate_id.clone()) {
-            return Err(format!("duplicate_candidate_id: {}", candidate.candidate_id));
+            return Err(format!(
+                "duplicate_candidate_id: {}",
+                candidate.candidate_id
+            ));
         }
         validate_candidate(candidate)
             .map_err(|error| format!("{}: {error}", candidate.candidate_id))?;
@@ -414,18 +419,28 @@ fn validate_candidate(candidate: &Candidate) -> Result<(), String> {
         ("candidate_id", candidate.candidate_id.as_str()),
         ("label", candidate.label.as_str()),
         ("architecture", candidate.architecture.as_str()),
-        ("envelope_source_reference", candidate.envelope_source_reference.as_str()),
+        (
+            "envelope_source_reference",
+            candidate.envelope_source_reference.as_str(),
+        ),
         ("envelope_as_of", candidate.envelope_as_of.as_str()),
     ] {
         nonblank(name, value)?;
     }
     finite_positive("curb_mass_kg", candidate.envelope.curb_mass_kg)?;
     finite_positive("nominal_pack_kwh", candidate.envelope.nominal_pack_kwh)?;
-    fraction("usable_pack_fraction", candidate.envelope.usable_pack_fraction, true)?;
+    fraction(
+        "usable_pack_fraction",
+        candidate.envelope.usable_pack_fraction,
+        true,
+    )?;
     if candidate.envelope.usable_pack_fraction == 0.0 {
         return Err("usable_pack_fraction_must_be_positive".to_string());
     }
-    finite_nonnegative("payload_capacity_kg", candidate.envelope.payload_capacity_kg)?;
+    finite_nonnegative(
+        "payload_capacity_kg",
+        candidate.envelope.payload_capacity_kg,
+    )?;
     finite_nonnegative("declared_range_km", candidate.envelope.declared_range_km)?;
     finite_nonnegative(
         "declared_consumption_kwh_per_100km",
@@ -447,9 +462,18 @@ fn validate_candidate(candidate: &Candidate) -> Result<(), String> {
     }
     validate_gate("technical_gate", &candidate.technical_gate)?;
     validate_gate("safety_gate", &candidate.safety_gate)?;
-    validate_cost_range("factory_conversion_cost", &candidate.factory_conversion_cost)?;
-    validate_cost_range("warranty_service_reserve", &candidate.warranty_service_reserve)?;
-    validate_cost_range("fixed_program_investment", &candidate.fixed_program_investment)?;
+    validate_cost_range(
+        "factory_conversion_cost",
+        &candidate.factory_conversion_cost,
+    )?;
+    validate_cost_range(
+        "warranty_service_reserve",
+        &candidate.warranty_service_reserve,
+    )?;
+    validate_cost_range(
+        "fixed_program_investment",
+        &candidate.fixed_program_investment,
+    )?;
     if candidate.components.is_empty() {
         return Err("component_list_must_not_be_empty".to_string());
     }
@@ -459,7 +483,10 @@ fn validate_candidate(candidate: &Candidate) -> Result<(), String> {
         nonblank("quantity_unit", &component.quantity_unit)?;
         nonblank("unit_cost_basis", &component.unit_cost_basis)?;
         if !component_ids.insert(component.component_id.clone()) {
-            return Err(format!("duplicate_component_id: {}", component.component_id));
+            return Err(format!(
+                "duplicate_component_id: {}",
+                component.component_id
+            ));
         }
         finite_positive("quantity_per_vehicle", component.quantity_per_vehicle)?;
         validate_cost_range(
@@ -486,8 +513,7 @@ fn target_waterfall(catalog: &Catalog) -> (f64, f64, f64) {
         catalog.market.observed_retail_price * (1.0 - catalog.market.undercut_fraction);
     let oem_net_revenue = ex_vat_retail(&catalog.market, retail_ceiling)
         * (1.0 - catalog.market.distributor_margin_fraction);
-    let maximum_cogs =
-        oem_net_revenue * (1.0 - catalog.market.target_oem_gross_margin_fraction);
+    let maximum_cogs = oem_net_revenue * (1.0 - catalog.market.target_oem_gross_margin_fraction);
     (retail_ceiling, oem_net_revenue, maximum_cogs)
 }
 
@@ -504,8 +530,9 @@ fn gate_is_qualified(gate: &Gate, is_safety: bool) -> bool {
 
 fn declared_mission_findings(candidate: &Candidate, target: &VehicleTarget) -> Vec<String> {
     let mut findings = Vec::new();
-    let required_battery_energy_kwh =
-        candidate.envelope.declared_range_km * candidate.envelope.declared_consumption_kwh_per_100km / 100.0;
+    let required_battery_energy_kwh = candidate.envelope.declared_range_km
+        * candidate.envelope.declared_consumption_kwh_per_100km
+        / 100.0;
     let declared_usable_pack_kwh =
         candidate.envelope.nominal_pack_kwh * candidate.envelope.usable_pack_fraction;
     if required_battery_energy_kwh > declared_usable_pack_kwh + 1e-9 {
@@ -570,10 +597,8 @@ fn evaluate_candidate(
         .sum::<f64>();
     let bom_good_low = bom_low / candidate.manufacturing_yield_fraction;
     let bom_good_high = bom_high / candidate.manufacturing_yield_fraction;
-    let fixed_low =
-        candidate.fixed_program_investment.low / candidate.amortization_units as f64;
-    let fixed_high =
-        candidate.fixed_program_investment.high / candidate.amortization_units as f64;
+    let fixed_low = candidate.fixed_program_investment.low / candidate.amortization_units as f64;
+    let fixed_high = candidate.fixed_program_investment.high / candidate.amortization_units as f64;
     let cogs_low = bom_good_low
         + candidate.factory_conversion_cost.low
         + candidate.warranty_service_reserve.low
@@ -590,21 +615,17 @@ fn evaluate_candidate(
     } else {
         EconomicsResult::RangeCrossesTargetCeiling
     };
-    let required_revenue_low =
-        cogs_low / (1.0 - catalog.market.target_oem_gross_margin_fraction);
-    let required_revenue_high =
-        cogs_high / (1.0 - catalog.market.target_oem_gross_margin_fraction);
+    let required_revenue_low = cogs_low / (1.0 - catalog.market.target_oem_gross_margin_fraction);
+    let required_revenue_high = cogs_high / (1.0 - catalog.market.target_oem_gross_margin_fraction);
     let price_factor = if catalog.market.retail_price_includes_vat {
         1.0 + catalog.market.vat_fraction
     } else {
         1.0
     };
-    let implied_retail_low = required_revenue_low
-        / (1.0 - catalog.market.distributor_margin_fraction)
-        * price_factor;
-    let implied_retail_high = required_revenue_high
-        / (1.0 - catalog.market.distributor_margin_fraction)
-        * price_factor;
+    let implied_retail_low =
+        required_revenue_low / (1.0 - catalog.market.distributor_margin_fraction) * price_factor;
+    let implied_retail_high =
+        required_revenue_high / (1.0 - catalog.market.distributor_margin_fraction) * price_factor;
 
     let mission_findings = declared_mission_findings(candidate, &catalog.target);
     let mission_fit = mission_findings.is_empty();
@@ -877,7 +898,10 @@ mod tests {
         let candidate = &report.results[0];
         assert!((candidate.total_cost_of_goods_low - 72.0).abs() < 1e-9);
         assert!((candidate.implied_retail_price_low - 115.0).abs() < 1e-9);
-        assert_eq!(candidate.release_disposition, ReleaseDisposition::EvidenceBackedCandidate);
+        assert_eq!(
+            candidate.release_disposition,
+            ReleaseDisposition::EvidenceBackedCandidate
+        );
     }
 
     #[test]
@@ -913,11 +937,13 @@ mod tests {
     #[test]
     fn unknown_safety_gate_never_qualifies() {
         let mut catalog = minimal_catalog();
-        catalog.candidates[0].safety_gate =
-            gate(GateStatus::Unknown, EvidenceClass::Unknown);
+        catalog.candidates[0].safety_gate = gate(GateStatus::Unknown, EvidenceClass::Unknown);
         let result = &evaluate_catalog(&catalog).results[0];
         assert!(!result.safety_gate_evidence_qualified);
-        assert_eq!(result.release_disposition, ReleaseDisposition::NeedsEvidence);
+        assert_eq!(
+            result.release_disposition,
+            ReleaseDisposition::NeedsEvidence
+        );
     }
 
     #[test]
@@ -940,16 +966,22 @@ mod tests {
         catalog.candidates[0]
             .components
             .push(catalog.candidates[0].components[0].clone());
-        assert!(validate_catalog(&catalog).unwrap_err().contains("duplicate_component_id"));
+        assert!(
+            validate_catalog(&catalog)
+                .unwrap_err()
+                .contains("duplicate_component_id")
+        );
     }
 
     #[test]
     fn invalid_yield_is_rejected() {
         let mut catalog = minimal_catalog();
         catalog.candidates[0].manufacturing_yield_fraction = 0.0;
-        assert!(validate_catalog(&catalog)
-            .unwrap_err()
-            .contains("manufacturing_yield_fraction_must_be_positive"));
+        assert!(
+            validate_catalog(&catalog)
+                .unwrap_err()
+                .contains("manufacturing_yield_fraction_must_be_positive")
+        );
     }
 
     #[test]
