@@ -34,12 +34,44 @@ const EMBEDDED_REPORT_SCHEMA: &str = include_str!(
     "../../../../../docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json"
 );
 
+fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<(), String> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{context} must be an object"))?;
+    if let Some(field) = object.keys().find(|key| !allowed.iter().any(|allowed| *allowed == key)) {
+        return Err(format!("{context} contains unknown field '{field}'"));
+    }
+    Ok(())
+}
+
 fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
+    ensure_only_fields(
+        root,
+        &["schema_version", "status", "cvar_alpha", "scenario", "models"],
+        "input",
+    )?;
     if root.get("schema_version").and_then(Value::as_str)
         != Some("ANIMAL-MODEL-DECISION-OUTCOMES-V1")
     {
         return Err("schema_version must be ANIMAL-MODEL-DECISION-OUTCOMES-V1".to_owned());
     }
+    let status = root
+        .get("status")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "status must be a string".to_owned())?;
+    if !matches!(
+        status,
+        "synthetic_fixture_not_ecological_validation"
+            | "declared_model_outcomes_not_validated"
+    ) {
+        return Err("status must state that these outcomes are not validated".to_owned());
+    }
+    let scenario = root
+        .get("scenario")
+        .and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| "scenario must be a non-empty string".to_owned())?;
+    let _ = scenario;
     let cvar_alpha = root
         .get("cvar_alpha")
         .and_then(Value::as_f64)
@@ -52,6 +84,11 @@ fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
     let mut models = Vec::with_capacity(model_values.len());
     for (index, value) in model_values.iter().enumerate() {
         let prefix = format!("models[{index}]");
+        ensure_only_fields(
+            value,
+            &["model_id", "weight", "action_losses", "admissible_actions"],
+            &prefix,
+        )?;
         let model_id = value
             .get("model_id")
             .and_then(Value::as_str)
@@ -259,6 +296,47 @@ mod tests {
         assert_eq!(
             sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn rejects_missing_status_or_scenario() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input.as_object_mut().expect("root object").remove("status");
+        assert!(parse_input(&input).expect_err("missing status must fail").contains("status"));
+
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input.as_object_mut().expect("root object").remove("scenario");
+        assert!(
+            parse_input(&input)
+                .expect_err("missing scenario must fail")
+                .contains("scenario")
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_root_fields() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input["unreviewed_field"] = Value::Bool(true);
+        assert!(
+            parse_input(&input)
+                .expect_err("unknown field must fail")
+                .contains("unknown field")
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_model_fields() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input["models"][0]["oracle_truth"] = Value::String("hidden".to_owned());
+        assert!(
+            parse_input(&input)
+                .expect_err("unknown model field must fail")
+                .contains("unknown field")
         );
     }
 
