@@ -196,9 +196,9 @@ struct Report {
 }
 
 fn main() {
-    let path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json".to_string());
+    let path = env::args().nth(1).unwrap_or_else(|| {
+        "tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json".to_string()
+    });
     let input = match fs::read_to_string(&path) {
         Ok(value) => value,
         Err(error) => {
@@ -242,7 +242,10 @@ fn fraction(name: &str, value: f64, allow_one: bool) -> Result<(), String> {
 }
 
 fn validate_gate(name: &str, gate: &EvidenceGate) -> Result<(), String> {
-    if gate.source_reference.trim().is_empty() || gate.as_of.trim().is_empty() || gate.note.trim().is_empty() {
+    if gate.source_reference.trim().is_empty()
+        || gate.as_of.trim().is_empty()
+        || gate.note.trim().is_empty()
+    {
         return Err(format!("{name}_requires_source_date_and_note"));
     }
     Ok(())
@@ -252,7 +255,11 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.schema_version != "0.1.0" || catalog.benchmark_id.trim().is_empty() {
         return Err("unsupported_schema_version_or_missing_benchmark_id".to_string());
     }
-    if catalog.claim_ceiling.trim().is_empty() || catalog.sites.is_empty() || catalog.templates.is_empty() || catalog.demand_cases_good_units_per_year.is_empty() {
+    if catalog.claim_ceiling.trim().is_empty()
+        || catalog.sites.is_empty()
+        || catalog.templates.is_empty()
+        || catalog.demand_cases_good_units_per_year.is_empty()
+    {
         return Err("catalog_requires_claim_ceiling_sites_templates_and_demand_cases".to_string());
     }
     let mut site_ids = BTreeSet::new();
@@ -260,76 +267,171 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         if site.site_id.trim().is_empty() || !site_ids.insert(site.site_id.clone()) {
             return Err("site_ids_must_be_nonempty_and_unique".to_string());
         }
-        if site.local_currency.trim().is_empty() || site.country_or_region.trim().is_empty() || site.fx_reference_date.trim().is_empty() {
-            return Err(format!("site_{}_requires_region_currency_and_dated_fx_basis", site.site_id));
+        if site.local_currency.trim().is_empty()
+            || site.country_or_region.trim().is_empty()
+            || site.fx_reference_date.trim().is_empty()
+        {
+            return Err(format!(
+                "site_{}_requires_region_currency_and_dated_fx_basis",
+                site.site_id
+            ));
         }
         finite_nonnegative("fx_local_per_usd", site.local_currency_per_usd)?;
         if site.local_currency_per_usd <= 0.0 {
             return Err("fx_local_per_usd_must_be_positive".to_string());
         }
         if site.operating_days_per_year == 0 || site.shifts_per_day == 0 {
-            return Err(format!("site_{}_days_and_shifts_must_be_positive", site.site_id));
+            return Err(format!(
+                "site_{}_days_and_shifts_must_be_positive",
+                site.site_id
+            ));
         }
         finite_nonnegative("paid_hours_per_shift", site.paid_hours_per_shift)?;
-        finite_nonnegative("unpaid_break_hours_per_shift", site.unpaid_break_hours_per_shift)?;
-        if site.paid_hours_per_shift <= site.unpaid_break_hours_per_shift || site.paid_hours_per_shift > 24.0 || site.unpaid_break_hours_per_shift >= 24.0 {
+        finite_nonnegative(
+            "unpaid_break_hours_per_shift",
+            site.unpaid_break_hours_per_shift,
+        )?;
+        if site.paid_hours_per_shift <= site.unpaid_break_hours_per_shift
+            || site.paid_hours_per_shift > 24.0
+            || site.unpaid_break_hours_per_shift >= 24.0
+        {
             return Err(format!("site_{}_shift_hours_are_invalid", site.site_id));
         }
         fraction("availability_fraction", site.availability_fraction, true)?;
         fraction("performance_fraction", site.performance_fraction, true)?;
-        fraction("good_vehicle_yield_fraction", site.good_vehicle_yield_fraction, true)?;
-        if site.availability_fraction <= 0.0 || site.performance_fraction <= 0.0 || site.good_vehicle_yield_fraction <= 0.0 {
-            return Err(format!("site_{}_availability_performance_and_yield_must_be_positive", site.site_id));
+        fraction(
+            "good_vehicle_yield_fraction",
+            site.good_vehicle_yield_fraction,
+            true,
+        )?;
+        if site.availability_fraction <= 0.0
+            || site.performance_fraction <= 0.0
+            || site.good_vehicle_yield_fraction <= 0.0
+        {
+            return Err(format!(
+                "site_{}_availability_performance_and_yield_must_be_positive",
+                site.site_id
+            ));
         }
         for (name, value) in [
-            ("fully_loaded_labor_cost_per_hour_local", site.fully_loaded_labor_cost_per_hour_local),
-            ("electricity_cost_per_kwh_local", site.electricity_cost_per_kwh_local),
-            ("building_lease_cost_per_sqm_year_local", site.building_lease_cost_per_sqm_year_local),
-            ("building_fitout_cost_per_sqm_local", site.building_fitout_cost_per_sqm_local),
-            ("annual_site_overhead_local", site.annual_site_overhead_local),
-            ("imported_kit_cost_per_attempt_local", site.imported_kit_cost_per_attempt_local),
-            ("local_parts_cost_per_attempt_local", site.local_parts_cost_per_attempt_local),
-            ("bought_painted_body_cost_per_attempt_local", site.bought_painted_body_cost_per_attempt_local),
-            ("in_house_body_material_cost_per_attempt_local", site.in_house_body_material_cost_per_attempt_local),
-            ("consumables_cost_per_attempt_local", site.consumables_cost_per_attempt_local),
-            ("scrap_and_rework_cost_per_failed_attempt_local", site.scrap_and_rework_cost_per_failed_attempt_local),
-            ("warranty_reserve_per_good_vehicle_local", site.warranty_reserve_per_good_vehicle_local),
-            ("battery_quarantine_and_separation_area_sqm", site.battery_quarantine_and_separation_area_sqm),
+            (
+                "fully_loaded_labor_cost_per_hour_local",
+                site.fully_loaded_labor_cost_per_hour_local,
+            ),
+            (
+                "electricity_cost_per_kwh_local",
+                site.electricity_cost_per_kwh_local,
+            ),
+            (
+                "building_lease_cost_per_sqm_year_local",
+                site.building_lease_cost_per_sqm_year_local,
+            ),
+            (
+                "building_fitout_cost_per_sqm_local",
+                site.building_fitout_cost_per_sqm_local,
+            ),
+            (
+                "annual_site_overhead_local",
+                site.annual_site_overhead_local,
+            ),
+            (
+                "imported_kit_cost_per_attempt_local",
+                site.imported_kit_cost_per_attempt_local,
+            ),
+            (
+                "local_parts_cost_per_attempt_local",
+                site.local_parts_cost_per_attempt_local,
+            ),
+            (
+                "bought_painted_body_cost_per_attempt_local",
+                site.bought_painted_body_cost_per_attempt_local,
+            ),
+            (
+                "in_house_body_material_cost_per_attempt_local",
+                site.in_house_body_material_cost_per_attempt_local,
+            ),
+            (
+                "consumables_cost_per_attempt_local",
+                site.consumables_cost_per_attempt_local,
+            ),
+            (
+                "scrap_and_rework_cost_per_failed_attempt_local",
+                site.scrap_and_rework_cost_per_failed_attempt_local,
+            ),
+            (
+                "warranty_reserve_per_good_vehicle_local",
+                site.warranty_reserve_per_good_vehicle_local,
+            ),
+            (
+                "battery_quarantine_and_separation_area_sqm",
+                site.battery_quarantine_and_separation_area_sqm,
+            ),
         ] {
             finite_nonnegative(name, value)?;
         }
         validate_gate("local_code_gate", &site.local_code_gate)?;
-        validate_gate("battery_process_safety_gate", &site.battery_process_safety_gate)?;
+        validate_gate(
+            "battery_process_safety_gate",
+            &site.battery_process_safety_gate,
+        )?;
     }
 
     let mut template_ids = BTreeSet::new();
     for template in &catalog.templates {
-        if template.template_id.trim().is_empty() || !template_ids.insert(template.template_id.clone()) {
+        if template.template_id.trim().is_empty()
+            || !template_ids.insert(template.template_id.clone())
+        {
             return Err("template_ids_must_be_nonempty_and_unique".to_string());
         }
-        if template.station_processes.is_empty() || template.label.trim().is_empty() || template.note.trim().is_empty() {
-            return Err(format!("template_{}_requires_label_stations_and_note", template.template_id));
+        if template.station_processes.is_empty()
+            || template.label.trim().is_empty()
+            || template.note.trim().is_empty()
+        {
+            return Err(format!(
+                "template_{}_requires_label_stations_and_note",
+                template.template_id
+            ));
         }
         finite_nonnegative("layout_area_multiplier", template.layout_area_multiplier)?;
         if template.layout_area_multiplier < 1.0 {
             return Err("layout_area_multiplier_must_be_at_least_one".to_string());
         }
-        finite_nonnegative("annual_factory_overhead_usd", template.annual_factory_overhead_usd)?;
-        finite_nonnegative("launch_validation_capex_usd", template.launch_validation_capex_usd)?;
+        finite_nonnegative(
+            "annual_factory_overhead_usd",
+            template.annual_factory_overhead_usd,
+        )?;
+        finite_nonnegative(
+            "launch_validation_capex_usd",
+            template.launch_validation_capex_usd,
+        )?;
         let mut process_ids = BTreeSet::new();
         for station in &template.station_processes {
-            if station.process_id.trim().is_empty() || !process_ids.insert(station.process_id.clone()) {
-                return Err(format!("template_{}_process_ids_must_be_nonempty_and_unique", template.template_id));
+            if station.process_id.trim().is_empty()
+                || !process_ids.insert(station.process_id.clone())
+            {
+                return Err(format!(
+                    "template_{}_process_ids_must_be_nonempty_and_unique",
+                    template.template_id
+                ));
             }
             if station.process_label.trim().is_empty() {
                 return Err(format!("process_{}_requires_label", station.process_id));
             }
-            finite_nonnegative("cycle_minutes_per_attempt", station.cycle_minutes_per_attempt)?;
-            finite_nonnegative("equipment_capex_usd_per_cell", station.equipment_capex_usd_per_cell)?;
+            finite_nonnegative(
+                "cycle_minutes_per_attempt",
+                station.cycle_minutes_per_attempt,
+            )?;
+            finite_nonnegative(
+                "equipment_capex_usd_per_cell",
+                station.equipment_capex_usd_per_cell,
+            )?;
             finite_nonnegative("footprint_sqm_per_cell", station.footprint_sqm_per_cell)?;
             finite_nonnegative("energy_kwh_per_attempt", station.energy_kwh_per_attempt)?;
             if station.cycle_minutes_per_attempt <= 0.0 {
-                return Err(format!("process_{}_cycle_minutes_must_be_positive", station.process_id));
+                return Err(format!(
+                    "process_{}_cycle_minutes_must_be_positive",
+                    station.process_id
+                ));
             }
         }
     }
@@ -346,7 +448,11 @@ fn ceil_count(numerator: f64, denominator: f64) -> u64 {
     (numerator / denominator).ceil().max(1.0) as u64
 }
 
-fn evaluate_pair(site: &SiteProfile, template: &FactoryTemplate, demand_good: u64) -> ScenarioResult {
+fn evaluate_pair(
+    site: &SiteProfile,
+    template: &FactoryTemplate,
+    demand_good: u64,
+) -> ScenarioResult {
     let fx = site.local_currency_per_usd;
     let productive_minutes_per_cell_year = site.operating_days_per_year as f64
         * site.shifts_per_day as f64
@@ -389,46 +495,78 @@ fn evaluate_pair(site: &SiteProfile, template: &FactoryTemplate, demand_good: u6
         .unwrap_or(0);
     let bottleneck_good_capacity =
         (bottleneck_attempt_capacity as f64 * site.good_vehicle_yield_fraction).floor() as u64;
-    let total_cells: u64 = stations.iter().map(|station| station.parallel_cells_required).sum();
-    let total_positions: u64 = stations.iter().map(|station| station.total_active_positions_across_shifts).sum();
+    let total_cells: u64 = stations
+        .iter()
+        .map(|station| station.parallel_cells_required)
+        .sum();
+    let total_positions: u64 = stations
+        .iter()
+        .map(|station| station.total_active_positions_across_shifts)
+        .sum();
     let base_station_area: f64 = stations.iter().map(|station| station.footprint_sqm).sum();
     let building_area = base_station_area * template.layout_area_multiplier
         + site.battery_quarantine_and_separation_area_sqm;
-    let equipment_capex: f64 = stations.iter().map(|station| station.equipment_capex_usd).sum();
+    let equipment_capex: f64 = stations
+        .iter()
+        .map(|station| station.equipment_capex_usd)
+        .sum();
     let fitout_capex = building_area * site.building_fitout_cost_per_sqm_local / fx;
-    let total_installed_capex = equipment_capex + fitout_capex + template.launch_validation_capex_usd;
+    let total_installed_capex =
+        equipment_capex + fitout_capex + template.launch_validation_capex_usd;
 
     // This is a planned-cost case, not a claim that demand or market sales will materialize.
     let output_good = demand_good.min(bottleneck_good_capacity).max(1);
     let attempts_at_output = (output_good as f64 / site.good_vehicle_yield_fraction).ceil();
     let annual_positions = total_positions as f64;
-    let annual_labor_local = annual_positions * site.operating_days_per_year as f64
-        * site.paid_hours_per_shift * site.fully_loaded_labor_cost_per_hour_local;
+    let annual_labor_local = annual_positions
+        * site.operating_days_per_year as f64
+        * site.paid_hours_per_shift
+        * site.fully_loaded_labor_cost_per_hour_local;
     let annual_labor_usd = annual_labor_local / fx;
 
-    let energy_kwh_per_attempt: f64 = stations.iter().map(|station| station.energy_kwh_per_attempt).sum();
+    let energy_kwh_per_attempt: f64 = stations
+        .iter()
+        .map(|station| station.energy_kwh_per_attempt)
+        .sum();
     let annual_energy_kwh = energy_kwh_per_attempt * attempts_at_output;
     let annual_energy_cost_usd = annual_energy_kwh * site.electricity_cost_per_kwh_local / fx;
     let annual_lease_usd = building_area * site.building_lease_cost_per_sqm_year_local / fx;
-    let annual_site_overhead_usd = site.annual_site_overhead_local / fx + template.annual_factory_overhead_usd;
+    let annual_site_overhead_usd =
+        site.annual_site_overhead_local / fx + template.annual_factory_overhead_usd;
     let annual_maintenance_usd = equipment_capex * 0.04;
-    let annual_amortization_usd = equipment_capex / 10.0 + fitout_capex / 10.0
-        + template.launch_validation_capex_usd / 5.0;
-    let annual_factory_fixed_cost = annual_labor_usd + annual_energy_cost_usd + annual_lease_usd
-        + annual_site_overhead_usd + annual_maintenance_usd + annual_amortization_usd;
+    let annual_amortization_usd =
+        equipment_capex / 10.0 + fitout_capex / 10.0 + template.launch_validation_capex_usd / 5.0;
+    let annual_factory_fixed_cost = annual_labor_usd
+        + annual_energy_cost_usd
+        + annual_lease_usd
+        + annual_site_overhead_usd
+        + annual_maintenance_usd
+        + annual_amortization_usd;
 
-    let imported_kit_cost = site.imported_kit_cost_per_attempt_local / fx / site.good_vehicle_yield_fraction;
-    let local_parts_cost = site.local_parts_cost_per_attempt_local / fx / site.good_vehicle_yield_fraction;
+    let imported_kit_cost =
+        site.imported_kit_cost_per_attempt_local / fx / site.good_vehicle_yield_fraction;
+    let local_parts_cost =
+        site.local_parts_cost_per_attempt_local / fx / site.good_vehicle_yield_fraction;
     let body_cost_local = match template.strategy {
         FactoryStrategy::IntegratedFlexible => site.in_house_body_material_cost_per_attempt_local,
-        FactoryStrategy::ContractAssembly | FactoryStrategy::ModularCkd => site.bought_painted_body_cost_per_attempt_local,
+        FactoryStrategy::ContractAssembly | FactoryStrategy::ModularCkd => {
+            site.bought_painted_body_cost_per_attempt_local
+        }
     };
     let body_cost = body_cost_local / fx / site.good_vehicle_yield_fraction;
-    let consumables_cost = site.consumables_cost_per_attempt_local / fx / site.good_vehicle_yield_fraction;
+    let consumables_cost =
+        site.consumables_cost_per_attempt_local / fx / site.good_vehicle_yield_fraction;
     let scrap_rework_cost = site.scrap_and_rework_cost_per_failed_attempt_local
-        * (1.0 - site.good_vehicle_yield_fraction) / site.good_vehicle_yield_fraction / fx;
+        * (1.0 - site.good_vehicle_yield_fraction)
+        / site.good_vehicle_yield_fraction
+        / fx;
     let warranty_cost = site.warranty_reserve_per_good_vehicle_local / fx;
-    let variable_vehicle_inputs = imported_kit_cost + local_parts_cost + body_cost + consumables_cost + scrap_rework_cost + warranty_cost;
+    let variable_vehicle_inputs = imported_kit_cost
+        + local_parts_cost
+        + body_cost
+        + consumables_cost
+        + scrap_rework_cost
+        + warranty_cost;
 
     let labor_per_good = annual_labor_usd / output_good as f64;
     let energy_per_good = annual_energy_cost_usd / output_good as f64;
@@ -436,25 +574,46 @@ fn evaluate_pair(site: &SiteProfile, template: &FactoryTemplate, demand_good: u6
     let overhead_per_good = annual_site_overhead_usd / output_good as f64;
     let maintenance_per_good = annual_maintenance_usd / output_good as f64;
     let amortization_per_good = annual_amortization_usd / output_good as f64;
-    let factory_conversion_per_good = labor_per_good + energy_per_good + lease_per_good
-        + overhead_per_good + maintenance_per_good + amortization_per_good;
+    let factory_conversion_per_good = labor_per_good
+        + energy_per_good
+        + lease_per_good
+        + overhead_per_good
+        + maintenance_per_good
+        + amortization_per_good;
     let all_in_incremental_gate_cost = factory_conversion_per_good + variable_vehicle_inputs;
 
     let mut gaps = Vec::new();
     if site.fx_evidence_class != EvidenceClass::PublicMarketData {
-        gaps.push("FX normalization is illustrative or unqualified for investment decisions".to_string());
+        gaps.push(
+            "FX normalization is illustrative or unqualified for investment decisions".to_string(),
+        );
     }
-    if !matches!(site.site_cost_evidence_class, EvidenceClass::Measured | EvidenceClass::AuditedCost) {
+    if !matches!(
+        site.site_cost_evidence_class,
+        EvidenceClass::Measured | EvidenceClass::AuditedCost
+    ) {
         gaps.push("wages, utilities, lease, fit-out, site overhead and component inputs are not measured or audited site data".to_string());
     }
-    if !matches!(site.process_evidence_class, EvidenceClass::Measured | EvidenceClass::IndependentTest) {
+    if !matches!(
+        site.process_evidence_class,
+        EvidenceClass::Measured | EvidenceClass::IndependentTest
+    ) {
         gaps.push("station cycle times and equipment requirements are not supported by measured process studies or independent tests".to_string());
     }
-    if !matches!(site.yield_evidence_class, EvidenceClass::Measured | EvidenceClass::IndependentTest) {
-        gaps.push("saleable yield is not supported by measured production or independent testing".to_string());
+    if !matches!(
+        site.yield_evidence_class,
+        EvidenceClass::Measured | EvidenceClass::IndependentTest
+    ) {
+        gaps.push(
+            "saleable yield is not supported by measured production or independent testing"
+                .to_string(),
+        );
     }
     if site.local_code_gate.status != GateStatus::Passed
-        || !matches!(site.local_code_gate.evidence_class, EvidenceClass::OfficialRecord | EvidenceClass::IndependentTest)
+        || !matches!(
+            site.local_code_gate.evidence_class,
+            EvidenceClass::OfficialRecord | EvidenceClass::IndependentTest
+        )
     {
         gaps.push("local building, fire, electrical, environmental and employment requirements are not proven satisfied".to_string());
     }
@@ -484,8 +643,13 @@ fn evaluate_pair(site: &SiteProfile, template: &FactoryTemplate, demand_good: u6
         takt_minutes_per_attempt: takt,
         bottleneck_attempt_capacity_per_year: bottleneck_attempt_capacity,
         bottleneck_good_capacity_per_year: bottleneck_good_capacity,
-        capacity_headroom_fraction: if demand_good == 0 { 0.0 } else { (bottleneck_good_capacity as f64 / demand_good as f64) - 1.0 },
-        planned_capacity_utilization_fraction: output_good as f64 / bottleneck_good_capacity.max(1) as f64,
+        capacity_headroom_fraction: if demand_good == 0 {
+            0.0
+        } else {
+            (bottleneck_good_capacity as f64 / demand_good as f64) - 1.0
+        },
+        planned_capacity_utilization_fraction: output_good as f64
+            / bottleneck_good_capacity.max(1) as f64,
         parallel_cell_count: total_cells,
         total_active_positions_across_shifts: total_positions,
         building_area_sqm: building_area,
@@ -513,9 +677,12 @@ fn evaluate_pair(site: &SiteProfile, template: &FactoryTemplate, demand_good: u6
         maintenance_cost_usd_per_good_vehicle: maintenance_per_good,
         capex_amortization_usd_per_good_vehicle: amortization_per_good,
         factory_conversion_cost_usd_per_good_vehicle: factory_conversion_per_good,
-        factory_incurred_cost_usd_per_good_vehicle_excluding_vehicle_inputs: factory_conversion_per_good,
-        modelled_factory_gate_cost_usd_per_good_vehicle_including_declared_inputs: all_in_incremental_gate_cost,
-        modelled_factory_gate_cost_local_per_good_vehicle_including_declared_inputs: all_in_incremental_gate_cost * fx,
+        factory_incurred_cost_usd_per_good_vehicle_excluding_vehicle_inputs:
+            factory_conversion_per_good,
+        modelled_factory_gate_cost_usd_per_good_vehicle_including_declared_inputs:
+            all_in_incremental_gate_cost,
+        modelled_factory_gate_cost_local_per_good_vehicle_including_declared_inputs:
+            all_in_incremental_gate_cost * fx,
         fx_evidence_class: site.fx_evidence_class,
         local_code_gate: site.local_code_gate.status,
         battery_process_safety_gate: site.battery_process_safety_gate.status,
@@ -649,7 +816,9 @@ mod tests {
         let mut catalog = cost_fixture();
         catalog.demand_cases_good_units_per_year = vec![100, 1000];
         let report = evaluate_catalog(&catalog);
-        assert!(report.results[0].takt_minutes_per_attempt > report.results[1].takt_minutes_per_attempt);
+        assert!(
+            report.results[0].takt_minutes_per_attempt > report.results[1].takt_minutes_per_attempt
+        );
         assert!(report.results[1].parallel_cell_count >= report.results[0].parallel_cell_count);
     }
 
@@ -662,7 +831,10 @@ mod tests {
         let a = evaluate_catalog(&good_yield).results.remove(0);
         let b = evaluate_catalog(&bad_yield).results.remove(0);
         assert!(b.planned_attempts_per_year > a.planned_attempts_per_year);
-        assert!(b.variable_imported_kit_cost_usd_per_good_vehicle > a.variable_imported_kit_cost_usd_per_good_vehicle);
+        assert!(
+            b.variable_imported_kit_cost_usd_per_good_vehicle
+                > a.variable_imported_kit_cost_usd_per_good_vehicle
+        );
     }
 
     #[test]
@@ -699,7 +871,9 @@ mod tests {
     #[test]
     fn rejects_duplicate_stations_and_zero_demand() {
         let mut bad = cost_fixture();
-        bad.templates[0].station_processes.push(bad.templates[0].station_processes[0].clone());
+        bad.templates[0]
+            .station_processes
+            .push(bad.templates[0].station_processes[0].clone());
         assert!(validate_catalog(&bad).is_err());
         let mut zero = cost_fixture();
         zero.demand_cases_good_units_per_year = vec![0];
