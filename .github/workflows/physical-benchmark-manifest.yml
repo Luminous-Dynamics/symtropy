@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: physical-benchmark-manifest-\${{ github.event.pull_request.number || github.ref }}
+  group: physical-benchmark-manifest-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Validate JSON syntax
         run: |
@@ -68,5 +68,5 @@ jobs:
             )
           ' "$manifest"
           source_commit="$(git rev-parse HEAD)"
-          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           echo "Benchmark metadata audit passed at exact source revision $source_commit; no catalog entry is promoted to verified without fixture/oracle/tolerance/test evidence."
