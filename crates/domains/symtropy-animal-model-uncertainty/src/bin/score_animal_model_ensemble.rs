@@ -25,8 +25,8 @@ use std::process;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use symtropy_animal_model_uncertainty::decision::{
-    ActionPreferenceRange, ActionRisk, ModelOutcome, ModelWeightInterval, PreferenceStability,
-    WeightSensitivity, compare_actions_under_weight_uncertainty, score_model_ensemble,
+    ActionPreferenceRange, ActionRisk, ModelOutcome, ModelWeightInterval, WeightSensitivity,
+    compare_actions_under_weight_uncertainty, score_model_ensemble,
     score_weight_sensitivity,
 };
 
@@ -229,27 +229,31 @@ fn score_action_preferences(
     Ok(comparisons)
 }
 
+struct ReportComponents<'a> {
+    cvar_alpha: f64,
+    practical_loss_difference_margin: f64,
+    scores: &'a [ActionRisk],
+    weight_sensitivity: &'a [WeightSensitivity],
+    action_preferences: &'a [ActionPreferenceRange],
+}
+
 fn build_report(
     raw_input: &str,
     root: &Value,
     models: &[ModelOutcome],
-    cvar_alpha: f64,
-    practical_loss_difference_margin: f64,
-    scores: &[ActionRisk],
-    weight_sensitivity: &[WeightSensitivity],
-    action_preferences: &[ActionPreferenceRange],
+    components: ReportComponents<'_>,
 ) -> Value {
     json!({
         "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
         "status": "computed_risk_summary_not_model_validation",
-        "cvar_alpha": cvar_alpha,
-        "practical_loss_difference_margin": practical_loss_difference_margin,
+        "cvar_alpha": components.cvar_alpha,
+        "practical_loss_difference_margin": components.practical_loss_difference_margin,
         "input_sha256": sha256_hex(raw_input.as_bytes()),
         "scenario": root.get("scenario").and_then(Value::as_str).unwrap_or("unspecified"),
         "model_ids": models.iter().map(|model| model.model_id.as_str()).collect::<Vec<_>>(),
         "model_weights": models.iter().map(|model| json!({ "model_id": model.model_id, "weight": model.weight })).collect::<Vec<Value>>(),
         "model_count": models.len(),
-        "scores": scores.iter().map(|score| json!({
+        "scores": components.scores.iter().map(|score| json!({
             "action": score.action,
             "expected_loss": score.expected_loss,
             "worst_case_loss": score.worst_case_loss,
@@ -258,14 +262,14 @@ fn build_report(
             "max_regret": score.max_regret,
             "admissible_across_all_models": score.admissible_across_all_models
         })).collect::<Vec<Value>>(),
-        "weight_sensitivity": weight_sensitivity.iter().map(|result| json!({
+        "weight_sensitivity": components.weight_sensitivity.iter().map(|result| json!({
             "action": result.action,
             "minimum_expected_loss": result.minimum_expected_loss,
             "maximum_expected_loss": result.maximum_expected_loss,
             "minimizing_weights": result.minimizing_weights,
             "maximizing_weights": result.maximizing_weights
         })).collect::<Vec<Value>>(),
-        "action_preference": action_preferences.iter().map(|result| json!({
+        "action_preference": components.action_preferences.iter().map(|result| json!({
             "first_action": result.first_action,
             "second_action": result.second_action,
             "first_admissible_across_all_models": result.first_admissible_across_all_models,
@@ -359,11 +363,13 @@ fn main() {
         &raw,
         &root,
         &models,
-        cvar_alpha,
-        practical_loss_difference_margin,
-        &scores,
-        &weight_sensitivity,
-        &action_preferences,
+        ReportComponents {
+            cvar_alpha,
+            practical_loss_difference_margin,
+            scores: &scores,
+            weight_sensitivity: &weight_sensitivity,
+            action_preferences: &action_preferences,
+        },
     );
     println!(
         "{}",
@@ -374,6 +380,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use symtropy_animal_model_uncertainty::decision::PreferenceStability;
 
     #[test]
     fn scores_committed_two_model_synthetic_example() {
@@ -441,16 +448,24 @@ mod tests {
                 .expect("valid model-weight intervals"),
             );
         }
+        let preferences = score_action_preferences(
+            &models,
+            &scores,
+            intervals.as_deref(),
+            practical_margin,
+        )
+        .expect("valid pairwise model-weight comparisons");
         let report = build_report(
             SYNTHETIC_EXAMPLE,
             &root,
             &models,
-            alpha,
-            practical_margin,
-            &scores,
-            &weight_sensitivity,
-            &score_action_preferences(&models, &scores, intervals.as_deref(), practical_margin)
-                .expect("valid pairwise model-weight comparisons"),
+            ReportComponents {
+                cvar_alpha: alpha,
+                practical_loss_difference_margin: practical_margin,
+                scores: &scores,
+                weight_sensitivity: &weight_sensitivity,
+                action_preferences: &preferences,
+            },
         );
         let schema: Value =
             serde_json::from_str(EMBEDDED_REPORT_SCHEMA).expect("report schema should parse");
