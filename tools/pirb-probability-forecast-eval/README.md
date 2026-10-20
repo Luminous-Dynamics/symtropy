@@ -16,6 +16,7 @@ From the repository root:
     cargo run --bin pirb-policy-impact-admissibility --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-score-admissibility --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-score-admissibility-log-score-reconciliation-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-joint-score-eval --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+    cargo run --bin pirb-capacity-action-value-eval --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-capacity-action-value-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
 
@@ -58,6 +59,14 @@ The `pirb-joint-score-eval` binary computes empirical energy and variogram score
 The scored vector may not contain an aggregate parent together with its children, because that double-counts overlapping outcomes. Every declared node must be present for every declared draw; missing or duplicate draw-node pairs fail closed. The four-draw and three-draw fixtures have independent hand-calculated golden values. See `docs/tech/PIRB_JOINT_FORECAST_SCORE_ORACLES_V0_1.md` for formula conventions and limitations.
 
 The receipt is a formula-audit artifact, not a superiority ranking. Coherent reconciled draws can score worse than base draws against an observation, and sample IDs alone do not authenticate real dependence. Public fixtures remain synthetic-only.
+
+## Capacity-constrained action value
+
+The `pirb-capacity-action-value-eval` binary compares no-action, risk-ranked top-K, and expected-net-benefit top-K policies across a preregistered grid of response capacities, cost multipliers and effectiveness assumptions. All policies use the same synthetic candidate pool and capacity. It reports model-based baseline expected harm, assumed avoided harm, action cost, expected net benefit, residual expected harm, observed-label capture/precision, unknown-label allocation, and group-allocation summaries with small-group suppression.
+
+Its avoided-harm quantity is calculated from forecast probability × expected harm × declared intervention-effectiveness assumption. It is **not** observed prevented harm or a causal effect. Unknown outcomes remain unknown and can consume capacity without entering known-label precision. The tool is advisory; it has no live dispatch or service-access authority. See `docs/tech/PIRB_CAPACITY_ACTION_VALUE_V0_1.md` for formulas, assumptions, acceptance gates and limits.
+
+The public fixture uses invented synthetic values and opaque group IDs only. A passing fixture is evidence for contract/math behavior—not real policy utility or peace impact.
 
 ## Outcome-vintage sensitivity
 
