@@ -137,6 +137,7 @@ struct ViewerState {
     transition: Option<CameraTransition>,
     near_m: f64,
     far_m: f64,
+    viewport_height_px: u32,
     bands: [usize; 6],
     visible_bodies: usize,
     visible_body_names: Vec<String>,
@@ -643,6 +644,7 @@ fn render_radius_for_band(
     physical_radius_m: f64,
     distance_m: f64,
     band: ApparentSizeBand,
+    viewport_height_px: u32,
 ) -> f64 {
     let target_diameter_px = match band {
         ApparentSizeBand::Subpixel => Some(0.6),
@@ -651,7 +653,8 @@ fn render_radius_for_band(
     };
     target_diameter_px.map_or(physical_radius_m, |target_px| {
         let marker_radius_m =
-            target_px * distance_m * (FOV_RADIANS / 2.0).tan() / f64::from(VIEWPORT_HEIGHT_PX);
+            target_px * distance_m * (FOV_RADIANS / 2.0).tan()
+                / f64::from(viewport_height_px);
         physical_radius_m.max(marker_radius_m)
     })
 }
@@ -703,7 +706,14 @@ fn update_scene(
         ),
     >,
     mut camera_query: Query<(&mut Transform, &mut Projection), With<SolarCamera>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
+    let viewport_height_px = windows
+        .iter()
+        .next()
+        .map(|window| window.physical_height().max(1))
+        .unwrap_or(VIEWPORT_HEIGHT_PX);
+    state.viewport_height_px = viewport_height_px;
     state.bands = [0; 6];
     state.visible_bodies = 0;
     state.visible_body_names.clear();
@@ -740,7 +750,7 @@ fn update_scene(
         }
 
         let one_pixel_world_m =
-            2.0 * (FOV_RADIANS / 2.0).tan() * distance_m / f64::from(VIEWPORT_HEIGHT_PX);
+            2.0 * (FOV_RADIANS / 2.0).tan() * distance_m / f64::from(viewport_height_px);
         let error_budget_m = (one_pixel_world_m * 0.05).max(0.001);
         let relative_f32 = match body
             .position
@@ -757,7 +767,7 @@ fn update_scene(
         let apparent_diameter = match projected_sphere_diameter_px(
             body.physical_radius_m,
             ApparentSizeProjection::Perspective {
-                viewport_height_px: VIEWPORT_HEIGHT_PX,
+                viewport_height_px,
                 vertical_fov_radians: FOV_RADIANS,
                 centre_distance: distance_m,
             },
@@ -779,7 +789,8 @@ fn update_scene(
         state.visible_bodies += 1;
         state.visible_body_names.push(body.name.to_owned());
 
-        let visual_radius = render_radius_for_band(body.physical_radius_m, distance_m, band);
+        let visual_radius =
+            render_radius_for_band(body.physical_radius_m, distance_m, band, viewport_height_px);
         state.max_radius_exaggeration =
             state.max_radius_exaggeration.max(visual_radius / body.physical_radius_m);
 
@@ -818,7 +829,7 @@ fn update_scene(
         let end_distance = end_relative[0].hypot(end_relative[1]).hypot(end_relative[2]);
         let pixel_error_budget = |distance: f64| {
             (2.0 * (FOV_RADIANS / 2.0).tan() * distance
-                / f64::from(VIEWPORT_HEIGHT_PX)
+                / f64::from(viewport_height_px)
                 * 0.05)
                 .max(0.001)
         };
@@ -901,7 +912,7 @@ fn update_scene(
 
     let star_depth = state.far_m * 0.94;
     let star_radius = star_depth * (FOV_RADIANS / 2.0).tan()
-        / f64::from(VIEWPORT_HEIGHT_PX) * 0.5;
+        / f64::from(viewport_height_px) * 0.5;
     for (star, mut transform, mut visibility) in &mut star_query {
         transform.translation = star.direction * star_depth as f32;
         transform.scale = Vec3::splat((star_radius as f32) * star.size_factor);
@@ -954,7 +965,7 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
         state.visible_body_names.join(", ")
     };
     let message = format!(
-        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS + SYNTHETIC STARS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nBodies: {}\nSynthetic sky markers are angular background only; orbit-line widths are exaggerated.\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
+        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS + SYNTHETIC STARS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nBodies: {}\nSynthetic sky markers are angular background only; orbit-line widths are exaggerated.\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nViewport: {} physical pixels high | cell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
         state.stage.label(),
         movement,
         state.visible_bodies,
@@ -968,6 +979,7 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
         state.bands[4],
         state.bands[5],
         state.max_radius_exaggeration,
+        state.viewport_height_px,
         WORLD_CELL_SIZE_METERS
     );
     for mut text in &mut query {
@@ -998,6 +1010,7 @@ fn build_initial_state() -> ViewerState {
         transition: None,
         near_m,
         far_m,
+        viewport_height_px: VIEWPORT_HEIGHT_PX,
         bands: [0; 6],
         visible_bodies: 0,
         visible_body_names: Vec::new(),
@@ -1097,6 +1110,7 @@ mod tests {
             radius,
             40.0 * AU_M,
             ApparentSizeBand::Subpixel,
+            VIEWPORT_HEIGHT_PX,
         );
         assert!(visual_radius > radius);
         let bodies = make_catalog();
