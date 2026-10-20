@@ -37,46 +37,66 @@ jobs:
           cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
           cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
           cargo test --manifest-path tools/ev-fleet-resilience/Cargo.toml --all-targets
-      - name: Download pinned public NLR operating-day tables
-        run: |
-          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
-          BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules/fleet1-beverage-delivery"
-          curl --fail --show-error --silent --location "${BASE}/veh_op_days.csv" -o "${RUNNER_TEMP}/nlr-veh_op_days.csv"
-          curl --fail --show-error --silent --location "${BASE}/veh_schedules.csv" -o "${RUNNER_TEMP}/nlr-veh_schedules.csv"
-          cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
-            "${RUNNER_TEMP}/nlr-veh_op_days.csv" "${RUNNER_TEMP}/nlr-veh_schedules.csv" \
-            --fleet-id fleet1-beverage-delivery --dataset-id nlr-hdev-depot-charging-2021 \
-            --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
-            --source-revision "${REV}" --evidence-class published_operational_summary \
-            --kwh-per-mile 1.8 > nlr-duty-audit-report.json
-          jq -e '.operation_days_input_rows == 76 and .operation_days_parsed_valid_rows == 76 and .schedule_input_rows == 234 and .schedule_parsed_valid_rows_with_known_operation_day_ids == 234 and .reconciled_operation_day_count == 76 and (.operation_day_reconciliation_issues | length == 0)' nlr-duty-audit-report.json
-      - name: Run 30 deterministic duty resamples at 10, 50 and 100 vehicles
+      - name: Download and audit all three pinned NLR vocation tables
         shell: bash
         run: |
+          set -euo pipefail
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          for vocation in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules/${vocation}"
+            op_file="${RUNNER_TEMP}/nlr-${vocation}-veh_op_days.csv"
+            schedule_file="${RUNNER_TEMP}/nlr-${vocation}-veh_schedules.csv"
+            report="nlr-${vocation}-duty-audit-report.json"
+            curl --fail --show-error --silent --location "${BASE}/veh_op_days.csv" -o "${op_file}"
+            curl --fail --show-error --silent --location "${BASE}/veh_schedules.csv" -o "${schedule_file}"
+            cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+              "${op_file}" "${schedule_file}" \
+              --fleet-id "${vocation}" --dataset-id nlr-hdev-depot-charging-2021 \
+              --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+              --source-revision "${REV}" --evidence-class published_operational_summary \
+              --kwh-per-mile 1.8 > "${report}"
+            jq -e '.operation_days_input_rows > 0 and .operation_days_input_rows == .operation_days_parsed_valid_rows and (.operation_days_invalid_rows | length == 0) and .schedule_input_rows > 0 and .schedule_input_rows == .schedule_parsed_valid_rows_with_known_operation_day_ids and (.schedule_invalid_rows | length == 0) and .reconciled_operation_day_count == .operation_days_input_rows and (.reconciled_operation_day_profiles | length == .reconciled_operation_day_count) and (.operation_day_reconciliation_issues | length == 0) and .source_revision == "${REV}"' "${report}"
+          done
+          jq -e '.operation_days_input_rows == 76 and .schedule_input_rows == 234' nlr-fleet1-beverage-delivery-duty-audit-report.json
+          jq -e '.operation_days_input_rows == 100 and .schedule_input_rows == 302' nlr-fleet2-warehouse-delivery-duty-audit-report.json
+          jq -e '.operation_days_input_rows == 236 and .schedule_input_rows == 782' nlr-fleet3-food-delivery-duty-audit-report.json
+      - name: Run 30 deterministic duty resamples at 10, 50 and 100 vehicles for each vocation
+        shell: bash
+        run: |
+          set -euo pipefail
           mkdir -p robustness-cases
-          for fleet_size in 10 50 100; do
-            port_count=$(((fleet_size + 1) / 2))
-            site_budget_kw=$((45 * fleet_size))
-            for seed in $(seq 1 30); do
-              cargo run --quiet --manifest-path tools/ev-depot-workload/Cargo.toml -- \
-                --input-report nlr-duty-audit-report.json \
-                --output-corpus "${RUNNER_TEMP}/workload.json" \
-                --output-manifest "${RUNNER_TEMP}/manifest.json" \
-                --fleet-size "${fleet_size}" --seed "${seed}" \
-                --kwh-per-mile 1.8 --pack-capacity-kwh 400 --initial-soc-fraction 0.1 \
-                --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
-                --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
-                --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
-                --charger-ports "${port_count}" --site-power-budget-kw "${site_budget_kw}"
-              cargo run --quiet --manifest-path tools/ev-fleet-resilience/Cargo.toml -- \
-                "${RUNNER_TEMP}/workload.json" > "${RUNNER_TEMP}/simulation.json"
-              jq --argjson fleet_size "${fleet_size}" --argjson seed "${seed}" \
-                --argjson port_count "${port_count}" --argjson site_budget_kw "${site_budget_kw}" \
-                '{fleet_size:$fleet_size, seed:$seed, port_count:$port_count, base_site_budget_kw:$site_budget_kw, report:.}' \
-                "${RUNNER_TEMP}/simulation.json" > "robustness-cases/fleet-${fleet_size}-seed-${seed}.json"
+          for vocation in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            report="nlr-${vocation}-duty-audit-report.json"
+            case "${vocation}" in
+              fleet1-beverage-delivery) pack_capacity_kwh=400 ;;
+              fleet2-warehouse-delivery) pack_capacity_kwh=600 ;;
+              fleet3-food-delivery) pack_capacity_kwh=1200 ;;
+              *) echo "unknown vocation ${vocation}" >&2; exit 2 ;;
+            esac
+            for fleet_size in 10 50 100; do
+              port_count=$(((fleet_size + 1) / 2))
+              site_budget_kw=$((45 * fleet_size))
+              for seed in $(seq 1 30); do
+                cargo run --quiet --manifest-path tools/ev-depot-workload/Cargo.toml -- \
+                  --input-report "${report}" \
+                  --output-corpus "${RUNNER_TEMP}/workload.json" \
+                  --output-manifest "${RUNNER_TEMP}/manifest.json" \
+                  --fleet-size "${fleet_size}" --seed "${seed}" \
+                  --kwh-per-mile 1.8 --pack-capacity-kwh "${pack_capacity_kwh}" --initial-soc-fraction 0.1 \
+                  --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
+                  --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
+                  --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
+                  --charger-ports "${port_count}" --site-power-budget-kw "${site_budget_kw}"
+                cargo run --quiet --manifest-path tools/ev-fleet-resilience/Cargo.toml -- \
+                  "${RUNNER_TEMP}/workload.json" > "${RUNNER_TEMP}/simulation.json"
+                jq --arg vocation "${vocation}" --argjson fleet_size "${fleet_size}" --argjson seed "${seed}" \
+                  --argjson pack_capacity_kwh "${pack_capacity_kwh}" --argjson port_count "${port_count}" --argjson site_budget_kw "${site_budget_kw}" \
+                  '{vocation:$vocation, fleet_size:$fleet_size, seed:$seed, pack_capacity_kwh:$pack_capacity_kwh, port_count:$port_count, base_site_budget_kw:$site_budget_kw, report:.}' \
+                  "${RUNNER_TEMP}/simulation.json" > "robustness-cases/${vocation}-fleet-${fleet_size}-seed-${seed}.json"
+              done
             done
           done
-      - name: Aggregate capacity distributions and empirical scenario pass rates
+      - name: Aggregate cross-vocation capacity distributions and scenario pass rates
         run: |
           jq -s '{
             schema_version:"0.1.0",
@@ -84,8 +104,10 @@ jobs:
             source_dataset_id:"nlr-hdev-depot-charging-2021",
             source_revision:"61530df51f6cd7d64f014ebbf8714cef24c8ca70",
             evidence_class:"estimate",
-            resample_count_per_fleet_size:30,
+            vocations:["fleet1-beverage-delivery","fleet2-warehouse-delivery","fleet3-food-delivery"],
+            resamples_per_vocation_and_fleet_size:30,
             fleet_sizes:[10,50,100],
+            pack_capacity_kwh_by_vocation:{"fleet1-beverage-delivery":400,"fleet2-warehouse-delivery":600,"fleet3-food-delivery":1200},
             fleet_port_rule:"ceil(fleet_size / 2)",
             base_grid_connection_kw_per_vehicle:45,
             service_target:{minimum_deadline_completion_fraction:0.95, minimum_battery_energy_service_fraction:0.95},
@@ -100,8 +122,10 @@ jobs:
               .cases[] as $case |
               $case.report.capacity_frontiers[] as $front |
               {
+                vocation:$case.vocation,
                 fleet_size:$case.fleet_size,
                 seed:$case.seed,
+                pack_capacity_kwh:$case.pack_capacity_kwh,
                 policy:$front.policy,
                 minimum_sampled_feasible_kw:$front.minimum_sampled_feasible_site_power_kw,
                 minimum_sampled_feasible_kw_per_vehicle:
@@ -116,21 +140,19 @@ jobs:
                   ([$case.report.results[] | select(.policy==$front.policy)][0].energy_service_fraction)
               }
             ] as $individual |
-            [
-              $individual | sort_by([.fleet_size,.policy])[] |
-              .
-            ] as $unused |
             {
               benchmark_id:.benchmark_id,
               evidence_class:.evidence_class,
-              resample_count_per_fleet_size:.resample_count_per_fleet_size,
+              resamples_per_vocation_and_fleet_size:.resamples_per_vocation_and_fleet_size,
               service_target:.service_target,
               sampled_minimum_capacity_distribution:(
-                $individual | sort_by([.fleet_size,.policy]) | group_by([.fleet_size,.policy]) |
+                $individual | sort_by([.vocation,.fleet_size,.policy]) | group_by([.vocation,.fleet_size,.policy]) |
                 map({
+                  vocation:.[0].vocation,
                   fleet_size:.[0].fleet_size,
                   policy:.[0].policy,
                   resamples:length,
+                  pack_capacity_kwh_by_vocation: (.[0].pack_capacity_kwh),
                   infeasible_at_or_below_base_budget:([.[]|select(.no_feasible_sample_within_45_kw_per_vehicle)]|length),
                   p50_minimum_sampled_kw_per_vehicle:nearest_rank([.[]|select(.minimum_sampled_feasible_kw_per_vehicle!=null)|.minimum_sampled_feasible_kw_per_vehicle];0.50),
                   p95_minimum_sampled_kw_per_vehicle:nearest_rank([.[]|select(.minimum_sampled_feasible_kw_per_vehicle!=null)|.minimum_sampled_feasible_kw_per_vehicle];0.95),
@@ -145,12 +167,13 @@ jobs:
                   .cases[] as $case |
                   $case.report.capacity_frontiers[] as $front |
                   $front.points[] |
-                  {fleet_size:$case.fleet_size,seed:$case.seed,policy:$front.policy,
+                  {vocation:$case.vocation,fleet_size:$case.fleet_size,seed:$case.seed,policy:$front.policy,
                    fraction:.fraction_of_declared_base_capacity,
                    site_budget_kw:.installed_site_power_budget_kw,
                    passed:.meets_service_target}
-                ] | sort_by([.fleet_size,.policy,.fraction]) | group_by([.fleet_size,.policy,.fraction]) |
+                ] | sort_by([.vocation,.fleet_size,.policy,.fraction]) | group_by([.vocation,.fleet_size,.policy,.fraction]) |
                 map({
+                  vocation:.[0].vocation,
                   fleet_size:.[0].fleet_size,
                   policy:.[0].policy,
                   capacity_fraction_of_45kw_per_vehicle:.[0].fraction,
@@ -162,22 +185,24 @@ jobs:
               )
             }
           ' ev-depot-robustness-cases.json > ev-depot-robustness-summary.json
-          jq -e '.cases | length == 90' ev-depot-robustness-cases.json
-          jq -e '.sampled_minimum_capacity_distribution | length == 6' ev-depot-robustness-summary.json
-          jq -e '.empirical_capacity_pass_rates | length == 120' ev-depot-robustness-summary.json
+          jq -e '.cases | length == 270' ev-depot-robustness-cases.json
+          jq -e '.sampled_minimum_capacity_distribution | length == 18' ev-depot-robustness-summary.json
+          jq -e '.empirical_capacity_pass_rates | length == 360' ev-depot-robustness-summary.json
           jq '
             . as $summary |
             [
+              $summary.vocations[] as $vocation |
               [10,50,100][] as $n |
               ["fcfs","earliest_departure_first"][] as $policy |
               ([$summary.empirical_capacity_pass_rates[] |
-                select(.fleet_size == $n and .policy == $policy and .empirical_scenario_pass_rate >= 0.95)]
+                select(.vocation == $vocation and .fleet_size == $n and .policy == $policy and .empirical_scenario_pass_rate >= 0.95)]
                 | sort_by(.capacity_fraction_of_45kw_per_vehicle) | .[0]) as $hit |
               {
+                vocation:$vocation,
                 fleet_size:$n,
                 policy:$policy,
-                resamples:$summary.resample_count_per_fleet_size,
-                required_passes:(($summary.resample_count_per_fleet_size * 0.95) | ceil),
+                resamples:$summary.resamples_per_vocation_and_fleet_size,
+                required_passes:(($summary.resamples_per_vocation_and_fleet_size * 0.95) | ceil),
                 minimum_capacity_fraction_for_95pct_empirical_scenario_pass_rate:($hit.capacity_fraction_of_45kw_per_vehicle // null),
                 minimum_capacity_kw_per_vehicle:(if $hit == null then null else 45 * $hit.capacity_fraction_of_45kw_per_vehicle end),
                 sampled_site_budget_kw:(if $hit == null then null else 45 * $n * $hit.capacity_fraction_of_45kw_per_vehicle end),
@@ -188,20 +213,23 @@ jobs:
           ' ev-depot-robustness-summary.json > ev-depot-robust-frontier.json
           jq --slurpfile robust ev-depot-robust-frontier.json '. + {empirical_95pct_scenario_capacity_frontier:$robust[0]}' ev-depot-robustness-summary.json > ev-depot-robustness-summary.tmp
           mv ev-depot-robustness-summary.tmp ev-depot-robustness-summary.json
-          jq -e '.empirical_95pct_scenario_capacity_frontier | length == 6' ev-depot-robustness-summary.json
-      - name: Print frontier distribution for review
+          jq -e '.empirical_95pct_scenario_capacity_frontier | length == 18' ev-depot-robustness-summary.json
+      - name: Print frontier distributions for review
         run: |
-          jq -r '.sampled_minimum_capacity_distribution[] | [.fleet_size,.policy,.resamples,.infeasible_at_or_below_base_budget,.p50_minimum_sampled_kw_per_vehicle,.p95_minimum_sampled_kw_per_vehicle,.p95_missed_departure_fraction,.minimum_base_energy_service_fraction] | @tsv' ev-depot-robustness-summary.json
+          jq -r '.sampled_minimum_capacity_distribution[] | [.vocation,.fleet_size,.policy,.resamples,.infeasible_at_or_below_base_budget,.p50_minimum_sampled_kw_per_vehicle,.p95_minimum_sampled_kw_per_vehicle,.p95_missed_departure_fraction,.minimum_base_energy_service_fraction] | @tsv' ev-depot-robustness-summary.json
+          jq -r '.empirical_95pct_scenario_capacity_frontier[] | [.vocation,.fleet_size,.policy,.required_passes,.minimum_capacity_kw_per_vehicle,.empirical_pass_rate_at_capacity,.threshold_met_within_45_kw_per_vehicle] | @tsv' ev-depot-robustness-summary.json
       - name: Hash tools, public data, case set and summary
         run: |
-          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-duty-audit-report.json ev-depot-robustness-cases.json ev-depot-robustness-summary.json ev-depot-robust-frontier.json > ev-depot-robustness.sha256
-          (cd "${RUNNER_TEMP}" && sha256sum nlr-veh_op_days.csv nlr-veh_schedules.csv) >> ev-depot-robustness.sha256
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-duty-audit-report.json nlr-fleet1-beverage-delivery-duty-audit-report.json nlr-fleet2-warehouse-delivery-duty-audit-report.json nlr-fleet3-food-delivery-duty-audit-report.json ev-depot-robustness-cases.json ev-depot-robustness-summary.json ev-depot-robust-frontier.json > ev-depot-robustness.sha256
+          (cd "${RUNNER_TEMP}" && sha256sum nlr-fleet1-beverage-delivery-veh_op_days.csv nlr-fleet1-beverage-delivery-veh_schedules.csv nlr-fleet2-warehouse-delivery-veh_op_days.csv nlr-fleet2-warehouse-delivery-veh_schedules.csv nlr-fleet3-food-delivery-veh_op_days.csv nlr-fleet3-food-delivery-veh_schedules.csv) >> ev-depot-robustness.sha256
       - name: Upload complete robust benchmark evidence
         uses: actions/upload-artifact@v4
         with:
           name: ev-depot-robustness-${{ github.sha }}
           path: |
-            nlr-duty-audit-report.json
+            nlr-fleet1-beverage-delivery-duty-audit-report.json
+            nlr-fleet2-warehouse-delivery-duty-audit-report.json
+            nlr-fleet3-food-delivery-duty-audit-report.json
             ev-depot-robustness-cases.json
             ev-depot-robustness-summary.json
             ev-depot-robust-frontier.json
