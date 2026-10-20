@@ -263,6 +263,10 @@ pub struct ActionPreferenceRange {
     /// Negative values favor the first action; positive values favor the second.
     pub minimum_loss_difference: f64,
     pub maximum_loss_difference: f64,
+    /// Feasible weights attaining the minimum difference within tolerance.
+    pub minimizing_weights: BTreeMap<String, f64>,
+    /// Feasible weights attaining the maximum difference within tolerance.
+    pub maximizing_weights: BTreeMap<String, f64>,
     pub stability: PreferenceStability,
 }
 
@@ -465,6 +469,8 @@ pub fn compare_actions_under_weight_uncertainty(
         second_action: second_action.to_owned(),
         minimum_loss_difference,
         maximum_loss_difference,
+        minimizing_weights,
+        maximizing_weights,
         stability,
     })
 }
@@ -873,8 +879,10 @@ mod tests {
         let result =
             compare_actions_under_weight_uncertainty(&models, "retreat", "wait", &intervals)
                 .expect("feasible pairwise comparison");
-        assert!((result.minimum_loss_difference - 1.0).abs() < 1e-9);
-        assert!((result.maximum_loss_difference - 2.0).abs() < 1e-9);
+        assert!((result.minimum_loss_difference - 1.4).abs() < 1e-9);
+        assert!((result.maximum_loss_difference - 1.8).abs() < 1e-9);
+        assert!((result.minimizing_weights["predator_coupled"] - 0.4).abs() < 1e-9);
+        assert!((result.maximizing_weights["predator_coupled"] - 0.8).abs() < 1e-9);
         assert_eq!(result.stability, PreferenceStability::SecondStrictlyBetter);
     }
 
