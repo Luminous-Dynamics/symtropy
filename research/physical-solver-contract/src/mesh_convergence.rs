@@ -410,11 +410,11 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
     let artifact_root = root;
     let artifact_report =
         verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, artifact_root)?;
-    if artifact_report["artifact_verification_status"] != "PASS"
+    if artifact_report["output_artifact_verification_status"] != "PASS"
         || artifact_report["output_artifact_bytes_verified"] != true
     {
         return Err(format!(
-            "level '{}': receipt/output artifact verification did not PASS",
+            "level '{}': receipt-declared output artifact verification did not PASS",
             level.level_id
         ));
     }
@@ -423,6 +423,12 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
     {
         return Err(format!(
             "level '{}': receipt-bound input artifact bytes did not PASS",
+            level.level_id
+        ));
+    }
+    if artifact_report["artifact_verification_status"] != "PASS" {
+        return Err(format!(
+            "level '{}': combined input/output artifact verification did not PASS",
             level.level_id
         ));
     }
@@ -1101,7 +1107,12 @@ mod tests {
         let report = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
         assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
         assert_eq!(report["all_level_receipt_and_output_bytes_verified"], false);
-        assert!(report["diagnostics"][0].as_str().unwrap().contains("mesh_sha256"));
+        assert!(
+            report["diagnostics"][0]
+                .as_str()
+                .unwrap()
+                .contains("input artifact bytes")
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
