@@ -103,8 +103,12 @@ pub fn assess_equilibrium_bytes(
            ));
        }
     };
-    if !required_outputs.iter().any(|item| item.as_str() == Some("reaction_force"))
-        || !required_outputs.iter().any(|item| item.as_str() == Some("reaction_moment"))
+   if !required_outputs
+       .iter()
+       .any(|item| item.as_str() == Some("reaction_force"))
+       || !required_outputs
+           .iter()
+           .any(|item| item.as_str() == Some("reaction_moment"))
     {
         return Ok(mark_unresolved(
             report,
@@ -112,25 +116,28 @@ pub fn assess_equilibrium_bytes(
         ));
     }
 
-    let artifact_report = match verify_solver_output_artifact_bytes(
-        request_bytes,
-        receipt_bytes,
-        artifact_root,
-    ) {
-        Ok(value) => value,
-        Err(error) => {
-            return Ok(mark_unresolved(
-                report,
-                format!("receipt/output verification could not complete: {error}"),
-            ));
-        }
-    };
-    report["artifact_verification_status"] =
-        artifact_report.get("artifact_verification_status").cloned().unwrap_or(Value::Null);
-    report["output_artifact_bytes_verified"] =
-        artifact_report.get("output_artifact_bytes_verified").cloned().unwrap_or(Value::Bool(false));
-    report["producer_status"] =
-        artifact_report.get("producer_status").cloned().unwrap_or(Value::Null);
+   let artifact_report =
+       match verify_solver_output_artifact_bytes(request_bytes, receipt_bytes, artifact_root) {
+           Ok(value) => value,
+           Err(error) => {
+               return Ok(mark_unresolved(
+                   report,
+                   format!("receipt/output verification could not complete: {error}"),
+               ));
+           }
+       };
+   report["artifact_verification_status"] = artifact_report
+       .get("artifact_verification_status")
+       .cloned()
+       .unwrap_or(Value::Null);
+   report["output_artifact_bytes_verified"] = artifact_report
+       .get("output_artifact_bytes_verified")
+       .cloned()
+       .unwrap_or(Value::Bool(false));
+   report["producer_status"] = artifact_report
+       .get("producer_status")
+       .cloned()
+       .unwrap_or(Value::Null);
     if artifact_report["artifact_verification_status"] != "PASS"
         || artifact_report["output_artifact_bytes_verified"] != true
     {
@@ -389,15 +396,26 @@ fn balance_dimension(
 }
 
 fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
-    let value: Value =
-        serde_json::from_slice(bytes).map_err(|error| format!("invalid equilibrium manifest JSON: {error}"))?;
+   let value: Value = serde_json::from_slice(bytes)
+       .map_err(|error| format!("invalid equilibrium manifest JSON: {error}"))?;
     exact_keys(
         &value,
         &[
-            "schema_version", "audit_id", "case_id", "request_id", "request_sha256",
-            "scene_sha256", "scene_revision", "coordinate_frame_id", "origin_m", "units",
-            "reference", "applied_loads", "required_reaction_force_ids",
-            "required_reaction_moment_ids", "tolerances"
+           "schema_version",
+           "audit_id",
+           "case_id",
+           "request_id",
+           "request_sha256",
+           "scene_sha256",
+           "scene_revision",
+           "coordinate_frame_id",
+           "origin_m",
+           "units",
+           "reference",
+           "applied_loads",
+           "required_reaction_force_ids",
+           "required_reaction_moment_ids",
+           "tolerances",
         ],
         "manifest",
     )?;
@@ -429,8 +447,14 @@ fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
             return Err(format!("manifest.units.{key} must be '{expected}'"));
         }
     }
-    let reference = value.get("reference").ok_or_else(|| "manifest.reference is required".to_owned())?;
-    exact_keys(reference, &["method", "identity", "source_ref"], "manifest.reference")?;
+   let reference = value
+       .get("reference")
+       .ok_or_else(|| "manifest.reference is required".to_owned())?;
+   exact_keys(
+       reference,
+       &["method", "identity", "source_ref"],
+       "manifest.reference",
+   )?;
     let reference_method = nonempty_field(reference, "method", "manifest.reference")?;
     let reference_identity = nonempty_field(reference, "identity", "manifest.reference")?;
     let reference_source_ref = nonempty_field(reference, "source_ref", "manifest.reference")?;
@@ -490,10 +514,24 @@ fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
     let moment_rel_tol = nonnegative_field(tolerances, "moment_relative", "manifest.tolerances")?;
 
     Ok(Manifest {
-        audit_id, case_id, request_id, request_sha256, scene_sha256, scene_revision,
-        coordinate_frame_id, origin_m, applied_loads, required_force_ids, required_moment_ids,
-        force_abs_tol_n, force_rel_tol, moment_abs_tol_nm, moment_rel_tol,
-        reference_method, reference_identity, reference_source_ref
+       audit_id,
+       case_id,
+       request_id,
+       request_sha256,
+       scene_sha256,
+       scene_revision,
+       coordinate_frame_id,
+       origin_m,
+       applied_loads,
+       required_force_ids,
+       required_moment_ids,
+       force_abs_tol_n,
+       force_rel_tol,
+       moment_abs_tol_nm,
+       moment_rel_tol,
+       reference_method,
+       reference_identity,
+       reference_source_ref,
     })
 }
 
@@ -534,9 +572,10 @@ fn validate_manifest_request_binding(manifest: &Manifest, request: &Value, reque
        );
     }
     for applied in &manifest.applied_loads {
-        let matching: Vec<&Value> = request_loads.iter().filter(|load| {
-            load.get("load_id").and_then(Value::as_str) == Some(applied.id.as_str())
-        }).collect();
+       let matching: Vec<&Value> = request_loads
+           .iter()
+           .filter(|load| load.get("load_id").and_then(Value::as_str) == Some(applied.id.as_str()))
+           .collect();
         if matching.len() != 1 {
             return Err(format!(
                "manifest load '{}' does not map to exactly one request load",
@@ -571,9 +610,10 @@ fn validate_manifest_request_binding(manifest: &Manifest, request: &Value, reque
 }
 
 fn find_output<'a>(outputs: &'a [Value], output_id: &str, expected_kind: &str) -> Check<&'a Value> {
-    let selected: Vec<&Value> = outputs.iter().filter(|output| {
-        output.get("output_id").and_then(Value::as_str) == Some(output_id)
-    }).collect();
+   let selected: Vec<&Value> = outputs
+       .iter()
+       .filter(|output| output.get("output_id").and_then(Value::as_str) == Some(output_id))
+       .collect();
     if selected.len() != 1 {
         return Err(format!(
            "receipt must contain exactly one output ID '{output_id}'"
@@ -598,9 +638,12 @@ fn read_verified_output(
        .get("artifact_results")
        .and_then(Value::as_array)
         .ok_or_else(|| "artifact verifier omitted artifact_results".to_owned())?;
-    let verified = results.iter().find(|item| {
-        item.get("output_id").and_then(Value::as_str) == Some(output_id)
-    }).ok_or_else(|| format!("output '{output_id}' is absent from the byte-verification report"))?;
+   let verified = results
+       .iter()
+       .find(|item| item.get("output_id").and_then(Value::as_str) == Some(output_id))
+       .ok_or_else(|| {
+           format!("output '{output_id}' is absent from the byte-verification report")
+       })?;
     if verified.get("status").and_then(Value::as_str) != Some("PASS") {
         return Err(format!(
            "output '{output_id}' did not pass its initial byte verification"
@@ -823,8 +866,11 @@ fn nonempty_field(value: &Value, key: &str, at: &str) -> Check<String> {
 
 fn id_field(value: &Value, key: &str, at: &str) -> Check<String> {
     let text = string_field(value, key, at)?;
-    if text.is_empty() || text.len() > 128
-        || !text.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
+   if text.is_empty()
+       || text.len() > 128
+       || !text
+           .chars()
+           .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
     {
         return Err(format!("{at}.{key} is not a valid stable ID"));
     }
@@ -838,9 +884,14 @@ fn id_set(value: &Value, key: &str, at: &str) -> Check<BTreeSet<String>> {
         .ok_or_else(|| format!("{at}.{key} must be an array"))?;
     let mut result = BTreeSet::new();
     for (index, value) in values.iter().enumerate() {
-        let text = value.as_str().ok_or_else(|| format!("{at}.{key}[{index}] must be a string"))?;
-        if text.is_empty() || text.len() > 128
-            || !text.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
+       let text = value
+           .as_str()
+           .ok_or_else(|| format!("{at}.{key}[{index}] must be a string"))?;
+       if text.is_empty()
+           || text.len() > 128
+           || !text
+               .chars()
+               .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
         {
             return Err(format!("{at}.{key}[{index}] is not a valid stable ID"));
         }
@@ -852,8 +903,14 @@ fn id_set(value: &Value, key: &str, at: &str) -> Check<BTreeSet<String>> {
 }
 
 fn validate_sha(value: &str, label: &str) -> Check<()> {
-    if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
-        return Err(format!("{label} must be 64 lowercase hexadecimal characters"));
+   if value.len() != 64
+       || !value
+           .bytes()
+           .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+   {
+       return Err(format!(
+           "{label} must be 64 lowercase hexadecimal characters"
+       ));
     }
     Ok(())
 }
@@ -1113,9 +1170,14 @@ mod tests {
 
     fn assess(bundle: &Bundle) -> Value {
         assess_equilibrium_bytes(
-            &bundle.request, &bundle.receipt, &bundle.root, &bundle.manifest,
-            "reaction-forces", "reaction-moments"
-        ).unwrap()
+           &bundle.request,
+           &bundle.receipt,
+           &bundle.root,
+           &bundle.manifest,
+           "reaction-forces",
+           "reaction-moments",
+       )
+       .unwrap()
     }
 
     #[test]
@@ -1194,13 +1256,27 @@ mod tests {
         manifest["origin_m"] = json!(shift);
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
         let translated = assess_equilibrium_bytes(
-            &bundle.request, &bundle.receipt, &bundle.root, &manifest_bytes,
-            "reaction-forces", "reaction-moments"
-        ).unwrap();
+           &bundle.request,
+           &bundle.receipt,
+           &bundle.root,
+           &manifest_bytes,
+           "reaction-forces",
+           "reaction-moments",
+       )
+       .unwrap();
         assert_eq!(base["audit_status"], translated["audit_status"]);
-        assert_eq!(base["force_balance"]["residual_norm"], translated["force_balance"]["residual_norm"]);
-        assert!((base["moment_balance"]["residual_norm"].as_f64().unwrap()
-            - translated["moment_balance"]["residual_norm"].as_f64().unwrap()).abs() < 1e-12);
+       assert_eq!(
+           base["force_balance"]["residual_norm"],
+           translated["force_balance"]["residual_norm"]
+       );
+       assert!(
+           (base["moment_balance"]["residual_norm"].as_f64().unwrap()
+               - translated["moment_balance"]["residual_norm"]
+                   .as_f64()
+                   .unwrap())
+           .abs()
+               < 1e-12
+       );
     }
 
     #[test]
@@ -1210,9 +1286,14 @@ mod tests {
         manifest["request_sha256"] = json!("d".repeat(64));
         let bytes = serde_json::to_vec(&manifest).unwrap();
         let report = assess_equilibrium_bytes(
-            &bundle.request, &bundle.receipt, &bundle.root, &bytes,
-            "reaction-forces", "reaction-moments"
-        ).unwrap();
+           &bundle.request,
+           &bundle.receipt,
+           &bundle.root,
+           &bytes,
+           "reaction-forces",
+           "reaction-moments",
+       )
+       .unwrap();
         assert_eq!(report["audit_status"], "UNRESOLVED");
     }
 }
