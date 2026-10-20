@@ -283,11 +283,31 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
 
     for event in events {
         for related_id in &event.related_event_ids {
-            if !events.iter().any(|candidate| candidate.event_id == *related_id) {
-                errors.push(format!(
+            match events.iter().find(|candidate| candidate.event_id == *related_id) {
+                None => errors.push(format!(
                     "{}: related event {} does not exist in this ledger",
                     event.event_id, related_id
-                ));
+                )),
+                Some(related) => {
+                    if related.build_id != event.build_id {
+                        errors.push(format!(
+                            "{}: related event {} belongs to a different build",
+                            event.event_id, related_id
+                        ));
+                    }
+                    if related.configuration_sha256 != event.configuration_sha256 {
+                        errors.push(format!(
+                            "{}: related event {} belongs to a different configuration revision",
+                            event.event_id, related_id
+                        ));
+                    }
+                    if related.stage > event.stage {
+                        errors.push(format!(
+                            "{}: related event {} is from a later evidence stage",
+                            event.event_id, related_id
+                        ));
+                    }
+                }
             }
         }
     }
@@ -613,6 +633,34 @@ mod tests {
         event.related_event_ids.push("missing-parent".to_owned());
         let errors = audit(&[event]).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("does not exist in this ledger")));
+    }
+
+    #[test]
+    fn related_event_from_another_build_is_rejected() {
+        let mut event = quantity_event("observed", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        event.related_event_ids.push("plan".to_owned());
+        let mut plan = quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, None);
+        plan.build_id = "different-build".to_owned();
+        let errors = audit(&[event, plan]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("belongs to a different build")));
+    }
+
+    #[test]
+    fn related_event_from_different_configuration_is_rejected() {
+        let mut event = quantity_event("observed", Stage::Observed, CONFIG_B, "weld-01", "labor", 1.0, None);
+        event.related_event_ids.push("plan".to_owned());
+        let plan = quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let errors = audit(&[event, plan]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("different configuration revision")));
+    }
+
+    #[test]
+    fn later_stage_cannot_be_a_parent_of_an_earlier_stage() {
+        let mut event = quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, None);
+        event.related_event_ids.push("actual".to_owned());
+        let actual = quantity_event("actual", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let errors = audit(&[event, actual]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("later evidence stage")));
     }
 
     #[test]
