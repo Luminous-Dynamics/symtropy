@@ -99,6 +99,26 @@ The candidate policy was developed from the preceding sample-complexity diagnosi
 
 The expected-terminal-loss candidate was added after this failed replication, so it is exploratory too. Its exact-head report must include a direct paired contrast against VOI and the scoring-work proxy before interpreting whether its extra computation pays for itself. Native ActiveArena evaluation remains a separate gate.
 
+## Expected-terminal-risk candidate result — qualified negative result
+
+The seven-policy implementation passed focused exact-head qualification at `c0618126d6b7c8e9e973deafcd53eaabf92aa82e`: [run #39509119447](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39509119447) passed 24 memory tests and 11 active-query tests, deterministic report replay, main/stratum/pairwise schema checks and SHA verification. Combined report artifact: [#12304139446](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39509119447/artifacts/12304139446). General CI was still running at the exact-head check; this records focused benchmark qualification, not a fully green PR check suite.
+
+Held-out results on the fresh active benchmark root, 384 paired episodes, budget 48:
+
+| Policy | Mean loss ↓ | Answer rate | Answered accuracy | Estimated scoring work/episode | Delta vs round-robin (paired 95% CI) |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Round-robin | **0.1842** | 50.26% | 88.08% | 48 | baseline |
+| Approximate VOI | 0.1914 | 66.15% | 83.86% | 144 | +0.0072 [-0.0221, +0.0378] |
+| Expected terminal task-loss reduction | 0.2207 | 59.64% | 79.91% | 5,328 | +0.0365 [+0.0046, +0.0697] |
+
+The expected-risk candidate is significantly worse than round-robin on this held-out generator. Its direct paired contrast versus approximate VOI is +0.0293 loss, 95% CI [-0.0065, +0.0645], which does not establish the two selectors differ from each other; nevertheless, it fails the advancement gate because its point loss is worse and it does not beat round-robin. Its scoring-work proxy is 37× the VOI policy's and 111× round-robin's. The added theoretical complexity worsened task outcome in this setting.
+
+This is consistent with a mismatch between the simplified internal belief/transition model and the generator's actual delay, corruption, and distractor process. The experiment does not establish which mismatch causes the regression. **Reject this expected-risk implementation as the preferred policy**; retain it as a benchmark baseline until the model is independently diagnosed. Do not respond by increasing grid size or adding more unvalidated parameters.
+
+The independent-seed VOI replication also remains inconclusive: VOI loss 0.1914 vs round-robin 0.1842, paired delta +0.0072, 95% CI [-0.0221, +0.0378]. Thus neither active selector currently has replicated evidence of improvement over round-robin. The first-root VOI win and this fresh-root failure must both remain in the research record.
+
+The next question is resource-sensitive: what is the full task-loss versus sensing-budget frontier, and when should an agent stop spending observations? See [VIS-ACT-006](https://github.com/Luminous-Dynamics/symtropy/issues/2431). Native ActiveArena task-success testing is still separate.
+
 ## Acceptance gate
 
 A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The expected-risk candidate must additionally beat the approximate VOI policy on a direct paired contrast to justify its extra computation. Report all seven policies and their resource-quality trade-offs. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
