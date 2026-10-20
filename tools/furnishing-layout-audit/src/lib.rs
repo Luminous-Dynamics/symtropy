@@ -1452,6 +1452,169 @@ mod tests {
         );
     }
 
+
+
+    #[test]
+    fn rectangle_touching_edges_is_not_a_collision() {
+        let left = Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        let touching = Rect {
+            x: 1.0,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        assert!(!left.overlaps(touching));
+    }
+
+    #[test]
+    fn rectangle_overlap_inside_epsilon_is_treated_as_clear() {
+        let base = Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        let within_epsilon = Rect {
+            x: 1.0 - 0.5e-9,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        assert!(!base.overlaps(within_epsilon));
+    }
+
+    #[test]
+    fn rectangle_overlap_beyond_epsilon_is_detected() {
+        let base = Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        let beyond_epsilon = Rect {
+            x: 1.0 - 2.0e-9,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        assert!(base.overlaps(beyond_epsilon));
+    }
+
+    #[test]
+    fn invalid_non_finite_geometry_is_neither_valid_nor_overlapping() {
+        let valid = Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        let invalid = Rect {
+            x: f64::NAN,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        };
+        assert!(!invalid.is_valid());
+        assert!(!invalid.overlaps(valid));
+    }
+
+    #[test]
+    fn transformed_functional_envelope_obeys_all_quarter_turns() {
+        let envelope = json!({
+            "rect_local_item_frame": {
+                "x_m": 0.2,
+                "y_m": 0.3,
+                "width_m": 0.4,
+                "depth_m": 0.5
+            }
+        });
+        let item_size = super::ItemSize {
+            width: 2.0,
+            depth: 1.0,
+        };
+        let expected = [
+            (0, 10.2, 20.3, 0.4, 0.5),
+            (90, 10.2, 20.2, 0.5, 0.4),
+            (180, 11.4, 20.2, 0.4, 0.5),
+            (270, 10.3, 21.4, 0.5, 0.4),
+        ];
+        for (rotation, x, y, width, depth) in expected {
+            let placement = json!({
+                "x_m": 10.0,
+                "y_m": 20.0,
+                "rotation_degrees": rotation
+            });
+            let actual = super::transformed_functional_envelope(
+                &envelope,
+                item_size,
+                &placement,
+            )
+            .expect("supported quarter-turn should produce an envelope");
+            assert!((actual.x - x).abs() < 1e-9, "rotation {rotation}: x");
+            assert!((actual.y - y).abs() < 1e-9, "rotation {rotation}: y");
+            assert!((actual.width - width).abs() < 1e-9, "rotation {rotation}: width");
+            assert!((actual.depth - depth).abs() < 1e-9, "rotation {rotation}: depth");
+        }
+    }
+
+    #[test]
+    fn unsupported_rotation_does_not_fall_back_to_zero_degrees() {
+        let envelope = json!({
+            "rect_local_item_frame": {
+                "x_m": 0.0,
+                "y_m": 0.0,
+                "width_m": 0.4,
+                "depth_m": 0.3
+            }
+        });
+        let placement = json!({
+            "x_m": 0.0,
+            "y_m": 0.0,
+            "rotation_degrees": 45
+        });
+        assert!(
+            super::transformed_functional_envelope(
+                &envelope,
+                super::ItemSize { width: 1.0, depth: 0.6 },
+                &placement,
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn spatial_index_handles_empty_and_fully_overlapping_sets() {
+        let empty = SpatialIndex::new(&[]);
+        assert!(empty.query_indices(Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            depth: 1.0,
+        }).is_empty());
+        assert!(empty.overlapping_pairs().is_empty());
+
+        let all_same = (0..16)
+            .map(|index| {
+                (
+                    format!("item-{index}"),
+                    Rect {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 1.0,
+                        depth: 1.0,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        let index = SpatialIndex::new(&all_same);
+        assert_eq!(index.overlapping_pairs().len(), 16 * 15 / 2);
+    }
+
     #[test]
     fn unknown_schema_version_fails_closed_without_falling_back_to_v01() {
         let mut doc = functional_baseline();
