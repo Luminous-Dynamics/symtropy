@@ -606,15 +606,11 @@ fn validate_hex(value: &str, length: usize, label: &str) -> Check<()> {
     Ok(())
 }
 
-
 /// Validate a solver-produced receipt against the exact request bytes.
 ///
 /// This checks structure and cross-field consistency only. It does not authenticate
 /// execution, inspect output artifact bytes, or establish physical validity.
-pub fn validate_solver_receipt_bytes(
-    request_bytes: &[u8],
-    receipt_bytes: &[u8],
-) -> Check<Value> {
+pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8]) -> Check<Value> {
     let request: Value = serde_json::from_slice(request_bytes)
         .map_err(|error| format!("invalid request JSON: {error}"))?;
     validate_shape(&request)?;
@@ -682,7 +678,9 @@ pub fn validate_solver_receipt_bytes(
     for key in ["adapter_id", "version"] {
         let value = string_map(adapter, key, "receipt.adapter")?;
         if value.trim().is_empty() || value.len() > 128 {
-            return Err(format!("receipt.adapter.{key} must be non-empty and at most 128 bytes"));
+            return Err(format!(
+                "receipt.adapter.{key} must be non-empty and at most 128 bytes"
+            ));
         }
     }
     for key in ["executable_sha256", "configuration_sha256"] {
@@ -695,15 +693,19 @@ pub fn validate_solver_receipt_bytes(
     for key in ["solver_name", "solver_version", "solver_build_ref"] {
         if let Some(value) = adapter.get(key) {
             if !value.is_null() {
-                let text = value.as_str().ok_or_else(|| {
-                    format!("receipt.adapter.{key} must be a string or null")
-                })?;
-                if text.len() > match key {
-                    "solver_name" => 256,
-                    "solver_version" => 128,
-                    _ => 2048,
-                } {
-                    return Err(format!("receipt.adapter.{key} exceeds its schema length limit"));
+                let text = value
+                    .as_str()
+                    .ok_or_else(|| format!("receipt.adapter.{key} must be a string or null"))?;
+                if text.len()
+                    > match key {
+                        "solver_name" => 256,
+                        "solver_version" => 128,
+                        _ => 2048,
+                    }
+                {
+                    return Err(format!(
+                        "receipt.adapter.{key} exceeds its schema length limit"
+                    ));
                 }
             }
         }
@@ -723,7 +725,9 @@ pub fn validate_solver_receipt_bytes(
     ]
     .contains(&evidence_class.as_str())
     {
-        return Err(format!("receipt.evidence_class has unsupported value '{evidence_class}'"));
+        return Err(format!(
+            "receipt.evidence_class has unsupported value '{evidence_class}'"
+        ));
     }
 
     let physics_evaluated = strings(&receipt, "physics_evaluated", "receipt")?;
@@ -734,8 +738,13 @@ pub fn validate_solver_receipt_bytes(
         ("receipt.physics_evaluated", &physics_evaluated),
         ("receipt.physics_omitted", &physics_omitted),
     ] {
-        if let Some(unknown) = values.iter().find(|value| !PHYSICS.contains(&value.as_str())) {
-            return Err(format!("{label} contains unknown physics label '{unknown}'"));
+        if let Some(unknown) = values
+            .iter()
+            .find(|value| !PHYSICS.contains(&value.as_str()))
+        {
+            return Err(format!(
+                "{label} contains unknown physics label '{unknown}'"
+            ));
         }
     }
 
@@ -750,12 +759,16 @@ pub fn validate_solver_receipt_bytes(
     }
     for physics in evaluated.union(&omitted) {
         if !requested.contains(physics) {
-            return Err(format!("receipt classifies unrequested physics '{physics}'"));
+            return Err(format!(
+                "receipt classifies unrequested physics '{physics}'"
+            ));
         }
     }
     for physics in &requested {
         if !evaluated.contains(physics) && !omitted.contains(physics) {
-            return Err(format!("receipt does not classify requested physics '{physics}'"));
+            return Err(format!(
+                "receipt does not classify requested physics '{physics}'"
+            ));
         }
     }
 
@@ -783,7 +796,9 @@ pub fn validate_solver_receipt_bytes(
         .get("iterations")
         .ok_or_else(|| "receipt.convergence.iterations missing".to_owned())?;
     if !iterations.is_null() && iterations.as_u64().is_none() {
-        return Err("receipt.convergence.iterations must be null or a non-negative integer".to_owned());
+        return Err(
+            "receipt.convergence.iterations must be null or a non-negative integer".to_owned(),
+        );
     }
     let residual = convergence
         .get("residual")
@@ -793,7 +808,9 @@ pub fn validate_solver_receipt_bytes(
             .as_f64()
             .is_none_or(|number| !number.is_finite() || number < 0.0)
     {
-        return Err("receipt.convergence.residual must be null or finite and non-negative".to_owned());
+        return Err(
+            "receipt.convergence.residual must be null or finite and non-negative".to_owned(),
+        );
     }
     if convergence
         .get("mesh_refinement_evaluated")
@@ -811,7 +828,14 @@ pub fn validate_solver_receipt_bytes(
         let at = format!("receipt.outputs[{index}]");
         exact_keys(
             output,
-            &["output_id", "kind", "sha256", "media_type", "unit", "artifact_ref"],
+            &[
+                "output_id",
+                "kind",
+                "sha256",
+                "media_type",
+                "unit",
+                "artifact_ref",
+            ],
             &at,
         )?;
         let output_id = string(output, "output_id", &at)?;
@@ -827,15 +851,23 @@ pub fn validate_solver_receipt_bytes(
         validate_hex(&string(output, "sha256", &at)?, 64, "output SHA-256")?;
         let media_type = string(output, "media_type", &at)?;
         if media_type.trim().is_empty() || media_type.len() > 128 {
-            return Err(format!("{at}.media_type must be non-empty and at most 128 bytes"));
+            return Err(format!(
+                "{at}.media_type must be non-empty and at most 128 bytes"
+            ));
         }
-        let unit = output.get("unit").ok_or_else(|| format!("{at}.unit missing"))?;
+        let unit = output
+            .get("unit")
+            .ok_or_else(|| format!("{at}.unit missing"))?;
         if !(unit.is_null() || unit.as_str().is_some_and(|text| text.len() <= 64)) {
-            return Err(format!("{at}.unit must be a string of at most 64 bytes or null"));
+            return Err(format!(
+                "{at}.unit must be a string of at most 64 bytes or null"
+            ));
         }
         let artifact_ref = string(output, "artifact_ref", &at)?;
         if artifact_ref.trim().is_empty() || artifact_ref.len() > 2048 {
-            return Err(format!("{at}.artifact_ref must be non-empty and at most 2048 bytes"));
+            return Err(format!(
+                "{at}.artifact_ref must be non-empty and at most 2048 bytes"
+            ));
         }
     }
 
@@ -849,17 +881,17 @@ pub fn validate_solver_receipt_bytes(
     if !["quantified", "qualitative", "unknown", "not_applicable"]
         .contains(&uncertainty_state.as_str())
     {
-        return Err(format!("receipt.uncertainty.state unsupported: '{uncertainty_state}'"));
+        return Err(format!(
+            "receipt.uncertainty.state unsupported: '{uncertainty_state}'"
+        ));
     }
     let method = uncertainty
         .get("method")
         .ok_or_else(|| "receipt.uncertainty.method missing".to_owned())?;
-    if !(method.is_null()
-        || method
-            .as_str()
-            .is_some_and(|text| text.len() <= 256))
-    {
-        return Err("receipt.uncertainty.method must be a string of at most 256 bytes or null".to_owned());
+    if !(method.is_null() || method.as_str().is_some_and(|text| text.len() <= 256)) {
+        return Err(
+            "receipt.uncertainty.method must be a string of at most 256 bytes or null".to_owned(),
+        );
     }
     let _ = string_map(uncertainty, "summary", "receipt.uncertainty")?;
 
@@ -874,22 +906,30 @@ pub fn validate_solver_receipt_bytes(
         ],
         "receipt.validity_envelope",
     )?;
-    for key in ["supported_geometry", "supported_material_model", "load_regime"] {
+    for key in [
+        "supported_geometry",
+        "supported_material_model",
+        "load_regime",
+    ] {
         let value = string_map(validity, key, "receipt.validity_envelope")?;
         if value.trim().is_empty() || value.len() > 2048 {
-            return Err(format!("receipt.validity_envelope.{key} is empty or overlong"));
+            return Err(format!(
+                "receipt.validity_envelope.{key} is empty or overlong"
+            ));
         }
     }
     let limitations = validity
         .get("limitations")
         .and_then(Value::as_array)
         .ok_or_else(|| "receipt.validity_envelope.limitations must be an array".to_owned())?;
-    if limitations.iter().any(|value| {
-        value
-            .as_str()
-            .is_none_or(|text| text.len() > 2048)
-    }) {
-        return Err("receipt.validity_envelope.limitations must contain strings no longer than 2048 bytes".to_owned());
+    if limitations
+        .iter()
+        .any(|value| value.as_str().is_none_or(|text| text.len() > 2048))
+    {
+        return Err(
+            "receipt.validity_envelope.limitations must contain strings no longer than 2048 bytes"
+                .to_owned(),
+        );
     }
 
     let claim_ceiling = string(&receipt, "claim_ceiling", "receipt")?;
@@ -898,11 +938,19 @@ pub fn validate_solver_receipt_bytes(
     }
     if status == "UNRESOLVED" {
         let lowercase = claim_ceiling.to_ascii_lowercase();
-        if !["unresolved", "not qualified", "not validated", "not a safety"]
-            .iter()
-            .any(|phrase| lowercase.contains(phrase))
+        if ![
+            "unresolved",
+            "not qualified",
+            "not validated",
+            "not a safety",
+        ]
+        .iter()
+        .any(|phrase| lowercase.contains(phrase))
         {
-            return Err("UNRESOLVED receipt claim_ceiling must state the unresolved/unqualified limit".to_owned());
+            return Err(
+                "UNRESOLVED receipt claim_ceiling must state the unresolved/unqualified limit"
+                    .to_owned(),
+            );
         }
     }
 
@@ -911,7 +959,9 @@ pub fn validate_solver_receipt_bytes(
         .iter()
         .any(|value| value.as_str().is_none_or(|text| text.len() > 2048))
     {
-        return Err("receipt.diagnostics must contain strings no longer than 2048 bytes".to_owned());
+        return Err(
+            "receipt.diagnostics must contain strings no longer than 2048 bytes".to_owned(),
+        );
     }
 
     if status == "PASS" {
@@ -922,7 +972,9 @@ pub fn validate_solver_receipt_bytes(
             return Err("PASS receipt requires converged or not_applicable convergence".to_owned());
         }
         if !physics_omitted.is_empty() {
-            return Err("PASS receipt cannot omit any physics requested by the bound request".to_owned());
+            return Err(
+                "PASS receipt cannot omit any physics requested by the bound request".to_owned(),
+            );
         }
         let fidelity = string(&request, "model_fidelity", "request")?;
         for physics in &requested_physics {
@@ -934,7 +986,9 @@ pub fn validate_solver_receipt_bytes(
         }
         for required in strings(&request, "required_outputs", "request")? {
             if !output_kinds.contains(&required) {
-                return Err(format!("PASS receipt is missing required output kind '{required}'"));
+                return Err(format!(
+                    "PASS receipt is missing required output kind '{required}'"
+                ));
             }
         }
         for key in ["solver_name", "solver_version", "solver_build_ref"] {
@@ -967,13 +1021,19 @@ fn fidelity_supports_physics(fidelity: &str, physics: &str) -> bool {
             matches!(physics, "topology" | "static_linear_elastic")
         }
         "continuum_nonlinear" => {
-            matches!(physics, "topology" | "static_linear_elastic" | "nonlinear_material")
+            matches!(
+                physics,
+                "topology" | "static_linear_elastic" | "nonlinear_material"
+            )
         }
         "phase_field_fracture" => {
             matches!(physics, "topology" | "static_linear_elastic" | "fracture")
         }
         "rigid_contact" => matches!(physics, "topology" | "dynamic_response" | "rigid_contact"),
-        "granular_dem" => matches!(physics, "topology" | "dynamic_response" | "granular_contact"),
+        "granular_dem" => matches!(
+            physics,
+            "topology" | "dynamic_response" | "granular_contact"
+        ),
         _ => false,
     }
 }

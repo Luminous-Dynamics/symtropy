@@ -60,8 +60,8 @@ fn run() -> Result<(), String> {
     let request_path = request_path.ok_or_else(|| {
         "usage: physical-solver-contract --request <path> --validator-revision <git-sha> OR --request <path> --receipt <receipt-path>".to_owned()
     })?;
-    let request_bytes =
-        fs::read(&request_path).map_err(|error| format!("could not read {request_path}: {error}"))?;
+    let request_bytes = fs::read(&request_path)
+        .map_err(|error| format!("could not read {request_path}: {error}"))?;
 
     let report = if let Some(receipt_path) = receipt_path {
         if validator_revision.is_some() {
