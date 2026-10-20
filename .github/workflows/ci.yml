@@ -80,5 +80,10 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    # The render bridge carries its own projection and ECS synchronization
+    # invariants; compile-only workspace coverage is not enough to execute them.
+    - name: Run Tests (Bevy Render Bridge)
+      run: cargo test -p symtropy-render-bridge --lib
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
