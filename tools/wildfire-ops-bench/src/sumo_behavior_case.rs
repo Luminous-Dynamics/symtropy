@@ -174,13 +174,58 @@ mod tests {
     use super::*;
 
     #[test]
-    fn refuses_incomplete_tripinfo_inventory() {
+    fn evaluates_arrived_and_undeparted_vehicles_from_real_output_files() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "wildfire-sumo-behavior-{}-{nonce}",
+            std::process::id()
+        ));
+        let case_dir = root.join("CASE_A");
+        std::fs::create_dir_all(&case_dir).expect("create case output directory");
+        std::fs::write(
+            case_dir.join("demand.rou.xml"),
+            r#"<?xml version="1.0"?><routes><vehicle id="DEMAND_A_00000"/><vehicle id="DEMAND_A_00001"/></routes>"#,
+        )
+        .expect("write routes");
+        std::fs::write(
+            case_dir.join("tripinfo.xml"),
+            r#"<?xml version="1.0"?><tripinfos><tripinfo id="DEMAND_A_00000" depart="0" arrival="10" duration="10" waitingTime="2" timeLoss="3"/><tripinfo id="DEMAND_A_00001" depart="-1" arrival="-1" duration="-1" waitingTime="0" timeLoss="0"/></tripinfos>"#,
+        )
+        .expect("write tripinfo");
+        std::fs::write(
+            case_dir.join("summary.xml"),
+            r#"<?xml version="1.0"?><summary><step time="20" loaded="2" inserted="1" running="0" waiting="1" ended="1"/></summary>"#,
+        )
+        .expect("write summary");
+
+        let case = json!({
+            "case_id": "CASE_A",
+            "demands": [{"id": "DEMAND_A", "vehicles": 2}]
+        });
+        let result = evaluate(&case, &root).expect("behavior evaluation");
+        assert_eq!(result["demand_vehicle_count"], 2);
+        assert_eq!(result["arrived_vehicle_count"], 1);
+        assert_eq!(result["departed_vehicle_count"], 1);
+        assert_eq!(result["not_arrived_at_end_count"], 1);
+        assert_eq!(result["not_inserted_at_end_count"], 1);
+        assert_eq!(result["arrival_duration_seconds"]["sample_count"], 1);
+        assert_eq!(result["arrival_duration_seconds"]["p95"], 10.0);
+        assert_eq!(result["arrival_waiting_time_seconds"]["mean"], 2.0);
+        assert_eq!(result["sumo_summary_final_step"]["ended"], 1);
+
+        std::fs::remove_dir_all(&root).expect("clean test directory");
+    }
+
+    #[test]
+    fn rejects_duplicate_ids_and_wrong_demand_inventory() {
         let route = r#"<routes><vehicle id="v0"/><vehicle id="v1"/></routes>"#;
-        let trip =
-            r#"<tripinfos><tripinfo id="v0" depart="0" arrival="1" duration="1"/></tripinfos>"#;
-        assert_ne!(
-            tags(route, "vehicle").unwrap().len(),
-            tags(trip, "tripinfo").unwrap().len()
-        );
+        let trip = r#"<tripinfos><tripinfo id="v0"/><tripinfo id="v0"/></tripinfos>"#;
+        assert!(tags(route, "vehicle").unwrap().len() == 2);
+        assert!(tags(trip, "tripinfo").unwrap().len() == 2);
     }
 }
