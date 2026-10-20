@@ -529,8 +529,8 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             .as_array()
             .expect("schema validation requires aggregation_constraints")
         {
-            let constraint_id = string_at(constraint, "constraint_id")
-                .expect("schema validated constraint_id");
+            let constraint_id =
+                string_at(constraint, "constraint_id").expect("schema validated constraint_id");
             let completeness =
                 string_at(constraint, "completeness").expect("schema validated completeness");
             let kind = string_at(constraint, "kind").expect("schema validated constraint kind");
@@ -566,7 +566,11 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
                 .iter()
                 .map(|child_id| {
                     sample_rows
-                        .get(child_id.as_str().expect("schema validated child forecast ID"))
+                        .get(
+                            child_id
+                                .as_str()
+                                .expect("schema validated child forecast ID"),
+                        )
                         .copied()
                         .expect("semantic validation guarantees child sample rows")
                 })
@@ -582,8 +586,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             let reconciled_child_sum = children
                 .iter()
                 .map(|child| {
-                    number_at(child, "reconciled_count")
-                        .expect("schema validated reconciled count")
+                    number_at(child, "reconciled_count").expect("schema validated reconciled count")
                 })
                 .sum::<f64>();
             let raw_residual = raw_parent - raw_child_sum;
@@ -920,9 +923,18 @@ mod tests {
             .expect("synthetic joint sample fixture is valid");
         assert_eq!(receipt["summary"]["predictive_sample_count"], 2);
         assert_eq!(receipt["summary"]["assessable_sample_constraint_count"], 4);
-        assert_eq!(receipt["summary"]["raw_incoherent_sample_constraint_count"], 2);
-        assert_eq!(receipt["summary"]["reconciled_coherent_sample_constraint_count"], 4);
-        assert_eq!(receipt["summary"]["not_assessable_sample_constraint_count"], 2);
+        assert_eq!(
+            receipt["summary"]["raw_incoherent_sample_constraint_count"],
+            2
+        );
+        assert_eq!(
+            receipt["summary"]["reconciled_coherent_sample_constraint_count"],
+            4
+        );
+        assert_eq!(
+            receipt["summary"]["not_assessable_sample_constraint_count"],
+            2
+        );
         assert_eq!(receipt["summary"]["raw_sample_coherence_rate"], 0.5);
         assert_eq!(receipt["summary"]["reconciled_sample_coherence_rate"], 1.0);
         assert_eq!(
@@ -976,7 +988,8 @@ mod tests {
         let mut value = fixture();
         value["predictive_samples"]["rows"][0]["forecast_id"] =
             json!("fc-not-in-forecast-inventory");
-        let errors = audit(&value).expect_err("predictive samples cannot add undeclared forecast IDs");
+        let errors =
+            audit(&value).expect_err("predictive samples cannot add undeclared forecast IDs");
         assert!(
             errors
                 .iter()
@@ -993,7 +1006,11 @@ mod tests {
             .expect("sample rows are an array")
             .push(first_row);
         let errors = audit(&value).expect_err("duplicate draw/forecast pairs are ambiguous");
-        assert!(errors.iter().any(|error| error.contains("repeats forecast row")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("repeats forecast row"))
+        );
     }
 
     #[test]
