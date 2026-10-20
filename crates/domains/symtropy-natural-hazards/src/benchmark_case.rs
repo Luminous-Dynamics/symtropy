@@ -436,9 +436,6 @@ impl BenchmarkResult {
                 if self.scored_sample_count == 0 {
                     return Err(ResultValidationError::PassingResultHasNoScoredSamples);
                 }
-                if self.status_reason.as_deref().is_some_and(nonblank) {
-                    // A passing run may include warnings/reasons; do not forbid them.
-                }
             }
             BenchmarkRunStatus::Fail
             | BenchmarkRunStatus::Unavailable
