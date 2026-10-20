@@ -8,6 +8,7 @@ on:
       - "tools/vision-active-action-benchmark.rs"
       - "tools/vision-active-action-world.rs"
       - "tools/vision-active-memory-world.rs"
+      - "tools/vision-active-pixel-world.rs"
       - "docs/vision/active-perception-benchmark-bridge.md"
       - "tools/vision-active-action-reference/**"
       - "tools/vision-active-action-benchmark/**"
@@ -21,6 +22,7 @@ on:
       - "tools/vision-active-action-benchmark.rs"
       - "tools/vision-active-action-world.rs"
       - "tools/vision-active-memory-world.rs"
+      - "tools/vision-active-pixel-world.rs"
       - "docs/vision/active-perception-benchmark-bridge.md"
       - "tools/vision-active-action-reference/**"
       - "tools/vision-active-action-benchmark/**"
@@ -128,6 +130,34 @@ jobs:
         with:
           name: vis-act-multi-round-memory-diagnostic
           path: multi-round-memory.tsv
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Compile and run rendered-pixel world tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-pixel-world.rs -o /tmp/vis-act-pixel-tests
+          /tmp/vis-act-pixel-tests
+
+      - name: Execute rendered-pixel active-vision diagnostic
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-pixel-world.rs -o /tmp/vis-act-pixels
+          /tmp/vis-act-pixels | tee rendered-pixel-world.tsv
+          grep -Fq "development_scene_family" rendered-pixel-world.tsv
+          grep -Fq "held_out_scene_family" rendered-pixel-world.tsv
+          grep -Fq "no_memory" rendered-pixel-world.tsv
+          grep -Fq "bounded_fifo" rendered-pixel-world.tsv
+          grep -Fq "confidence_gated" rendered-pixel-world.tsv
+          grep -Fq "active_revision" rendered-pixel-world.tsv
+          grep -Fq "removed_false_persistence_rate" rendered-pixel-world.tsv
+          grep -Fq "budget_violations" rendered-pixel-world.tsv
+
+      - name: Upload rendered-pixel world diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-rendered-pixel-diagnostic
+          path: rendered-pixel-world.tsv
           if-no-files-found: error
           retention-days: 14
 
