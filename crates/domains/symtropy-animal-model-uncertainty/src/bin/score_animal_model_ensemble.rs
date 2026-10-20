@@ -44,16 +44,16 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
         .ok_or_else(|| format!("{context} must be an object"))?;
     if let Some(field) = object
         .keys()
-        .find(|key| !allowed.iter().any(|allowed| *allowed == key.as_str()))
+        .find(|key| !allowed.contains(&key.as_str()))
     {
         return Err(format!("{context} contains unknown field '{field}'"));
     }
     Ok(())
 }
 
-fn parse_input(
-    root: &Value,
-) -> Result<(Vec<ModelOutcome>, f64, Option<Vec<ModelWeightInterval>>), String> {
+type ParsedInput = (Vec<ModelOutcome>, f64, Option<Vec<ModelWeightInterval>>);
+
+fn parse_input(root: &Value) -> Result<ParsedInput, String> {
     ensure_only_fields(
         root,
         &[
