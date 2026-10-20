@@ -1,0 +1,204 @@
+{
+  "schema": "symtropy.natural_hazard_benchmark_manifest.v0.1",
+  "claim_ceiling": "catalogue_and_work_plan_only",
+  "generated_for": "NATURAL-HAZARDS-000",
+  "principles": [
+    "A hazard catalogue entry is not evidence of an implemented solver.",
+    "Each capability is qualified by hazard, regime, spatial and temporal envelope, output observable, and evidence class.",
+    "Synthetic invariants, analytical solutions, reference comparisons, held-out observations, operational skill, and presentation quality are independent evidence classes.",
+    "Missing data or unsupported physics must report unavailable rather than zero effect."
+  ],
+  "evidence_classes": [
+    "structural_invariant",
+    "analytical_or_manufactured",
+    "published_benchmark",
+    "reference_differential",
+    "held_out_observation",
+    "operational_skill",
+    "presentation_quality"
+  ],
+  "hazards": [
+    {
+      "id": "earthquake",
+      "family": "geophysical",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "OpenQuake; USGS ShakeMap",
+      "candidate_metrics": ["PGA", "PGV", "response_spectrum", "arrival_time", "intensity_residual"],
+      "notes": "Separate source rupture, ground motion, liquefaction and induced landslide claims."
+    },
+    {
+      "id": "tsunami",
+      "family": "hydrological",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "GeoClaw and published tsunami benchmark cases",
+      "candidate_metrics": ["travel_time", "amplitude", "arrival_time", "inundation_extent", "water_budget_residual"],
+      "notes": "Keep earthquake, landslide, volcanic and asteroid source terms distinct."
+    },
+    {
+      "id": "volcanic_eruption_and_ash",
+      "family": "geophysical",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "NOAA HYSPLIT; FALL3D where compatible",
+      "candidate_metrics": ["plume_height", "ash_concentration", "arrival_time", "deposition"],
+      "notes": "Ash dispersion does not qualify lava, pyroclastic density current, lahar or eruption-source prediction."
+    },
+    {
+      "id": "landslide_and_debris_flow",
+      "family": "geophysical",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "USGS assessments and instrumented-event studies",
+      "candidate_metrics": ["event_probability_calibration", "runout", "volume", "false_negative_rate"],
+      "notes": "Keep triggering probability separate from runout and exposure estimates."
+    },
+    {
+      "id": "avalanche",
+      "family": "geophysical",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "Published avalanche test cases and regional observational archives",
+      "candidate_metrics": ["release_probability", "runout", "arrival_time", "deposit_extent"],
+      "notes": "Terrain, snowpack, weather and human-triggering assumptions require separate provenance."
+    },
+    {
+      "id": "flood",
+      "family": "hydrological",
+      "coverage_status": "in_architecture_work_not_global_capability",
+      "candidate_reference": "LISFLOOD-FP; HEC-RAS-compatible benchmarks; existing Symtropy hydrology issues",
+      "candidate_metrics": ["volume_closure", "depth_error", "extent_CSI", "arrival_time_error", "velocity_error", "resolution_convergence"],
+      "local_work": ["#450", "#461", "#470", "#483"]
+    },
+    {
+      "id": "storm_surge_and_coastal_flood",
+      "family": "hydrological",
+      "coverage_status": "in_architecture_work_not_global_capability",
+      "candidate_reference": "Published coastal hydrodynamics benchmarks; specialist coastal model selected per equations",
+      "candidate_metrics": ["water_level_error", "phase_error", "arrival_time", "inundation_extent", "boundary_flux_residual"],
+      "local_work": ["#451", "#465", "#2208"]
+    },
+    {
+      "id": "drought_and_water_scarcity",
+      "family": "climatological",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "Regional soil-water, hydrology, crop and drought-indicator datasets",
+      "candidate_metrics": ["soil_moisture_error", "water_deficit", "duration", "area", "seasonal_lead_time_skill"],
+      "notes": "A drought index is a diagnostic, not a complete causal model of hydrology, demand, crops or ecosystems."
+    },
+    {
+      "id": "tropical_cyclone_and_extreme_wind",
+      "family": "meteorological",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "NOAA operational forecast archives and named forecast-verification suites",
+      "candidate_metrics": ["track_error", "intensity_error", "wind_error", "rainfall_error", "probabilistic_score", "lead_time"],
+      "notes": "Pin the forecast cycle and distinguish hindcast, analysis and operational forecast."
+    },
+    {
+      "id": "severe_convective_storm_tornado_hail_lightning",
+      "family": "meteorological",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "Regional radar/reanalysis/observational verification datasets and published case studies",
+      "candidate_metrics": ["probability_calibration", "false_alarm_rate", "detection_rate", "lead_time", "hazard_footprint_error"],
+      "notes": "These are related but distinct processes; no shared score substitutes for phenomenon-specific verification."
+    },
+    {
+      "id": "wildfire_and_smoke",
+      "family": "climatological",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "WRF-Fire and identified fire-spread/smoke models under matched assumptions",
+      "candidate_metrics": ["burned_area_overlap", "perimeter_growth", "spread_direction", "smoke_concentration_error", "fuel_sensitivity"],
+      "notes": "Surface fire, crown fire, fire-atmosphere feedback and smoke transport are separate capabilities."
+    },
+    {
+      "id": "heatwave_cold_wave_and_winter_storm",
+      "family": "climatological",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "Meteorological reanalysis and forecast verification datasets",
+      "candidate_metrics": ["temperature_error", "duration", "threshold_area", "precipitation_type", "probabilistic_score", "lead_time"],
+      "notes": "Forecasting and downstream impacts on health, energy and infrastructure are separate claims."
+    },
+    {
+      "id": "asteroid_comet_impact",
+      "family": "extraterrestrial",
+      "coverage_status": "qualification_plan_created",
+      "candidate_reference": "NASA Ames ATAP/PAIR; selected high-fidelity model outputs; GeoClaw for matched tsunami cases",
+      "candidate_metrics": ["energy_ledger", "entry_observables", "airburst_altitude", "blast_footprint", "crater_observables", "uncertainty_coverage"],
+      "local_work": ["#2229"]
+    },
+    {
+      "id": "solar_flare_and_geomagnetic_storm",
+      "family": "space_weather",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "NOAA Space Weather Prediction Center models and event observations",
+      "candidate_metrics": ["arrival_time_error", "geomagnetic_index_error", "radio_impact_skill", "grid_impact_field_error"],
+      "notes": "Do not equate space-weather indices directly with local infrastructure damage without a qualified system model."
+    },
+    {
+      "id": "epidemic_and_vector_borne_outbreak",
+      "family": "biological",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "Established compartmental/agent-based models and held-out surveillance data",
+      "candidate_metrics": ["incidence_calibration", "trajectory_error", "coverage", "intervention_sensitivity", "reporting_delay_sensitivity"],
+      "notes": "Separate transmission model, observations, intervention assumptions, privacy rules and operational decisions."
+    },
+    {
+      "id": "harmful_algal_bloom_and_crop_forest_pests",
+      "family": "environmental",
+      "coverage_status": "catalogued_only",
+      "candidate_reference": "Domain-specific ecosystem, crop/forest and remote-sensing observations",
+      "candidate_metrics": ["extent_error", "onset_time", "severity_calibration", "ecosystem_response"],
+      "notes": "Different biological processes need different equations and evidence; this entry does not assert support."
+    },
+    {
+      "id": "space_weather_induced_infrastructure_cascade",
+      "family": "space_weather",
+      "coverage_status": "cascade_design_only",
+      "candidate_reference": "NOAA SWPC observation/model products plus qualified grid/telecommunications models",
+      "candidate_metrics": ["declared_dependency_coverage", "outage_duration", "cascade_false_positive_rate", "recovery_time"],
+      "notes": "Correlated outages alone do not establish causal attribution."
+    }
+  ],
+  "global_gate_policy": {
+    "unsupported_hazard": "unavailable",
+    "missing_required_boundary": "fail_or_unavailable",
+    "out_of_validity_envelope": "reject_claim",
+    "unqualified_cascade_edge": "do_not_propagate",
+    "visual_quality": "presentation_only",
+    "universal_realism_score": false
+  },
+  "source_references": [
+    {
+      "name": "UNDRR Strategic Framework 2026-2030",
+      "url": "https://www.undrr.org/strategic-framework-2026-2030"
+    },
+    {
+      "name": "NASA Ames Asteroid Threat Assessment Project",
+      "url": "https://nas.nasa.gov/areas/atap.html"
+    },
+    {
+      "name": "OpenQuake Engine documentation",
+      "url": "https://docs.openquake.org/oq-engine/manual/latest/"
+    },
+    {
+      "name": "USGS ShakeMap",
+      "url": "https://earthquake.usgs.gov/data/shakemap/index.php"
+    },
+    {
+      "name": "LISFLOOD-FP 8.2 adaptive solver paper",
+      "url": "https://gmd.copernicus.org/articles/18/9827/2025/"
+    },
+    {
+      "name": "WRF-Fire documentation",
+      "url": "https://www2.mmm.ucar.edu/wrf/site/documentation/users_guide/fire.html"
+    },
+    {
+      "name": "NOAA HYSPLIT volcanic ash model",
+      "url": "https://www.arl.noaa.gov/hysplit/volcanic-ash-model/"
+    },
+    {
+      "name": "NOAA Space Weather Prediction Center models",
+      "url": "https://www.swpc.noaa.gov/models"
+    },
+    {
+      "name": "USGS Landslide Hazards Program",
+      "url": "https://www.usgs.gov/landslide-hazards"
+    }
+  ]
+}
