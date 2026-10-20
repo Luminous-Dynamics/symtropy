@@ -66,13 +66,22 @@ fn validate_inputs(inputs: &Inputs) -> Check<()> {
             return Err("case names must be non-empty and unpadded".to_owned());
         }
         if case.scores.is_empty() || case.scores.iter().any(|score| !score.is_finite()) {
-            return Err(format!("{}: scores must be finite and non-empty", case.name));
+            return Err(format!(
+                "{}: scores must be finite and non-empty",
+                case.name
+            ));
         }
         if !(0.0..1.0).contains(&case.alpha) {
-            return Err(format!("{}: alpha must be strictly between 0 and 1", case.name));
+            return Err(format!(
+                "{}: alpha must be strictly between 0 and 1",
+                case.name
+            ));
         }
         if !case.learning_rate.is_finite() || case.learning_rate < 0.0 {
-            return Err(format!("{}: learning rate must be finite and nonnegative", case.name));
+            return Err(format!(
+                "{}: learning rate must be finite and nonnegative",
+                case.name
+            ));
         }
         if case.ahead == 0 {
             return Err(format!("{}: ahead must be at least one", case.name));
@@ -87,7 +96,10 @@ fn validate_inputs(inputs: &Inputs) -> Check<()> {
             case.method.as_str(),
             "aci" | "aci_clipped" | "cop" | "ogd" | "sf_ogd" | "decay_ogd"
         ) {
-            return Err(format!("{}: unsupported reference method {}", case.name, case.method));
+            return Err(format!(
+                "{}: unsupported reference method {}",
+                case.name, case.method
+            ));
         }
     }
     Ok(())
@@ -190,7 +202,11 @@ fn run_aci(case: &Case, clipped: bool) -> Trace {
 
         if clipped && quantiles[t] == f64::INFINITY {
             let clip_value = if prediction_index > 0 {
-                previous_scores.iter().copied().reduce(f64::max).unwrap_or(f64::INFINITY)
+                previous_scores
+                    .iter()
+                    .copied()
+                    .reduce(f64::max)
+                    .unwrap_or(f64::INFINITY)
             } else {
                 f64::INFINITY
             };
@@ -259,9 +275,8 @@ fn run_cop(case: &Case) -> Trace {
                 };
             }
             let threshold = base_quantiles[t] - learning_rate * gradient;
-            let empirical_cdf =
-                window.iter().filter(|score| **score <= threshold).count() as f64
-                    / window.len() as f64;
+            let empirical_cdf = window.iter().filter(|score| **score <= threshold).count() as f64
+                / window.len() as f64;
             empirical_cdf - (1.0 - case.alpha)
         };
 
