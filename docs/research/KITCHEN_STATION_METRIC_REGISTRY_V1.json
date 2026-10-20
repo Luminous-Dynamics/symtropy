@@ -132,12 +132,12 @@
       "interpretation": "Keep zero distinct from not measured."
     },
     "dryness_completion_by_item_and_position": {
-      "canonical_metric_id": "dryness_completion_by_item_and_position",
-      "unit_policy": "define_unit_in_protocol",
-      "value_shape": "number_or_structured",
-      "direction": "descriptive",
-      "aggregation_rule": "declare before data collection; preserve raw values",
-      "interpretation": "No cross-candidate comparison until unit, endpoint, normalization, and conditions are fixed."
+      "canonical_metric_id": "dryness_completion_fraction_by_item_position",
+      "unit_policy": "fraction in [0,1] per item-position class",
+      "value_shape": "object_of_numbers",
+      "direction": "higher",
+      "aggregation_rule": "publish each item-position fraction and the minimum-performing subgroup; aggregate only with the declared item-count weighting",
+      "interpretation": "Every item/position remains visible. Do not claim full-rack success from an average when a subgroup fails the endpoint."
     },
     "energy_wh_per_load": {
       "canonical_metric_id": "energy_wh_per_load",
@@ -299,12 +299,12 @@
       "interpretation": "A map/qualitative observation must include the coding rubric and raw artifact link."
     },
     "post-service_fit_and_drain": {
-      "canonical_metric_id": "post-service_fit_and_drain",
-      "unit_policy": "define_unit_in_protocol",
-      "value_shape": "number_or_structured",
-      "direction": "descriptive",
-      "aggregation_rule": "declare before data collection; preserve raw values",
-      "interpretation": "No cross-candidate comparison until unit, endpoint, normalization, and conditions are fixed."
+      "canonical_metric_id": "post_service_fit_and_drain",
+      "unit_policy": "predeclared pass/fail/not-run categorical result; unit '1'",
+      "value_shape": "string_or_boolean",
+      "direction": "non_compensatory",
+      "aggregation_rule": "must satisfy all applicable post-service fit and drain acceptance checks",
+      "interpretation": "Successful repair requires observed post-checks; unknown is not pass."
     },
     "post_service_drainage": {
       "canonical_metric_id": "post_service_drain_endpoint",
