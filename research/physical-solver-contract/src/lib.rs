@@ -1040,7 +1040,6 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
     }))
 }
 
-
 /// Verify each receipt-declared output artifact against its exact local file bytes.
 ///
 /// This verifies byte identity only. It deliberately does not authenticate the
@@ -1610,7 +1609,8 @@ mod tests {
                 .expect("output id is string")
                 .to_owned();
             let artifact_ref = format!("{output_id}.json");
-            let contents = format!("{{\"synthetic_fixture_only\":true,\"output_id\":\"{output_id}\"}}\n");
+            let contents =
+                format!("{{\"synthetic_fixture_only\":true,\"output_id\":\"{output_id}\"}}\n");
             fs::write(root.join(&artifact_ref), contents.as_bytes())
                 .expect("test artifact is written");
             output["artifact_ref"] = json!(artifact_ref);
@@ -1723,7 +1723,10 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|diagnostic| diagnostic.as_str().unwrap().contains("outside the declared artifact root"))
+                .any(|diagnostic| diagnostic
+                    .as_str()
+                    .unwrap()
+                    .contains("outside the declared artifact root"))
         );
 
         fs::remove_dir_all(root).expect("temporary artifact root is removed");
