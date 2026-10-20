@@ -96,8 +96,17 @@ pub fn step(
     flux.validate()?;
 
     let water_in = flux.rainwater_input_l + flux.supplemental_water_input_l;
+    if !water_in.is_finite() {
+        return Err(BalanceError::NonFinite { field: "water_in_l" });
+    }
     let water_out = flux.crop_water_uptake_l + flux.evaporation_l + flux.leakage_or_overflow_l;
+    if !water_out.is_finite() {
+        return Err(BalanceError::NonFinite { field: "water_out_l" });
+    }
     let water_available = before.water_l + water_in;
+    if !water_available.is_finite() {
+        return Err(BalanceError::NonFinite { field: "water_available_l" });
+    }
     if water_out > water_available {
         return Err(BalanceError::WaterDemandExceedsAvailable {
             available_l: water_available,
@@ -106,7 +115,13 @@ pub fn step(
     }
 
     let nutrients_available = before.dissolved_nutrients_g + flux.nutrient_input_g;
+    if !nutrients_available.is_finite() {
+        return Err(BalanceError::NonFinite { field: "nutrients_available_g" });
+    }
     let nutrients_out = flux.crop_nutrient_uptake_g + flux.nutrient_discharge_g;
+    if !nutrients_out.is_finite() {
+        return Err(BalanceError::NonFinite { field: "nutrients_out_g" });
+    }
     if nutrients_out > nutrients_available {
         return Err(BalanceError::NutrientDemandExceedsAvailable {
             available_g: nutrients_available,
@@ -198,6 +213,19 @@ mod tests {
             DailyFlux::default(),
         ).unwrap_err();
         assert_eq!(error, BalanceError::NonFinite { field: "water_l" });
+    }
+
+    #[test]
+    fn rejects_overflowing_flux_totals() {
+        let error = step(
+            ReservoirState { water_l: 0.0, dissolved_nutrients_g: 0.0 },
+            DailyFlux {
+                rainwater_input_l: f64::MAX,
+                supplemental_water_input_l: f64::MAX,
+                ..DailyFlux::default()
+            },
+        ).unwrap_err();
+        assert_eq!(error, BalanceError::NonFinite { field: "water_in_l" });
     }
 
     #[test]
