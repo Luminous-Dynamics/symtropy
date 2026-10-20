@@ -111,13 +111,15 @@
           "id": "SHELTER-1",
           "capacity": 100,
           "accessible_capacity": 12,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-02T11:55:00Z"
         },
         {
           "id": "SHELTER-2",
           "capacity": 100,
           "accessible_capacity": 12,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-02T11:55:00Z"
         }
       ],
       "plans": [
@@ -214,13 +216,15 @@
           "id": "SHELTER-3",
           "capacity": 80,
           "accessible_capacity": 10,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-03T11:55:00Z"
         },
         {
           "id": "SHELTER-4",
           "capacity": 80,
           "accessible_capacity": 10,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-03T11:55:00Z"
         }
       ],
       "plans": [
@@ -322,13 +326,15 @@
           "id": "SHELTER-5",
           "capacity": 60,
           "accessible_capacity": 10,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-04T11:55:00Z"
         },
         {
           "id": "SHELTER-6",
           "capacity": 60,
           "accessible_capacity": 10,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-04T11:55:00Z"
         }
       ],
       "plans": [
@@ -406,13 +412,15 @@
           "id": "SHELTER-NEAR",
           "capacity": 40,
           "accessible_capacity": 4,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-05T11:55:00Z"
         },
         {
           "id": "SHELTER-ACCESSIBLE",
           "capacity": 40,
           "accessible_capacity": 14,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-05T11:55:00Z"
         }
       ],
       "plans": [
@@ -498,7 +506,8 @@
           "id": "SHELTER-7",
           "capacity": 30,
           "accessible_capacity": 5,
-          "status": "confirmed"
+          "status": "confirmed",
+          "observed_at": "2026-07-06T11:55:00Z"
         }
       ],
       "plans": [
