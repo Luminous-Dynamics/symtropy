@@ -117,6 +117,12 @@ The new module includes tests for:
 
 These tests are authored, not yet compiled or executed at the time this note was written.
 
+## Frozen fixture now checked in
+
+The machine-readable `benchmarks/render/SOLAR-SCALE-01.json` fixture defines the current planned qualification ladder: local 1 m/1 km, planetary-radius context, Earth-Moon distance, 1 AU, Neptune semimajor-axis scale, 100 AU, apparent-size formula cases, and a seven-stage forward-and-return traversal. It includes the required invariants, reference-value provenance, and report schema.
+
+NASA/JPL's planetary parameters list Earth's mean radius at 6,371.0084 km and Neptune's semimajor axis at about 4.515 billion km; NASA/NSSDC's Sun facts list a mean radius of 695,700 km. The fixture uses the conventional astronomical unit value 149,597,870,700 m. These values anchor workload scale; a runtime scientific scene must still carry exact source/kernel identity, reference frame, time scale, and epoch rather than infer ephemerides from these single constants.
+
 ## Required benchmarks
 
 ### Coordinate precision and cost
