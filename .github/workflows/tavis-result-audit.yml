@@ -39,12 +39,15 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt
       - name: Verify exact source head
+        shell: bash
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
       - name: Format check
+        shell: bash
         run: cargo fmt --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml -- --check
       - name: Compile and test result audit
+        shell: bash
         run: cargo test --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml
