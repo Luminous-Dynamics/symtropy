@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "reference_repository": "creator-xi/Conformal-Optimistic-Prediction",
+  "reference_commit": "a41c0dcadc10979d8521ab9b5b8f3d460807d883",
+  "cases": [
+    {
+      "name": "aci_quantile_and_alpha_trace",
+      "method": "aci",
+      "scores": [
+        0.02,
+        0.08,
+        0.04,
+        0.12,
+        0.03,
+        0.1,
+        0.06
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.1,
+      "window_length": 2,
+      "burnin": 1,
+      "ahead": 1
+    },
+    {
+      "name": "aci_clipped_quantile_and_alpha_trace",
+      "method": "aci_clipped",
+      "scores": [
+        0.02,
+        0.08,
+        0.04,
+        0.12,
+        0.03,
+        0.1,
+        0.06
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.1,
+      "window_length": 2,
+      "burnin": 1,
+      "ahead": 1
+    },
+    {
+      "name": "cop_ecdf_integrator_trace",
+      "method": "cop",
+      "scores": [
+        0.2,
+        0.5,
+        0.4,
+        0.8,
+        0.3,
+        0.9
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.1,
+      "burnin": 2,
+      "ahead": 1
+    },
+    {
+      "name": "ogd_hits_and_misses",
+      "method": "ogd",
+      "scores": [
+        0,
+        0.02,
+        0.04,
+        0.08,
+        0.06,
+        0.1
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.1,
+      "ahead": 1
+    },
+    {
+      "name": "scale_free_ogd_hits_and_misses",
+      "method": "sf_ogd",
+      "scores": [
+        0,
+        0.02,
+        0.04,
+        0.08,
+        0.06,
+        0.1
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.1,
+      "ahead": 1
+    },
+    {
+      "name": "decaying_step_ogd_hits_and_misses",
+      "method": "decay_ogd",
+      "scores": [
+        0,
+        0.02,
+        0.04,
+        0.08,
+        0.06,
+        0.1
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.1,
+      "ahead": 1
+    },
+    {
+      "name": "aci_alpha_threshold_equality",
+      "method": "aci",
+      "scores": [
+        0.5,
+        0.5,
+        0.4,
+        0.7,
+        0.3,
+        0.9,
+        0.6
+      ],
+      "alpha": 0.2,
+      "learning_rate": 0,
+      "window_length": 3,
+      "burnin": 0,
+      "ahead": 1
+    },
+    {
+      "name": "aci_clipped_tied_score_quantiles",
+      "method": "aci_clipped",
+      "scores": [
+        0.1,
+        0.2,
+        0.2,
+        0.2,
+        0.3,
+        0.2,
+        0.4,
+        0.2
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.05,
+      "window_length": 3,
+      "burnin": 1,
+      "ahead": 1
+    },
+    {
+      "name": "cop_all_equal_zero_scale",
+      "method": "cop",
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "alpha": 0.1,
+      "learning_rate": 0.1,
+      "burnin": 3,
+      "ahead": 1
+    },
+    {
+      "name": "ogd_ahead_two",
+      "method": "ogd",
+      "scores": [
+        0,
+        0.02,
+        0.04,
+        0.08,
+        0.06,
+        0.1
+      ],
+      "alpha": 0.25,
+      "learning_rate": 0.1,
+      "ahead": 2
+    }
+  ]
+}
