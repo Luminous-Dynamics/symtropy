@@ -77,7 +77,8 @@ impl Objective {
 }
 
 fn compare_objective(a: &Objective, b: &Objective) -> std::cmp::Ordering {
-    a.unserved.cmp(&b.unserved)
+    a.unserved
+        .cmp(&b.unserved)
         .then_with(|| a.p95_arrival.cmp(&b.p95_arrival))
         .then_with(|| a.queue_vehicle_steps.cmp(&b.queue_vehicle_steps))
         .then_with(|| a.free_flow_cost.cmp(&b.free_flow_cost))
@@ -85,17 +86,24 @@ fn compare_objective(a: &Objective, b: &Objective) -> std::cmp::Ordering {
 }
 
 fn text<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
-    value.get(key).and_then(Value::as_str)
+    value
+        .get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{at}.{key}: expected string"))
 }
 
 fn array<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a [Value]> {
-    value.get(key).and_then(Value::as_array).map(Vec::as_slice)
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
         .ok_or_else(|| format!("{at}.{key}: expected array"))
 }
 
 fn uint(value: &Value, key: &str, at: &str) -> Check<u64> {
-    value.get(key).and_then(Value::as_u64)
+    value
+        .get(key)
+        .and_then(Value::as_u64)
         .ok_or_else(|| format!("{at}.{key}: expected non-negative integer"))
 }
 
@@ -105,9 +113,11 @@ fn hash(bytes: &[u8]) -> String {
 
 fn route_cost(route: &[String], edge_costs: &BTreeMap<String, u64>, at: &str) -> Check<u64> {
     route.iter().try_fold(0u64, |sum, edge_id| {
-        let cost = edge_costs.get(edge_id)
+        let cost = edge_costs
+            .get(edge_id)
             .ok_or_else(|| format!("{at}: unknown route edge {edge_id}"))?;
-        sum.checked_add(*cost).ok_or_else(|| format!("{at}: route cost overflow"))
+        sum.checked_add(*cost)
+            .ok_or_else(|| format!("{at}: route cost overflow"))
     })
 }
 
@@ -117,7 +127,9 @@ fn parse_case(case: &Value) -> Check<(Vec<Demand>, Vec<Unit>)> {
     let sink_values = array(case, "sinks", case_id)?;
     let demand_values = array(case, "demands", case_id)?;
     if edge_values.is_empty() || sink_values.is_empty() || demand_values.is_empty() {
-        return Err(format!("{case_id}: edges, sinks and demands must be non-empty"));
+        return Err(format!(
+            "{case_id}: edges, sinks and demands must be non-empty"
+        ));
     }
 
     let mut edge_costs = BTreeMap::<String, u64>::new();
@@ -127,7 +139,8 @@ fn parse_case(case: &Value) -> Check<(Vec<Demand>, Vec<Unit>)> {
         let from = text(edge, "from", &id)?.to_owned();
         let to = text(edge, "to", &id)?.to_owned();
         let cost = uint(edge, "travel_time_steps", &id)?;
-        if id.is_empty() || from == to || cost == 0 || edge_costs.insert(id.clone(), cost).is_some() {
+        if id.is_empty() || from == to || cost == 0 || edge_costs.insert(id.clone(), cost).is_some()
+        {
             return Err(format!("{case_id}: invalid or duplicate edge {id}"));
         }
         edge_connectivity.insert(id, (from, to));
@@ -155,18 +168,28 @@ fn parse_case(case: &Value) -> Check<(Vec<Demand>, Vec<Unit>)> {
         let vehicles = uint(raw, "vehicles", &id)?;
         let accessible = uint(raw, "accessible_vehicles", &id)?;
         let departure_step = uint(raw, "departure_step", &id)?;
-        if id.is_empty() || !ids.insert(id.clone()) || vehicles == 0 || accessible > vehicles || departure_step == 0 {
+        if id.is_empty()
+            || !ids.insert(id.clone())
+            || vehicles == 0
+            || accessible > vehicles
+            || departure_step == 0
+        {
             return Err(format!("{case_id}: invalid demand stream {id}"));
         }
-        unit_count = unit_count.checked_add(vehicles as usize)
+        unit_count = unit_count
+            .checked_add(vehicles as usize)
             .ok_or_else(|| format!("{case_id}: unit count overflow"))?;
         if unit_count > MAX_UNITS {
-            return Err(format!("{case_id}: exact route enumeration limited to {MAX_UNITS} vehicles"));
+            return Err(format!(
+                "{case_id}: exact route enumeration limited to {MAX_UNITS} vehicles"
+            ));
         }
 
         let raw_routes = array(raw, "candidate_routes", &id)?;
         if raw_routes.is_empty() {
-            return Err(format!("{case_id}.{id}: candidate_routes must be non-empty"));
+            return Err(format!(
+                "{case_id}.{id}: candidate_routes must be non-empty"
+            ));
         }
         let mut routes = Vec::<Route>::new();
         let mut route_ids = BTreeSet::new();
@@ -174,39 +197,65 @@ fn parse_case(case: &Value) -> Check<(Vec<Demand>, Vec<Unit>)> {
             let route_id = text(raw_route, "id", &id)?.to_owned();
             let sink_id = text(raw_route, "destination_sink_id", &route_id)?.to_owned();
             let edge_array = array(raw_route, "route_edge_ids", &route_id)?;
-            let edge_ids: Vec<String> = edge_array.iter()
-                .map(|edge| edge.as_str().map(str::to_owned)
-                    .ok_or_else(|| format!("{case_id}.{route_id}: route edge ID must be a string")))
+            let edge_ids: Vec<String> = edge_array
+                .iter()
+                .map(|edge| {
+                    edge.as_str().map(str::to_owned).ok_or_else(|| {
+                        format!("{case_id}.{route_id}: route edge ID must be a string")
+                    })
+                })
                 .collect::<Check<Vec<_>>>()?;
             if route_id.is_empty() || !route_ids.insert(route_id.clone()) || edge_ids.is_empty() {
-                return Err(format!("{case_id}.{id}: empty/duplicate route or empty route path"));
+                return Err(format!(
+                    "{case_id}.{id}: empty/duplicate route or empty route path"
+                ));
             }
-            let sink_node = sink_nodes.get(&sink_id)
+            let sink_node = sink_nodes
+                .get(&sink_id)
                 .ok_or_else(|| format!("{case_id}.{route_id}: unknown sink {sink_id}"))?;
-            if edge_connectivity.get(&edge_ids[0]).map(|pair| pair.0.as_str()) != Some(origin.as_str()) {
-                return Err(format!("{case_id}.{route_id}: first edge does not start at origin {origin}"));
+            if edge_connectivity
+                .get(&edge_ids[0])
+                .map(|pair| pair.0.as_str())
+                != Some(origin.as_str())
+            {
+                return Err(format!(
+                    "{case_id}.{route_id}: first edge does not start at origin {origin}"
+                ));
             }
             for pair in edge_ids.windows(2) {
-                let end = edge_connectivity.get(&pair[0])
+                let end = edge_connectivity
+                    .get(&pair[0])
                     .map(|edge| edge.1.as_str())
                     .ok_or_else(|| format!("{case_id}.{route_id}: unknown edge {}", pair[0]))?;
-                let start = edge_connectivity.get(&pair[1])
+                let start = edge_connectivity
+                    .get(&pair[1])
                     .map(|edge| edge.0.as_str())
                     .ok_or_else(|| format!("{case_id}.{route_id}: unknown edge {}", pair[1]))?;
                 if end != start {
                     return Err(format!("{case_id}.{route_id}: disconnected route"));
                 }
             }
-            if edge_connectivity.get(edge_ids.last().expect("non-empty"))
-                .map(|edge| edge.1.as_str()) != Some(sink_node.as_str()) {
-                return Err(format!("{case_id}.{route_id}: final edge does not reach sink {sink_id}"));
+            if edge_connectivity
+                .get(edge_ids.last().expect("non-empty"))
+                .map(|edge| edge.1.as_str())
+                != Some(sink_node.as_str())
+            {
+                return Err(format!(
+                    "{case_id}.{route_id}: final edge does not reach sink {sink_id}"
+                ));
             }
             let cost = route_cost(&edge_ids, &edge_costs, &format!("{case_id}.{route_id}"))?;
-            routes.push(Route { id: route_id, sink_id, edge_ids, free_flow_cost: cost });
+            routes.push(Route {
+                id: route_id,
+                sink_id,
+                edge_ids,
+                free_flow_cost: cost,
+            });
         }
         routes.sort_by(|a, b| a.id.cmp(&b.id));
         for _ in 0..vehicles {
-            combination_count = combination_count.checked_mul(routes.len() as u64)
+            combination_count = combination_count
+                .checked_mul(routes.len() as u64)
                 .ok_or_else(|| format!("{case_id}: candidate combination count overflow"))?;
             if combination_count > MAX_ASSIGNMENTS {
                 return Err(format!(
@@ -214,7 +263,14 @@ fn parse_case(case: &Value) -> Check<(Vec<Demand>, Vec<Unit>)> {
                 ));
             }
         }
-        demands.push(Demand { id, origin, vehicles, accessible, departure_step, routes });
+        demands.push(Demand {
+            id,
+            origin,
+            vehicles,
+            accessible,
+            departure_step,
+            routes,
+        });
     }
 
     let mut units = Vec::with_capacity(unit_count);
@@ -231,7 +287,12 @@ fn parse_case(case: &Value) -> Check<(Vec<Demand>, Vec<Unit>)> {
     Ok((demands, units))
 }
 
-fn evaluate_assignment(case: &Value, demands: &[Demand], units: &[Unit], assignment: &[usize]) -> Check<Evaluation> {
+fn evaluate_assignment(
+    case: &Value,
+    demands: &[Demand],
+    units: &[Unit],
+    assignment: &[usize],
+) -> Check<Evaluation> {
     if assignment.len() != units.len() {
         return Err("assignment length does not match vehicle unit count".to_owned());
     }
@@ -241,9 +302,12 @@ fn evaluate_assignment(case: &Value, demands: &[Demand], units: &[Unit], assignm
     let mut free_flow_cost = 0u64;
     for (unit, route_index) in units.iter().zip(assignment.iter()) {
         let demand = &demands[unit.demand_index];
-        let route = unit.options.get(*route_index)
+        let route = unit
+            .options
+            .get(*route_index)
             .ok_or_else(|| format!("{}: assignment route index out of range", demand.id))?;
-        free_flow_cost = free_flow_cost.checked_add(route.free_flow_cost)
+        free_flow_cost = free_flow_cost
+            .checked_add(route.free_flow_cost)
             .ok_or_else(|| "free-flow cost overflow".to_owned())?;
         route_vector.push(route.id.clone());
         expanded.push(json!({
@@ -260,7 +324,10 @@ fn evaluate_assignment(case: &Value, demands: &[Demand], units: &[Unit], assignm
     sim_case["demands"] = json!(expanded);
     let simulation = network::simulate_case(&sim_case)?;
     let unserved = uint(&simulation, "unserved_or_stranded_vehicles", "simulation")?;
-    let p95 = simulation.get("p95_arrival_step").and_then(Value::as_u64).unwrap_or(u64::MAX);
+    let p95 = simulation
+        .get("p95_arrival_step")
+        .and_then(Value::as_u64)
+        .unwrap_or(u64::MAX);
     let queue_vehicle_steps = uint(&simulation, "queue_vehicle_steps", "simulation")?;
     let objective = Objective {
         unserved,
@@ -277,23 +344,40 @@ fn evaluate_assignment(case: &Value, demands: &[Demand], units: &[Unit], assignm
     })
 }
 
-fn best_assignment(case: &Value, demands: &[Demand], units: &[Unit], exhaustive: bool) -> Check<Evaluation> {
+fn best_assignment(
+    case: &Value,
+    demands: &[Demand],
+    units: &[Unit],
+    exhaustive: bool,
+) -> Check<Evaluation> {
     if !exhaustive {
-        let assignment: Vec<usize> = units.iter().map(|unit| {
-            unit.options.iter().enumerate()
-                .min_by(|(_, a), (_, b)| a.free_flow_cost.cmp(&b.free_flow_cost).then_with(|| a.id.cmp(&b.id)))
-                .map(|(index, _)| index)
-                .expect("route options validated")
-        }).collect();
+        let assignment: Vec<usize> = units
+            .iter()
+            .map(|unit| {
+                unit.options
+                    .iter()
+                    .enumerate()
+                    .min_by(|(_, a), (_, b)| {
+                        a.free_flow_cost
+                            .cmp(&b.free_flow_cost)
+                            .then_with(|| a.id.cmp(&b.id))
+                    })
+                    .map(|(index, _)| index)
+                    .expect("route options validated")
+            })
+            .collect();
         return evaluate_assignment(case, demands, units, &assignment);
     }
 
     let combinations = units.iter().try_fold(1u64, |total, unit| {
-        total.checked_mul(unit.options.len() as u64)
+        total
+            .checked_mul(unit.options.len() as u64)
             .ok_or_else(|| "joint assignment count overflow".to_owned())
     })?;
     if combinations > MAX_ASSIGNMENTS {
-        return Err(format!("exact assignment count {combinations} exceeds budget {MAX_ASSIGNMENTS}"));
+        return Err(format!(
+            "exact assignment count {combinations} exceeds budget {MAX_ASSIGNMENTS}"
+        ));
     }
     let mut best: Option<Evaluation> = None;
     for encoded in 0..combinations {
@@ -305,11 +389,14 @@ fn best_assignment(case: &Value, demands: &[Demand], units: &[Unit], exhaustive:
             remainder /= radix;
         }
         let candidate = evaluate_assignment(case, demands, units, &assignment)?;
-        if best.as_ref().is_none_or(|current| compare_objective(&candidate.objective, &current.objective).is_lt()) {
+        if best.as_ref().is_none_or(|current| {
+            compare_objective(&candidate.objective, &current.objective).is_lt()
+        }) {
             best = Some(candidate);
         }
     }
-    let mut best = best.ok_or_else(|| "joint assignment enumeration returned no candidates".to_owned())?;
+    let mut best =
+        best.ok_or_else(|| "joint assignment enumeration returned no candidates".to_owned())?;
     best.enumeration_count = combinations;
     Ok(best)
 }
@@ -318,10 +405,18 @@ fn assignments_by_demand(demands: &[Demand], units: &[Unit], assignment: &[usize
     let mut per_demand = BTreeMap::<String, BTreeMap<String, u64>>::new();
     for (unit, route_index) in units.iter().zip(assignment) {
         let route_id = &unit.options[*route_index].id;
-        *per_demand.entry(demands[unit.demand_index].id.clone())
-            .or_default().entry(route_id.clone()).or_default() += 1;
+        *per_demand
+            .entry(demands[unit.demand_index].id.clone())
+            .or_default()
+            .entry(route_id.clone())
+            .or_default() += 1;
     }
-    json!(per_demand.into_iter().map(|(id, counts)| (id, json!(counts))).collect::<BTreeMap<_,_>>())
+    json!(
+        per_demand
+            .into_iter()
+            .map(|(id, counts)| (id, json!(counts)))
+            .collect::<BTreeMap<_, _>>()
+    )
 }
 
 fn evaluation_json(evaluation: &Evaluation, demands: &[Demand], units: &[Unit]) -> Value {
@@ -351,7 +446,10 @@ fn evaluate_case(case: &Value, index: usize) -> Check<Value> {
     let baseline_json = evaluation_json(&baseline, &demands, &units);
     let oracle_json = evaluation_json(&oracle, &demands, &units);
     let p95_improvement = match (
-        baseline.objective.p95_arrival.checked_sub(oracle.objective.p95_arrival),
+        baseline
+            .objective
+            .p95_arrival
+            .checked_sub(oracle.objective.p95_arrival),
         baseline.objective.p95_arrival,
         oracle.objective.p95_arrival,
     ) {
@@ -377,7 +475,8 @@ fn evaluate_case(case: &Value, index: usize) -> Check<Value> {
 
 fn validate_fixture(fixture: &Value) -> Check<Vec<Value>> {
     if fixture.get("schema_version").and_then(Value::as_str) != Some(VERSION)
-        || fixture.get("benchmark_id").and_then(Value::as_str) != Some("WILDFIRE-ROUTE-ASSIGNMENT-001")
+        || fixture.get("benchmark_id").and_then(Value::as_str)
+            != Some("WILDFIRE-ROUTE-ASSIGNMENT-001")
         || fixture.get("classification").and_then(Value::as_str) != Some("synthetic_only")
         || fixture.get("max_units").and_then(Value::as_u64) != Some(MAX_UNITS as u64)
         || fixture.get("max_joint_assignments").and_then(Value::as_u64) != Some(MAX_ASSIGNMENTS)
@@ -386,7 +485,10 @@ fn validate_fixture(fixture: &Value) -> Check<Vec<Value>> {
     }
     let cases = array(fixture, "cases", "fixture")?;
     if cases.len() != CASE_IDS.len() {
-        return Err(format!("fixture must contain exactly {} cases", CASE_IDS.len()));
+        return Err(format!(
+            "fixture must contain exactly {} cases",
+            CASE_IDS.len()
+        ));
     }
     let mut outputs = Vec::new();
     for (index, case) in cases.iter().enumerate() {
@@ -406,12 +508,18 @@ fn scorecard(cases: &[Value]) -> Value {
     let mut baseline_queue_steps = 0u64;
     let mut oracle_queue_steps = 0u64;
     for case in cases {
-        baseline_worse_p95 += usize::from(case["baseline_strictly_worse_p95"].as_bool() == Some(true));
-        baseline_worse_unserved += usize::from(case["baseline_strictly_worse_unserved"].as_bool() == Some(true));
+        baseline_worse_p95 +=
+            usize::from(case["baseline_strictly_worse_p95"].as_bool() == Some(true));
+        baseline_worse_unserved +=
+            usize::from(case["baseline_strictly_worse_unserved"].as_bool() == Some(true));
         exact_same += usize::from(case["objectives_identical"].as_bool() == Some(true));
         enumeration_total += case["joint_assignment_combinations"].as_u64().unwrap_or(0);
-        baseline_queue_steps += case["B1_independent_shortest_path"]["queue_vehicle_steps"].as_u64().unwrap_or(0);
-        oracle_queue_steps += case["B2_exact_joint_assignment"]["queue_vehicle_steps"].as_u64().unwrap_or(0);
+        baseline_queue_steps += case["B1_independent_shortest_path"]["queue_vehicle_steps"]
+            .as_u64()
+            .unwrap_or(0);
+        oracle_queue_steps += case["B2_exact_joint_assignment"]["queue_vehicle_steps"]
+            .as_u64()
+            .unwrap_or(0);
     }
     json!({
         "case_count": cases.len(),
@@ -436,13 +544,17 @@ fn scorecard(cases: &[Value]) -> Value {
 fn run() -> Check<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 || args[2] != "--source-commit" {
-        return Err("usage: wildfire_route_assignment <fixture.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: wildfire_route_assignment <fixture.json> --source-commit <40-hex-sha>"
+                .to_owned(),
+        );
     }
     if args[3].len() != 40 || !args[3].bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err("source commit must be a 40-character hex SHA".to_owned());
     }
     let bytes = fs::read(&args[1]).map_err(|e| format!("read fixture: {e}"))?;
-    let fixture: Value = serde_json::from_slice(&bytes).map_err(|e| format!("parse fixture: {e}"))?;
+    let fixture: Value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("parse fixture: {e}"))?;
     let cases = validate_fixture(&fixture)?;
     let receipt = json!({
         "result": "pass",
@@ -455,7 +567,10 @@ fn run() -> Check<()> {
         "cases": cases,
         "claim_boundary": "independent shortest-path baseline vs exhaustive joint route assignment on tiny synthetic fixed-route queue networks only"
     });
-    println!("{}", serde_json::to_string(&receipt).map_err(|e| format!("serialize receipt: {e}"))?);
+    println!(
+        "{}",
+        serde_json::to_string(&receipt).map_err(|e| format!("serialize receipt: {e}"))?
+    );
     Ok(())
 }
 
@@ -484,11 +599,15 @@ mod tests {
     fn joint_assignment_improves_at_least_one_congestion_or_capacity_case() {
         let results = validate_fixture(&fixture()).expect("frozen fixture validates");
         assert_eq!(results.len(), 4);
-        assert!(results[0]["baseline_strictly_worse_p95"] == true
-            || results[0]["B1_independent_shortest_path"]["queue_vehicle_steps"]
-                .as_u64().unwrap_or(u64::MAX)
-                > results[0]["B2_exact_joint_assignment"]["queue_vehicle_steps"]
-                    .as_u64().unwrap_or(u64::MAX));
+        assert!(
+            results[0]["baseline_strictly_worse_p95"] == true
+                || results[0]["B1_independent_shortest_path"]["queue_vehicle_steps"]
+                    .as_u64()
+                    .unwrap_or(u64::MAX)
+                    > results[0]["B2_exact_joint_assignment"]["queue_vehicle_steps"]
+                        .as_u64()
+                        .unwrap_or(u64::MAX)
+        );
         assert!(results[1]["baseline_strictly_worse_unserved"] == true);
         assert!(results[2]["baseline_strictly_worse_unserved"] == true);
     }
@@ -519,15 +638,30 @@ mod tests {
             case["sinks"].as_array_mut().expect("sinks").reverse();
             case["demands"].as_array_mut().expect("demands").reverse();
             for demand in case["demands"].as_array_mut().expect("demands") {
-                demand["candidate_routes"].as_array_mut().expect("candidate routes").reverse();
+                demand["candidate_routes"]
+                    .as_array_mut()
+                    .expect("candidate routes")
+                    .reverse();
             }
         }
         let reordered = validate_fixture(&fixture).expect("reordered");
         for (a, b) in original.iter().zip(reordered.iter()) {
-            assert_eq!(a["B1_independent_shortest_path"]["objective"], b["B1_independent_shortest_path"]["objective"]);
-            assert_eq!(a["B2_exact_joint_assignment"]["objective"], b["B2_exact_joint_assignment"]["objective"]);
-            assert_eq!(a["B1_independent_shortest_path"]["assignment_by_demand"], b["B1_independent_shortest_path"]["assignment_by_demand"]);
-            assert_eq!(a["B2_exact_joint_assignment"]["assignment_by_demand"], b["B2_exact_joint_assignment"]["assignment_by_demand"]);
+            assert_eq!(
+                a["B1_independent_shortest_path"]["objective"],
+                b["B1_independent_shortest_path"]["objective"]
+            );
+            assert_eq!(
+                a["B2_exact_joint_assignment"]["objective"],
+                b["B2_exact_joint_assignment"]["objective"]
+            );
+            assert_eq!(
+                a["B1_independent_shortest_path"]["assignment_by_demand"],
+                b["B1_independent_shortest_path"]["assignment_by_demand"]
+            );
+            assert_eq!(
+                a["B2_exact_joint_assignment"]["assignment_by_demand"],
+                b["B2_exact_joint_assignment"]["assignment_by_demand"]
+            );
         }
     }
 
