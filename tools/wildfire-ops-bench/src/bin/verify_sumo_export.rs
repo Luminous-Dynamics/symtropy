@@ -120,7 +120,7 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
         if manifest.get("case_id").and_then(Value::as_str) != Some(case_id)
             || manifest.get("result").and_then(Value::as_str) != Some("pass")
             || manifest.get("claim_boundary").and_then(Value::as_str)
-                != Some("structural export only; no matched simulation was executed")
+                != Some("structural export only; no matched SUMO simulation was executed")
         {
             return Err(format!("{at}: manifest metadata/claim boundary mismatch"));
         }
