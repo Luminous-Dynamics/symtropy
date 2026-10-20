@@ -72,6 +72,8 @@ jobs:
           grep -Fq "mean_logical_state_bytes" vis-relational-memory.tsv
           grep -Fq "mean_hazard_mae" vis-relational-memory.tsv
           grep -Fq "root_mean_hazard_mse" vis-relational-memory.tsv
+          grep -Fq "mean_sensor_base_mae" vis-relational-memory.tsv
+          grep -Fq "root_mean_sensor_base_mse" vis-relational-memory.tsv
           grep -Fq "confidence is sampled independently" vis-relational-memory.tsv
           grep -Fq "conditional corruption p per tier" vis-relational-memory.tsv
           grep -Fq "selective threshold calibrated on 256 separate development episodes" vis-relational-memory.tsv
