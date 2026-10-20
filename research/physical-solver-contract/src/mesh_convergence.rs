@@ -520,7 +520,10 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
             )
         })?;
     if selected.get("media_type").and_then(Value::as_str) != Some("application/json") {
-        return Err(format!("level '{}': normalized observation output must be application/json", level.level_id));
+        return Err(format!(
+            "level '{}': normalized observation output must be application/json",
+            level.level_id
+        ));
     }
     let artifact_ref = string(selected, "artifact_ref", "receipt output")?;
     let declared_output_sha = string(selected, "sha256", "receipt output")?;
@@ -1300,7 +1303,8 @@ mod tests {
 
         value["acceptance"]["max_fine_relative_error"] = json!(0.2);
         let report =
-            assess_mesh_refinement_study_bytes(&serde_json::to_vec(&value).unwrap(), &root).unwrap();
+            assess_mesh_refinement_study_bytes(&serde_json::to_vec(&value).unwrap(), &root)
+                .unwrap();
         assert_eq!(report["fine_mesh_accuracy_status"], "UNRESOLVED");
         fs::remove_dir_all(root).unwrap();
     }
