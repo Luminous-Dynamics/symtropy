@@ -65,28 +65,22 @@ impl Family {
     }
 
     fn sample_profile(self, rng: &mut Rng) -> NuisanceProfile {
-        let (distractor_values, flip_values, delay_values, corruption_values) = match self {
-            // The development domain spans milder conditions, but each nuisance
-            // axis is sampled independently per episode.
+        // Draw each nuisance independently. Development and held-out ranges
+        // overlap only at their declared boundary, but vary within each family.
+        let (distractor_rate, flip_rate, max_delay, corruption_rate) = match self {
             Self::Development => (
-                [150_u64, 250, 350].as_slice(),
-                [10_u64, 20, 30].as_slice(),
-                [0_usize, 1, 2].as_slice(),
-                [0_u64, 10, 20].as_slice(),
+                [150_u64, 250, 350][rng.range(3)],
+                [10_u64, 20, 30][rng.range(3)],
+                [0_usize, 1, 2][rng.range(3)],
+                [0_u64, 10, 20][rng.range(3)],
             ),
-            // Held-out ranges shift upward but retain within-family variation
-            // so the evaluator can compare low/high stress episodes in-domain.
             Self::HeldOut => (
-                [350_u64, 500, 650].as_slice(),
-                [30_u64, 50, 70].as_slice(),
-                [2_usize, 3, 4, 5].as_slice(),
-                [40_u64, 55, 70].as_slice(),
+                [350_u64, 500, 650][rng.range(3)],
+                [30_u64, 50, 70][rng.range(3)],
+                [2_usize, 3, 4, 5][rng.range(4)],
+                [40_u64, 55, 70][rng.range(3)],
             ),
         };
-        let distractor_rate = distractor_values[rng.range(distractor_values.len())];
-        let flip_rate = flip_values[rng.range(flip_values.len())];
-        let max_delay = delay_values[rng.range(delay_values.len())];
-        let corruption_rate = corruption_values[rng.range(corruption_values.len())];
 
         let (high_distractor_rate, high_flip_rate, high_max_delay, high_corruption_rate) =
             match self {
@@ -723,13 +717,13 @@ mod tests {
             flip_rate: 25,
             max_delay: 2,
             corruption_rate: 20,
-            high_distractor_rate: false,
-            high_flip_rate: false,
-            high_max_delay: false,
-            high_corruption_rate: false,
+            high_distractor_rate: true,
+            high_flip_rate: true,
+            high_max_delay: true,
+            high_corruption_rate: true,
         };
         let episode = Episode { query, profile, truth, stream };
-        assert_eq!(episode.evaluator_strata(), [true, true, true, true]);
+        assert_eq!(episode.evaluator_strata(), [true; STRATA_COUNT]);
     }
 
     #[test]
