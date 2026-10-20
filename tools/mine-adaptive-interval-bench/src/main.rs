@@ -25,6 +25,7 @@ const COVERAGE_BAND_LOWER: f64 = 0.85;
 const COVERAGE_BAND_UPPER: f64 = 0.95;
 const COVERAGE_WINDOW_TICKS: usize = 8;
 const MIN_LABELS_PER_COVERAGE_WINDOW: usize = 6;
+const COVERAGE_BAND_SUSTAINED_WINDOWS: usize = 3;
 const MAX_TELEMETRY_AGE: u8 = 1;
 const TRUST_RESIDUAL_LIMIT: f64 = 3.0;
 const HEALTHY_TICKS_TO_REENTER: usize = 3;
@@ -268,6 +269,7 @@ struct Receipt {
     coverage_band_upper: f64,
     coverage_window_ticks: usize,
     min_labels_per_coverage_window: usize,
+    coverage_band_sustained_windows: usize,
     trust_residual_limit: f64,
     max_telemetry_age_periods: u8,
     healthy_ticks_required_for_reentry: usize,
@@ -498,14 +500,17 @@ fn guarded_decision(
 }
 
 fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Option<usize> {
-    if COVERAGE_WINDOW_TICKS == 0 || onset >= outcomes.len() {
+    if COVERAGE_WINDOW_TICKS == 0 || COVERAGE_BAND_SUSTAINED_WINDOWS == 0 || onset >= outcomes.len()
+    {
         return None;
     }
 
+    let mut last_matured_count = 0_usize;
+    let mut sustained_windows = 0_usize;
     for end in onset..outcomes.len() {
         // Take the last W label outcomes that have actually matured by this time,
-        // not the last W wall-clock ticks. This makes delayed-label streams causal
-        // without shrinking their effective evaluation window to fewer than W rows.
+        // not the last W wall-clock ticks. Repeated clock ticks with no new mature
+        // label do not count as additional successful windows.
         let matured = outcomes
             .iter()
             .filter(|outcome| outcome.tick >= onset && outcome.tick <= end)
@@ -518,6 +523,10 @@ fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Optio
                 }
             })
             .collect::<Vec<_>>();
+        if matured.len() == last_matured_count {
+            continue;
+        }
+        last_matured_count = matured.len();
         if matured.len() < MIN_LABELS_PER_COVERAGE_WINDOW {
             continue;
         }
@@ -526,7 +535,12 @@ fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Optio
         let covered = window.iter().filter(|covered| **covered).count();
         let empirical = covered as f64 / window.len() as f64;
         if (COVERAGE_BAND_LOWER..=COVERAGE_BAND_UPPER).contains(&empirical) {
-            return Some(end - onset + 1);
+            sustained_windows += 1;
+            if sustained_windows >= COVERAGE_BAND_SUSTAINED_WINDOWS {
+                return Some(end - onset + 1);
+            }
+        } else {
+            sustained_windows = 0;
         }
     }
     None
@@ -1132,6 +1146,7 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         coverage_band_upper: COVERAGE_BAND_UPPER,
         coverage_window_ticks: COVERAGE_WINDOW_TICKS,
         min_labels_per_coverage_window: MIN_LABELS_PER_COVERAGE_WINDOW,
+        coverage_band_sustained_windows: COVERAGE_BAND_SUSTAINED_WINDOWS,
         trust_residual_limit: TRUST_RESIDUAL_LIMIT,
         max_telemetry_age_periods: MAX_TELEMETRY_AGE,
         healthy_ticks_required_for_reentry: HEALTHY_TICKS_TO_REENTER,
@@ -1351,24 +1366,25 @@ mod tests {
     }
 
     #[test]
-    fn coverage_recovery_waits_for_mature_labels_and_uses_last_eight_observations() {
-        let mut delayed = (0..13)
-            .map(|tick| StepOutcome {
-                tick,
-                radius: 1.0,
-                decision: Decision::DiagnoseOnly,
-                coverage: Some(tick != 0),
-                label_matures_at: Some(tick + 5),
-                interval_width: 2.0,
-                hard_control: false,
-            })
+    fn coverage_recovery_requires_sustained_band_and_mature_labels() {
+        let make_outcome = |tick: usize, delay: usize| StepOutcome {
+            tick,
+            radius: 1.0,
+            decision: Decision::DiagnoseOnly,
+            coverage: Some(tick != 0 && tick != 8),
+            label_matures_at: Some(tick + delay),
+            interval_width: 2.0,
+            hard_control: false,
+        };
+        let immediate = (0..10)
+            .map(|tick| make_outcome(tick, 0))
             .collect::<Vec<_>>();
-        assert_eq!(Some(12), coverage_band_recovery_delay(&delayed, 0));
+        assert_eq!(Some(9), coverage_band_recovery_delay(&immediate, 0));
 
-        for outcome in &mut delayed {
-            outcome.label_matures_at = Some(outcome.tick);
-        }
-        assert_eq!(Some(7), coverage_band_recovery_delay(&delayed[..8], 0));
+        let delayed = (0..15)
+            .map(|tick| make_outcome(tick, 5))
+            .collect::<Vec<_>>();
+        assert_eq!(Some(14), coverage_band_recovery_delay(&delayed, 0));
     }
 
     #[test]
