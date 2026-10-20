@@ -331,12 +331,12 @@ pub fn score_weight_sensitivity(
     if interval_ids != model_ids {
         errors.push("weight interval model IDs must exactly match the declared model set".to_owned());
     }
-    if lower_sum > 1.0 + WEIGHT_SUM_TOLERANCE {
+    if lower_sum > 1.0 {
         errors.push(format!(
             "weight interval lower bounds sum to {lower_sum}, exceeding one"
         ));
     }
-    if upper_sum < 1.0 - WEIGHT_SUM_TOLERANCE {
+    if upper_sum < 1.0 {
         errors.push(format!(
             "weight interval upper bounds sum to {upper_sum}, below one"
         ));
@@ -399,7 +399,7 @@ fn extremal_weight_assignment(
         ordering.then_with(|| left.model_id.cmp(&right.model_id))
     });
     for model in order {
-        if remaining <= WEIGHT_SUM_TOLERANCE {
+        if remaining <= 0.0 {
             break;
         }
         let Some((_, upper)) = bounds.get(&model.model_id) else {
@@ -424,7 +424,7 @@ fn extremal_weight_assignment(
         *weight += addition;
         remaining = (remaining - addition).max(0.0);
     }
-    if remaining > WEIGHT_SUM_TOLERANCE {
+    if remaining > 0.0 {
         return Err(vec![
             "weight intervals could not allocate a normalized weight vector".to_owned(),
         ]);
@@ -626,6 +626,45 @@ mod tests {
         assert!((result.minimizing_weights["predator_weak"] - 0.6).abs() < 1e-9);
         assert!((result.maximizing_weights["predator_coupled"] - 0.8).abs() < 1e-9);
         assert!((result.maximizing_weights["predator_weak"] - 0.2).abs() < 1e-9);
+    }
+
+    #[test]
+    fn weight_sensitivity_allocates_small_residual_mass_for_large_losses() {
+        let mut models = example_models();
+        models[0].weight = 0.5;
+        models[1].weight = 0.5;
+        models[0]
+            .action_losses
+            .insert("retreat".to_owned(), 1.0);
+        models[1]
+            .action_losses
+            .insert("retreat".to_owned(), 1_000_000_000_000.0);
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.499_999_999_7,
+                upper: 0.500_000_000_3,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.499_999_999_7,
+                upper: 0.500_000_000_3,
+            },
+        ];
+        let result = score_weight_sensitivity(&models, "retreat", &intervals)
+            .expect("narrow but feasible intervals");
+        assert!(
+            (result.minimum_expected_loss - 499_999_999_700.5).abs() < 0.01,
+            "minimum loss should use the full feasible mass: {}",
+            result.minimum_expected_loss
+        );
+        assert!(
+            (result.maximum_expected_loss - 500_000_000_300.5).abs() < 0.01,
+            "maximum loss should allocate the small residual to the high-loss model: {}",
+            result.maximum_expected_loss
+        );
+        assert!((result.maximizing_weights["predator_coupled"] - 0.499_999_999_7).abs() < 1e-12);
+        assert!((result.maximizing_weights["predator_weak"] - 0.500_000_000_3).abs() < 1e-12);
     }
 
     #[test]
