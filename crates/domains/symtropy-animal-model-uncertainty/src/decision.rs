@@ -229,6 +229,43 @@ pub struct WeightSensitivity {
     pub maximizing_weights: BTreeMap<String, f64>,
 }
 
+/// Qualitative result of comparing two actions under the same admissible weights.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreferenceStability {
+    FirstStrictlyBetter,
+    FirstNeverWorse,
+    SecondStrictlyBetter,
+    SecondNeverWorse,
+    Equivalent,
+    CanFlip,
+}
+
+impl PreferenceStability {
+    /// Stable machine-readable label for reports and receipts.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::FirstStrictlyBetter => "first_strictly_better",
+            Self::FirstNeverWorse => "first_never_worse",
+            Self::SecondStrictlyBetter => "second_strictly_better",
+            Self::SecondNeverWorse => "second_never_worse",
+            Self::Equivalent => "equivalent",
+            Self::CanFlip => "ranking_can_flip",
+        }
+    }
+}
+
+/// Worst/best paired loss difference for two actions under a shared weight vector.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ActionPreferenceRange {
+    pub first_action: String,
+    pub second_action: String,
+    /// Extremes of loss(first_action) - loss(second_action).
+    /// Negative values favor the first action; positive values favor the second.
+    pub minimum_loss_difference: f64,
+    pub maximum_loss_difference: f64,
+    pub stability: PreferenceStability,
+}
+
 /// Bound an action's expected loss when model-structure weights are uncertain.
 ///
 /// This solves the linear optimization problem over all weights satisfying the
@@ -352,8 +389,8 @@ pub fn score_weight_sensitivity(
         return Err(errors);
     }
 
-    let minimizing_weights = extremal_weight_assignment(models, action, &bounds, false)?;
-    let maximizing_weights = extremal_weight_assignment(models, action, &bounds, true)?;
+    let minimizing_weights = extremal_weight_assignment(models, &losses, &bounds, false)?;
+    let maximizing_weights = extremal_weight_assignment(models, &losses, &bounds, true)?;
     let minimum_expected_loss = weighted_loss(&losses, &minimizing_weights)?;
     let maximum_expected_loss = weighted_loss(&losses, &maximizing_weights)?;
     if minimum_expected_loss > maximum_expected_loss + WEIGHT_SUM_TOLERANCE {
@@ -371,9 +408,70 @@ pub fn score_weight_sensitivity(
     })
 }
 
+/// Compare two actions using the same feasible model weights, avoiding the
+/// false inference that independent loss envelopes imply a ranking reversal.
+/// Positive differences favor the second action; negative differences favor
+/// the first. All model outcomes and intervals are validated before scoring.
+pub fn compare_actions_under_weight_uncertainty(
+    models: &[ModelOutcome],
+    first_action: &str,
+    second_action: &str,
+    intervals: &[ModelWeightInterval],
+) -> Result<ActionPreferenceRange, Vec<String>> {
+    if first_action == second_action {
+        return Err(vec!["actions to compare must be distinct".to_owned()]);
+    }
+    score_weight_sensitivity(models, first_action, intervals)?;
+    score_weight_sensitivity(models, second_action, intervals)?;
+
+    let differences: BTreeMap<String, f64> = models
+        .iter()
+        .map(|model| {
+            (
+                model.model_id.clone(),
+                model.action_losses[first_action] - model.action_losses[second_action],
+            )
+        })
+        .collect();
+    if differences.values().any(|value| !value.is_finite()) {
+        return Err(vec![
+            "action comparison produced a non-finite loss difference".to_owned(),
+        ]);
+    }
+    let bounds: BTreeMap<String, (f64, f64)> = intervals
+        .iter()
+        .map(|interval| (interval.model_id.clone(), (interval.lower, interval.upper)))
+        .collect();
+    let minimizing_weights = extremal_weight_assignment(models, &differences, &bounds, false)?;
+    let maximizing_weights = extremal_weight_assignment(models, &differences, &bounds, true)?;
+    let minimum_loss_difference = weighted_loss(&differences, &minimizing_weights)?;
+    let maximum_loss_difference = weighted_loss(&differences, &maximizing_weights)?;
+    let stability = if maximum_loss_difference < 0.0 {
+        PreferenceStability::FirstStrictlyBetter
+    } else if minimum_loss_difference > 0.0 {
+        PreferenceStability::SecondStrictlyBetter
+    } else if minimum_loss_difference == 0.0 && maximum_loss_difference == 0.0 {
+        PreferenceStability::Equivalent
+    } else if maximum_loss_difference <= 0.0 {
+        PreferenceStability::FirstNeverWorse
+    } else if minimum_loss_difference >= 0.0 {
+        PreferenceStability::SecondNeverWorse
+    } else {
+        PreferenceStability::CanFlip
+    };
+
+    Ok(ActionPreferenceRange {
+        first_action: first_action.to_owned(),
+        second_action: second_action.to_owned(),
+        minimum_loss_difference,
+        maximum_loss_difference,
+        stability,
+    })
+}
+
 fn extremal_weight_assignment(
     models: &[ModelOutcome],
-    action: &str,
+    values: &BTreeMap<String, f64>,
     bounds: &BTreeMap<String, (f64, f64)>,
     maximize: bool,
 ) -> Result<BTreeMap<String, f64>, Vec<String>> {
@@ -384,8 +482,8 @@ fn extremal_weight_assignment(
     let mut remaining = (1.0 - weights.values().sum::<f64>()).max(0.0);
     let mut order: Vec<&ModelOutcome> = models.iter().collect();
     order.sort_by(|left, right| {
-        let left_loss = left.action_losses[action];
-        let right_loss = right.action_losses[action];
+        let left_loss = values[&left.model_id];
+        let right_loss = values[&right.model_id];
         let ordering = if maximize {
             right_loss.total_cmp(&left_loss)
         } else {
@@ -734,4 +832,83 @@ mod tests {
         .expect_err("missing action loss must fail closed");
         assert!(errors.iter().any(|error| error.contains("missing loss")));
     }
+    #[test]
+    fn action_ranking_reports_when_preference_flips_across_shared_weights() {
+        let models = example_models();
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ];
+        let result = compare_actions_under_weight_uncertainty(
+            &models,
+            "graze",
+            "retreat",
+            &intervals,
+        )
+        .expect("feasible pairwise comparison");
+        assert!((result.minimum_loss_difference + 1.4).abs() < 1e-9);
+        assert!((result.maximum_loss_difference - 1.8).abs() < 1e-9);
+        assert_eq!(result.stability, PreferenceStability::CanFlip);
+    }
+
+    #[test]
+    fn action_ranking_can_prove_one_action_strictly_better() {
+        let models = example_models();
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ];
+        let result = compare_actions_under_weight_uncertainty(
+            &models,
+            "retreat",
+            "wait",
+            &intervals,
+        )
+        .expect("feasible pairwise comparison");
+        assert!((result.minimum_loss_difference - 1.0).abs() < 1e-9);
+        assert!((result.maximum_loss_difference - 2.0).abs() < 1e-9);
+        assert_eq!(result.stability, PreferenceStability::SecondStrictlyBetter);
+    }
+
+    #[test]
+    fn action_ranking_rejects_identical_actions() {
+        let models = example_models();
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ];
+        let errors = compare_actions_under_weight_uncertainty(
+            &models,
+            "wait",
+            "wait",
+            &intervals,
+        )
+        .expect_err("an action cannot be compared with itself");
+        assert!(errors.iter().any(|error| error.contains("distinct")));
+    }
+
 }
