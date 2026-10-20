@@ -1054,7 +1054,8 @@ mod tests {
         assert_eq!(summary["scenario_count"].as_u64(), Some(6));
         assert_eq!(summary["B1_static_shortest_route"]["selected_plan_count"].as_u64(), Some(5));
         assert_eq!(summary["B1_static_shortest_route"]["selected_infeasible_plan_count"].as_u64(), Some(5));
-        assert_eq!(summary["B1_static_shortest_route"]["actual_blocked_edge_violations_against_oracle"].as_u64(), Some(1));
+        assert_eq!(summary["B1_static_shortest_route"]["actual_blocked_edge_violations_against_oracle"].as_u64(), Some(2));
+        assert_eq!(summary["B1_static_shortest_route"]["expected_choice_match_count"].as_u64(), Some(1));
         assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["selected_plan_count"].as_u64(), Some(3));
         assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["abstention_count"].as_u64(), Some(3));
         assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["selected_infeasible_plan_count"].as_u64(), Some(0));
