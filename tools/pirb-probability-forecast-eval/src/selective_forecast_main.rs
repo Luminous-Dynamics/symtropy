@@ -63,23 +63,23 @@ fn expected_reason<'a>(
 ) -> Option<&'static str> {
     let target_id = string_at(policy, "target_id").unwrap_or_default();
     if !matches_registered_target(row, target_id) {
-        return Some("target_mismatch");
+        return Some("abstain_target_mismatch");
     }
     match string_at(row, "input_status").unwrap_or_default() {
-        "stale" => return Some("stale_inputs"),
-        "unknown" => return Some("unknown_inputs"),
+        "stale" => return Some("abstain_stale_inputs"),
+        "unknown" => return Some("abstain_unknown_inputs"),
         _ => {}
     }
     match string_at(row, "regime_status").unwrap_or_default() {
-        "shifted" => return Some("out_of_support"),
-        "unknown" => return Some("unknown_regime"),
+        "shifted" => return Some("abstain_out_of_support"),
+        "unknown" => return Some("abstain_unknown_regime"),
         _ => {}
     }
     if string_at(row, "evidence_status") != Some("sufficient") {
-        return Some("insufficient_evidence");
+        return Some("abstain_insufficient_evidence");
     }
     if number_at(row, "selection_score").unwrap_or_default() + SCORE_EPSILON < threshold {
-        return Some("low_selection_score");
+        return Some("abstain_low_selection_score");
     }
     None
 }
@@ -337,6 +337,39 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         .any(|value| (*value - deployed_threshold).abs() <= SCORE_EPSILON)
     {
         errors.push("deployed_threshold must be an entry in the preregistered threshold_grid".to_owned());
+    }
+
+    if string_at(&registration, "evidence_scope") == Some("authorized_historical") {
+        for (field, label) in [
+            ("forecast_artifact_sha256", "forecast artifact"),
+            ("outcome_snapshot_sha256", "outcome snapshot"),
+        ] {
+            let digest = string_at(provider, field).unwrap_or_default();
+            if digest.chars().all(|ch| ch == '0') || digest.chars().all(|ch| ch == '1') {
+                errors.push(format!(
+                    "authorized historical evaluation requires a non-placeholder {label} digest"
+                ));
+            }
+        }
+        let selection_digest = string_at(policy, "selection_model_sha256").unwrap_or_default();
+        if selection_digest.chars().all(|ch| ch == '0')
+            || selection_digest.chars().all(|ch| ch == '1')
+        {
+            errors.push(
+                "authorized historical evaluation requires a non-placeholder selection model digest"
+                    .to_owned(),
+            );
+        }
+        let governance = &registration["governance"];
+        if string_at(governance, "data_authority_reference")
+            .is_none_or(str::is_empty)
+            || string_at(governance, "disclosure_review_reference").is_none_or(str::is_empty)
+        {
+            errors.push(
+                "authorized historical evaluation requires non-empty authority and disclosure references"
+                    .to_owned(),
+            );
+        }
     }
 
     let target_id = string_at(policy, "target_id").unwrap_or_default();
@@ -714,6 +747,18 @@ mod tests {
         value["policy"]["threshold_grid"] = json!([0.0, 0.6, 0.4, 0.95]);
         let errors = evaluate(&value).expect_err("threshold selection must be deterministic and pinned");
         assert!(errors.iter().any(|error| error.contains("strictly increasing")));
+    }
+
+    #[test]
+    fn historical_scope_requires_authority_and_disclosure_approval() {
+        let mut value = fixture();
+        value["evidence_scope"] = json!("authorized_historical");
+        let errors = evaluate(&value).expect_err("real historical rows require governance clearance");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("authorized"))
+        );
     }
 
     #[test]
