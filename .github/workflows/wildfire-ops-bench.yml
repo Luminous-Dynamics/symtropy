@@ -5,7 +5,14 @@ on:
     branches: ["research/wildfire-ops-benchmark-v0-1"]
     paths:
       - "docs/tech/WILDFIRE_OPS_BENCHMARK_V0_1.md"
+      - "docs/tech/WILDFIRE_TRAFFIC_CTM_BENCHMARK_V0_1.md"
+      - "docs/tech/WILDFIRE_NETWORK_FLOW_V0_1.md"
+      - "docs/tech/WILDFIRE_SUMO_ADAPTER_V0_1.md"
       - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_TRAFFIC_CTM_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_TRAFFIC_CTM_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
       - "tools/wildfire-ops-bench/**"
       - ".github/workflows/wildfire-ops-bench.yml"
   pull_request:
@@ -150,6 +157,84 @@ jobs:
             wildfire-network-flow-reference-receipt.json \
             "$source_commit"
 
+      - name: Export frozen directed networks to SUMO plain XML
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          export SOURCE_COMMIT="$source_commit"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_sumo_export -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
+            wildfire-sumo-export \
+            "$source_commit" 60 13.9 > wildfire-sumo-export.stdout.json
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-NETWORK-001"
+            and .scenario_count == 6
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.cases | length == 6)
+            and (.cases | all(.manifest_sha256 | test("^[0-9a-f]{64}$")))
+            and (.cases | all(.file_sha256["nodes.nod.xml"] != null))
+            and (.cases | all(.file_sha256["edges.edg.xml"] != null))
+            and (.cases | all(.file_sha256["demand.rou.xml"] != null))
+            and (.cases | all(.file_sha256["closures.add.xml"] != null))
+          ' wildfire-sumo-export/index.json
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/nodes.nod.xml
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/edges.edg.xml
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/demand.rou.xml
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/closures.add.xml
+
+      - name: Build exported networks with pinned SUMO netconvert
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/eclipse-sumo/sumo@sha256:87623396d3501ca8d0ac25154e202bc38baa55a31c724e4dfd6ae60f297c6bf2"
+          docker pull "$image"
+          docker run --rm \
+            --mount "type=bind,src=$PWD/wildfire-sumo-export,dst=/data" \
+            "$image" bash -lc '
+              set -euo pipefail
+              echo "SUMO container started"
+              command -v netconvert
+              command -v sumo
+              netconvert --version 2>&1 | tee /data/netconvert-version.txt
+              sumo --version 2>&1 | tee /data/sumo-version.txt
+              grep -q "1.27.1" /data/netconvert-version.txt
+              grep -q "1.27.1" /data/sumo-version.txt
+              for case_dir in /data/*/; do
+                test -f "$case_dir/manifest.json" || continue
+                echo "Building network for $(basename "$case_dir")"
+                netconvert \
+                  --node-files "$case_dir/nodes.nod.xml" \
+                  --edge-files "$case_dir/edges.edg.xml" \
+                  --output-file "$case_dir/network.net.xml"
+                echo "Running SUMO smoke simulation for $(basename "$case_dir")"
+                if ! sumo \
+                  --net-file "$case_dir/network.net.xml" \
+                  --route-files "$case_dir/demand.rou.xml" \
+                  --additional-files "$case_dir/closures.add.xml" \
+                  --end 3000 \
+                  --time-to-teleport -1 \
+                  --no-step-log true \
+                  --duration-log.disable true \
+                  --tripinfo-output "$case_dir/tripinfo.xml" \
+                  > "$case_dir/sumo-smoke.stdout.log" 2> "$case_dir/sumo-smoke.stderr.log"; then
+                  cat "$case_dir/sumo-smoke.stdout.log"
+                  cat "$case_dir/sumo-smoke.stderr.log"
+                  exit 1
+                fi
+                test -s "$case_dir/tripinfo.xml"
+              done
+            '
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_sumo_export -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
+            wildfire-sumo-export \
+            "$source_commit"
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
@@ -158,5 +243,6 @@ jobs:
             wildfire-ops-reference-receipt.json
             wildfire-traffic-ctm-receipt.json
             wildfire-network-flow-reference-receipt.json
+            wildfire-sumo-export/
           if-no-files-found: error
           retention-days: 90
