@@ -521,6 +521,14 @@ mod tests {
                 .iter()
                 .any(|value| value.contains("calibration provenance"))
         );
+
+        let mut no_uncertainty = measured_observation("A");
+        no_uncertainty.measurement_uncertainty_mg = None;
+        let result = compare(&world, vec![no_uncertainty])
+            .expect("missing uncertainty is explicitly unresolved");
+        assert_eq!(result.status, ComparisonStatus::Unresolved);
+        assert!(result.diagnostics.iter().any(|value| value.contains("uncertainty bound")));
+        assert_eq!(result.aggregate.conservative_uncertainty_bound_mg, None);
     }
 
     #[test]
@@ -555,6 +563,38 @@ mod tests {
         assert_eq!(result.missing_observation_ids, vec!["B"]);
         assert_eq!(result.aggregate.input_mass_delta_mg, None);
         assert_eq!(result.aggregate.observed_mass_residual_mg, None);
+    }
+
+
+    #[test]
+    fn mixed_evidence_classes_do_not_promote_comparison() {
+        let mut world = recovered_world();
+        world.apply(Event {
+            id: "install-B".to_owned(),
+            operation: Operation::InstallComponent(Component {
+                id: "B".to_owned(),
+                material: "timber".to_owned(),
+                mass_mg: 500,
+            }),
+        }).expect("second component");
+        world.apply(Event {
+            id: "recover-B".to_owned(),
+            operation: Operation::RecoverComponent {
+                component_id: "B".to_owned(),
+                reused_mg: 200,
+                recycled_mg: 100,
+                contaminated_mg: 0,
+                waste_mg: 100,
+                unaccounted_mg: 100,
+            },
+        }).expect("second recovery");
+        let result = compare(&world, vec![
+            measured_observation("A"),
+            synthetic_observation("B"),
+        ]).expect("mixed evidence is representable");
+        assert_eq!(result.status, ComparisonStatus::Unresolved);
+        assert_eq!(result.matched_observation_count, 2);
+        assert!(result.diagnostics.iter().any(|value| value.contains("insufficient")));
     }
 
     #[test]
