@@ -54,6 +54,10 @@ pub enum MotorPlannerFault {
 }
 
 /// Status of the most recent motor-planning request.
+///
+/// `Ready` only means the software planner contract checks completed; it does
+/// not establish that commands are physically safe, authorized by an independent
+/// controller, or appropriate for an actual actuator's units and limits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MotorPlannerStatus {
@@ -66,6 +70,12 @@ pub enum MotorPlannerStatus {
 
 /// Commands and their status returned together to avoid dropping rejection
 /// metadata at generic agent boundaries.
+///
+/// Consumers must inspect `status` before accepting the command vector. On a
+/// rejected result the vector is shape-compatible filler, not a physical
+/// fallback policy. Use the platform's independent safety mechanism to select
+/// a safe response.
+#[must_use = "motor plan status must be checked before any actuation"]
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MotorPlanResult {
     pub commands: Vec<f64>,
