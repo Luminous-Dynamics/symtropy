@@ -1670,14 +1670,20 @@ mod tests {
 
         let fifo_report = evaluate_catalog(&fifo).expect("homogeneous FIFO control");
         let aware_report = evaluate_catalog(&aware).expect("homogeneous variant-aware control");
-        assert_eq!(fifo_report.replication_seeds, aware_report.replication_seeds);
+        assert_eq!(
+            fifo_report.replication_seeds,
+            aware_report.replication_seeds
+        );
         assert_eq!(fifo_report.scenario_count, aware_report.scenario_count);
         assert_eq!(fifo_report.scenarios.len(), aware_report.scenarios.len());
         for (fifo_scenario, aware_scenario) in
             fifo_report.scenarios.iter().zip(&aware_report.scenarios)
         {
             assert_eq!(fifo_scenario.scenario_id, aware_scenario.scenario_id);
-            assert_eq!(fifo_scenario.released_jobs_total, aware_scenario.released_jobs_total);
+            assert_eq!(
+                fifo_scenario.released_jobs_total,
+                aware_scenario.released_jobs_total
+            );
             assert_eq!(
                 fifo_scenario.good_units_total,
                 aware_scenario.good_units_total
