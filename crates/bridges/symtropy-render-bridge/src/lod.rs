@@ -37,8 +37,12 @@ pub enum LodError {
     InvalidScreenSpaceErrorOrOrder,
     /// Candidate quality ranks must be strictly increasing.
     InvalidQualityRankOrder,
-    /// The budget cannot satisfy all protected entities and the minimum cost
-    /// of the remaining entities.
+    /// The maximum permitted screen-space error is invalid.
+    InvalidScreenErrorBudget,
+    /// Even the finest supplied representation exceeds the screen-error ceiling.
+    ScreenErrorBudgetInfeasible,
+    /// The cost budget cannot be met without violating protected-detail or
+    /// screen-error constraints.
     BudgetInfeasible,
 }
 
@@ -121,8 +125,21 @@ pub struct LodAllocation {
 pub fn allocate_lod(
     demands: &[LodDemand],
     budget_units: u64,
+    max_screen_error_px: f32,
 ) -> Result<LodAllocation, LodError> {
     validate_demands(demands)?;
+
+    if !max_screen_error_px.is_finite() || max_screen_error_px < 0.0 {
+        return Err(LodError::InvalidScreenErrorBudget);
+    }
+    if demands.iter().any(|demand| {
+        demand
+            .candidates
+            .last()
+            .is_some_and(|candidate| candidate.screen_error_px > max_screen_error_px)
+    }) {
+        return Err(LodError::ScreenErrorBudgetInfeasible);
+    }
 
     let mut selected_indices: Vec<usize> = demands
         .iter()
@@ -154,6 +171,9 @@ pub fn allocate_lod(
             let current_index = selected_indices[demand_index];
             let current = demand.candidates[current_index];
             let next = demand.candidates[current_index - 1];
+            if next.screen_error_px > max_screen_error_px {
+                continue;
+            }
             let saved_units = u64::from(current.cost_units - next.cost_units);
             let current_error = f64::from(current.screen_error_px);
             let next_error = f64::from(next.screen_error_px);
@@ -296,7 +316,7 @@ mod tests {
             selected,
             critical,
             candidates: vec![
-                candidate(0, 100, 10.0, 1),
+                candidate(0, 100, 4.0, 1),
                 candidate(1, 101, 2.0, 3),
             ],
         }
@@ -309,7 +329,7 @@ mod tests {
             demand(2, 1, false, false),
         ];
 
-        let allocation = allocate_lod(&demands, 6).expect("budget is sufficient");
+        let allocation = allocate_lod(&demands, 6, 4.0).expect("budget is sufficient");
 
         assert_eq!(allocation.total_cost_units, 6);
         assert_eq!(allocation.degraded_entity_count, 0);
@@ -328,17 +348,17 @@ mod tests {
     fn spends_detail_on_high_importance_entities_first() {
         let mut low_importance = demand(10, 1, false, false);
         low_importance.candidates = vec![
-            candidate(0, 200, 10.0, 1),
+            candidate(0, 200, 4.0, 1),
             candidate(1, 201, 1.0, 3),
         ];
 
         let mut high_importance = demand(20, 10, false, false);
         high_importance.candidates = vec![
-            candidate(0, 300, 10.0, 1),
+            candidate(0, 300, 4.0, 1),
             candidate(1, 301, 1.0, 3),
         ];
 
-        let allocation = allocate_lod(&[high_importance, low_importance], 5)
+        let allocation = allocate_lod(&[high_importance, low_importance], 5, 4.0)
             .expect("one downgrade should satisfy the budget");
         let low = allocation
             .choices
@@ -363,7 +383,7 @@ mod tests {
         let ordinary = demand(3, 1, false, false);
 
         let allocation =
-            allocate_lod(&[ordinary, critical, selected], 7).expect("ordinary entity can degrade");
+            allocate_lod(&[ordinary, critical, selected], 7, 4.0).expect("ordinary entity can degrade");
 
         assert!(allocation
             .choices
@@ -388,7 +408,7 @@ mod tests {
         let ordinary = demand(2, 1, false, false);
 
         assert_eq!(
-            allocate_lod(&[protected, ordinary], 3),
+            allocate_lod(&[protected, ordinary], 3, 4.0),
             Err(LodError::BudgetInfeasible)
         );
     }
@@ -399,10 +419,10 @@ mod tests {
         let b = demand(10, 3, false, false);
         let c = demand(30, 1, false, false);
 
-        let forward = allocate_lod(&[a.clone(), b.clone(), c.clone()], 7)
+        let forward = allocate_lod(&[a.clone(), b.clone(), c.clone()], 7, 4.0)
             .expect("budget permits deterministic degradation");
         let reverse =
-            allocate_lod(&[c, b, a], 7).expect("reordered input remains valid");
+            allocate_lod(&[c, b, a], 7, 4.0).expect("reordered input remains valid");
 
         assert_eq!(forward, reverse);
     }
@@ -410,7 +430,7 @@ mod tests {
     #[test]
     fn rejects_duplicate_entity_ids() {
         assert_eq!(
-            allocate_lod(&[demand(1, 1, false, false), demand(1, 2, false, false)], 10),
+            allocate_lod(&[demand(1, 1, false, false), demand(1, 2, false, false)], 10, 4.0),
             Err(LodError::DuplicateEntityId)
         );
     }
@@ -420,14 +440,14 @@ mod tests {
         let mut empty = demand(1, 1, false, false);
         empty.candidates.clear();
         assert_eq!(
-            allocate_lod(&[empty], 10),
+            allocate_lod(&[empty], 10, 4.0),
             Err(LodError::EmptyCandidates)
         );
 
         let mut invalid = demand(2, 1, false, false);
         invalid.candidates[1].screen_error_px = f32::NAN;
         assert_eq!(
-            allocate_lod(&[invalid], 10),
+            allocate_lod(&[invalid], 10, 4.0),
             Err(LodError::InvalidScreenSpaceErrorOrOrder)
         );
     }
@@ -437,14 +457,14 @@ mod tests {
         let mut invalid_cost = demand(1, 1, false, false);
         invalid_cost.candidates[1].cost_units = 1;
         assert_eq!(
-            allocate_lod(&[invalid_cost], 10),
+            allocate_lod(&[invalid_cost], 10, 4.0),
             Err(LodError::InvalidCostOrCostOrder)
         );
 
         let mut invalid_rank = demand(2, 1, false, false);
         invalid_rank.candidates[1].quality_rank = 0;
         assert_eq!(
-            allocate_lod(&[invalid_rank], 10),
+            allocate_lod(&[invalid_rank], 10, 4.0),
             Err(LodError::InvalidQualityRankOrder)
         );
     }
@@ -454,21 +474,33 @@ mod tests {
         let mut no_importance = demand(1, 1, false, false);
         no_importance.importance = 0;
         assert_eq!(
-            allocate_lod(&[no_importance], 10),
+            allocate_lod(&[no_importance], 10, 4.0),
             Err(LodError::InvalidImportance)
         );
 
         let mut duplicate = demand(2, 1, false, false);
         duplicate.candidates[1].representation_id = duplicate.candidates[0].representation_id;
         assert_eq!(
-            allocate_lod(&[duplicate], 10),
+            allocate_lod(&[duplicate], 10, 4.0),
             Err(LodError::DuplicateRepresentationId)
         );
     }
 
     #[test]
+    fn enforces_the_screen_error_ceiling() {
+        assert_eq!(
+            allocate_lod(&[demand(1, 1, false, false)], 10, 1.5),
+            Err(LodError::ScreenErrorBudgetInfeasible)
+        );
+        assert_eq!(
+            allocate_lod(&[], 0, f32::INFINITY),
+            Err(LodError::InvalidScreenErrorBudget)
+        );
+    }
+
+    #[test]
     fn empty_scene_has_zero_cost() {
-        let allocation = allocate_lod(&[], 0).expect("empty scene fits every budget");
+        let allocation = allocate_lod(&[], 0, 4.0).expect("empty scene fits every budget");
         assert!(allocation.choices.is_empty());
         assert_eq!(allocation.total_cost_units, 0);
         assert_eq!(allocation.degraded_entity_count, 0);
