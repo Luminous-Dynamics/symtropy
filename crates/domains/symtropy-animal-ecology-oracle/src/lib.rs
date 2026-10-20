@@ -248,20 +248,22 @@ pub fn validate_artifacts(
     require_schema_const(properties, "schema_version", ORACLE_SCHEMA_VERSION)?;
     require_schema_const(properties, "status", "synthetic_contract_fixture")?;
     require_schema_const(properties, "case_count", "51")?;
+    require_schema_string(properties, "schema_version", "type", "string")?;
+    require_schema_string(properties, "status", "type", "string")?;
 
-    for key in [
-        "research_snapshot",
-        "note",
-        "tracking_issue",
-        "independent_unit",
-    ] {
+    for key in ["note", "tracking_issue", "independent_unit"] {
         require_schema_string(properties, key, "type", "string")?;
         let property_schema = properties
             .get(key)
             .ok_or_else(|| ValidationError::new(format!("schema.properties.{key} is required")))?;
         require_schema_integer(property_schema, "minLength", 1)?;
     }
+    require_schema_string(properties, "research_snapshot", "type", "string")?;
     require_schema_string(properties, "research_snapshot", "format", "date")?;
+    let snapshot_schema = properties
+        .get("research_snapshot")
+        .ok_or_else(|| ValidationError::new("schema.properties.research_snapshot is required"))?;
+    require_schema_integer(snapshot_schema, "minLength", 10)?;
     require_schema_string(properties, "tracking_issue", "format", "uri")?;
     require_schema_string(properties, "case_count", "type", "integer")?;
     require_string_array_schema(
