@@ -895,6 +895,67 @@ mod tests {
     }
 
     #[test]
+    fn predictive_samples_are_audited_draw_by_draw() {
+        let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+            .expect("synthetic joint sample fixture is valid");
+        assert_eq!(receipt["summary"]["predictive_sample_count"], 2);
+        assert_eq!(receipt["summary"]["assessable_sample_constraint_count"], 4);
+        assert_eq!(receipt["summary"]["raw_incoherent_sample_constraint_count"], 2);
+        assert_eq!(receipt["summary"]["reconciled_coherent_sample_constraint_count"], 4);
+        assert_eq!(receipt["summary"]["not_assessable_sample_constraint_count"], 2);
+        assert_eq!(receipt["summary"]["raw_sample_coherence_rate"], 0.5);
+        assert_eq!(receipt["summary"]["reconciled_sample_coherence_rate"], 1.0);
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["raw_signed_residual"],
+            1.0
+        );
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["reconciled_signed_residual"],
+            0.0
+        );
+    }
+
+    #[test]
+    fn incoherent_reconciled_draw_is_reported_not_hidden() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"][2]["reconciled_count"] = json!(10);
+        let receipt = audit(&value).expect("coherence failure is a reportable metric result");
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["reconciled_status"],
+            "incoherent"
+        );
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["reconciled_signed_residual"],
+            -1.0
+        );
+    }
+
+    #[test]
+    fn every_predictive_draw_must_have_exactly_one_row_per_forecast() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"]
+            .as_array_mut()
+            .expect("sample rows are an array")
+            .pop();
+        let errors = audit(&value).expect_err("sample rows cannot silently disappear");
+        assert!(errors.iter().any(|error| {
+            error.contains("must contain exactly one row for every declared forecast")
+        }));
+    }
+
+    #[test]
+    fn duplicate_forecast_row_in_a_predictive_draw_is_rejected() {
+        let mut value = fixture();
+        let first_row = value["predictive_samples"]["rows"][0].clone();
+        value["predictive_samples"]["rows"]
+            .as_array_mut()
+            .expect("sample rows are an array")
+            .push(first_row);
+        let errors = audit(&value).expect_err("duplicate draw/forecast pairs are ambiguous");
+        assert!(errors.iter().any(|error| error.contains("repeats forecast row")));
+    }
+
+    #[test]
     fn duplicate_forecast_ids_are_rejected() {
         let mut value = fixture();
         let first_id = value["forecasts"][0]["forecast_id"].clone();
