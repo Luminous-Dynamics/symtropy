@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "upstream_commit": "REPLACE_WITH_EXACT_TAVIS_GIT_COMMIT",
+  "checkpoint_sha256": "REPLACE_WITH_64_HEX_SHA256_OF_CHECKPOINT_MANIFEST",
+  "assets_manifest_sha256": "REPLACE_WITH_64_HEX_SHA256_OF_ASSET_MANIFEST",
+  "environment_lock_sha256": "REPLACE_WITH_64_HEX_SHA256_OF_LOCKFILE_OR_ENV_MANIFEST",
+  "invocation": "python scripts/eval_benchmark.py --checkpoint ... --suite tavis-head --robot gr1t2 --episodes 96 --num-envs 1"
+}
