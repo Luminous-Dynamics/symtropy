@@ -280,19 +280,19 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
         let Some(requirement_id) = text(requirement, "requirement_id") else {
             continue;
         };
-        if let Some(target) = text(requirement, "target_zone_id") {
-            if !zone_ids.contains(target) {
-                errors.push(format!(
-                    "{label}.requirements.{requirement_id}: unknown target zone {target:?}"
-                ));
-            }
+        if let Some(target) = text(requirement, "target_zone_id")
+            && !zone_ids.contains(target)
+        {
+            errors.push(format!(
+                "{label}.requirements.{requirement_id}: unknown target zone {target:?}"
+            ));
         }
-        if let Some(target) = text(requirement, "target_item_id") {
-            if !catalog_ids.contains(target) {
-                errors.push(format!(
-                    "{label}.requirements.{requirement_id}: unknown target item {target:?}"
-                ));
-            }
+        if let Some(target) = text(requirement, "target_item_id")
+            && !catalog_ids.contains(target)
+        {
+            errors.push(format!(
+                "{label}.requirements.{requirement_id}: unknown target item {target:?}"
+            ));
         }
         if text(requirement, "classification") == Some("unknown_requires_review")
             && text(requirement, "evidence_state") != Some("unknown")
