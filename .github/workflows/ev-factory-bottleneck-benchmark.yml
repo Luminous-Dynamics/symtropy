@@ -1,0 +1,91 @@
+name: EV Factory Bottleneck Diagnostic Benchmark
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_bottleneck_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json"
+      - "docs/research/EV_FACTORY_BOTTLENECK_BENCHMARK_V0_1.md"
+      - ".github/workflows/ev-factory-bottleneck-benchmark.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_bottleneck_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json"
+      - "docs/research/EV_FACTORY_BOTTLENECK_BENCHMARK_V0_1.md"
+      - ".github/workflows/ev-factory-bottleneck-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bottleneck-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse fixture and assert synthetic labels
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-BENCH-001"
+            and .schema_version == "0.1.0"
+            and .evidence_class == "synthetic"
+            and (.scenarios | length) == 8
+            and (.scenarios | all(.[]; (.signals | length) == 4 and .labels_source == "constructed_synthetic_ground_truth_by_declared_scenario_design"))
+            and all(.scenarios[].signals[]; .utilization_fraction >= 0 and .utilization_fraction <= 1 and .active_period_fraction >= 0 and .active_period_fraction <= 1 and .blocked_fraction >= 0 and .blocked_fraction <= 1 and .starved_fraction >= 0 and .starved_fraction <= 1 and .down_fraction >= 0 and .down_fraction <= 1 and .interdeparture_cv >= 0 and .predicted_marginal_good_output_gain_fraction >= 0 and .predicted_marginal_good_output_gain_fraction <= 1)
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Run diagnostic benchmark and assert report boundaries
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_bottleneck_benchmark -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json \
+            > ev-bottleneck-diagnostic-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-BENCH-001"
+            and .result_count == 8
+            and .method_count == 5
+            and .evidence_class == "synthetic"
+            and .scores_are_field_performance_claims == false
+            and .production_release_authorized == false
+            and (.results | length) == 8
+            and all(.results[]; (.predictions | length) == 5)
+            and all(.method_metrics[]; .case_count == 8 and .macro_f1_fraction >= 0 and .macro_f1_fraction <= 1 and .exact_accuracy_fraction >= 0 and .exact_accuracy_fraction <= 1)
+            and (.method_metrics | map(.method) | unique | length) == 5
+          ' ev-bottleneck-diagnostic-report.json
+      - name: Verify reproducible report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_bottleneck_benchmark -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json \
+            > ev-bottleneck-diagnostic-repeat.json
+          cmp ev-bottleneck-diagnostic-report.json ev-bottleneck-diagnostic-repeat.json
+      - name: Negative controls - invalid fraction and measured labels fail closed
+        run: |
+          fixture=tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json
+          jq '.scenarios[0].signals[0].utilization_fraction = 1.1' "$fixture" > invalid-benchmark-fraction.json
+          jq '.evidence_class = "measured"' "$fixture" > invalid-benchmark-evidence.json
+          for invalid in invalid-benchmark-fraction.json invalid-benchmark-evidence.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_bottleneck_benchmark -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid benchmark fixture unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash source, fixture and report
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_bottleneck_benchmark.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_bottleneck_diagnostic_benchmark_v0_1.json \
+            docs/research/EV_FACTORY_BOTTLENECK_BENCHMARK_V0_1.md \
+            ev-bottleneck-diagnostic-report.json > ev-bottleneck-diagnostic-report.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-bottleneck-diagnostic-report
+          path: |
+            ev-bottleneck-diagnostic-report.json
+            ev-bottleneck-diagnostic-report.sha256
+          if-no-files-found: error
