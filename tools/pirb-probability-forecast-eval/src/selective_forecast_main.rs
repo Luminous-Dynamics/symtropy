@@ -384,7 +384,9 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         )]
     })?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
     })?;
     let validator = jsonschema::draft202012::new(&schema).map_err(|error| {
         vec![format!(
