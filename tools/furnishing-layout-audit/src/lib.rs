@@ -699,6 +699,45 @@ pub fn audit_document(document: &Value) -> Vec<String> {
     }
 }
 
+/// The fixture's placement coordinates identify the lower-left corner of the
+/// quarter-turn-aligned footprint. Envelope rectangles are item-local, with
+/// their origin at the unrotated item's south-west corner, and rotate with it.
+fn transformed_functional_envelope(
+    envelope: &Value,
+    item_size: ItemSize,
+    placement: &Value,
+) -> Option<Rect> {
+    let local = Rect::from_value(field(envelope, "rect_local_item_frame")?)?;
+    let x = field(placement, "x_m")?.as_f64()?;
+    let y = field(placement, "y_m")?.as_f64()?;
+    let rotation = field(placement, "rotation_degrees")?.as_u64()?;
+
+    let (x, y, width, depth) = match rotation {
+        0 => (x + local.x, y + local.y, local.width, local.depth),
+        90 => (
+            x + item_size.depth - (local.y + local.depth),
+            y + local.x,
+            local.depth,
+            local.width,
+        ),
+        180 => (
+            x + item_size.width - (local.x + local.width),
+            y + item_size.depth - (local.y + local.depth),
+            local.width,
+            local.depth,
+        ),
+        270 => (
+            x + local.y,
+            y + item_size.width - (local.x + local.width),
+            local.depth,
+            local.width,
+        ),
+        _ => return None,
+    };
+
+    Some(Rect { x, y, width, depth })
+}
+
 /// Compute a fixture outcome from indexed evidence and exact geometric checks.
 /// A BVH only reduces candidates; every candidate is tested with Rect::overlaps.
 fn expected_functional_envelope_outcome(
