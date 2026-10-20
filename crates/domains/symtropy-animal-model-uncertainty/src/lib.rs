@@ -17,6 +17,26 @@ pub const EMBEDDED_SCHEMA: &str = include_str!(
     "../../../../docs/living-world/ANIMAL_MODEL_STRUCTURE_UNCERTAINTY_ORACLE_V1.schema.json"
 );
 
+const REQUIRED_RUN_IDENTITY: &[&str] = &[
+    "source_commit",
+    "model_structure_id",
+    "model_schema_digest",
+    "equation_or_rule_registry_digest",
+    "parameter_config_digest",
+    "calibration_data_sha256",
+    "test_data_sha256",
+    "independent_unit_manifest_sha256",
+    "model_set_manifest_sha256",
+    "model_weighting_rule",
+    "stochastic_coupling_policy",
+    "evaluator_version",
+    "decision_loss_version",
+    "forecast_horizon",
+    "compute_budget",
+    "uncertainty_method",
+    "preregistered_margins",
+];
+
 /// Validate the oracle's corpus-level invariants beyond basic JSON parsing.
 ///
 /// Returns the actual case count only when the whole corpus passes. Errors are
@@ -58,6 +78,12 @@ pub fn validate_oracle_json(raw: &str) -> Result<usize, Vec<String>> {
     ] {
         validate_nonempty_unique_string_array(object.get(field), field, &mut errors);
     }
+    require_string_array_members(
+        object.get("required_run_identity"),
+        REQUIRED_RUN_IDENTITY,
+        "required_run_identity",
+        &mut errors,
+    );
     require_string_array_members(
         object.get("uncertainty_components"),
         &[
@@ -295,6 +321,22 @@ mod tests {
             error
                 .iter()
                 .any(|message| message.contains("required_run_identity"))
+        );
+    }
+
+    #[test]
+    fn missing_required_run_identity_member_fails_closed() {
+        let mut fixture = parsed_fixture();
+        fixture["required_run_identity"]
+            .as_array_mut()
+            .expect("identity array")
+            .retain(|value| value.as_str() != Some("model_structure_id"));
+        let error = validate_oracle_json(&fixture.to_string())
+            .expect_err("required model identity field must fail");
+        assert!(
+            error
+                .iter()
+                .any(|message| message.contains("missing required member 'model_structure_id'"))
         );
     }
 
