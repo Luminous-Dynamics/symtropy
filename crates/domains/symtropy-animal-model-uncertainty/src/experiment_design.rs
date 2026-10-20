@@ -33,6 +33,8 @@ pub struct OutcomeDecision {
     pub probability: f64,
     pub selected_action: String,
     pub expected_loss_after_observation: f64,
+    /// Posterior structure weights after observing this outcome.
+    pub posterior_model_weights: BTreeMap<String, f64>,
 }
 
 /// Expected value of an observation design under the declared model prior.
@@ -217,11 +219,17 @@ pub fn score_observation_designs(
 
             expected_post_observation_loss += outcome_probability * loss_after_observation;
             probability_sum += outcome_probability;
+            let posterior_model_weights = models
+                .iter()
+                .zip(&posterior_weights)
+                .map(|(model, weight)| (model.model_id.clone(), *weight))
+                .collect();
             outcome_decisions.push(OutcomeDecision {
                 outcome: outcome.clone(),
                 probability: outcome_probability,
                 selected_action,
                 expected_loss_after_observation: loss_after_observation,
+                posterior_model_weights,
             });
         }
 
@@ -367,6 +375,10 @@ mod tests {
         assert_eq!(value.outcomes.len(), 2);
         assert_eq!(value.outcomes[0].selected_action, "act_a");
         assert_eq!(value.outcomes[1].selected_action, "act_b");
+        assert!((value.outcomes[0].posterior_model_weights["structure_a"] - 0.9).abs() < 1e-9);
+        assert!((value.outcomes[0].posterior_model_weights["structure_b"] - 0.1).abs() < 1e-9);
+        assert!((value.outcomes[1].posterior_model_weights["structure_a"] - 0.1).abs() < 1e-9);
+        assert!((value.outcomes[1].posterior_model_weights["structure_b"] - 0.9).abs() < 1e-9);
     }
 
     #[test]
