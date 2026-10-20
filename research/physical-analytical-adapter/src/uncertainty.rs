@@ -412,10 +412,22 @@ mod tests {
             ("area_m2", 0.01, 0.009, 0.011),
             ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
         ]);
-        invalid_bounds.insert("area_m2".to_owned(), Interval { lower: 0.02, upper: 0.01 });
+        invalid_bounds.insert(
+            "area_m2".to_owned(),
+            Interval {
+                lower: 0.02,
+                upper: 0.01,
+            },
+        );
         assert!(propagate("axial_bar", &nominal_for_invalid, &invalid_bounds).is_err());
         let mut invalid_bounds = invalid_bounds;
-        invalid_bounds.insert("area_m2".to_owned(), Interval { lower: 0.009, upper: f64::INFINITY });
+        invalid_bounds.insert(
+            "area_m2".to_owned(),
+            Interval {
+                lower: 0.009,
+                upper: f64::INFINITY,
+            },
+        );
         assert!(propagate("axial_bar", &nominal_for_invalid, &invalid_bounds).is_err());
 
         let (mut nominal, bounds) = fixture(&[
