@@ -81,6 +81,8 @@ pub struct LedgerEvent {
     /// Stable source record, measurement, simulation receipt, work log, or transaction source.
     pub source_ref: String,
     pub source_permission: EvidencePermission,
+    /// Exact reference to public licence terms or a reviewed authorization record.
+    pub source_permission_ref: String,
     /// Explicit lineage links; references must resolve to events in the same ledger.
     pub related_event_ids: Vec<String>,
     pub kind: EventKind,
@@ -188,6 +190,7 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
         ("build_id", event.build_id.as_str()),
         ("task_id", event.task_id.as_str()),
         ("source_ref", event.source_ref.as_str()),
+        ("source_permission_ref", event.source_permission_ref.as_str()),
     ] {
         if !is_nonempty(value) {
             errors.push(format!("{label}: {name} is missing"));
@@ -531,6 +534,7 @@ mod tests {
             stage,
             source_ref: format!("evidence:{event_id}"),
             source_permission: EvidencePermission::PublicOrPermitted,
+            source_permission_ref: "fixture-rights:public-test-data".to_owned(),
             related_event_ids: Vec::new(),
             kind: EventKind::Quantity(QuantityEvent {
                 quantity_key: key.to_owned(),
@@ -666,6 +670,14 @@ mod tests {
         event.source_ref = " ".to_owned();
         let errors = audit(&[event]).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("source_ref is missing")));
+    }
+
+    #[test]
+    fn source_permission_needs_a_reference_not_only_an_enum() {
+        let mut event = quantity_event("event-1", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        event.source_permission_ref.clear();
+        let errors = audit(&[event]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("source_permission_ref is missing")));
     }
 
     #[test]
