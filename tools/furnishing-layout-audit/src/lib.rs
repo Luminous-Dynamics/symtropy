@@ -405,13 +405,12 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
             };
             if let Some(expected) =
                 actual_expected_outcome(scenario, requirement, placements, &sizes)
+                && text(check, "outcome") != Some(expected)
             {
-                if text(check, "outcome") != Some(expected) {
-                    errors.push(format!(
-                        "{label}.{alternative_id}.{requirement_id}: expected outcome should be {expected:?}, got {:?}",
-                        text(check, "outcome")
-                    ));
-                }
+                errors.push(format!(
+                    "{label}.{alternative_id}.{requirement_id}: expected outcome should be {expected:?}, got {:?}",
+                    text(check, "outcome")
+                ));
             }
             if text(requirement, "classification") == Some("unknown_requires_review")
                 && text(check, "outcome") == Some("indeterminate")
