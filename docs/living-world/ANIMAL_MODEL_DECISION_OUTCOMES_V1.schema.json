@@ -10,7 +10,8 @@
     "status",
     "cvar_alpha",
     "scenario",
-    "models"
+    "models",
+    "practical_loss_difference_margin"
   ],
   "properties": {
     "schema_version": {
@@ -100,7 +101,11 @@
           }
         }
       }
+    },
+    "practical_loss_difference_margin": {
+      "type": "number",
+      "minimum": 0
     }
   },
-  "$comment": "Schema does not check sums of model weights, equal action sets across models, valid admissible-action references, finite model values in all language bindings, or scientific adequacy. The Rust decision kernel enforces the applicable numeric/action-set invariants. If model_weight_intervals is supplied, it must name exactly the declared model set, contain each nominal model weight, and admit a simplex with total weight one; the Rust semantic kernel checks these conditions and returns worst/best expected-loss witnesses."
+  "$comment": "Schema does not check sums of model weights, equal action sets across models, valid admissible-action references, finite model values in all language bindings, or scientific adequacy. The Rust decision kernel enforces the applicable numeric/action-set invariants. If model_weight_intervals is supplied, it must name exactly the declared model set, contain each nominal model weight, and admit a simplex with total weight one; the Rust semantic kernel checks these conditions and returns worst/best expected-loss witnesses. practical_loss_difference_margin is preregistered in the same loss units as the decision objective; strict preference and practical equivalence use this margin, so near-zero numerical differences are not automatically treated as decisive."
 }
