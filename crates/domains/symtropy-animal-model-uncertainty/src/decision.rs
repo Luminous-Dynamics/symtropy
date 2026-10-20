@@ -205,7 +205,6 @@ pub fn score_model_ensemble(
     }
 }
 
-
 /// A defensible interval for the probability/weight assigned to one model structure.
 ///
 /// The interval bounds represent uncertainty about model weights, not parameter
@@ -286,9 +285,7 @@ pub fn score_weight_sensitivity(
             )),
         }
     }
-    if !nominal_weight_sum.is_finite()
-        || (nominal_weight_sum - 1.0).abs() > WEIGHT_SUM_TOLERANCE
-    {
+    if !nominal_weight_sum.is_finite() || (nominal_weight_sum - 1.0).abs() > WEIGHT_SUM_TOLERANCE {
         errors.push(format!(
             "nominal model weights must sum to one within {WEIGHT_SUM_TOLERANCE}; got {nominal_weight_sum}"
         ));
@@ -301,10 +298,7 @@ pub fn score_weight_sensitivity(
         if interval.model_id.trim().is_empty() {
             errors.push(format!("intervals[{index}].model_id must not be empty"));
         } else if bounds
-            .insert(
-                interval.model_id.clone(),
-                (interval.lower, interval.upper),
-            )
+            .insert(interval.model_id.clone(), (interval.lower, interval.upper))
             .is_some()
         {
             errors.push(format!(
@@ -329,7 +323,8 @@ pub fn score_weight_sensitivity(
     }
     let interval_ids: BTreeSet<String> = bounds.keys().cloned().collect();
     if interval_ids != model_ids {
-        errors.push("weight interval model IDs must exactly match the declared model set".to_owned());
+        errors
+            .push("weight interval model IDs must exactly match the declared model set".to_owned());
     }
     if lower_sum > 1.0 {
         errors.push(format!(
@@ -633,9 +628,7 @@ mod tests {
         let mut models = example_models();
         models[0].weight = 0.5;
         models[1].weight = 0.5;
-        models[0]
-            .action_losses
-            .insert("retreat".to_owned(), 1.0);
+        models[0].action_losses.insert("retreat".to_owned(), 1.0);
         models[1]
             .action_losses
             .insert("retreat".to_owned(), 1_000_000_000_000.0);
@@ -684,7 +677,11 @@ mod tests {
         ];
         let errors = score_weight_sensitivity(&models, "retreat", &intervals)
             .expect_err("lower bounds sum to more than one");
-        assert!(errors.iter().any(|error| error.contains("lower bounds sum")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("lower bounds sum"))
+        );
     }
 
     #[test]
@@ -718,18 +715,22 @@ mod tests {
         let errors = score_weight_sensitivity(&models, "retreat", &intervals)
             .expect_err("missing model interval must fail closed");
         assert!(errors.iter().any(|error| error.contains("exactly match")));
-        let errors = score_weight_sensitivity(&models, "fly_away", &[
-            ModelWeightInterval {
-                model_id: "predator_coupled".to_owned(),
-                lower: 0.4,
-                upper: 0.8,
-            },
-            ModelWeightInterval {
-                model_id: "predator_weak".to_owned(),
-                lower: 0.2,
-                upper: 0.6,
-            },
-        ])
+        let errors = score_weight_sensitivity(
+            &models,
+            "fly_away",
+            &[
+                ModelWeightInterval {
+                    model_id: "predator_coupled".to_owned(),
+                    lower: 0.4,
+                    upper: 0.8,
+                },
+                ModelWeightInterval {
+                    model_id: "predator_weak".to_owned(),
+                    lower: 0.2,
+                    upper: 0.6,
+                },
+            ],
+        )
         .expect_err("missing action loss must fail closed");
         assert!(errors.iter().any(|error| error.contains("missing loss")));
     }
