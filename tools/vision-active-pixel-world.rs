@@ -1298,7 +1298,7 @@ mod randomized_timing {
         println!("VIS-ACT-005 randomized-timing and delayed-view diagnostic");
         println!("event-driven onset/duration/delay; transient RGB evidence; hidden view-success outcomes");
         println!("fixed-sweep baseline included; resource units remain synthetic");
-        println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tview_attempts_per_episode\texecuted_views\tcompleted_views\tfresh_evidence_rate_per_executed_view\tviews_without_fresh_evidence\tmean_recovery_steps\tlatency_units_per_episode\tbudget_violations");
+        println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tview_attempts_per_episode\texecuted_views\tcompleted_views\tfresh_evidence_rate_per_executed_view\tviews_without_fresh_evidence\trecovery_rate\tmean_recovery_steps_when_recovered\tlatency_units_per_episode\tbudget_violations");
 
         for family in [SceneFamily::Development, SceneFamily::HeldOut] {
             for policy in TimedPolicy::ALL {
@@ -1323,7 +1323,7 @@ mod randomized_timing {
                     )
                 };
                 println!(
-                    "{}\t{}\t{}\t{:.4}\t{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}",
+                    "{}\t{}\t{}\t{:.4}\t{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}",
                     family.name(),
                     policy.name(),
                     aggregate.episodes,
@@ -1335,6 +1335,7 @@ mod randomized_timing {
                     aggregate.completed_views,
                     Aggregate::rate(aggregate.fresh_views, aggregate.executed_views),
                     aggregate.views_without_fresh,
+                    Aggregate::rate(aggregate.recovery_observations, aggregate.episodes),
                     mean_recovery,
                     aggregate.latency_sum as f64 / aggregate.episodes.max(1) as f64,
                     aggregate.budget_violations,
