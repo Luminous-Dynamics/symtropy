@@ -302,10 +302,10 @@
       "additionalProperties": false,
       "required": [
         "effect_status",
-        "causal_estimation_claim_permitted",
         "causal_effect_estimated",
         "effect_estimate",
-        "forecast_and_impact_lanes_separate"
+        "forecast_and_impact_lanes_separate",
+        "independent_review_eligibility"
       ],
       "properties": {
         "effect_status": {
@@ -315,9 +315,6 @@
             "eligible_for_independent_review"
           ]
         },
-        "causal_estimation_claim_permitted": {
-          "type": "boolean"
-        },
         "causal_effect_estimated": {
           "const": false
         },
@@ -326,6 +323,12 @@
         },
         "forecast_and_impact_lanes_separate": {
           "const": true
+        },
+        "independent_review_eligibility": {
+          "enum": [
+            "not_identified",
+            "eligible_for_independent_review"
+          ]
         }
       }
     },
