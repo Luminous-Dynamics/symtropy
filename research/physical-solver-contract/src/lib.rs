@@ -940,11 +940,15 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
             validate_hex(&string(input, "sha256", &at)?, 64, "input artifact SHA-256")?;
             let media_type = string(input, "media_type", &at)?;
             if media_type.trim().is_empty() || media_type.len() > 128 {
-                return Err(format!("{at}.media_type must be non-empty and at most 128 bytes"));
+                return Err(format!(
+                    "{at}.media_type must be non-empty and at most 128 bytes"
+                ));
             }
             let artifact_ref = string(input, "artifact_ref", &at)?;
             if artifact_ref.trim().is_empty() || artifact_ref.len() > 2048 {
-                return Err(format!("{at}.artifact_ref must be non-empty and at most 2048 bytes"));
+                return Err(format!(
+                    "{at}.artifact_ref must be non-empty and at most 2048 bytes"
+                ));
             }
         }
     }
@@ -1257,16 +1261,20 @@ pub fn verify_solver_output_artifact_bytes(
                     let candidate = root.join(relative_path);
                     match fs::canonicalize(&candidate) {
                         Err(error) => Some(format!("input artifact cannot be resolved: {error}")),
-                        Ok(canonical_path) if !canonical_path.starts_with(root) => {
-                            Some("input artifact resolves outside the declared artifact root".to_owned())
-                        }
+                        Ok(canonical_path) if !canonical_path.starts_with(root) => Some(
+                            "input artifact resolves outside the declared artifact root".to_owned(),
+                        ),
                         Ok(canonical_path) => match fs::metadata(&canonical_path) {
-                            Err(error) => Some(format!("input artifact metadata cannot be read: {error}")),
+                            Err(error) => {
+                                Some(format!("input artifact metadata cannot be read: {error}"))
+                            }
                             Ok(metadata) if !metadata.is_file() => {
                                 Some("input artifact is not a regular file".to_owned())
                             }
                             Ok(_) => match sha256_file(&canonical_path) {
-                                Err(error) => Some(format!("input artifact bytes cannot be read: {error}")),
+                                Err(error) => {
+                                    Some(format!("input artifact bytes cannot be read: {error}"))
+                                }
                                 Ok((observed, length)) => {
                                     observed_sha256 = json!(observed);
                                     byte_length = json!(length);
