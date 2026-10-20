@@ -849,7 +849,7 @@ impl Family {
 fn report_budget_frontier() {
     println!("VIS-ACT-006 sensing-budget Pareto frontier; world horizon stays {HORIZON}, terminal target is evaluated at tick {}", HORIZON - 1);
     println!("Budget prefixes reduce sensing opportunities only; the world still evolves through the full horizon and no terminal observation is supplied for free.");
-    println!("BUDGET\\tfamily\\tbudget\\tpolicy\\tepisodes\\tmean_loss\\tanswer_rate\\taccuracy_when_answered\\tmean_requested_per_claim\\tmean_relevant_per_claim\\twasted_observation_rate\\tlogical_state_bytes\\testimated_scoring_work_units_per_episode\\tdelta_loss_vs_round_robin\\tbootstrap95_lo\\tbootstrap95_hi");
+    println!("BUDGET\tfamily\tbudget\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requested_per_claim\tmean_relevant_per_claim\twasted_observation_rate\tlogical_state_bytes\testimated_scoring_work_units_per_episode\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
 
     let mut cells = vec![
         Accumulator::default();
@@ -898,7 +898,7 @@ fn report_budget_frontier() {
                     let (lo, hi) = bootstrap_ci(&cell.paired_deltas_vs_rr, seed);
                     (delta, lo, hi)
                 };
-                println!("BUDGET\\t{}\\t{}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{}\\t{:.3}\\t{:.3}\\t{:.4}\\t{:.1}\\t{:.1}\\t{:.4}\\t{:.4}\\t{:.4}",
+                println!("BUDGET\t{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.3}\t{:.4}\t{:.1}\t{:.1}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(), budget, policy.name(), cell.episodes, cell.mean_loss(),
                     cell.answer_rate(), cell.accuracy(), cell.mean_requested_per_claim(),
                     cell.mean_relevant_per_claim(), cell.mean_wasted_fraction(),
