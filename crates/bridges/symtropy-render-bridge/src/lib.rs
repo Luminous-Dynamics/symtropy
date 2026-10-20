@@ -26,5 +26,7 @@ pub use material::{
     TelemetryMaterialPlugin, TelemetrySettings,
 };
 pub use projection::{Projector, Projector2D, Projector3D, Projector4D};
-pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
+pub use sync::{
+    PhysicsBody, WSliceProjectionState, sync_physics_2d, sync_physics_3d, sync_physics_4d,
+};
 pub use telemetry_ssbo::{LinkTelemetryGpu, NodeTelemetryGpu, TelemetryBufferResource};
