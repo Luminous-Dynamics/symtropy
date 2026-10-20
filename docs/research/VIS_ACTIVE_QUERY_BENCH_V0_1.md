@@ -23,12 +23,13 @@ When a controller has a fixed observation budget, can it improve final decision 
 4. **Stalest first**: request the claim whose latest retained source timestamp is oldest.
 5. **Maximum uncertainty**: request the claim with highest Bernoulli uncertainty.
 6. **Approximate value of information**: estimate how much the selected claim's uncertainty could change the final three-claim majority decision; then request the claim with greatest expected decision impact.
+7. **Expected terminal task-loss reduction**: integrate a frozen public prior over confidence tier, sensor corruption, source-time delay and distractor returns; hypothetically update the claim belief and estimate the expected final abstention-aware decision risk for each action. If every candidate has non-positive estimated value, fall back to deterministic round-robin.
 
-The current value-of-information policy is an explicit, inexpensive approximation—not exact environment-specific expected-loss minimization. Report it under that name, not as an optimal planner.
+The current value-of-information policy is an explicit, inexpensive approximation—not exact environment-specific expected-loss minimization. The new expected-loss policy is also approximate: it uses fixed public priors recorded in the Rust source, not true episode/family parameters. Its hypothesis enumeration is reported as a deterministic scoring-work proxy; this is not measured wall latency.
 
 ## Metrics
 
-Primary metric is episode mean task loss. Also report answer rate, accuracy among answered episodes, mean requested observations per query claim, mean valid/relevant observations per query claim, wasted-observation rate (including distractor returns), action-allocation imbalance, logical state bytes, and paired episode-bootstrap intervals for every active policy against round-robin.
+Primary metric is episode mean task loss. Also report answer rate, accuracy among answered episodes, mean requested observations per query claim, mean valid/relevant observations per query claim, wasted-observation rate (including distractor returns), action-allocation imbalance, logical state bytes, estimated deterministic scoring-work units per episode, and paired episode-bootstrap intervals for every active policy against round-robin. Also emit a direct paired expected-loss-policy-minus-VOI contrast; separate intervals versus round-robin do not establish whether the two selectors differ.
 
 Frames/observation requests within the same episode are not independent statistical samples. Bootstrap the paired episodes. Report development and held-out results separately and include all policy failures.
 
@@ -94,11 +95,13 @@ Interpretation:
 - Only nine held-out episodes are in the “no out-of-order potential observation” slice; do not interpret its noisy estimate.
 - The strata describe potential observation support independent of selected actions, not exactly which evidence a policy consumed. Per-policy realized sensing efficiency is reported separately in the main table.
 
-The candidate policy was developed from the preceding sample-complexity diagnosis, so this is still exploratory rather than a preregistered confirmatory study. Freeze the code/scoring/loss and replicate on a new seed root before promoting the finding; native ActiveArena evaluation remains a separate gate.
+The candidate policy was developed from the preceding sample-complexity diagnosis, so this is still exploratory rather than a preregistered confirmatory study. A frozen-code independent-seed run then failed to reproduce the VOI improvement: round-robin loss was 0.1842 and VOI loss was 0.1914; paired VOI-minus-round-robin delta +0.0072, 95% CI [-0.0221, +0.0378]. This does not prove VOI is harmful, but rejects the prior result as a confirmed effect. The selector remains unchanged across those roots.
+
+The expected-terminal-loss candidate was added after this failed replication, so it is exploratory too. Its exact-head report must include a direct paired contrast against VOI and the scoring-work proxy before interpreting whether its extra computation pays for itself. Native ActiveArena evaluation remains a separate gate.
 
 ## Acceptance gate
 
-A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The value-of-information policy is the main hypothesis, but the benchmark must report all six policies. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
+A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The expected-risk candidate must additionally beat the approximate VOI policy on a direct paired contrast to justify its extra computation. Report all seven policies and their resource-quality trade-offs. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
 
 ## Reproduce
 
