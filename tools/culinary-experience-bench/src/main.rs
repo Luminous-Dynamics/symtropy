@@ -312,8 +312,8 @@ mod tests {
         let (scenarios, metrics) = docs();
         let errors = validate_values(&scenarios, &metrics);
         assert!(errors.is_empty(), "{errors:#?}");
-        assert_eq!(scenarios["scenarios"].as_array().unwrap().len(), 12);
-        assert_eq!(metrics["metrics"].as_object().unwrap().len(), 25);
+        assert_eq!(scenarios["scenarios"].as_array().unwrap().len(), 13);
+        assert_eq!(metrics["metrics"].as_object().unwrap().len(), 28);
     }
 
     #[test]
