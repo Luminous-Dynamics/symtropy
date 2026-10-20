@@ -163,7 +163,9 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
             return Err(format!("{step_at}: mass_balance_ok is false"));
         }
         if served < cumulative_arrivals || served > total_demand {
-            return Err(format!("{step_at}: cumulative arrivals regressed or exceeded demand"));
+            return Err(format!(
+                "{step_at}: cumulative arrivals regressed or exceeded demand"
+            ));
         }
         for _ in cumulative_arrivals..served {
             arrival_steps.push((step_index + 1) as u64);
@@ -217,21 +219,23 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
                 .and_then(Value::as_u64)
                 .ok_or_else(|| format!("{step_at}: missing sink entry count {sink_id}"))?;
             if count > ingress_cap {
-                return Err(format!("{step_at}: sink {sink_id} ingress capacity exceeded"));
+                return Err(format!(
+                    "{step_at}: sink {sink_id} ingress capacity exceeded"
+                ));
             }
         }
     }
 
     let served_total = uint(output, "served_vehicles", &at)?;
     if served_total != cumulative_arrivals {
-        return Err(format!("{at}: final served count does not match step trace"));
+        return Err(format!(
+            "{at}: final served count does not match step trace"
+        ));
     }
     let unserved = uint(output, "unserved_or_stranded_vehicles", &at)?;
     let source_remaining = uint(output, "source_queued_at_horizon", &at)?;
     let network_remaining = uint(output, "network_queued_at_horizon", &at)?;
-    if served_total + unserved != total_demand
-        || source_remaining + network_remaining != unserved
-    {
+    if served_total + unserved != total_demand || source_remaining + network_remaining != unserved {
         return Err(format!("{at}: final source/network/sink balance mismatch"));
     }
     if !boolean(output, "mass_balance_ok", &at)? || !boolean(output, "capacity_checks_ok", &at)? {
@@ -240,21 +244,31 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
     check_u64(output, "queue_vehicle_steps", queue_vehicle_steps, &at)?;
     check_u64(output, "max_source_queue", max_source_queue, &at)?;
     check_u64(output, "max_network_queue", max_network_queue, &at)?;
-    check_optional_step(output, "p50_arrival_step", nearest_rank(&arrival_steps, 50, 100), &at)?;
-    check_optional_step(output, "p90_arrival_step", nearest_rank(&arrival_steps, 90, 100), &at)?;
-    check_optional_step(output, "p95_arrival_step", nearest_rank(&arrival_steps, 95, 100), &at)?;
+    check_optional_step(
+        output,
+        "p50_arrival_step",
+        nearest_rank(&arrival_steps, 50, 100),
+        &at,
+    )?;
+    check_optional_step(
+        output,
+        "p90_arrival_step",
+        nearest_rank(&arrival_steps, 90, 100),
+        &at,
+    )?;
+    check_optional_step(
+        output,
+        "p95_arrival_step",
+        nearest_rank(&arrival_steps, 95, 100),
+        &at,
+    )?;
 
     let completed = boolean(output, "completed", &at)?;
     if completed != (served_total == total_demand) {
         return Err(format!("{at}: completed flag disagrees with served demand"));
     }
     if completed {
-        check_optional_step(
-            output,
-            "clearance_step",
-            Some(steps.len() as u64),
-            &at,
-        )?;
+        check_optional_step(output, "clearance_step", Some(steps.len() as u64), &at)?;
     } else {
         check_optional_step(output, "clearance_step", None, &at)?;
         if steps.len() != horizon as usize {
@@ -290,7 +304,9 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
         let accessible_served = uint(demand_receipt, "accessible_served_vehicles", &at)?;
         let source_queue = uint(demand_receipt, "source_queued_vehicles", &at)?;
         if served > vehicle_count || accessible_served > accessible_count {
-            return Err(format!("{at}: demand {demand_id} served count exceeds its demand"));
+            return Err(format!(
+                "{at}: demand {demand_id} served count exceeds its demand"
+            ));
         }
         demand_served_sum += served;
         demand_source_queue_sum += source_queue;
@@ -353,7 +369,11 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
     }
     let demand_accessible_served_sum: u64 = output_by_demand
         .values()
-        .map(|row| row.get("accessible_served_vehicles").and_then(Value::as_u64).unwrap_or(0))
+        .map(|row| {
+            row.get("accessible_served_vehicles")
+                .and_then(Value::as_u64)
+                .unwrap_or(0)
+        })
         .sum();
     if sink_served_sum != served_total || sink_accessible_sum != demand_accessible_served_sum {
         return Err(format!("{at}: sink and demand service totals mismatch"));
@@ -369,12 +389,16 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
         check_u64(edge, "storage", storage, &at)?;
         for field in ["from", "to", "closed_from_step", "travel_time_steps"] {
             if edge.get(field) != cfg_edge.get(field) {
-                return Err(format!("{at}: edge {edge_id} field {field} differs from fixture"));
+                return Err(format!(
+                    "{at}: edge {edge_id} field {field} differs from fixture"
+                ));
             }
         }
         let occupancy = uint(edge, "max_occupancy", &at)?;
         if occupancy > storage {
-            return Err(format!("{at}: edge {edge_id} max occupancy exceeds storage"));
+            return Err(format!(
+                "{at}: edge {edge_id} max occupancy exceeds storage"
+            ));
         }
         let entries = array(edge, "entries_by_step", &at)?;
         let exits = array(edge, "exits_by_step", &at)?;
@@ -389,9 +413,7 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
                 return Err(format!("{at}: edge {edge_id} step capacity exceeded"));
             }
         }
-        let closure = cfg_edge
-            .get("closed_from_step")
-            .and_then(Value::as_u64);
+        let closure = cfg_edge.get("closed_from_step").and_then(Value::as_u64);
         let mut post_close_entries = 0u64;
         if let Some(close_step) = closure {
             for (index, count) in entries.iter().enumerate() {
@@ -402,7 +424,9 @@ fn verify_case(case: &Value, output: &Value, index: usize) -> Check<(u64, u64, u
         }
         check_u64(edge, "entries_at_or_after_closure", post_close_entries, &at)?;
         if post_close_entries != 0 {
-            return Err(format!("{at}: edge {edge_id} admits vehicles after closure"));
+            return Err(format!(
+                "{at}: edge {edge_id} admits vehicles after closure"
+            ));
         }
     }
     Ok((total_demand, served_total, queue_vehicle_steps, completed))
@@ -440,7 +464,9 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, expected_source: &str) -> Check
     for index in 0..CASE_IDS.len() {
         let id = string(&cases[index], "case_id", "fixture case")?;
         if id != CASE_IDS[index] {
-            return Err(format!("fixture case order mismatch at index {index}: {id}"));
+            return Err(format!(
+                "fixture case order mismatch at index {index}: {id}"
+            ));
         }
         let (demand, served, queue_steps, completed) =
             verify_case(&cases[index], &outputs[index], index)?;
@@ -455,7 +481,12 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, expected_source: &str) -> Check
     let summary = receipt
         .get("scorecard")
         .ok_or_else(|| "receipt missing scorecard".to_owned())?;
-    check_u64(summary, "scenario_count", CASE_IDS.len() as u64, "scorecard")?;
+    check_u64(
+        summary,
+        "scenario_count",
+        CASE_IDS.len() as u64,
+        "scorecard",
+    )?;
     check_u64(summary, "total_demand_vehicles", total_demand, "scorecard")?;
     check_u64(summary, "total_served_vehicles", total_served, "scorecard")?;
     check_u64(
@@ -494,8 +525,8 @@ fn run() -> Check<()> {
     }
     let fixture_bytes = fs::read(&args[1]).map_err(|error| format!("read fixture: {error}"))?;
     let receipt_bytes = fs::read(&args[2]).map_err(|error| format!("read receipt: {error}"))?;
-    let receipt: Value =
-        serde_json::from_slice(&receipt_bytes).map_err(|error| format!("parse receipt: {error}"))?;
+    let receipt: Value = serde_json::from_slice(&receipt_bytes)
+        .map_err(|error| format!("parse receipt: {error}"))?;
     verify(&fixture_bytes, &receipt, &args[3])?;
     println!(
         "independent network-flow receipt verification passed: {} cases; fixture SHA-256 {}; source {}",
@@ -541,9 +572,11 @@ mod tests {
             "entries_by_step":[1,1,0,0,0]
         });
         let counts = edge["entries_by_step"].as_array().expect("trace");
-        let post = counts.iter().enumerate()
-            .filter(|(i,_)| *i as u64 + 1 >= 4)
-            .map(|(_,v)| v.as_u64().unwrap_or(u64::MAX))
+        let post = counts
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i as u64 + 1 >= 4)
+            .map(|(_, v)| v.as_u64().unwrap_or(u64::MAX))
             .sum::<u64>();
         assert_eq!(post, 0);
     }

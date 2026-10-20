@@ -1105,7 +1105,9 @@ mod tests {
             assert_eq!(result["capacity_checks_ok"], true, "seed {seed}");
             assert_eq!(
                 result["served_vehicles"].as_u64().unwrap_or(0)
-                    + result["unserved_or_stranded_vehicles"].as_u64().unwrap_or(0),
+                    + result["unserved_or_stranded_vehicles"]
+                        .as_u64()
+                        .unwrap_or(0),
                 total_demand,
                 "seed {seed}"
             );
