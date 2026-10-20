@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Integration-level acceptance oracle with frozen, explicit expected values.
 
-use physical_transformation_reference::mechanics::{axial_bar, cantilever_tip_load};
+use physical_transformation_reference::mechanics::{
+    axial_bar, cantilever_tip_load, simply_supported_uniform_load,
+};
 use physical_transformation_reference::{
     Component, Connection, Event, Operation, World, run_reference_fixture,
 };
@@ -100,4 +102,12 @@ fn analytical_bar_and_cantilever_match_frozen_known_answers() {
         cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid cantilever case");
     assert!((cantilever.tip_deflection_m - (1.0 / 6_000.0)).abs() <= 1.0e-15);
     assert!((cantilever.maximum_bending_stress_pa - 2_500_000.0).abs() <= 1.0e-6);
+}
+
+#[test]
+fn simply_supported_beam_is_checked_against_independent_closed_form_values() {
+    let beam = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)
+        .expect("valid simply supported beam");
+    assert!((beam.midspan_deflection_m - (1.0 / 480.0)).abs() <= 1.0e-15);
+    assert!((beam.maximum_bending_stress_pa - 25_000_000.0).abs() <= 1.0e-6);
 }
