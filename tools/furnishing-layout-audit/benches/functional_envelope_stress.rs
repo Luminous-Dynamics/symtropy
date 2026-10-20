@@ -46,10 +46,14 @@ impl Workload {
         }
     }
 
-    fn expected_envelope_outcome(self, index: usize, side: usize, item_count: usize) -> &'static str {
+    fn expected_envelope_outcome(
+        self,
+        index: usize,
+        side: usize,
+        item_count: usize,
+    ) -> &'static str {
         let has_next_row_same_column = index.saturating_add(side) < item_count;
-        if self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON
-            && has_next_row_same_column
+        if self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON && has_next_row_same_column
         {
             "fail"
         } else {
@@ -58,9 +62,7 @@ impl Workload {
     }
 
     fn promotion_disposition(self, item_count: usize, side: usize) -> &'static str {
-        if self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON
-            && item_count > side
-        {
+        if self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON && item_count > side {
             "blocked"
         } else {
             "candidate_only"
@@ -171,10 +173,10 @@ fn expected_collision_pairs(item_count: usize, side: usize, pitch: f64) -> usize
                 if next_index <= index || next_index >= item_count {
                     continue;
                 }
-                let overlaps_x = (delta_column.unsigned_abs() as f64) * pitch
-                    < ITEM_WIDTH - GEOMETRY_EPSILON;
-                let overlaps_y = (delta_row.unsigned_abs() as f64) * pitch
-                    < ITEM_DEPTH - GEOMETRY_EPSILON;
+                let overlaps_x =
+                    (delta_column.unsigned_abs() as f64) * pitch < ITEM_WIDTH - GEOMETRY_EPSILON;
+                let overlaps_y =
+                    (delta_row.unsigned_abs() as f64) * pitch < ITEM_DEPTH - GEOMETRY_EPSILON;
                 if overlaps_x && overlaps_y {
                     pairs += 1;
                 }
@@ -203,7 +205,9 @@ fn run_workload(item_count: usize, iterations: usize, workload: Workload) {
         samples.push(started.elapsed());
         actual_collisions = findings
             .iter()
-            .filter(|finding| finding.contains("physical footprints") && finding.contains("overlap"))
+            .filter(|finding| {
+                finding.contains("physical footprints") && finding.contains("overlap")
+            })
             .count();
         unexpected_findings = findings.len().saturating_sub(actual_collisions);
         assert_eq!(
