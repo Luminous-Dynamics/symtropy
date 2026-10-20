@@ -28,6 +28,27 @@ The first Symtropy pairwise trajectory kernel is a deliberately tiny research co
 | FAA weight/balance and certification | Aircraft/operator-specific approved limits, design/conformity/production approval and operational obligations | Treat approved-source applicability and human/authority sign-off as external decision gates. Never generate generic aircraft limits. |
 | NIST manufacturing digital thread | Product-definition standards, conformance tests, inspection data and secure traceability through manufacture | Bind configuration, material/process/measurement evidence and design-change impact into a reproducible lifecycle thread, and reuse standard exchange formats. |
 
+## Measured prototype baseline — 2026-10-20
+
+The isolated Symtropy branch `feat/airspace-trajectory-conflict-audit-001`, exact head `6d3f16623b69c5ae58beddca92983f611d331443`, passed [workflow 39422964230](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39422964230). The dedicated job ran formatting, Clippy with warnings denied, unit/integration tests, and the release benchmark; Linux, Windows and macOS repository matrices also passed.
+
+The finite correctness corpus passed: 9,225 closed-form synchronized-parallel cases; 72,600 exact integer-rational sloped-segment comparisons; exact-boundary checks; three metamorphic invariants; and a 96-trajectory candidate-recall check against brute-force pairwise audits. These are bounded synthetic tests, not a proof for arbitrary floating-point trajectories.
+
+The hosted Linux runner emitted these measurements for a fixed paired-path fixture (11 release-mode repetitions per size):
+
+| Trajectories | Candidates | All possible pairs | Candidate reduction | p50 candidate generation | p95 candidate generation |
+|---:|---:|---:|---:|---:|---:|
+| 10 | 5 | 45 | 88.8889% | 1 µs | 21 µs |
+| 100 | 50 | 4,950 | 98.9899% | 27 µs | 39 µs |
+| 1,000 | 500 | 499,500 | 99.8999% | 230 µs | 338 µs |
+| 10,000 | 5,000 | 49,995,000 | 99.9900% | 3.017 ms | 4.123 ms |
+
+**Interpretation limits:** the CI host was not pinned; the fixture pairs nearby crossing paths and spaces the groups apart; the timings cover broadphase generation only. They exclude the 5,000 pairwise narrow-phase audits in the 10k case, live feed ingestion, surveillance association, uncertainty calibration, vehicle feasibility, route resolution, conflict grouping, controller display, failover and end-to-end decision latency. The result supports the feasibility of this particular filter; it is not comparable to EUROCONTROL operational systems and is not evidence of state-of-the-art superiority.
+
+For context, EUROCONTROL's MTCD specification describes distinct functions: detecting probable separation loss, detecting restricted-airspace penetration, and identifying encounters relevant to shared airspace use. This prototype presently does only pairwise geometric screening on supplied synthetic trajectories. The next fair benchmark must freeze the same trajectories/criteria, pin the host and toolchain, report broadphase plus narrow-phase p50/p95 and memory, and retain 100% candidate recall against brute force.
+
+Separately, the FAA's UTM concept is a collaborative ecosystem covering flight planning, authorization, surveillance and conflict management; it is not merely a geometric intersection test. A Reuters report dated 13 October 2026 describes lawmakers' safety-evaluation, training and transparency concerns about a separate AI-based FAA flight-management pilot. That is a timely reminder that human authority and published evaluation evidence matter, not evidence that this prototype has comparable function or risk.
+
 ## South African source and approval context
 
 For work intended to be relevant in Johannesburg/Gauteng, distinguish the FAA/EU research references above from the applicable South African authority and operational publications. SACAA's current [Airworthiness page](https://www.caa.co.za/industry-information/airworthiness/) publishes technical guidance for Design Organisation Approval, Part Manufacturing Approval, STCs, type acceptance/certification and experimental certificates. It describes Type Acceptance Certificates under South African Civil Aviation Regulations, identifies model/category/limitations, and explains the relationship between type acceptance, registration and certificate of airworthiness. This is a reason to model approval path, product/model/serial applicability and limits as typed evidence—not a generic boolean "approved".
