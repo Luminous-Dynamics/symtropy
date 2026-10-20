@@ -5,7 +5,9 @@ on:
     branches: ["research/wildfire-ops-benchmark-v0-1"]
     paths:
       - "docs/tech/WILDFIRE_OPS_BENCHMARK_V0_1.md"
+      - "docs/tech/WILDFIRE_VOI_BENCHMARK_V0_1.md"
       - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_VOI_V0_1.json"
       - "benchmarks/fixtures/WILDFIRE_VOI_V0_1.json"
       - "tools/wildfire-ops-bench/**"
       - ".github/workflows/wildfire-ops-bench.yml"
@@ -13,7 +15,9 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "docs/tech/WILDFIRE_OPS_BENCHMARK_V0_1.md"
+      - "docs/tech/WILDFIRE_VOI_BENCHMARK_V0_1.md"
       - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_VOI_V0_1.json"
       - "tools/wildfire-ops-bench/**"
       - ".github/workflows/wildfire-ops-bench.yml"
   workflow_dispatch:
@@ -114,8 +118,12 @@ jobs:
             and (.scorecard.B2_decision_aware_voi.abstention_count == 2)
             and (.scorecard.B2_decision_aware_voi.expected_observation_match_count == 4)
             and (.scorecard.B2_decision_aware_voi.deadline_violation_count == 0)
-            and (.cases | all(.B2_decision_aware_voi.selected_observation_id == null or
-                ([.candidate_observations[] | select(.observation_id == .B2_decision_aware_voi.selected_observation_id)] | length >= 0)))
+            and (.cases | all(. as $case |
+                ($case.B2_decision_aware_voi.selected_observation_id == null)
+                or ([$case.candidate_observations[] |
+                  select(.observation_id == $case.B2_decision_aware_voi.selected_observation_id)
+                  | select(.eligible_by_deadline == true and .net_value_of_information > 0)
+                ] | length == 1)))
           ' wildfire-voi-reference-receipt.json
 
       - name: Upload deterministic wildfire decision receipts
