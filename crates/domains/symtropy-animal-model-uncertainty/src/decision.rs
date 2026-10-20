@@ -233,9 +233,9 @@ pub struct WeightSensitivity {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PreferenceStability {
     FirstStrictlyBetter,
-    FirstNeverWorse,
+    FirstNonInferior,
     SecondStrictlyBetter,
-    SecondNeverWorse,
+    SecondNonInferior,
     Equivalent,
     CanFlip,
 }
@@ -245,9 +245,9 @@ impl PreferenceStability {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::FirstStrictlyBetter => "first_strictly_better",
-            Self::FirstNeverWorse => "first_never_worse",
+            Self::FirstNonInferior => "first_noninferior_within_margin",
             Self::SecondStrictlyBetter => "second_strictly_better",
-            Self::SecondNeverWorse => "second_never_worse",
+            Self::SecondNonInferior => "second_noninferior_within_margin",
             Self::Equivalent => "equivalent",
             Self::CanFlip => "ranking_can_flip",
         }
@@ -468,9 +468,9 @@ pub fn compare_actions_under_weight_uncertainty(
     {
         PreferenceStability::Equivalent
     } else if maximum_loss_difference <= practical_loss_difference_margin {
-        PreferenceStability::FirstNeverWorse
+        PreferenceStability::FirstNonInferior
     } else if minimum_loss_difference >= -practical_loss_difference_margin {
-        PreferenceStability::SecondNeverWorse
+        PreferenceStability::SecondNonInferior
     } else {
         PreferenceStability::CanFlip
     };
@@ -910,6 +910,8 @@ mod tests {
         let mut models = example_models();
         models[0].action_losses.insert("wait".to_owned(), 3.0001);
         models[1].action_losses.insert("wait".to_owned(), 3.0002);
+        models[0].action_losses.insert("retreat".to_owned(), 3.00015);
+        models[1].action_losses.insert("retreat".to_owned(), 3.00019);
         let intervals = vec![
             ModelWeightInterval {
                 model_id: "predator_coupled".to_owned(),
@@ -927,9 +929,39 @@ mod tests {
             "wait",
             "retreat",
             &intervals,
-            2.1,
+            0.0001,
         )
         .expect("valid margin and model set");
+        assert_eq!(result.stability, PreferenceStability::Equivalent);
+    }
+
+    #[test]
+    fn ranking_that_flips_only_inside_margin_is_practically_equivalent() {
+        let mut models = example_models();
+        models[0].action_losses.insert("wait".to_owned(), 3.0001);
+        models[1].action_losses.insert("wait".to_owned(), 3.0002);
+        models[0].action_losses.insert("retreat".to_owned(), 3.00015);
+        models[1].action_losses.insert("retreat".to_owned(), 3.00019);
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ];
+        let result = compare_actions_under_weight_uncertainty(
+            &models,
+            "wait",
+            "retreat",
+            &intervals,
+            0.0001,
+        )
+        .expect("finite margin");
         assert_eq!(result.stability, PreferenceStability::Equivalent);
     }
 
