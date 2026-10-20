@@ -9,12 +9,13 @@
 - Stable component/connection IDs, explicit material labels, and declared integer-milligram accounting fields.
 - Deterministic connected-component analysis after structural-graph changes.
 - A conserved mass ledger partitioned into reused, recycled, contaminated, waste, and unaccounted outputs.
+- A state-bound `RecoverComponent` event that only recovers an existing component once it has no active support or connections; all output categories must sum exactly to the component's declared mass before the component leaves the active scene.
 - Three closed-form mechanics references: a uniform linear-elastic axial bar, a small-deflection Euler-Bernoulli cantilever under a tip point load, and a simply supported Euler-Bernoulli beam under a full-span uniform load.
 - Explicit units, positive-domain checks, non-finite/overflow rejection, signed load behavior, and frozen known-answer outputs for stress, strain, extension, cantilever deflection, simply supported midspan deflection and bending stress.
-- Frozen synthetic fixture: three components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one.
-- Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, unbalanced mass, numeric overflow and malformed identifiers.
-- Twelve unit tests and four integration tests pin topology, accounting, and analytical outcomes against explicit expected values.
-- Deterministic JSON receipt bound to the 40-character source commit supplied by the caller.
+- Frozen synthetic fixture: three topology components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one. A separate component is then recovered through the state transition and its declared 1,000 mg reconciles exactly to recovery outputs.
+- Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, connected-component recovery, unbalanced component recovery, standalone ledger imbalance, numeric overflow and malformed identifiers.
+- Thirteen unit tests and four integration tests pin topology, accounting, and analytical outcomes against explicit expected values.
+- Deterministic JSON receipt bound to the 40-character source commit supplied by the caller, including state-bound recovered-component count and mass.
 
 ## Run locally
 
@@ -30,7 +31,7 @@ The CLI emits one JSON receipt. The source commit binds the receipt to versioned
 
 ## Paradigm shift
 
-Treat destruction, construction and repair as the same state-transition problem. A broken connection modifies topology, a removed component requires valid preconditions, and a rejected event cannot partially mutate the world. Material accounting follows the same principle: all outputs must reconcile to declared input, with unknown mass kept visible rather than disappearing into an aggregate “recycling rate.”
+Treat destruction, construction and repair as the same state-transition problem. A broken connection modifies topology, a removed component requires valid preconditions, and a rejected event cannot partially mutate the world. Material accounting follows the same principle: all outputs must reconcile to declared input, with unknown mass kept visible rather than disappearing into an aggregate “recycling rate.” A recovery event must refer to an actual component and satisfies topology preconditions before its mass is booked.
 
 This is intentionally a small slice. Graph connectivity does not prove whether a building is stable, whether an element will actually fall, or how stress redistributes. The current mass fields are declared accounting values, not sensor measurements or verified material properties. The three mechanics fixtures verify only their closed-form idealizations; they do not validate a mesh, nonlinear constitutive law, real connection behavior, dynamic collapse, or solver integration.
 
