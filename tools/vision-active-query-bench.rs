@@ -897,7 +897,7 @@ impl Family {
 
 fn report_budget_frontier() {
     println!("VIS-ACT-006 sensing-budget Pareto frontier; world horizon stays {HORIZON}, terminal target is evaluated at tick {}", HORIZON - 1);
-    println!("Budget prefixes reduce sensing opportunities only; the world still evolves through the full horizon and no terminal observation is supplied for free.");
+    println!("Requests are evenly scheduled across the fixed 48-tick horizon using floor(slot * horizon / budget); the world continues evolving and no terminal observation is supplied for free.");
     println!("BUDGET\tfamily\tbudget\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requested_per_claim\tmean_relevant_per_claim\twasted_observation_rate\tlogical_state_bytes\testimated_scoring_work_units_per_episode\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
 
     let mut cells = vec![
