@@ -703,7 +703,7 @@ mod tests {
     fn synthetic_fixture_validates_without_granting_release() {
         let report = validate_trace(&fixture()).expect("valid trace");
         assert!(report.structural_validation_passed);
-        assert_eq!(report.event_count, 28);
+        assert_eq!(report.event_count, 33);
         assert_eq!(report.job_releases, 2);
         assert_eq!(report.accepted_jobs, 2);
         assert_eq!(report.scrapped_jobs, 0);
