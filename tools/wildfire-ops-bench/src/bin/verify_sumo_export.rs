@@ -117,9 +117,7 @@ fn xml_attributes(tag: &str) -> Check<BTreeMap<String, String>> {
             return Err(format!("XML attribute {key} lacks '='"));
         }
         cursor += 1;
-        while cursor < bytes.len()
-            && matches!(bytes[cursor], b' ' | b'\t' | b'\r' | b'\n')
-        {
+        while cursor < bytes.len() && matches!(bytes[cursor], b' ' | b'\t' | b'\r' | b'\n') {
             cursor += 1;
         }
         let quote = *bytes
