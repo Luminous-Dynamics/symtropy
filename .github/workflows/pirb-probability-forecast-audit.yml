@@ -5,6 +5,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "docs/schemas/pirb-probability-forecast-v0.1.schema.json"
+      - "docs/schemas/pirb-hierarchy-forecast-v0.2.schema.json"
+      - "docs/fixtures/pirb-hierarchy-sample-score-synthetic-v0.2.json"
       - "docs/schemas/pirb-views-offline-import-v0.1.schema.json"
       - "docs/fixtures/pirb-probability-forecast-v0.1.json"
       - "docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json"
@@ -61,6 +63,18 @@ jobs:
             and .provider.hierarchy_sha256 == "1111111111111111111111111111111111111111111111111111111111111111"
             and .reconciliation_policy.method_sha256 == "2222222222222222222222222222222222222222222222222222222222222222"
           ' docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json > /dev/null
+
+      - name: Assert CRPS scoring fixture is synthetic and outcome maturity is explicit
+        run: |
+          jq -e '
+            .schema_version == "0.2"
+            and .evidence_scope == "synthetic"
+            and .privacy.aggregate_only == true
+            and .outcome_snapshot.release_sha256 == "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            and (.outcome_snapshot.rows | length == 8)
+            and ([.outcome_snapshot.rows[] | select(.status == "unknown" and .observed_count == null and .outcome_available_index == null)] | length == 1)
+            and ([.outcome_snapshot.rows[] | select(.status == "matured" and (.outcome_available_index > .forecast_origin_index))] | length == 0)
+          ' docs/fixtures/pirb-hierarchy-sample-score-synthetic-v0.2.json > /dev/null
 
       - name: Run schema, metric, maturity, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
@@ -208,6 +222,76 @@ jobs:
               and .receipt_commitment_sha256 == $receipt_commitment
             ' pirb-hierarchy-coherence-receipt.json
 
+      - name: Score predictive count samples with CRPS and independently verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          input="docs/fixtures/pirb-hierarchy-sample-score-synthetic-v0.2.json"
+          schema="docs/schemas/pirb-hierarchy-forecast-v0.2.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+          expected_lock_sha="$(sha256sum tools/pirb-probability-forecast-eval/Cargo.lock | awk '{print $1}')"
+          rustc_version="$(rustc --version)"
+          cargo_version="$(cargo --version)"
+          expected_forecast_inventory_sha="$(jq -cS '{schema_version:.schema_version,provider:.provider,forecast_origin_index:.forecast_origin_index,target_period_index:.target_period_index,temporal_index_policy:.temporal_index_policy,reconciliation_policy:.reconciliation_policy,forecasts:.forecasts,aggregation_constraints:.aggregation_constraints,predictive_samples:.predictive_samples}' "$input" | sha256sum | awk '{print $1}')"
+          expected_outcome_snapshot_sha="$(jq -cS '.outcome_snapshot' "$input" | sha256sum | awk '{print $1}')"
+
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-hierarchy-sample-score -- \
+            --input "$input" --source-commit "$source_commit" \
+            --dependency-lock-sha256 "$expected_lock_sha" \
+            --rustc-version "$rustc_version" --cargo-version "$cargo_version" \
+            > pirb-hierarchy-sample-score-receipt.json
+
+          expected_receipt_commitment="$(printf 'pirb-hierarchy-sample-score-receipt-v0.2\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
+            "pirb-hierarchy-crps-synthetic-v0-2-example" "$source_commit" \
+            "$expected_schema_sha" "$expected_input_sha" "$expected_forecast_inventory_sha" \
+            "$expected_outcome_snapshot_sha" "$expected_lock_sha" "$rustc_version" \
+            "$cargo_version" | sha256sum | awk '{print $1}')"
+
+          jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_input_sha" \
+            --arg schema_sha "$expected_schema_sha" --arg forecast_inventory_sha "$expected_forecast_inventory_sha" \
+            --arg outcome_snapshot_sha "$expected_outcome_snapshot_sha" --arg lock_sha "$expected_lock_sha" \
+            --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" \
+            --arg receipt_commitment "$expected_receipt_commitment" '
+              .receipt_version == "0.2"
+              and .receipt_type == "hierarchy_sample_score_audit"
+              and .registration_id == "pirb-hierarchy-crps-synthetic-v0-2-example"
+              and .source_commit == $source_commit
+              and .source_commit_pinned == true
+              and .dependency_lock_sha256 == $lock_sha
+              and .rustc_version == $rustc_version
+              and .cargo_version == $cargo_version
+              and .schema_sha256 == $schema_sha
+              and .input_sha256 == $input_sha
+              and .forecast_inventory_sha256 == $forecast_inventory_sha
+              and .outcome_snapshot_sha256 == $outcome_snapshot_sha
+              and .outcome_release_id == "synthetic-outcome-release-v0.2"
+              and .outcome_release_sha256 == "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+              and .score == "empirical_crps"
+              and .score_orientation == "lower_is_better"
+              and .forecast_count == 8
+              and .predictive_sample_count == 2
+              and .matured_scored_count == 7
+              and .score_denominator == 7
+              and .unknown_outcome_count == 1
+              and (.mean_raw_empirical_crps - (2/7) | fabs < 0.000000000001)
+              and (.mean_reconciled_empirical_crps - (1.5/7) | fabs < 0.000000000001)
+              and (.mean_raw_minus_reconciled_crps - (0.5/7) | fabs < 0.000000000001)
+              and (.eligible_forecast_ids | length == 7)
+              and ([.per_forecast_scores[] | select(.score_status == "scored")] | length == 7)
+              and ([.per_forecast_scores[] | select(.score_status == "not_scored_unknown_outcome")] | length == 1)
+              and ([.per_forecast_scores[] | select(.forecast_id == "fc-admin1-b-organized" and .raw_empirical_crps == 0.5 and .reconciled_empirical_crps == 0 and .raw_minus_reconciled_crps == 0.5)] | length == 1)
+              and ([.per_forecast_scores[] | select(.forecast_id == "fc-admin1-c-organized" and .observed_count == null and .raw_empirical_crps == null and .reconciled_empirical_crps == null)] | length == 1)
+              and .claims.marginal_predictive_score_calculated == true
+              and .claims.forecast_skill_superiority_established == false
+              and .claims.calibration_established == false
+              and .claims.decision_utility_established == false
+              and .claims.causal_impact_established == false
+              and .claims.live_decision_authority == false
+              and .receipt_commitment_sha256 == $receipt_commitment
+            ' pirb-hierarchy-sample-score-receipt.json
+
       - name: Compare frozen outcome vintages with invariant forecast inventory
         shell: bash
         run: |
@@ -303,6 +387,9 @@ jobs:
           path: |
             pirb-probability-forecast-receipt.json
             pirb-hierarchy-coherence-receipt.json
+            pirb-hierarchy-sample-score-receipt.json
+            docs/fixtures/pirb-hierarchy-sample-score-synthetic-v0.2.json
+            docs/schemas/pirb-hierarchy-forecast-v0.2.schema.json
             docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json
             docs/schemas/pirb-hierarchy-forecast-v0.1.schema.json
             pirb-views-import-receipt.json
