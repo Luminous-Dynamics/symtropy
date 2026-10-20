@@ -670,6 +670,78 @@ mod tests {
         }
     }
 
+    fn next_seed(state: &mut u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        *state
+    }
+
+    #[test]
+    fn deterministic_parameter_sweep_preserves_exact_oracle_dominance() {
+        let frozen = fixture();
+        let cases = frozen["cases"].as_array().expect("four frozen cases");
+        let mut evaluated = 0usize;
+
+        // 32 reproducible perturbations per topology. This is deliberately a bounded
+        // correctness sweep, not a claim about large-network throughput.
+        for (case_index, frozen_case) in cases.iter().enumerate() {
+            for sample in 0..32u64 {
+                let mut case = frozen_case.clone();
+                let mut state = 0x5359_4d54_524f_5059u64 ^ ((case_index as u64) << 32) ^ sample;
+
+                for edge in case["edges"].as_array_mut().expect("edge array") {
+                    let capacity = next_seed(&mut state) % 4 + 1;
+                    let storage = capacity + next_seed(&mut state) % 7;
+                    let travel_time = next_seed(&mut state) % 4 + 1;
+                    edge["capacity_per_step"] = json!(capacity);
+                    edge["storage"] = json!(storage);
+                    edge["travel_time_steps"] = json!(travel_time);
+                }
+                for demand in case["demands"].as_array_mut().expect("demand array") {
+                    demand["departure_step"] = json!(next_seed(&mut state) % 5 + 1);
+                }
+
+                let case_id = case["case_id"].as_str().expect("case ID");
+                let (demands, units) = parse_case(&case)
+                    .unwrap_or_else(|error| panic!("{case_id} sample {sample}: {error}"));
+                let baseline = best_assignment(&case, &demands, &units, false)
+                    .unwrap_or_else(|error| panic!("baseline {case_id} sample {sample}: {error}"));
+                let oracle = best_assignment(&case, &demands, &units, true)
+                    .unwrap_or_else(|error| panic!("oracle {case_id} sample {sample}: {error}"));
+
+                assert!(
+                    !compare_objective(&oracle.objective, &baseline.objective).is_gt(),
+                    "exact oracle worsened objective for {case_id} sample {sample}: oracle={:?}, baseline={:?}",
+                    oracle.objective,
+                    baseline.objective
+                );
+                assert_eq!(
+                    oracle.simulation["mass_balance_ok"], true,
+                    "{case_id} sample {sample}: oracle mass balance"
+                );
+                assert_eq!(
+                    baseline.simulation["mass_balance_ok"], true,
+                    "{case_id} sample {sample}: baseline mass balance"
+                );
+                assert_eq!(
+                    oracle.simulation["capacity_checks_ok"], true,
+                    "{case_id} sample {sample}: oracle capacity check"
+                );
+                assert_eq!(
+                    baseline.simulation["capacity_checks_ok"], true,
+                    "{case_id} sample {sample}: baseline capacity check"
+                );
+                assert!(
+                    oracle.enumeration_count <= MAX_ASSIGNMENTS,
+                    "{case_id} sample {sample}: oracle exceeded search budget"
+                );
+                evaluated += 1;
+            }
+        }
+        assert_eq!(evaluated, 128);
+    }
+
     #[test]
     fn malformed_disconnected_candidate_route_fails_closed() {
         let mut fixture = fixture();
