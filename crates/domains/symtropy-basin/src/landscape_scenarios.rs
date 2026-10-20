@@ -304,37 +304,35 @@ impl LandscapeScenarioManifest {
             ));
         }
 
-        if snapshot.coordinate_frame_kind == LOCAL_DRAWING_FRAME || !snapshot.georeferenced {
-            match self.purpose {
-                LandscapeRunPurpose::SchemaQualification => {}
-                LandscapeRunPurpose::SyntheticBenchmark
-                    if snapshot.geometry_status == SYNTHETIC_GEOMETRY_STATUS
-                        && snapshot.coordinate_frame_kind == LOCAL_DRAWING_FRAME
-                        && !snapshot.georeferenced => {}
-                LandscapeRunPurpose::SyntheticBenchmark => {
+        // The accepted v0 design schema only represents arbitrary drawing
+        // units. A caller cannot change the frame string and thereby promote
+        // this schema to measured coordinates.
+        if snapshot.coordinate_frame_kind != LOCAL_DRAWING_FRAME || snapshot.georeferenced {
+            violations.push(ContractViolation::new(
+                "snapshot-frame-unsupported",
+                "$.design_snapshot.coordinate_frame_kind",
+                "v0 scenario handoff only accepts LOCAL_CARTESIAN_DRAWING_UNITS with georeferenced=false",
+            ));
+        }
+
+        match self.purpose {
+            LandscapeRunPurpose::SchemaQualification => {}
+            LandscapeRunPurpose::SyntheticBenchmark => {
+                if snapshot.geometry_status != SYNTHETIC_GEOMETRY_STATUS {
                     violations.push(ContractViolation::new(
                         "synthetic-evidence-required",
-                        "$.purpose",
-                        "synthetic benchmarks require synthetic status and the explicit local non-georeferenced frame",
-                    ));
-                }
-                LandscapeRunPurpose::AnalyticalReference
-                | LandscapeRunPurpose::ScientificSimulation => {
-                    violations.push(ContractViolation::new(
-                        "physical-claim-blocked-by-schematic-frame",
-                        "$.design_snapshot.coordinate_frame_kind",
-                        "v0 local drawing units are not measured spatial geometry; analytical/scientific claims are blocked",
+                        "$.design_snapshot.geometry_status",
+                        "synthetic benchmark purpose requires synthetic-benchmark evidence status",
                     ));
                 }
             }
-        } else if self.purpose == LandscapeRunPurpose::SyntheticBenchmark
-            && snapshot.geometry_status != SYNTHETIC_GEOMETRY_STATUS
-        {
-            violations.push(ContractViolation::new(
-                "synthetic-evidence-required",
-                "$.design_snapshot.geometry_status",
-                "synthetic benchmark purpose requires the synthetic-benchmark evidence class",
-            ));
+            LandscapeRunPurpose::AnalyticalReference | LandscapeRunPurpose::ScientificSimulation => {
+                violations.push(ContractViolation::new(
+                    "physical-claim-blocked-by-schematic-frame",
+                    "$.design_snapshot.coordinate_frame_kind",
+                    "v0 symbol-anchor geometry is not measured spatial geometry; analytical/scientific landscape claims are blocked",
+                ));
+            }
         }
 
         if self.purpose == LandscapeRunPurpose::AnalyticalReference
@@ -347,6 +345,7 @@ impl LandscapeScenarioManifest {
             ));
         }
     }
+}
 }
 
 fn validate_sha256(value: &str, path: &'static str, violations: &mut Vec<ContractViolation>) {
