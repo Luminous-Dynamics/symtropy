@@ -13,6 +13,7 @@ type Check<T> = Result<T, String>;
 struct Contracts {
     candidate_ids: BTreeSet<String>,
     scenario_metrics: BTreeMap<String, BTreeSet<String>>,
+    scenario_gate_ids: BTreeMap<String, BTreeSet<String>>,
     metric_ids: BTreeSet<String>,
     metric_unit_options: BTreeMap<String, BTreeSet<String>>,
     contract_digests: BTreeMap<String, String>,
@@ -94,6 +95,7 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
         .ok_or_else(|| format!("{}: candidate_families must be an array", design_path.display()))?;
 
     let mut scenario_metrics = BTreeMap::new();
+    let mut scenario_gate_ids = BTreeMap::new();
     for scenario in scenario_array {
         let id = scenario.get("scenario_id").and_then(Value::as_str)
             .ok_or_else(|| "scenario missing scenario_id".to_string())?.to_owned();
@@ -103,7 +105,16 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
                 .ok_or_else(|| format!("{id}: metric ID must be a string")))
             .collect::<Check<BTreeSet<_>>>()?;
         if metrics.is_empty() { return Err(format!("{id}: no primary metrics")); }
+        let gates = scenario.get("required_safety_gate_ids").and_then(Value::as_array)
+            .ok_or_else(|| format!("{id}: required_safety_gate_ids must be an array"))?
+            .iter().map(|g| g.as_str().map(str::to_owned)
+                .ok_or_else(|| format!("{id}: gate ID must be a string")))
+            .collect::<Check<BTreeSet<_>>>()?;
+        if gates.is_empty() { return Err(format!("{id}: no required safety gates")); }
+        let gate_count = scenario.get("required_safety_gate_ids").and_then(Value::as_array).map(Vec::len).unwrap_or(0);
+        if gate_count != gates.len() { return Err(format!("{id}: duplicate required safety gate ID")); }
         if scenario_metrics.insert(id.clone(), metrics).is_some() { return Err(format!("duplicate scenario ID {id}")); }
+        scenario_gate_ids.insert(id, gates);
     }
     let mut candidate_ids = BTreeSet::new();
     for candidate in candidate_array {
@@ -127,7 +138,7 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
             if !metric_ids.contains(metric) { return Err(format!("scenario {scenario} has unregistered metric {metric}")); }
         }
     }
-    Ok(Contracts { candidate_ids, scenario_metrics, metric_ids, metric_unit_options, contract_digests })
+    Ok(Contracts { candidate_ids, scenario_metrics, scenario_gate_ids, metric_ids, metric_unit_options, contract_digests })
 }
 
 fn artifact_is_remote(uri: &str) -> bool {
@@ -367,21 +378,41 @@ fn validate_record(v: &Value, source: &str, records_dir: &Path, contracts: &Cont
         Err(e) => errors.push(e)
     }
     match array_field(v, "safety_gates", source) {
-        Ok(gates) => for (i, gate) in gates.iter().enumerate() {
-            let at = format!("{source}.safety_gates[{i}]");
-            missing_keys(gate, &["gate_id", "status", "basis"], &at, &mut errors);
-            reject_unknown_keys(gate, &["gate_id", "status", "basis", "artifact_refs"], &at, &mut errors);
-            for key in ["gate_id", "basis"] {
-                match req_text(gate, key, &at) {
+        Ok(gates) => {
+            let mut actual_gate_ids = BTreeSet::new();
+            for (i, gate) in gates.iter().enumerate() {
+                let at = format!("{source}.safety_gates[{i}]");
+                missing_keys(gate, &["gate_id", "status", "basis"], &at, &mut errors);
+                reject_unknown_keys(gate, &["gate_id", "status", "basis", "artifact_refs"], &at, &mut errors);
+                match req_text(gate, "gate_id", &at) {
+                    Ok(id) if !id.trim().is_empty() => {
+                        if !actual_gate_ids.insert(id.clone()) {
+                            errors.push(format!("{at}: duplicate safety gate ID {id}"));
+                        }
+                    },
+                    Ok(_) => errors.push(format!("{at}.gate_id is empty")),
+                    Err(e) => errors.push(e)
+                }
+                match req_text(gate, "basis", &at) {
                     Ok(s) if !s.trim().is_empty() => {},
-                    Ok(_) => errors.push(format!("{at}.{key} is empty")),
+                    Ok(_) => errors.push(format!("{at}.basis is empty")),
+                    Err(e) => errors.push(e)
+                }
+                match req_text(gate, "status", &at) {
+                    Ok(s) if ["pass", "fail", "unknown", "not_applicable"].contains(&s.as_str()) => {},
+                    Ok(s) => errors.push(format!("{at}: invalid safety gate status {s}")),
                     Err(e) => errors.push(e)
                 }
             }
-            match req_text(gate, "status", &at) {
-                Ok(s) if ["pass", "fail", "unknown", "not_applicable"].contains(&s.as_str()) => {},
-                Ok(s) => errors.push(format!("{at}: invalid safety gate status {s}")),
-                Err(e) => errors.push(e)
+            if let Some(expected) = contracts.scenario_gate_ids.get(&scenario_id) {
+                for required_id in expected {
+                    if !actual_gate_ids.contains(required_id) {
+                        errors.push(format!("{source}: required safety gate {required_id} is missing; explicitly status it"));
+                    }
+                }
+                for actual_id in actual_gate_ids.difference(expected) {
+                    errors.push(format!("{source}: unregistered safety gate {actual_id} for scenario {scenario_id}"));
+                }
             }
         },
         Err(e) => errors.push(e)
@@ -409,12 +440,22 @@ fn validate_record(v: &Value, source: &str, records_dir: &Path, contracts: &Cont
     errors
 }
 
-fn gate_qualified(v: &Value) -> bool {
-    v.get("safety_gates").and_then(Value::as_array).is_some_and(|gates| {
-        !gates.is_empty() && gates.iter().all(|g| matches!(
-            g.get("status").and_then(Value::as_str), Some("pass" | "not_applicable")
-        ))
-    })
+fn gate_qualified(v: &Value, contracts: &Contracts) -> bool {
+    let Some(scenario) = v.get("scenario_id").and_then(Value::as_str) else { return false; };
+    let Some(expected) = contracts.scenario_gate_ids.get(scenario) else { return false; };
+    let Some(gates) = v.get("safety_gates").and_then(Value::as_array) else { return false; };
+    if gates.len() != expected.len() { return false; }
+    let mut actual = BTreeMap::new();
+    for gate in gates {
+        let (Some(id), Some(status)) = (
+            gate.get("gate_id").and_then(Value::as_str),
+            gate.get("status").and_then(Value::as_str)
+        ) else { return false; };
+        if actual.insert(id, status).is_some() { return false; }
+    }
+    expected.iter().all(|id| matches!(
+        actual.get(id.as_str()).copied(), Some("pass" | "not_applicable")
+    ))
 }
 fn physically_eligible(v: &Value, contracts: &Contracts) -> bool {
     let Some(scenario) = v.get("scenario_id").and_then(Value::as_str) else { return false; };
@@ -428,7 +469,7 @@ fn physically_eligible(v: &Value, contracts: &Contracts) -> bool {
     v.get("run_status").and_then(Value::as_str) == Some("complete")
         && matches!(v.get("evidence_class").and_then(Value::as_str),
             Some("physical_observation" | "derived_from_physical"))
-        && gate_qualified(v)
+        && gate_qualified(v, contracts)
         && all_primary_metrics_observed
 }
 fn read_records(dir: &Path) -> Check<LoadedRecords> {
@@ -710,6 +751,7 @@ mod tests {
         Contracts{
             candidate_ids:["REF-0","P1-DRAINBACK"].into_iter().map(str::to_owned).collect(),
             scenario_metrics:[("SINK-TEST-001".into(),["water_l","cleaning_endpoint"].into_iter().map(str::to_owned).collect())].into_iter().collect(),
+            scenario_gate_ids:[("SINK-TEST-001".into(),["GATE-1".to_owned()].into_iter().collect())].into_iter().collect(),
             metric_ids:["water_l","cleaning_endpoint"].into_iter().map(str::to_owned).collect(),
             metric_unit_options:[
                 ("water_l".to_owned(), ["L/task".to_owned()].into_iter().collect()),
@@ -762,6 +804,8 @@ mod tests {
         assert_eq!(loaded.contract_digests.len(), 4);
         assert!(loaded.contract_digests.values().all(|h| valid_sha256(h)));
         assert!(loaded.scenario_metrics.contains_key("SINK-PRERINSE-FORCE-013"));
+        assert!(loaded.scenario_gate_ids.len() >= 13);
+        assert!(loaded.scenario_gate_ids.values().all(|g| !g.is_empty()));
         assert!(loaded.candidate_ids.contains("P7-COMMERCIAL-PRERINSE"));
     }
 
@@ -780,6 +824,35 @@ mod tests {
         r["metrics"][0]["unit"] = json!("bananas");
         let errors = validate_record(&r, "fixture", Path::new("."), &contracts());
         assert!(errors.iter().any(|e| e.contains("unit bananas is not one of registered options")));
+    }
+
+    #[test]
+    fn missing_required_safety_gate_blocks_record_and_physical_eligibility() {
+        let mut r = record();
+        r["safety_gates"] = json!([]);
+        let errors = validate_record(&r, "fixture", Path::new("."), &contracts());
+        assert!(errors.iter().any(|e| e.contains("required safety gate GATE-1 is missing")));
+        assert!(!physically_eligible(&r, &contracts()));
+    }
+
+    #[test]
+    fn unknown_required_safety_gate_blocks_physical_eligibility_even_if_others_pass() {
+        let mut r = record();
+        r["safety_gates"] = json!([
+            {"gate_id":"GATE-1","status":"pass","basis":"test"},
+            {"gate_id":"GATE-2","status":"unknown","basis":"unregistered"}
+        ]);
+        assert!(!physically_eligible(&r, &contracts()));
+    }
+
+    #[test]
+    fn live_scenarios_declare_unique_required_safety_gates() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../docs/research");
+        let contracts = load_contracts(&root).expect("valid live contracts");
+        for (scenario, gates) in contracts.scenario_gate_ids {
+            assert!(!gates.is_empty(), "{scenario} must specify required safety gates");
+            assert!(gates.iter().all(|g| g.starts_with("GATE-")), "{scenario} gate IDs need namespace");
+        }
     }
 
 }
