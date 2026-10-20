@@ -64,6 +64,21 @@ Use independently derived or rights-cleared definitions at first. Freeze geometr
 
 Keep development cases separate from confirmatory holdouts. Any case that informed policy parameters is no longer an untouched holdout. Do not inflate case counts by cloning cases, relaxing limits or tuning to the final test set.
 
+## 5. Code-verification frontier: go beyond observed order alone
+
+Method of Manufactured Solutions (MMS) is a strong code-verification tool because the manufactured analytical solution can be mathematically complex without needing to represent a realistic experiment. Sandia's blind-test work reports that MMS can detect coding mistakes that alter observed order, while also demonstrating error classes that it does not expose: https://www.sandia.gov/research/publications/details/code-verification-by-the-method-of-manufactured-solutions-2000-06-01/ and https://www.osti.gov/biblio/759450.
+
+A useful next research direction is to combine MMS with modified-equation analysis or local-truncation-error information where the formulation makes the analysis tractable. Sandia's local-truncation-error-informed verification work specifically motivates this because ordinary MMS may miss coding errors that are of the same order as the numerical method: https://www.sandia.gov/research/publications/details/local-truncation-error-informed-code-verification-2020-12-17/.
+
+Proposed sequence:
+1. establish an independently generated MMS solution, exact forcing and boundary data;
+2. freeze expected convergence rates and use blind mutations;
+3. inspect local residual/truncation-error structure, not only global observed order;
+4. classify which injected mistakes are detected, which survive and which cases are out of scope;
+5. keep this as code-verification evidence, separate from physical validation.
+
+This is a research target, not a claimed feature of the current evaluator. It complements NAFEMS analytical benchmarks, receipt-bound equilibrium invariants, scalar observables and refinement studies rather than replacing them.
+
 ## 5. Metrics and proposed targets
 
 ### Integrity and abstention
