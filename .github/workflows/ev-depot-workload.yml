@@ -107,9 +107,85 @@ jobs:
           }' nlr-estimate-fleet-simulation-report.json > nlr-estimate-fleet-summary.json
           jq -r '.policies[] | [.policy, .completed_by_deadline_count, .missed_deadline_count, .energy_service_fraction, .p50_queue_wait_minutes, .p95_queue_wait_minutes, .maximum_site_input_power_kw] | @tsv' nlr-estimate-fleet-summary.json
           jq -r '.capacity_frontiers[] | [.policy, (.minimum_sampled_feasible_site_power_kw // "none"), .feasible_sample_count, .service_monotonicity_violations, .feasibility_monotonicity_violations] | @tsv' nlr-estimate-fleet-summary.json
+      - name: Generate 10, 50 and 100 vehicle matched benchmark matrix (three seeds each)
+        run: |
+          CORPUS_FILES=()
+          MANIFEST_FILES=()
+          for FLEET_SIZE in 10 50 100; do
+            for SEED in 12345 54321 99991; do
+              PORTS=$((FLEET_SIZE / 2))
+              SITE_POWER=$((FLEET_SIZE * 30))
+              CORPUS="nlr-matrix-fleet-${FLEET_SIZE}-seed-${SEED}.corpus.json"
+              MANIFEST="nlr-matrix-fleet-${FLEET_SIZE}-seed-${SEED}.manifest.json"
+              cargo run --quiet --manifest-path tools/ev-depot-workload/Cargo.toml -- \
+                --input-report nlr-duty-audit-report.json \
+                --output-corpus "${CORPUS}" \
+                --output-manifest "${MANIFEST}" \
+                --fleet-size "${FLEET_SIZE}" --seed "${SEED}" \
+                --kwh-per-mile 1.8 --pack-capacity-kwh 400 --initial-soc-fraction 0.1 \
+                --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
+                --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
+                --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
+                --charger-ports "${PORTS}" --site-power-budget-kw "${SITE_POWER}"
+              CORPUS_FILES+=("${CORPUS}")
+              MANIFEST_FILES+=("${MANIFEST}")
+            done
+          done
+          jq -s '.[0] as $first | {schema_version:$first.schema_version, suite_id:$first.suite_id, claim_ceiling:$first.claim_ceiling, vehicle_templates:$first.vehicle_templates, scenarios:[.[] | .scenarios[]]}' "${CORPUS_FILES[@]}" > nlr-depot-benchmark-matrix.json
+          jq -s '.' "${MANIFEST_FILES[@]}" > nlr-depot-benchmark-matrix-manifests.json
+          jq -e '.suite_id == "EV-CHARGE-RESILIENCE-001" and (.scenarios | length == 9) and ([.scenarios[].jobs | length] | sort == [10,10,10,50,50,50,100,100,100]) and ([.scenarios[].scenario_id] | unique | length == 9) and all(.scenarios[]; .evidence_class == "estimate")' nlr-depot-benchmark-matrix.json
+          jq -e 'length == 9 and all(.[]; .scenario_evidence_class == "estimate" and (.source_operation_day_csv_sha256 | length == 64) and (.source_schedule_csv_sha256 | length == 64))' nlr-depot-benchmark-matrix-manifests.json
+      - name: Evaluate matrix policies and grid-capacity frontiers
+        run: |
+          cargo run --quiet --manifest-path tools/ev-fleet-resilience/Cargo.toml -- nlr-depot-benchmark-matrix.json > nlr-depot-benchmark-matrix-report.json
+          jq -e '(.results | length == 18) and (.capacity_frontiers | length == 18) and all(.results[]; (.job_count == 10 or .job_count == 50 or .job_count == 100) and .evidence_class == "estimate" and .site_power_limit_respected and .individual_power_limits_respected and ((.energy_balance_residual_kwh | fabs) < 0.000001) and (.jobs | length == .job_count) and ([.jobs[].job_id] | unique | length == .job_count)) and all(.capacity_frontiers[]; .evidence_class == "estimate" and (.points | length == 20) and .sample_spacing_percent == 5 and .minimum_deadline_completion_target == 0.95 and .minimum_energy_service_target == 0.95 and .service_monotonicity_violations == 0 and .feasibility_monotonicity_violations == 0 and all(.points[]; .site_power_limit_respected and .individual_power_limits_respected))' nlr-depot-benchmark-matrix-report.json
+      - name: Summarize paired policy and scale outcomes
+        run: |
+          jq '{
+            scenario_count: ([.results[].scenario_id] | unique | length),
+            evidence_class: "estimate",
+            claim_ceiling: .claim_ceiling,
+            per_case_policy_results: [
+              .results[] as $r |
+              (.capacity_frontiers[] | select(.scenario_id == $r.scenario_id and .policy == $r.policy)) as $f |
+              {
+                scenario_id: $r.scenario_id,
+                fleet_size: $r.job_count,
+                seed: ($f.label | capture("seed (?<seed>[0-9]+)") | .seed | tonumber),
+                policy: $r.policy,
+                completed_by_deadline_count: $r.completed_by_deadline_count,
+                missed_deadline_count: $r.missed_deadline_count,
+                energy_service_fraction: $r.energy_service_fraction,
+                requested_battery_energy_kwh: $r.requested_battery_energy_kwh,
+                delivered_battery_energy_kwh: $r.delivered_battery_energy_kwh,
+                unserved_battery_energy_kwh: $r.unserved_battery_energy_kwh,
+                p50_queue_wait_minutes: $r.median_queue_wait_minutes,
+                p95_queue_wait_minutes: $r.p95_queue_wait_minutes,
+                maximum_site_input_power_kw: $r.maximum_site_input_power_kw,
+                site_power_budget_kw: $f.base_site_power_budget_kw,
+                minimum_sampled_feasible_site_power_kw: $f.minimum_sampled_feasible_site_power_kw,
+                feasible_sample_count: $f.feasible_sample_count,
+                service_monotonicity_violations: $f.service_monotonicity_violations,
+                feasibility_monotonicity_violations: $f.feasibility_monotonicity_violations
+              }
+            ],
+            paired_frontier_comparisons: [
+              .capacity_frontiers | group_by(.scenario_id)[] | . as $group |
+              ($group | map(select(.policy == "fcfs"))[0]) as $fcfs |
+              ($group | map(select(.policy == "earliest_departure_first"))[0]) as $edf |
+              {
+                scenario_id: $group[0].scenario_id,
+                fcfs_minimum_sampled_feasible_site_power_kw: $fcfs.minimum_sampled_feasible_site_power_kw,
+                earliest_departure_first_minimum_sampled_feasible_site_power_kw: $edf.minimum_sampled_feasible_site_power_kw,
+                grid_capacity_reduction_percent_vs_fcfs: if ($fcfs.minimum_sampled_feasible_site_power_kw != null and $fcfs.minimum_sampled_feasible_site_power_kw > 0 and $edf.minimum_sampled_feasible_site_power_kw != null) then (100 * ($fcfs.minimum_sampled_feasible_site_power_kw - $edf.minimum_sampled_feasible_site_power_kw) / $fcfs.minimum_sampled_feasible_site_power_kw) else null end
+              }
+            ]
+          }' nlr-depot-benchmark-matrix-report.json > nlr-depot-benchmark-matrix-summary.json
+          jq -r '.per_case_policy_results[] | [.fleet_size, .seed, .policy, .completed_by_deadline_count, .missed_deadline_count, .energy_service_fraction, (.minimum_sampled_feasible_site_power_kw // "none"), .maximum_site_input_power_kw, .p95_queue_wait_minutes] | @tsv' nlr-depot-benchmark-matrix-summary.json
+          jq -r '.paired_frontier_comparisons[] | [.scenario_id, (.fcfs_minimum_sampled_feasible_site_power_kw // "none"), (.earliest_departure_first_minimum_sampled_feasible_site_power_kw // "none"), (.grid_capacity_reduction_percent_vs_fcfs // "n/a")] | @tsv' nlr-depot-benchmark-matrix-summary.json
       - name: Hash code, source inputs, report, generated corpus and simulation result
         run: |
-          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-duty-audit-report.json nlr-estimate-fleet.json nlr-estimate-fleet.manifest.json nlr-estimate-fleet-simulation-report.json nlr-estimate-fleet-summary.json > ev-depot-end-to-end.sha256
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-duty-audit-report.json nlr-estimate-fleet.json nlr-estimate-fleet.manifest.json nlr-estimate-fleet-simulation-report.json nlr-estimate-fleet-summary.json nlr-depot-benchmark-matrix.json nlr-depot-benchmark-matrix-manifests.json nlr-depot-benchmark-matrix-report.json nlr-depot-benchmark-matrix-summary.json nlr-matrix-fleet-*.corpus.json nlr-matrix-fleet-*.manifest.json > ev-depot-end-to-end.sha256
           (cd "${RUNNER_TEMP}" && sha256sum nlr-veh_op_days.csv nlr-veh_schedules.csv) >> ev-depot-end-to-end.sha256
       - name: Upload reproducible end-to-end evidence (no raw source tables)
         uses: actions/upload-artifact@v4
@@ -121,6 +197,12 @@ jobs:
             nlr-estimate-fleet.manifest.json
             nlr-estimate-fleet-simulation-report.json
             nlr-estimate-fleet-summary.json
+            nlr-depot-benchmark-matrix.json
+            nlr-depot-benchmark-matrix-manifests.json
+            nlr-depot-benchmark-matrix-report.json
+            nlr-depot-benchmark-matrix-summary.json
+            nlr-matrix-fleet-*.corpus.json
+            nlr-matrix-fleet-*.manifest.json
             ev-depot-end-to-end.sha256
           if-no-files-found: error
           retention-days: 14
