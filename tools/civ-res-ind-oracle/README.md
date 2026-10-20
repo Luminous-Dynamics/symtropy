@@ -32,9 +32,13 @@ precondition are satisfied.
 
 - The corpus is synthetic, not field data. It does not calibrate Symtropy or
   qualify real industrial capacity.
-- The S06 result validates only the *shape* of the future-blindness contract.
-  Without policy action traces, it does not establish action-level future
-  blindness.
+- The S06 result now checks a fixture-supplied paired action trace: policy ID/version,
+  exact visible-history prefixes, forbidden future/hidden inputs, and identical
+  actions whenever the visible histories are identical. Each step includes SHA-256
+  digests of serialized policy inputs and actions for replay comparison.
+- This remains a synthetic trace consistency test, not execution of the deployed
+  policy or proof that a real runtime has no side channel. The digests are not
+  signatures and do not authenticate the policy, source, or physical events.
 - A matching SHA-256 digest binds bytes; it does not authenticate an author,
   instrument, physical event, or truth claim.
 - A passing oracle establishes only these frozen accounting semantics—not that a
