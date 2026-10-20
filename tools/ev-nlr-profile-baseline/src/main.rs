@@ -773,7 +773,12 @@ fn compare_generated_profiles(
     })
 }
 
-fn generate_report(report: &AuditReport, days: &[DutyDay], options: &Options) -> Result<Report, String> {
+fn generate_report(
+    report: &AuditReport,
+    days: &[DutyDay],
+    options: &Options,
+    references: Option<&ReferenceProfiles>,
+) -> Result<Report, String> {
     let mut rng = options.seed;
     let mut sample_metrics = Vec::with_capacity(options.sample_count);
     let mut summed_profile = vec![0.0_f64; BINS_PER_DAY];
@@ -808,6 +813,15 @@ fn generate_report(report: &AuditReport, days: &[DutyDay], options: &Options) ->
     for value in &mut summed_profile {
         *value /= options.sample_count as f64;
     }
+    let published_profile_comparison = match references {
+        Some(reference_profiles) => Some(compare_generated_profiles(
+            &summed_profile,
+            &min_profile,
+            &max_profile,
+            reference_profiles,
+        )?),
+        None => None,
+    };
     Ok(Report {
         schema_version: "0.1.0".to_string(),
         benchmark_id: "EV-NLR-REFERENCE-PROFILES-001".to_string(),
@@ -836,6 +850,7 @@ fn generate_report(report: &AuditReport, days: &[DutyDay], options: &Options) ->
         daily_minimum_peak_profile: profile_points(&min_profile),
         daily_average_profile: profile_points(&summed_profile),
         daily_maximum_peak_profile: profile_points(&max_profile),
+        published_profile_comparison,
         samples: sample_metrics,
         claim_ceiling: CLAIM_CEILING,
     })
@@ -849,7 +864,8 @@ fn run() -> Result<(), String> {
     let report: AuditReport = serde_json::from_slice(&report_bytes)
         .map_err(|error| format!("invalid_audit_report_json:{error}"))?;
     let days = validate_and_group_report(&report)?;
-    let result = generate_report(&report, &days, &options)?;
+    let reference_profiles = read_reference_profiles(&options)?;
+    let result = generate_report(&report, &days, &options, reference_profiles.as_ref())?;
     println!(
         "{}",
         serde_json::to_string_pretty(&result)
@@ -914,6 +930,9 @@ mod tests {
             seed: 17,
             kwh_per_mile: 1.8,
             charger_power_kw: 100.0,
+            reference_average_csv: None,
+            reference_minimum_peak_csv: None,
+            reference_maximum_peak_csv: None,
         }
     }
 
@@ -950,7 +969,7 @@ mod tests {
     fn service_and_peak_are_preserved_in_the_summary() {
         let report = sample_audit_report();
         let days = validate_and_group_report(&report).unwrap();
-        let result = generate_report(&report, &days, &options(Strategy::MinimumPower)).unwrap();
+        let result = generate_report(&report, &days, &options(Strategy::MinimumPower), None).unwrap();
         assert_eq!(result.profile_intervals_per_day, 96);
         assert_eq!(result.samples.len(), 2);
         assert_eq!(result.daily_average_profile.len(), 96);
