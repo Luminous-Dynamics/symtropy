@@ -54,3 +54,8 @@ These formulas do not prove that a real member has the declared geometry, materi
 ## Industry comparison and next qualification gates
 
 See [PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md](../../docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md) for the matched comparison ladder against the published SOFiSTiK 2026 verification catalog, NIST tiered verification/validation/calibration guidance, and the open 2026 synthetic SHM robustness benchmark. The current adapter is at the closed-form equation-contract tier only; numerical solver verification, measured validation, and uncertainty qualification remain separate gates.
+
+
+## Bounded analytical input uncertainty (API preview)
+
+The separate [interval enclosure method](../../docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md) is being developed in `src/uncertainty.rs` and tracked by [PHYS-UQ-001 #2292](https://github.com/Luminous-Dynamics/symtropy/issues/2292). It validates nominal values against finite input ranges and propagates deterministic output enclosures through the three closed-form formula families. It deliberately does not yet change the public JSON request or receipt contract, and it does not create statistical confidence intervals. Bounds cover only declared input ranges under the selected formula.
