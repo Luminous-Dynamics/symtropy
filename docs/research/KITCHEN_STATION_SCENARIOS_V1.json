@@ -58,7 +58,12 @@
         "change load or soil between trials",
         "omit rewashes or invalid runs"
       ],
-      "claim_limit": "A reference baseline does not show superiority or prove hygienic safety."
+      "claim_limit": "A reference baseline does not show superiority or prove hygienic safety.",
+      "required_safety_gate_ids": [
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-WATER-ACCOUNTING",
+        "GATE-FOOD-CONTACT"
+      ]
     },
     {
       "scenario_id": "SINK-LOW-PRESSURE-002",
@@ -91,7 +96,12 @@
         "report rated flow without measured pressure",
         "drop failed trials"
       ],
-      "claim_limit": "Only supports the tested pressure range and task; it is not a guarantee for all low-pressure systems."
+      "claim_limit": "Only supports the tested pressure range and task; it is not a guarantee for all low-pressure systems.",
+      "required_safety_gate_ids": [
+        "GATE-PRESSURE-ENVELOPE",
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-SUPPLY-SAFETY"
+      ]
     },
     {
       "scenario_id": "SINK-TASK-FLOW-003",
@@ -124,7 +134,12 @@
         "exclude user correction or rewash",
         "ignore failure to return to efficient default"
       ],
-      "claim_limit": "A flow mode is not superior unless whole-task outcomes and cleaning endpoints support it."
+      "claim_limit": "A flow mode is not superior unless whole-task outcomes and cleaning endpoints support it.",
+      "required_safety_gate_ids": [
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-WATER-ACCOUNTING",
+        "GATE-CONTROL-STATE"
+      ]
     },
     {
       "scenario_id": "SINK-SPLASH-TRACER-004",
@@ -155,7 +170,12 @@
         "move sensitive receivers after seeing results",
         "equate fluorescent tracer deposition with pathogen transfer"
       ],
-      "claim_limit": "Tracer deposition is a comparative proxy, not a pathogen or illness-risk measurement."
+      "claim_limit": "Tracer deposition is a comparative proxy, not a pathogen or illness-risk measurement.",
+      "required_safety_gate_ids": [
+        "GATE-TRACER-SAFETY",
+        "GATE-RECEIVER-FREEZE",
+        "GATE-CLEANING-RESET"
+      ]
     },
     {
       "scenario_id": "SINK-MODULE-CLEANABILITY-005",
@@ -189,7 +209,12 @@
         "treat color coding as a hygiene barrier",
         "ignore trapped water or hard-to-reach joints"
       ],
-      "claim_limit": "Visual or tracer observations do not establish microbial safety or food-contact regulatory compliance."
+      "claim_limit": "Visual or tracer observations do not establish microbial safety or food-contact regulatory compliance.",
+      "required_safety_gate_ids": [
+        "GATE-FOOD-CONTACT",
+        "GATE-CLEANING-ACCESS",
+        "GATE-STABILITY"
+      ]
     },
     {
       "scenario_id": "DRY-PASSIVE-BASELINE-006",
@@ -223,7 +248,12 @@
         "change room RH without recording it",
         "ignore cups or cutlery that dry slower than plates"
       ],
-      "claim_limit": "Dryness endpoint does not establish sanitization or pathogen removal."
+      "claim_limit": "Dryness endpoint does not establish sanitization or pathogen removal.",
+      "required_safety_gate_ids": [
+        "GATE-DRY-ENDPOINT",
+        "GATE-AMBIENT-COVERAGE",
+        "GATE-LOADED-CONFIGURATION"
+      ]
     },
     {
       "scenario_id": "DRY-LOAD-COVERAGE-007",
@@ -255,7 +285,12 @@
         "omit hard-to-place items",
         "change item mix to inflate capacity"
       ],
-      "claim_limit": "Performance applies only to the tested loaded set and defined conditions."
+      "claim_limit": "Performance applies only to the tested loaded set and defined conditions.",
+      "required_safety_gate_ids": [
+        "GATE-LOAD-DECLARED",
+        "GATE-DRY-ENDPOINT",
+        "GATE-ITEM-COVERAGE"
+      ]
     },
     {
       "scenario_id": "DRY-AIR-ASSIST-008",
@@ -290,7 +325,13 @@
         "use heat or UV as assumed sanitization",
         "ignore noise, aerosol/deposition or local hot spots"
       ],
-      "claim_limit": "Only validates measured drying/energy trade-offs under the declared setup; no microbial or regulatory claim."
+      "claim_limit": "Only validates measured drying/energy trade-offs under the declared setup; no microbial or regulatory claim.",
+      "required_safety_gate_ids": [
+        "GATE-ELECTRICAL-SAFETY",
+        "GATE-CONTAMINATION-PATH",
+        "GATE-ENERGY-MEASURED",
+        "GATE-DRY-ENDPOINT"
+      ]
     },
     {
       "scenario_id": "SERVICE-POSTCHECK-009",
@@ -324,7 +365,13 @@
         "omit slow/failed service attempts",
         "ignore leak or altered flow"
       ],
-      "claim_limit": "One successful service event does not establish universal repairability or lifetime parts availability."
+      "claim_limit": "One successful service event does not establish universal repairability or lifetime parts availability.",
+      "required_safety_gate_ids": [
+        "GATE-QUALIFIED-SERVICE",
+        "GATE-LEAK-POSTCHECK",
+        "GATE-FLOW-POSTCHECK",
+        "GATE-DRAIN-POSTCHECK"
+      ]
     },
     {
       "scenario_id": "ERGONOMICS-ACCESS-010",
@@ -358,7 +405,12 @@
         "infer accessibility from a rendering",
         "treat user preference as proof of safety"
       ],
-      "claim_limit": "A limited usability study cannot establish universal accessibility; report tested user groups and conditions."
+      "claim_limit": "A limited usability study cannot establish universal accessibility; report tested user groups and conditions.",
+      "required_safety_gate_ids": [
+        "GATE-CONSENT-PRIVACY",
+        "GATE-STOPPING-RULES",
+        "GATE-ACCESSIBILITY-COHORT"
+      ]
     },
     {
       "scenario_id": "DATA-INTEGRITY-011",
@@ -391,7 +443,12 @@
         "label a skipped run as pass",
         "report a score without denominator"
       ],
-      "claim_limit": "Data integrity is necessary for valid comparison but does not itself demonstrate physical performance."
+      "claim_limit": "Data integrity is necessary for valid comparison but does not itself demonstrate physical performance.",
+      "required_safety_gate_ids": [
+        "GATE-COMPLETE-RECORD-COVERAGE",
+        "GATE-NO-SILENT-IMPUTATION",
+        "GATE-DIGEST-INTEGRITY"
+      ]
     },
     {
       "scenario_id": "SINK-BATCH-FLOW-012",
@@ -433,7 +490,13 @@
         "ignore handling difficulty, spillage, rewashes or load failures",
         "assume domestic method satisfies commercial sanitation requirements"
       ],
-      "claim_limit": "Supports only the tested household load, detergent, source-water conditions and defined endpoint; does not establish food-service compliance or universal water savings."
+      "claim_limit": "Supports only the tested household load, detergent, source-water conditions and defined endpoint; does not establish food-service compliance or universal water savings.",
+      "required_safety_gate_ids": [
+        "GATE-DO-NOT-REUSE-DIRTY-RINSE",
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-WATER-ACCOUNTING",
+        "GATE-HANDLING-SAFETY"
+      ]
     },
     {
       "scenario_id": "SINK-PRERINSE-FORCE-013",
@@ -477,7 +540,14 @@
         "tracer deposition moves onto another sensitive surface",
         "initial performance is reported without post-wear or post-service checks"
       ],
-      "claim_limit": "A valve-level and matched-task comparison under declared conditions; not a sanitation, microbial-reduction, certification or universal superiority claim."
+      "claim_limit": "A valve-level and matched-task comparison under declared conditions; not a sanitation, microbial-reduction, certification or universal superiority claim.",
+      "required_safety_gate_ids": [
+        "GATE-COMMERCIAL-APPLICATION",
+        "GATE-PRESSURE-ENVELOPE",
+        "GATE-SOIL-REMOVAL",
+        "GATE-SPRAY-COVERAGE",
+        "GATE-SPLASH-DEPOSITION"
+      ]
     }
   ],
   "stretch_targets": {
@@ -511,5 +581,11 @@
   "design_space": "docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json",
   "related_issues": [
     "https://github.com/Luminous-Dynamics/symtropy/issues/2359"
-  ]
+  ],
+  "acceptance_targets": {
+    "every_scenario_has_required_safety_gate_ids": true,
+    "every_trial_must_status_each_required_safety_gate": true,
+    "missing_required_gate_blocks_physical_eligibility": true,
+    "unknown_or_failed_required_gate_cannot_be_compensated_by_performance": true
+  }
 }
