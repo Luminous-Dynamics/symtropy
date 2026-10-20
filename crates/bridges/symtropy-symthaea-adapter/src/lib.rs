@@ -47,7 +47,9 @@ use symthaea_core::hdc::ContinuousHV;
 use symtropy_hdc_core::{
     BipolarBundle, EncoderSpec, HdcError, ItemMemory, LevelEncoder, StableHash64,
 };
-use symtropy_robotics_bridge_core::motor::MotorPlanner;
+use symtropy_robotics_bridge_core::motor::{
+    MotorPlanner, MotorPlannerFault, MotorPlannerStatus,
+};
 
 /// Default simulation timestep fed to `EmbodimentBridge::step` (60 Hz).
 pub const DEFAULT_DT: f32 = 1.0 / 60.0;
@@ -311,6 +313,34 @@ impl MotorPlanner for EmbodimentPlanner {
         let per_joint = authority.min(gain);
         self.last_fault = None;
         vec![per_joint; num_actuators]
+    }
+
+    fn status(&self) -> MotorPlannerStatus {
+        match self.last_fault {
+            None => MotorPlannerStatus::Ready,
+            Some(PlannerFault::InvalidTimestep | PlannerFault::InvalidHypervectorDimension) => {
+                MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidConfiguration)
+            }
+            Some(PlannerFault::InvalidGain) => {
+                MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidGain)
+            }
+            Some(PlannerFault::NonFiniteObservation) => {
+                MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
+            }
+            Some(PlannerFault::ObservationEncodingFailed) => {
+                MotorPlannerStatus::Rejected(MotorPlannerFault::EncodingFailure)
+            }
+            Some(
+                PlannerFault::RequestedActuatorCountMismatch
+                | PlannerFault::BridgeActuatorCountMismatch,
+            ) => MotorPlannerStatus::Rejected(MotorPlannerFault::ActuatorInterfaceMismatch),
+            Some(PlannerFault::BridgeReportedFailure) => {
+                MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure)
+            }
+            Some(PlannerFault::InvalidBridgeOutput) => {
+                MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidOutput)
+            }
+        }
     }
 }
 
@@ -640,6 +670,19 @@ mod tests {
                 Some(PlannerFault::InvalidBridgeOutput)
             );
         }
+    }
+
+    #[test]
+    fn planner_status_exposes_rejection_through_generic_trait() {
+        let mut planner = make_planner_with_actuators(4);
+        let _ = planner.plan(&[f64::NAN], 0.5, 4);
+        assert_eq!(
+            planner.status(),
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
+        );
+
+        let _ = planner.plan(&[0.5], 0.5, 4);
+        assert_eq!(planner.status(), MotorPlannerStatus::Ready);
     }
 
     #[test]
