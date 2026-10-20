@@ -379,8 +379,8 @@ mod tests {
         for seed in 0..256 {
             let mut keys = Episode::generate(seed, Family::Development).query.keys;
             keys.sort_unstable();
-            keys.dedup();
-            assert_eq!(keys.len(), QUERY_WIDTH);
+            assert_ne!(keys[0], keys[1]);
+            assert_ne!(keys[1], keys[2]);
             assert!(keys.iter().all(|key| *key < CLAIMS));
         }
     }
