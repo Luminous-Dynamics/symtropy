@@ -11,6 +11,12 @@ Does the adapter turn malformed numeric inputs, failed bridge outcomes, or actua
 
 The benchmark must assess both **defect detection** and **availability cost**. A system that rejects every input can score perfectly on false accepts, so valid controls and over-rejection are part of the benchmark.
 
+## Result-status propagation
+
+The generic robotics boundary now has a typed `MotorPlannerStatus` and `MotorPlanResult`. The preferred `RoboticAgent::tick_motor_plan_with` returns commands and status as one result, so callers do not accidentally lose a typed rejection while passing through the generic agent interface. The legacy vector-only method remains for compatibility and explicitly discards status; integrity-sensitive call sites should migrate to the typed method.
+
+The adapter retains detailed `PlannerFault` values locally and maps them to portable categories: invalid configuration, gain, observation, encoding, actuator interface, bridge failure, or invalid output. The benchmark must test both the detailed adapter fault and the portable status visible to a generic caller.
+
 ## Fault corpus
 
 Freeze a versioned case list and never remove a case merely because it causes a regression.
