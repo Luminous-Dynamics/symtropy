@@ -1,0 +1,16 @@
+[package]
+name = "symtropy-airspace-trajectory-audit"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Synthetic-only 4D trajectory conflict screening research prototype"
+repository = "https://github.com/Luminous-Dynamics/symtropy"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+# Keep this research crate independently testable instead of joining Symtropy's
+# large Bevy/physics workspace. It uses no external dependencies.
+[workspace]
+resolver = "2"
