@@ -1023,7 +1023,7 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::audit_fixtures;
+    use super::{audit_document, audit_fixtures, audit_functional_envelopes};
     use serde_json::{Value, json};
     use std::{fs, path::PathBuf};
 
