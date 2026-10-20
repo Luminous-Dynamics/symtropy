@@ -588,7 +588,7 @@ fn apply_event(state: &mut State, event: &Event) -> Result<(), String> {
         Action::RecoverMaterial { member_id, route } => {
             let member = state
                 .members
-                .get_mut(member_id)
+                .get(member_id)
                 .ok_or_else(|| format!("material recovery references unknown member {member_id}"))?;
             if member.state != MemberState::Rubble {
                 return Err(format!(
@@ -596,16 +596,18 @@ fn apply_event(state: &mut State, event: &Event) -> Result<(), String> {
                     member.state
                 ));
             }
+            let material_id = member.material_id.clone();
             let material = state
                 .materials
-                .get(&member.material_id)
-                .ok_or_else(|| format!("unknown material {}", member.material_id))?;
+                .get(&material_id)
+                .ok_or_else(|| format!("unknown material {material_id}"))?;
             if !material.allowed_recovery_routes.contains(route) {
                 return Err(format!(
                     "material {} does not permit recovery route {:?}",
                     material.id, route
                 ));
             }
+            let member = state.members.get_mut(member_id).expect("member was validated above");
             member.state = match route {
                 RecoveryRoute::Reuse => MemberState::Reused,
                 RecoveryRoute::Recycle => MemberState::Recycled,
@@ -761,7 +763,7 @@ mod tests {
     #[test]
     fn broken_recovery_permission_fails_closed() {
         let mut scenario = corpus().cases[2].scenario.clone();
-        scenario.materials[0].allowed_recovery_routes.clear();
+        scenario.materials.iter_mut().find(|material| material.id == "concrete").expect("fixture concrete material").allowed_recovery_routes.clear();
         let error = execute_scenario(&scenario).expect_err("recovery must be authorized");
         assert!(error.contains("does not permit recovery route"));
     }
