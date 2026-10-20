@@ -106,7 +106,9 @@ struct Report {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() < MIN_FAMILIES {
-        eprintln!("usage: ev_factory_robustness_frontier family-id=report.json [family-id=report.json ...] (at least {MIN_FAMILIES} families)");
+        eprintln!(
+            "usage: ev_factory_robustness_frontier family-id=report.json [family-id=report.json ...] (at least {MIN_FAMILIES} families)"
+        );
         process::exit(2);
     }
     let mut inputs = Vec::with_capacity(args.len());
@@ -146,7 +148,8 @@ fn main() {
 fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
     let raw = fs::read_to_string(path).map_err(|error| format!("cannot_read_report: {error}"))?;
     let sha256 = format!("{:x}", Sha256::digest(raw.as_bytes()));
-    let report: Value = serde_json::from_str(&raw).map_err(|error| format!("invalid_json: {error}"))?;
+    let report: Value =
+        serde_json::from_str(&raw).map_err(|error| format!("invalid_json: {error}"))?;
     if field_str(&report, "benchmark_id")? != "EV-FACTORY-SIM-001"
         || field_str(&report, "schema_version")? != "0.1.0"
         || field_str(&report, "input_evidence_class")? != "synthetic"
@@ -166,9 +169,16 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         .and_then(Value::as_array)
         .ok_or_else(|| "replication_seeds_missing_or_not_array".to_string())?
         .iter()
-        .map(|value| value.as_u64().ok_or_else(|| "replication_seed_not_unsigned_integer".to_string()))
+        .map(|value| {
+            value
+                .as_u64()
+                .ok_or_else(|| "replication_seed_not_unsigned_integer".to_string())
+        })
         .collect::<Result<Vec<_>, _>>()?;
-    if replication_count < 2 || seeds.len() != replication_count || seeds.iter().any(|seed| *seed == 0) {
+    if replication_count < 2
+        || seeds.len() != replication_count
+        || seeds.iter().any(|seed| *seed == 0)
+    {
         return Err("replication_count_and_positive_seed_list_must_match".into());
     }
     let unique_seeds: BTreeSet<u64> = seeds.iter().copied().collect();
@@ -176,16 +186,23 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         return Err("replication_seeds_must_be_unique".into());
     }
 
-    let scenarios = report.get("scenarios").and_then(Value::as_array)
+    let scenarios = report
+        .get("scenarios")
+        .and_then(Value::as_array)
         .ok_or_else(|| "scenarios_missing_or_not_array".to_string())?;
     let mut scenario_to_station = BTreeMap::<String, Option<String>>::new();
     let mut station_ids = BTreeSet::new();
     let mut baseline_row_count = 0_usize;
     for scenario in scenarios {
         let scenario_id = field_str(scenario, "scenario_id")?.to_string();
-        let station = scenario.get("intervention_station_id")
-            .and_then(Value::as_str).map(str::to_string);
-        if scenario_to_station.insert(scenario_id.clone(), station.clone()).is_some() {
+        let station = scenario
+            .get("intervention_station_id")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+        if scenario_to_station
+            .insert(scenario_id.clone(), station.clone())
+            .is_some()
+        {
             return Err("scenario_ids_must_be_unique".into());
         }
         if scenario_id == "baseline" {
@@ -193,7 +210,9 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
             if station.is_some() {
                 return Err("baseline_scenario_must_not_declare_intervention_station".into());
             }
-            let station_results = scenario.get("stations").and_then(Value::as_array)
+            let station_results = scenario
+                .get("stations")
+                .and_then(Value::as_array)
                 .ok_or_else(|| "baseline_stations_missing_or_not_array".to_string())?;
             for station_result in station_results {
                 let id = field_str(station_result, "station_id")?.to_string();
@@ -202,20 +221,30 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
                 }
             }
         } else {
-            let station_id = station.ok_or_else(|| "intervention_scenario_missing_station_id".to_string())?;
+            let station_id =
+                station.ok_or_else(|| "intervention_scenario_missing_station_id".to_string())?;
             if !station_ids.contains(&station_id) && !station_ids.is_empty() {
                 // Scenario traversal may list the baseline first; if not, it is rejected below.
                 return Err("intervention_references_unknown_station".into());
             }
         }
     }
-    if baseline_row_count != 1 || station_ids.len() < 2 || scenario_to_station.len() != station_ids.len() + 1 {
-        return Err("scenario_catalog_must_contain_one_baseline_and_one_intervention_per_station".into());
+    if baseline_row_count != 1
+        || station_ids.len() < 2
+        || scenario_to_station.len() != station_ids.len() + 1
+    {
+        return Err(
+            "scenario_catalog_must_contain_one_baseline_and_one_intervention_per_station".into(),
+        );
     }
     let mut intervention_ids = BTreeSet::new();
     for (scenario_id, station) in &scenario_to_station {
-        if scenario_id == "baseline" { continue; }
-        let station_id = station.as_ref().ok_or_else(|| "intervention_station_missing".to_string())?;
+        if scenario_id == "baseline" {
+            continue;
+        }
+        let station_id = station
+            .as_ref()
+            .ok_or_else(|| "intervention_station_missing".to_string())?;
         if !station_ids.contains(station_id) || !intervention_ids.insert(station_id.clone()) {
             return Err("intervention_station_ids_must_uniquely_match_baseline".into());
         }
@@ -227,7 +256,9 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         return Err("every_baseline_station_requires_one_add-server_counterfactual".into());
     }
 
-    let outcomes = report.get("replication_outcomes").and_then(Value::as_array)
+    let outcomes = report
+        .get("replication_outcomes")
+        .and_then(Value::as_array)
         .ok_or_else(|| "replication_outcomes_missing_or_not_array".to_string())?;
     if outcomes.len() != replication_count * scenario_to_station.len() {
         return Err("per_seed_outcome_count_must_equal_seed_count_times_scenarios".into());
@@ -239,7 +270,8 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
     for outcome in outcomes {
         let seed = field_u64(outcome, "seed")?;
         let scenario_id = field_str(outcome, "scenario_id")?.to_string();
-        if !unique_seeds.contains(&seed) || !scenario_to_station.contains_key(&scenario_id)
+        if !unique_seeds.contains(&seed)
+            || !scenario_to_station.contains_key(&scenario_id)
             || !seen.insert((seed, scenario_id.clone()))
         {
             return Err("outcome_has_unknown_seed_scenario_or_duplicate_seed_scenario_pair".into());
@@ -251,18 +283,24 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         }
         if scenario_id == "baseline" {
             if (output - stored_baseline).abs() > 1e-9
-                || !outcome.get("intervention_station_id").is_none_or(Value::is_null)
-                || !outcome.get("paired_good_units_per_hour_delta_vs_baseline").is_none_or(Value::is_null)
+                || !outcome
+                    .get("intervention_station_id")
+                    .is_none_or(Value::is_null)
+                || !outcome
+                    .get("paired_good_units_per_hour_delta_vs_baseline")
+                    .is_none_or(Value::is_null)
             {
                 return Err("baseline_outcome_shape_or_value_invalid".into());
             }
             baseline_rates.insert(seed, output);
         } else {
-            let station_id = scenario_to_station[&scenario_id].as_ref().expect("validated station");
+            let station_id = scenario_to_station[&scenario_id]
+                .as_ref()
+                .expect("validated station");
             let delta = field_f64(outcome, "paired_good_units_per_hour_delta_vs_baseline")?;
-            let expected_baseline = baseline_rates.get(&seed)
-                .copied()
-                .ok_or_else(|| "baseline_outcome_must_be_emitted_before_interventions_for_each_seed".to_string())?;
+            let expected_baseline = baseline_rates.get(&seed).copied().ok_or_else(|| {
+                "baseline_outcome_must_be_emitted_before_interventions_for_each_seed".to_string()
+            })?;
             if (stored_baseline - expected_baseline).abs() > 1e-9 {
                 return Err("seed_outcome_baseline_rate_mismatch".into());
             }
@@ -272,19 +310,25 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
             if field_str(outcome, "intervention_station_id")? != station_id {
                 return Err("outcome_intervention_station_mismatch".into());
             }
-            gains_by_station.get_mut(station_id).expect("station map has candidate")
+            gains_by_station
+                .get_mut(station_id)
+                .expect("station map has candidate")
                 .insert(seed, delta);
         }
     }
     if seen.len() != replication_count * scenario_to_station.len()
         || baseline_rates.len() != replication_count
-        || gains_by_station.values().any(|rows| rows.len() != replication_count)
+        || gains_by_station
+            .values()
+            .any(|rows| rows.len() != replication_count)
     {
         return Err("missing_per_seed_baseline_or_intervention_outcome".into());
     }
 
     // Cross-check aggregate statistics against source per-seed outcomes instead of trusting both independently.
-    let statistics = report.get("scenario_statistics").and_then(Value::as_array)
+    let statistics = report
+        .get("scenario_statistics")
+        .and_then(Value::as_array)
         .ok_or_else(|| "scenario_statistics_missing_or_not_array".to_string())?;
     if statistics.len() != scenario_to_station.len() {
         return Err("scenario_statistics_count_mismatch".into());
@@ -293,7 +337,8 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
     for statistic in statistics {
         let scenario_id = field_str(statistic, "scenario_id")?;
         if scenario_id == "baseline" {
-            let summary = statistic.get("good_units_per_hour")
+            let summary = statistic
+                .get("good_units_per_hour")
                 .ok_or_else(|| "baseline_rate_summary_missing".to_string())?;
             if field_usize(summary, "sample_count")? != replication_count {
                 return Err("baseline_summary_seed_count_mismatch".into());
@@ -307,13 +352,16 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         if !summary_stations.insert(station_id.to_string()) {
             return Err("duplicate_intervention_summary".into());
         }
-        let stored = statistic.get("paired_good_units_per_hour_delta_vs_baseline")
+        let stored = statistic
+            .get("paired_good_units_per_hour_delta_vs_baseline")
             .ok_or_else(|| "summary_paired_gain_missing".to_string())?;
         if field_usize(stored, "sample_count")? != replication_count {
             return Err("paired_summary_seed_count_mismatch".into());
         }
-        let values: Vec<f64> = seeds.iter()
-            .map(|seed| gains_by_station[station_id][seed]).collect();
+        let values: Vec<f64> = seeds
+            .iter()
+            .map(|seed| gains_by_station[station_id][seed])
+            .collect();
         let computed = summarize(&values)?;
         if (field_f64(stored, "mean")? - computed.mean).abs() > 1e-6 {
             return Err("summary_mean_does_not_match_seed_level_outcomes".into());
@@ -326,14 +374,17 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         family_id: family_id.to_string(),
         sha256,
         replication_seeds: seeds,
-        baseline_mean_good_units_per_hour: baseline_rates.values().sum::<f64>() / replication_count as f64,
+        baseline_mean_good_units_per_hour: baseline_rates.values().sum::<f64>()
+            / replication_count as f64,
         gains_by_station,
     })
 }
 
 fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
     if families.len() < MIN_FAMILIES {
-        return Err(format!("at_least_{MIN_FAMILIES}_scenario_families_required"));
+        return Err(format!(
+            "at_least_{MIN_FAMILIES}_scenario_families_required"
+        ));
     }
     families.sort_by(|a, b| a.family_id.cmp(&b.family_id));
     let mut family_ids = BTreeSet::new();
@@ -369,8 +420,15 @@ fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
             baseline_mean_good_units_per_hour: family.baseline_mean_good_units_per_hour,
             replication_count: family.replication_seeds.len(),
         });
-        let family_means: BTreeMap<String, f64> = family.gains_by_station.iter()
-            .map(|(station, rows)| (station.clone(), rows.values().sum::<f64>() / rows.len() as f64))
+        let family_means: BTreeMap<String, f64> = family
+            .gains_by_station
+            .iter()
+            .map(|(station, rows)| {
+                (
+                    station.clone(),
+                    rows.values().sum::<f64>() / rows.len() as f64,
+                )
+            })
             .collect();
         let family_best = family_means.iter()
             .max_by(|(station_a, gain_a), (station_b, gain_b)| gain_a.total_cmp(gain_b).then_with(|| station_b.cmp(station_a)))
