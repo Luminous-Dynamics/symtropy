@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+use physical_transformation_reference::mechanics::run_reference_fixtures;
 use physical_transformation_reference::run_reference_fixture;
 use std::env;
 use std::process::ExitCode;
@@ -39,6 +40,7 @@ fn run() -> Result<(), String> {
         "usage: physical-transformation-reference --source-commit <40-char-git-sha>".to_owned()
     })?;
     let outcome = run_reference_fixture()?;
+    let mechanics = run_reference_fixtures()?;
 
     println!(
         concat!(
@@ -53,11 +55,17 @@ fn run() -> Result<(), String> {
             "\"topology_replay\":\"pass\",",
             "\"transactional_rejection\":\"{}\",",
             "\"balanced_mass_ledger\":\"{}\",",
-            "\"imbalanced_mass_negative_control\":\"{}\"",
+            "\"imbalanced_mass_negative_control\":\"{}\",",
+            "\"analytical_mechanics\":\"pass\"",
             "}},",
             "\"summary\":{{",
             "\"component_count\":{},",
             "\"connection_count\":{},",
+            "\"axial_bar_stress_pa\":{:.17e},",
+            "\"axial_bar_strain\":{:.17e},",
+            "\"axial_bar_extension_m\":{:.17e},",
+            "\"cantilever_tip_deflection_m\":{:.17e},",
+            "\"cantilever_maximum_bending_stress_pa\":{:.17e},",
             "\"connected_components_before_cut\":{},",
             "\"connected_components_after_cut\":{},",
             "\"connected_components_after_reconnect\":{}",
@@ -83,6 +91,11 @@ fn run() -> Result<(), String> {
         },
         outcome.component_count,
         outcome.connection_count,
+        mechanics.axial_stress_pa,
+        mechanics.axial_strain,
+        mechanics.axial_extension_m,
+        mechanics.cantilever_tip_deflection_m,
+        mechanics.cantilever_maximum_bending_stress_pa,
         outcome.initial_connected_components,
         outcome.after_cut_connected_components,
         outcome.after_reconnect_connected_components
