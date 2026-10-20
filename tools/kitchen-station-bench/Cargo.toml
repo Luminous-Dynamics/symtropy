@@ -1,0 +1,15 @@
+[package]
+name = "kitchen-station-bench"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic, fail-closed validator and comparator for kitchen station trials"
+publish = false
+
+[dependencies]
+serde_json = "1.0"
+sha2 = "0.10"
+
+[workspace]
+# This small evidence tool is intentionally an isolated Cargo workspace so it
+# can run without resolving Symtropy's GPU/Bevy workspace dependencies.
