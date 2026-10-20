@@ -129,6 +129,12 @@ impl World {
                 if self.components.contains_key(&component.id) {
                     return Err(format!("duplicate component ID: {}", component.id));
                 }
+                if self.recovered_components.contains_key(&component.id) {
+                    return Err(format!(
+                        "component ID already has a recovery record: {}",
+                        component.id
+                    ));
+                }
                 self.components.insert(component.id.clone(), component);
             }
             Operation::RemoveComponent { id } => {
@@ -792,6 +798,22 @@ mod tests {
         assert_eq!(world.component_count(), 1);
         assert_eq!(world.recovered_component_count(), 1);
         assert_eq!(world.recovered_mass_mg().expect("valid recovered mass"), 1_000);
+        let after_recovery = world.canonical_snapshot();
+        let revision_after_recovery = world.revision();
+        assert!(
+            world
+                .apply(Event {
+                    id: "reinstall-A".to_owned(),
+                    operation: Operation::InstallComponent(Component {
+                        id: "A".to_owned(),
+                        material: "steel".to_owned(),
+                        mass_mg: 1_000,
+                    }),
+                })
+                .is_err()
+        );
+        assert_eq!(world.canonical_snapshot(), after_recovery);
+        assert_eq!(world.revision(), revision_after_recovery);
         assert!(world.canonical_snapshot().contains("recovered|A|steel|1000|500|300|50|100|50"));
     }
 
