@@ -16,6 +16,16 @@
 const TOTAL_CLAIMS: usize = 8;
 const QUERY_KEYS: [usize; 3] = [0, 1, 2];
 const QUERY_COUNT: usize = QUERY_KEYS.len();
+const STRATA_COUNT: usize = 7;
+const STRATA_NAMES: [&str; STRATA_COUNT] = [
+    "claim_changed_after_latest_source",
+    "query_evidence_arrived_out_of_order",
+    "latest_query_evidence_low_confidence",
+    "query_observation_delay_gt_2",
+    "profile_high_claim_flip_rate",
+    "profile_high_corruption_rate",
+    "profile_high_distractor_rate",
+];
 const HORIZON: usize = 48;
 const REPLICATES: usize = 12;
 const PAIRS: usize = 32;
@@ -188,6 +198,67 @@ impl ActiveEpisode {
 
     fn target_answer(&self) -> bool {
         QUERY_KEYS.iter().filter(|key| self.truth[HORIZON - 1][**key]).count() >= 2
+    }
+
+    /// Evaluator-only strata. The hidden state/profile and only the released
+    /// evidence are read after the policy has completed all its actions.
+    fn evaluator_strata(&self, family: Family, released: &[Evidence]) -> [bool; STRATA_COUNT] {
+        let mut latest: [Option<Evidence>; TOTAL_CLAIMS] = [None; TOTAL_CLAIMS];
+        let mut max_source: [Option<u8>; TOTAL_CLAIMS] = [None; TOTAL_CLAIMS];
+        let mut out_of_order = false;
+        let mut long_delay = false;
+
+        for evidence in released.iter().copied() {
+            let key = evidence.key();
+            if !QUERY_KEYS.contains(&key) { continue; }
+            if max_source[key].is_some_and(|previous| evidence.source_tick < previous) {
+                out_of_order = true;
+            }
+            max_source[key] = Some(max_source[key]
+                .map_or(evidence.source_tick, |previous| previous.max(evidence.source_tick)));
+            long_delay |= usize::from(evidence.arrival_tick)
+                .saturating_sub(usize::from(evidence.source_tick)) > 2;
+            if latest[key].is_none_or(|previous| evidence.newer_than(previous)) {
+                latest[key] = Some(evidence);
+            }
+        }
+
+        let mut truth_changed_after_latest = false;
+        let mut latest_low_confidence = false;
+        for key in QUERY_KEYS {
+            if let Some(evidence) = latest[key] {
+                latest_low_confidence |= evidence.confidence < 900;
+                for tick in usize::from(evidence.source_tick) + 1..HORIZON {
+                    if self.truth[tick][key] != self.truth[tick - 1][key] {
+                        truth_changed_after_latest = true;
+                    }
+                }
+            } else {
+                truth_changed_after_latest = true;
+            }
+        }
+
+        let (high_flip, high_corruption, high_distractor) = match family {
+            Family::Development => (
+                self.profile.flip_rate >= 20,
+                self.profile.corruption_rate >= 10,
+                self.profile.distractor_rate >= 250,
+            ),
+            Family::HeldOut => (
+                self.profile.flip_rate >= 50,
+                self.profile.corruption_rate >= 55,
+                self.profile.distractor_rate >= 500,
+            ),
+        };
+        [
+            truth_changed_after_latest,
+            out_of_order,
+            latest_low_confidence,
+            long_delay,
+            high_flip,
+            high_corruption,
+            high_distractor,
+        ]
     }
 }
 
@@ -397,17 +468,20 @@ struct Outcome {
 struct RunResult {
     outcome: Outcome,
     actions: Vec<usize>,
+    released: Vec<Evidence>,
 }
 
 fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult {
     let mut policy = PolicyState::new(kind, seed);
     let mut actions = Vec::with_capacity(HORIZON);
+    let mut released_stream = Vec::with_capacity(HORIZON);
 
     for tick in 0..HORIZON {
         let action = policy.choose_action(tick);
         actions.push(action);
         // Only the requested candidate observation is revealed to the policy.
         let released = episode.observations[tick][action];
+        released_stream.push(released);
         policy.observe(action, released);
     }
 
@@ -434,6 +508,7 @@ fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult
             logical_state_bytes: policy.logical_state_bytes(),
         },
         actions,
+        released: released_stream,
     }
 }
 
@@ -522,6 +597,10 @@ fn report() {
     println!("family\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requested_per_claim\tmean_relevant_per_claim\twasted_observation_rate\tallocation_imbalance\tlogical_state_bytes\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
 
     let mut cells = vec![Accumulator::default(); Family::ALL.len() * PolicyKind::ALL.len()];
+    let mut strata_cells = vec![
+        Accumulator::default();
+        Family::ALL.len() * STRATA_COUNT * 2 * PolicyKind::ALL.len()
+    ];
 
     for family in Family::ALL {
         for replicate in 0..REPLICATES {
@@ -540,6 +619,18 @@ fn report() {
                         cells[index].record(run.outcome, None);
                     } else {
                         cells[index].record(run.outcome, Some(run.outcome.loss - round_robin_loss));
+                    }
+
+                    let strata = episode.evaluator_strata(family, &run.released);
+                    for (stratum_index, active) in strata.iter().copied().enumerate() {
+                        let level = usize::from(active);
+                        let index = (((family as usize * STRATA_COUNT + stratum_index) * 2 + level)
+                            * PolicyKind::ALL.len()) + policy_index;
+                        if policy_index == 0 {
+                            strata_cells[index].record(run.outcome, None);
+                        } else {
+                            strata_cells[index].record(run.outcome, Some(run.outcome.loss - round_robin_loss));
+                        }
                     }
                 }
             }
@@ -565,6 +656,36 @@ fn report() {
                 cell.accuracy(), cell.mean_requested_per_claim(), cell.mean_relevant_per_claim(),
                 cell.mean_wasted_fraction(), cell.mean_imbalance(), cell.mean_state_bytes(),
                 delta, lo, hi);
+        }
+    }
+
+    println!("STRATUM\\tfamily\\tstratum\\tlevel\\tpolicy\\tepisodes\\tmean_loss\\tanswer_rate\\taccuracy_when_answered\\tdelta_loss_vs_round_robin\\tbootstrap95_lo\\tbootstrap95_hi");
+    for (family_index, family) in Family::ALL.iter().copied().enumerate() {
+        for (stratum_index, stratum_name) in STRATA_NAMES.iter().copied().enumerate() {
+            for level in 0..=1 {
+                for (policy_index, policy) in PolicyKind::ALL.iter().copied().enumerate() {
+                    let index = (((family_index * STRATA_COUNT + stratum_index) * 2 + level)
+                        * PolicyKind::ALL.len()) + policy_index;
+                    let cell = &strata_cells[index];
+                    if cell.episodes == 0 { continue; }
+                    let (delta, lo, hi) = if policy_index == 0 {
+                        (0.0, 0.0, 0.0)
+                    } else {
+                        let delta = cell.paired_deltas_vs_rr.iter().sum::<f64>()
+                            / cell.paired_deltas_vs_rr.len().max(1) as f64;
+                        let seed = mix64(ROOT_SEED
+                            ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
+                            ^ (stratum_index as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9)
+                            ^ (level as u64).wrapping_mul(0xD1B5_4A32_D192_ED03)
+                            ^ (policy_index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+                        let (lo, hi) = bootstrap_ci(&cell.paired_deltas_vs_rr, seed);
+                        (delta, lo, hi)
+                    };
+                    println!("STRATUM\\t{}\\t{}\\t{}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{}\\t{:.4}\\t{:.4}\\t{:.4}",
+                        family.name(), stratum_name, level == 1, policy.name(), cell.episodes,
+                        cell.mean_loss(), cell.answer_rate(), cell.accuracy(), delta, lo, hi);
+                }
+            }
         }
     }
 }
@@ -631,6 +752,28 @@ mod tests {
             assert_eq!(original.actions, altered.actions);
             assert_eq!(original.outcome.loss, altered.outcome.loss);
         }
+    }
+
+    #[test]
+    fn evaluator_strata_detect_claim_changes_delay_and_profile_stress() {
+        let mut episode = ActiveEpisode::generate(0xA11C_E003, Family::HeldOut);
+        // Controlled evaluator-only world change after a late observation.
+        for tick in 10..HORIZON {
+            episode.truth[tick][QUERY_KEYS[0]] = !episode.truth[tick][QUERY_KEYS[0]];
+        }
+        let released = vec![
+            Evidence { key: QUERY_KEYS[0] as u8, value: false, source_tick: 5, arrival_tick: 5, confidence: 650 },
+            Evidence { key: QUERY_KEYS[0] as u8, value: true, source_tick: 2, arrival_tick: 12, confidence: 650 },
+            Evidence { key: QUERY_KEYS[1] as u8, value: true, source_tick: 3, arrival_tick: 12, confidence: 850 },
+        ];
+        let strata = episode.evaluator_strata(Family::HeldOut, &released);
+        assert!(strata[0]); // truth changed after latest source evidence
+        assert!(strata[1]); // later-arriving old source timestamp
+        assert!(strata[2]); // latest source-time confidence < 900
+        assert!(strata[3]); // at least one delay > 2
+        assert!(strata[4]); // high held-out claim-flip profile
+        assert!(strata[5]); // high held-out corruption profile
+        assert!(strata[6]); // high held-out distractor profile
     }
 
     #[test]
