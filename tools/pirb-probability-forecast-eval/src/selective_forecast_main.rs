@@ -56,8 +56,8 @@ fn matches_registered_target(row: &Value, target_id: &str) -> bool {
     string_at(row, "target_id") == Some(target_id)
 }
 
-fn expected_reason<'a>(
-    row: &'a Value,
+fn expected_reason(
+    row: &Value,
     policy: &Value,
     threshold: f64,
 ) -> Option<&'static str> {
@@ -248,8 +248,8 @@ fn selective_metrics<'a>(
     })
 }
 
-fn stratum_summary<'a>(
-    rows: &[&'a Value],
+fn stratum_summary(
+    rows: &[&Value],
     policy: &Value,
     target_id: &str,
     threshold: f64,
@@ -422,7 +422,6 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             }
         }
 
-        let row_target_matches = matches_registered_target(row, target_id);
         if string_at(row, "outcome_status") == Some("known") {
             if !matches!(integer_at(row, "outcome"), Some(0 | 1)) {
                 errors.push(format!(
@@ -433,12 +432,6 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             errors.push(format!(
                 "unknown or immature outcome for case {case_id} must be null"
             ));
-        }
-        if row_target_matches
-            && string_at(row, "outcome_status") == Some("known")
-            && !matches!(integer_at(row, "outcome"), Some(0 | 1))
-        {
-            errors.push(format!("target-matched case {case_id} has invalid mature outcome"));
         }
     }
     errors.sort();
