@@ -2,12 +2,14 @@ name: Large-World Coordinate Tests
 
 on:
   pull_request:
-    branches: ["main", "feat/solar-system-world-coordinates-001"]
+    branches: ["main", "feat/solar-system-world-coordinates-001", "feat/solar-system-apparent-scale-policy-003"]
     paths:
       - "crates/bridges/symtropy-render-bridge/src/large_world.rs"
       - "crates/bridges/symtropy-render-bridge/src/scale_policy.rs"
+      - "crates/bridges/symtropy-render-bridge/src/hierarchy_select.rs"
       - "crates/bridges/symtropy-render-bridge/src/lib.rs"
       - "docs/research/RENDER_SOLAR_SCALE_001.md"
+      - "docs/research/RENDER_HIERARCHY_004.md"
       - "benchmarks/render/SOLAR-SCALE-01.json"
       - ".github/workflows/large-world-coordinate-tests.yml"
   workflow_dispatch:
