@@ -15,6 +15,7 @@ From the repository root:
     cargo run --bin pirb-joint-sample-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-policy-impact-admissibility --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-score-admissibility --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-score-admissibility-log-score-reconciliation-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+    cargo run --bin pirb-joint-score-eval --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
 
@@ -49,6 +50,14 @@ The checked-in fixture is a synthetic before/after negative control. It passes a
 The `pirb-score-admissibility` binary validates whether a score family is admissible for the registered prediction representation, outcome type and comparison design; it does not calculate that score. Its closed v0.1 map supports Brier/log score for binary probabilities, pinball/interval score for quantiles, and energy/variogram score for multivariate joint samples. It rejects incompatible pairings, score-orientation mismatches, and explicitly rejects log score for reconciled-versus-unreconciled distribution comparisons according to the comparison-specific warning in Panagiotelis et al. (2023).
 
 The synthetic fixture is intentionally not admissible: it registers log score for reconciled-vs-unreconciled joint samples. The receipt must return `not_admissible`, a reason code, `score_calculated=false`, and `ranking_permitted=false`. A compatible score registration may be admissible for future score computation, but this command never computes a score or establishes superiority. See `docs/tech/PIRB_SCORE_ADMISSIBILITY_V0_1.md`, [the scoring-theory reference](https://doi.org/10.1016/j.ejor.2022.07.040), and [issue #2254](https://github.com/Luminous-Dynamics/symtropy/issues/2254).
+
+## Joint score formula oracles
+
+The `pirb-joint-score-eval` binary computes empirical energy and variogram scores separately for the base/unreconciled and reconciled joint samples. The contract pins the Euclidean norm, finite-ensemble energy-score V-statistic, variogram exponent, unit weights, observed-vector order, draw IDs, fit cutoff, and numeric tolerance. It also reports hierarchy coherence/residuals and adjustment magnitude separately from score values.
+
+The scored vector may not contain an aggregate parent together with its children, because that double-counts overlapping outcomes. Every declared node must be present for every declared draw; missing or duplicate draw-node pairs fail closed. The four-draw and three-draw fixtures have independent hand-calculated golden values. See `docs/tech/PIRB_JOINT_FORECAST_SCORE_ORACLES_V0_1.md` for formula conventions and limitations.
+
+The receipt is a formula-audit artifact, not a superiority ranking. Coherent reconciled draws can score worse than base draws against an observation, and sample IDs alone do not authenticate real dependence. Public fixtures remain synthetic-only.
 
 ## Outcome-vintage sensitivity
 

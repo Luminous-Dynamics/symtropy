@@ -1,0 +1,153 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-joint-score-three-draw-oracle",
+  "evidence_scope": "synthetic",
+  "privacy": {
+    "aggregate_only": true
+  },
+  "provider": {
+    "provider_id": "pirb-synthetic-joint-score-oracle",
+    "forecast_release_id": "pirb-joint-score-three-draw-oracle",
+    "target_definition": "Invented multivariate nonnegative event-count vector; not an external provider forecast.",
+    "analysis_unit_scheme": "Two synthetic leaf units nested under one synthetic aggregate.",
+    "source_reference": "synthetic:hand-calculated-score-oracle",
+    "forecast_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "outcome_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "hierarchy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "attribution": "All values are invented; external provider data is not included."
+  },
+  "forecast_origin_index": 10,
+  "target_period_index": 11,
+  "sample_policy": {
+    "draw_ids": [
+      "draw-01",
+      "draw-02",
+      "draw-03"
+    ],
+    "expected_draw_count": 3,
+    "method_reference": "synthetic:hand-authored-base-and-reconciled-joint-samples",
+    "method_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "parameter_fit_cutoff_index": 8,
+    "uses_test_outcomes": false,
+    "uses_future_data": false,
+    "preserves_base_samples": true
+  },
+  "forecast_nodes": [
+    {
+      "forecast_id": "fc-country-a-organized",
+      "unit_id": "unit-country-a",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "aggregation_role": "aggregate"
+    },
+    {
+      "forecast_id": "fc-admin1-a-organized",
+      "unit_id": "unit-admin1-a",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "aggregation_role": "leaf"
+    },
+    {
+      "forecast_id": "fc-admin1-b-organized",
+      "unit_id": "unit-admin1-b",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "aggregation_role": "leaf"
+    }
+  ],
+  "aggregation_constraints": [
+    {
+      "constraint_id": "constraint-country-a-spatial",
+      "kind": "spatial",
+      "parent_forecast_id": "fc-country-a-organized",
+      "child_forecast_ids": [
+        "fc-admin1-a-organized",
+        "fc-admin1-b-organized"
+      ],
+      "expected_child_keys": [
+        "unit-admin1-a",
+        "unit-admin1-b"
+      ],
+      "completeness": "complete",
+      "absolute_tolerance": 0
+    }
+  ],
+  "scored_node_ids": [
+    "fc-admin1-a-organized",
+    "fc-admin1-b-organized"
+  ],
+  "observed_vector": [
+    {
+      "forecast_id": "fc-admin1-a-organized",
+      "observed_count": 0
+    },
+    {
+      "forecast_id": "fc-admin1-b-organized",
+      "observed_count": 0
+    }
+  ],
+  "score_policy": {
+    "comparison_type": "reconciled_vs_unreconciled_distribution",
+    "energy_norm": "euclidean",
+    "energy_ensemble_estimator": "mean_distance_to_observation_minus_pairwise_v_statistic_1_over_2m2",
+    "variogram_exponent": 1,
+    "variogram_weight_policy": "unit_weight_all_pairs",
+    "numeric_tolerance": 1e-12
+  },
+  "sample_rows": [
+    {
+      "draw_id": "draw-01",
+      "forecast_id": "fc-country-a-organized",
+      "raw_count": 3,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-01",
+      "forecast_id": "fc-admin1-a-organized",
+      "raw_count": 1,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-01",
+      "forecast_id": "fc-admin1-b-organized",
+      "raw_count": 0,
+      "reconciled_count": 0
+    },
+    {
+      "draw_id": "draw-02",
+      "forecast_id": "fc-country-a-organized",
+      "raw_count": 2,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-02",
+      "forecast_id": "fc-admin1-a-organized",
+      "raw_count": 0,
+      "reconciled_count": 0
+    },
+    {
+      "draw_id": "draw-02",
+      "forecast_id": "fc-admin1-b-organized",
+      "raw_count": 1,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-03",
+      "forecast_id": "fc-country-a-organized",
+      "raw_count": 5,
+      "reconciled_count": 2
+    },
+    {
+      "draw_id": "draw-03",
+      "forecast_id": "fc-admin1-a-organized",
+      "raw_count": 1,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-03",
+      "forecast_id": "fc-admin1-b-organized",
+      "raw_count": 1,
+      "reconciled_count": 1
+    }
+  ]
+}
