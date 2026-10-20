@@ -9290,6 +9290,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-shallow-water"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-net"
 version = "0.1.0"
 dependencies = [
