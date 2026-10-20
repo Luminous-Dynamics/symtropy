@@ -4,7 +4,7 @@
   "research_snapshot": "2026-10-20",
   "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2214",
   "note": "All cases are synthetic expected-contract tests, not empirical animal observations, validated biological mechanisms, or current Symtropy performance results.",
-  "case_count": 44,
+  "case_count": 47,
   "independent_unit": "episode_or_individual_or_ecology_regime_as_declared",
   "required_run_identity": [
     "source_commit",
@@ -744,6 +744,60 @@
         "individual score alone claims ecological improvement"
       ],
       "reason": "avoid reward externalization"
+    },
+    {
+      "id": "dataset_license_manifest_missing",
+      "kind": "data_governance",
+      "setup": "A benchmark ingest references raw data assets but one asset has no resolved owner, license, access condition, attribution requirement, or allowed-purpose record.",
+      "perturbation": "omit_asset_permission_manifest",
+      "expected": {
+        "required_properties": [
+          "asset is excluded or run is marked incomplete until permission scope is resolved",
+          "code license is not treated as a substitute for source-data license",
+          "provenance records the unresolved asset"
+        ]
+      },
+      "fail_if": [
+        "unresolved asset is included in a qualified benchmark result",
+        "upstream repository license is assumed to license every dataset"
+      ],
+      "reason": "data_asset_rights_are_independent_from_benchmark_code"
+    },
+    {
+      "id": "sensitive_population_location_export",
+      "kind": "data_governance_and_conservation",
+      "setup": "An authorized dataset describes a threatened or at-risk population with precise coordinates and timestamps that could enable harmful localization.",
+      "perturbation": "attempt_precise_location_export",
+      "expected": {
+        "required_properties": [
+          "output follows the declared conservation/privacy policy",
+          "raw location/time remains restricted unless explicitly authorized",
+          "authorized aggregate or transformed outputs preserve lineage and limitations"
+        ]
+      },
+      "fail_if": [
+        "restricted coordinates or timing leak to public receipts",
+        "privacy transformation is described as exact raw ground truth"
+      ],
+      "reason": "protect_population_from_sensitive_location_disclosure"
+    },
+    {
+      "id": "permission_scope_does_not_match_purpose",
+      "kind": "data_governance",
+      "setup": "A source asset's permission allows a narrow research purpose or noncommercial use, while the proposed evaluation purpose falls outside that scope.",
+      "perturbation": "change_declared_use_purpose",
+      "expected": {
+        "required_properties": [
+          "permission purpose is compared with intended use",
+          "run is blocked or marked not_assessed until authorized",
+          "attribution and license obligations stay attached to derivatives"
+        ]
+      },
+      "fail_if": [
+        "purpose mismatch is ignored",
+        "asset is reused solely because it was once downloadable"
+      ],
+      "reason": "rights_are_scoped_to_source_and_intended_use"
     }
   ]
 }
