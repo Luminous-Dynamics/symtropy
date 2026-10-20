@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-selective-synthetic-risk-coverage-v1",
+  "evidence_scope": "synthetic",
+  "provider": {
+    "provider_id": "pirb-synthetic",
+    "forecast_archive_id": "synthetic-runset-selective-v1",
+    "target_definition": "Invented binary event occurrence within the declared synthetic horizon.",
+    "analysis_unit": "opaque aggregate stratum-month",
+    "horizon": 1,
+    "forecast_archive_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "outcome_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "privacy": {
+    "aggregate_only": true,
+    "group_min_count": 3
+  },
+  "preregistration": {
+    "coverage_levels": [
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "score_policy": "brier_logloss_clip_1e-15_selection_score_desc_then_record_id_asc",
+    "probability_clip_epsilon": 1e-15,
+    "selection_order": "selection_score_desc_then_record_id_asc",
+    "threshold_selection_on_test": false
+  },
+  "records": [
+    {
+      "record_id": "row-01",
+      "group_id": "group-east",
+      "disposition": "scored",
+      "outcome": "event",
+      "forecast_probability": 0.8,
+      "selection_score": 0.95,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-02",
+      "group_id": "group-east",
+      "disposition": "scored",
+      "outcome": "no_event",
+      "forecast_probability": 0.1,
+      "selection_score": 0.9,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-03",
+      "group_id": "group-east",
+      "disposition": "scored",
+      "outcome": "event",
+      "forecast_probability": 0.6,
+      "selection_score": 0.8,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-04",
+      "group_id": "group-east",
+      "disposition": "scored",
+      "outcome": "no_event",
+      "forecast_probability": 0.7,
+      "selection_score": 0.75,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-05",
+      "group_id": "group-east",
+      "disposition": "abstain_stale_inputs",
+      "outcome": "event",
+      "forecast_probability": null,
+      "selection_score": null,
+      "evidence_status": "sufficient",
+      "input_freshness": "stale",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-06",
+      "group_id": "group-east",
+      "disposition": "not_scored_unknown_outcome",
+      "outcome": "unknown",
+      "forecast_probability": null,
+      "selection_score": null,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-07",
+      "group_id": "group-west",
+      "disposition": "scored",
+      "outcome": "no_event",
+      "forecast_probability": 0.2,
+      "selection_score": 0.92,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-08",
+      "group_id": "group-west",
+      "disposition": "scored",
+      "outcome": "event",
+      "forecast_probability": 0.4,
+      "selection_score": 0.7,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-09",
+      "group_id": "group-west",
+      "disposition": "scored",
+      "outcome": "no_event",
+      "forecast_probability": 0.6,
+      "selection_score": 0.55,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-10",
+      "group_id": "group-west",
+      "disposition": "abstain_insufficient_evidence",
+      "outcome": "no_event",
+      "forecast_probability": null,
+      "selection_score": null,
+      "evidence_status": "insufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-11",
+      "group_id": "group-west",
+      "disposition": "abstain_out_of_support",
+      "outcome": "event",
+      "forecast_probability": null,
+      "selection_score": null,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "out_of_support",
+      "target_matched": true
+    },
+    {
+      "record_id": "row-12",
+      "group_id": "group-west",
+      "disposition": "abstain_target_mismatch",
+      "outcome": "unknown",
+      "forecast_probability": null,
+      "selection_score": null,
+      "evidence_status": "sufficient",
+      "input_freshness": "fresh",
+      "support_status": "in_support",
+      "target_matched": false
+    }
+  ]
+}

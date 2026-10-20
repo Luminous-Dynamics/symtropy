@@ -12,6 +12,7 @@ From the repository root:
     cargo run --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
     cargo run --bin pirb-cross-provider-benchmark-validate --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-cross-provider-benchmark-incompatible-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-hierarchy-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+    cargo run --bin pirb-selective-forecast-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-selective-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
 
@@ -26,6 +27,14 @@ The checked-in VIEWS/ACLED CAST example deliberately exits successfully as a val
 The `pirb-hierarchy-coherence-audit` binary measures parent/child consistency for count forecasts before and after reconciliation. It reports raw and reconciled residuals, adjustment magnitudes, completeness coverage, and explicit `not_assessable` constraints when children are missing or coverage is not verified. Every constraint pins expected child keys; a complete constraint rejects missing child rows and existing child rows silently omitted from the declared set, and the aggregation graph must be acyclic. This is not a forecast-accuracy score and the audit does not implement a reconciliation method such as MinTraceSparse; it checks the declared hierarchy constraints and records their coherence diagnostics.
 
 The checked-in hierarchy fixture has invented aggregate counts. Its all-zero/all-one artifact digests are placeholders and do not identify captured provider data. The fixture includes two complete exact-sum constraints and one incomplete spatial constraint whose missing child must not be imputed as zero. See `docs/tech/PIRB_HIERARCHICAL_FORECAST_COHERENCE_V0_1.md` for the contract and claim limits.
+
+## Selective forecasting and abstention
+
+The `pirb-selective-forecast-audit` binary validates reason-coded forecast dispositions and reports both full-inventory score coverage and a separate risk–coverage curve conditional on rows that passed all evidence gates. Dispositions distinguish insufficient evidence, stale inputs, out-of-support data, target mismatch, and unknown outcome. Non-scored records must not carry a published probability or selection score; unknown outcomes never become no-event labels.
+
+The conditional curve ranks scored rows using the preregistered selection score and deterministic record-ID tie-break, reporting Brier score, clipped log loss and event prevalence at every declared coverage level. This curve is explicitly not a counterfactual risk estimate for stale, unsupported or target-mismatched records. The receipt separately reports unknown-label rates, outcome counts for every non-scored disposition and aggregate stratum metrics only above the registered minimum count.
+
+The checked-in v0.1 fixture is synthetic-only and uses invented probabilities/outcomes and placeholder digests. See `docs/tech/PIRB_SELECTIVE_FORECAST_ABSTENTION_V0_1.md` for the metric semantics, negative-control policy and claim limits.
 
 ## Outcome-vintage sensitivity
 

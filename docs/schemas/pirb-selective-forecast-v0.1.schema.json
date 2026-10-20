@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-selective-forecast-v0.1.schema.json",
+  "title": "PIRB Selective Forecast and Abstention Audit v0.1",
+  "description": "Synthetic-only contract for reason-coded forecast dispositions, actual coverage, and conditional risk-coverage diagnostics. Abstention never means no event or no aid.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "evidence_scope",
+    "provider",
+    "privacy",
+    "preregistration",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-selective-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "const": "synthetic"
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "forecast_archive_id",
+        "target_definition",
+        "analysis_unit",
+        "horizon",
+        "forecast_archive_sha256",
+        "outcome_snapshot_sha256"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_archive_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizon": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "forecast_archive_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "group_min_count"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "group_min_count": {
+          "type": "integer",
+          "minimum": 3
+        }
+      }
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coverage_levels",
+        "score_policy",
+        "probability_clip_epsilon",
+        "selection_order",
+        "threshold_selection_on_test"
+      ],
+      "properties": {
+        "coverage_levels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          }
+        },
+        "score_policy": {
+          "const": "brier_logloss_clip_1e-15_selection_score_desc_then_record_id_asc"
+        },
+        "probability_clip_epsilon": {
+          "const": 1e-15
+        },
+        "selection_order": {
+          "const": "selection_score_desc_then_record_id_asc"
+        },
+        "threshold_selection_on_test": {
+          "const": false
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "group_id",
+          "disposition",
+          "outcome",
+          "forecast_probability",
+          "selection_score",
+          "evidence_status",
+          "input_freshness",
+          "support_status",
+          "target_matched"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "pattern": "^row-[A-Za-z0-9_-]+$"
+          },
+          "group_id": {
+            "type": "string",
+            "pattern": "^group-[A-Za-z0-9_-]+$",
+            "description": "Opaque aggregate stratum identifier; not a person or precise location ID."
+          },
+          "disposition": {
+            "enum": [
+              "scored",
+              "abstain_insufficient_evidence",
+              "abstain_stale_inputs",
+              "abstain_out_of_support",
+              "abstain_target_mismatch",
+              "not_scored_unknown_outcome"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "event",
+              "no_event",
+              "unknown"
+            ]
+          },
+          "forecast_probability": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            ]
+          },
+          "selection_score": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            ],
+            "description": "Predeclared rank score; used only for risk-coverage diagnostics among rows that passed all evidence gates."
+          },
+          "evidence_status": {
+            "enum": [
+              "sufficient",
+              "insufficient"
+            ]
+          },
+          "input_freshness": {
+            "enum": [
+              "fresh",
+              "stale"
+            ]
+          },
+          "support_status": {
+            "enum": [
+              "in_support",
+              "out_of_support"
+            ]
+          },
+          "target_matched": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}
