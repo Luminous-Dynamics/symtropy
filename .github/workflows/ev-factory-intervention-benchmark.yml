@@ -1,0 +1,111 @@
+name: EV Factory Intervention Ranking Benchmark
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md"
+      - ".github/workflows/ev-factory-intervention-benchmark.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md"
+      - ".github/workflows/ev-factory-intervention-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  intervention-ranking:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse synthetic line fixture
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and .dispatch_policy == "fifo"
+            and (.replication_seeds | length) == 20
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Generate paired DES source report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            > ev-factory-simulation-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .replication_count == 20
+            and .scenario_count == 6
+            and .release_ready == false
+            and .output_never_exceeds_released_input
+            and .all_buffers_respected_capacity
+            and .station_time_accounting_within_horizon
+          ' ev-factory-simulation-report.json
+      - name: Rank interventions with baseline-only diagnostic signals
+        run: |
+          EXPECTED_SHA256=$(sha256sum ev-factory-simulation-report.json | cut -d' ' -f1)
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
+            ev-factory-simulation-report.json > ev-factory-intervention-ranking-report.json
+          jq -e --arg digest "$EXPECTED_SHA256" '
+            .benchmark_id == "EV-FACTORY-INTERVENTION-BENCH-001"
+            and .source_simulation_report_sha256 == $digest
+            and .source_simulation_replication_count == 20
+            and .source_simulation_seed_count == 20
+            and .source_dispatch_policy == "fifo"
+            and .candidate_count == 5
+            and (.candidates | length) == 5
+            and (.method_scores | length) == 4
+            and all(.method_scores[]; (.ranked_station_ids | length) == 5 and .absolute_regret_units_per_hour_vs_point_estimate_oracle != null and .spearman_rank_correlation_vs_oracle != null and .kendall_tau_b_vs_oracle != null)
+            and .results_are_synthetic_model_conditional
+            and (.result_scores_are_field_sota_claims == false)
+            and (.production_release_authorized == false)
+          ' ev-factory-intervention-ranking-report.json
+      - name: Verify deterministic ranking report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
+            ev-factory-simulation-report.json > ev-factory-intervention-ranking-repeat.json
+          cmp ev-factory-intervention-ranking-report.json ev-factory-intervention-ranking-repeat.json
+      - name: Negative controls - invalid benchmark and duplicate seeds fail closed
+        run: |
+          jq '.benchmark_id = "unreviewed-benchmark"' ev-factory-simulation-report.json > invalid-intervention-source.json
+          jq '.replication_seeds[1] = .replication_seeds[0]' ev-factory-simulation-report.json > invalid-intervention-seeds.json
+          for invalid in invalid-intervention-source.json invalid-intervention-seeds.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid simulation report unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash sources and reports
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/Cargo.toml \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md \
+            ev-factory-simulation-report.json \
+            ev-factory-intervention-ranking-report.json > ev-factory-intervention-ranking.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-intervention-ranking-report
+          path: |
+            ev-factory-simulation-report.json
+            ev-factory-intervention-ranking-report.json
+            ev-factory-intervention-ranking.sha256
+          if-no-files-found: error
