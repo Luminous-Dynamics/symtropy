@@ -254,7 +254,10 @@ fn policy_result(
         .iter()
         .filter(|index| string_at(rows[**index], "outcome_status") == Some("immature"))
         .count();
-    let all_known_count = rows.iter().filter(|row| known_outcome(row).is_some()).count();
+    let all_known_count = rows
+        .iter()
+        .filter(|row| known_outcome(row).is_some())
+        .count();
     let all_known_events = rows
         .iter()
         .filter(|row| known_outcome(row) == Some(1))
@@ -315,33 +318,53 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     let outcome_as_of = integer_at(&registration, "outcome_as_of_index").unwrap_or_default();
 
     if feature_cutoff >= origin {
-        errors.push("action-policy features must be cut off strictly before forecast origin".to_owned());
+        errors.push(
+            "action-policy features must be cut off strictly before forecast origin".to_owned(),
+        );
     }
     if target_period <= origin {
         errors.push("target period must be later than forecast origin".to_owned());
     }
     if outcome_as_of < target_period {
-        errors.push("frozen outcome cutoff must not precede the forecast target period".to_owned());
+        errors.push(
+            "frozen outcome cutoff must not precede the forecast target period".to_owned(),
+        );
     }
 
-    let capacity_grid = policy["capacity_grid"].as_array().expect("schema validated capacity_grid");
-    let capacities = capacity_grid.iter().filter_map(Value::as_i64).collect::<Vec<_>>();
-    if capacities.len() != capacity_grid.len() || capacities.windows(2).any(|pair| pair[0] >= pair[1]) {
+    let capacity_grid = policy["capacity_grid"]
+        .as_array()
+        .expect("schema validated capacity_grid");
+    let capacities = capacity_grid
+        .iter()
+        .filter_map(Value::as_i64)
+        .collect::<Vec<_>>();
+    if capacities.len() != capacity_grid.len()
+        || capacities.windows(2).any(|pair| pair[0] >= pair[1])
+    {
         errors.push("capacity_grid must be strictly increasing with no duplicates".to_owned());
     }
     for (field, label) in [
         ("action_cost_multiplier_grid", "action-cost multiplier grid"),
-        ("effectiveness_multiplier_grid", "effectiveness multiplier grid"),
+        (
+            "effectiveness_multiplier_grid",
+            "effectiveness multiplier grid",
+        ),
     ] {
-        let grid = policy[field].as_array().expect("schema validated sensitivity grid");
+        let grid = policy[field]
+            .as_array()
+            .expect("schema validated sensitivity grid");
         let values = grid.iter().filter_map(Value::as_f64).collect::<Vec<_>>();
         if values.len() != grid.len() || values.windows(2).any(|pair| pair[0] >= pair[1]) {
-            errors.push(format!("{label} must be strictly increasing with no duplicates"));
+            errors.push(format!(
+                "{label} must be strictly increasing with no duplicates"
+            ));
         }
     }
 
     let target_id = string_at(policy, "target_id").unwrap_or_default();
-    let rows = registration["rows"].as_array().expect("schema validated rows");
+    let rows = registration["rows"]
+        .as_array()
+        .expect("schema validated rows");
     let mut ids = BTreeSet::new();
     for row in rows {
         let case_id = string_at(row, "case_id").unwrap_or_default();
@@ -357,13 +380,20 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             "forecast_issued" => {
                 let candidate = number_at(row, "offline_candidate_probability");
                 let served = number_at(row, "served_probability");
-                if candidate.zip(served).is_none_or(|(candidate, served)| (candidate - served).abs() > EPSILON) {
-                    errors.push(format!("issued case {case_id} must serve its registered candidate probability"));
+                if candidate
+                    .zip(served)
+                    .is_none_or(|(candidate, served)| (candidate - served).abs() > EPSILON)
+                {
+                    errors.push(format!(
+                        "issued case {case_id} must serve its registered candidate probability"
+                    ));
                 }
             }
             "abstained" => {
                 if !row["served_probability"].is_null() {
-                    errors.push(format!("abstained case {case_id} must not expose a served probability"));
+                    errors.push(format!(
+                        "abstained case {case_id} must not expose a served probability"
+                    ));
                 }
             }
             _ => {}
@@ -373,7 +403,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                 errors.push(format!("known outcome for case {case_id} must be 0 or 1"));
             }
         } else if !row["outcome"].is_null() {
-            errors.push(format!("unknown or immature outcome for case {case_id} must be null"));
+            errors.push(format!(
+                "unknown or immature outcome for case {case_id} must be null"
+            ));
         }
     }
 
@@ -394,7 +426,10 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         if string_at(governance, "data_authority_reference").is_none_or(str::is_empty)
             || string_at(governance, "disclosure_review_reference").is_none_or(str::is_empty)
         {
-            errors.push("authorized historical evaluation requires authority and disclosure references".to_owned());
+            errors.push(
+                "authorized historical evaluation requires authority and disclosure references"
+                    .to_owned(),
+            );
         }
     }
 
@@ -410,19 +445,31 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
                 .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase()))
     {
         return Err(vec![
-            "source commit must be a 40-character lowercase Git SHA or UNPINNED_LOCAL_RUN".to_owned(),
+            "source commit must be a 40-character lowercase Git SHA or UNPINNED_LOCAL_RUN"
+                .to_owned(),
         ]);
     }
 
-    let registration: Value = serde_json::from_slice(input)
-        .map_err(|error| vec![format!("action-value registration JSON is invalid: {error}")])?;
-    let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
-        .map_err(|error| vec![format!("embedded action-value schema JSON is invalid: {error}")])?;
-    jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+    let registration: Value = serde_json::from_slice(input).map_err(|error| {
+        vec![format!(
+            "action-value registration JSON is invalid: {error}"
+        )]
     })?;
-    let validator = jsonschema::draft202012::new(&schema)
-        .map_err(|error| vec![format!("cannot build action-value schema validator: {error}")])?;
+    let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
+        vec![format!(
+            "embedded action-value schema JSON is invalid: {error}"
+        )]
+    })?;
+    jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
+    })?;
+    let validator = jsonschema::draft202012::new(&schema).map_err(|error| {
+        vec![format!(
+            "cannot build action-value schema validator: {error}"
+        )]
+    })?;
     let mut errors = validator
         .iter_errors(&registration)
         .map(|error| format!("{} at {}", error, error.instance_path()))
@@ -436,15 +483,33 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
         return Err(semantic);
     }
 
-    let rows = registration["rows"].as_array().expect("schema validated rows").iter().collect::<Vec<_>>();
+    let rows = registration["rows"]
+        .as_array()
+        .expect("schema validated rows")
+        .iter()
+        .collect::<Vec<_>>();
     let policy = &registration["policy"];
-    let capacities = policy["capacity_grid"].as_array().expect("schema validated capacity grid")
-        .iter().map(|v| v.as_i64().expect("schema validated capacities") as usize).collect::<Vec<_>>();
-    let cost_grid = policy["action_cost_multiplier_grid"].as_array().expect("schema validated cost grid")
-        .iter().map(|v| v.as_f64().expect("schema validated cost multipliers")).collect::<Vec<_>>();
-    let effect_grid = policy["effectiveness_multiplier_grid"].as_array().expect("schema validated effect grid")
-        .iter().map(|v| v.as_f64().expect("schema validated effect multipliers")).collect::<Vec<_>>();
-    let minimum_group_count = integer_at(policy, "minimum_group_report_count").expect("schema validated group minimum") as usize;
+    let capacities = policy["capacity_grid"]
+        .as_array()
+        .expect("schema validated capacity grid")
+        .iter()
+        .map(|v| v.as_i64().expect("schema validated capacities") as usize)
+        .collect::<Vec<_>>();
+    let cost_grid = policy["action_cost_multiplier_grid"]
+        .as_array()
+        .expect("schema validated cost grid")
+        .iter()
+        .map(|v| v.as_f64().expect("schema validated cost multipliers"))
+        .collect::<Vec<_>>();
+    let effect_grid = policy["effectiveness_multiplier_grid"]
+        .as_array()
+        .expect("schema validated effect grid")
+        .iter()
+        .map(|v| v.as_f64().expect("schema validated effect multipliers"))
+        .collect::<Vec<_>>();
+    let minimum_group_count =
+        integer_at(policy, "minimum_group_report_count").expect("schema validated group minimum")
+            as usize;
 
     let baseline_expected_harm = rows.iter()
         .filter_map(|row| expected_probability(row).map(|p| p * number_at(row, "expected_harm_per_event").unwrap_or_default()))
@@ -491,7 +556,8 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
 
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
     let input_sha256 = sha256_hex(input);
-    let registration_id = string_at(&registration, "registration_id").expect("schema validated registration_id");
+    let registration_id =
+        string_at(&registration, "registration_id").expect("schema validated registration_id");
     let source_commit_pinned = source_commit != "UNPINNED_LOCAL_RUN";
     let receipt_commitment_sha256 = sha256_hex(
         format!(
@@ -585,15 +651,22 @@ mod tests {
         )
     }
 
-    fn scenario<'a>(receipt: &'a Value, capacity: i64, cost_multiplier: f64, effectiveness_multiplier: f64) -> &'a Value {
+    fn scenario<'a>(
+        receipt: &'a Value,
+        capacity: i64,
+        cost_multiplier: f64,
+        effectiveness_multiplier: f64,
+    ) -> &'a Value {
         receipt["scenarios"]
             .as_array()
             .expect("receipt includes scenarios")
             .iter()
             .find(|s| {
                 integer_at(s, "capacity") == Some(capacity)
-                    && number_at(s, "action_cost_multiplier").is_some_and(|v| (v-cost_multiplier).abs() < EPSILON)
-                    && number_at(s, "effectiveness_multiplier").is_some_and(|v| (v-effectiveness_multiplier).abs() < EPSILON)
+                    && number_at(s, "action_cost_multiplier")
+                        .is_some_and(|v| (v - cost_multiplier).abs() < EPSILON)
+                    && number_at(s, "effectiveness_multiplier")
+                        .is_some_and(|v| (v - effectiveness_multiplier).abs() < EPSILON)
             })
             .expect("requested sensitivity scenario exists")
     }
@@ -605,7 +678,10 @@ mod tests {
         assert_eq!(scenario["policies"][1]["selected_action_count"], 2);
         assert_eq!(scenario["policies"][2]["selected_action_count"], 2);
         assert_eq!(scenario["policies"][1]["policy_id"], "risk_ranked_top_k");
-        assert_eq!(scenario["policies"][2]["policy_id"], "expected_net_benefit_top_k");
+        assert_eq!(
+            scenario["policies"][2]["policy_id"],
+            "expected_net_benefit_top_k"
+        );
     }
 
     #[test]
@@ -614,11 +690,29 @@ mod tests {
         let scenario = scenario(&receipt, 2, 1.0, 1.0);
         let risk = &scenario["policies"][1];
         let value_policy = &scenario["policies"][2];
-        assert!((number_at(risk, "model_expected_net_benefit_under_assumption").unwrap() - 12.5).abs() < EPSILON);
-        assert!((number_at(value_policy, "model_expected_harm_avoided_under_assumption").unwrap() - 71.5).abs() < EPSILON);
+        assert!(
+            (number_at(risk, "model_expected_net_benefit_under_assumption").unwrap() - 12.5).abs()
+                < EPSILON
+        );
+        assert!(
+            (number_at(value_policy, "model_expected_harm_avoided_under_assumption").unwrap()
+                - 71.5)
+                .abs()
+                < EPSILON
+        );
         assert!((number_at(value_policy, "assumed_action_cost").unwrap() - 25.0).abs() < EPSILON);
-        assert!((number_at(value_policy, "model_expected_net_benefit_under_assumption").unwrap() - 46.5).abs() < EPSILON);
-        assert!((number_at(value_policy, "model_expected_residual_harm_on_issued_pool").unwrap() - 216.5).abs() < EPSILON);
+        assert!(
+            (number_at(value_policy, "model_expected_net_benefit_under_assumption").unwrap()
+                - 46.5)
+                .abs()
+                < EPSILON
+        );
+        assert!(
+            (number_at(value_policy, "model_expected_residual_harm_on_issued_pool").unwrap()
+                - 216.5)
+                .abs()
+                < EPSILON
+        );
         assert_eq!(receipt["claims"]["causal_impact_established"], false);
     }
 
@@ -630,16 +724,33 @@ mod tests {
         assert_eq!(baseline["selected_action_count"], 0);
         assert_eq!(baseline["assumed_action_cost"], 0.0);
         assert_eq!(baseline["model_expected_net_benefit_under_assumption"], 0.0);
-        assert!((number_at(baseline, "model_expected_residual_harm_on_issued_pool").unwrap() - 288.0).abs() < EPSILON);
+        assert!(
+            (number_at(baseline, "model_expected_residual_harm_on_issued_pool").unwrap() - 288.0)
+                .abs()
+                < EPSILON
+        );
     }
 
     #[test]
     fn abstained_rows_are_never_eligible_for_an_action() {
         let value = fixture();
-        let rows = value["rows"].as_array().unwrap().iter().collect::<Vec<_>>();
+        let rows = value["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .collect::<Vec<_>>();
         let selected = select_indices(&rows, AllocationPolicy::RiskRanked, 99, 1.0, 1.0);
-        assert!(selected.iter().all(|index| rows[*index]["forecast_disposition"] == "forecast_issued"));
-        assert!(!selected.iter().any(|index| rows[*index]["case_id"] == "case-006" || rows[*index]["case_id"] == "case-008"));
+        assert!(
+            selected
+                .iter()
+                .all(|index| rows[*index]["forecast_disposition"] == "forecast_issued")
+        );
+        assert!(
+            !selected
+                .iter()
+                .any(|index| rows[*index]["case_id"] == "case-006"
+                    || rows[*index]["case_id"] == "case-008")
+        );
     }
 
     #[test]
@@ -647,15 +758,23 @@ mod tests {
         let receipt = evaluate(&fixture()).expect("synthetic action-value contract is valid");
         assert_eq!(receipt["all_case_known_outcome_count"], 7);
         assert_eq!(receipt["all_case_observed_event_count"], 5);
-        assert_eq!(receipt["claims"]["assumed_harm_avoided_is_observed_impact"], false);
+        assert_eq!(
+            receipt["claims"]["assumed_harm_avoided_is_observed_impact"],
+            false
+        );
     }
 
     #[test]
     fn target_mismatch_is_rejected_before_policy_evaluation() {
         let mut value = fixture();
         value["rows"][0]["target_id"] = json!("different-estimand");
-        let errors = evaluate(&value).expect_err("mixed estimands cannot enter one decision benchmark");
-        assert!(errors.iter().any(|error| error.contains("mismatches the registered target")));
+        let errors =
+            evaluate(&value).expect_err("mixed estimands cannot enter one decision benchmark");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("mismatches the registered target"))
+        );
     }
 
     #[test]
@@ -663,7 +782,11 @@ mod tests {
         let mut value = fixture();
         value["policy"]["action_features_cutoff_index"] = json!(10);
         let errors = evaluate(&value).expect_err("action features cannot use future information");
-        assert!(errors.iter().any(|error| error.contains("strictly before forecast origin")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("strictly before forecast origin"))
+        );
     }
 
     #[test]
@@ -671,7 +794,11 @@ mod tests {
         let mut value = fixture();
         value["policy"]["capacity_grid"] = json!([0, 4, 2]);
         let errors = evaluate(&value).expect_err("capacity grid must be pinned in order");
-        assert!(errors.iter().any(|error| error.contains("strictly increasing")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("strictly increasing"))
+        );
     }
 
     #[test]
@@ -702,7 +829,13 @@ mod tests {
         let mut value = fixture();
         value["policy"]["minimum_group_report_count"] = json!(5);
         let receipt = evaluate(&value).expect("valid group suppression rule produces receipt");
-        assert_eq!(receipt["scenarios"][3]["policies"][2]["group_allocations"][0]["suppressed"], true);
-        assert_eq!(receipt["scenarios"][3]["policies"][2]["group_allocations"][0]["group_id"], Value::Null);
+        assert_eq!(
+            receipt["scenarios"][3]["policies"][2]["group_allocations"][0]["suppressed"],
+            true
+        );
+        assert_eq!(
+            receipt["scenarios"][3]["policies"][2]["group_allocations"][0]["group_id"],
+            Value::Null
+        );
     }
 }
