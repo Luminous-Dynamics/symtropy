@@ -649,10 +649,20 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
         policy_scores.push(score);
         family_policy_results.extend(choices);
     }
+    // The information-perfect oracle is a non-deployable bound and must
+    // never dominate practical policies on the actionable Pareto frontier.
+    let deployable_indices: Vec<usize> = policy_scores
+        .iter()
+        .enumerate()
+        .filter(|(_, score)| score.deployable_policy)
+        .map(|(index, _)| index)
+        .collect();
     let mut frontier_ids = Vec::new();
-    for i in 0..policy_scores.len() {
-        let dominated = (0..policy_scores.len()).any(|j| {
-            if i == j { return false; }
+    for &i in &deployable_indices {
+        let dominated = deployable_indices.iter().copied().any(|j| {
+            if i == j {
+                return false;
+            }
             let other = &policy_scores[j];
             let this = &policy_scores[i];
             let no_worse = other.mean_npv_cost_across_families <= this.mean_npv_cost_across_families
@@ -664,7 +674,15 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
             no_worse && strictly_better
         });
         policy_scores[i].pareto_nondominated = !dominated;
-        if !dominated { frontier_ids.push(policy_scores[i].policy_id.clone()); }
+        if !dominated {
+            frontier_ids.push(policy_scores[i].policy_id.clone());
+        }
+    }
+    if let Some(oracle_score) = policy_scores
+        .iter_mut()
+        .find(|score| score.policy_id == PolicyKind::PerfectInformationOracle.id())
+    {
+        oracle_score.pareto_nondominated = false;
     }
     let deployable_scores: Vec<&PolicyScore> = policy_scores.iter().filter(|score| score.deployable_policy).collect();
     let best_deployable = deployable_scores.iter().min_by(|a,b| a.mean_npv_cost_across_families.total_cmp(&b.mean_npv_cost_across_families))
@@ -866,5 +884,12 @@ mod tests {
         assert_eq!(report.sensitivity_cases.len(), 3);
         assert!(report.sensitivity_cases.iter().all(|case| case.policy_scores.len() == 9));
         assert_eq!(report.policy_scores.len(), 9);
+        assert!(!report.pareto_frontier_policy_ids.contains(
+            &PolicyKind::PerfectInformationOracle.id().to_string()
+        ));
+        assert!(!report.policy_scores.iter()
+            .find(|score| score.policy_id == PolicyKind::PerfectInformationOracle.id())
+            .unwrap()
+            .pareto_nondominated);
     }
 }
