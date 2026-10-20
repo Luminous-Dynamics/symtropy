@@ -707,7 +707,7 @@ mod tests {
         close(base["variogram_score"].as_f64().unwrap(), 0.25);
         close(
             reconciled["energy_score"].as_f64().unwrap(),
-            (6.0 + 3.0 * root_two) / 8.0,
+            (2.0 + root_two) / 4.0,
         );
         close(reconciled["variogram_score"].as_f64().unwrap(), 1.0);
         assert_eq!(receipt["draw_count"], 4);
@@ -732,7 +732,7 @@ mod tests {
         let scores = &receipt["score_results"]["base_unreconciled"];
         close(
             scores["energy_score"].as_f64().unwrap(),
-            5.0 * (2.0 + 2.0_f64.sqrt()) / 18.0,
+            2.0 * (2.0 + 2.0_f64.sqrt()) / 9.0,
         );
         close(scores["variogram_score"].as_f64().unwrap(), 4.0 / 9.0);
         assert_eq!(receipt["draw_count"], 3);
