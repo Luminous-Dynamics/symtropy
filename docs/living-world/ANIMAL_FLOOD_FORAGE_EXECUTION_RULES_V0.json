@@ -53,7 +53,8 @@
       "west"
     ],
     "per_action_max_one_cell": true,
-    "max_policy_actions_source": "pilot_manifest_agent_max_policy_actions"
+    "max_policy_actions_source": "pilot_manifest_agent_max_policy_actions",
+    "tie_break_rule": "rotate the declared exploration_direction_order by (tick + current_cell_index) modulo four; the policy receives no seed value"
   },
   "sensing": {
     "latency_ticks_source": "pilot_manifest_sensory_contract_cue_delivery_latency_ticks",
