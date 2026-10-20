@@ -205,14 +205,14 @@ impl LargeWorldPosition {
         self.ensure_same_frame(origin)?;
         let mut relative = [0.0; 3];
 
-        for axis in 0..3 {
+        for (axis, relative_axis) in relative.iter_mut().enumerate() {
             let cell_delta = i128::from(self.cell[axis]) - i128::from(origin.cell[axis]);
             let coarse = cell_delta as f64 * WORLD_CELL_SIZE_METERS;
             let value = coarse + (self.local_m[axis] - origin.local_m[axis]);
             if !value.is_finite() {
                 return Err(LargeWorldError::NonFiniteRelativePosition);
             }
-            relative[axis] = value;
+            *relative_axis = value;
         }
         Ok(relative)
     }
