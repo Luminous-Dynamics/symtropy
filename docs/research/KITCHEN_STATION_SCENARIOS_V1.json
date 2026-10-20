@@ -392,6 +392,48 @@
         "report a score without denominator"
       ],
       "claim_limit": "Data integrity is necessary for valid comparison but does not itself demonstrate physical performance."
+    },
+    {
+      "scenario_id": "SINK-BATCH-FLOW-012",
+      "domain": "sink_station",
+      "purpose": "Compare measured-volume batch washing against continuous stream and a declared low-flow setting for an identical household load.",
+      "conditions_to_freeze": [
+        "candidate/reference revision",
+        "standardized item/load and soil",
+        "batch fill volume and wash-stage water",
+        "final-rinse method and water volume",
+        "measured pressure, flow and incoming water temperature",
+        "detergent protocol",
+        "cleaning endpoint and rewash rule",
+        "operator/order and repetitions",
+        "safe handling/lift limit for the wash insert"
+      ],
+      "primary_metrics": [
+        "potable_litres_per_completed_task",
+        "hot_water_energy_wh_per_task",
+        "cleaning_endpoint",
+        "rewash_rate",
+        "task_duration",
+        "spill_or_overflow_events",
+        "successful_task_completion"
+      ],
+      "hard_gates": [
+        "same task endpoint and load across candidates",
+        "final rinse uses the separately declared method and is not silently omitted",
+        "dirty wash water is never credited as a final rinse",
+        "all water consumed by pre-rinse, wash, final rinse and rewash is included",
+        "insert fill mass/volume and safe handling are measured",
+        "food-service deployment is separately reviewed against applicable requirements"
+      ],
+      "adversarial_controls": [
+        "compare batch wash on a small load with flowing wash on a larger load",
+        "exclude final rinse water from the batch method",
+        "change detergent or soil between candidates",
+        "reuse dirty water as if it were clean final-rinse water",
+        "ignore handling difficulty, spillage, rewashes or load failures",
+        "assume domestic method satisfies commercial sanitation requirements"
+      ],
+      "claim_limit": "Supports only the tested household load, detergent, source-water conditions and defined endpoint; does not establish food-service compliance or universal water savings."
     }
   ],
   "stretch_targets": {
@@ -414,7 +456,8 @@
     "https://doi.org/10.1016/j.jhin.2021.04.017",
     "https://la.kohler.com/en/product-detail/23650",
     "https://www.pelhamandwhite.com/workstation",
-    "https://environment.durban.gov.za/uploads/0000/6/2025/09/23/water-conservation-guideline.pdf"
+    "https://environment.durban.gov.za/uploads/0000/6/2025/09/23/water-conservation-guideline.pdf",
+    "https://www.cogta.gov.za/index.php/2020/02/25/play-part-in-saving-water/"
   ],
   "record_schema": "docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json",
   "metric_registry": "docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json",
