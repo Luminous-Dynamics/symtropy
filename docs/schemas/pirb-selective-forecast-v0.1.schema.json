@@ -104,9 +104,6 @@
             "type": "number",
             "exclusiveMinimum": 0,
             "maximum": 1
-          },
-          "contains": {
-            "const": 1
           }
         },
         "score_policy": {
