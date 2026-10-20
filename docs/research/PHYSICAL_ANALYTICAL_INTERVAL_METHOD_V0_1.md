@@ -28,7 +28,7 @@ These are software soundness checks over the named analytic formulas, not valida
 
 ## Request/receipt integration
 
-The request may include `input_bounds` using schema `physical-input-bounds-v0.1`; every supported input must have finite `lower` and `upper` endpoints and an explicit matching SI `unit`. The nominal input must be inside its interval, and positive geometry/material terms must have strictly positive lower bounds. Unknown bound fields, missing endpoints, mismatched units, and malformed intervals are rejected. When no bounds are supplied, point-only requests remain valid and receipts contain no invented enclosures.
+The request may include `input_bounds` using schema `physical-input-bounds-v0.1`; every supported input must have finite `lower` and `upper` endpoints, an explicit matching SI `unit`, a `basis` (`instrumented_measurement`, `datasheet_tolerance`, `engineering_estimate`, or `scenario_bound`), and a nonempty `source_ref`. Provenance labels describe the supplied range; they do not certify the underlying evidence. The nominal input must be inside its interval, and positive geometry/material terms must have strictly positive lower bounds. Unknown bound fields, missing endpoints, mismatched units, and malformed intervals are rejected. When no bounds are supplied, point-only requests remain valid and receipts contain no invented enclosures.
 
 Receipts include the original bound contract and one `output_enclosures` entry per output, each containing `lower`, `nominal`, `upper`, a finite non-negative `width`, and `unit`. `uncertainty_method` distinguishes not-supplied bounds from executed interval propagation and unresolved propagation. `real_world_validation_status` remains `UNRESOLVED` regardless of the mathematical enclosure.
 
