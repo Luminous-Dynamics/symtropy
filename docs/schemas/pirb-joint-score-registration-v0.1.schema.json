@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-joint-score-registration-v0.1.schema.json",
+  "title": "PIRB Joint Predictive Score Oracle Registration v0.1",
+  "description": "Computes empirical energy and variogram scores on a pinned non-overlapping target vector; keeps base and reconciled samples distinct.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "evidence_scope",
+    "privacy",
+    "provider",
+    "forecast_origin_index",
+    "target_period_index",
+    "sample_policy",
+    "forecast_nodes",
+    "aggregation_constraints",
+    "scored_node_ids",
+    "observed_vector",
+    "score_policy",
+    "sample_rows"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-joint-score-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "const": "synthetic"
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "forecast_release_id",
+        "target_definition",
+        "analysis_unit_scheme",
+        "source_reference",
+        "forecast_artifact_sha256",
+        "outcome_snapshot_sha256",
+        "hierarchy_sha256",
+        "attribution"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit_scheme": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hierarchy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "forecast_origin_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "target_period_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sample_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draw_ids",
+        "expected_draw_count",
+        "method_reference",
+        "method_sha256",
+        "parameter_fit_cutoff_index",
+        "uses_test_outcomes",
+        "uses_future_data",
+        "preserves_base_samples"
+      ],
+      "properties": {
+        "draw_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^draw-[A-Za-z0-9_-]+$"
+          }
+        },
+        "expected_draw_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "method_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parameter_fit_cutoff_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uses_test_outcomes": {
+          "const": false
+        },
+        "uses_future_data": {
+          "const": false
+        },
+        "preserves_base_samples": {
+          "const": true
+        }
+      }
+    },
+    "forecast_nodes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "forecast_id",
+          "unit_id",
+          "event_type_id",
+          "period_index",
+          "aggregation_role"
+        ],
+        "properties": {
+          "forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "unit_id": {
+            "type": "string",
+            "pattern": "^unit-[A-Za-z0-9_-]+$"
+          },
+          "event_type_id": {
+            "type": "string",
+            "pattern": "^event-[A-Za-z0-9_-]+$"
+          },
+          "period_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "aggregation_role": {
+            "enum": [
+              "aggregate",
+              "leaf"
+            ]
+          }
+        }
+      }
+    },
+    "aggregation_constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "constraint_id",
+          "kind",
+          "parent_forecast_id",
+          "child_forecast_ids",
+          "expected_child_keys",
+          "completeness",
+          "absolute_tolerance"
+        ],
+        "properties": {
+          "constraint_id": {
+            "type": "string",
+            "pattern": "^constraint-[A-Za-z0-9_-]+$"
+          },
+          "kind": {
+            "enum": [
+              "spatial",
+              "event_type"
+            ]
+          },
+          "parent_forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "child_forecast_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^fc-[A-Za-z0-9_-]+$"
+            }
+          },
+          "expected_child_keys": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "completeness": {
+            "const": "complete"
+          },
+          "absolute_tolerance": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "scored_node_ids": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^fc-[A-Za-z0-9_-]+$"
+      }
+    },
+    "observed_vector": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "forecast_id",
+          "observed_count"
+        ],
+        "properties": {
+          "forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "observed_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "score_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparison_type",
+        "energy_norm",
+        "energy_ensemble_estimator",
+        "variogram_exponent",
+        "variogram_weight_policy",
+        "numeric_tolerance"
+      ],
+      "properties": {
+        "comparison_type": {
+          "const": "reconciled_vs_unreconciled_distribution"
+        },
+        "energy_norm": {
+          "const": "euclidean"
+        },
+        "energy_ensemble_estimator": {
+          "const": "mean_distance_to_observation_minus_pairwise_v_statistic_1_over_2m2"
+        },
+        "variogram_exponent": {
+          "const": 1
+        },
+        "variogram_weight_policy": {
+          "const": "unit_weight_all_pairs"
+        },
+        "numeric_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.000001
+        }
+      }
+    },
+    "sample_rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "draw_id",
+          "forecast_id",
+          "raw_count",
+          "reconciled_count"
+        ],
+        "properties": {
+          "draw_id": {
+            "type": "string",
+            "pattern": "^draw-[A-Za-z0-9_-]+$"
+          },
+          "forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "raw_count": {
+            "type": "number",
+            "minimum": 0
+          },
+          "reconciled_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
