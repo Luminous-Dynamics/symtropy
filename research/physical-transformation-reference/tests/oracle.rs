@@ -6,9 +6,6 @@ use physical_transformation_reference::{
     Component, Connection, Event, Operation, World, run_reference_fixture,
 };
 
-    Component, Connection, Event, Operation, World, run_reference_fixture,
-};
-
 #[test]
 fn frozen_reference_outcome_matches_independent_expected_values() {
     let observed = run_reference_fixture().expect("reference fixture should execute");
