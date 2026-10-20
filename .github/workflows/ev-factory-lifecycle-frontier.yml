@@ -1,0 +1,107 @@
+name: EV Factory Lifecycle Cost Frontier
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_lifecycle_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json"
+      - "docs/research/EV_FACTORY_LIFECYCLE_FRONTIER_V0_1.md"
+      - ".github/workflows/ev-factory-lifecycle-frontier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_lifecycle_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json"
+      - "docs/research/EV_FACTORY_LIFECYCLE_FRONTIER_V0_1.md"
+      - ".github/workflows/ev-factory-lifecycle-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-frontier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Validate synthetic lifecycle catalog
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json
+          jq -e '
+            .schema_version == "0.1.0"
+            and .benchmark_id == "EV-FACTORY-LIFECYCLE-001"
+            and .evidence_class == "synthetic"
+            and .cost_unit == "synthetic_cost_unit"
+            and .time_unit == "year"
+            and (.families | length) == 5
+            and (.strategies | length) == 4
+            and ([.strategies[].kind] | unique | length) == 4
+            and (.families | all(.[]; .planning_horizon_years > 0 and .planning_horizon_years <= 30 and .active_fraction >= 0 and .active_fraction <= 1))
+            and (.claim_ceiling | contains("synthetic"))
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Run lifecycle frontier and assert accounting/report contract
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_lifecycle_frontier -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json \
+            > ev-factory-lifecycle-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-LIFECYCLE-001"
+            and .source_evidence_class == "synthetic"
+            and (.source_catalog_sha256 | length) == 64
+            and .family_count == 5
+            and (.family_ids | length) == 5
+            and .strategy_count == 4
+            and (.strategy_ids | length) == 4
+            and (.family_strategy_results | length) == 20
+            and (.strategy_scores | length) == 4
+            and (.pareto_frontier_strategy_ids | length) >= 1
+            and (.purchase_vs_lease_break_even | length) == 5
+            and (.sensitivity_results | length) == 11
+            and all(.family_strategy_results[];
+              .total_npv_cost == (.upfront_npv_cost + .contract_payment_npv_cost + .maintenance_npv_cost + .idle_carry_npv_cost + .retooling_npv_cost + .expected_reuse_failure_npv_cost + .terminal_disposal_npv_cost - .terminal_salvage_credit_npv) or ((.total_npv_cost - (.upfront_npv_cost + .contract_payment_npv_cost + .maintenance_npv_cost + .idle_carry_npv_cost + .retooling_npv_cost + .expected_reuse_failure_npv_cost + .terminal_disposal_npv_cost - .terminal_salvage_credit_npv)) | fabs) < 0.000001)
+            and all(.family_strategy_results[]; .stranded_asset_exposure >= 0 and .effective_recovery_fraction >= 0 and .effective_recovery_fraction <= 1)
+            and all(.purchase_vs_lease_break_even[]; .planning_horizon_cap_years > 0 and (.first_year_purchase_npv_not_above_lease_npv == null or (.first_year_purchase_npv_not_above_lease_npv >= 1 and .first_year_purchase_npv_not_above_lease_npv <= .planning_horizon_cap_years)))
+            and all(.sensitivity_results[]; (.mean_npv_cost_by_strategy | length) == 4 and (.worst_family_npv_cost_by_strategy | length) == 4 and .evidence_class == "synthetic")
+            and .economic_recommendation_authorized == false
+            and .production_release_authorized == false
+          ' ev-factory-lifecycle-report.json
+      - name: Verify deterministic output
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_lifecycle_frontier -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json \
+            > ev-factory-lifecycle-repeat.json
+          cmp ev-factory-lifecycle-report.json ev-factory-lifecycle-repeat.json
+      - name: Negative controls - unknown field, bad discount, impossible horizon, invalid ownership and salvage fractions
+        run: |
+          fixture=tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json
+          jq '.unreviewed_override = true' "$fixture" > invalid-lifecycle-unknown-field.json
+          jq '.discount_rate_per_year = 0.8' "$fixture" > invalid-lifecycle-discount.json
+          jq '.families[0].planning_horizon_years = 0' "$fixture" > invalid-lifecycle-horizon.json
+          jq '.strategies[0].owns_asset = false' "$fixture" > invalid-lifecycle-ownership.json
+          jq '.families[0].salvage_realization_fraction = 1.2' "$fixture" > invalid-lifecycle-salvage.json
+          for invalid in invalid-lifecycle-unknown-field.json invalid-lifecycle-discount.json invalid-lifecycle-horizon.json invalid-lifecycle-ownership.json invalid-lifecycle-salvage.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_lifecycle_frontier -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid lifecycle catalog unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash inputs, source and report
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_lifecycle_frontier.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json \
+            docs/research/EV_FACTORY_LIFECYCLE_FRONTIER_V0_1.md \
+            ev-factory-lifecycle-report.json > ev-factory-lifecycle.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-lifecycle-frontier-report
+          path: |
+            ev-factory-lifecycle-report.json
+            ev-factory-lifecycle.sha256
+          if-no-files-found: error
