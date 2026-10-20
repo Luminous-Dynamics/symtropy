@@ -232,21 +232,44 @@ impl HiddenWorld {
     }
 }
 
-fn generate_world(episode_id: u64, world_seed: u64) -> HiddenWorld {
-    // A crossed nuisance grid guarantees a mix of easy, occluded, blurred,
-    // distractor-heavy and novel scenes; hidden target identity and sensor noise
-    // come from separate seed domains.
-    const OCCLUSION_LEVELS: [u16; 4] = [0, 350, 700, 900];
-    const BLUR_LEVELS: [u16; 3] = [0, 450, 800];
-    const DISTRACTOR_LEVELS: [u16; 3] = [50, 500, 950];
-    const NOVELTY_LEVELS: [u16; 3] = [50, 400, 900];
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WorldProfile {
+    DevelopmentLevels,
+    HeldOutSeverityLevels,
+}
 
+fn generate_world(
+    episode_id: u64,
+    world_seed: u64,
+    profile: WorldProfile,
+) -> HiddenWorld {
+    // The held-out profile uses severity values not present in the development
+    // grid. It is a stress/transfer slice, not a claim of real-domain shift.
+    let occlusion_levels: [u16; 4] = match profile {
+        WorldProfile::DevelopmentLevels => [0, 350, 700, 900],
+        WorldProfile::HeldOutSeverityLevels => [120, 620, 760, 990],
+    };
+    let blur_levels: [u16; 3] = match profile {
+        WorldProfile::DevelopmentLevels => [0, 450, 800],
+        WorldProfile::HeldOutSeverityLevels => [100, 640, 930],
+    };
+    let distractor_levels: [u16; 3] = match profile {
+        WorldProfile::DevelopmentLevels => [50, 500, 950],
+        WorldProfile::HeldOutSeverityLevels => [100, 780, 990],
+    };
+    let novelty_levels: [u16; 3] = match profile {
+        WorldProfile::DevelopmentLevels => [50, 400, 900],
+        WorldProfile::HeldOutSeverityLevels => [100, 720, 990],
+    };
+
+    // Target identity, sensor noise, action availability and outcome reveal
+    // decisions use independent deterministic domains.
     let target_identity = unit_milli(world_seed, 0x5441_5247_4554_0001) >= 500;
-    let occlusion_milli = OCCLUSION_LEVELS[(episode_id as usize) % OCCLUSION_LEVELS.len()];
-    let blur_milli = BLUR_LEVELS[((episode_id as usize) / 4) % BLUR_LEVELS.len()];
+    let occlusion_milli = occlusion_levels[(episode_id as usize) % occlusion_levels.len()];
+    let blur_milli = blur_levels[((episode_id as usize) / 4) % blur_levels.len()];
     let distractor_salience_milli =
-        DISTRACTOR_LEVELS[((episode_id as usize) / 3) % DISTRACTOR_LEVELS.len()];
-    let novelty_milli = NOVELTY_LEVELS[((episode_id as usize) / 7) % NOVELTY_LEVELS.len()];
+        distractor_levels[((episode_id as usize) / 3) % distractor_levels.len()];
+    let novelty_milli = novelty_levels[((episode_id as usize) / 7) % novelty_levels.len()];
     let sensor_noise_milli = (unit_milli(world_seed, 0x4E4F_4953_4500_0001) / 8).min(120);
 
     let compute_available = unit_milli(world_seed, 0x4143_5449_4F4E_0001) >= 80;
@@ -284,11 +307,15 @@ fn generate_world(episode_id: u64, world_seed: u64) -> HiddenWorld {
     }
 }
 
-fn generate_worlds(count: usize, root_seed: u64) -> Vec<HiddenWorld> {
+fn generate_worlds_with_profile(
+    count: usize,
+    root_seed: u64,
+    profile: WorldProfile,
+) -> Vec<HiddenWorld> {
     let mut worlds: Vec<HiddenWorld> = (0..count)
         .map(|index| {
             let seed = mix64(root_seed ^ (index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
-            generate_world(index as u64, seed)
+            generate_world(index as u64, seed, profile)
         })
         .collect();
 
@@ -296,6 +323,14 @@ fn generate_worlds(count: usize, root_seed: u64) -> Vec<HiddenWorld> {
     // to the policy-visible presentation order or target identity.
     worlds.sort_by_key(|world| mix64(world.world_seed ^ 0x4F52_4445_525F_5345));
     worlds
+}
+
+fn generate_worlds(count: usize, root_seed: u64) -> Vec<HiddenWorld> {
+    generate_worlds_with_profile(count, root_seed, WorldProfile::DevelopmentLevels)
+}
+
+fn generate_held_out_worlds(count: usize, root_seed: u64) -> Vec<HiddenWorld> {
+    generate_worlds_with_profile(count, root_seed, WorldProfile::HeldOutSeverityLevels)
 }
 
 fn cost(action: VisionAction) -> BTreeMap<String, u64> {
