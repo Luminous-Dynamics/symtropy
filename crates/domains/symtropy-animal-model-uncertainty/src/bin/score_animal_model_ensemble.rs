@@ -240,7 +240,7 @@ mod tests {
         assert_eq!(report["model_ids"].as_array().map(Vec::len), Some(2));
         assert_eq!(
             report["scores"].as_array().map(Vec::len),
-            Some(root["models"][0]["action_losses"].as_object().unwrap().len())
+            root["models"][0]["action_losses"].as_object().map(serde_json::Map::len)
         );
     }
 
