@@ -11,7 +11,7 @@ use physical_transformation_reference::mechanics::{
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub type Check<T> = Result<T, String>;
 
@@ -122,6 +122,8 @@ struct ParsedRequest {
     requested_physics: Vec<String>,
     physics_omitted: Vec<String>,
     inputs: Map<String, Value>,
+    input_bounds: Option<BTreeMap<String, uncertainty::Interval>>,
+    input_bounds_contract: Option<Value>,
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
@@ -141,8 +143,8 @@ pub fn evaluate_request_bytes(bytes: &[u8], adapter_revision: &str) -> Check<Val
     let value: Value =
         serde_json::from_slice(bytes).map_err(|error| format!("invalid request JSON: {error}"))?;
     let request = parse_request(&value)?;
-
     let input_digest = sha256_hex(bytes);
+
     if !request.physics_omitted.is_empty() {
         let diagnostics = request
             .physics_omitted
@@ -159,24 +161,53 @@ pub fn evaluate_request_bytes(bytes: &[u8], adapter_revision: &str) -> Check<Val
             &input_digest,
             "UNRESOLVED",
             Value::Null,
+            Value::Null,
             diagnostics,
         ));
     }
 
     match evaluate_case(request.case, &request.inputs) {
-        Ok(outputs) => Ok(receipt(
-            &request,
-            adapter_revision,
-            &input_digest,
-            "PASS",
-            outputs,
-            Vec::new(),
-        )),
+        Ok(outputs) => {
+            let output_enclosures = match request.input_bounds.as_ref() {
+                Some(bounds) => match build_output_enclosures(
+                    request.case,
+                    &request.inputs,
+                    &outputs,
+                    bounds,
+                ) {
+                    Ok(enclosures) => enclosures,
+                    Err(error) => {
+                        return Ok(receipt(
+                            &request,
+                            adapter_revision,
+                            &input_digest,
+                            "UNRESOLVED",
+                            Value::Null,
+                            Value::Null,
+                            vec![format!(
+                                "bounded uncertainty propagation could not be completed: {error}"
+                            )],
+                        ));
+                    }
+                },
+                None => Value::Null,
+            };
+            Ok(receipt(
+                &request,
+                adapter_revision,
+                &input_digest,
+                "PASS",
+                outputs,
+                output_enclosures,
+                Vec::new(),
+            ))
+        }
         Err(error) => Ok(receipt(
             &request,
             adapter_revision,
             &input_digest,
             "UNRESOLVED",
+            Value::Null,
             Value::Null,
             vec![format!(
                 "analytical evaluation could not be completed: {error}"
@@ -191,6 +222,7 @@ fn receipt(
     request_digest: &str,
     status: &str,
     outputs: Value,
+    output_enclosures: Value,
     diagnostics: Vec<String>,
 ) -> Value {
     json!({
@@ -207,15 +239,24 @@ fn receipt(
         "physics_omitted": request.physics_omitted,
         "assumption_profile": request.case.profile(),
         "assumptions": request.case.assumptions(),
+        "inputs": request.inputs,
+        "input_bounds": request.input_bounds_contract.clone().unwrap_or(Value::Null),
         "outputs": outputs,
         "output_units": request.case.units(),
+        "output_enclosures": output_enclosures,
+        "uncertainty_method": if request.input_bounds.is_some() {
+            "deterministic_interval_outward_rounded_v0.1"
+        } else {
+            "none_input_bounds_not_supplied"
+        },
+        "real_world_validation_status": "UNRESOLVED",
         "reference_oracle_tolerances": {
             "relative_tolerance": 1.0e-12,
             "absolute_tolerance": 1.0e-15,
             "scope": "applied to frozen CI known-answer fixtures; not a comparison against real specimen data"
         },
         "diagnostics": diagnostics,
-        "claim_ceiling": "named closed-form analytical case only; not physical validation, structural certification, or real collapse prediction"
+        "claim_ceiling": "named closed-form analytical case only; interval bounds cover declared input intervals and numerical outward rounding, not probability, measurement calibration, model-form error, physical validation, structural certification, or real collapse prediction"
     })
 }
 
@@ -271,7 +312,7 @@ fn evaluate_case(case: CaseKind, inputs: &Map<String, Value>) -> Check<Value> {
 }
 
 fn parse_request(value: &Value) -> Check<ParsedRequest> {
-    exact_keys(
+    exact_keys_with_optional(
         value,
         &[
             "schema_version",
@@ -283,6 +324,7 @@ fn parse_request(value: &Value) -> Check<ParsedRequest> {
             "units",
             "inputs",
         ],
+        &["input_bounds"],
         "request",
     )?;
     expect_string(value, "schema_version", REQUEST_SCHEMA, "request")?;
@@ -349,18 +391,13 @@ fn parse_request(value: &Value) -> Check<ParsedRequest> {
             .and_then(Value::as_f64)
             .filter(|number| number.is_finite())
             .ok_or_else(|| format!("request.inputs.{key} must be finite"))?;
-        if matches!(
-            *key,
-            "length_m"
-                | "area_m2"
-                | "youngs_modulus_pa"
-                | "second_moment_area_m4"
-                | "outer_fiber_distance_m"
-        ) && number <= 0.0
-        {
+        if is_positive_input(key) && number <= 0.0 {
             return Err(format!("request.inputs.{key} must be positive"));
         }
     }
+
+    let input_bounds_contract = value.get("input_bounds").cloned();
+    let input_bounds = parse_input_bounds(value.get("input_bounds"), case, inputs)?;
 
     Ok(ParsedRequest {
         request_id,
@@ -369,7 +406,182 @@ fn parse_request(value: &Value) -> Check<ParsedRequest> {
         requested_physics,
         physics_omitted,
         inputs: inputs.to_owned(),
+        input_bounds,
+        input_bounds_contract,
     })
+}
+
+fn parse_input_bounds(
+    contract: Option<&Value>,
+    case: CaseKind,
+    nominal_inputs: &Map<String, Value>,
+) -> Check<Option<BTreeMap<String, uncertainty::Interval>>> {
+    let Some(contract) = contract else {
+        return Ok(None);
+    };
+    exact_keys(
+        contract,
+        &["schema_version", "inputs"],
+        "request.input_bounds",
+    )?;
+    expect_string(
+        contract,
+        "schema_version",
+        "physical-input-bounds-v0.1",
+        "request.input_bounds",
+    )?;
+    let bound_inputs = object(contract, "inputs", "request.input_bounds")?;
+    exact_keys_map(
+        bound_inputs,
+        case.input_keys(),
+        "request.input_bounds.inputs",
+    )?;
+
+    let mut parsed = BTreeMap::new();
+    for key in case.input_keys() {
+        let at = format!("request.input_bounds.inputs.{key}");
+        let item = bound_inputs
+            .get(*key)
+            .ok_or_else(|| format!("{at} is required"))?;
+        exact_keys(item, &["lower", "upper", "unit"], &at)?;
+        let fields = item
+            .as_object()
+            .ok_or_else(|| format!("{at} must be an object"))?;
+        let lower = finite_number(fields, "lower", &at)?;
+        let upper = finite_number(fields, "upper", &at)?;
+        let expected_unit = input_unit(key)
+            .ok_or_else(|| format!("no unit contract is defined for input {key}"))?;
+        if map_string(fields, "unit", &at)? != expected_unit {
+            return Err(format!("{at}.unit must be '{expected_unit}'"));
+        }
+        let interval = uncertainty::Interval::new(lower, upper)
+            .map_err(|error| format!("{at}: {error}"))?;
+        let nominal = nominal_inputs
+            .get(*key)
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("request.inputs.{key} must be finite"))?;
+        if !interval.contains(nominal) {
+            return Err(format!(
+                "request.inputs.{key} nominal value lies outside input_bounds"
+            ));
+        }
+        if is_positive_input(key) {
+            interval
+                .require_positive(key)
+                .map_err(|error| format!("{at}: {error}"))?;
+        }
+        parsed.insert((*key).to_owned(), interval);
+    }
+    Ok(Some(parsed))
+}
+
+fn input_unit(key: &str) -> Option<&'static str> {
+    match key {
+        "force_n" => Some("N"),
+        "load_n_per_m" => Some("N/m"),
+        "length_m" => Some("m"),
+        "area_m2" => Some("m^2"),
+        "youngs_modulus_pa" => Some("Pa"),
+        "second_moment_area_m4" => Some("m^4"),
+        "outer_fiber_distance_m" => Some("m"),
+        _ => None,
+    }
+}
+
+fn is_positive_input(key: &str) -> bool {
+    matches!(
+        key,
+        "length_m"
+            | "area_m2"
+            | "youngs_modulus_pa"
+            | "second_moment_area_m4"
+            | "outer_fiber_distance_m"
+    )
+}
+
+fn finite_number(value: &Map<String, Value>, key: &str, at: &str) -> Check<f64> {
+    value
+        .get(key)
+        .and_then(Value::as_f64)
+        .filter(|number| number.is_finite())
+        .ok_or_else(|| format!("{at}.{key} must be a finite number"))
+}
+
+fn build_output_enclosures(
+    case: CaseKind,
+    nominal_inputs: &Map<String, Value>,
+    nominal_outputs: &Value,
+    bounds: &BTreeMap<String, uncertainty::Interval>,
+) -> Check<Value> {
+    let nominal_values: BTreeMap<String, f64> = nominal_inputs
+        .iter()
+        .map(|(key, value)| {
+            let number = value
+                .as_f64()
+                .filter(|number| number.is_finite())
+                .ok_or_else(|| format!("nominal input {key} must be finite"))?;
+            Ok((key.clone(), number))
+        })
+        .collect::<Check<_>>()?;
+    let ranges = uncertainty::propagate(case.id(), &nominal_values, bounds)?;
+    let units = case.units();
+    let mut enclosures = Map::new();
+    for (output_key, interval) in ranges {
+        let nominal = nominal_outputs
+            .get(&output_key)
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("nominal output {output_key} is absent or non-finite"))?;
+        if !interval.contains(nominal) {
+            return Err(format!(
+                "computed enclosure for {output_key} does not contain its nominal output"
+            ));
+        }
+        let unit = units
+            .get(&output_key)
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("output unit for {output_key} is missing"))?;
+        enclosures.insert(
+            output_key,
+            json!({
+                "lower": interval.lower,
+                "nominal": nominal,
+                "upper": interval.upper,
+                "unit": unit
+            }),
+        );
+    }
+    Ok(Value::Object(enclosures))
+}
+
+fn exact_keys_with_optional(
+    value: &Value,
+    required: &[&str],
+    optional: &[&str],
+    at: &str,
+) -> Check<()> {
+    let actual = value
+        .as_object()
+        .ok_or_else(|| format!("{at} must be an object"))?;
+    let mut allowed: BTreeSet<&str> = required.iter().copied().collect();
+    allowed.extend(optional.iter().copied());
+    let missing: Vec<_> = required
+        .iter()
+        .copied()
+        .filter(|key| !actual.contains_key(*key))
+        .collect();
+    let unknown: Vec<_> = actual
+        .keys()
+        .map(String::as_str)
+        .filter(|key| !allowed.contains(key))
+        .collect();
+    if !missing.is_empty() || !unknown.is_empty() {
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
+    }
+    Ok(())
 }
 
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
@@ -554,4 +766,106 @@ mod tests {
         assert_eq!(receipt["result_status"], "UNRESOLVED");
         assert_eq!(receipt["outputs"], Value::Null);
     }
+
+    #[test]
+    fn point_only_request_does_not_fabricate_uncertainty() {
+        let receipt = evaluate_request_bytes(&fixture("analytical-bar-v0.1.json"), REV)
+            .expect("point-only request remains valid");
+        assert_eq!(receipt["result_status"], "PASS");
+        assert_eq!(receipt["input_bounds"], Value::Null);
+        assert_eq!(receipt["output_enclosures"], Value::Null);
+        assert_eq!(receipt["uncertainty_method"], "none_input_bounds_not_supplied");
+        assert_eq!(receipt["real_world_validation_status"], "UNRESOLVED");
+    }
+
+    #[test]
+    fn bounded_axial_bar_receipt_contains_nominal_inside_outward_enclosures() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
+        request["input_bounds"] = json!({
+            "schema_version": "physical-input-bounds-v0.1",
+            "inputs": {
+                "force_n": {"lower": 900.0, "upper": 1100.0, "unit": "N"},
+                "length_m": {"lower": 1.9, "upper": 2.1, "unit": "m"},
+                "area_m2": {"lower": 0.009, "upper": 0.011, "unit": "m^2"},
+                "youngs_modulus_pa": {"lower": 195.0e9, "upper": 205.0e9, "unit": "Pa"}
+            }
+        });
+        let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
+            .expect("valid bounded request");
+        assert_eq!(receipt["result_status"], "PASS");
+        assert_eq!(receipt["uncertainty_method"], "deterministic_interval_outward_rounded_v0.1");
+        for key in ["axial_stress_pa", "axial_strain", "extension_m"] {
+            let enclosure = &receipt["output_enclosures"][key];
+            let lower = enclosure["lower"].as_f64().unwrap();
+            let nominal = enclosure["nominal"].as_f64().unwrap();
+            let upper = enclosure["upper"].as_f64().unwrap();
+            assert!(lower.is_finite() && nominal.is_finite() && upper.is_finite());
+            assert!(lower <= nominal && nominal <= upper);
+            assert_eq!(enclosure["unit"], receipt["output_units"][key]);
+        }
+        assert_eq!(receipt["output_enclosures"]["axial_stress_pa"]["nominal"], 100_000.0);
+        assert_eq!(receipt["input_bounds"]["schema_version"], "physical-input-bounds-v0.1");
+    }
+
+    #[test]
+    fn malformed_bounds_fail_closed_without_ignoring_fields() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
+        request["input_bounds"] = json!({
+            "schema_version": "physical-input-bounds-v0.1",
+            "inputs": {
+                "force_n": {"lower": 900.0, "upper": 1100.0, "unit": "N"},
+                "length_m": {"lower": 1.9, "upper": 2.1, "unit": "m"},
+                "area_m2": {"lower": 0.009, "upper": 0.011, "unit": "m^2"},
+                "youngs_modulus_pa": {"lower": 195.0e9, "upper": 205.0e9, "unit": "Pa"}
+            }
+        });
+
+        let mut mutated = request.clone();
+        mutated["input_bounds"]["inputs"]["area_m2"]["unit"] = json!("cm^2");
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+        let mut mutated = request.clone();
+        mutated["input_bounds"]["inputs"]["area_m2"]["lower"] = json!(0.0);
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+        let mut mutated = request.clone();
+        mutated["input_bounds"]["inputs"]["area_m2"]["upper"] = json!(0.008);
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+        let mut mutated = request.clone();
+        mutated["input_bounds"]["inputs"]["unreviewed_override"] = json!({
+            "lower": 1.0, "upper": 2.0, "unit": "m"
+        });
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+        let mut mutated = request;
+        mutated["input_bounds"]["inputs"]["area_m2"].as_object_mut().unwrap().remove("upper");
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+    }
+
+    #[test]
+    fn force_interval_crossing_zero_yields_zero_lower_magnitude_stress() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("cantilever-tip-load-v0.1.json")).unwrap();
+        request["input_bounds"] = json!({
+            "schema_version": "physical-input-bounds-v0.1",
+            "inputs": {
+                "force_n": {"lower": -100.0, "upper": 100.0, "unit": "N"},
+                "length_m": {"lower": 2.0, "upper": 2.0, "unit": "m"},
+                "youngs_modulus_pa": {"lower": 200.0e9, "upper": 200.0e9, "unit": "Pa"},
+                "second_moment_area_m4": {"lower": 8.0e-6, "upper": 8.0e-6, "unit": "m^4"},
+                "outer_fiber_distance_m": {"lower": 0.1, "upper": 0.1, "unit": "m"}
+            }
+        });
+        let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
+            .expect("signed interval crossing zero is supported");
+        assert_eq!(receipt["result_status"], "PASS");
+        assert_eq!(receipt["output_enclosures"]["maximum_bending_stress_pa"]["lower"], 0.0);
+        let enclosure = &receipt["output_enclosures"]["tip_deflection_m"];
+        assert!(enclosure["lower"].as_f64().unwrap() <= enclosure["nominal"].as_f64().unwrap());
+        assert!(enclosure["nominal"].as_f64().unwrap() <= enclosure["upper"].as_f64().unwrap());
+    }
+
 }
