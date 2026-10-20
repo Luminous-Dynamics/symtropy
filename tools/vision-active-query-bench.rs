@@ -616,6 +616,12 @@ fn run_policy_with_budget(
     run_policy_with_budget_and_stop_cost(episode, kind, seed, budget, STOP_COST_PER_OBSERVATION)
 }
 
+fn scheduled_tick(action_slot: usize, budget: usize) -> usize {
+    assert!(budget > 0 && budget <= HORIZON);
+    assert!(action_slot < budget);
+    action_slot * HORIZON / budget
+}
+
 fn run_policy_with_budget_and_stop_cost(
     episode: &ActiveEpisode,
     kind: PolicyKind,
@@ -629,7 +635,11 @@ fn run_policy_with_budget_and_stop_cost(
     policy.stop_cost_per_observation = stop_cost_per_observation;
     let mut actions = Vec::with_capacity(budget);
 
-    for tick in 0..budget {
+    for action_slot in 0..budget {
+        // Spread the request budget over the fixed world horizon. At budget 48
+        // this is exactly one observation per tick; smaller budgets do not
+        // accidentally become a front-loaded prefix with a long blind tail.
+        let tick = scheduled_tick(action_slot, budget);
         let action = policy.choose_action(tick);
         if action >= QUERY_COUNT {
             break; // terminal stopping action: no potential observation is released
@@ -1066,6 +1076,19 @@ mod tests {
             &episode, PolicyKind::RiskThresholdStop, 1234, HORIZON, 0.12
         );
         assert!(high.actions.len() <= low.actions.len());
+    }
+
+    #[test]
+    fn lower_budget_schedules_still_span_the_full_world_horizon() {
+        let ticks_8: Vec<usize> = (0..8).map(|slot| scheduled_tick(slot, 8)).collect();
+        let ticks_16: Vec<usize> = (0..16).map(|slot| scheduled_tick(slot, 16)).collect();
+        let ticks_48: Vec<usize> = (0..48).map(|slot| scheduled_tick(slot, 48)).collect();
+        assert_eq!(ticks_8, vec![0, 6, 12, 18, 24, 30, 36, 42]);
+        assert_eq!(ticks_16.first(), Some(&0));
+        assert_eq!(ticks_16.last(), Some(&45));
+        assert_eq!(ticks_48.first(), Some(&0));
+        assert_eq!(ticks_48.last(), Some(&47));
+        assert!(ticks_8.windows(2).all(|pair| pair[0] < pair[1]));
     }
 
     #[test]
