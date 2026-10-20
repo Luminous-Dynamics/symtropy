@@ -326,7 +326,7 @@ impl Policy {
 
     /// This function has no access to evaluator labels, hidden world state,
     /// counterfactual outcomes, or future frames.
-    fn propose(self, trial_id: u64, observation: PublicObservation) -> VisionAction {
+    fn propose(self, trial_id: u64, seed: u64, observation: PublicObservation) -> VisionAction {
         match self {
             Self::AlwaysCheap => VisionAction::KeepCheap,
             Self::AlwaysEscalate => VisionAction::EscalateCurrent,
@@ -355,9 +355,12 @@ impl Policy {
                     .into_iter()
                     .filter(|action| observation.action_available(*action))
                     .collect();
-                let mixed = trial_id
-                    .wrapping_mul(6_364_136_223_846_793_005)
-                    .wrapping_add(1_442_695_040_888_963_407);
+                let mut mixed = trial_id
+                    .wrapping_add(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15))
+                    .wrapping_add(0xD1B5_4A32_D192_ED03);
+                mixed = (mixed ^ (mixed >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+                mixed = (mixed ^ (mixed >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+                mixed ^= mixed >> 31;
                 available[(mixed % available.len() as u64) as usize]
             }
             Self::SequentialEvidence => {
@@ -448,7 +451,7 @@ fn guarded_action(
     Err(EvaluationError::NoRunBudgetFeasiblePlan)
 }
 
-fn evaluate_policy(policy: Policy, cases: &[SyntheticScenario]) -> Result<RunSummaryV1, EvaluationError> {
+fn evaluate_policy(policy: Policy, cases: &[SyntheticScenario], seed: u64) -> Result<RunSummaryV1, EvaluationError> {
     // Budgeted policies are evaluated in canonical trial order. Otherwise, simply
     // permuting episode order could change which later episodes receive a sensor
     // action, confounding policy quality with evaluation ordering.
@@ -460,7 +463,7 @@ fn evaluate_policy(policy: Policy, cases: &[SyntheticScenario]) -> Result<RunSum
 
     for (index, scenario) in ordered_cases.iter().enumerate() {
         let episodes_after = ordered_cases.len() - index - 1;
-        let requested = policy.propose(scenario.id, scenario.observation);
+        let requested = policy.propose(scenario.id, seed, scenario.observation);
         let chosen = guarded_action(
             requested,
             scenario.observation,
@@ -514,6 +517,19 @@ fn mean_action_value(summary: &RunSummaryV1) -> f64 {
         / summary.scores.len() as f64
 }
 
+fn mean(values: impl Iterator<Item = f64>) -> f64 {
+    let collected: Vec<f64> = values.collect();
+    collected.iter().sum::<f64>() / collected.len() as f64
+}
+
+fn mean_axis(summaries: &[RunSummaryV1], axis_id: &str) -> Option<f64> {
+    let mut total = 0.0;
+    for summary in summaries {
+        total += *summary.total_actual_resource_units.get(axis_id)?.as_ref()? as f64;
+    }
+    Some(total / summaries.len() as f64)
+}
+
 fn run_report() -> Result<(), EvaluationError> {
     let cases = scenarios();
     let policies = [
@@ -527,23 +543,32 @@ fn run_report() -> Result<(), EvaluationError> {
 
     println!("VIS-ACT-001 deterministic synthetic diagnostic pilot");
     println!("Not a powered study; resource axes are abstract synthetic units, not energy or measured latency.");
+    println!("Random baseline uses 16 deterministic policy seeds on the same fixed 11-episode suite; these are policy-seed repeats, not independent environments.");
     println!("episodes={} latency_run_budget={} sensor_action_budget={}", cases.len(), LATENCY_RUN_BUDGET, SENSOR_RUN_BUDGET);
-    println!("policy\tmean_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\tlatency_used\tsensor_actions\tlatency_budget\tsensor_budget");
+    println!("policy\treplicates\tmean_loss\tmin_loss\tmax_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\tmean_latency_units\tmean_sensor_actions");
 
     for policy in policies {
-        let summary = evaluate_policy(policy, &cases)?;
-        let latency = summary.total_actual_resource_units["latency_unit"];
-        let sensors = summary.total_actual_resource_units["sensor_action"];
+        let repetitions = if matches!(policy, Policy::DeterministicRandom) { 16 } else { 1 };
+        let mut summaries = Vec::with_capacity(repetitions);
+        for seed in 0..repetitions {
+            summaries.push(evaluate_policy(policy, &cases, seed as u64)?);
+        }
+        let mean_loss = mean(summaries.iter().map(|s| s.mean_realized_loss));
+        let min_loss = summaries.iter().map(|s| s.mean_realized_loss).fold(f64::INFINITY, f64::min);
+        let max_loss = summaries.iter().map(|s| s.mean_realized_loss).fold(f64::NEG_INFINITY, f64::max);
+        let mean_regret = mean(summaries.iter().map(|s| s.mean_regret_vs_run_budget_oracle));
+        let mean_action_value = mean(summaries.iter().map(mean_action_value));
         println!(
-            "{}\t{:.3}\t{:.3}\t{:.3}\t{:?}\t{:?}\t{:?}\t{:?}",
+            "{}\t{}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:?}\t{:?}",
             policy.name(),
-            summary.mean_realized_loss,
-            summary.mean_regret_vs_run_budget_oracle,
-            mean_action_value(&summary),
-            latency,
-            sensors,
-            summary.run_budget_status["latency_unit"],
-            summary.run_budget_status["sensor_action"],
+            repetitions,
+            mean_loss,
+            min_loss,
+            max_loss,
+            mean_regret,
+            mean_action_value,
+            mean_axis(&summaries, "latency_unit"),
+            mean_axis(&summaries, "sensor_action"),
         );
     }
     Ok(())
@@ -573,7 +598,7 @@ mod tests {
         let cases = scenarios();
         let occluded = cases.iter().find(|case| case.id == 2).unwrap();
         assert_eq!(
-            Policy::SequentialEvidence.propose(occluded.id, occluded.observation),
+            Policy::SequentialEvidence.propose(occluded.id, 0, occluded.observation),
             VisionAction::ChangeView
         );
     }
@@ -583,7 +608,7 @@ mod tests {
         let cases = scenarios();
         let blocked = cases.iter().find(|case| case.id == 6).unwrap();
         assert_eq!(
-            Policy::SequentialEvidence.propose(blocked.id, blocked.observation),
+            Policy::SequentialEvidence.propose(blocked.id, 0, blocked.observation),
             VisionAction::AbstainOrHandoff
         );
     }
@@ -593,7 +618,7 @@ mod tests {
         let cases = scenarios();
         let distractor = cases.iter().find(|case| case.id == 4).unwrap();
         assert_eq!(
-            Policy::SurpriseOnly.propose(distractor.id, distractor.observation),
+            Policy::SurpriseOnly.propose(distractor.id, 0, distractor.observation),
             VisionAction::ChangeView
         );
         assert!(
@@ -612,10 +637,24 @@ mod tests {
             Policy::DeterministicRandom,
             Policy::SequentialEvidence,
         ] {
-            let summary = evaluate_policy(policy, &scenarios()).unwrap();
+            let summary = evaluate_policy(policy, &scenarios(), 0).unwrap();
             assert_eq!(summary.run_budget_status["latency_unit"], evaluator::BudgetStatus::WithinBudget);
             assert_eq!(summary.run_budget_status["sensor_action"], evaluator::BudgetStatus::WithinBudget);
         }
+    }
+
+    #[test]
+    fn deterministic_random_baseline_changes_choices_across_policy_seeds() {
+        let cases = scenarios();
+        let choices_a: Vec<VisionAction> = cases
+            .iter()
+            .map(|case| Policy::DeterministicRandom.propose(case.id, 0, case.observation))
+            .collect();
+        let choices_b: Vec<VisionAction> = cases
+            .iter()
+            .map(|case| Policy::DeterministicRandom.propose(case.id, 1, case.observation))
+            .collect();
+        assert_ne!(choices_a, choices_b);
     }
 
     #[test]
@@ -623,8 +662,8 @@ mod tests {
         let mut original = scenarios();
         let mut reversed = original.clone();
         reversed.reverse();
-        let a = evaluate_policy(Policy::SequentialEvidence, &original).unwrap();
-        let b = evaluate_policy(Policy::SequentialEvidence, &reversed).unwrap();
+        let a = evaluate_policy(Policy::SequentialEvidence, &original, 0).unwrap();
+        let b = evaluate_policy(Policy::SequentialEvidence, &reversed, 0).unwrap();
         assert_eq!(a.mean_realized_loss, b.mean_realized_loss);
         assert_eq!(
             a.mean_run_budget_feasible_counterfactual_loss,
