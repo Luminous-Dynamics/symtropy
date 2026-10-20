@@ -1,0 +1,26 @@
+{
+  "schema_version": "physical-solver-request-v0.1",
+  "request_id": "fixture:unsupported-fracture-001",
+  "source_revision": "556e78c6e93a63b1b734c9d1b9d3f91cdd7223ac",
+  "scene_revision": 1,
+  "scene_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "model_fidelity": "analytical_linear_elastic",
+  "requested_physics": ["dynamic_response", "fracture"],
+  "coordinate_frame_id": "fixture:global-xyz",
+  "units": {
+    "length": "m",
+    "mass": "kg",
+    "time": "s",
+    "force": "N",
+    "stress": "Pa"
+  },
+  "materials": [],
+  "loads": [],
+  "boundary_conditions": [],
+  "required_outputs": ["crack_path", "fragment_state"],
+  "acceptance": {
+    "relative_tolerance": 0.05,
+    "absolute_tolerance": 0.000001,
+    "require_convergence": true
+  }
+}
