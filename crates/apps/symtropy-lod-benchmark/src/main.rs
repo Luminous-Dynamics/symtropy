@@ -339,6 +339,10 @@ fn run_workload(
         }
     }
 
+    if !repeat_outputs_identical {
+        return Err(format!("allocation output was not deterministic for {}", workload.workload_id).into());
+    }
+
     let allocation = last_allocation.ok_or("benchmark generated no allocations")?;
     let mut quality_rank_histogram = BTreeMap::new();
     for choice in &allocation.choices {
