@@ -396,9 +396,8 @@ fn calculate_cost(
     } else {
         0.0
     };
-    let upfront = strategy.acquisition_cost
-        + strategy.refurbishment_cost
-        + strategy.installation_cost;
+    let upfront =
+        strategy.acquisition_cost + strategy.refurbishment_cost + strategy.installation_cost;
     let mut contract = 0.0;
     let mut maintenance = 0.0;
     let mut idle_carry = 0.0;
@@ -436,8 +435,14 @@ fn calculate_cost(
             1.0
         })
         * discount(discount_rate, horizon);
-    let total = upfront + expected_reuse_failure + contract + maintenance + idle_carry
-        + retooling + disposal - salvage_credit;
+    let total = upfront
+        + expected_reuse_failure
+        + contract
+        + maintenance
+        + idle_carry
+        + retooling
+        + disposal
+        - salvage_credit;
     let owned_investment = upfront + expected_reuse_failure;
     let stranded_asset_exposure = if strategy.owns_asset {
         owned_investment * (1.0 - effective_recovery_fraction)
