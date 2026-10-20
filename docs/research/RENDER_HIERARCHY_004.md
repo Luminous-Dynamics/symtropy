@@ -40,6 +40,12 @@ OGC 3D Tiles defines geometric error for the difference between a tile and its s
 - OGC 3D Tiles 1.1: https://docs.ogc.org/cs/22-025r4/22-025r4.html
 - OGC 3D Tiles 1.0 geometric-error/coverage definitions: https://docs.ogc.org/cs/18-053r2/18-053r2.html
 
+## Frozen solar-scale traversal fixture
+
+The companion manifest `benchmarks/render/SOLAR-SCALE-01.json` defines seven scale stages and seven proposed camera waypoints, from a local feature at 5 m to the inner system at 2 AU and an outer-system overview at 40 AU, then back to the original feature. It also specifies eight hierarchy-selection cases and reference body/distance values.
+
+These waypoints are explicitly marked illustrative geometry, not a solar-system ephemeris. Their proposed near/far clipping values are workload inputs for a depth-strategy study, not recommendations to use one depth range for every stage. The full renderer must compare near/far partitions, reverse-Z and any logarithmic/scale-aware depth path with actual GPU captures and depth-precision/error receipts.
+
 ## Authored tests
 
 Thirteen tests exercise:
