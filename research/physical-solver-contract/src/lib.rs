@@ -1019,7 +1019,11 @@ fn validate_pass_request_preconditions(request: &Value) -> Check<()> {
     let fidelity = string(request, "model_fidelity", "request")?;
     let request_frame = string(request, "coordinate_frame_id", "request")?;
     for (index, load) in array(request, "loads", "request")?.iter().enumerate() {
-        let load_frame = string(load, "coordinate_frame_id", &format!("request.loads[{index}]"))?;
+        let load_frame = string(
+            load,
+            "coordinate_frame_id",
+            &format!("request.loads[{index}]"),
+        )?;
         if load_frame != request_frame {
             return Err(format!(
                 "PASS request load {index} uses frame '{load_frame}' without a declared transform to '{request_frame}'"
