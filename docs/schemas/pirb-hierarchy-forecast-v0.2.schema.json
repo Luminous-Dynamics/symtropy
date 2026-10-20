@@ -1,0 +1,414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-hierarchy-forecast-v0.2.schema.json",
+  "title": "PIRB Hierarchical Predictive-Sample Scoring Contract v0.2",
+  "description": "Validates joint count samples, hierarchy constraints and a frozen outcome snapshot; emits sample coherence and marginal empirical CRPS separately.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "aggregation_constraints",
+    "evidence_scope",
+    "forecast_origin_index",
+    "forecasts",
+    "outcome_snapshot",
+    "predictive_samples",
+    "privacy",
+    "provider",
+    "reconciliation_policy",
+    "registration_id",
+    "schema_version",
+    "target_period_index",
+    "temporal_index_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-hierarchy-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "forecast_release_id",
+        "model_version",
+        "target_definition",
+        "analysis_unit_scheme",
+        "temporal_aggregation",
+        "source_reference",
+        "method_reference",
+        "license_reference",
+        "forecast_artifact_sha256",
+        "hierarchy_sha256",
+        "attribution"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit_scheme": {
+          "type": "string",
+          "minLength": 1
+        },
+        "temporal_aggregation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "license_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hierarchy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "forecast_origin_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Ordered index in the registered temporal-index scheme."
+    },
+    "target_period_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The target-period index; must be later than forecast_origin_index."
+    },
+    "temporal_index_policy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Defines how origin/target/fitting indices map to dates or ordered periods."
+    },
+    "reconciliation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method_reference",
+        "method_sha256",
+        "parameter_fit_cutoff_index",
+        "uses_test_outcomes",
+        "uses_future_data",
+        "preserves_pre_reconciliation"
+      ],
+      "properties": {
+        "method_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parameter_fit_cutoff_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uses_test_outcomes": {
+          "const": false
+        },
+        "uses_future_data": {
+          "const": false
+        },
+        "preserves_pre_reconciliation": {
+          "const": true
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        }
+      }
+    },
+    "forecasts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "forecast_id",
+          "unit_id",
+          "event_type_id",
+          "period_index",
+          "raw_count",
+          "reconciled_count"
+        ],
+        "properties": {
+          "forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "unit_id": {
+            "type": "string",
+            "pattern": "^unit-[A-Za-z0-9_-]+$"
+          },
+          "event_type_id": {
+            "type": "string",
+            "pattern": "^event-[A-Za-z0-9_-]+$"
+          },
+          "period_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "raw_count": {
+            "type": "number",
+            "minimum": 0
+          },
+          "reconciled_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "aggregation_constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "absolute_tolerance",
+          "child_forecast_ids",
+          "completeness",
+          "constraint_id",
+          "expected_child_keys",
+          "kind",
+          "parent_forecast_id"
+        ],
+        "properties": {
+          "constraint_id": {
+            "type": "string",
+            "pattern": "^constraint-[A-Za-z0-9_-]+$"
+          },
+          "kind": {
+            "enum": [
+              "spatial",
+              "event_type"
+            ]
+          },
+          "parent_forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "child_forecast_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^fc-[A-Za-z0-9_-]+$"
+            }
+          },
+          "completeness": {
+            "enum": [
+              "complete",
+              "incomplete",
+              "unknown"
+            ],
+            "description": "Only complete child coverage is eligible for a sum-coherence judgment."
+          },
+          "absolute_tolerance": {
+            "type": "number",
+            "minimum": 0
+          },
+          "expected_child_keys": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Expected child unit IDs for spatial constraints or child event_type IDs for event_type constraints, from the pinned hierarchy/ontology."
+          }
+        }
+      }
+    },
+    "predictive_samples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "rows"
+      ],
+      "properties": {
+        "representation": {
+          "const": "finite_joint_count_samples"
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "draw_id",
+              "forecast_id",
+              "raw_count",
+              "reconciled_count"
+            ],
+            "properties": {
+              "draw_id": {
+                "type": "string",
+                "pattern": "^draw-[A-Za-z0-9_-]+$"
+              },
+              "forecast_id": {
+                "type": "string",
+                "pattern": "^fc-[A-Za-z0-9_-]+$"
+              },
+              "raw_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "One simulated count realization, not a marginal mean or quantile.",
+                "maximum": 9007199254740991
+              },
+              "reconciled_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The corresponding post-reconciliation count realization.",
+                "maximum": 9007199254740991
+              }
+            }
+          }
+        }
+      },
+      "description": "Finite joint predictive draws, with one raw and reconciled nonnegative count for every declared forecast node in each draw. Coherence is checked draw-by-draw, not by summing marginal quantiles."
+    },
+    "outcome_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_id",
+        "release_sha256",
+        "source_reference",
+        "definition_reference",
+        "license_reference",
+        "evaluation_as_of_index",
+        "rows"
+      ],
+      "properties": {
+        "release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Digest of the frozen outcome release in the controlled evaluation environment; synthetic placeholder in public fixture."
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "license_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_as_of_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Latest ordered index through which outcome publication availability is considered."
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "forecast_id",
+              "status",
+              "observed_count",
+              "outcome_available_index"
+            ],
+            "properties": {
+              "forecast_id": {
+                "type": "string",
+                "pattern": "^fc-[A-Za-z0-9_-]+$"
+              },
+              "status": {
+                "enum": [
+                  "matured",
+                  "unknown"
+                ]
+              },
+              "observed_count": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                ]
+              },
+              "outcome_available_index": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

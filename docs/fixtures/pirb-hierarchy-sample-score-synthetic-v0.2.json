@@ -1,0 +1,307 @@
+{
+  "schema_version": "0.2",
+  "registration_id": "pirb-hierarchy-crps-synthetic-v0-2-example",
+  "evidence_scope": "synthetic",
+  "provider": {
+    "provider_id": "acled-cast-synthetic",
+    "forecast_release_id": "synthetic-cast-like-v0.1",
+    "model_version": "not-applicable-synthetic",
+    "target_definition": "Synthetic count of selected political-violence events per rolling four-week period; invented values only.",
+    "analysis_unit_scheme": "Synthetic nested ADMIN1-to-country hierarchy with opaque IDs.",
+    "temporal_aggregation": "rolling_four_week",
+    "source_reference": "https://acleddata.com/methodology/cast-methodology",
+    "method_reference": "Synthetic fixture informed by the public hierarchical-coherence problem; no CAST data or implementation is embedded.",
+    "license_reference": "Metadata reference only; no ACLED forecast data imported. Review current provider terms before use.",
+    "forecast_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "hierarchy_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "attribution": "ACLED CAST methodology is cited as a public design reference; synthetic values are invented."
+  },
+  "forecast_origin_index": 10,
+  "target_period_index": 11,
+  "temporal_index_policy": "Illustrative integer indices for ordered rolling four-week periods; the fit cutoff is 8, forecast origin is 10, and target period is 11.",
+  "reconciliation_policy": {
+    "method_reference": "synthetic identity reconciliation; no fitted weights",
+    "method_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "parameter_fit_cutoff_index": 8,
+    "uses_test_outcomes": false,
+    "uses_future_data": false,
+    "preserves_pre_reconciliation": true
+  },
+  "privacy": {
+    "aggregate_only": true
+  },
+  "forecasts": [
+    {
+      "forecast_id": "fc-country-a-organized",
+      "unit_id": "unit-country-a",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "raw_count": 14,
+      "reconciled_count": 15
+    },
+    {
+      "forecast_id": "fc-admin1-a-organized",
+      "unit_id": "unit-admin1-a",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "raw_count": 5,
+      "reconciled_count": 6
+    },
+    {
+      "forecast_id": "fc-admin1-b-organized",
+      "unit_id": "unit-admin1-b",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "raw_count": 9,
+      "reconciled_count": 9
+    },
+    {
+      "forecast_id": "fc-country-a-battles",
+      "unit_id": "unit-country-a",
+      "event_type_id": "event-battles",
+      "period_index": 11,
+      "raw_count": 6,
+      "reconciled_count": 6
+    },
+    {
+      "forecast_id": "fc-country-a-explosions",
+      "unit_id": "unit-country-a",
+      "event_type_id": "event-explosions",
+      "period_index": 11,
+      "raw_count": 4,
+      "reconciled_count": 4
+    },
+    {
+      "forecast_id": "fc-country-a-vac",
+      "unit_id": "unit-country-a",
+      "event_type_id": "event-vac",
+      "period_index": 11,
+      "raw_count": 4,
+      "reconciled_count": 5
+    },
+    {
+      "forecast_id": "fc-country-b-organized",
+      "unit_id": "unit-country-b",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "raw_count": 8,
+      "reconciled_count": 8
+    },
+    {
+      "forecast_id": "fc-admin1-c-organized",
+      "unit_id": "unit-admin1-c",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "raw_count": 8,
+      "reconciled_count": 8
+    }
+  ],
+  "aggregation_constraints": [
+    {
+      "constraint_id": "constraint-country-a-spatial",
+      "kind": "spatial",
+      "parent_forecast_id": "fc-country-a-organized",
+      "child_forecast_ids": [
+        "fc-admin1-a-organized",
+        "fc-admin1-b-organized"
+      ],
+      "completeness": "complete",
+      "absolute_tolerance": 0,
+      "expected_child_keys": [
+        "unit-admin1-a",
+        "unit-admin1-b"
+      ]
+    },
+    {
+      "constraint_id": "constraint-country-a-event-types",
+      "kind": "event_type",
+      "parent_forecast_id": "fc-country-a-organized",
+      "child_forecast_ids": [
+        "fc-country-a-battles",
+        "fc-country-a-explosions",
+        "fc-country-a-vac"
+      ],
+      "completeness": "complete",
+      "absolute_tolerance": 0,
+      "expected_child_keys": [
+        "event-battles",
+        "event-explosions",
+        "event-vac"
+      ]
+    },
+    {
+      "constraint_id": "constraint-country-b-spatial-incomplete",
+      "kind": "spatial",
+      "parent_forecast_id": "fc-country-b-organized",
+      "child_forecast_ids": [
+        "fc-admin1-c-organized",
+        "fc-admin1-d-organized"
+      ],
+      "completeness": "incomplete",
+      "absolute_tolerance": 0,
+      "expected_child_keys": [
+        "unit-admin1-c",
+        "unit-admin1-d"
+      ]
+    }
+  ],
+  "predictive_samples": {
+    "representation": "finite_joint_count_samples",
+    "rows": [
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-country-a-organized",
+        "raw_count": 15,
+        "reconciled_count": 15
+      },
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-admin1-a-organized",
+        "raw_count": 6,
+        "reconciled_count": 6
+      },
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-admin1-b-organized",
+        "raw_count": 8,
+        "reconciled_count": 9
+      },
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-country-a-battles",
+        "raw_count": 6,
+        "reconciled_count": 6
+      },
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-country-a-explosions",
+        "raw_count": 4,
+        "reconciled_count": 4
+      },
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-country-a-vac",
+        "raw_count": 5,
+        "reconciled_count": 5
+      },
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-country-b-organized",
+        "raw_count": 8,
+        "reconciled_count": 8
+      },
+      {
+        "draw_id": "draw-1",
+        "forecast_id": "fc-admin1-c-organized",
+        "raw_count": 8,
+        "reconciled_count": 8
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-country-a-organized",
+        "raw_count": 16,
+        "reconciled_count": 16
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-admin1-a-organized",
+        "raw_count": 7,
+        "reconciled_count": 7
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-admin1-b-organized",
+        "raw_count": 10,
+        "reconciled_count": 9
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-country-a-battles",
+        "raw_count": 7,
+        "reconciled_count": 7
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-country-a-explosions",
+        "raw_count": 5,
+        "reconciled_count": 5
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-country-a-vac",
+        "raw_count": 4,
+        "reconciled_count": 4
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-country-b-organized",
+        "raw_count": 9,
+        "reconciled_count": 9
+      },
+      {
+        "draw_id": "draw-2",
+        "forecast_id": "fc-admin1-c-organized",
+        "raw_count": 9,
+        "reconciled_count": 9
+      }
+    ]
+  },
+  "outcome_snapshot": {
+    "release_id": "synthetic-outcome-release-v0.2",
+    "release_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "source_reference": "synthetic:invented-outcome-source",
+    "definition_reference": "synthetic:invented-event-count-definition",
+    "license_reference": "synthetic:invented-data-terms",
+    "evaluation_as_of_index": 12,
+    "rows": [
+      {
+        "forecast_id": "fc-country-a-organized",
+        "status": "matured",
+        "observed_count": 15,
+        "outcome_available_index": 12
+      },
+      {
+        "forecast_id": "fc-admin1-a-organized",
+        "status": "matured",
+        "observed_count": 6,
+        "outcome_available_index": 12
+      },
+      {
+        "forecast_id": "fc-admin1-b-organized",
+        "status": "matured",
+        "observed_count": 9,
+        "outcome_available_index": 12
+      },
+      {
+        "forecast_id": "fc-country-a-battles",
+        "status": "matured",
+        "observed_count": 6,
+        "outcome_available_index": 12
+      },
+      {
+        "forecast_id": "fc-country-a-explosions",
+        "status": "matured",
+        "observed_count": 4,
+        "outcome_available_index": 12
+      },
+      {
+        "forecast_id": "fc-country-a-vac",
+        "status": "matured",
+        "observed_count": 5,
+        "outcome_available_index": 12
+      },
+      {
+        "forecast_id": "fc-country-b-organized",
+        "status": "matured",
+        "observed_count": 8,
+        "outcome_available_index": 12
+      },
+      {
+        "forecast_id": "fc-admin1-c-organized",
+        "status": "unknown",
+        "observed_count": null,
+        "outcome_available_index": null
+      }
+    ]
+  }
+}
