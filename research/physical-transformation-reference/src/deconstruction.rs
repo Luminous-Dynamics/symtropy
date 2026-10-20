@@ -85,7 +85,9 @@ pub fn preview(
                 "active support blocks deconstruction of component: {component_id}"
             ));
         }
-        by_component[component_id].ledger_for(component).validate()?;
+        by_component[component_id]
+            .ledger_for(component)
+            .validate()?;
     }
 
     let mut internal_connections = Vec::<Connection>::new();
@@ -140,11 +142,7 @@ pub fn execute(world: &mut World, plan: &DeconstructionPlan) -> Check<()> {
         ));
     }
 
-    let expected = preview(
-        world,
-        &plan.plan_id,
-        plan.allocations.clone(),
-    )?;
+    let expected = preview(world, &plan.plan_id, plan.allocations.clone())?;
     if &expected != plan {
         return Err("deconstruction plan differs from canonical preflight".to_owned());
     }
@@ -159,10 +157,7 @@ pub fn execute(world: &mut World, plan: &DeconstructionPlan) -> Check<()> {
                 },
             ),
             DeconstructionStep::Recover { allocation } => (
-                format!(
-                    "plan:{}:recover:{}",
-                    plan.plan_id, allocation.component_id
-                ),
+                format!("plan:{}:recover:{}", plan.plan_id, allocation.component_id),
                 Operation::RecoverComponent {
                     component_id: allocation.component_id.clone(),
                     reused_mg: allocation.reused_mg,
@@ -272,7 +267,10 @@ mod tests {
         assert_eq!(world.component_count(), 0);
         assert_eq!(world.connection_count(), 0);
         assert_eq!(world.recovered_component_count(), 2);
-        assert_eq!(world.recovered_mass_mg().expect("sum recovered mass"), 3_000);
+        assert_eq!(
+            world.recovered_mass_mg().expect("sum recovered mass"),
+            3_000
+        );
     }
 
     #[test]
@@ -287,7 +285,11 @@ mod tests {
             "dismantle-03",
             vec![allocation("A", 1_000), allocation("B", 2_000)],
         );
-        assert!(result.unwrap_err().contains("crosses deconstruction target boundary"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("crosses deconstruction target boundary")
+        );
         assert_eq!(world.canonical_snapshot(), before);
         assert_eq!(world.revision(), revision);
     }
@@ -314,7 +316,11 @@ mod tests {
         let world = connected_pair();
         let mut invalid = allocation("A", 1_000);
         invalid.unaccounted_mg -= 1;
-        let result = preview(&world, "dismantle-05", vec![invalid, allocation("B", 2_000)]);
+        let result = preview(
+            &world,
+            "dismantle-05",
+            vec![invalid, allocation("B", 2_000)],
+        );
         assert!(result.unwrap_err().contains("mass imbalance"));
     }
 
@@ -358,7 +364,11 @@ mod tests {
         let mut tampered = fresh.clone();
         tampered.steps.reverse();
         let before_tamper = world.canonical_snapshot();
-        assert!(execute(&mut world, &tampered).unwrap_err().contains("canonical preflight"));
+        assert!(
+            execute(&mut world, &tampered)
+                .unwrap_err()
+                .contains("canonical preflight")
+        );
         assert_eq!(world.canonical_snapshot(), before_tamper);
     }
 
