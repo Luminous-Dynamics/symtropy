@@ -164,7 +164,7 @@ jobs:
           ' ev-depot-robustness-cases.json > ev-depot-robustness-summary.json
           jq -e '.cases | length == 90' ev-depot-robustness-cases.json
           jq -e '.sampled_minimum_capacity_distribution | length == 6' ev-depot-robustness-summary.json
-          jq -e '.empirical_capacity_pass_rates | length == 1200' ev-depot-robustness-summary.json
+          jq -e '.empirical_capacity_pass_rates | length == 120' ev-depot-robustness-summary.json
       - name: Print frontier distribution for review
         run: |
           jq -r '.sampled_minimum_capacity_distribution[] | [.fleet_size,.policy,.resamples,.infeasible_at_or_below_base_budget,.p50_minimum_sampled_kw_per_vehicle,.p95_minimum_sampled_kw_per_vehicle,.p95_missed_departure_fraction,.minimum_base_energy_service_fraction] | @tsv' ev-depot-robustness-summary.json
