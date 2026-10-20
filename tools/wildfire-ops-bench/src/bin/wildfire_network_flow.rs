@@ -442,7 +442,6 @@ fn simulate_case(case: &Value) -> Check<Value> {
         let mut edge_entries = vec![0u64; edges.len()];
         let mut edge_exits = vec![0u64; edges.len()];
         let mut sink_entries = vec![0u64; sinks.len()];
-        let mut sink_accessible_entries = vec![0u64; sinks.len()];
         let mut removals: Vec<BTreeSet<(usize, u64)>> = vec![BTreeSet::new(); edges.len()];
         let mut staged_edges: Vec<Vec<Vehicle>> = vec![Vec::new(); edges.len()];
         for requests in &stream_queues {
@@ -587,7 +586,6 @@ fn simulate_case(case: &Value) -> Check<Value> {
                         let sink_index = request.target_sink.expect("sink target");
                         sink_entries[sink_index] += 1;
                         if request.vehicle.accessible {
-                            sink_accessible_entries[sink_index] += 1;
                             sink_accessible_arrived[sink_index] += 1;
                             runtime[request.vehicle.demand_index].accessible_served += 1;
                         }
