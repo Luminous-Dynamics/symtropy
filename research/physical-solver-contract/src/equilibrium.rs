@@ -587,21 +587,12 @@ fn parse_moment_output(bytes: &[u8], manifest: &Manifest) -> Check<Vec<ReactionM
 }
 
 fn validate_output_identity(value: &Value, schema: &str, manifest: &Manifest, at: &str) -> Check<()> {
-    exact_keys(
-        value,
-        &[
-            "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
-            "scene_revision", "coordinate_frame_id", "units"
-        ],
-        at,
-    ).or_else(|_| {
-        let mut required = vec![
-            "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
-            "scene_revision", "coordinate_frame_id", "units"
-        ];
-        required.push(if schema == FORCE_SCHEMA { "reaction_forces" } else { "reaction_moments" });
-        exact_keys(value, &required, at)
-    })?;
+    let mut required = vec![
+        "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
+        "scene_revision", "coordinate_frame_id", "units"
+    ];
+    required.push(if schema == FORCE_SCHEMA { "reaction_forces" } else { "reaction_moments" });
+    exact_keys(value, &required, at)?;
     if string_field(value, "schema_version", at)? != schema
         || string_field(value, "case_id", at)? != manifest.case_id
         || string_field(value, "request_id", at)? != manifest.request_id
@@ -1043,7 +1034,6 @@ mod tests {
         let shift = [4.0,-3.0,2.0];
         let mut manifest: Value = serde_json::from_slice(&bundle.manifest).unwrap();
         manifest["origin_m"] = json!(shift);
-        manifest["applied_loads"][0]["position_m"] = json!([6.0,-3.0,2.0]);
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
         let translated = assess_equilibrium_bytes(
             &bundle.request, &bundle.receipt, &bundle.root, &manifest_bytes,
