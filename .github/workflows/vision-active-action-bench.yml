@@ -84,6 +84,10 @@ jobs:
           /tmp/vis-act-world | tee causal-world-pilot.tsv
           grep -Fq "development_levels" causal-world-pilot.tsv
           grep -Fq "held_out_severity_levels" causal-world-pilot.tsv
+          grep -Fq "high_occlusion_loss" causal-world-pilot.tsv
+          grep -Fq "high_blur_loss" causal-world-pilot.tsv
+          grep -Fq "high_distractor_loss" causal-world-pilot.tsv
+          grep -Fq "high_novelty_loss" causal-world-pilot.tsv
           grep -Fq "always_cheap" causal-world-pilot.tsv
           grep -Fq "sequential_evidence" causal-world-pilot.tsv
 
