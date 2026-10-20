@@ -8,8 +8,8 @@
 //! change canonical object state. The host maps the bands to real representations
 //! and must protect selected/task-critical content independently of apparent size.
 
-use std::f64::consts::PI;
 use std::error::Error;
+use std::f64::consts::PI;
 use std::fmt;
 
 /// Projection inputs needed to estimate a sphere's apparent pixel diameter.
@@ -113,9 +113,7 @@ pub fn projected_sphere_diameter_px(
             let tangent_limb = radius_ratio / (1.0 - radius_ratio * radius_ratio).sqrt();
             height * tangent_limb / (vertical_fov_radians / 2.0).tan()
         }
-        ApparentSizeProjection::Orthographic {
-            vertical_span, ..
-        } => {
+        ApparentSizeProjection::Orthographic { vertical_span, .. } => {
             if !vertical_span.is_finite() || vertical_span <= 0.0 {
                 return Err(ApparentScaleError::InvalidOrthographicSpan);
             }
@@ -206,7 +204,9 @@ impl ApparentSizeProfile {
             regional_detail_max_px,
         };
         let thresholds = profile.thresholds();
-        if thresholds.iter().any(|value| !value.is_finite() || *value <= 0.0)
+        if thresholds
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
             || thresholds.windows(2).any(|pair| pair[0] >= pair[1])
         {
             return Err(ApparentScaleError::InvalidSizeThresholds);
@@ -263,7 +263,9 @@ impl ApparentSizeProfile {
 
     fn validate(self) -> Result<(), ApparentScaleError> {
         let values = self.thresholds();
-        if values.iter().any(|value| !value.is_finite() || *value <= 0.0)
+        if values
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
             || values.windows(2).any(|pair| pair[0] >= pair[1])
         {
             return Err(ApparentScaleError::InvalidSizeThresholds);
@@ -388,10 +390,8 @@ mod tests {
             vertical_fov_radians: 1.0,
             centre_distance: 10_000.0,
         };
-        let base_diameter =
-            projected_sphere_diameter_px(100.0, base).expect("base projection");
-        let larger_body =
-            projected_sphere_diameter_px(200.0, base).expect("larger body");
+        let base_diameter = projected_sphere_diameter_px(100.0, base).expect("base projection");
+        let larger_body = projected_sphere_diameter_px(200.0, base).expect("larger body");
         let higher_resolution = projected_sphere_diameter_px(
             100.0,
             ApparentSizeProjection::Perspective {
@@ -547,10 +547,7 @@ mod tests {
             latch.update(500.0, PROFILE),
             Ok(ApparentSizeBand::SurfaceDetail)
         );
-        assert_eq!(
-            latch.update(0.01, PROFILE),
-            Ok(ApparentSizeBand::Subpixel)
-        );
+        assert_eq!(latch.update(0.01, PROFILE), Ok(ApparentSizeBand::Subpixel));
     }
 
     #[test]
@@ -559,8 +556,8 @@ mod tests {
             ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.5),
             Err(ApparentScaleError::InvalidHysteresisFraction)
         );
-        let mut latch =
-            ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.05).expect("valid latch");
+        let mut latch = ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.05)
+            .expect("valid latch");
         assert_eq!(
             latch.update(f64::NAN, PROFILE),
             Err(ApparentScaleError::InvalidProjectedDiameter)
