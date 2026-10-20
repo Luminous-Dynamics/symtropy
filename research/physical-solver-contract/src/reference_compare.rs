@@ -193,11 +193,13 @@ pub fn compare_reference_observables(
                 "observable '{id}' exceeds its preregistered tolerance"
             ));
         }
-        let relative_error = if expected.expected_value == 0.0 {
-            Value::Null
+        let relative_error_value = if expected.expected_value == 0.0 {
+            None
         } else {
-            json!(absolute_error / expected.expected_value.abs())
+            let ratio = absolute_error / expected.expected_value.abs();
+            ratio.is_finite().then_some(ratio)
         };
+        let relative_error = relative_error_value.map_or(Value::Null, |ratio| json!(ratio));
         results.push(json!({
             "observable_id": id,
             "unit": expected.unit,
@@ -205,7 +207,7 @@ pub fn compare_reference_observables(
             "observed_value": actual.value,
             "absolute_error": absolute_error,
             "relative_error": relative_error,
-            "relative_error_defined": expected.expected_value != 0.0,
+            "relative_error_defined": relative_error_value.is_some(),
             "absolute_tolerance": expected.absolute_tolerance,
             "relative_tolerance": expected.relative_tolerance,
             "allowed_absolute_error": allowed_error,
