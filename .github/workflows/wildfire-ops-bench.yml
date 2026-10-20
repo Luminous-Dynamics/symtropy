@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/tech/WILDFIRE_OPS_BENCHMARK_V0_1.md"
       - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_VOI_V0_1.json"
       - "tools/wildfire-ops-bench/**"
       - ".github/workflows/wildfire-ops-bench.yml"
   pull_request:
@@ -88,10 +89,41 @@ jobs:
             wildfire-ops-reference-receipt.json \
             "$source_commit"
 
-      - name: Upload deterministic reference receipt
+      - name: Evaluate decision-aware sensing value
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          export SOURCE_COMMIT="$source_commit"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_voi_bench -- \
+            benchmarks/fixtures/WILDFIRE_VOI_V0_1.json \
+            --source-commit "$source_commit" > wildfire-voi-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-VOI-001"
+            and .scenario_count == 4
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.cases | length == 4)
+            and (.cases | all(.status == "pass"))
+            and (.scorecard.case_count == 4)
+            and (.scorecard.B1_entropy_only.selected_count == 4)
+            and (.scorecard.B1_entropy_only.expected_observation_match_count == 0)
+            and (.scorecard.B2_decision_aware_voi.selected_count == 2)
+            and (.scorecard.B2_decision_aware_voi.abstention_count == 2)
+            and (.scorecard.B2_decision_aware_voi.expected_observation_match_count == 4)
+            and (.scorecard.B2_decision_aware_voi.deadline_violation_count == 0)
+            and (.cases | all(.B2_decision_aware_voi.selected_observation_id == null or
+                ([.candidate_observations[] | select(.observation_id == .B2_decision_aware_voi.selected_observation_id)] | length >= 0)))
+          ' wildfire-voi-reference-receipt.json
+
+      - name: Upload deterministic wildfire decision receipts
         uses: actions/upload-artifact@v4
         with:
-          name: wildfire-ops-reference-receipt
-          path: wildfire-ops-reference-receipt.json
+          name: wildfire-decision-evidence-receipts
+          path: |
+            wildfire-ops-reference-receipt.json
+            wildfire-voi-reference-receipt.json
           if-no-files-found: error
           retention-days: 90
