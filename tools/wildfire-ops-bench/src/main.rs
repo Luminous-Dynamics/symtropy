@@ -884,7 +884,7 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
     )?
     .iter()
     .map(|v| text(v, "corpus.allowed_statuses").map(str::to_owned))
-    .collect::<Check<_>>()?
+    .collect::<Check<Vec<String>>>()?
     .into_iter()
     .collect();
     let expected_statuses: BTreeSet<String> =
@@ -911,7 +911,7 @@ fn validate_corpus(corpus: &Value) -> Check<Vec<Value>> {
         .iter()
         .enumerate()
         .map(|(i, c)| text_field(c, "case_id", &format!("cases[{i}]")).map(str::to_owned))
-        .collect::<Check<_>>()?;
+        .collect::<Check<Vec<String>>>()?;
     if ids.len() != CASE_IDS.len()
         || ids
             .iter()
