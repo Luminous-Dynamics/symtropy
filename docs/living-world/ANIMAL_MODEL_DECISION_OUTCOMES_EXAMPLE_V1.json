@@ -1,0 +1,35 @@
+{
+  "schema_version": "ANIMAL-MODEL-DECISION-OUTCOMES-V1",
+  "status": "synthetic_fixture_not_ecological_validation",
+  "cvar_alpha": 0.9,
+  "scenario": "A deliberately artificial prey-agent decision with alternative predator-response structures; loss units are synthetic and carry no biological calibration.",
+  "models": [
+    {
+      "model_id": "predator_coupled",
+      "weight": 0.6,
+      "action_losses": {
+        "graze": 2,
+        "retreat": 5,
+        "wait": 3
+      },
+      "admissible_actions": [
+        "graze",
+        "retreat",
+        "wait"
+      ]
+    },
+    {
+      "model_id": "predator_weak",
+      "weight": 0.4,
+      "action_losses": {
+        "graze": 9,
+        "retreat": 4,
+        "wait": 3
+      },
+      "admissible_actions": [
+        "retreat",
+        "wait"
+      ]
+    }
+  ]
+}
