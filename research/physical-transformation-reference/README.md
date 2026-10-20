@@ -80,9 +80,10 @@ Offline research only. This crate cannot authorize or control demolition/constru
 
 The `recovery_validation` module adds a separate observation lane so a valid planned mass ledger cannot be mistaken for measured recovery. Each observation records component identity, independently observed input mass, output mass by reused/recycled/contaminated/waste categories, evidence class, source locator, scale/calibration locator and an uncertainty bound.
 
-- `Measured` status requires complete observation coverage, measured evidence class, source and calibration references, and an uncertainty bound for every recovered component.
+- `evidence_status` answers only what evidence supports the observation: `Measured` requires complete coverage, measured evidence class, source and calibration references, and an uncertainty bound for every recovered component. `Synthetic` and `Unresolved` remain distinct.
 - Complete synthetic observations stay `Synthetic`; derived, unknown, mixed or incomplete evidence stays `Unresolved`.
-- Observed unaccounted mass is calculated as measured input minus measured output categories. Residuals can be positive or negative and are never forced to zero.
+- `plan_agreement` is independent of evidence status: `ExactMatch`, `Deviates`, or `Unresolved`. A measured observation can still deviate from the plan; conversely, a synthetic observation can exactly match it.
+- Observed unaccounted mass is calculated as observed input minus observed output categories. Residuals can be positive or negative and are never forced to zero. A nonzero residual can still be an exact plan match when that unaccounted quantity was explicitly planned; the comparator checks the residual *delta* against the plan, not whether the residual itself is zero.
 - Aggregate deltas are withheld when any planned recovery record lacks an observation. Duplicate/foreign observations, zero observed input, empty supplied locators, and arithmetic overflow fail closed.
 - Declared uncertainty bounds are summed conservatively; no Gaussian assumption or unsupported confidence interval is inferred.
 
