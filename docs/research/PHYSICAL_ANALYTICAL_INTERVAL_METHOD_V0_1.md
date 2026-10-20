@@ -19,12 +19,13 @@ These ranges are not probability distributions, standard deviations, confidence 
 - Absolute-value quantities such as bending-stress magnitude treat a signed load interval crossing zero specially: the lower magnitude bound is exactly zero.
 - Bound maps must contain exactly the inputs declared for the requested formula. Missing/unknown inputs and nominal values outside intervals fail closed.
 - Bounds can over-approximate when intermediate expressions share parameters. Over-approximation is acceptable; under-coverage is not.
+- Each bound records a provenance class and source reference. If the basis is `instrumented_measurement`, a calibration reference is mandatory; the software validates that the locator exists syntactically, not that the instrument or certificate is authentic.
 
 ## Frozen test targets
 
-The UQ module tests all three qualified formula families, checks that independent nominal formula values lie inside the returned intervals, enumerates input-box corner combinations for each family, tests load intervals crossing zero, and rejects reversed/non-finite bounds, out-of-range nominal values, unknown keys, nonpositive denominator bounds, overflow and unsupported cases.
+The UQ module tests all three qualified formula families, checks that independent nominal formula values lie inside the returned intervals, enumerates input-box corner combinations for each family, and performs 512 deterministic interior-point probes per formula family from a fixed seed. It tests load intervals crossing zero and rejects reversed/non-finite bounds, out-of-range nominal values, unknown keys, nonpositive denominator bounds, overflow and unsupported cases. These deterministic probes are regression evidence, not a proof replacing analytical interval reasoning.
 
-These are software soundness checks over the named analytic formulas, not validation against physical specimens. Before putting interval output into the public JSON request/receipt contract, the API must pass exact-head formatting, tests and strict Clippy, and review must confirm that every declared output interval remains finite and ordered.
+These are software soundness checks over the named analytic formulas, not validation against physical specimens. The public JSON request/receipt contract now carries per-input ranges, units, provenance class/source locator and lower/nominal/upper/width output enclosures. If a range claims an instrumented-measurement basis, it must include a calibration locator. Point-only requests remain valid and emit no synthetic bounds. Exact-head CI executes both the bounded axial-bar fixture and a signed-load zero-crossing fixture.
 
 ## Request/receipt integration
 
