@@ -579,10 +579,7 @@ fn deterministic_wide_integer_oracle_stresses_floating_point_rounding() {
             source_sha256: "a".repeat(64),
             horizontal_uncertainty_bound_m: 0.0,
             vertical_uncertainty_bound_m: 0.0,
-            points: vec![
-                point(T0, 0.0, 0.0, 100.0),
-                point(T1, 0.0, 0.0, 100.0),
-            ],
+            points: vec![point(T0, 0.0, 0.0, 100.0), point(T1, 0.0, 0.0, 100.0)],
         };
         let b = Trajectory {
             trajectory_id: "B-wide-integer-oracle".to_owned(),
@@ -600,11 +597,11 @@ fn deterministic_wide_integer_oracle_stresses_floating_point_rounding() {
         };
 
         rule.minimum_horizontal_separation_m = radius as f64;
-        let report = audit_trajectory_pair(&a, &b, &rule)
-            .unwrap_or_else(|error| panic!("wide integer oracle case {case_index} invalid: {error}"));
-        let diagnostic = format!(
-            "case={case_index}, r=({rx},{ry}), d=({dx},{dy}), radius={radius}"
-        );
+        let report = audit_trajectory_pair(&a, &b, &rule).unwrap_or_else(|error| {
+            panic!("wide integer oracle case {case_index} invalid: {error}")
+        });
+        let diagnostic =
+            format!("case={case_index}, r=({rx},{ry}), d=({dx},{dy}), radius={radius}");
         if expected_conflict {
             assert_eq!(
                 report.disposition,
@@ -622,4 +619,3 @@ fn deterministic_wide_integer_oracle_stresses_floating_point_rounding() {
     }
     assert!(checked >= 19_999);
 }
-
