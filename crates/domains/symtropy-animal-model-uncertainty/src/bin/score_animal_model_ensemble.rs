@@ -24,6 +24,7 @@ use std::process;
 
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
+use symtropy_animal_model_uncertainty::qualification::DecisionQualification;
 use symtropy_animal_model_uncertainty::decision::{
     ActionPreferenceRange, ActionRisk, ModelOutcome, ModelWeightInterval, WeightSensitivity,
     compare_actions_under_weight_uncertainty, score_model_ensemble, score_weight_sensitivity,
@@ -68,6 +69,8 @@ fn parse_input(root: &Value) -> Result<ParsedInput, String> {
             "scenario",
             "models",
             "model_weight_intervals",
+            "model_set_registry_sha256",
+            "required_challenge_family_manifest_sha256",
         ],
         "input",
     )?;
@@ -75,6 +78,23 @@ fn parse_input(root: &Value) -> Result<ParsedInput, String> {
         != Some("ANIMAL-MODEL-DECISION-OUTCOMES-V1")
     {
         return Err("schema_version must be ANIMAL-MODEL-DECISION-OUTCOMES-V1".to_owned());
+    }
+
+    for field in [
+        "model_set_registry_sha256",
+        "required_challenge_family_manifest_sha256",
+    ] {
+        if let Some(value) = root.get(field) {
+            let valid = value.as_str().is_some_and(|digest| {
+                digest.len() == 64
+                    && digest
+                        .bytes()
+                        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            });
+            if !valid {
+                return Err(format!("{field} must be 64 lowercase hex characters"));
+            }
+        }
     }
     let status = root
         .get("status")
@@ -234,6 +254,7 @@ struct ReportComponents<'a> {
     scores: &'a [ActionRisk],
     weight_sensitivity: &'a [WeightSensitivity],
     action_preferences: &'a [ActionPreferenceRange],
+    qualification: &'a DecisionQualification,
 }
 
 fn build_report(
@@ -245,6 +266,7 @@ fn build_report(
     json!({
         "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
         "status": "computed_risk_summary_not_model_validation",
+        "decision_qualification": components.qualification.to_value(),
         "cvar_alpha": components.cvar_alpha,
         "practical_loss_difference_margin": components.practical_loss_difference_margin,
         "input_sha256": sha256_hex(raw_input.as_bytes()),
@@ -285,11 +307,12 @@ fn build_report(
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
     let Some(path) = arguments.next() else {
-        eprintln!("usage: score_animal_model_ensemble <outcomes.json>");
+        eprintln!("usage: score_animal_model_ensemble <outcomes.json> [adequacy-receipt.json]");
         process::exit(2);
     };
+    let receipt_path = arguments.next();
     if arguments.next().is_some() {
-        eprintln!("usage: score_animal_model_ensemble <outcomes.json>");
+        eprintln!("usage: score_animal_model_ensemble <outcomes.json> [adequacy-receipt.json]");
         process::exit(2);
     }
 
@@ -318,6 +341,40 @@ fn main() {
                 process::exit(2);
             }
         };
+
+    let adequacy_receipt_raw = match receipt_path.as_ref() {
+        Some(receipt_path) => match fs::read_to_string(receipt_path) {
+            Ok(content) => Some(content),
+            Err(error) => {
+                eprintln!(
+                    "could not read adequacy receipt '{}': {error}",
+                    receipt_path.to_string_lossy()
+                );
+                process::exit(2);
+            }
+        },
+        None => None,
+    };
+    let expected_model_registry_digest = root
+        .get("model_set_registry_sha256")
+        .and_then(Value::as_str);
+    let expected_challenge_manifest_digest = root
+        .get("required_challenge_family_manifest_sha256")
+        .and_then(Value::as_str);
+    let decision_qualification = match DecisionQualification::evaluate(
+        adequacy_receipt_raw.as_deref(),
+        expected_model_registry_digest,
+        expected_challenge_manifest_digest,
+    ) {
+        Ok(qualification) => qualification,
+        Err(errors) => {
+            for error in errors {
+                eprintln!("adequacy qualification rejected receipt: {error}");
+            }
+            process::exit(1);
+        }
+    };
+
     let scores = match score_model_ensemble(&models, cvar_alpha) {
         Ok(scores) => scores,
         Err(errors) => {
@@ -368,6 +425,7 @@ fn main() {
             scores: &scores,
             weight_sensitivity: &weight_sensitivity,
             action_preferences: &action_preferences,
+            qualification: &decision_qualification,
         },
     );
     println!(
@@ -419,6 +477,14 @@ mod tests {
             schema["properties"]["model_weight_intervals"]["items"]["required"],
             json!(["model_id", "lower", "upper"])
         );
+        assert_eq!(
+            schema["properties"]["model_set_registry_sha256"]["pattern"].as_str(),
+            Some("^[0-9a-f]{64}$")
+        );
+        assert_eq!(
+            schema["properties"]["required_challenge_family_manifest_sha256"]["pattern"].as_str(),
+            Some("^[0-9a-f]{64}$")
+        );
         assert!(
             example["models"]
                 .as_array()
@@ -459,6 +525,8 @@ mod tests {
                 scores: &scores,
                 weight_sensitivity: &weight_sensitivity,
                 action_preferences: &preferences,
+                qualification: &DecisionQualification::evaluate(None, None, None)
+                    .expect("missing receipt maps to not_assessed"),
             },
         );
         let schema: Value =
@@ -466,6 +534,14 @@ mod tests {
         assert_eq!(
             report["schema_version"].as_str(),
             schema["properties"]["schema_version"]["const"].as_str()
+        );
+        assert_eq!(
+            report["decision_qualification"]["qualification"].as_str(),
+            Some("not_assessed")
+        );
+        assert_eq!(
+            report["decision_qualification"]["does_not_validate_empirical_biology"].as_bool(),
+            Some(true)
         );
         assert_eq!(
             report["input_sha256"].as_str(),
@@ -648,6 +724,34 @@ mod tests {
             parse_input(&input)
                 .expect_err("unknown field must fail")
                 .contains("unknown field")
+        );
+    }
+
+    #[test]
+    fn expected_scope_digests_are_optional_but_strict_when_supplied() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input["model_set_registry_sha256"] =
+            Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        input["required_challenge_family_manifest_sha256"] =
+            Value::String("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned());
+        assert!(parse_input(&input).is_ok());
+
+        input["model_set_registry_sha256"] = Value::String("not-a-digest".to_owned());
+        assert!(
+            parse_input(&input)
+                .expect_err("malformed registry digest must fail")
+                .contains("model_set_registry_sha256")
+        );
+
+        input["model_set_registry_sha256"] =
+            Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        input["required_challenge_family_manifest_sha256"] =
+            Value::String("ABCDEF".to_owned());
+        assert!(
+            parse_input(&input)
+                .expect_err("malformed challenge manifest digest must fail")
+                .contains("required_challenge_family_manifest_sha256")
         );
     }
 
