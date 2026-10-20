@@ -16,7 +16,7 @@ cargo run --manifest-path tools/kitchen-station-bench/Cargo.toml -- compare tria
   --contracts docs/research --format markdown
 ```
 
-The CLI is offline. It loads the current versioned scenario, metric registry, trial-record schema and candidate design-space files. Relative artifact URIs are resolved against the trial-record directory and their SHA-256 digests are checked; HTTP/HTTPS/URN/data URIs are recorded but are not downloaded.
+The CLI is offline. It loads the current versioned scenario, metric registry, trial-record schema and candidate design-space files. Published commercial product/reference context is separately tracked in `docs/research/KITCHEN_PRERINSE_MARKET_REFERENCE_V1.json`; that catalogue is not ingested as physical measurement data. Relative artifact URIs are resolved against the trial-record directory and their SHA-256 digests are checked; HTTP/HTTPS/URN/data URIs are recorded but are not downloaded.
 
 ## Evidence and comparison rules
 
