@@ -6,6 +6,7 @@
 //! fit ecological models or qualify empirical biological claims.
 
 pub mod decision;
+pub mod experiment_design;
 
 use serde_json::Value;
 use std::collections::BTreeSet;
