@@ -221,10 +221,7 @@ fn finite_nonnegative(name: &str, value: f64) -> Result<(), String> {
 }
 
 fn fraction(name: &str, value: f64, allow_one: bool) -> Result<(), String> {
-    if !value.is_finite()
-        || value < 0.0
-        || if allow_one { value > 1.0 } else { value >= 1.0 }
-    {
+    if !value.is_finite() || value < 0.0 || if allow_one { value > 1.0 } else { value >= 1.0 } {
         return Err(format!("{name}_must_be_a_valid_fraction"));
     }
     Ok(())
@@ -250,8 +247,15 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.evaluation_horizon_years == 0 || catalog.asset_life_years == 0 {
         return Err("evaluation_horizon_and_asset_life_must_be_positive".to_string());
     }
-    fraction("discount_rate_fraction", catalog.discount_rate_fraction, true)?;
-    if catalog.sites.is_empty() || catalog.families.is_empty() || catalog.demand_cases_good_units_per_year.is_empty() {
+    fraction(
+        "discount_rate_fraction",
+        catalog.discount_rate_fraction,
+        true,
+    )?;
+    if catalog.sites.is_empty()
+        || catalog.families.is_empty()
+        || catalog.demand_cases_good_units_per_year.is_empty()
+    {
         return Err("catalog_requires_sites_families_and_demand_cases".to_string());
     }
     let mut demands = BTreeSet::new();
@@ -270,17 +274,26 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             || site.fx_reference_date.trim().is_empty()
             || site.note.trim().is_empty()
         {
-            return Err(format!("site_{}_requires_region_currency_fx_date_and_note", site.site_id));
+            return Err(format!(
+                "site_{}_requires_region_currency_fx_date_and_note",
+                site.site_id
+            ));
         }
         finite_nonnegative("local_currency_per_usd", site.local_currency_per_usd)?;
         if site.local_currency_per_usd <= 0.0 {
             return Err("local_currency_per_usd_must_be_positive".to_string());
         }
         if site.operating_days_per_year == 0 || site.shifts_per_day == 0 {
-            return Err(format!("site_{}_days_and_shifts_must_be_positive", site.site_id));
+            return Err(format!(
+                "site_{}_days_and_shifts_must_be_positive",
+                site.site_id
+            ));
         }
         finite_nonnegative("paid_hours_per_shift", site.paid_hours_per_shift)?;
-        finite_nonnegative("unpaid_break_hours_per_shift", site.unpaid_break_hours_per_shift)?;
+        finite_nonnegative(
+            "unpaid_break_hours_per_shift",
+            site.unpaid_break_hours_per_shift,
+        )?;
         if site.paid_hours_per_shift <= site.unpaid_break_hours_per_shift
             || site.paid_hours_per_shift > 24.0
             || site.unpaid_break_hours_per_shift >= 24.0
@@ -290,13 +303,28 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         fraction("availability_fraction", site.availability_fraction, true)?;
         fraction("performance_fraction", site.performance_fraction, true)?;
         if site.availability_fraction <= 0.0 || site.performance_fraction <= 0.0 {
-            return Err(format!("site_{}_availability_and_performance_must_be_positive", site.site_id));
+            return Err(format!(
+                "site_{}_availability_and_performance_must_be_positive",
+                site.site_id
+            ));
         }
         for (name, value) in [
-            ("fully_loaded_labor_cost_per_hour_local", site.fully_loaded_labor_cost_per_hour_local),
-            ("electricity_cost_per_kwh_local", site.electricity_cost_per_kwh_local),
-            ("useful_thermal_energy_cost_per_kwh_local", site.useful_thermal_energy_cost_per_kwh_local),
-            ("building_lease_cost_per_sqm_year_local", site.building_lease_cost_per_sqm_year_local),
+            (
+                "fully_loaded_labor_cost_per_hour_local",
+                site.fully_loaded_labor_cost_per_hour_local,
+            ),
+            (
+                "electricity_cost_per_kwh_local",
+                site.electricity_cost_per_kwh_local,
+            ),
+            (
+                "useful_thermal_energy_cost_per_kwh_local",
+                site.useful_thermal_energy_cost_per_kwh_local,
+            ),
+            (
+                "building_lease_cost_per_sqm_year_local",
+                site.building_lease_cost_per_sqm_year_local,
+            ),
         ] {
             finite_nonnegative(name, value)?;
         }
@@ -309,17 +337,29 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         if family.family_id.trim().is_empty() || !family_ids.insert(family.family_id.clone()) {
             return Err("family_ids_must_be_nonempty_and_unique".to_string());
         }
-        if family.label.trim().is_empty() || family.note.trim().is_empty() || family.options.is_empty() {
-            return Err(format!("family_{}_requires_label_options_and_note", family.family_id));
+        if family.label.trim().is_empty()
+            || family.note.trim().is_empty()
+            || family.options.is_empty()
+        {
+            return Err(format!(
+                "family_{}_requires_label_options_and_note",
+                family.family_id
+            ));
         }
         let mut option_ids = BTreeSet::new();
         let mut manual_count = 0;
         for option in &family.options {
             if option.option_id.trim().is_empty() || !option_ids.insert(option.option_id.clone()) {
-                return Err(format!("family_{}_option_ids_must_be_nonempty_and_unique", family.family_id));
+                return Err(format!(
+                    "family_{}_option_ids_must_be_nonempty_and_unique",
+                    family.family_id
+                ));
             }
             if option.label.trim().is_empty() || option.note.trim().is_empty() {
-                return Err(format!("option_{}_requires_label_and_note", option.option_id));
+                return Err(format!(
+                    "option_{}_requires_label_and_note",
+                    option.option_id
+                ));
             }
             if option.option_id == "manual" && option.mode == AutomationMode::Manual {
                 manual_count += 1;
@@ -330,32 +370,63 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             if option.option_id == "manual" && option.mode != AutomationMode::Manual {
                 return Err("manual_option_id_requires_manual_mode".to_string());
             }
-            finite_nonnegative("cycle_minutes_per_attempt", option.cycle_minutes_per_attempt)?;
+            finite_nonnegative(
+                "cycle_minutes_per_attempt",
+                option.cycle_minutes_per_attempt,
+            )?;
             if option.cycle_minutes_per_attempt <= 0.0 {
-                return Err(format!("option_{}_cycle_time_must_be_positive", option.option_id));
+                return Err(format!(
+                    "option_{}_cycle_time_must_be_positive",
+                    option.option_id
+                ));
             }
             for (name, value) in [
-                ("equipment_capex_usd_per_cell", option.equipment_capex_usd_per_cell),
+                (
+                    "equipment_capex_usd_per_cell",
+                    option.equipment_capex_usd_per_cell,
+                ),
                 ("integration_capex_usd", option.integration_capex_usd),
                 ("footprint_sqm_per_cell", option.footprint_sqm_per_cell),
-                ("electrical_kwh_per_attempt", option.electrical_kwh_per_attempt),
-                ("useful_thermal_kwh_per_attempt", option.useful_thermal_kwh_per_attempt),
-                ("failed_attempt_cost_local", option.failed_attempt_cost_local),
-                ("rework_cost_per_attempt_local", option.rework_cost_per_attempt_local),
+                (
+                    "electrical_kwh_per_attempt",
+                    option.electrical_kwh_per_attempt,
+                ),
+                (
+                    "useful_thermal_kwh_per_attempt",
+                    option.useful_thermal_kwh_per_attempt,
+                ),
+                (
+                    "failed_attempt_cost_local",
+                    option.failed_attempt_cost_local,
+                ),
+                (
+                    "rework_cost_per_attempt_local",
+                    option.rework_cost_per_attempt_local,
+                ),
             ] {
                 finite_nonnegative(name, value)?;
             }
             fraction("good_yield_fraction", option.good_yield_fraction, true)?;
             fraction("rework_fraction", option.rework_fraction, true)?;
-            fraction("annual_maintenance_fraction_of_capex", option.annual_maintenance_fraction_of_capex, true)?;
+            fraction(
+                "annual_maintenance_fraction_of_capex",
+                option.annual_maintenance_fraction_of_capex,
+                true,
+            )?;
             if option.good_yield_fraction <= 0.0 {
-                return Err(format!("option_{}_good_yield_must_be_positive", option.option_id));
+                return Err(format!(
+                    "option_{}_good_yield_must_be_positive",
+                    option.option_id
+                ));
             }
             validate_gate("technical_gate", &option.technical_gate)?;
             validate_gate("safety_gate", &option.safety_gate)?;
         }
         if manual_count != 1 {
-            return Err(format!("family_{}_must_have_exactly_one_manual_baseline", family.family_id));
+            return Err(format!(
+                "family_{}_must_have_exactly_one_manual_baseline",
+                family.family_id
+            ));
         }
     }
     Ok(())
@@ -397,7 +468,12 @@ struct Computed {
     headroom: f64,
 }
 
-fn compute(site: &SiteProfile, option: &StationOption, demand: u64, asset_life_years: u32) -> Computed {
+fn compute(
+    site: &SiteProfile,
+    option: &StationOption,
+    demand: u64,
+    asset_life_years: u32,
+) -> Computed {
     let available = site.operating_days_per_year as f64
         * site.shifts_per_day as f64
         * (site.paid_hours_per_shift - site.unpaid_break_hours_per_shift)
@@ -405,9 +481,13 @@ fn compute(site: &SiteProfile, option: &StationOption, demand: u64, asset_life_y
         * site.availability_fraction
         * site.performance_fraction;
     let attempts = (demand as f64 / option.good_yield_fraction).ceil() as u64;
-    let cells = ((option.cycle_minutes_per_attempt * attempts as f64) / available).ceil().max(1.0) as u64;
-    let capacity_attempts = ((available * cells as f64) / option.cycle_minutes_per_attempt + 1e-9).floor() as u64;
-    let good_capacity = (capacity_attempts as f64 * option.good_yield_fraction + 1e-9).floor() as u64;
+    let cells = ((option.cycle_minutes_per_attempt * attempts as f64) / available)
+        .ceil()
+        .max(1.0) as u64;
+    let capacity_attempts =
+        ((available * cells as f64) / option.cycle_minutes_per_attempt + 1e-9).floor() as u64;
+    let good_capacity =
+        (capacity_attempts as f64 * option.good_yield_fraction + 1e-9).floor() as u64;
     let operators_per_shift = cells * option.operators_per_cell_per_shift as u64;
     let paid_hours = operators_per_shift as f64
         * site.shifts_per_day as f64
@@ -415,10 +495,13 @@ fn compute(site: &SiteProfile, option: &StationOption, demand: u64, asset_life_y
         * site.paid_hours_per_shift;
     let fx = site.local_currency_per_usd;
     let labor = paid_hours * site.fully_loaded_labor_cost_per_hour_local / fx;
-    let electric = attempts as f64 * option.electrical_kwh_per_attempt
-        * site.electricity_cost_per_kwh_local / fx;
-    let thermal = attempts as f64 * option.useful_thermal_kwh_per_attempt
-        * site.useful_thermal_energy_cost_per_kwh_local / fx;
+    let electric =
+        attempts as f64 * option.electrical_kwh_per_attempt * site.electricity_cost_per_kwh_local
+            / fx;
+    let thermal = attempts as f64
+        * option.useful_thermal_kwh_per_attempt
+        * site.useful_thermal_energy_cost_per_kwh_local
+        / fx;
     let equipment_capex = cells as f64 * option.equipment_capex_usd_per_cell;
     let total_capex = equipment_capex + option.integration_capex_usd;
     let footprint = cells as f64 * option.footprint_sqm_per_cell;
@@ -467,12 +550,19 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
     sites.sort_by(|a, b| a.site_id.cmp(&b.site_id));
     families.sort_by(|a, b| a.family_id.cmp(&b.family_id));
     demands.sort_unstable();
-    let annuity = annuity_factor(catalog.discount_rate_fraction, catalog.evaluation_horizon_years);
+    let annuity = annuity_factor(
+        catalog.discount_rate_fraction,
+        catalog.evaluation_horizon_years,
+    );
     let mut results = Vec::new();
 
     for site in sites {
         for family in &families {
-            let baseline = family.options.iter().find(|o| o.option_id == "manual").unwrap();
+            let baseline = family
+                .options
+                .iter()
+                .find(|o| o.option_id == "manual")
+                .unwrap();
             for demand in &demands {
                 let base = compute(site, baseline, *demand, catalog.asset_life_years);
                 for option in &family.options {
@@ -496,13 +586,22 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
                     if site.site_cost_evidence_class != EvidenceClass::Measured
                         && site.site_cost_evidence_class != EvidenceClass::AuditedCost
                     {
-                        gaps.push("regional wage, utility and lease inputs are not measured or audited".to_string());
+                        gaps.push(
+                            "regional wage, utility and lease inputs are not measured or audited"
+                                .to_string(),
+                        );
                     }
                     if !evidence_release {
-                        gaps.push("station cost/cycle/yield inputs are not measured or audited".to_string());
+                        gaps.push(
+                            "station cost/cycle/yield inputs are not measured or audited"
+                                .to_string(),
+                        );
                     }
                     if option.technical_gate.status != GateStatus::Passed
-                        || !matches!(option.technical_gate.evidence_class, EvidenceClass::Measured | EvidenceClass::IndependentTest)
+                        || !matches!(
+                            option.technical_gate.evidence_class,
+                            EvidenceClass::Measured | EvidenceClass::IndependentTest
+                        )
                     {
                         gaps.push("technical cycle/quality/maintainability gate is not independently qualified".to_string());
                     }
@@ -512,24 +611,35 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
                         gaps.push("station safety gate is not independently qualified".to_string());
                     }
                     if site.local_compliance_gate.status != GateStatus::Passed
-                        || !matches!(site.local_compliance_gate.evidence_class, EvidenceClass::OfficialRecord | EvidenceClass::IndependentTest)
+                        || !matches!(
+                            site.local_compliance_gate.evidence_class,
+                            EvidenceClass::OfficialRecord | EvidenceClass::IndependentTest
+                        )
                     {
                         gaps.push("local code and compliance gate is unresolved".to_string());
                     }
                     if site.battery_hv_safety_gate.status != GateStatus::Passed
-                        || site.battery_hv_safety_gate.evidence_class != EvidenceClass::IndependentTest
+                        || site.battery_hv_safety_gate.evidence_class
+                            != EvidenceClass::IndependentTest
                     {
                         gaps.push("site battery/HV handling gate is unresolved".to_string());
                     }
                     let local_ok = site.local_compliance_gate.status == GateStatus::Passed
-                        && matches!(site.local_compliance_gate.evidence_class, EvidenceClass::OfficialRecord | EvidenceClass::IndependentTest);
+                        && matches!(
+                            site.local_compliance_gate.evidence_class,
+                            EvidenceClass::OfficialRecord | EvidenceClass::IndependentTest
+                        );
                     let battery_site_ok = site.battery_hv_safety_gate.status == GateStatus::Passed
-                        && site.battery_hv_safety_gate.evidence_class == EvidenceClass::IndependentTest;
+                        && site.battery_hv_safety_gate.evidence_class
+                            == EvidenceClass::IndependentTest;
                     let safety_and_technical_gates_passed = safety_ok
                         && local_ok
                         && battery_site_ok
                         && option.technical_gate.status == GateStatus::Passed
-                        && matches!(option.technical_gate.evidence_class, EvidenceClass::Measured | EvidenceClass::IndependentTest);
+                        && matches!(
+                            option.technical_gate.evidence_class,
+                            EvidenceClass::Measured | EvidenceClass::IndependentTest
+                        );
 
                     results.push(OptionResult {
                         site_id: site.site_id.clone(),
@@ -574,8 +684,10 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
                         incremental_installed_capex_vs_manual_usd: capex_delta,
                         simple_payback_years: payback,
                         discounted_npv_vs_manual_usd: npv,
-                        annualized_cost_delta_vs_manual_usd_per_good_unit: base.unit_cost - c.unit_cost,
-                        evidence_release_grade: evidence_release && site.site_cost_evidence_class == EvidenceClass::AuditedCost,
+                        annualized_cost_delta_vs_manual_usd_per_good_unit: base.unit_cost
+                            - c.unit_cost,
+                        evidence_release_grade: evidence_release
+                            && site.site_cost_evidence_class == EvidenceClass::AuditedCost,
                         local_compliance_gate: site.local_compliance_gate.status,
                         battery_hv_safety_gate: site.battery_hv_safety_gate.status,
                         safety_and_technical_gates_passed,
@@ -587,8 +699,20 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
             }
         }
     }
-    results.sort_by(|a,b| (&a.site_id,&a.family_id,a.target_good_units_per_year,&a.option_id)
-        .cmp(&(&b.site_id,&b.family_id,b.target_good_units_per_year,&b.option_id)));
+    results.sort_by(|a, b| {
+        (
+            &a.site_id,
+            &a.family_id,
+            a.target_good_units_per_year,
+            &a.option_id,
+        )
+            .cmp(&(
+                &b.site_id,
+                &b.family_id,
+                b.target_good_units_per_year,
+                &b.option_id,
+            ))
+    });
     Report {
         schema_version: catalog.schema_version.clone(),
         benchmark_id: catalog.benchmark_id.clone(),
@@ -616,23 +740,31 @@ mod tests {
         }
     }
 
-    fn option(id: &str, mode: AutomationMode, cycle: f64, capex: f64, ops: u32, yield_rate: f64, kwh: f64) -> StationOption {
+    fn option(
+        id: &str,
+        mode: AutomationMode,
+        cycle: f64,
+        capex: f64,
+        ops: u32,
+        yield_rate: f64,
+        kwh: f64,
+    ) -> StationOption {
         StationOption {
             option_id: id.to_string(),
             label: id.to_string(),
             mode,
             cycle_minutes_per_attempt: cycle,
             equipment_capex_usd_per_cell: capex,
-            integration_capex_usd: if id == "manual" {0.0} else {5000.0},
+            integration_capex_usd: if id == "manual" { 0.0 } else { 5000.0 },
             operators_per_cell_per_shift: ops,
             footprint_sqm_per_cell: 20.0,
             electrical_kwh_per_attempt: kwh,
             useful_thermal_kwh_per_attempt: 0.0,
             good_yield_fraction: yield_rate,
             failed_attempt_cost_local: 50.0,
-            rework_fraction: if id == "manual" {0.1} else {0.04},
+            rework_fraction: if id == "manual" { 0.1 } else { 0.04 },
             rework_cost_per_attempt_local: 20.0,
-            annual_maintenance_fraction_of_capex: if id == "manual" {0.02} else {0.04},
+            annual_maintenance_fraction_of_capex: if id == "manual" { 0.02 } else { 0.04 },
             evidence_class: EvidenceClass::Synthetic,
             technical_gate: gate(),
             safety_gate: gate(),
@@ -674,9 +806,33 @@ mod tests {
                 family_id: "kit".to_string(),
                 label: "Kitting".to_string(),
                 options: vec![
-                    option("manual", AutomationMode::Manual, 30.0, 10000.0, 2, 0.95, 10.0),
-                    option("assisted", AutomationMode::Assisted, 25.0, 20000.0, 1, 0.97, 14.0),
-                    option("automated", AutomationMode::Automated, 20.0, 30000.0, 1, 0.99, 20.0),
+                    option(
+                        "manual",
+                        AutomationMode::Manual,
+                        30.0,
+                        10000.0,
+                        2,
+                        0.95,
+                        10.0,
+                    ),
+                    option(
+                        "assisted",
+                        AutomationMode::Assisted,
+                        25.0,
+                        20000.0,
+                        1,
+                        0.97,
+                        14.0,
+                    ),
+                    option(
+                        "automated",
+                        AutomationMode::Automated,
+                        20.0,
+                        30000.0,
+                        1,
+                        0.99,
+                        20.0,
+                    ),
                 ],
                 note: "test only".to_string(),
             }],
@@ -687,7 +843,11 @@ mod tests {
     #[test]
     fn manual_baseline_has_zero_relative_capex_npv_and_savings() {
         let report = evaluate_catalog(&fixture());
-        let baseline = report.results.iter().find(|r| r.option_id == "manual").unwrap();
+        let baseline = report
+            .results
+            .iter()
+            .find(|r| r.option_id == "manual")
+            .unwrap();
         assert!(baseline.annual_operating_savings_vs_manual_usd.abs() < 1e-8);
         assert!(baseline.incremental_installed_capex_vs_manual_usd.abs() < 1e-8);
         assert!(baseline.discounted_npv_vs_manual_usd.abs() < 1e-8);
@@ -698,8 +858,16 @@ mod tests {
         let mut cheap = fixture();
         let mut expensive = fixture();
         expensive.sites[0].electricity_cost_per_kwh_local *= 3.0;
-        let a = evaluate_catalog(&cheap).results.into_iter().find(|r| r.option_id == "automated").unwrap();
-        let b = evaluate_catalog(&expensive).results.into_iter().find(|r| r.option_id == "automated").unwrap();
+        let a = evaluate_catalog(&cheap)
+            .results
+            .into_iter()
+            .find(|r| r.option_id == "automated")
+            .unwrap();
+        let b = evaluate_catalog(&expensive)
+            .results
+            .into_iter()
+            .find(|r| r.option_id == "automated")
+            .unwrap();
         assert!(b.annual_electricity_cost_usd > a.annual_electricity_cost_usd);
         cheap.sites[0].fully_loaded_labor_cost_per_hour_local *= 2.0;
     }
@@ -709,8 +877,16 @@ mod tests {
         let mut cheap = fixture();
         let mut expensive = fixture();
         expensive.sites[0].fully_loaded_labor_cost_per_hour_local *= 2.0;
-        let a = evaluate_catalog(&cheap).results.into_iter().find(|r| r.option_id == "manual").unwrap();
-        let b = evaluate_catalog(&expensive).results.into_iter().find(|r| r.option_id == "manual").unwrap();
+        let a = evaluate_catalog(&cheap)
+            .results
+            .into_iter()
+            .find(|r| r.option_id == "manual")
+            .unwrap();
+        let b = evaluate_catalog(&expensive)
+            .results
+            .into_iter()
+            .find(|r| r.option_id == "manual")
+            .unwrap();
         assert!(b.annual_labor_cost_usd > a.annual_labor_cost_usd);
         cheap.sites[0].electricity_cost_per_kwh_local *= 2.0;
     }
@@ -721,8 +897,16 @@ mod tests {
         let mut poor = fixture();
         good.families[0].options[0].good_yield_fraction = 0.99;
         poor.families[0].options[0].good_yield_fraction = 0.8;
-        let a = evaluate_catalog(&good).results.into_iter().find(|r| r.option_id == "manual").unwrap();
-        let b = evaluate_catalog(&poor).results.into_iter().find(|r| r.option_id == "manual").unwrap();
+        let a = evaluate_catalog(&good)
+            .results
+            .into_iter()
+            .find(|r| r.option_id == "manual")
+            .unwrap();
+        let b = evaluate_catalog(&poor)
+            .results
+            .into_iter()
+            .find(|r| r.option_id == "manual")
+            .unwrap();
         assert!(b.planned_attempts_per_year > a.planned_attempts_per_year);
         assert!(b.annual_failed_attempt_cost_usd > a.annual_failed_attempt_cost_usd);
     }
@@ -730,7 +914,12 @@ mod tests {
     #[test]
     fn each_option_meets_target_capacity_after_yield() {
         let report = evaluate_catalog(&fixture());
-        assert!(report.results.iter().all(|r| r.good_capacity_per_year >= r.target_good_units_per_year));
+        assert!(
+            report
+                .results
+                .iter()
+                .all(|r| r.good_capacity_per_year >= r.target_good_units_per_year)
+        );
         assert!(report.results.iter().all(|r| r.required_cells > 0));
     }
 
@@ -740,7 +929,10 @@ mod tests {
         catalog.demand_cases_good_units_per_year = vec![100, 1000, 10000];
         let results = evaluate_catalog(&catalog);
         for option_id in ["manual", "assisted", "automated"] {
-            let rows: Vec<_> = results.iter().filter(|r| r.option_id == option_id).collect();
+            let rows: Vec<_> = results
+                .iter()
+                .filter(|r| r.option_id == option_id)
+                .collect();
             assert!(rows[0].required_cells <= rows[1].required_cells);
             assert!(rows[1].required_cells <= rows[2].required_cells);
         }
@@ -750,7 +942,12 @@ mod tests {
     fn unknown_safety_and_local_code_never_release_option() {
         let report = evaluate_catalog(&fixture());
         assert!(report.results.iter().all(|r| !r.release_ready));
-        assert!(report.results.iter().all(|r| !r.safety_and_technical_gates_passed));
+        assert!(
+            report
+                .results
+                .iter()
+                .all(|r| !r.safety_and_technical_gates_passed)
+        );
     }
 
     #[test]
