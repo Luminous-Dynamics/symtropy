@@ -880,9 +880,16 @@ pub fn validate_solver_receipt_bytes(
             return Err(format!("receipt.validity_envelope.{key} is empty or overlong"));
         }
     }
-    let limitations = strings(validity.as_ref().into(), "limitations", "receipt.validity_envelope")?;
-    if limitations.iter().any(|text| text.len() > 2048) {
-        return Err("receipt.validity_envelope.limitations entry exceeds 2048 bytes".to_owned());
+    let limitations = validity
+        .get("limitations")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "receipt.validity_envelope.limitations must be an array".to_owned())?;
+    if limitations.iter().any(|value| {
+        value
+            .as_str()
+            .is_none_or(|text| text.len() > 2048)
+    }) {
+        return Err("receipt.validity_envelope.limitations must contain strings no longer than 2048 bytes".to_owned());
     }
 
     let claim_ceiling = string(&receipt, "claim_ceiling", "receipt")?;
