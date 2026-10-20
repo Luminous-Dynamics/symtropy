@@ -220,7 +220,9 @@ fn valid_sha256(value: &str) -> bool {
 
 fn validate_window(name: &str, window: &TimeWindow, limit: u64) -> Result<(), String> {
     if window.start_seconds >= window.end_seconds || window.end_seconds > limit {
-        return Err(format!("{name}_must_be_nonempty_and_inside_collection_window"));
+        return Err(format!(
+            "{name}_must_be_nonempty_and_inside_collection_window"
+        ));
     }
     Ok(())
 }
@@ -251,8 +253,14 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
     }
     for (name, value) in [
         ("trace_id", trace.trace_id.as_str()),
-        ("collection_started_at_utc", trace.collection_started_at_utc.as_str()),
-        ("collection_ended_at_utc", trace.collection_ended_at_utc.as_str()),
+        (
+            "collection_started_at_utc",
+            trace.collection_started_at_utc.as_str(),
+        ),
+        (
+            "collection_ended_at_utc",
+            trace.collection_ended_at_utc.as_str(),
+        ),
         ("site_timezone", trace.site_timezone.as_str()),
         ("clock_basis", trace.clock_basis.as_str()),
         ("time_unit", trace.time_unit.as_str()),
@@ -297,9 +305,15 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
         nonempty("station_id", &station.station_id)?;
         nonempty("station_note", &station.note)?;
         if station.max_rework_attempts > 10 || station.resource_ids.is_empty() {
-            return Err(format!("station_{}_resource_or_rework_count_invalid", station.station_id));
+            return Err(format!(
+                "station_{}_resource_or_rework_count_invalid",
+                station.station_id
+            ));
         }
-        if station_index.insert(station.station_id.clone(), index).is_some() {
+        if station_index
+            .insert(station.station_id.clone(), index)
+            .is_some()
+        {
             return Err("station_ids_must_be_unique".into());
         }
         let mut local_resources = HashSet::new();
@@ -318,7 +332,10 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
     for (index, buffer) in trace.buffers.iter().enumerate() {
         nonempty("buffer_id", &buffer.buffer_id)?;
         if buffer.capacity_units == 0 {
-            return Err(format!("buffer_{}_capacity_must_be_positive", buffer.buffer_id));
+            return Err(format!(
+                "buffer_{}_capacity_must_be_positive",
+                buffer.buffer_id
+            ));
         }
         if !station_index.contains_key(&buffer.after_station_id) {
             return Err(format!(
@@ -326,7 +343,10 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                 buffer.buffer_id
             ));
         }
-        if buffer_index.insert(buffer.buffer_id.clone(), index).is_some() {
+        if buffer_index
+            .insert(buffer.buffer_id.clone(), index)
+            .is_some()
+        {
             return Err("buffer_ids_must_be_unique".into());
         }
     }
@@ -379,14 +399,20 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
         first_event = false;
         last_timestamp = event.timestamp_seconds;
         if event.timestamp_seconds >= trace.collection_window_seconds {
-            return Err(format!("event_{}_outside_collection_window", event.event_id));
+            return Err(format!(
+                "event_{}_outside_collection_window",
+                event.event_id
+            ));
         }
 
         match event.kind {
             EventKind::JobRelease => {
                 let job_id = event.job_id.as_ref().expect("shape validated");
                 nonempty("job_id", job_id)?;
-                if job_states.insert(job_id.clone(), JobState::default()).is_some() {
+                if job_states
+                    .insert(job_id.clone(), JobState::default())
+                    .is_some()
+                {
                     return Err(format!("job_{}_released_more_than_once", job_id));
                 }
                 job_releases += 1;
@@ -395,11 +421,14 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                 let job_id = event.job_id.as_ref().expect("shape validated");
                 let station_id = event.station_id.as_ref().expect("shape validated");
                 let resource_id = event.resource_id.as_ref().expect("shape validated");
-                let index = *station_index
-                    .get(station_id)
-                    .ok_or_else(|| format!("event_{}_references_unknown_station", event.event_id))?;
+                let index = *station_index.get(station_id).ok_or_else(|| {
+                    format!("event_{}_references_unknown_station", event.event_id)
+                })?;
                 if resource_station.get(resource_id) != Some(station_id) {
-                    return Err(format!("event_{}_resource_station_mismatch", event.event_id));
+                    return Err(format!(
+                        "event_{}_resource_station_mismatch",
+                        event.event_id
+                    ));
                 }
                 if resource_down.contains_key(resource_id) {
                     return Err(format!("event_{}_uses_resource_while_down", event.event_id));
@@ -417,13 +446,22 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                     || job.awaiting_buffer_enter
                     || job.awaiting_scrap
                 {
-                    return Err(format!("event_{}_job_not_ready_for_station_start", event.event_id));
+                    return Err(format!(
+                        "event_{}_job_not_ready_for_station_start",
+                        event.event_id
+                    ));
                 }
                 if job.station_index != index {
-                    return Err(format!("event_{}_violates_station_route_order", event.event_id));
+                    return Err(format!(
+                        "event_{}_violates_station_route_order",
+                        event.event_id
+                    ));
                 }
                 if job.attempts_at_station > 0 && !job.ready_for_rework {
-                    return Err(format!("event_{}_unexpected_repeat_station_start", event.event_id));
+                    return Err(format!(
+                        "event_{}_unexpected_repeat_station_start",
+                        event.event_id
+                    ));
                 }
                 if job.attempts_at_station == 0 && job.ready_for_rework {
                     return Err(format!("event_{}_invalid_rework_state", event.event_id));
@@ -450,13 +488,19 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                     .get_mut(job_id)
                     .ok_or_else(|| format!("event_{}_job_not_released", event.event_id))?;
                 if job.in_process.as_ref() != Some(&(station_id.clone(), resource_id.clone())) {
-                    return Err(format!("event_{}_does_not_match_station_start", event.event_id));
+                    return Err(format!(
+                        "event_{}_does_not_match_station_start",
+                        event.event_id
+                    ));
                 }
                 let active = resource_active
                     .remove(resource_id)
                     .ok_or_else(|| format!("event_{}_resource_not_active", event.event_id))?;
                 if active.job_id != *job_id || active.station_id != *station_id {
-                    return Err(format!("event_{}_resource_operation_mismatch", event.event_id));
+                    return Err(format!(
+                        "event_{}_resource_operation_mismatch",
+                        event.event_id
+                    ));
                 }
                 let index = *station_index
                     .get(station_id)
@@ -475,7 +519,10 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                     .get_mut(job_id)
                     .ok_or_else(|| format!("event_{}_job_not_released", event.event_id))?;
                 if !job.quality_pending || job.station_index != index {
-                    return Err(format!("event_{}_quality_without_matching_station_end", event.event_id));
+                    return Err(format!(
+                        "event_{}_quality_without_matching_station_end",
+                        event.event_id
+                    ));
                 }
                 job.quality_pending = false;
                 job.attempts_at_station = 0;
@@ -562,7 +609,10 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                     || job.quality_pending
                     || job.in_buffer.is_some()
                 {
-                    return Err(format!("event_{}_scrap_without_exhausted_quality_rework", event.event_id));
+                    return Err(format!(
+                        "event_{}_scrap_without_exhausted_quality_rework",
+                        event.event_id
+                    ));
                 }
                 job.awaiting_scrap = false;
                 job.terminal = Some(TerminalState::Scrapped);
@@ -575,14 +625,20 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                     return Err(format!("event_{}_resource_station_mismatch", event.event_id));
                 }
                 if resource_active.contains_key(resource_id) {
-                    return Err(format!("event_{}_breakdown_during_active_operation_not_supported", event.event_id));
+                    return Err(format!(
+                        "event_{}_breakdown_during_active_operation_not_supported",
+                        event.event_id
+                    ));
                 }
-                if resource_down.insert(
-                    resource_id.clone(),
-                    DownResource {
-                        station_id: station_id.clone(),
-                    },
-                ).is_some() {
+                if resource_down
+                    .insert(
+                        resource_id.clone(),
+                        DownResource {
+                            station_id: station_id.clone(),
+                        },
+                    )
+                    .is_some()
+                {
                     return Err(format!("event_{}_resource_already_down", event.event_id));
                 }
                 equipment_breakdowns += 1;
@@ -623,8 +679,14 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
     }
     let critical_unobserved = trace.missingness.iter().any(|item| {
         item.status == MissingnessStatus::Unobserved
-            && ["job_id", "timestamp_seconds", "station_id", "resource_id", "quality_outcome"]
-                .contains(&item.field.as_str())
+            && [
+                "job_id",
+                "timestamp_seconds",
+                "station_id",
+                "resource_id",
+                "quality_outcome",
+            ]
+            .contains(&item.field.as_str())
     });
     let review_candidate = trace.source_evidence_class != EvidenceClass::Synthetic
         && trace.source_evidence_class != EvidenceClass::Unknown
@@ -686,17 +748,13 @@ mod tests {
     use serde_json::Value;
 
     fn fixture() -> Trace {
-        serde_json::from_str(include_str!(
-            "../../fixtures/ev_factory_trace_v0_1.json"
-        ))
-        .expect("fixture parses")
+        serde_json::from_str(include_str!("../../fixtures/ev_factory_trace_v0_1.json"))
+            .expect("fixture parses")
     }
 
     fn fixture_value() -> Value {
-        serde_json::from_str(include_str!(
-            "../../fixtures/ev_factory_trace_v0_1.json"
-        ))
-        .expect("fixture JSON parses")
+        serde_json::from_str(include_str!("../../fixtures/ev_factory_trace_v0_1.json"))
+            .expect("fixture JSON parses")
     }
 
     #[test]
@@ -718,21 +776,33 @@ mod tests {
     fn duplicate_event_ids_are_rejected() {
         let mut trace = fixture();
         trace.events[1].event_id = trace.events[0].event_id.clone();
-        assert!(validate_trace(&trace).unwrap_err().contains("duplicate_event_id"));
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("duplicate_event_id")
+        );
     }
 
     #[test]
     fn clock_regression_is_rejected() {
         let mut trace = fixture();
         trace.events[0].timestamp_seconds = 4;
-        assert!(validate_trace(&trace).unwrap_err().contains("event_clock_regression"));
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("event_clock_regression")
+        );
     }
 
     #[test]
     fn calibration_holdout_overlap_is_rejected() {
         let mut trace = fixture();
         trace.holdout_window.start_seconds = 25;
-        assert!(validate_trace(&trace).unwrap_err().contains("windows_overlap"));
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("windows_overlap")
+        );
     }
 
     #[test]
@@ -752,14 +822,24 @@ mod tests {
     fn buffer_over_capacity_is_rejected() {
         let mut trace = fixture();
         trace.buffers[0].capacity_units = 1;
-        assert!(validate_trace(&trace).unwrap_err().contains("capacity_exceeded"));
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("capacity_exceeded")
+        );
     }
 
     #[test]
     fn repair_without_breakdown_is_rejected() {
         let mut trace = fixture();
-        trace.events.retain(|event| event.kind != EventKind::BreakdownStart);
-        assert!(validate_trace(&trace).unwrap_err().contains("repair_without_breakdown"));
+        trace
+            .events
+            .retain(|event| event.kind != EventKind::BreakdownStart);
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("repair_without_breakdown")
+        );
     }
 
     #[test]
@@ -773,7 +853,11 @@ mod tests {
     fn malformed_digest_is_rejected() {
         let mut trace = fixture();
         trace.source_sha256 = "not-a-digest".into();
-        assert!(validate_trace(&trace).unwrap_err().contains("source_sha256"));
+        assert!(
+            validate_trace(&trace)
+                .unwrap_err()
+                .contains("source_sha256")
+        );
     }
 
     #[test]
