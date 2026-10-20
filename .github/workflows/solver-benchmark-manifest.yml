@@ -1,0 +1,89 @@
+name: External Solver Benchmark Manifest
+
+on:
+  push:
+    branches: ["research/physical-solver-qualification-v0-1"]
+    paths:
+      - "docs/research/PHYSICAL_SOLVER_QUALIFICATION_V0_1.md"
+      - "schemas/physical-transformation/solver-benchmark-manifest-v0.1.schema.json"
+      - "schemas/physical-transformation/solver-benchmarks/**"
+      - ".github/workflows/solver-benchmark-manifest.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/PHYSICAL_SOLVER_QUALIFICATION_V0_1.md"
+      - "schemas/physical-transformation/solver-benchmark-manifest-v0.1.schema.json"
+      - "schemas/physical-transformation/solver-benchmarks/**"
+      - ".github/workflows/solver-benchmark-manifest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: solver-benchmark-manifest-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  planned-manifest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate JSON syntax and manifest schema markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty schemas/physical-transformation/solver-benchmark-manifest-v0.1.schema.json
+          jq empty schemas/physical-transformation/solver-benchmarks/code-aster-cantilever-planned-v0.1.json
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+            and .properties.schema_version.const == "solver-benchmark-manifest-v0.1"
+            and (.required | index("solver_candidate") != null)
+            and (.required | index("reference") != null)
+            and (.required | index("acceptance") != null)
+          ' schemas/physical-transformation/solver-benchmark-manifest-v0.1.schema.json
+
+      - name: Verify fixture digest and explicitly planned execution state
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="schemas/physical-transformation/solver-benchmarks/code-aster-cantilever-planned-v0.1.json"
+          fixture="$(jq -r '.input_fixture.path' "$manifest")"
+          expected="$(jq -r '.input_fixture.sha256' "$manifest")"
+          actual="$(sha256sum "$fixture" | awk '{print $1}')"
+          test "$actual" = "$expected"
+          source_revision="$(jq -r '.reference.source_revision' "$manifest")"
+          source_url="$(jq -r '.reference.source_url' "$manifest")"
+          test "${#source_revision}" -eq 40
+          [[ "$source_revision" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$source_url" == *"$source_revision"* ]]
+          jq -e '
+            .execution_state == "planned"
+            and .solver_candidate.name == "code_aster"
+            and .solver_candidate.version_pin == null
+            and .solver_candidate.binary_sha256 == null
+            and .solver_candidate.configuration_sha256 == null
+            and .verification_level == "analytical_equation_verification"
+            and .input_fixture.content_class == "synthetic"
+            and .input_fixture.sha256 != null
+            and .mesh_plan.refinement_levels == [1,2,4]
+            and .mesh_plan.record_required == true
+            and .acceptance.require_convergence_evidence == true
+            and (.acceptance.negative_controls | length) >= 5
+            and (.claim_ceiling | contains("no external solver execution"))
+          ' "$manifest"
+          echo "Manifest fixture SHA-256: $actual"
+          echo "Benchmark remains planned; no solver execution is implied."
+
+      - name: Verify exact checked-out revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "Manifest validation is scoped to exact source revision $source_commit"
