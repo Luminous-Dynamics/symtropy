@@ -7,6 +7,7 @@ on:
       - "tools/vision-active-action-reference.rs"
       - "tools/vision-active-action-benchmark.rs"
       - "tools/vision-active-action-world.rs"
+      - "tools/vision-active-memory-world.rs"
       - "tools/vision-active-action-reference/**"
       - "tools/vision-active-action-benchmark/**"
       - "tools/vision-active-action-world/**"
@@ -18,6 +19,7 @@ on:
       - "tools/vision-active-action-reference.rs"
       - "tools/vision-active-action-benchmark.rs"
       - "tools/vision-active-action-world.rs"
+      - "tools/vision-active-memory-world.rs"
       - "tools/vision-active-action-reference/**"
       - "tools/vision-active-action-benchmark/**"
       - "tools/vision-active-action-world/**"
@@ -97,6 +99,33 @@ jobs:
         with:
           name: vis-act-causal-world-diagnostic
           path: causal-world-pilot.tsv
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Compile and run multi-round memory tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-memory-world.rs -o /tmp/vis-act-memory-tests
+          /tmp/vis-act-memory-tests
+
+      - name: Execute multi-round active-memory diagnostic
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-memory-world.rs -o /tmp/vis-act-memory
+          /tmp/vis-act-memory | tee multi-round-memory.tsv
+          grep -Fq "no_memory" multi-round-memory.tsv
+          grep -Fq "bounded_fifo" multi-round-memory.tsv
+          grep -Fq "confidence_gated" multi-round-memory.tsv
+          grep -Fq "provenance_memory_passive" multi-round-memory.tsv
+          grep -Fq "active_revision" multi-round-memory.tsv
+          grep -Fq "removed_false_persistence_rate" multi-round-memory.tsv
+          grep -Fq "budget_violations" multi-round-memory.tsv
+
+      - name: Upload multi-round memory diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-multi-round-memory-diagnostic
+          path: multi-round-memory.tsv
           if-no-files-found: error
           retention-days: 14
 
