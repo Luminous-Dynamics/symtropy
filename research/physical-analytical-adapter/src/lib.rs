@@ -442,9 +442,10 @@ fn parse_input_bounds(
         let item = bound_inputs
             .get(*key)
             .ok_or_else(|| format!("{at} is required"))?;
-        exact_keys(
+        exact_keys_with_optional(
             item,
             &["lower", "upper", "unit", "basis", "source_ref"],
+            &["calibration_ref"],
             &at,
         )?;
         let fields = item
@@ -476,6 +477,27 @@ fn parse_input_bounds(
             return Err(format!(
                 "{at}.source_ref must be a non-empty evidence locator of at most 2048 characters"
             ));
+        }
+        match fields.get("calibration_ref") {
+            Some(value) => {
+                let calibration_ref = value.as_str().ok_or_else(|| {
+                    format!("{at}.calibration_ref must be a string")
+                })?;
+                if calibration_ref.trim().is_empty()
+                    || calibration_ref.len() > 2048
+                    || calibration_ref.chars().any(char::is_control)
+                {
+                    return Err(format!(
+                        "{at}.calibration_ref must be a non-empty locator of at most 2048 characters"
+                    ));
+                }
+            }
+            None if basis == "instrumented_measurement" => {
+                return Err(format!(
+                    "{at}.calibration_ref is required for instrumented_measurement bounds"
+                ));
+            }
+            None => {}
         }
         let interval =
             uncertainty::Interval::new(lower, upper).map_err(|error| format!("{at}: {error}"))?;
@@ -906,6 +928,21 @@ mod tests {
             .unwrap()
             .remove("upper");
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+        let mut instrumented: Value =
+            serde_json::from_slice(&fixture("analytical-bar-bounds-v0.1.json")).unwrap();
+        instrumented["input_bounds"]["inputs"]["force_n"]["basis"] =
+            json!("instrumented_measurement");
+        assert!(
+            evaluate_request_bytes(instrumented.to_string().as_bytes(), REV).is_err(),
+            "instrumented bounds without calibration must not be accepted"
+        );
+        instrumented["input_bounds"]["inputs"]["force_n"]["calibration_ref"] =
+            json!("urn:calibration:force-sensor-001");
+        assert!(
+            evaluate_request_bytes(instrumented.to_string().as_bytes(), REV).is_ok(),
+            "instrumented bounds with calibration reference should be accepted"
+        );
     }
 
     #[test]
