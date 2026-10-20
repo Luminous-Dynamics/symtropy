@@ -1043,7 +1043,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn pcb_cell_route_fixtures_are_deterministic_and_never_release_from_synthetic_evidence() {
         let fixtures = [
@@ -1088,5 +1087,4 @@ mod tests {
             }));
         }
     }
-
 }
