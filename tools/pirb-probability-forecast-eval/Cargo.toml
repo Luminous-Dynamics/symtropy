@@ -45,4 +45,8 @@ path = "src/score_admissibility_main.rs"
 name = "pirb-joint-score-eval"
 path = "src/joint_score_main.rs"
 
+[[bin]]
+name = "pirb-capacity-action-value-eval"
+path = "src/capacity_action_value_main.rs"
+
 [workspace]
