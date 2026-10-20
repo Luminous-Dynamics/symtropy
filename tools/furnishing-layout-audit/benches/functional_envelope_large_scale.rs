@@ -93,8 +93,10 @@ fn generated_sparse_corpus(item_count: usize) -> Value {
 }
 
 fn percentile(samples: &[Duration], percent: usize) -> Duration {
-    let index = samples.len().saturating_sub(1) * percent / 100;
-    samples[index]
+    assert!(!samples.is_empty(), "percentile needs at least one sample");
+    // Nearest-rank empirical quantile: index = ceil(n * p) - 1.
+    let rank = samples.len().saturating_mul(percent).saturating_add(99) / 100;
+    samples[rank.saturating_sub(1).min(samples.len() - 1)]
 }
 
 fn run_tier(item_count: usize, iterations: usize) {
@@ -133,7 +135,7 @@ fn run_tier(item_count: usize, iterations: usize) {
 fn main() {
     // Repeated lower tiers give a noise estimate. Larger tiers use a single sample
     // to avoid turning this diagnostic scale probe into a long-running CI job.
-    for (item_count, iterations) in [(10_000, 3), (25_000, 2), (50_000, 1), (100_000, 1)] {
+    for (item_count, iterations) in [(10_000, 3), (25_000, 5), (50_000, 1), (100_000, 1)] {
         run_tier(item_count, iterations);
     }
 }

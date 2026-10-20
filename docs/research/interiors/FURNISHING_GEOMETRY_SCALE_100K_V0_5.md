@@ -10,11 +10,11 @@ Rather than run a potentially hour-long brute-force scan at 25k/50k/100k, this c
 
 ## Protocol
 
-- Sizes: 10,000 (3 iterations), 25,000 (2), 50,000 (1), 100,000 (1).
+- Sizes: 10,000 (3 iterations), 25,000 (5), 50,000 (1), 100,000 (1).
 - Workload: sparse, room-local axis-aligned rectangles with one mandatory service-access envelope per item.
 - Timed region: audit_functional_envelopes over a preconstructed JSON document; corpus construction is excluded.
 - Hard assertion: every generated item has the expected pass outcome and the oracle emits zero findings. Any finding fails the benchmark rather than becoming a slower result.
-- Report p50/p95 only for the tiers with repeated samples. The 50k and 100k timings must be labelled single-sample latency.
+- The benchmark uses the nearest-rank empirical quantile (ceil(n*p)-1). Report p50/p95 only for the tiers with repeated samples. The 50k and 100k timings must be labelled single-sample latency; the 25k tier has five samples to make its p95 less fragile than a two-sample "p95."
 - The workflow records exact source SHA, Rust version, OS, CPU and memory. Peak memory is not yet measured.
 
 ## Proposed gates
