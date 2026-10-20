@@ -64,8 +64,8 @@ pub fn stoker_dam_break(
     for _ in 0..100 {
         let middle = lower + 0.5 * (upper - lower);
         let middle_celerity = (gravity_m_s2 * middle).sqrt();
-        let right_shock_curve =
-            (middle - right_depth_m) * (0.5 * gravity_m_s2 * (1.0 / middle + 1.0 / right_depth_m)).sqrt();
+        let right_shock_curve = (middle - right_depth_m)
+            * (0.5 * gravity_m_s2 * (1.0 / middle + 1.0 / right_depth_m)).sqrt();
         let residual = 2.0 * (middle_celerity - initial_wave_speed) + right_shock_curve;
         if !middle_celerity.is_finite() || !residual.is_finite() {
             return Err(SolverError::InvalidAnalyticalInput);
