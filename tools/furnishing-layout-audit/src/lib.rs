@@ -389,7 +389,7 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
 
         if let Some(expected_relation) = text(alternative, "expected_pareto_relation") {
             let peers = alternatives.iter().filter(|peer| {
-                peer.as_ptr() != alternative.as_ptr()
+                text(peer, "alternative_id") != Some(alternative_id)
                     && text(peer, "expected_pareto_relation").is_some()
             });
             for peer in peers {
