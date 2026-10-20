@@ -64,6 +64,15 @@ Within one structure, paired exogenous random streams can reduce variance. Acros
 
 Use proper scoring rules that match outcomes (e.g. Brier/log scores for probabilistic classes, CRPS/interval scores for suitable continuous forecasts). Report calibration together with sharpness so overly broad intervals cannot win by coverage alone. Publish per-model scores, paired uncertainty and sensitivity to defensible model-weight ranges.
 
+## Executable Rust contract seam
+
+The companion crate `symtropy-animal-model-uncertainty` in the current draft branch now contains two small, explicit boundaries:
+
+- A semantic oracle validator that requires the frozen schema identity, required run-identity fields, unique lower-snake-case case IDs, count consistency, non-empty expectations/failure rules, and required uncertainty/validation dimensions. It rejects missing evidence rather than treating it as zero.
+- `score_model_ensemble`, a pure risk-summary function over model outcomes. It reports weighted expected loss, worst-case loss, upper-tail CVaR, per-model regret and unanimous admissibility. It rejects duplicate model IDs, missing/mismatched action sets, invalid weights and non-finite/negative losses. It never silently renormalizes weights or picks a normative objective on the caller's behalf.
+
+A CLI validates the embedded corpus or an explicitly supplied JSON file. Tests include negative controls for malformed/corrupted corpora and unsafe/incomplete model sets. These are implementation artifacts under review, not a claim of passing Rust tests until current-head CI is green, and not an ecological forecast or biological result.
+
 ## Proposed pilot targets (not current results)
 
 Preregister final margins before unsealing test data:
@@ -90,7 +99,7 @@ These are stretch targets, not current Symtropy results or a claim of universal 
 ## Roadmap
 
 1. Freeze the synthetic oracle and its JSON Schema.
-2. Add a Rust semantic validator for unique IDs, model-set completeness, weights, receipts and fail-closed missing-output handling.
+2. Extend the current Rust validator and decision-risk kernel with receipt adapters, model-result ingestion, and direct integration with simulator evaluation outputs after exact-head CI passes.
 3. Bind selected cases to the causal, ecological-transfer and aquatic-process oracles without merging their qualification scopes.
 4. Integrate public empirical data only after source-specific permission, license, derivative-use and sensitive-location review.
 5. Compare transparent heuristic, single-model, model-ensemble and robust-policy baselines on matched independent units; publish disagreements and negative results.
