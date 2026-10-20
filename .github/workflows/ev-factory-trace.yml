@@ -76,7 +76,9 @@ jobs:
           jq '.holdout_window.start_seconds = 25' "$fixture" > invalid-window.json
           jq '.buffers[0].capacity_units = 1' "$fixture" > invalid-buffer.json
           jq '.unreviewed_override = true' "$fixture" > invalid-unknown-field.json
-          for invalid in invalid-duplicate.json invalid-clock.json invalid-window.json invalid-buffer.json invalid-unknown-field.json; do
+          jq '.collection_ended_at_utc = "2026-10-20T00:01:39Z"' "$fixture" > invalid-utc-window.json
+          jq '.source_evidence_class = "measured"' "$fixture" > invalid-measured-zero-digest.json
+          for invalid in invalid-duplicate.json invalid-clock.json invalid-window.json invalid-buffer.json invalid-unknown-field.json invalid-utc-window.json invalid-measured-zero-digest.json; do
             if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_trace_validate -- "$invalid" >/dev/null 2>&1; then
               echo "invalid trace unexpectedly accepted: $invalid"
               exit 1
