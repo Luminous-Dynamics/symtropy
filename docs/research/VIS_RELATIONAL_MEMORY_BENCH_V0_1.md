@@ -24,11 +24,11 @@ Query relevance is public input, so query-keyed retention may filter irrelevant 
 - Eight latent binary claims; each episode exposes a query over three distinct claim keys. The query asks whether at least two of the three claims currently hold.
 - A 48-event evidence stream contains correlated hot-distractor bursts, independently changing claims, delayed/out-of-order source times, and occasional corrupted evidence.
 - Every episode independently samples distractor frequency, claim-change rate, maximum delay, and corruption from a family-specific range. Factor values vary within each family, so high/low nuisance strata are not assigned solely by the development/held-out label.
-- Policies: bounded FIFO, deterministic seeded uniform reservoir, query-keyed latest-source-time memory, and a selective query-keyed decision policy whose freshness/confidence threshold is chosen on separate development-calibration seeds and then frozen for both report families.
+- Policies: bounded FIFO, deterministic seeded uniform reservoir, query-keyed latest-source-time memory, a query-keyed selective policy calibrated on separate development seeds, and a query-keyed hazard-aware policy that estimates per-claim transition hazard from released high-confidence evidence.
 - Capacities: 1, 2, 3, 4, and 8 evidence entries. Each policy receives the same released stream and public query at each episode/capacity pair.
 - 12 seed replicates × 32 episode seeds = 384 paired episodes per family and policy/capacity.
 - Loss: correct answer = 0; abstention without fresh retained evidence for all three queried claims = 0.25; incorrect answer = 1.
-- Metrics: mean loss (primary), answer rate, accuracy on answered episodes, fresh query-claim coverage, mean memory entries, the selected selective threshold, and paired 95% bootstrap intervals for every policy's loss difference versus FIFO. Positive deltas mean worse loss.
+- Metrics: mean loss (primary), answer rate, accuracy on answered episodes, fresh query-claim coverage, mean memory entries, logical serialized-state bytes (retained evidence payload plus any auxiliary sufficient statistics), the selected selective threshold, and paired 95% bootstrap intervals for every policy's loss difference versus FIFO. Positive deltas mean worse loss. Logical bytes exclude allocator/runtime overhead and are not measured RAM.
 - Selective threshold grid: minimum evidence confidence {350, 900} × maximum source age {2, 4, 7}. Selection minimizes mean decision loss on a separate 256-episode development calibration seed set; ties prefer higher confidence then lower allowed age. Those calibration seeds are disjoint from the report seeds and held-out outcomes never select thresholds.
 - Fixed-seed report replay and tests cover delayed stale evidence, query-irrelevant distractors, capacity bounds, and deterministic bootstrap.
 
@@ -81,11 +81,13 @@ The candidate update samples four nuisance dimensions independently for each epi
 | Maximum delivery delay (ticks) | 0, 1, 2 | 2, 3, 4, 5 | Development ≥1; held-out ≥4 |
 | Evidence corruption probability | 0.00, 0.01, 0.02 | 0.04, 0.055, 0.07 | Development ≥0.01; held-out ≥0.055 |
 
-The rates are sampled independently using domain-separated draws from the deterministic episode PRNG. The values remain evaluator-owned. Policies see only each released observation, its value/confidence, source timestamp, arrival timestamp and public query. Family-conditional high/low flags are used only to aggregate results, never by the policy.
+The rates are sampled independently using sequential draws from the deterministic episode PRNG. The values remain evaluator-owned. Policies see only each released observation, its value/confidence, source timestamp, arrival timestamp and public query. Family-conditional high/low flags are used only to aggregate results, never by the policy.
+
+The hazard-aware candidate is deliberately a simple baseline, not a claim of Bayesian calibration: it tracks high-confidence value transitions and elapsed source ticks per queried claim, estimates a regularized per-tick flip rate, discounts source evidence toward uncertainty as it ages, and computes the implied probability of the 3-claim majority. It answers only when expected 0/1 answer loss is lower than the benchmark's 0.25 abstention loss. Its auxiliary sufficient-statistic bytes are included in `mean_logical_state_bytes`; allocator, runtime and wall-clock costs are not.
 
 The report now has eight overlapping evaluator-only dimensions: hidden truth change after latest evidence, observed out-of-order query evidence, low-confidence latest query evidence, any realized query-observation delay above two ticks, and high/low sampled levels of each of the four nuisance factors. This should support within-family sensitivity analysis and show policy-by-factor interactions instead of treating every nuisance shift as one OOD bundle.
 
-**Qualification rule:** the previously recorded exact-head results refer to the earlier fixed-profile generator. The new factorized generator is unqualified until its current exact-head tests, deterministic TSV comparison, row checks and artifact SHA succeed. Report per-factor sample counts and confidence intervals; an empty or single-level stratum is a benchmark-design failure, not evidence of robustness.
+**Qualification rule:** the previously recorded exact-head results refer to the earlier fixed-profile generator. The factorized generator plus hazard-aware policy are candidate changes and remain unqualified until the current exact-head tests, deterministic TSV comparison, row checks and artifact SHA succeed. Report per-factor sample counts and confidence intervals; an empty or single-level stratum is a benchmark-design failure, not evidence of robustness. The new policy must be compared on both task loss and logical state cost; its additional statistics cannot be treated as free memory.
 
 ## Limits
 
