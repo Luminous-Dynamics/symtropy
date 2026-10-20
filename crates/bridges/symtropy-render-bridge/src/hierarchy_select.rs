@@ -220,8 +220,8 @@ fn visit_node(
         .get(&node_id)
         .ok_or(HierarchySelectionError::MissingChildNode)?;
     let has_children = !node.children.is_empty();
-    let wants_refine = has_children
-        && (node.force_refine || node.screen_error_px > policy.max_screen_error_px);
+    let wants_refine =
+        has_children && (node.force_refine || node.screen_error_px > policy.max_screen_error_px);
 
     if !wants_refine {
         return choose_current_or_bypass(node, index, policy, result);
@@ -239,7 +239,9 @@ fn visit_node(
         if node.detail_pinned || node.force_refine {
             return Err(HierarchySelectionError::ProtectedDetailUnavailable);
         }
-        if node.refinement == HierarchyRefinement::Additive && node.content == ContentAvailability::Ready {
+        if node.refinement == HierarchyRefinement::Additive
+            && node.content == ContentAvailability::Ready
+        {
             result.render_nodes.push(selected(node));
             result.held_parent_nodes.push(HeldParent {
                 node_id: node.node_id,
@@ -366,23 +368,27 @@ mod tests {
     }
 
     fn rendered(result: &HierarchySelection) -> Vec<u64> {
-        result.render_nodes.iter().map(|choice| choice.node_id).collect()
+        result
+            .render_nodes
+            .iter()
+            .map(|choice| choice.node_id)
+            .collect()
     }
 
     #[test]
     fn within_error_budget_keeps_parent_representation() {
         let parent = node(1, None, vec![2, 3], 1.0);
-        let children = [
-            node(2, Some(1), vec![], 0.5),
-            node(3, Some(1), vec![], 0.5),
-        ];
+        let children = [node(2, Some(1), vec![], 0.5), node(3, Some(1), vec![], 0.5)];
         let result = select_hierarchy(&[parent, children[0].clone(), children[1].clone()], POLICY)
             .expect("valid hierarchy");
         assert_eq!(rendered(&result), vec![1]);
-        assert_eq!(result.held_parent_nodes, vec![HeldParent {
-            node_id: 1,
-            reason: HierarchyHoldReason::WithinErrorBudget,
-        }]);
+        assert_eq!(
+            result.held_parent_nodes,
+            vec![HeldParent {
+                node_id: 1,
+                reason: HierarchyHoldReason::WithinErrorBudget,
+            }]
+        );
         assert!(result.refined_parent_nodes.is_empty());
     }
 
@@ -391,7 +397,8 @@ mod tests {
         let parent = node(1, None, vec![3, 2], 10.0);
         let child_a = node(2, Some(1), vec![], 0.5);
         let child_b = node(3, Some(1), vec![], 0.5);
-        let result = select_hierarchy(&[parent, child_b, child_a], POLICY).expect("valid hierarchy");
+        let result =
+            select_hierarchy(&[parent, child_b, child_a], POLICY).expect("valid hierarchy");
         assert_eq!(rendered(&result), vec![2, 3]);
         assert_eq!(result.refined_parent_nodes, vec![1]);
     }
@@ -402,9 +409,13 @@ mod tests {
         let child_a = node(2, Some(1), vec![], 0.5);
         let mut child_b = node(3, Some(1), vec![], 0.5);
         child_b.content = ContentAvailability::Loading;
-        let result = select_hierarchy(&[parent, child_a, child_b], POLICY).expect("parent fallback");
+        let result =
+            select_hierarchy(&[parent, child_a, child_b], POLICY).expect("parent fallback");
         assert_eq!(rendered(&result), vec![1]);
-        assert_eq!(result.held_parent_nodes[0].reason, HierarchyHoldReason::ChildContentNotReady);
+        assert_eq!(
+            result.held_parent_nodes[0].reason,
+            HierarchyHoldReason::ChildContentNotReady
+        );
         assert!(result.refined_parent_nodes.is_empty());
     }
 
@@ -523,13 +534,23 @@ mod tests {
         let child_a = node(2, Some(1), vec![], 0.5);
         let child_b = node(3, Some(1), vec![], 0.5);
         let result = select_hierarchy(&[parent, child_a, child_b], POLICY).expect("selection");
-        assert!(result.render_nodes.iter().all(|node| node.semantic_entity_id == 42));
+        assert!(
+            result
+                .render_nodes
+                .iter()
+                .all(|node| node.semantic_entity_id == 42)
+        );
     }
 
     #[test]
     fn rejects_bad_budgets_and_missing_fallback_content() {
         assert_eq!(
-            select_hierarchy(&[], HierarchyPolicy { max_screen_error_px: f32::INFINITY }),
+            select_hierarchy(
+                &[],
+                HierarchyPolicy {
+                    max_screen_error_px: f32::INFINITY
+                }
+            ),
             Err(HierarchySelectionError::InvalidScreenErrorBudget)
         );
         let mut lone = node(1, None, vec![], 1.0);
