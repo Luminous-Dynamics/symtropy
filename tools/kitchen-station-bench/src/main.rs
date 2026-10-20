@@ -256,7 +256,7 @@ fn validate_record(v: &Value, source: &str, records_dir: &Path, contracts: &Cont
     let mut errors = Vec::new();
     missing_keys(v, REQUIRED, source, &mut errors);
     reject_unknown_keys(v, TOP_KEYS, source, &mut errors);
-    if req_text(v, "schema_version", source).as_deref() != Ok("1.0.0") {
+    if req_text(v, "schema_version", source).unwrap_or_default() != "1.0.0" {
         errors.push(format!("{source}: schema_version must be 1.0.0"));
     }
 
