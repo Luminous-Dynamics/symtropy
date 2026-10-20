@@ -429,6 +429,7 @@ jobs:
               --arg revision "$source_revision" \
               --arg normalized_sha "$normalized_sha256" \
               --arg stress_sha "$stress_sha256" \
+              --arg mesh_sha "$mesh_sha256" \
               --arg level "$level" \
               --slurpfile request "$level_dir/request.json" '
               {
@@ -445,6 +446,9 @@ jobs:
                   solver_version:"0.1.0",
                   solver_build_ref:"fixture-only:no-solver-executed"
                 },
+                input_artifacts:[
+                  {input_id:"mesh",kind:"finite_element_mesh",sha256:$mesh_sha,media_type:"text/plain",artifact_ref:("levels/" + $level + "/mesh.inp")}
+                ],
                 status:"PASS",
                 evidence_class:"synthetic",
                 physics_evaluated:$request[0].requested_physics,
