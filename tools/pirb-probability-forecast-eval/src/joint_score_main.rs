@@ -94,7 +94,9 @@ fn schema_errors(registration: &Value) -> Vec<String> {
         Err(error) => return vec![format!("embedded joint-score schema is invalid: {error}")],
     };
     if let Err(error) = jsonschema::draft202012::meta::validate(&schema) {
-        return vec![format!("Draft 2020-12 schema meta-validation failed: {error}")];
+        return vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )];
     }
     let validator = match jsonschema::draft202012::new(&schema) {
         Ok(value) => value,
@@ -108,10 +110,7 @@ fn schema_errors(registration: &Value) -> Vec<String> {
     errors
 }
 
-fn graph_has_cycle(
-    nodes: &BTreeMap<String, &Value>,
-    constraints: &[Value],
-) -> bool {
+fn graph_has_cycle(nodes: &BTreeMap<String, &Value>, constraints: &[Value]) -> bool {
     let mut adjacency: BTreeMap<String, BTreeSet<String>> = nodes
         .keys()
         .map(|id| (id.clone(), BTreeSet::new()))
@@ -168,8 +167,12 @@ fn graph_has_cycle(
 
 fn semantic_errors(registration: &Value) -> Vec<String> {
     let mut errors = Vec::new();
-    let origin = registration["forecast_origin_index"].as_i64().unwrap_or_default();
-    let target = registration["target_period_index"].as_i64().unwrap_or_default();
+    let origin = registration["forecast_origin_index"]
+        .as_i64()
+        .unwrap_or_default();
+    let target = registration["target_period_index"]
+        .as_i64()
+        .unwrap_or_default();
     let cutoff = registration["sample_policy"]["parameter_fit_cutoff_index"]
         .as_i64()
         .unwrap_or_default();
@@ -216,17 +219,23 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
 
     let mut nodes: BTreeMap<String, &Value> = BTreeMap::new();
     for node in node_values {
-        let id = string_at(node, "forecast_id").unwrap_or_default().to_owned();
+        let id = string_at(node, "forecast_id")
+            .unwrap_or_default()
+            .to_owned();
         if nodes.insert(id.clone(), node).is_some() {
             errors.push(format!("forecast node ID is duplicated: {id}"));
         }
         if node["period_index"].as_i64() != Some(target) {
-            errors.push(format!("forecast node {id} period_index must equal target_period_index"));
+            errors.push(format!(
+                "forecast node {id} period_index must equal target_period_index"
+            ));
         }
     }
     for id in &scored_ids {
         if !nodes.contains_key(id) {
-            errors.push(format!("scored vector references unknown forecast node {id}"));
+            errors.push(format!(
+                "scored vector references unknown forecast node {id}"
+            ));
         }
     }
 
@@ -253,7 +262,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         }
         let parent_id = string_at(constraint, "parent_forecast_id").unwrap_or_default();
         let Some(parent) = nodes.get(parent_id).copied() else {
-            errors.push(format!("constraint {id} references unknown parent {parent_id}"));
+            errors.push(format!(
+                "constraint {id} references unknown parent {parent_id}"
+            ));
             continue;
         };
         let child_ids = constraint["child_forecast_ids"]
@@ -269,7 +280,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                 continue;
             }
             let Some(child) = nodes.get(*child_id).copied() else {
-                errors.push(format!("constraint {id} references unknown child {child_id}"));
+                errors.push(format!(
+                    "constraint {id} references unknown child {child_id}"
+                ));
                 continue;
             };
             match string_at(constraint, "kind").unwrap_or_default() {
@@ -283,7 +296,11 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                     if string_at(child, "unit_id") != string_at(parent, "unit_id") {
                         errors.push(format!("event-type constraint {id} mixes units"));
                     }
-                    actual_keys.insert(string_at(child, "event_type_id").unwrap_or_default().to_owned());
+                    actual_keys.insert(
+                        string_at(child, "event_type_id")
+                            .unwrap_or_default()
+                            .to_owned(),
+                    );
                 }
                 _ => errors.push(format!("constraint {id} has unsupported kind")),
             }
@@ -296,11 +313,15 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             .map(str::to_owned)
             .collect::<BTreeSet<_>>();
         if actual_keys != expected_keys {
-            errors.push(format!("constraint {id} child rows do not match expected_child_keys"));
+            errors.push(format!(
+                "constraint {id} child rows do not match expected_child_keys"
+            ));
         }
 
         let parent_selected = scored_set.contains(parent_id);
-        let selected_child = child_ids.iter().any(|child_id| scored_set.contains(*child_id));
+        let selected_child = child_ids
+            .iter()
+            .any(|child_id| scored_set.contains(*child_id));
         if parent_selected && selected_child {
             errors.push(format!(
                 "scored vector double-counts aggregate parent {parent_id} alongside one or more children in constraint {id}"
@@ -319,10 +340,17 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             errors.push(format!("sample row references undeclared draw {draw_id}"));
         }
         if !nodes.contains_key(&forecast_id) {
-            errors.push(format!("sample row references undeclared forecast node {forecast_id}"));
+            errors.push(format!(
+                "sample row references undeclared forecast node {forecast_id}"
+            ));
         }
-        if rows_by_key.insert((draw_id.clone(), forecast_id.clone()), row).is_some() {
-            errors.push(format!("duplicate sample row for draw {draw_id}, node {forecast_id}"));
+        if rows_by_key
+            .insert((draw_id.clone(), forecast_id.clone()), row)
+            .is_some()
+        {
+            errors.push(format!(
+                "duplicate sample row for draw {draw_id}, node {forecast_id}"
+            ));
         }
     }
     let expected_row_count = unique_draw_ids.len().saturating_mul(nodes.len());
@@ -348,11 +376,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     errors
 }
 
-fn score_matrix(
-    samples: &[Vec<f64>],
-    observed: &[f64],
-    exponent: f64,
-) -> Value {
+fn score_matrix(samples: &[Vec<f64>], observed: &[f64], exponent: f64) -> Value {
     json!({
         "energy_score": energy_score(samples, observed),
         "variogram_score": variogram_score(samples, observed, exponent)
@@ -405,7 +429,9 @@ fn validate_and_score(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         .map(|row| {
             (
                 (
-                    string_at(row, "draw_id").expect("schema validated draw_id").to_owned(),
+                    string_at(row, "draw_id")
+                        .expect("schema validated draw_id")
+                        .to_owned(),
                     string_at(row, "forecast_id")
                         .expect("schema validated forecast_id")
                         .to_owned(),
@@ -462,10 +488,12 @@ fn validate_and_score(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         .as_array()
         .expect("validated forecast_nodes")
         .iter()
-        .map(|node| (
-            string_at(node, "forecast_id").expect("validated forecast_id"),
-            node,
-        ))
+        .map(|node| {
+            (
+                string_at(node, "forecast_id").expect("validated forecast_id"),
+                node,
+            )
+        })
         .collect::<BTreeMap<_, _>>();
     let mut coherence = Vec::new();
     let mut base_coherent_draw_count = 0usize;
@@ -476,8 +504,8 @@ fn validate_and_score(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         let mut base_draw_coherent = true;
         let mut reconciled_draw_coherent = true;
         for constraint in constraints {
-            let parent_id = string_at(constraint, "parent_forecast_id")
-                .expect("validated parent_forecast_id");
+            let parent_id =
+                string_at(constraint, "parent_forecast_id").expect("validated parent_forecast_id");
             let parent_node = node_by_id.get(parent_id).expect("validated node");
             let parent_row = rows_by_key
                 .get(&(draw_id.clone(), parent_id.to_owned()))
@@ -496,7 +524,8 @@ fn validate_and_score(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
                 })
                 .collect::<Vec<_>>();
             let raw_parent = number_at(parent_row, "raw_count").expect("raw_count");
-            let reconciled_parent = number_at(parent_row, "reconciled_count").expect("reconciled_count");
+            let reconciled_parent =
+                number_at(parent_row, "reconciled_count").expect("reconciled_count");
             let raw_child_sum = child_rows
                 .iter()
                 .map(|row| number_at(row, "raw_count").expect("raw_count"))
@@ -568,8 +597,8 @@ fn validate_and_score(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         })
         .fold(0.0_f64, f64::max);
 
-    let registration_id = string_at(&registration, "registration_id")
-        .expect("schema validated registration_id");
+    let registration_id =
+        string_at(&registration, "registration_id").expect("schema validated registration_id");
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
     let input_sha256 = sha256_hex(input);
     let implementation_sha256 = sha256_hex(IMPLEMENTATION_BYTES);
@@ -643,16 +672,13 @@ fn validate_and_score(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
 fn run() -> Result<(), String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     let input_path = option_value(&args, "--input")?.ok_or_else(|| {
-        "usage: pirb-joint-score-eval --input REGISTRATION.json [--source-commit SHA]"
-            .to_owned()
+        "usage: pirb-joint-score-eval --input REGISTRATION.json [--source-commit SHA]".to_owned()
     })?;
-    let input = fs::read(&input_path).map_err(|error| {
-        format!("cannot read joint-score registration {input_path}: {error}")
-    })?;
+    let input = fs::read(&input_path)
+        .map_err(|error| format!("cannot read joint-score registration {input_path}: {error}"))?;
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
-    let receipt =
-        validate_and_score(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
+    let receipt = validate_and_score(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -692,11 +718,9 @@ mod tests {
 
     #[test]
     fn four_draw_two_dimensional_scores_match_hand_calculated_golden_values() {
-        let receipt = validate_and_score(
-            FOUR_DRAW_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("four-draw oracle fixture validates");
+        let receipt =
+            validate_and_score(FOUR_DRAW_BYTES, "0123456789abcdef0123456789abcdef01234567")
+                .expect("four-draw oracle fixture validates");
         let base = &receipt["score_results"]["base_unreconciled"];
         let reconciled = &receipt["score_results"]["reconciled"];
         let root_two = 2.0_f64.sqrt();
@@ -724,11 +748,9 @@ mod tests {
 
     #[test]
     fn independent_three_draw_scores_match_hand_calculated_golden_values() {
-        let receipt = validate_and_score(
-            THREE_DRAW_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("three-draw oracle fixture validates");
+        let receipt =
+            validate_and_score(THREE_DRAW_BYTES, "0123456789abcdef0123456789abcdef01234567")
+                .expect("three-draw oracle fixture validates");
         let scores = &receipt["score_results"]["base_unreconciled"];
         close(
             scores["energy_score"].as_f64().unwrap(),
@@ -741,16 +763,17 @@ mod tests {
     #[test]
     fn parent_and_child_cannot_be_scored_in_the_same_vector() {
         let mut value = parse(FOUR_DRAW_BYTES);
-        value["scored_node_ids"] = json!([
-            "fc-country-a-organized",
-            "fc-admin1-a-organized"
-        ]);
+        value["scored_node_ids"] = json!(["fc-country-a-organized", "fc-admin1-a-organized"]);
         value["observed_vector"] = json!([
             {"forecast_id":"fc-country-a-organized","observed_count":0},
             {"forecast_id":"fc-admin1-a-organized","observed_count":0}
         ]);
         let errors = audit(&value).expect_err("aggregate plus child double-counts a target");
-        assert!(errors.iter().any(|error| error.contains("double-counts aggregate parent")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("double-counts aggregate parent"))
+        );
     }
 
     #[test]
@@ -761,8 +784,16 @@ mod tests {
             .expect("sample_rows is an array")
             .remove(4);
         let errors = audit(&value).expect_err("every draw-node cell is required");
-        assert!(errors.iter().any(|error| error.contains("sample row count")));
-        assert!(errors.iter().any(|error| error.contains("missing sample cell")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("sample row count"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("missing sample cell"))
+        );
     }
 
     #[test]
@@ -774,7 +805,11 @@ mod tests {
             .expect("sample_rows is an array")
             .push(duplicate);
         let errors = audit(&value).expect_err("duplicate sample cell is ambiguous");
-        assert!(errors.iter().any(|error| error.contains("duplicate sample row")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate sample row"))
+        );
     }
 
     #[test]
@@ -793,7 +828,11 @@ mod tests {
             .expect("observed_vector is an array")
             .reverse();
         let errors = audit(&value).expect_err("coordinate ordering must be pinned");
-        assert!(errors.iter().any(|error| error.contains("order must exactly match")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("order must exactly match"))
+        );
     }
 
     #[test]
@@ -809,7 +848,10 @@ mod tests {
             first["score_results"]["base_unreconciled"],
             second["score_results"]["base_unreconciled"]
         );
-        assert_eq!(first["score_results"]["reconciled"], second["score_results"]["reconciled"]);
+        assert_eq!(
+            first["score_results"]["reconciled"],
+            second["score_results"]["reconciled"]
+        );
         assert_ne!(first["input_sha256"], second["input_sha256"]);
     }
 
@@ -819,6 +861,10 @@ mod tests {
         value["scored_node_ids"][1] = json!("fc-missing-node");
         value["observed_vector"][1]["forecast_id"] = json!("fc-missing-node");
         let errors = audit(&value).expect_err("unknown target node must fail closed");
-        assert!(errors.iter().any(|error| error.contains("unknown forecast node")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown forecast node"))
+        );
     }
 }
