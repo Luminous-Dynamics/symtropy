@@ -154,7 +154,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         os: env::consts::OS.to_owned(),
         architecture: env::consts::ARCH.to_owned(),
         samples_per_workload: options.samples,
-        warmup_samples: options.samples.min(10).max(5),
+        warmup_samples: options.samples.clamp(5, 10),
         results,
         claim_scope: vec![
             "Measures CPU wall-clock time for the LOD allocation policy only.".to_owned(),
@@ -233,12 +233,16 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), Box<dyn Error>> {
     }
 
     let mut previous: Option<&CandidateSpec> = None;
+    let mut representation_offsets = std::collections::HashSet::new();
     for candidate in &manifest.candidate_representations {
         if candidate.cost_units == 0
             || !candidate.screen_error_px.is_finite()
             || candidate.screen_error_px < 0.0
+            || candidate.representation_id_offset == 0
+            || candidate.representation_id_offset >= 100
+            || !representation_offsets.insert(candidate.representation_id_offset)
         {
-            return Err("candidate costs/errors must be positive/finite/non-negative".into());
+            return Err("candidate costs/errors/representation offsets are invalid".into());
         }
         if let Some(prior) = previous {
             if candidate.quality_rank <= prior.quality_rank
@@ -267,10 +271,23 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), Box<dyn Error>> {
         if workload.importance_rule != "1 + (entity_id modulo 10)" {
             return Err(format!("unsupported importance rule in {}", workload.workload_id).into());
         }
-        if workload.selected_entity_ids.iter().any(|id| *id == 0 || *id > workload.entity_count as u64)
-            || workload.critical_entity_ids.iter().any(|id| *id == 0 || *id > workload.entity_count as u64)
+        let entity_count_u64 = u64::try_from(workload.entity_count)
+            .map_err(|_| format!("entity count cannot be represented for {}", workload.workload_id))?;
+        if workload.selected_entity_ids.iter().any(|id| *id == 0 || *id > entity_count_u64)
+            || workload.critical_entity_ids.iter().any(|id| *id == 0 || *id > entity_count_u64)
         {
             return Err(format!("protected IDs outside workload {}", workload.workload_id).into());
+        }
+        let mut protected_ids = std::collections::HashSet::new();
+        for id in &workload.selected_entity_ids {
+            if !protected_ids.insert(*id) {
+                return Err(format!("duplicate selected entity ID {id} in {}", workload.workload_id).into());
+            }
+        }
+        for id in &workload.critical_entity_ids {
+            if !protected_ids.insert(*id) {
+                return Err(format!("duplicate/overlapping critical entity ID {id} in {}", workload.workload_id).into());
+            }
         }
         let profile_exists = manifest
             .screen_error_profiles
@@ -302,7 +319,7 @@ fn run_workload(
     let budget_units =
         ((finest_total as f64) * workload.budget_fraction_of_finest_cost).floor() as u64;
 
-    let warmup_samples = samples.min(10).max(5);
+    let warmup_samples = samples.clamp(5, 10);
     for _ in 0..warmup_samples {
         let allocation = allocate_lod(&demands, budget_units, profile.max_screen_error_px)
             .map_err(|error| format!("warm-up failed for {}: {error:?}", workload.workload_id))?;
@@ -355,7 +372,9 @@ fn run_workload(
         .filter(|choice| {
             (workload.selected_entity_ids.contains(&choice.entity_id)
                 || workload.critical_entity_ids.contains(&choice.entity_id))
-                && !choice.protected
+                && (!choice.protected
+                    || choice.quality_rank
+                        != candidate_specs.last().map(|candidate| candidate.quality_rank).unwrap_or_default())
         })
         .count();
     let screen_error_violations = allocation
