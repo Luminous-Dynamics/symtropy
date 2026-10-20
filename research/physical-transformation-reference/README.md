@@ -81,6 +81,7 @@ Offline research only. This crate cannot authorize or control demolition/constru
 The optional `design_for_disassembly` module adds a **vector-valued** connector metadata assessment:
 
 - connection type: reversible fastener, cut-required, bonded/monolithic, or unknown;
+- required tool class (tool-free, standard hand tool, powered hand tool, thermal cutting, specialized rig, or unknown);
 - declared disassembly effort (person-minutes), retaining `None` if the total is not complete;
 - tool access and inspection access: accessible, constrained, blocked, or unknown;
 - declared component-damage risk: low, moderate, high, or unknown;
