@@ -158,7 +158,10 @@ pub enum ProfileValidationError {
     EmptyRequiredInput,
     EmptyDeclaredOutput,
     EmptyEvidenceSuite,
-    DuplicateEvidenceSuite { class: EvidenceClass, suite_id: String },
+    DuplicateEvidenceSuite {
+        class: EvidenceClass,
+        suite_id: String,
+    },
 }
 
 impl HazardModelProfile {
