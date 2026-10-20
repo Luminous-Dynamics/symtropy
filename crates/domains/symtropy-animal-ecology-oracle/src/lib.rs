@@ -1011,6 +1011,21 @@ pub fn validate_pilot_manifest(
         true,
         "pilot.policy_comparison",
     )?;
+    let baseline_set = string_array_set(comparison, "qualifying_baselines", "pilot.policy_comparison")?;
+    let candidate_set = string_array_set(comparison, "candidates", "pilot.policy_comparison")?;
+    let upper_bound_set = string_array_set(
+        comparison,
+        "nonqualifying_upper_bounds",
+        "pilot.policy_comparison",
+    )?;
+    if !baseline_set.is_disjoint(&candidate_set)
+        || !baseline_set.is_disjoint(&upper_bound_set)
+        || !candidate_set.is_disjoint(&upper_bound_set)
+    {
+        return Err(ValidationError::new(
+            "pilot qualifying baselines, candidates, and nonqualifying upper bounds must be disjoint",
+        ));
+    }
 
     let metrics = root
         .get("primary_metrics")
@@ -1260,6 +1275,32 @@ fn require_exact_string(
     Ok(())
 }
 
+fn string_array_set(
+    value: &Value,
+    key: &str,
+    path: &str,
+) -> Result<BTreeSet<String>, ValidationError> {
+    let array = value
+        .get(key)
+        .and_then(Value::as_array)
+        .ok_or_else(|| ValidationError::new(format!("{path}.{key} must be an array")))?;
+    let mut values = BTreeSet::new();
+    for (index, item) in array.iter().enumerate() {
+        let text = item
+            .as_str()
+            .filter(|text| !text.trim().is_empty())
+            .ok_or_else(|| {
+                ValidationError::new(format!("{path}.{key}[{index}] must be a nonempty string"))
+            })?;
+        if !values.insert(text.to_owned()) {
+            return Err(ValidationError::new(format!(
+                "{path}.{key} contains duplicate entry {text}"
+            )));
+        }
+    }
+    Ok(values)
+}
+
 fn require_unique_nonempty_string_array(
     value: &Value,
     key: &str,
@@ -1379,6 +1420,78 @@ mod tests {
         assert_eq!(report.schema_version, ORACLE_SCHEMA_VERSION);
         assert_eq!(report.case_count, EXPECTED_CASE_COUNT);
         assert_eq!(report.unique_case_ids, EXPECTED_CASE_COUNT);
+    }
+
+    #[test]
+    fn committed_pilot_manifest_and_schema_are_consistent() {
+        let report = validate_pilot_manifest(COMMITTED_PILOT_JSON, COMMITTED_PILOT_SCHEMA_JSON)
+            .expect("committed synthetic pilot manifest validates");
+        assert_eq!(report.scenario_id, "flood_forage_risk_corridor_v0");
+        assert_eq!(report.seed_count, 10);
+        assert_eq!(report.model_count, 3);
+    }
+
+    #[test]
+    fn pilot_shock_intervals_must_overlap() {
+        let mut pilot: Value =
+            serde_json::from_str(COMMITTED_PILOT_JSON).expect("pilot fixture parses");
+        pilot["world"]["resource_shortage"]["start_tick"] = json!(800);
+        let input = serde_json::to_string(&pilot).expect("mutated pilot serializes");
+        assert!(validate_pilot_manifest(&input, COMMITTED_PILOT_SCHEMA_JSON).is_err());
+    }
+
+    #[test]
+    fn blind_challenger_must_not_be_revealed_early() {
+        let mut pilot: Value =
+            serde_json::from_str(COMMITTED_PILOT_JSON).expect("pilot fixture parses");
+        pilot["model_registry"][2]["revealed_before_evaluation"] = json!(true);
+        let input = serde_json::to_string(&pilot).expect("mutated pilot serializes");
+        assert!(validate_pilot_manifest(&input, COMMITTED_PILOT_SCHEMA_JSON).is_err());
+    }
+
+    #[test]
+    fn privileged_planner_cannot_be_a_qualifying_baseline() {
+        let mut pilot: Value =
+            serde_json::from_str(COMMITTED_PILOT_JSON).expect("pilot fixture parses");
+        pilot["policy_comparison"]["qualifying_baselines"]
+            .as_array_mut()
+            .expect("baseline list is an array")
+            .push(json!("privileged_planner_upper_bound"));
+        let input = serde_json::to_string(&pilot).expect("mutated pilot serializes");
+        assert!(validate_pilot_manifest(&input, COMMITTED_PILOT_SCHEMA_JSON).is_err());
+    }
+
+    #[test]
+    fn hidden_state_denial_is_required() {
+        let mut pilot: Value =
+            serde_json::from_str(COMMITTED_PILOT_JSON).expect("pilot fixture parses");
+        pilot["sensory_contract"]["denied_inputs"] = json!([
+            "global_current_vector_field",
+            "intervention_label",
+            "hidden_model_id",
+            "exact_global_resource_coordinates",
+            "other_hidden_input"
+        ]);
+        let input = serde_json::to_string(&pilot).expect("mutated pilot serializes");
+        assert!(validate_pilot_manifest(&input, COMMITTED_PILOT_SCHEMA_JSON).is_err());
+    }
+
+    #[test]
+    fn resource_accounting_violation_limit_cannot_be_relaxed() {
+        let mut pilot: Value =
+            serde_json::from_str(COMMITTED_PILOT_JSON).expect("pilot fixture parses");
+        pilot["hard_invariants"]["resource_accounting_violation_limit"] = json!(1);
+        let input = serde_json::to_string(&pilot).expect("mutated pilot serializes");
+        assert!(validate_pilot_manifest(&input, COMMITTED_PILOT_SCHEMA_JSON).is_err());
+    }
+
+    #[test]
+    fn pilot_schema_root_must_remain_closed() {
+        let mut schema: Value =
+            serde_json::from_str(COMMITTED_PILOT_SCHEMA_JSON).expect("pilot schema parses");
+        schema["additionalProperties"] = json!(true);
+        let input = serde_json::to_string(&schema).expect("mutated schema serializes");
+        assert!(validate_pilot_manifest(COMMITTED_PILOT_JSON, &input).is_err());
     }
 
     #[test]
