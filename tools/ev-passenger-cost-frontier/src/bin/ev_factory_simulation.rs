@@ -1539,7 +1539,9 @@ mod tests {
     #[test]
     fn dispatch_policy_defaults_to_fifo_for_legacy_catalogs() {
         let original = include_str!("../../fixtures/ev_factory_simulation_v0_1.json");
-        let legacy = original.replace("  \"dispatch_policy\": \"fifo\",\n", "");
+        let legacy = original
+            .replace("  \"dispatch_policy\": \"fifo\",\n", "")
+            .replace("  \"maximum_consecutive_skips\": 3,\n", "");
         let catalog: Catalog = serde_json::from_str(&legacy).expect("legacy fixture parses");
         assert_eq!(catalog.dispatch_policy, DispatchPolicy::Fifo);
         assert_eq!(catalog.maximum_consecutive_skips, 3);
