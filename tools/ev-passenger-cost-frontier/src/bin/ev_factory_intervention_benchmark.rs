@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, env, fs, process};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    env, fs, process,
+};
 
 const CLAIM_CEILING: &str = "Synthetic intervention-ranking evaluator only. Its oracle is the paired counterfactual result of the declared simulator, not a measured factory truth, industry benchmark, causal production estimate, or capital-investment recommendation.";
 
@@ -249,7 +252,9 @@ fn validate_simulation_report(input: &SimulationReport) -> Result<(), String> {
     for statistic in &input.scenario_statistics {
         if statistic.scenario_id == "baseline" {
             if statistic.intervention_station_id.is_some()
-                || statistic.paired_good_units_per_hour_delta_vs_baseline.is_some()
+                || statistic
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .is_some()
             {
                 return Err("baseline_statistics_must_not_claim_intervention_delta".into());
             }
@@ -311,19 +316,30 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
             .station_sequence_statistics
             .iter()
             .find(|item| item.scenario_id == "baseline" && item.station_id == station.station_id)
-            .ok_or_else(|| format!("baseline_changeover_summary_missing_for_{}", station.station_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "baseline_changeover_summary_missing_for_{}",
+                    station.station_id
+                )
+            })?;
         let effect = input
             .scenario_statistics
             .iter()
-            .find(|item| item.intervention_station_id.as_deref() == Some(station.station_id.as_str()))
+            .find(|item| {
+                item.intervention_station_id.as_deref() == Some(station.station_id.as_str())
+            })
             .and_then(|item| item.paired_good_units_per_hour_delta_vs_baseline.as_ref())
-            .ok_or_else(|| format!("paired_intervention_effect_missing_for_{}", station.station_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "paired_intervention_effect_missing_for_{}",
+                    station.station_id
+                )
+            })?;
         candidates.push(StationCandidate {
             station_id: station.station_id.clone(),
             utilization_fraction: station.busy_fraction,
             busy_plus_down_proxy_fraction: (station.busy_fraction + station.down_fraction).min(1.0),
-            flow_pressure_heuristic_score: station.busy_fraction
-                + 0.5 * station.blocked_fraction
+            flow_pressure_heuristic_score: station.busy_fraction + 0.5 * station.blocked_fraction
                 - station.starved_fraction
                 - station.down_fraction,
             mean_changeovers_started: sequence.changeovers_started.mean,
@@ -354,14 +370,30 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
     };
 
     let methods: Vec<(DiagnosticMethod, fn(&StationCandidate) -> f64)> = vec![
-        (DiagnosticMethod::UtilizationMaximum, |candidate| candidate.utilization_fraction),
-        (DiagnosticMethod::BusyPlusDownProxy, |candidate| candidate.busy_plus_down_proxy_fraction),
-        (DiagnosticMethod::FlowPressureHeuristic, |candidate| candidate.flow_pressure_heuristic_score),
-        (DiagnosticMethod::ChangeoverBurden, |candidate| candidate.mean_changeovers_started),
+        (DiagnosticMethod::UtilizationMaximum, |candidate| {
+            candidate.utilization_fraction
+        }),
+        (DiagnosticMethod::BusyPlusDownProxy, |candidate| {
+            candidate.busy_plus_down_proxy_fraction
+        }),
+        (DiagnosticMethod::FlowPressureHeuristic, |candidate| {
+            candidate.flow_pressure_heuristic_score
+        }),
+        (DiagnosticMethod::ChangeoverBurden, |candidate| {
+            candidate.mean_changeovers_started
+        }),
     ];
     let method_scores = methods
         .into_iter()
-        .map(|(method, score)| score_method(method, score, &candidates, &oracle_ranked, intervals_separate))
+        .map(|(method, score)| {
+            score_method(
+                method,
+                score,
+                &candidates,
+                &oracle_ranked,
+                intervals_separate,
+            )
+        })
         .collect();
     Ok(Report {
         schema_version: "0.1.0".into(),
@@ -409,13 +441,18 @@ fn score_method(
     };
     let best_gain = oracle_ranked[0].oracle_mean_paired_gain_units_per_hour;
     let selected = predicted.as_ref().and_then(|station_id| {
-        candidates.iter().find(|candidate| &candidate.station_id == station_id)
+        candidates
+            .iter()
+            .find(|candidate| &candidate.station_id == station_id)
     });
-    let regret = selected.map(|candidate| {
-        (best_gain - candidate.oracle_mean_paired_gain_units_per_hour).max(0.0)
-    });
+    let regret = selected
+        .map(|candidate| (best_gain - candidate.oracle_mean_paired_gain_units_per_hour).max(0.0));
     let relative_regret = regret.map(|value| {
-        if best_gain.abs() > 1e-9 { value / best_gain.abs() } else { 0.0 }
+        if best_gain.abs() > 1e-9 {
+            value / best_gain.abs()
+        } else {
+            0.0
+        }
     });
     let score_map: BTreeMap<&str, f64> = candidates
         .iter()
@@ -423,10 +460,21 @@ fn score_method(
         .collect();
     let oracle_map: BTreeMap<&str, f64> = candidates
         .iter()
-        .map(|candidate| (candidate.station_id.as_str(), candidate.oracle_mean_paired_gain_units_per_hour))
+        .map(|candidate| {
+            (
+                candidate.station_id.as_str(),
+                candidate.oracle_mean_paired_gain_units_per_hour,
+            )
+        })
         .collect();
-    let method_values: Vec<f64> = ranked.iter().map(|candidate| score_map[candidate.station_id.as_str()]).collect();
-    let oracle_values: Vec<f64> = ranked.iter().map(|candidate| oracle_map[candidate.station_id.as_str()]).collect();
+    let method_values: Vec<f64> = ranked
+        .iter()
+        .map(|candidate| score_map[candidate.station_id.as_str()])
+        .collect();
+    let oracle_values: Vec<f64> = ranked
+        .iter()
+        .map(|candidate| oracle_map[candidate.station_id.as_str()])
+        .collect();
     let spearman = spearman_rank_correlation(&method_values, &oracle_values);
     let kendall = kendall_tau_b(&method_values, &oracle_values);
     let exact_agreement = predicted
@@ -436,8 +484,11 @@ fn score_method(
         "abstain_signal_tie".to_string()
     } else if !oracle_interval_separates_top_two {
         "ranking_ambiguous_under_individual_interval_screen_no_recommendation".to_string()
-    } else if selected.is_some_and(|candidate| candidate.oracle_paired_gain_ci_95_lower.is_some_and(|lower| lower > 0.0))
-        && exact_agreement
+    } else if selected.is_some_and(|candidate| {
+        candidate
+            .oracle_paired_gain_ci_95_lower
+            .is_some_and(|lower| lower > 0.0)
+    }) && exact_agreement
     {
         "matches_top_synthetic_counterfactual_only_not_field_recommendation".to_string()
     } else {
@@ -445,7 +496,10 @@ fn score_method(
     };
     MethodScore {
         method: method.name().to_string(),
-        ranked_station_ids: ranked.iter().map(|candidate| candidate.station_id.clone()).collect(),
+        ranked_station_ids: ranked
+            .iter()
+            .map(|candidate| candidate.station_id.clone())
+            .collect(),
         predicted_best_station_id: predicted,
         prediction_abstained_on_tie: abstained,
         spearman_rank_correlation_vs_oracle: spearman,
@@ -484,9 +538,13 @@ fn spearman_rank_correlation(left: &[f64], right: &[f64]) -> Option<f64> {
     let y = average_ranks(right);
     let mean_x = x.iter().sum::<f64>() / x.len() as f64;
     let mean_y = y.iter().sum::<f64>() / y.len() as f64;
-    let covariance = x.iter().zip(&y).map(|(a,b)| (a-mean_x)*(b-mean_y)).sum::<f64>();
-    let variance_x = x.iter().map(|a| (a-mean_x).powi(2)).sum::<f64>();
-    let variance_y = y.iter().map(|a| (a-mean_y).powi(2)).sum::<f64>();
+    let covariance = x
+        .iter()
+        .zip(&y)
+        .map(|(a, b)| (a - mean_x) * (b - mean_y))
+        .sum::<f64>();
+    let variance_x = x.iter().map(|a| (a - mean_x).powi(2)).sum::<f64>();
+    let variance_y = y.iter().map(|a| (a - mean_y).powi(2)).sum::<f64>();
     if variance_x <= 0.0 || variance_y <= 0.0 {
         None
     } else {
@@ -503,15 +561,27 @@ fn kendall_tau_b(left: &[f64], right: &[f64]) -> Option<f64> {
     let mut ties_left = 0_i64;
     let mut ties_right = 0_i64;
     for i in 0..left.len() {
-        for j in (i+1)..left.len() {
+        for j in (i + 1)..left.len() {
             let dx = (left[i] - left[j]).total_cmp(&0.0);
             let dy = (right[i] - right[j]).total_cmp(&0.0);
             let left_tie = (left[i] - left[j]).abs() <= 1e-9;
             let right_tie = (right[i] - right[j]).abs() <= 1e-9;
-            if left_tie && right_tie { continue; }
-            if left_tie { ties_left += 1; continue; }
-            if right_tie { ties_right += 1; continue; }
-            if matches!((dx,dy),(std::cmp::Ordering::Less,std::cmp::Ordering::Less)|(std::cmp::Ordering::Greater,std::cmp::Ordering::Greater)) {
+            if left_tie && right_tie {
+                continue;
+            }
+            if left_tie {
+                ties_left += 1;
+                continue;
+            }
+            if right_tie {
+                ties_right += 1;
+                continue;
+            }
+            if matches!(
+                (dx, dy),
+                (std::cmp::Ordering::Less, std::cmp::Ordering::Less)
+                    | (std::cmp::Ordering::Greater, std::cmp::Ordering::Greater)
+            ) {
                 concordant += 1;
             } else {
                 discordant += 1;
@@ -519,8 +589,13 @@ fn kendall_tau_b(left: &[f64], right: &[f64]) -> Option<f64> {
         }
     }
     let denominator = (((concordant + discordant + ties_left) as f64)
-        * ((concordant + discordant + ties_right) as f64)).sqrt();
-    if denominator <= 0.0 { None } else { Some((concordant - discordant) as f64 / denominator) }
+        * ((concordant + discordant + ties_right) as f64))
+        .sqrt();
+    if denominator <= 0.0 {
+        None
+    } else {
+        Some((concordant - discordant) as f64 / denominator)
+    }
 }
 
 #[cfg(test)]
@@ -542,25 +617,41 @@ mod tests {
         }
     }
 
-    fn candidate(id: &str, busy: f64, blocked: f64, starved: f64, down: f64, changes: f64, gain: f64, lower: f64, upper: f64) -> StationCandidate {
+    fn candidate(
+        id: &str,
+        busy: f64,
+        blocked: f64,
+        starved: f64,
+        down: f64,
+        changes: f64,
+        gain: f64,
+        lower: f64,
+        upper: f64,
+    ) -> StationCandidate {
         StationCandidate {
-            station_id:id.into(),
-            utilization_fraction:busy,
-            busy_plus_down_proxy_fraction:(busy+down).min(1.0),
-            flow_pressure_heuristic_score:busy +0.5*blocked-starved-down,
-            mean_changeovers_started:changes,
-            oracle_mean_paired_gain_units_per_hour:gain,
-            oracle_paired_gain_ci_95_lower:Some(lower),
-            oracle_paired_gain_ci_95_upper:Some(upper),
+            station_id: id.into(),
+            utilization_fraction: busy,
+            busy_plus_down_proxy_fraction: (busy + down).min(1.0),
+            flow_pressure_heuristic_score: busy + 0.5 * blocked - starved - down,
+            mean_changeovers_started: changes,
+            oracle_mean_paired_gain_units_per_hour: gain,
+            oracle_paired_gain_ci_95_lower: Some(lower),
+            oracle_paired_gain_ci_95_upper: Some(upper),
         }
     }
 
     #[test]
     fn rank_correlations_and_ties_are_hand_computable() {
-        assert!((spearman_rank_correlation(&[3.0,2.0,1.0], &[3.0,2.0,1.0]).unwrap()-1.0).abs()<1e-12);
-        assert!((spearman_rank_correlation(&[3.0,2.0,1.0], &[1.0,2.0,3.0]).unwrap()+1.0).abs()<1e-12);
-        assert!((kendall_tau_b(&[3.0,2.0,1.0], &[3.0,2.0,1.0]).unwrap()-1.0).abs()<1e-12);
-        assert!(spearman_rank_correlation(&[1.0,1.0,1.0], &[1.0,2.0,3.0]).is_none());
+        assert!(
+            (spearman_rank_correlation(&[3.0, 2.0, 1.0], &[3.0, 2.0, 1.0]).unwrap() - 1.0).abs()
+                < 1e-12
+        );
+        assert!(
+            (spearman_rank_correlation(&[3.0, 2.0, 1.0], &[1.0, 2.0, 3.0]).unwrap() + 1.0).abs()
+                < 1e-12
+        );
+        assert!((kendall_tau_b(&[3.0, 2.0, 1.0], &[3.0, 2.0, 1.0]).unwrap() - 1.0).abs() < 1e-12);
+        assert!(spearman_rank_correlation(&[1.0, 1.0, 1.0], &[1.0, 2.0, 3.0]).is_none());
     }
 
     #[test]
@@ -571,11 +662,21 @@ mod tests {
             candidate("c", 0.60, 0.01, 0.30, 0.0, 1.0, -0.1, -0.3, 0.1),
         ];
         assert_eq!(
-            original.iter().max_by(|a,b| a.utilization_fraction.total_cmp(&b.utilization_fraction)).unwrap().station_id,
+            original
+                .iter()
+                .max_by(|a, b| a.utilization_fraction.total_cmp(&b.utilization_fraction))
+                .unwrap()
+                .station_id,
             "a"
         );
         assert_eq!(
-            original.iter().max_by(|a,b| a.oracle_mean_paired_gain_units_per_hour.total_cmp(&b.oracle_mean_paired_gain_units_per_hour)).unwrap().station_id,
+            original
+                .iter()
+                .max_by(|a, b| a
+                    .oracle_mean_paired_gain_units_per_hour
+                    .total_cmp(&b.oracle_mean_paired_gain_units_per_hour))
+                .unwrap()
+                .station_id,
             "b"
         );
         let mut relabeled_oracle = original.clone();
@@ -584,8 +685,16 @@ mod tests {
         }
         // Diagnostic features remain unchanged when the counterfactual outcome changes.
         assert_eq!(
-            original.iter().max_by(|a,b| a.utilization_fraction.total_cmp(&b.utilization_fraction)).unwrap().station_id,
-            relabeled_oracle.iter().max_by(|a,b| a.utilization_fraction.total_cmp(&b.utilization_fraction)).unwrap().station_id
+            original
+                .iter()
+                .max_by(|a, b| a.utilization_fraction.total_cmp(&b.utilization_fraction))
+                .unwrap()
+                .station_id,
+            relabeled_oracle
+                .iter()
+                .max_by(|a, b| a.utilization_fraction.total_cmp(&b.utilization_fraction))
+                .unwrap()
+                .station_id
         );
     }
 
