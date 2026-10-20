@@ -438,8 +438,9 @@ fn solve_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Check<Vec<f64>> 
     if matrix_scale == 0.0 {
         return Err("singular truss: reduced stiffness matrix is zero".to_owned());
     }
-    let pivot_tolerance =
-        f64::EPSILON * PIVOT_EPSILON_FACTOR * matrix_scale.max(1.0) * n as f64;
+    // The threshold must scale with the matrix itself; max(1.0) would make
+    // the singularity decision depend on the chosen force/length units.
+    let pivot_tolerance = f64::EPSILON * PIVOT_EPSILON_FACTOR * matrix_scale * n as f64;
 
     for pivot in 0..n {
         let mut pivot_row = pivot;
@@ -797,4 +798,36 @@ mod tests {
         }
         assert!(solve(&overflow).unwrap_err().contains("bar axial stiffness"));
     }
+
+    #[test]
+    fn uniform_stiffness_and_load_rescaling_does_not_change_displacement() {
+        let base_input = symmetric_two_bar_truss();
+        let base = solve(&base_input).expect("base truss");
+        let scale = 1.0e-23;
+        let mut scaled = base_input;
+        scaled
+            .nodes
+            .iter_mut()
+            .find(|n| n.id == "apex")
+            .expect("apex node")
+            .force_y_n *= scale;
+        for bar in &mut scaled.bars {
+            bar.youngs_modulus_pa *= scale;
+        }
+        let result = solve(&scaled).expect("uniformly scaled stiffness and load");
+        close(
+            node(&result, "apex").displacement_y_m,
+            node(&base, "apex").displacement_y_m,
+            1.0e-15,
+            "unit/scale invariant displacement",
+        );
+        close(
+            result.bar_results[0].axial_force_n / base.bar_results[0].axial_force_n,
+            scale,
+            scale * 1.0e-12,
+            "scaled axial force",
+        );
+    }
+
+
 }
