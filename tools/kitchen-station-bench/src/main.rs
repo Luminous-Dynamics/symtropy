@@ -700,4 +700,24 @@ mod tests {
     #[test] fn synthetic_only_records_cannot_be_compared(){let mut l=record();let mut r=record();l["trial_id"]=json!("T-1");r["trial_id"]=json!("T-1");r["candidate_id"]=json!("P1-DRAINBACK");r["evidence_class"]=json!("synthetic_fixture");let report=compare_records(&[l,r],"SINK-TEST-001","REF-0","P1-DRAINBACK",&contracts());assert_eq!(report["status"].as_str(),Some("blocked_no_comparable_physical_pairs"));}
     #[test] fn mismatched_conditions_block_pair(){let mut l=record();let mut r=record();l["trial_id"]=json!("T-1");r["trial_id"]=json!("T-1");r["candidate_id"]=json!("P1-DRAINBACK");r["conditions"]["pressure_kpa"]=json!(35);let report=compare_records(&[l,r],"SINK-TEST-001","REF-0","P1-DRAINBACK",&contracts());assert_eq!(report["status"].as_str(),Some("blocked_no_comparable_physical_pairs"));}
     #[test] fn paired_delta_is_candidate_minus_reference(){let mut l=record();let mut r=record();l["trial_id"]=json!("T-1");r["trial_id"]=json!("T-1");r["candidate_id"]=json!("P1-DRAINBACK");r["metrics"][0]["value"]=json!(2.5);let report=compare_records(&[l,r],"SINK-TEST-001","REF-0","P1-DRAINBACK",&contracts());assert_eq!(report["status"].as_str(),Some("descriptive_physical_comparison"));let m=report["metrics"].as_array().unwrap().iter().find(|x|x["metric_id"]=="water_l").unwrap();assert_eq!(m["mean_candidate_minus_reference"].as_f64(),Some(-0.5));}
+    #[test]
+    fn repository_contracts_cover_all_primary_metrics() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../docs/research");
+        let loaded = load_contracts(&root).expect("repository contracts should be mutually consistent");
+        assert!(loaded.scenario_metrics.len() >= 13);
+        assert!(loaded.candidate_ids.len() >= 8);
+        assert!(loaded.metric_ids.len() >= 67);
+        assert!(loaded.scenario_metrics.contains_key("SINK-PRERINSE-FORCE-013"));
+        assert!(loaded.candidate_ids.contains("P7-COMMERCIAL-PRERINSE"));
+    }
+
+    #[test]
+    fn record_with_missing_primary_endpoint_is_not_physically_eligible() {
+        let mut r = record();
+        r["metrics"][1]["metric_status"] = json!("blocked");
+        r["metrics"][1]["value"] = Value::Null;
+        r["metrics"][1]["status_reason"] = json!("endpoint measurement unavailable");
+        assert!(!physically_eligible(&r, &contracts()));
+    }
+
 }
