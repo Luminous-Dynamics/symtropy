@@ -1364,7 +1364,7 @@ mod randomized_timing {
         )
     }
 
-    fn run_report() {
+    pub(super) fn run_report() {
         println!("VIS-ACT-005 randomized-timing and delayed-view diagnostic");
         println!("event-driven onset/duration/delay; transient RGB evidence; hidden view-success outcomes");
         println!("paired bootstrap resamples exogenous seed pairs; resource units remain synthetic");
