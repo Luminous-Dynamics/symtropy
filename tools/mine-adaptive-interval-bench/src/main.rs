@@ -559,7 +559,11 @@ fn radius_for(
         Policy::RollingQuantileIntervalOnly => rolling_radius(history, 20, fixed_radius),
         Policy::AciClippedReferenceIntervalOnly => {
             if aci_alpha <= 1.0 / (history.len() + 1) as f64 {
-                history.iter().copied().reduce(f64::max).unwrap_or(fixed_radius)
+                history
+                    .iter()
+                    .copied()
+                    .reduce(f64::max)
+                    .unwrap_or(fixed_radius)
             } else {
                 let percentile = ((1.0 - aci_alpha.clamp(0.0, 1.0)) * 100.0)
                     .ceil()
@@ -606,11 +610,8 @@ fn update_cop_state(
         -(1.0 - ACI_TARGET_ALPHA)
     };
     let candidate = *cop_threshold - learning_rate * gradient;
-    let empirical_cdf = window
-        .iter()
-        .filter(|score| **score <= candidate)
-        .count() as f64
-        / window.len() as f64;
+    let empirical_cdf =
+        window.iter().filter(|score| **score <= candidate).count() as f64 / window.len() as f64;
     let distribution_gradient = empirical_cdf - (1.0 - ACI_TARGET_ALPHA);
     *cop_threshold = candidate;
     *cop_integrator = -COP_INTEGRATOR_SCALE * learning_rate * distribution_gradient;
@@ -1149,7 +1150,9 @@ mod tests {
                 .all(|step| step.decision == Decision::DiagnoseOnly));
             assert_eq!(59, label_updates);
             assert_eq!(0, mismatches);
-            assert!(outcomes.iter().all(|step| step.radius.is_finite() && step.radius >= 0.0));
+            assert!(outcomes
+                .iter()
+                .all(|step| step.radius.is_finite() && step.radius >= 0.0));
             assert!(outcomes[1].radius > 0.0);
         }
     }
