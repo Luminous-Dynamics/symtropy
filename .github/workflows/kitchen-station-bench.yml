@@ -1,0 +1,50 @@
+name: Kitchen Station Benchmark Harness
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/kitchen-station-bench/**"
+      - "docs/research/KITCHEN_STATION_SCENARIOS_V1.json"
+      - "docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json"
+      - "docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json"
+      - "docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json"
+      - ".github/workflows/kitchen-station-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kitchen-station-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Test semantic validation and negative controls
+        run: cargo test --manifest-path tools/kitchen-station-bench/Cargo.toml
+
+      - name: CLI help smoke test
+        run: cargo run --quiet --manifest-path tools/kitchen-station-bench/Cargo.toml -- --help
+
+      - name: Check contract linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '.scenarios | length >= 1' docs/research/KITCHEN_STATION_SCENARIOS_V1.json
+          jq -e '(.metrics | length) >= 1' docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json
+          jq -e '.candidate_families | length >= 1' docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema"' docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json
