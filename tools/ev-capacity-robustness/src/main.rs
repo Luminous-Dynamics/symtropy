@@ -378,12 +378,12 @@ fn parse_run_manifest(text: &str) -> Result<Vec<RunManifestEntry>, String> {
         if line.trim().is_empty() || line.starts_with('#') {
             continue;
         }
-        if entries.is_empty() && line.starts_with("fleet_size\tseed\tvocation\treport_path") {
+        if entries.is_empty() && line.starts_with("fleet_size\tseed\tvocation\tport_release_policy\treport_path") {
             continue;
         }
         let fields: Vec<&str> = line.split('\t').collect();
-        if fields.len() != 4 {
-            return Err(format!("run_manifest_line_{}_must_have_4_tab_fields", line_index + 1));
+        if fields.len() != 5 {
+            return Err(format!("run_manifest_line_{}_must_have_5_tab_fields", line_index + 1));
         }
         let fleet_size = fields[0]
             .parse::<usize>()
@@ -392,7 +392,11 @@ fn parse_run_manifest(text: &str) -> Result<Vec<RunManifestEntry>, String> {
             .parse::<u64>()
             .map_err(|_| format!("run_manifest_line_{}_seed_invalid", line_index + 1))?;
         let vocation = fields[2].trim().to_string();
-        let report_path = PathBuf::from(fields[3].trim());
+        let port_release_policy = fields[3].trim().to_string();
+        let report_path = PathBuf::from(fields[4].trim());
+        if !["release_on_charge_completion", "hold_until_departure"].contains(&port_release_policy.as_str()) {
+            return Err(format!("run_manifest_line_{}_port_release_policy_invalid", line_index + 1));
+        }
         if fleet_size == 0 || vocation.is_empty() || report_path.as_os_str().is_empty() {
             return Err(format!("run_manifest_line_{}_has_empty_or_zero_coordinate", line_index + 1));
         }
@@ -400,11 +404,12 @@ fn parse_run_manifest(text: &str) -> Result<Vec<RunManifestEntry>, String> {
             vocation,
             fleet_size,
             seed,
+            port_release_policy,
         };
         if !seen.insert(coordinate.clone()) {
             return Err(format!(
-                "duplicate_run_coordinate:vocation={},fleet_size={},seed={}",
-                coordinate.vocation, coordinate.fleet_size, coordinate.seed
+                "duplicate_run_coordinate:vocation={},fleet_size={},seed={},port_release_policy={}",
+                coordinate.vocation, coordinate.fleet_size, coordinate.seed, coordinate.port_release_policy
             ));
         }
         entries.push(RunManifestEntry { coordinate, report_path });
