@@ -1585,6 +1585,167 @@ mod tests {
         );
     }
 
+    fn temporary_artifact_root() -> PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock is after UNIX epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "physical-solver-artifact-test-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir(&root).expect("temporary artifact root is created");
+        root
+    }
+
+    fn bind_test_artifacts(receipt: &mut Value, root: &Path) {
+        for output in receipt["outputs"]
+            .as_array_mut()
+            .expect("test receipt has output array")
+        {
+            let output_id = output["output_id"]
+                .as_str()
+                .expect("output id is string")
+                .to_owned();
+            let artifact_ref = format!("{output_id}.json");
+            let contents = format!("{{\"synthetic_fixture_only\":true,\"output_id\":\"{output_id}\"}}\n");
+            fs::write(root.join(&artifact_ref), contents.as_bytes())
+                .expect("test artifact is written");
+            output["artifact_ref"] = json!(artifact_ref);
+            output["sha256"] = json!(sha256_hex(contents.as_bytes()));
+        }
+    }
+
+    #[test]
+    fn output_artifact_bytes_verify_without_authenticating_execution_or_physics() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("well-formed receipt and local bundle return a verification report");
+        assert_eq!(report["receipt_contract_validation"], "PASS");
+        assert_eq!(report["producer_status"], "PASS");
+        assert_eq!(report["artifact_verification_status"], "PASS");
+        assert_eq!(report["output_artifact_bytes_verified"], true);
+        assert_eq!(report["solver_execution_authenticated"], false);
+        assert_eq!(report["physical_result_qualified"], false);
+        assert_eq!(
+            report["verified_output_count"],
+            receipt["outputs"].as_array().unwrap().len()
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[test]
+    fn changed_output_bytes_report_failure_not_a_verified_bundle() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        let first_ref = receipt["outputs"][0]["artifact_ref"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        fs::write(root.join(first_ref), b"tampered output bytes\n")
+            .expect("tampered artifact is written");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("digest mismatches are returned as an explicit FAIL report");
+        assert_eq!(report["artifact_verification_status"], "FAIL");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+        assert_eq!(report["solver_execution_authenticated"], false);
+        assert_eq!(report["physical_result_qualified"], false);
+        assert!(
+            report["artifact_diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|diagnostic| diagnostic.as_str().unwrap().contains("SHA-256 mismatch"))
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[test]
+    fn traversal_references_remain_unresolved() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        receipt["outputs"][0]["artifact_ref"] = json!("../outside.json");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("unsafe reference is a verification disposition, not a panic");
+        assert_eq!(report["artifact_verification_status"], "UNRESOLVED");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+        assert!(
+            report["artifact_diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|diagnostic| diagnostic.as_str().unwrap().contains("normalized relative"))
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_artifact_cannot_escape_declared_root() {
+        let root = temporary_artifact_root();
+        let outside = root.with_extension("outside.json");
+        let outside_bytes = b"external bytes stay outside the bundle\n";
+        fs::write(&outside, outside_bytes).expect("outside test artifact is written");
+        std::os::unix::fs::symlink(&outside, root.join("external.json"))
+            .expect("symlink test setup succeeds");
+
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        receipt["outputs"][0]["artifact_ref"] = json!("external.json");
+        receipt["outputs"][0]["sha256"] = json!(sha256_hex(outside_bytes));
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("symlink escape is rejected as unresolved");
+        assert_eq!(report["artifact_verification_status"], "UNRESOLVED");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+        assert!(
+            report["artifact_diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|diagnostic| diagnostic.as_str().unwrap().contains("outside the declared artifact root"))
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+        fs::remove_file(outside).expect("outside test artifact is removed");
+    }
+
+    #[test]
+    fn receipt_without_output_artifacts_cannot_pass_byte_verification() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
+        let receipt = solver_receipt(&request_bytes, "UNRESOLVED");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("a valid unresolved receipt yields an artifact disposition");
+        assert_eq!(report["producer_status"], "UNRESOLVED");
+        assert_eq!(report["artifact_verification_status"], "UNRESOLVED");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
     #[test]
     fn invalid_json_and_revision_fail_closed() {
         assert!(validate_request_bytes(b"{", REV).is_err());
