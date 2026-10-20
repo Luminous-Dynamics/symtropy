@@ -46,7 +46,7 @@ These formulas do not prove that a real member has the declared geometry, materi
 
 1. Complete exact-head formatting, tests, strict Clippy and receipt checks.
 2. Add request-schema conformance checks in CI, beyond JSON syntax.
-3. The allowlisted capability-dispatch slice is implemented in draft PR #2321; its exact-head tests and receipt schema are the qualification gate.
+3. The allowlisted capability-dispatch slice is tracked by PHYS-DISPATCH-001 (#2319); its exact-head tests and receipt schema are the qualification gate.
 4. Qualify one specialist solver using the same receipt contract and an independently reproduced known-answer case.
 5. Validate against a rights-cleared measured dataset before claiming physical accuracy or state-of-the-art improvement.
 
