@@ -50,25 +50,37 @@ fn run() -> Result<(), String> {
             "\"result\":\"pass\",",
             "\"scope\":\"topology_and_integer_mass_accounting\",",
             "\"fixtures\":{{",
-              "\"topology_replay\":\"pass\",",
-              "\"transactional_rejection\":\"{}\",",
-              "\"balanced_mass_ledger\":\"{}\",",
-              "\"imbalanced_mass_negative_control\":\"{}\"",
+            "\"topology_replay\":\"pass\",",
+            "\"transactional_rejection\":\"{}\",",
+            "\"balanced_mass_ledger\":\"{}\",",
+            "\"imbalanced_mass_negative_control\":\"{}\"",
             "}},",
             "\"summary\":{{",
-              "\"component_count\":{},",
-              "\"connection_count\":{},",
-              "\"connected_components_before_cut\":{},",
-              "\"connected_components_after_cut\":{},",
-              "\"connected_components_after_reconnect\":{}",
+            "\"component_count\":{},",
+            "\"connection_count\":{},",
+            "\"connected_components_before_cut\":{},",
+            "\"connected_components_after_cut\":{},",
+            "\"connected_components_after_reconnect\":{}",
             "}},",
             "\"claim_ceiling\":\"software_invariants_only_not_structural_or_collapse_prediction\"",
             "}}"
         ),
         source_commit.to_ascii_lowercase(),
-        if outcome.rejected_mutation_was_atomic { "pass" } else { "fail" },
-        if outcome.accepted_balanced_mass_ledger { "pass" } else { "fail" },
-        if outcome.rejected_imbalanced_mass_ledger { "pass" } else { "fail" },
+        if outcome.rejected_mutation_was_atomic {
+            "pass"
+        } else {
+            "fail"
+        },
+        if outcome.accepted_balanced_mass_ledger {
+            "pass"
+        } else {
+            "fail"
+        },
+        if outcome.rejected_imbalanced_mass_ledger {
+            "pass"
+        } else {
+            "fail"
+        },
         outcome.component_count,
         outcome.connection_count,
         outcome.initial_connected_components,
