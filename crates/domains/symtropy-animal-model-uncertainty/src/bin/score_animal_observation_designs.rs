@@ -403,10 +403,23 @@ mod tests {
         );
         assert_eq!(report["observation_count"].as_u64(), Some(1));
         assert_eq!(
+            report["qualification"]["model_set_adequacy"].as_str(),
+            Some("not_assessed")
+        );
+        assert_eq!(
+            report["qualification"]["empirical_validation"].as_str(),
+            Some("not_assessed")
+        );
+        assert_eq!(
             report["ranked_observations"][0]["outcomes"]
                 .as_array()
                 .map(Vec::len),
             Some(2)
+        );
+        assert_eq!(
+            report["ranked_observations"][0]["outcomes"][0]["posterior_model_weights"]["structure_a"]
+                .as_f64(),
+            Some(0.9)
         );
     }
 
