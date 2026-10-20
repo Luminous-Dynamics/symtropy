@@ -1238,8 +1238,7 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
-                let has_changeover =
-                    server.last_variant.is_some_and(|last| last != job.variant);
+                let has_changeover = server.last_variant.is_some_and(|last| last != job.variant);
                 if has_changeover {
                     service_seconds =
                         service_seconds.saturating_add(station.changeover_seconds.round() as u64);
@@ -1381,14 +1380,13 @@ mod tests {
             stat.changeovers_started.sample_count == 20
                 && stat.output_transfers.sample_count == 20
                 && stat.out_of_order_output_transfers.sample_count == 20
-                && stat
-                    .out_of_order_output_transfers
-                    .mean
-                    <= stat.output_transfers.mean
+                && stat.out_of_order_output_transfers.mean <= stat.output_transfers.mean
         }));
-        assert!(report.station_sequence_statistics.iter().any(|stat| {
-            stat.scenario_id == "baseline" && stat.changeovers_started.mean > 0.0
-        }));
+        assert!(
+            report.station_sequence_statistics.iter().any(|stat| {
+                stat.scenario_id == "baseline" && stat.changeovers_started.mean > 0.0
+            })
+        );
     }
 
     #[test]
