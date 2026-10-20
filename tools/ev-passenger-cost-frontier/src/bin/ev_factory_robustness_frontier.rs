@@ -301,7 +301,12 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
             continue;
         }
         let station_id = field_str(statistic, "intervention_station_id")?;
-        if !summary_stations.insert(station_id.to_string()) { return Err("duplicate_intervention_summary".into()); }
+        if scenario_id != format!("add-one-server-{station_id}") {
+            return Err("scenario_summary_id_station_mismatch".into());
+        }
+        if !summary_stations.insert(station_id.to_string()) {
+            return Err("duplicate_intervention_summary".into());
+        }
         let stored = statistic.get("paired_good_units_per_hour_delta_vs_baseline")
             .ok_or_else(|| "summary_paired_gain_missing".to_string())?;
         if field_usize(stored, "sample_count")? != replication_count {
@@ -416,8 +421,26 @@ fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
     let mut scores = Vec::new();
     for station in &station_ids {
         let family_means: Vec<f64> = families.iter().map(|family| per_family_station_mean[&family.family_id][station]).collect();
-        let worst_family_idx = family_means.iter().enumerate().min_by(|a,b| a.1.total_cmp(b.1)).map(|(index,_)| index).expect("nonempty families");
-        let worst_family_result = family_station_results.iter().find(|row| row.family_id == families[worst_family_idx].family_id && row.intervention_station_id == *station).expect("family row exists");
+        let worst_family_idx = family_means
+            .iter()
+            .enumerate()
+            .min_by(|a, b| a.1.total_cmp(b.1))
+            .map(|(index, _)| index)
+            .expect("nonempty families");
+        let worst_family_result = family_station_results
+            .iter()
+            .filter(|row| row.intervention_station_id == *station)
+            .min_by(|a, b| {
+                a.paired_gain
+                    .mean_confidence_95_lower
+                    .unwrap_or(f64::NEG_INFINITY)
+                    .total_cmp(
+                        &b.paired_gain
+                            .mean_confidence_95_lower
+                            .unwrap_or(f64::NEG_INFINITY),
+                    )
+            })
+            .expect("family row exists");
         let positive_count = family_station_results.iter().filter(|row| row.intervention_station_id == *station && row.paired_gain.mean_confidence_95_lower.is_some_and(|lower| lower > PRACTICAL_MARGIN)).count();
         let regrets: Vec<f64> = family_station_results.iter().filter(|row| row.intervention_station_id == *station).map(|row| row.regret_vs_family_oracle_units_per_hour).collect();
         scores.push(RobustStationScore {
@@ -583,7 +606,7 @@ mod tests {
         let seeds: Vec<u64> = (1..=a.len() as u64).collect();
         FamilyInput {
             family_id: id.to_string(),
-            sha256: format!("{:0<64}", id),
+            sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
             replication_seeds: seeds.clone(),
             baseline_mean_good_units_per_hour: 10.0,
             gains_by_station: BTreeMap::from([
