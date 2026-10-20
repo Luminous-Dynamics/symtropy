@@ -190,6 +190,7 @@ fn additional_all_pass_trials(
     confidence_level: f64,
     target: f64,
 ) -> Option<usize> {
+    if target >= 1.0 { return None; }
     for additional in 0..=100_000_usize {
         let k = passes.checked_add(additional)?;
         let n = trials.checked_add(additional)?;
@@ -291,7 +292,7 @@ fn analyze(root: &Value, confidence_level: f64, target: f64) -> Result<Report, S
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
-    if args.len() != 5 || args[1] != "--confidence" || args[3] != "--target" {
+    if args.len() != 6 || args[1] != "--confidence" || args[3] != "--target" {
         return Err("usage: ev-depot-confidence-audit <input-robust-cases.json> --confidence 0.95 --target 0.95 <output-report.json>".to_string());
     }
     let input_path = &args[0];
@@ -300,7 +301,7 @@ fn run() -> Result<(), String> {
     let bytes = fs::read(input_path).map_err(|e| format!("cannot read {input_path}: {e}"))?;
     let root: Value = serde_json::from_slice(&bytes).map_err(|e| format!("invalid robust case JSON: {e}"))?;
     let report = analyze(&root, confidence, target)?;
-    let out_path = env::args().nth(6).unwrap_or_else(|| "ev-depot-confidence-report.json".to_string());
+    let out_path = args[5].clone();
     fs::write(&out_path, serde_json::to_vec_pretty(&report).map_err(|e| format!("cannot serialize report: {e}"))?)
         .map_err(|e| format!("cannot write {out_path}: {e}"))?;
     println!("wrote exact-binomial confidence report: {}; conditions={}; frontiers={}", out_path, report.conditions.len(), report.frontiers.len());
