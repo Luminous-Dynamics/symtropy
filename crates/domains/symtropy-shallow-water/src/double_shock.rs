@@ -53,8 +53,7 @@ pub fn double_shock(
 
     let initial_celerity_m_s = (gravity_m_s2 * initial_depth_m).sqrt();
     let similarity_m_s = x_m / time_s;
-    let upper_increment_m =
-        2.0 * inward_velocity_m_s * (initial_depth_m / gravity_m_s2).sqrt();
+    let upper_increment_m = 2.0 * inward_velocity_m_s * (initial_depth_m / gravity_m_s2).sqrt();
     let mut lower_depth_m = initial_depth_m;
     let mut upper_depth_m = initial_depth_m + upper_increment_m;
     if !initial_celerity_m_s.is_finite()
@@ -70,11 +69,8 @@ pub fn double_shock(
     // * sqrt(g/2 * (1/h_star + 1/h0)) for h_star > h0.
     for _ in 0..100 {
         let middle_depth_m = lower_depth_m + 0.5 * (upper_depth_m - lower_depth_m);
-        let shock_curve_m_s = (middle_depth_m - initial_depth_m)
-            * (0.5
-                * gravity_m_s2
-                * (1.0 / middle_depth_m + 1.0 / initial_depth_m))
-                .sqrt();
+        let shock_curve_m_s =
+            (middle_depth_m - initial_depth_m) * (0.5 * gravity_m_s2 * (1.0 / middle_depth_m + 1.0 / initial_depth_m)).sqrt();
         if !shock_curve_m_s.is_finite() {
             return Err(SolverError::InvalidAnalyticalInput);
         }
@@ -105,7 +101,11 @@ pub fn double_shock(
         (initial_depth_m, -inward_velocity_m_s)
     };
     let discharge_m2_s = depth_m * velocity_m_s;
-    if !depth_m.is_finite() || depth_m <= 0.0 || !velocity_m_s.is_finite() || !discharge_m2_s.is_finite() {
+    if !depth_m.is_finite()
+        || depth_m <= 0.0
+        || !velocity_m_s.is_finite()
+        || !discharge_m2_s.is_finite()
+    {
         return Err(SolverError::InvalidAnalyticalInput);
     }
 
@@ -234,7 +234,11 @@ mod tests {
         let cells = (0..count)
             .map(|index| {
                 let x = x_min + (index as f64 + 0.5) * dx;
-                let velocity = if x < 0.0 { inward_velocity } else { -inward_velocity };
+                let velocity = if x < 0.0 {
+                    inward_velocity
+                } else {
+                    -inward_velocity
+                };
                 CellState {
                     depth_m: h0,
                     discharge_m2_s: h0 * velocity,
@@ -251,7 +255,10 @@ mod tests {
                 .unwrap();
             time += dt;
             steps += 1;
-            assert!(steps < 100_000, "double-shock integration did not terminate");
+            assert!(
+                steps < 100_000,
+                "double-shock integration did not terminate"
+            );
         }
 
         let mut actual_depth = Vec::with_capacity(count);
@@ -262,8 +269,7 @@ mod tests {
         let mut expected_velocity = Vec::with_capacity(count);
         for (index, cell) in solver.cells().iter().enumerate() {
             let x = x_min + (index as f64 + 0.5) * dx;
-            let expected =
-                double_shock(x, t_end, h0, inward_velocity, cfg.gravity_m_s2).unwrap();
+            let expected = double_shock(x, t_end, h0, inward_velocity, cfg.gravity_m_s2).unwrap();
             actual_depth.push(cell.depth_m);
             expected_depth.push(expected.depth_m);
             actual_discharge.push(cell.discharge_m2_s);
