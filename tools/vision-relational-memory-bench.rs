@@ -997,25 +997,36 @@ fn report() {
             }
         }
 
-        // A preregistered direct paired contrast for the new policy: each
-        // policy's deltas share the same per-episode FIFO loss, so subtracting
-        // them cancels FIFO and yields gap-aware minus naive-hazard loss.
+        // Direct paired contrasts use the same per-episode streams. Subtracting
+        // FIFO-relative deltas cancels FIFO and yields policy A minus policy B.
         let primary_capacity_index = CAPS.iter().position(|cap| *cap == 3).expect("capacity 3 is declared");
-        let hazard_index = Kind::ALL.iter().position(|kind| *kind == Kind::QueryKeyedHazardAware).expect("hazard policy is declared");
-        let gap_index = Kind::ALL.iter().position(|kind| *kind == Kind::QueryKeyedGapAware).expect("gap-aware policy is declared");
-        let hazard_cell = &cells[hazard_index * CAPS.len() + primary_capacity_index];
-        let gap_cell = &cells[gap_index * CAPS.len() + primary_capacity_index];
-        let paired_deltas: Vec<f64> = gap_cell.delta_vs_fifo.iter()
-            .zip(hazard_cell.delta_vs_fifo.iter())
-            .map(|(gap_delta, hazard_delta)| gap_delta - hazard_delta)
-            .collect();
-        let paired_delta = paired_deltas.iter().sum::<f64>() / paired_deltas.len().max(1) as f64;
-        let paired_seed = mix64(ROOT_SEED ^ 0x5041_4952_5749_5345
-            ^ match family { Family::Development => 0x4445_56, Family::HeldOut => 0x4845_4C44 });
-        let (paired_lo, paired_hi) = bootstrap_ci(&paired_deltas, paired_seed);
+        let pairwise = [
+            ("gap_aware_minus_hazard_aware", Kind::QueryKeyedGapAware, Kind::QueryKeyedHazardAware),
+            ("joint_noise_minus_hazard_aware", Kind::QueryKeyedJointNoise, Kind::QueryKeyedHazardAware),
+            ("joint_noise_minus_gap_aware", Kind::QueryKeyedJointNoise, Kind::QueryKeyedGapAware),
+        ];
         println!("PAIRWISE\tfamily\tcontrast\tepisodes\tdelta_loss_a_minus_b\tbootstrap95_lo\tbootstrap95_hi");
-        println!("PAIRWISE\t{}\tgap_aware_minus_hazard_aware\t{}\t{:.4}\t{:.4}\t{:.4}",
-            family.name(), paired_deltas.len(), paired_delta, paired_lo, paired_hi);
+        for (pair_index, (name, policy_a, policy_b)) in pairwise.iter().copied().enumerate() {
+            let index_a = Kind::ALL.iter().position(|kind| *kind == policy_a).expect("policy A is declared");
+            let index_b = Kind::ALL.iter().position(|kind| *kind == policy_b).expect("policy B is declared");
+            let cell_a = &cells[index_a * CAPS.len() + primary_capacity_index];
+            let cell_b = &cells[index_b * CAPS.len() + primary_capacity_index];
+            let paired_deltas: Vec<f64> = cell_a.delta_vs_fifo.iter()
+                .zip(cell_b.delta_vs_fifo.iter())
+                .map(|(delta_a, delta_b)| delta_a - delta_b)
+                .collect();
+            let paired_delta = paired_deltas.iter().sum::<f64>() / paired_deltas.len().max(1) as f64;
+            let family_domain = match family {
+                Family::Development => 0x4445_56,
+                Family::HeldOut => 0x4845_4C44,
+            };
+            let paired_seed = mix64(ROOT_SEED ^ 0x5041_4952_5749_5345
+                ^ family_domain
+                ^ (pair_index as u64).wrapping_mul(0xD1B5_4A32_D192_ED03));
+            let (paired_lo, paired_hi) = bootstrap_ci(&paired_deltas, paired_seed);
+            println!("PAIRWISE\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}",
+                family.name(), name, paired_deltas.len(), paired_delta, paired_lo, paired_hi);
+        }
 
         println!("VIS-MEM-002 evaluator-only failure-mode strata (capacity=3; groups may overlap)");
         println!("STRATUM\tfamily\tmode\tlevel\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
@@ -1305,7 +1316,10 @@ mod tests {
                 assert!((0.0..=1.0).contains(&p));
             }
         }
-        assert!(memory.decide_joint_noise(HORIZON).is_some() || memory.decide_joint_noise(HORIZON).is_none());
+        let probabilities: [f64; QUERY_WIDTH] = std::array::from_fn(|index| {
+            memory.joint_noise_stats[index].probability_true_at(HORIZON)
+        });
+        assert_eq!(memory.decide_joint_noise(HORIZON), majority_decision(probabilities));
     }
 
     #[test]
