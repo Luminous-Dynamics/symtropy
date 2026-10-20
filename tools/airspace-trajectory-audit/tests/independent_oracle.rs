@@ -59,8 +59,8 @@ fn exhaustive_constant_relative_position_grid_matches_closed_form_oracle() {
     let criteria = criteria();
     let uncertainty_cases = [(0.0, 0.0), (0.5, 1.0), (2.0, 3.0)];
 
-    // 41 horizontal offsets x 25 vertical offsets x 3 uncertainty profiles = 3,075
-    // independent expected-result comparisons across the exact threshold boundaries.
+    // 41 horizontal offsets x 25 vertical offsets x 3 horizontal uncertainty pairs x
+    // 3 vertical uncertainty pairs = 9,225 independent expected-result comparisons.
     for (horizontal_a, horizontal_b) in uncertainty_cases {
         for (vertical_a, vertical_b) in uncertainty_cases {
             for dy in -20_i32..=20 {
