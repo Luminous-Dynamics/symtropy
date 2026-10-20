@@ -20,6 +20,17 @@ Preserve per-model identities, forecasts and weights, alongside within-model sto
 
 Evaluate decisions against the full declared model set using an explicit loss function and hard constraints. Report expected loss under declared weights, worst-case loss, per-model regret and tail risk (e.g. CVaR where appropriate). If no action satisfies constraints across the qualified set, abstain, gather value-of-information evidence, or request human review. "Robust" does not automatically mean minimax or ethically preferable: losses and protected constraints must be explicit.
 
+### Model-weight ambiguity is a separate axis
+
+A common failure mode is to report expected loss and CVaR under one point weighting of plausible structures even when that weighting is weakly identified or partly subjective. Parameter spread and stochastic replication do not resolve uncertainty about how much weight each structural model deserves.
+
+The Rust `score_weight_sensitivity` kernel therefore accepts a closed model set with a declared interval `[lower_i, upper_i]` for each model's weight, requires the nominal weights to be normalized and lie inside those intervals, and computes the minimum and maximum expected loss for a selected action over all weight vectors satisfying those intervals and `sum(weight_i) = 1`. For a linear loss, the extrema are found deterministically by allocating remaining simplex mass to models in ascending or descending loss order, subject to interval bounds. The witness weight vectors are returned alongside the loss range.
+
+This is a **weight-sensitivity envelope**, not a posterior credible interval. It does not establish that the intervals are justified, that model structures are exhaustive, or that losses are biologically calibrated. Report it alongside—not instead of—point-weight expected loss, worst-case model loss, CVaR, per-model regret, and the model-specific outcomes. If a candidate action's risk ranking flips within defensible weight bounds, disclose that reversal; do not present one nominal ensemble ranking as robust. If no defensible model weights exist, use unweighted worst-case/regret analysis or mark weighted metrics not assessed rather than inventing probability semantics.
+
+Semantic tests should include exact extrema with analytically solvable two-model fixtures, infeasible simplex bounds, duplicated/missing model intervals, nominal weights outside their intervals, missing action losses, and non-finite inputs.
+
+
 ## How this complements existing animal work
 
 - [#2186 causal identifiability](https://github.com/Luminous-Dynamics/symtropy/issues/2186): what an intervention identifies under a declared structure.
