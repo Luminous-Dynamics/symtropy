@@ -55,7 +55,7 @@ jobs:
               --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
               --source-revision "${REV}" --evidence-class published_operational_summary \
               --kwh-per-mile 1.8 > "${report}"
-            jq -e '.operation_days_input_rows > 0 and .operation_days_input_rows == .operation_days_parsed_valid_rows and (.operation_days_invalid_rows | length == 0) and .schedule_input_rows > 0 and .schedule_input_rows == .schedule_parsed_valid_rows_with_known_operation_day_ids and (.schedule_invalid_rows | length == 0) and .reconciled_operation_day_count == .operation_days_input_rows and (.reconciled_operation_day_profiles | length == .reconciled_operation_day_count) and (.operation_day_reconciliation_issues | length == 0) and .source_revision == "${REV}"' "${report}"
+            jq -e '.operation_days_input_rows > 0 and .operation_days_input_rows == .operation_days_parsed_valid_rows and (.operation_days_invalid_rows | length == 0) and .schedule_input_rows > 0 and .schedule_input_rows == .schedule_parsed_valid_rows_with_known_operation_day_ids and (.schedule_invalid_rows | length == 0) and .reconciled_operation_day_count == .operation_days_input_rows and (.reconciled_operation_day_profiles | length) == .reconciled_operation_day_count and (.operation_day_reconciliation_issues | length == 0) and .source_revision == "61530df51f6cd7d64f014ebbf8714cef24c8ca70"' "${report}"
           done
           jq -e '.operation_days_input_rows == 76 and .schedule_input_rows == 234' nlr-fleet1-beverage-delivery-duty-audit-report.json
           jq -e '.operation_days_input_rows == 100 and .schedule_input_rows == 302' nlr-fleet2-warehouse-delivery-duty-audit-report.json
