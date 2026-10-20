@@ -23,3 +23,4 @@ harness = false
 [[bench]]
 name = "functional_envelope_stress"
 path = "benches/functional_envelope_stress.rs"
+harness = false
