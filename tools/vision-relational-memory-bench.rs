@@ -533,6 +533,17 @@ impl JointNoiseStats {
             .sum::<f64>() / denominator
     }
 
+    fn estimated_sensor_base_rate(self) -> f64 {
+        let weights = self.posterior_weights();
+        let denominator = weights.iter().sum::<f64>().max(f64::MIN_POSITIVE);
+        (0..JOINT_HYPOTHESES)
+            .map(|index| {
+                (SENSOR_BASE_RATES[index % SENSOR_BASE_RATES.len()] as f64 / 1_000.0)
+                    * weights[index]
+            })
+            .sum::<f64>() / denominator
+    }
+
     fn probability_true_at(self, tick: usize) -> f64 {
         let Some(last_source_tick) = self.last_source_tick else { return 0.5; };
         let age = tick.saturating_sub(usize::from(last_source_tick));
@@ -732,6 +743,9 @@ struct Outcome {
     // Evaluator-only errors; never visible through Memory or a policy callback.
     hazard_error_mae: Option<f64>,
     hazard_error_mse: Option<f64>,
+    // Evaluator-only corruption-rate errors for the joint-noise policy.
+    sensor_error_mae: Option<f64>,
+    sensor_error_mse: Option<f64>,
 }
 
 fn evaluate(ep: &Episode, kind: Kind, cap: usize, actor_seed: u64) -> Outcome {
@@ -785,6 +799,17 @@ fn evaluate_with_threshold(
             squared_sum / QUERY_WIDTH as f64,
         )
     });
+    // The true episode corruption rate is evaluator-only and read strictly
+    // after the policy action. It never enters JointNoiseStats or its inputs.
+    let sensor_errors = if kind == Kind::QueryKeyedJointNoise {
+        let estimates = memory.joint_noise_stats.map(|stats| stats.estimated_sensor_base_rate());
+        let true_rate = ep.profile.corruption_rate as f64 / 1_000.0;
+        let absolute_sum = estimates.iter().map(|estimate| (estimate - true_rate).abs()).sum::<f64>();
+        let squared_sum = estimates.iter().map(|estimate| (estimate - true_rate).powi(2)).sum::<f64>();
+        Some((absolute_sum / QUERY_WIDTH as f64, squared_sum / QUERY_WIDTH as f64))
+    } else {
+        None
+    };
     Outcome {
         loss: match decision { None => 0.25, Some(_) if correct => 0.0, Some(_) => 1.0 },
         answered: decision.is_some(),
@@ -794,6 +819,8 @@ fn evaluate_with_threshold(
         logical_state_bytes,
         hazard_error_mae: hazard_errors.map(|errors| errors.0),
         hazard_error_mse: hazard_errors.map(|errors| errors.1),
+        sensor_error_mae: sensor_errors.map(|errors| errors.0),
+        sensor_error_mse: sensor_errors.map(|errors| errors.1),
     }
 }
 
@@ -809,6 +836,9 @@ struct Acc {
     hazard_error_episodes: u64,
     hazard_abs_error_sum: f64,
     hazard_squared_error_sum: f64,
+    sensor_error_episodes: u64,
+    sensor_abs_error_sum: f64,
+    sensor_squared_error_sum: f64,
     delta_vs_fifo: Vec<f64>,
 }
 
@@ -825,6 +855,11 @@ impl Acc {
             self.hazard_error_episodes += 1;
             self.hazard_abs_error_sum += mae;
             self.hazard_squared_error_sum += mse;
+        }
+        if let (Some(mae), Some(mse)) = (o.sensor_error_mae, o.sensor_error_mse) {
+            self.sensor_error_episodes += 1;
+            self.sensor_abs_error_sum += mae;
+            self.sensor_squared_error_sum += mse;
         }
         if let Some(d) = delta { self.delta_vs_fifo.push(d); }
     }
@@ -844,6 +879,14 @@ impl Acc {
     fn hazard_rmse(&self) -> String {
         if self.hazard_error_episodes == 0 { "NA".to_string() }
         else { format!("{:.4}", (self.hazard_squared_error_sum / self.hazard_error_episodes as f64).sqrt()) }
+    }
+    fn sensor_mae(&self) -> String {
+        if self.sensor_error_episodes == 0 { "NA".to_string() }
+        else { format!("{:.4}", self.sensor_abs_error_sum / self.sensor_error_episodes as f64) }
+    }
+    fn sensor_rmse(&self) -> String {
+        if self.sensor_error_episodes == 0 { "NA".to_string() }
+        else { format!("{:.4}", (self.sensor_squared_error_sum / self.sensor_error_episodes as f64).sqrt()) }
     }
 }
 
@@ -931,7 +974,7 @@ fn report() {
     println!("joint-noise policy: joint transition-hazard x sensor-base-rate grid; online binary-state filter, confidence-conditioned emissions");
     println!("joint-noise grid hazards={HAZARD_RATES:?}; sensor base corruption rates per thousand={SENSOR_BASE_RATES:?}; posterior state entries are fixed-size");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
-    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tmean_hazard_mae\troot_mean_hazard_mse\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
+    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tmean_hazard_mae\troot_mean_hazard_mse\tmean_sensor_base_mae\troot_mean_sensor_base_mse\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
     for family in [Family::Development, Family::HeldOut] {
         let mut cells = vec![Acc::default(); Kind::ALL.len() * CAPS.len()];
@@ -990,10 +1033,10 @@ fn report() {
                 };
                 let coverage = cell.fresh_claims as f64 / (cell.n.max(1) * QUERY_WIDTH as u64) as f64;
                 let mean_entries = cell.entries as f64 / cell.n.max(1) as f64;
-                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.1}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}",
+                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.1}\t{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(), kind.name(), cap, cell.n, cell.mean_loss(), cell.answer_rate(),
                     cell.accuracy(), coverage, mean_entries, cell.mean_logical_state_bytes(),
-                    cell.hazard_mae(), cell.hazard_rmse(), delta, lo, hi);
+                    cell.hazard_mae(), cell.hazard_rmse(), cell.sensor_mae(), cell.sensor_rmse(), delta, lo, hi);
             }
         }
 
@@ -1277,6 +1320,10 @@ mod tests {
         assert!(naive.hazard_error_mse.unwrap() >= 0.0);
         assert!(gap.hazard_error_mse.unwrap() >= 0.0);
         assert!(joint.hazard_error_mse.unwrap() >= 0.0);
+        assert!(joint.sensor_error_mae.is_some_and(f64::is_finite));
+        assert!(joint.sensor_error_mse.is_some_and(f64::is_finite));
+        assert!(joint.sensor_error_mae.unwrap() >= 0.0);
+        assert!(joint.sensor_error_mse.unwrap() >= 0.0);
     }
 
     #[test]
@@ -1284,14 +1331,25 @@ mod tests {
         let episode = Episode::generate(0xA11C_E002, Family::HeldOut);
         let mut relabeled = episode.clone();
         relabeled.profile.flip_rate = 0;
+        relabeled.profile.corruption_rate = 0;
 
         for kind in [Kind::QueryKeyedGapAware, Kind::QueryKeyedJointNoise] {
             let original = evaluate(&episode, kind, 3, 0xBEEF);
-            let changed_label = evaluate(&relabeled, kind, 3, 0xBEEF);
-            assert_eq!(original.loss, changed_label.loss);
-            assert_eq!(original.answered, changed_label.answered);
-            assert_eq!(original.correct, changed_label.correct);
-            assert_ne!(original.hazard_error_mae, changed_label.hazard_error_mae);
+            let changed_flip_label = evaluate(&relabeled, kind, 3, 0xBEEF);
+            assert_eq!(original.loss, changed_flip_label.loss);
+            assert_eq!(original.answered, changed_flip_label.answered);
+            assert_eq!(original.correct, changed_flip_label.correct);
+            assert_ne!(original.hazard_error_mae, changed_flip_label.hazard_error_mae);
+
+            if kind == Kind::QueryKeyedJointNoise {
+                let mut only_corruption_relabel = episode.clone();
+                only_corruption_relabel.profile.corruption_rate = 0;
+                let changed_q_label = evaluate(&only_corruption_relabel, kind, 3, 0xBEEF);
+                assert_eq!(original.loss, changed_q_label.loss);
+                assert_eq!(original.answered, changed_q_label.answered);
+                assert_eq!(original.correct, changed_q_label.correct);
+                assert_ne!(original.sensor_error_mae, changed_q_label.sensor_error_mae);
+            }
         }
     }
 
