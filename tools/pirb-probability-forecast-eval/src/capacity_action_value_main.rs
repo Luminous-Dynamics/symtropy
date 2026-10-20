@@ -279,7 +279,7 @@ fn group_allocation(
         }
         let selected = group_records
             .iter()
-            .filter(|record| selected_ids.contains(record_id(record).to_owned().as_str()))
+            .filter(|record| selected_ids.contains(record_id(record)))
             .copied()
             .collect::<Vec<_>>();
         let event_count = group_records
@@ -383,6 +383,10 @@ fn evaluate_policy(
     json!({
         "policy": policy.as_str(),
         "capacity": capacity,
+        "scenario": {
+            "action_cost_multiplier": action_cost_multiplier,
+            "effectiveness_multiplier": effectiveness_multiplier
+        },
         "selected_count": selected_count,
         "unallocated_capacity": capacity.saturating_sub(selected_count),
         "selected_record_ids": selected.iter().map(|record| record_id(record)).collect::<Vec<_>>(),
@@ -588,28 +592,6 @@ mod tests {
             &serde_json::to_vec(value).expect("registration serializes"),
             "0123456789abcdef0123456789abcdef01234567",
         )
-    }
-
-    fn policy_result<'a>(
-        receipt: &'a Value,
-        capacity: usize,
-        cost_multiplier: f64,
-        effectiveness_multiplier: f64,
-        policy: &str,
-    ) -> &'a Value {
-        receipt["policy_results"]
-            .as_array()
-            .expect("results array")
-            .iter()
-            .find(|result| {
-                result["capacity"].as_u64() == Some(capacity as u64)
-                    && result["action_cost_multiplier"].is_null()
-                    && result["action_cost_multiplier"] != json!(cost_multiplier)
-                    && result["policy"] == policy
-                    && result["scenario"]["action_cost_multiplier"] == json!(cost_multiplier)
-                    && result["scenario"]["effectiveness_multiplier"] == json!(effectiveness_multiplier)
-            })
-            .expect("policy scenario found")
     }
 
     #[test]
