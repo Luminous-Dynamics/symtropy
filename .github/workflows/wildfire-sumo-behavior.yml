@@ -76,7 +76,7 @@ jobs:
                   --tripinfo-output.write-unfinished true \
                   --tripinfo-output.write-undeparted true \
                   --summary-output "$case_dir/summary.xml" \
-                  > "$case_dir/sumo-behavior.stdout.log" 2> "$case_dir/sumo-behavior.stderr.log"
+                  > "$case_dir/sumo-smoke.stdout.log" 2> "$case_dir/sumo-smoke.stderr.log"
                 test -s "$case_dir/tripinfo.xml"
                 test -s "$case_dir/summary.xml"
               done
