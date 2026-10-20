@@ -88,10 +88,39 @@ jobs:
             wildfire-ops-reference-receipt.json \
             "$source_commit"
 
-      - name: Upload deterministic reference receipt
+      - name: Simulate the frozen traffic-capacity microbenchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          export SOURCE_COMMIT="$source_commit"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_traffic_ctm -- \
+            benchmarks/fixtures/WILDFIRE_TRAFFIC_CTM_V0_1.json \
+            --source-commit "$source_commit" > wildfire-traffic-ctm-receipt.json
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-TRAFFIC-001"
+            and .scenario_count == 4
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.cases | length == 4)
+            and (.cases | all(.status == "pass"))
+            and (.scorecard.case_count == 4)
+            and (.scorecard.B1_static_free_flow.selected_infeasible_count == 2)
+            and (.scorecard.B1_static_free_flow.expected_dynamic_choice_matches == 0)
+            and (.scorecard.B2_capacity_aware_cell_model.selected_count == 4)
+            and (.scorecard.B2_capacity_aware_cell_model.abstention_count == 0)
+            and (.scorecard.B2_capacity_aware_cell_model.expected_dynamic_choice_matches == 4)
+            and (.cases | all(.paths | all(.simulation.mass_balance_ok == true)))
+          ' wildfire-traffic-ctm-receipt.json
+
+      - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
-          name: wildfire-ops-reference-receipt
-          path: wildfire-ops-reference-receipt.json
+          name: wildfire-resilience-benchmark-receipts
+          path: |
+            wildfire-ops-reference-receipt.json
+            wildfire-traffic-ctm-receipt.json
           if-no-files-found: error
           retention-days: 90
