@@ -282,30 +282,17 @@ fn build_report(
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
     let Some(path) = arguments.next() else {
-        eprintln!(
-            "usage: score_animal_model_ensemble <outcomes.json>\\n\\
-             options: --help, --example, --input-schema, --report-schema"
-        );
+        eprintln!("usage: score_animal_model_ensemble <outcomes.json> (options: --help, --example, --input-schema, --report-schema)");
         process::exit(2);
     };
     if arguments.next().is_some() {
-        eprintln!(
-            "usage: score_animal_model_ensemble <outcomes.json>\\n\\
-             options: --help, --example, --input-schema, --report-schema"
-        );
+        eprintln!("usage: score_animal_model_ensemble <outcomes.json> (options: --help, --example, --input-schema, --report-schema)");
         process::exit(2);
     }
 
     match path.to_str() {
         Some("--help" | "-h") => {
-            println!(
-                "Score declared action losses across registered ecological models.\\n\\
-                 Usage: score_animal_model_ensemble <outcomes.json>\\n\\
-                 --example       print a synthetic input example\\n\\
-                 --input-schema  print the expected input schema\\n\\
-                 --report-schema print the risk report schema\\n\\
-                 This computes conditional risk only; it does not validate model-set adequacy."
-            );
+            println!("Score declared action losses across registered ecological models.\\nUsage: score_animal_model_ensemble <outcomes.json>\\n--example prints a synthetic input example\\n--input-schema prints the expected input schema\\n--report-schema prints the risk report schema\\nRisk scoring is conditional on the model set; it does not validate model-set adequacy.");
             return;
         }
         Some("--example") => {
