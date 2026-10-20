@@ -147,8 +147,7 @@ jobs:
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_network_flow_receipt -- \
             benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
-            wildfire-network-flow-reference-receipt.json
-            wildfire-route-assignment-receipt.json \
+            wildfire-network-flow-reference-receipt.json \
             "$source_commit"
 
       - name: Evaluate joint route assignment vs independent shortest paths
@@ -185,5 +184,6 @@ jobs:
             wildfire-ops-reference-receipt.json
             wildfire-traffic-ctm-receipt.json
             wildfire-network-flow-reference-receipt.json
+            wildfire-route-assignment-receipt.json
           if-no-files-found: error
           retention-days: 90
