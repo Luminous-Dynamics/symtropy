@@ -292,7 +292,15 @@ fn main() {
 
     match path.to_str() {
         Some("--help" | "-h") => {
-            println!("Score declared action losses across registered ecological models.\\nUsage: score_animal_model_ensemble <outcomes.json>\\n--example prints a synthetic input example\\n--input-schema prints the expected input schema\\n--report-schema prints the risk report schema\\nRisk scoring is conditional on the model set; it does not validate model-set adequacy.");
+            println!(
+                r#"Score declared action losses across registered ecological models.
+Usage: score_animal_model_ensemble <outcomes.json>
+--example       print a synthetic input example
+--input-schema  print the expected input schema
+--report-schema print the risk report schema
+
+Risk scoring is conditional on the declared model set. This CLI does not validate model-set adequacy."#
+            );
             return;
         }
         Some("--example") => {
