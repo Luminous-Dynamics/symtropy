@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-capacity-action-value-v0.1.schema.json",
+  "title": "PIRB Capacity-Constrained Action Value Registration v0.1",
+  "description": "Synthetic aggregate-only benchmark of predeclared response allocation policies under fixed capacity and explicit cost/effectiveness assumptions. Does not estimate causal impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "evidence_scope",
+    "privacy",
+    "provider",
+    "forecast_origin_index",
+    "target_period_index",
+    "preregistration",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-action-value-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "const": "synthetic"
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "group_min_count"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "group_min_count": {
+          "type": "integer",
+          "minimum": 3
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "forecast_archive_id",
+        "target_definition",
+        "analysis_unit",
+        "horizon",
+        "source_reference",
+        "forecast_archive_sha256",
+        "outcome_snapshot_sha256",
+        "value_unit",
+        "attribution"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_archive_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizon": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_archive_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "value_unit": {
+          "const": "synthetic_harm_units"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "forecast_origin_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "target_period_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capacity_levels",
+        "action_cost_multipliers",
+        "effectiveness_multipliers",
+        "policy_set",
+        "tie_break",
+        "threshold_selection_on_test",
+        "impact_claim_permitted"
+      ],
+      "properties": {
+        "capacity_levels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "action_cost_multipliers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "effectiveness_multipliers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "policy_set": {
+          "const": [
+            "no_action",
+            "risk_ranked_top_k",
+            "expected_net_benefit_top_k"
+          ]
+        },
+        "tie_break": {
+          "const": "record_id_ascending"
+        },
+        "threshold_selection_on_test": {
+          "const": false
+        },
+        "impact_claim_permitted": {
+          "const": false
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "group_id",
+          "target_matched",
+          "outcome",
+          "forecast_probability",
+          "expected_harm_per_event",
+          "base_action_cost",
+          "base_intervention_effectiveness"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "pattern": "^row-[A-Za-z0-9_-]+$"
+          },
+          "group_id": {
+            "type": "string",
+            "pattern": "^group-[A-Za-z0-9_-]+$",
+            "description": "Opaque aggregate group ID, not a person or exact location."
+          },
+          "target_matched": {
+            "const": true
+          },
+          "outcome": {
+            "enum": [
+              "event",
+              "no_event",
+              "unknown"
+            ],
+            "description": "Unknown outcomes remain unknown and are never imputed to no_event."
+          },
+          "forecast_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "expected_harm_per_event": {
+            "type": "number",
+            "minimum": 0
+          },
+          "base_action_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "base_intervention_effectiveness": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.6666666666666666
+          }
+        }
+      }
+    }
+  }
+}
