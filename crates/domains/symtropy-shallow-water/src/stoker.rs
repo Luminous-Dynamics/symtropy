@@ -64,11 +64,8 @@ pub fn stoker_dam_break(
     for _ in 0..100 {
         let middle = lower + 0.5 * (upper - lower);
         let middle_celerity = (gravity_m_s2 * middle).sqrt();
-        let right_shock_curve = (middle - right_depth_m)
-            * (0.5
-                * gravity_m_s2
-                * (1.0 / middle + 1.0 / right_depth_m))
-                .sqrt();
+        let right_shock_curve =
+            (middle - right_depth_m) * (0.5 * gravity_m_s2 * (1.0 / middle + 1.0 / right_depth_m)).sqrt();
         let residual = 2.0 * (middle_celerity - initial_wave_speed) + right_shock_curve;
         if !middle_celerity.is_finite() || !residual.is_finite() {
             return Err(SolverError::InvalidAnalyticalInput);
@@ -101,7 +98,10 @@ pub fn stoker_dam_break(
         (left_depth_m, 0.0)
     } else if similarity < rarefaction_head_speed {
         let celerity = (2.0 * initial_wave_speed - similarity) / 3.0;
-        (celerity * celerity / gravity_m_s2, (2.0 / 3.0) * (initial_wave_speed + similarity))
+        (
+            celerity * celerity / gravity_m_s2,
+            (2.0 / 3.0) * (initial_wave_speed + similarity),
+        )
     } else if similarity < shock_speed {
         (star_depth_m, star_velocity_m_s)
     } else {
@@ -109,7 +109,11 @@ pub fn stoker_dam_break(
     };
 
     let discharge_m2_s = depth_m * velocity_m_s;
-    if !depth_m.is_finite() || depth_m <= 0.0 || !velocity_m_s.is_finite() || !discharge_m2_s.is_finite() {
+    if !depth_m.is_finite()
+        || depth_m <= 0.0
+        || !velocity_m_s.is_finite()
+        || !discharge_m2_s.is_finite()
+    {
         return Err(SolverError::InvalidAnalyticalInput);
     }
 
@@ -140,13 +144,11 @@ mod tests {
         let time: f64 = 0.2;
         let c_left = (gravity * h_left).sqrt();
 
-        let left = stoker_dam_break(-2.0 * c_left * time, time, h_left, h_right, gravity)
-            .unwrap();
+        let left = stoker_dam_break(-2.0 * c_left * time, time, h_left, h_right, gravity).unwrap();
         assert!((left.depth_m - h_left).abs() < 1.0e-12);
         assert_eq!(left.velocity_m_s, 0.0);
 
-        let fan = stoker_dam_break(-0.5 * c_left * time, time, h_left, h_right, gravity)
-            .unwrap();
+        let fan = stoker_dam_break(-0.5 * c_left * time, time, h_left, h_right, gravity).unwrap();
         assert!((fan.depth_m - (25.0 / 36.0) * h_left).abs() < 1.0e-12);
         assert!((fan.velocity_m_s - c_left / 3.0).abs() < 1.0e-12);
 
@@ -158,9 +160,7 @@ mod tests {
 
         // The shock speed follows the mass Rankine-Hugoniot jump condition.
         let shock_speed = star.discharge_m2_s / (star.depth_m - h_right);
-        assert!(
-            (shock_speed * (star.depth_m - h_right) - star.discharge_m2_s).abs() < 1.0e-12
-        );
+        assert!((shock_speed * (star.depth_m - h_right) - star.discharge_m2_s).abs() < 1.0e-12);
         let before_shock = stoker_dam_break(
             (shock_speed - 1.0e-6) * time,
             time,
@@ -208,7 +208,10 @@ mod tests {
                 .unwrap();
             time += dt;
             steps += 1;
-            assert!(steps < 100_000, "wet-bed dam-break integration did not terminate");
+            assert!(
+                steps < 100_000,
+                "wet-bed dam-break integration did not terminate"
+            );
         }
 
         let squared_error = solver
