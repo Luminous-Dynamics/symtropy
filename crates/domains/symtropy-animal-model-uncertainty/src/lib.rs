@@ -74,13 +74,13 @@ pub fn validate_oracle_json(raw: &str) -> Result<usize, Vec<String>> {
         return Err(errors);
     };
 
-    if let Some(declared) = declared_count {
-        if declared != cases.len() {
-            errors.push(format!(
-                "case_count declares {declared}, but cases contains {} records",
-                cases.len()
-            ));
-        }
+    if let Some(declared) = declared_count
+        && declared != cases.len()
+    {
+        errors.push(format!(
+            "case_count declares {declared}, but cases contains {} records",
+            cases.len()
+        ));
     }
 
     let mut ids = BTreeSet::new();
