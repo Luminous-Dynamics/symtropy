@@ -83,6 +83,7 @@ fn reversing_edge_insertion_order_preserves_final_topology() {
         })
         .unwrap();
 
-    assert_eq!(left_first.connected_components(), vec![vec!["A", "B", "C"]]);
-    assert_eq!(right_first.connected_components(), vec![vec!["A", "B", "C"]]);
+    let expected = vec![vec!["A".to_owned(), "B".to_owned(), "C".to_owned()]];
+    assert_eq!(left_first.connected_components(), expected);
+    assert_eq!(right_first.connected_components(), expected);
 }
