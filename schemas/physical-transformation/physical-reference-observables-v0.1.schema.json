@@ -4,11 +4,14 @@
   "title": "Physical Reference Observables v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "reference_id", "case_id", "request_sha256", "comparison_protocol_id", "oracle", "observables"],
+  "required": ["schema_version", "reference_id", "case_id", "request_id", "scene_sha256", "scene_revision", "request_sha256", "comparison_protocol_id", "oracle", "observables"],
   "properties": {
     "schema_version": { "const": "physical-reference-observables-v0.1" },
     "reference_id": { "$ref": "#/$defs/token" },
     "case_id": { "$ref": "#/$defs/token" },
+    "request_id": { "$ref": "#/$defs/token" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
     "request_sha256": { "$ref": "#/$defs/sha256" },
     "comparison_protocol_id": { "$ref": "#/$defs/token" },
     "oracle": {
