@@ -101,9 +101,9 @@ No level should be skipped by adding more AI, tests, attestations or impressive 
 
 ## Immediate next actions
 
-1. Keep the analytic oracle integration test separate from the pairwise algorithm; current test design enumerates 9,225 synchronized parallel-path cases plus exact-boundary tests.
+1. Keep the analytic oracle integration test separate from the pairwise algorithm; the current suite enumerates 9,225 synchronized parallel-path cases, exact-boundary tests, and three metamorphic invariants (argument-order reversal, collinear waypoint subdivision, uniform time-origin translation).
 2. Run exact-head cargo test, clippy and rustfmt in a supported environment; current authoring environment has not executed these tests.
-3. Add randomized/property tests and an independently written finite-grid oracle before performance optimization.
+3. Add randomized/property tests and an independently written finite-grid oracle before performance optimization; metamorphic invariants are necessary but not a substitute for that oracle.
 4. Measure numeric behavior near boundaries; document floating-point error and never make an unconditional zero-false-safe claim based only on finite synthetic unit tests.
 5. Establish an indexed broadphase only after the pairwise geometry passes its oracle. Benchmark candidate recall, not just speed.
 6. Link the loading manifest/profile revision to Mycelix AeroCommons evidence and Symtropy transport-load qualification.

@@ -44,6 +44,7 @@ Malformed references, digest syntax, time ordering, frame mismatches, vertical-d
 - Separate true conflict, no temporal overlap, full-coverage no-conflict, and not-assessable outcomes; never hide a known conflict when data coverage is incomplete.
 - Property-based and mutation tests for waypoint insertion, trajectory argument reordering, boundary timestamps, non-finite coordinates, arithmetic overflow, stale/partial criteria and altered profile revisions.
 - Verify result determinism under equivalent candidate ordering and stable event deduplication.
+- The integration suite now includes three metamorphic checks: reversing pair argument order preserves the complete report; subdividing both crossing paths at a collinear midpoint preserves the geometric decision; translating all trajectory/criteria times preserves geometry and shifts the event timestamp exactly. These complement the 9,225-case constant-relative-position oracle but do not constitute a high-precision floating-point proof.
 
 ### Model credibility
 - Add negative controls where a nominal centerline misses but the uncertainty-expanded tube conflicts.
