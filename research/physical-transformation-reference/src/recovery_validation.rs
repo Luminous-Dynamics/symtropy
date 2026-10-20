@@ -62,9 +62,16 @@ pub struct ComponentRecoveryDelta {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ComparisonStatus {
+pub enum EvidenceStatus {
     Measured,
     Synthetic,
+    Unresolved,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PlanAgreement {
+    ExactMatch,
+    Deviates,
     Unresolved,
 }
 
@@ -88,7 +95,8 @@ pub struct RecoveryComparison {
     pub source_revision: u64,
     /// Equality binding for the state being compared; not a cryptographic digest.
     pub source_state_snapshot: String,
-    pub status: ComparisonStatus,
+    pub evidence_status: EvidenceStatus,
+    pub plan_agreement: PlanAgreement,
     pub planned_component_count: usize,
     pub matched_observation_count: usize,
     pub missing_observation_ids: Vec<String>,
@@ -100,7 +108,8 @@ pub struct RecoveryComparison {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RecoveryFixtureSummary {
-    pub status: ComparisonStatus,
+    pub evidence_status: EvidenceStatus,
+    pub plan_agreement: PlanAgreement,
     pub planned_component_count: usize,
     pub observed_mass_residual_mg: Option<i128>,
     pub reused_delta_mg: Option<i128>,
@@ -326,14 +335,29 @@ pub fn compare(world: &World, observations: Vec<RecoveryObservation>) -> Check<R
         AggregateRecoveryDelta::default()
     };
 
-    let status = if fully_covered && all_measured_qualified {
-        ComparisonStatus::Measured
+    let evidence_status = if fully_covered && all_measured_qualified {
+        EvidenceStatus::Measured
     } else if fully_covered && all_synthetic {
-        ComparisonStatus::Synthetic
+        EvidenceStatus::Synthetic
     } else {
-        ComparisonStatus::Unresolved
+        EvidenceStatus::Unresolved
     };
-    if status == ComparisonStatus::Unresolved {
+    let plan_agreement = if !fully_covered {
+        PlanAgreement::Unresolved
+    } else if components.iter().all(|component| {
+        component.input_mass_delta_mg == 0
+            && component.reused_delta_mg == 0
+            && component.recycled_delta_mg == 0
+            && component.contaminated_delta_mg == 0
+            && component.waste_delta_mg == 0
+            && component.unaccounted_delta_mg == 0
+            && component.observed_mass_residual_mg == 0
+    }) {
+        PlanAgreement::ExactMatch
+    } else {
+        PlanAgreement::Deviates
+    };
+    if evidence_status == EvidenceStatus::Unresolved {
         diagnostics.push(
             "comparison is unresolved: evidence classes/provenance/uncertainty or observation coverage are insufficient"
                 .to_owned(),
@@ -343,7 +367,8 @@ pub fn compare(world: &World, observations: Vec<RecoveryObservation>) -> Check<R
     Ok(RecoveryComparison {
         source_revision: world.revision,
         source_state_snapshot: world.canonical_snapshot(),
-        status,
+        evidence_status,
+        plan_agreement,
         planned_component_count: world.recovered_components.len(),
         matched_observation_count: components.len(),
         missing_observation_ids: missing,
@@ -395,7 +420,8 @@ pub fn run_reference_fixture() -> Check<RecoveryFixtureSummary> {
         }],
     )?;
     let summary = RecoveryFixtureSummary {
-        status: result.status,
+        evidence_status: result.evidence_status,
+        plan_agreement: result.plan_agreement,
         planned_component_count: result.planned_component_count,
         observed_mass_residual_mg: result.aggregate.observed_mass_residual_mg,
         reused_delta_mg: result.aggregate.reused_delta_mg,
@@ -404,7 +430,8 @@ pub fn run_reference_fixture() -> Check<RecoveryFixtureSummary> {
         waste_delta_mg: result.aggregate.waste_delta_mg,
         unaccounted_delta_mg: result.aggregate.unaccounted_delta_mg,
     };
-    if summary.status != ComparisonStatus::Synthetic
+    if summary.evidence_status != EvidenceStatus::Synthetic
+        || summary.plan_agreement != PlanAgreement::Deviates
         || summary.planned_component_count != 1
         || summary.observed_mass_residual_mg != Some(40)
         || summary.reused_delta_mg != Some(-50)
@@ -492,7 +519,8 @@ mod tests {
         let world = recovered_world();
         let result =
             compare(&world, vec![synthetic_observation("A")]).expect("synthetic observations");
-        assert_eq!(result.status, ComparisonStatus::Synthetic);
+        assert_eq!(result.evidence_status, EvidenceStatus::Synthetic);
+        assert_eq!(result.plan_agreement, PlanAgreement::Deviates);
         assert_eq!(result.planned_component_count, 1);
         assert_eq!(result.aggregate.input_mass_delta_mg, Some(0));
         assert_eq!(result.aggregate.reused_delta_mg, Some(-50));
@@ -508,13 +536,14 @@ mod tests {
         let world = recovered_world();
         let result = compare(&world, vec![measured_observation("A")])
             .expect("qualified measured observation");
-        assert_eq!(result.status, ComparisonStatus::Measured);
+        assert_eq!(result.evidence_status, EvidenceStatus::Measured);
+        assert_eq!(result.plan_agreement, PlanAgreement::Deviates);
         assert_eq!(result.aggregate.conservative_uncertainty_bound_mg, Some(5));
 
         let mut incomplete = measured_observation("A");
         incomplete.calibration_ref = None;
         let result = compare(&world, vec![incomplete]).expect("missing calibration is unresolved");
-        assert_eq!(result.status, ComparisonStatus::Unresolved);
+        assert_eq!(result.evidence_status, EvidenceStatus::Unresolved);
         assert!(
             result
                 .diagnostics
@@ -526,7 +555,7 @@ mod tests {
         no_uncertainty.measurement_uncertainty_mg = None;
         let result = compare(&world, vec![no_uncertainty])
             .expect("missing uncertainty is explicitly unresolved");
-        assert_eq!(result.status, ComparisonStatus::Unresolved);
+        assert_eq!(result.evidence_status, EvidenceStatus::Unresolved);
         assert!(
             result
                 .diagnostics
@@ -564,7 +593,8 @@ mod tests {
             .expect("second recovery");
         let result = compare(&world, vec![synthetic_observation("A")])
             .expect("missing observation remains explicit");
-        assert_eq!(result.status, ComparisonStatus::Unresolved);
+        assert_eq!(result.evidence_status, EvidenceStatus::Unresolved);
+        assert_eq!(result.plan_agreement, PlanAgreement::Unresolved);
         assert_eq!(result.missing_observation_ids, vec!["B"]);
         assert_eq!(result.aggregate.input_mass_delta_mg, None);
         assert_eq!(result.aggregate.observed_mass_residual_mg, None);
@@ -601,7 +631,8 @@ mod tests {
             vec![measured_observation("A"), synthetic_observation("B")],
         )
         .expect("mixed evidence is representable");
-        assert_eq!(result.status, ComparisonStatus::Unresolved);
+        assert_eq!(result.evidence_status, EvidenceStatus::Unresolved);
+        assert_eq!(result.plan_agreement, PlanAgreement::Deviates);
         assert_eq!(result.matched_observation_count, 2);
         assert!(
             result
@@ -639,7 +670,8 @@ mod tests {
         observation.waste_mg = 0;
         let result =
             compare(&world, vec![observation]).expect("over-output is evidence, not parse failure");
-        assert_eq!(result.status, ComparisonStatus::Synthetic);
+        assert_eq!(result.evidence_status, EvidenceStatus::Synthetic);
+        assert_eq!(result.plan_agreement, PlanAgreement::Deviates);
         assert_eq!(result.aggregate.observed_mass_residual_mg, Some(-100));
         assert!(
             result
@@ -664,7 +696,8 @@ mod tests {
     #[test]
     fn frozen_recovery_comparison_receipt_matches_known_answers() {
         let result = run_reference_fixture().expect("frozen recovery comparison");
-        assert_eq!(result.status, ComparisonStatus::Synthetic);
+        assert_eq!(result.evidence_status, EvidenceStatus::Synthetic);
+        assert_eq!(result.plan_agreement, PlanAgreement::Deviates);
         assert_eq!(result.observed_mass_residual_mg, Some(40));
         assert_eq!(result.reused_delta_mg, Some(-50));
         assert_eq!(result.recycled_delta_mg, Some(-20));
