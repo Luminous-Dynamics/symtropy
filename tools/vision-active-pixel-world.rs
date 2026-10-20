@@ -81,7 +81,6 @@ struct RgbFrame {
     // Legal action metadata is public. This flag is set by the environment,
     // not inferred from hidden truth, and does not expose the world seed.
     side_view_available: bool,
-    side_view_successful: bool,
 }
 
 impl RgbFrame {
@@ -120,6 +119,9 @@ struct HiddenWorld {
     decoy_y: usize,
     decoy_count: u8,
     side_view_available: bool,
+    // Hidden environment outcome: a committed legal view may still return an
+    // occluded/no-information frame. This never crosses the policy boundary.
+    side_view_successful: bool,
 }
 
 impl HiddenWorld {
