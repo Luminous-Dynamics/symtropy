@@ -1172,6 +1172,44 @@ mod tests {
     }
 
     #[test]
+    fn missing_receipt_mesh_input_declaration_is_unresolved() {
+        let root = temporary_root();
+        let bytes = study(&root, [1.5, 0.75, 0.5625]);
+        let receipt_path = root.join("levels/coarse/receipt.json");
+        let mut receipt: Value = serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
+        receipt.as_object_mut().unwrap().remove("input_artifacts");
+        fs::write(&receipt_path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+        let report = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
+        assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
+        assert!(
+            report["diagnostics"][0]
+                .as_str()
+                .unwrap()
+                .contains("input artifact bytes")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn receipt_cannot_bind_the_study_to_a_different_mesh_digest() {
+        let root = temporary_root();
+        let bytes = study(&root, [1.5, 0.75, 0.5625]);
+        let receipt_path = root.join("levels/medium/receipt.json");
+        let mut receipt: Value = serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
+        receipt["input_artifacts"][0]["sha256"] = json!("f".repeat(64));
+        fs::write(&receipt_path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+        let report = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
+        assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
+        assert!(
+            report["diagnostics"][0]
+                .as_str()
+                .unwrap()
+                .contains("input artifact bytes")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn tampered_normalized_bytes_are_rejected_even_if_manifest_is_unchanged() {
         let root = temporary_root();
         let bytes = study(&root, [1.5, 0.75, 0.5625]);
