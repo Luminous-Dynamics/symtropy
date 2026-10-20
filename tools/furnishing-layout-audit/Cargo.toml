@@ -12,3 +12,8 @@ resolver = "2"
 
 [dependencies]
 serde_json = "=1.0.154"
+
+
+[[bench]]
+name = "functional_envelope_stress"
+path = "benches/functional_envelope_stress.rs"
