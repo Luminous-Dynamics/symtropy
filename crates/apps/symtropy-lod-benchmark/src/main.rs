@@ -203,8 +203,7 @@ fn parse_args() -> Result<Options, Box<dyn Error>> {
                     PathBuf::from(args.next().ok_or("--manifest requires a path")?);
             }
             "--output" => {
-                options.output_path =
-                    PathBuf::from(args.next().ok_or("--output requires a path")?);
+                options.output_path = PathBuf::from(args.next().ok_or("--output requires a path")?);
             }
             "--samples" => {
                 options.samples = args
