@@ -50,6 +50,11 @@ jobs:
 
       - name: Assert public CI fixture is synthetic and aggregate-only
         run: jq -e '.evidence_class == "synthetic" and .privacy.aggregate_only == true' docs/fixtures/pirb-probability-forecast-v0.1.json > /dev/null
+        # A second public fixture is intentionally aggregate-only and uses opaque synthetic row/group IDs.
+
+
+      - name: Assert selective forecast fixture is synthetic and aggregate-only
+        run: jq -e '.evidence_scope == "synthetic" and .privacy.aggregate_only == true and all(.records[]; (.record_id | test("^row-[A-Za-z0-9_-]+$")) and (.group_id | test("^group-[A-Za-z0-9_-]+$")))' docs/fixtures/pirb-selective-forecast-synthetic-v0.1.json > /dev/null
 
       - name: Run schema, metric, maturity, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
@@ -218,6 +223,52 @@ jobs:
             '.result == "pass" and .source_commit == $source_commit and .input_sha256 == $input_sha and .evidence_class == "synthetic" and .forecast_record_count == 28 and .metrics.training.forecast_count == 12 and .metrics.calibration.forecast_count == 8 and .metrics.test.forecast_count == 8 and .metrics.test.unknown_outcome_count == 1 and .test_uncertainty.status == "not_estimable" and .causal_effect_estimated == false and .live_decision_authority == false' \
             pirb-views-score-receipt.json
 
+      - name: Audit synthetic selective forecasting and verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="docs/fixtures/pirb-selective-forecast-synthetic-v0.1.json"
+          schema="docs/schemas/pirb-selective-forecast-v0.1.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-selective-forecast-audit -- \
+            --input "$input" --source-commit "$source_commit" > pirb-selective-forecast-receipt.json
+
+          jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_input_sha" --arg schema_sha "$expected_schema_sha" '
+            .receipt_type == "selective_forecast_abstention_audit"
+            and .source_commit == $source_commit
+            and .source_commit_pinned == true
+            and .input_sha256 == $input_sha
+            and .schema_sha256 == $schema_sha
+            and .evidence_scope == "synthetic"
+            and .total_record_count == 12
+            and .scored_record_count == 7
+            and (.actual_score_coverage - (7 / 12) | fabs < 0.000000000001)
+            and .unknown_outcome_count == 2
+            and .disposition_counts.scored == 7
+            and .disposition_counts.abstain_insufficient_evidence == 1
+            and .disposition_counts.abstain_stale_inputs == 1
+            and .disposition_counts.abstain_out_of_support == 1
+            and .disposition_counts.abstain_target_mismatch == 1
+            and .disposition_counts.not_scored_unknown_outcome == 1
+            and (.risk_coverage_curve | length == 4)
+            and .risk_coverage_curve[0].retained_count == 2
+            and (.risk_coverage_curve[0].brier_score - 0.04 | fabs < 0.000000000001)
+            and .risk_coverage_curve[1].retained_count == 4
+            and (.risk_coverage_curve[1].brier_score - 0.0625 | fabs < 0.000000000001)
+            and .risk_coverage_curve[2].retained_count == 6
+            and .risk_coverage_curve[3].retained_count == 7
+            and (.risk_coverage_curve[3].brier_score - (1.46 / 7) | fabs < 0.000000000001)
+            and .metric_semantics.unknown_outcomes_imputed_to_no_event == false
+            and .metric_semantics.abstention_means_no_event == false
+            and .claims.fairness_established == false
+            and .claims.operational_utility_established == false
+            and .claims.causal_impact_established == false
+            and .claims.live_decision_authority == false
+          ' pirb-selective-forecast-receipt.json
+
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
         uses: actions/upload-artifact@v4
@@ -234,6 +285,9 @@ jobs:
             docs/fixtures/views-codebook-synthetic-v0.1.json
             docs/fixtures/views-api-response-synthetic-*.json
             pirb-outcome-vintage-sensitivity-receipt.json
+            pirb-selective-forecast-receipt.json
+            docs/fixtures/pirb-selective-forecast-synthetic-v0.1.json
+            docs/schemas/pirb-selective-forecast-v0.1.schema.json
             tools/pirb-probability-forecast-eval/Cargo.lock
             docs/fixtures/pirb-probability-forecast-v0.1.json
             docs/fixtures/pirb-probability-forecast-vintage-alternate-v0.1.json
