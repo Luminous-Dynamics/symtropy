@@ -1,0 +1,24 @@
+{
+  "schema_version": "physical-reference-observables-v0.1",
+  "reference_id": "reference:ccx-t3d2-support-reaction",
+  "case_id": "ccx-t3d2-axial-bar-v0.1",
+  "request_id": "fixture:ccx-t3d2-bar",
+  "scene_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "scene_revision": 1,
+  "request_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "comparison_protocol_id": "protocol:ccx-t3d2-closed-form-v0.1",
+  "oracle": {
+    "method": "analytical_exact",
+    "identity": "fixed-support axial reaction R_x = -F by static equilibrium",
+    "source_ref": "docs/research/PHYSICAL_CCX_T3D2_SMOKE_V0_1.md#closed-form-reference"
+  },
+  "observables": [
+    {
+      "observable_id": "support_rx",
+      "expected_value": -1000.0,
+      "unit": "N",
+      "absolute_tolerance": 0.001,
+      "relative_tolerance": 0.000001
+    }
+  ]
+}
