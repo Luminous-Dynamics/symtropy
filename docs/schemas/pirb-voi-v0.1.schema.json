@@ -6,20 +6,22 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
-    "registration_id",
-    "evidence_scope",
-    "target_id",
-    "forecast_origin_index",
-    "decision_deadline_index",
-    "target_period_index",
-    "value_unit",
-    "model",
-    "states",
     "actions",
+    "decision_deadline_index",
+    "evidence_scope",
+    "forecast_origin_index",
+    "governance",
     "information_sources",
+    "likelihood_fit_cutoff_index",
+    "model",
+    "prior_fit_cutoff_index",
     "privacy",
-    "governance"
+    "registration_id",
+    "schema_version",
+    "states",
+    "target_id",
+    "target_period_index",
+    "value_unit"
   ],
   "properties": {
     "schema_version": {
@@ -300,6 +302,16 @@
           "type": "boolean"
         }
       }
+    },
+    "prior_fit_cutoff_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Last period used to fit/estimate the registered prior; must be strictly before forecast origin."
+    },
+    "likelihood_fit_cutoff_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Last period used to fit/estimate source signal likelihoods; must be strictly before forecast origin."
     }
   },
   "allOf": [
