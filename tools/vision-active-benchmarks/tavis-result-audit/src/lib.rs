@@ -216,19 +216,26 @@ fn value_identity(value: &Value) -> String {
 }
 
 fn tsv_clean(value: &str) -> String {
-    value.replace('\t', " ").replace('\r', " ").replace('\n', " ")
+    value
+        .replace('\t', " ")
+        .replace('\r', " ")
+        .replace('\n', " ")
 }
 
 pub fn validate_manifest(manifest: &AuditManifest) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
     if manifest.schema_version != 1 {
-        errors.push(format!("unsupported manifest schema_version {}", manifest.schema_version));
+        errors.push(format!(
+            "unsupported manifest schema_version {}",
+            manifest.schema_version
+        ));
     }
     let commit = manifest.upstream_commit.trim();
-    if !(commit.len() == 40 || commit.len() == 64)
-        || !commit.chars().all(|c| c.is_ascii_hexdigit())
+    if !(commit.len() == 40 || commit.len() == 64) || !commit.chars().all(|c| c.is_ascii_hexdigit())
     {
-        errors.push("manifest upstream_commit must be a 40- or 64-character hex revision".to_string());
+        errors.push(
+            "manifest upstream_commit must be a 40- or 64-character hex revision".to_string(),
+        );
     }
     for (name, digest) in [
         ("checkpoint_sha256", &manifest.checkpoint_sha256),
@@ -237,20 +244,35 @@ pub fn validate_manifest(manifest: &AuditManifest) -> Result<(), Vec<String>> {
     ] {
         let lower = digest.to_ascii_lowercase();
         if digest.len() != 64 || !lower.chars().all(|c| c.is_ascii_hexdigit()) {
-            errors.push(format!("manifest {name} must be a 64-character SHA-256 hex digest"));
+            errors.push(format!(
+                "manifest {name} must be a 64-character SHA-256 hex digest"
+            ));
         }
     }
     if manifest.invocation.trim().is_empty() {
         errors.push("manifest invocation is empty".to_string());
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn expected_key(task: &str, mode: &str) -> String {
     format!("{task}/{mode}")
 }
 
-fn meta_signature(meta: &Meta) -> (Option<&str>, Option<&str>, Option<&str>, Option<&str>, Option<u64>, Option<u64>) {
+fn meta_signature(
+    meta: &Meta,
+) -> (
+    Option<&str>,
+    Option<&str>,
+    Option<&str>,
+    Option<&str>,
+    Option<u64>,
+    Option<u64>,
+) {
     (
         meta.model.as_deref(),
         meta.camera.as_deref(),
@@ -261,16 +283,32 @@ fn meta_signature(meta: &Meta) -> (Option<&str>, Option<&str>, Option<&str>, Opt
     )
 }
 
-fn parse_cell(path: &Path, run_label: &str, expected_episodes: usize) -> Result<CellResult, Vec<String>> {
-    let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("<non-utf8-filename>").to_string();
-    let raw = fs::read_to_string(path).map_err(|error| vec![format!("{}: read error: {error}", path.display())])?;
-    let data: TavisFile = serde_json::from_str(&raw)
-        .map_err(|error| vec![format!("{}: invalid TAVIS result JSON: {error}", path.display())])?;
+fn parse_cell(
+    path: &Path,
+    run_label: &str,
+    expected_episodes: usize,
+) -> Result<CellResult, Vec<String>> {
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("<non-utf8-filename>")
+        .to_string();
+    let raw = fs::read_to_string(path)
+        .map_err(|error| vec![format!("{}: read error: {error}", path.display())])?;
+    let data: TavisFile = serde_json::from_str(&raw).map_err(|error| {
+        vec![format!(
+            "{}: invalid TAVIS result JSON: {error}",
+            path.display()
+        )]
+    })?;
 
     let mut errors = Vec::new();
     if let Some(error) = &data.error {
         if !error.trim().is_empty() {
-            errors.push(format!("{}: official evaluator wrote an error field", path.display()));
+            errors.push(format!(
+                "{}: official evaluator wrote an error field",
+                path.display()
+            ));
         }
     }
     if data.summary.is_none() {
@@ -282,13 +320,19 @@ fn parse_cell(path: &Path, run_label: &str, expected_episodes: usize) -> Result<
     if data.episodes.len() != expected_episodes {
         errors.push(format!(
             "{}: expected {expected_episodes} episodes, found {}",
-            path.display(), data.episodes.len()
+            path.display(),
+            data.episodes.len()
         ));
     }
-    if data.meta.episodes_requested.is_some_and(|requested| requested != expected_episodes) {
+    if data
+        .meta
+        .episodes_requested
+        .is_some_and(|requested| requested != expected_episodes)
+    {
         errors.push(format!(
             "{}: metadata episodes_requested={:?}, audit expects {expected_episodes}",
-            path.display(), data.meta.episodes_requested
+            path.display(),
+            data.meta.episodes_requested
         ));
     }
     let expected_name = format!("{}_{}.json", data.meta.task, data.meta.eval_mode);
@@ -300,25 +344,42 @@ fn parse_cell(path: &Path, run_label: &str, expected_episodes: usize) -> Result<
     }
 
     let ids_complete = !data.episodes.is_empty()
-        && data.episodes.iter().all(|episode| episode.episode_id.is_some());
-    let unique_ids: BTreeSet<String> = data.episodes.iter()
+        && data
+            .episodes
+            .iter()
+            .all(|episode| episode.episode_id.is_some());
+    let unique_ids: BTreeSet<String> = data
+        .episodes
+        .iter()
         .filter_map(|episode| episode.episode_id.as_ref())
         .map(value_identity)
         .collect();
     if ids_complete && unique_ids.len() != data.episodes.len() {
-        errors.push(format!("{}: duplicate episode_id values prevent reliable pairing", path.display()));
+        errors.push(format!(
+            "{}: duplicate episode_id values prevent reliable pairing",
+            path.display()
+        ));
     }
-    let seeds_complete = !data.episodes.is_empty()
-        && data.episodes.iter().all(|episode| episode.seed.is_some());
-    let unique_seeds: BTreeSet<String> = data.episodes.iter()
+    let seeds_complete =
+        !data.episodes.is_empty() && data.episodes.iter().all(|episode| episode.seed.is_some());
+    let unique_seeds: BTreeSet<String> = data
+        .episodes
+        .iter()
         .filter_map(|episode| episode.seed.as_ref())
         .map(value_identity)
         .collect();
     if seeds_complete && unique_seeds.len() != data.episodes.len() {
-        errors.push(format!("{}: duplicate seed values prevent reliable pairing", path.display()));
+        errors.push(format!(
+            "{}: duplicate seed values prevent reliable pairing",
+            path.display()
+        ));
     }
 
-    let successes = data.episodes.iter().filter(|episode| episode.success).count();
+    let successes = data
+        .episodes
+        .iter()
+        .filter(|episode| episode.success)
+        .count();
     let proportion = wilson_proportion(successes, data.episodes.len());
     let galt = summarize_galt(&data.episodes);
     let episode_ids_present = ids_complete && unique_ids.len() == data.episodes.len();
@@ -345,7 +406,10 @@ pub fn audit_run(
     expected_episodes: usize,
 ) -> Result<RunData, Vec<String>> {
     if !dir.is_dir() {
-        return Err(vec![format!("run directory does not exist: {}", dir.display())]);
+        return Err(vec![format!(
+            "run directory does not exist: {}",
+            dir.display()
+        )]);
     }
 
     let mut status = AuditStatus::default();
@@ -358,17 +422,28 @@ pub fn audit_run(
         {
             Some(manifest) => match validate_manifest(&manifest) {
                 Ok(()) => status.manifest_valid = true,
-                Err(errors) => status.errors.extend(errors.into_iter().map(|error| format!("{}: {error}", manifest_path.display()))),
+                Err(errors) => status.errors.extend(
+                    errors
+                        .into_iter()
+                        .map(|error| format!("{}: {error}", manifest_path.display())),
+                ),
             },
-            None => status.errors.push(format!("{}: missing or invalid manifest JSON", manifest_path.display())),
+            None => status.errors.push(format!(
+                "{}: missing or invalid manifest JSON",
+                manifest_path.display()
+            )),
         }
     }
 
     let mut paths = Vec::new();
-    for entry in fs::read_dir(dir).map_err(|error| vec![format!("cannot list {}: {error}", dir.display())])? {
+    for entry in fs::read_dir(dir)
+        .map_err(|error| vec![format!("cannot list {}: {error}", dir.display())])?
+    {
         let entry = entry.map_err(|error| vec![format!("cannot read directory entry: {error}")])?;
         let path = entry.path();
-        if !path.is_file() || path.file_name().and_then(|name| name.to_str()) == Some("audit-manifest.json") {
+        if !path.is_file()
+            || path.file_name().and_then(|name| name.to_str()) == Some("audit-manifest.json")
+        {
             continue;
         }
         if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
@@ -378,8 +453,13 @@ pub fn audit_run(
     paths.sort();
     status.result_files = paths.len();
 
-    let expected: BTreeSet<String> = expected_tasks.iter()
-        .flat_map(|task| expected_modes.iter().map(move |mode| expected_key(task, mode)))
+    let expected: BTreeSet<String> = expected_tasks
+        .iter()
+        .flat_map(|task| {
+            expected_modes
+                .iter()
+                .map(move |mode| expected_key(task, mode))
+        })
         .collect();
     let mut found = BTreeSet::new();
     let mut cells = Vec::new();
@@ -390,16 +470,26 @@ pub fn audit_run(
                 let key = expected_key(&cell.meta.task, &cell.meta.eval_mode);
                 if !found.insert(key.clone()) {
                     status.unexpected_cells.push(format!("duplicate:{key}"));
-                    status.errors.push(format!("{}: duplicate task/mode cell {key}", cell.file_name));
+                    status.errors.push(format!(
+                        "{}: duplicate task/mode cell {key}",
+                        cell.file_name
+                    ));
                     continue;
                 }
                 if !expected.contains(&key) {
                     status.unexpected_cells.push(key.clone());
-                    status.errors.push(format!("{}: unexpected task/mode cell {key}", path.display()));
+                    status.errors.push(format!(
+                        "{}: unexpected task/mode cell {key}",
+                        path.display()
+                    ));
                 }
                 if !cell.errors.is_empty() {
                     status.errors.extend(cell.errors.iter().cloned());
-                    if cell.errors.iter().any(|error| error.contains("expected ") && error.contains(" episodes")) {
+                    if cell
+                        .errors
+                        .iter()
+                        .any(|error| error.contains("expected ") && error.contains(" episodes"))
+                    {
                         status.episode_count_mismatches.push(key.clone());
                     }
                 }
@@ -411,16 +501,28 @@ pub fn audit_run(
 
     status.missing_cells = expected.difference(&found).cloned().collect();
     if !status.missing_cells.is_empty() {
-        status.errors.push(format!("missing expected task/mode cells: {}", status.missing_cells.join(", ")));
+        status.errors.push(format!(
+            "missing expected task/mode cells: {}",
+            status.missing_cells.join(", ")
+        ));
     }
 
-    let signatures: BTreeSet<_> = cells.iter().map(|cell| meta_signature(&cell.meta)).collect();
+    let signatures: BTreeSet<_> = cells
+        .iter()
+        .map(|cell| meta_signature(&cell.meta))
+        .collect();
     if signatures.len() > 1 {
-        status.metadata_inconsistencies.push("model/camera/robot/checkpoint/control metadata differs across result files".to_string());
-        status.errors.extend(status.metadata_inconsistencies.clone());
+        status.metadata_inconsistencies.push(
+            "model/camera/robot/checkpoint/control metadata differs across result files"
+                .to_string(),
+        );
+        status
+            .errors
+            .extend(status.metadata_inconsistencies.clone());
     }
 
-    status.episode_ids_present = !cells.is_empty() && cells.iter().all(|cell| cell.episode_ids_present);
+    status.episode_ids_present =
+        !cells.is_empty() && cells.iter().all(|cell| cell.episode_ids_present);
     status.seeds_present = !cells.is_empty() && cells.iter().all(|cell| cell.seeds_present);
     // Pairing also requires the *same identifiers* for each corresponding
     // task/mode cell across different runs. audit_run alone cannot assert that.
@@ -429,16 +531,26 @@ pub fn audit_run(
     let mut official_pooled_by_mode = BTreeMap::new();
     let mut task_macro_by_mode = BTreeMap::new();
     for mode in expected_modes {
-        let mode_cells: Vec<&CellResult> = cells.iter().filter(|cell| cell.meta.eval_mode == *mode).collect();
-        let total_success: usize = mode_cells.iter().map(|cell| cell.proportion.successes).sum();
+        let mode_cells: Vec<&CellResult> = cells
+            .iter()
+            .filter(|cell| cell.meta.eval_mode == *mode)
+            .collect();
+        let total_success: usize = mode_cells
+            .iter()
+            .map(|cell| cell.proportion.successes)
+            .sum();
         let total_n: usize = mode_cells.iter().map(|cell| cell.proportion.total).sum();
         official_pooled_by_mode.insert(mode.clone(), wilson_proportion(total_success, total_n));
 
-        let rates: Vec<f64> = expected_tasks.iter().filter_map(|task| {
-            mode_cells.iter()
-                .find(|cell| cell.meta.task == *task)
-                .and_then(|cell| cell.proportion.rate)
-        }).collect();
+        let rates: Vec<f64> = expected_tasks
+            .iter()
+            .filter_map(|task| {
+                mode_cells
+                    .iter()
+                    .find(|cell| cell.meta.task == *task)
+                    .and_then(|cell| cell.proportion.rate)
+            })
+            .collect();
         task_macro_by_mode.insert(
             mode.clone(),
             if rates.len() == expected_tasks.len() && !rates.is_empty() {
@@ -462,13 +574,15 @@ pub fn audit_run(
 }
 
 pub fn cross_run_pairing_ready(runs: &[RunData]) -> bool {
-    if runs.len() < 2 || runs.iter().any(|run| {
-        !run.status.episode_ids_present
-            || !run.status.seeds_present
-            || !run.status.missing_cells.is_empty()
-            || !run.status.unexpected_cells.is_empty()
-            || !run.status.errors.is_empty()
-    }) {
+    if runs.len() < 2
+        || runs.iter().any(|run| {
+            !run.status.episode_ids_present
+                || !run.status.seeds_present
+                || !run.status.missing_cells.is_empty()
+                || !run.status.unexpected_cells.is_empty()
+                || !run.status.errors.is_empty()
+        })
+    {
         return false;
     }
 
@@ -499,7 +613,9 @@ pub fn cross_run_pairing_ready(runs: &[RunData]) -> bool {
 }
 
 pub fn fmt_opt_pct(value: Option<f64>) -> String {
-    value.map(|rate| format!("{:.4}", rate)).unwrap_or_else(|| "NA".to_string())
+    value
+        .map(|rate| format!("{:.4}", rate))
+        .unwrap_or_else(|| "NA".to_string())
 }
 
 pub fn tsv(value: &str) -> String {
@@ -545,7 +661,9 @@ mod tests {
     fn native_pooled_and_task_macro_can_differ() {
         let a = wilson_proportion(9, 10);
         let b = wilson_proportion(1, 10);
-        let pooled = wilson_proportion(a.successes + b.successes, a.total + b.total).rate.unwrap();
+        let pooled = wilson_proportion(a.successes + b.successes, a.total + b.total)
+            .rate
+            .unwrap();
         let macro_mean = (a.rate.unwrap() + b.rate.unwrap()) / 2.0;
         assert!((pooled - macro_mean).abs() < 1e-12);
         let imbalanced_a = wilson_proportion(90, 100);
@@ -553,7 +671,9 @@ mod tests {
         let pooled_imbalanced = wilson_proportion(
             imbalanced_a.successes + imbalanced_b.successes,
             imbalanced_a.total + imbalanced_b.total,
-        ).rate.unwrap();
+        )
+        .rate
+        .unwrap();
         let macro_imbalanced = (imbalanced_a.rate.unwrap() + imbalanced_b.rate.unwrap()) / 2.0;
         assert!((pooled_imbalanced - macro_imbalanced).abs() > 0.05);
     }
@@ -643,14 +763,7 @@ mod tests {
         let dir = fixture_dir("missing-cell");
         write_fixture_run(&dir, &[("alpha", "id", 1)], true, "same");
 
-        let run = audit_run(
-            "smoke",
-            &dir,
-            &expected_fixture_tasks(),
-            &one_mode(),
-            2,
-        )
-        .unwrap();
+        let run = audit_run("smoke", &dir, &expected_fixture_tasks(), &one_mode(), 2).unwrap();
 
         assert_eq!(run.status.missing_cells, vec!["beta/id".to_string()]);
         assert!(!run.status.errors.is_empty());
@@ -743,21 +856,27 @@ mod tests {
             ],
             "summary": {"success_rate": 0.5, "n_episodes": 2, "n_successful": 1}
         });
-        fs::write(dir.join("alpha_id.json"), serde_json::to_vec_pretty(&result).unwrap())
-            .expect("write duplicate fixture");
-
-        let run = audit_run(
-            "duplicate",
-            &dir,
-            &["alpha".to_string()],
-            &one_mode(),
-            2,
+        fs::write(
+            dir.join("alpha_id.json"),
+            serde_json::to_vec_pretty(&result).unwrap(),
         )
-        .unwrap();
+        .expect("write duplicate fixture");
+
+        let run = audit_run("duplicate", &dir, &["alpha".to_string()], &one_mode(), 2).unwrap();
         assert!(!run.status.episode_ids_present);
         assert!(!run.status.seeds_present);
-        assert!(run.status.errors.iter().any(|error| error.contains("duplicate episode_id")));
-        assert!(run.status.errors.iter().any(|error| error.contains("duplicate seed")));
+        assert!(
+            run.status
+                .errors
+                .iter()
+                .any(|error| error.contains("duplicate episode_id"))
+        );
+        assert!(
+            run.status
+                .errors
+                .iter()
+                .any(|error| error.contains("duplicate seed"))
+        );
 
         // Avoid retaining an unnecessary mutable binding in this fixture:
         result["summary"]["n_successful"] = Value::from(1);

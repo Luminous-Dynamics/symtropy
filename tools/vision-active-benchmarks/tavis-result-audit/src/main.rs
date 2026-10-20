@@ -60,8 +60,11 @@ fn parse_args() -> Result<Args, String> {
                 expected_modes = parse_csv(&args.next().ok_or("--expected-modes requires CSV")?);
             }
             "--expected-episodes" => {
-                expected_episodes = args.next().ok_or("--expected-episodes requires an integer")?
-                    .parse().map_err(|_| "--expected-episodes must be an integer")?;
+                expected_episodes = args
+                    .next()
+                    .ok_or("--expected-episodes requires an integer")?
+                    .parse()
+                    .map_err(|_| "--expected-episodes must be an integer")?;
             }
             "--out-dir" => out_dir = PathBuf::from(args.next().ok_or("--out-dir requires PATH")?),
             "--allow-unmanifested" => allow_unmanifested = true,
@@ -88,7 +91,14 @@ fn parse_args() -> Result<Args, String> {
             return Err(format!("duplicate run label: {label}"));
         }
     }
-    Ok(Args { runs, expected_tasks, expected_modes, expected_episodes, out_dir, allow_unmanifested })
+    Ok(Args {
+        runs,
+        expected_tasks,
+        expected_modes,
+        expected_episodes,
+        out_dir,
+        allow_unmanifested,
+    })
 }
 
 fn main() {
@@ -103,7 +113,13 @@ fn main() {
     let mut runs = Vec::new();
     let mut fatal = Vec::new();
     for (label, dir) in &args.runs {
-        match audit_run(label, dir, &args.expected_tasks, &args.expected_modes, args.expected_episodes) {
+        match audit_run(
+            label,
+            dir,
+            &args.expected_tasks,
+            &args.expected_modes,
+            args.expected_episodes,
+        ) {
             Ok(run) => {
                 for error in &run.status.errors {
                     fatal.push(format!("{label}: {error}"));
@@ -113,32 +129,52 @@ fn main() {
                 }
                 runs.push(run);
             }
-            Err(errors) => fatal.extend(errors.into_iter().map(|error| format!("{label}: {error}"))),
+            Err(errors) => {
+                fatal.extend(errors.into_iter().map(|error| format!("{label}: {error}")))
+            }
         }
     }
 
     if runs.len() > 1 && !cross_run_pairing_ready(&runs) {
-        eprintln!("PAIRING STATUS: unavailable. No paired episode effect may be computed because one or more runs lack stable episode IDs/seeds or their sets differ.");
+        eprintln!(
+            "PAIRING STATUS: unavailable. No paired episode effect may be computed because one or more runs lack stable episode IDs/seeds or their sets differ."
+        );
     }
 
     if let Err(error) = fs::create_dir_all(&args.out_dir) {
-        eprintln!("cannot create output directory {}: {error}", args.out_dir.display());
+        eprintln!(
+            "cannot create output directory {}: {error}",
+            args.out_dir.display()
+        );
         std::process::exit(2);
     }
 
-    let mut per_task = String::from("run\tmodel\tcamera\trobot\tcheckpoint\ttask\teval_mode\tepisodes\tsuccesses\tsuccess_rate\twilson95_low\twilson95_high\tgalt_valid_n\tgalt_mean_s\tgalt_median_s\tgalt_reason_counts\tepisode_ids_present\tseeds_present\tcell_status\n");
-    let mut summaries = String::from("run\tmodel\tcamera\trobot\teval_mode\tcells_present\tepisodes\tsuccesses\tofficial_pooled_success_rate\twilson95_low\twilson95_high\ttask_macro_success_rate\tpaired_episode_analysis_ready\n");
-    let mut audit = String::from("run\trun_dir\tresult_files\tvalid_cells\texpected_cells\tmissing_cells\tunexpected_cells\tprovenance_manifest_valid\tepisode_ids_present\tseeds_present\tcross_run_pairing_ready\terrors\n");
+    let mut per_task = String::from(
+        "run\tmodel\tcamera\trobot\tcheckpoint\ttask\teval_mode\tepisodes\tsuccesses\tsuccess_rate\twilson95_low\twilson95_high\tgalt_valid_n\tgalt_mean_s\tgalt_median_s\tgalt_reason_counts\tepisode_ids_present\tseeds_present\tcell_status\n",
+    );
+    let mut summaries = String::from(
+        "run\tmodel\tcamera\trobot\teval_mode\tcells_present\tepisodes\tsuccesses\tofficial_pooled_success_rate\twilson95_low\twilson95_high\ttask_macro_success_rate\tpaired_episode_analysis_ready\n",
+    );
+    let mut audit = String::from(
+        "run\trun_dir\tresult_files\tvalid_cells\texpected_cells\tmissing_cells\tunexpected_cells\tprovenance_manifest_valid\tepisode_ids_present\tseeds_present\tcross_run_pairing_ready\terrors\n",
+    );
 
     let pair_ready = cross_run_pairing_ready(&runs);
     for run in &runs {
         let cells_present = run.cells.len();
         for cell in &run.cells {
-            let reason_counts = cell.galt.reason_counts.iter()
+            let reason_counts = cell
+                .galt
+                .reason_counts
+                .iter()
                 .map(|(reason, count)| format!("{reason}:{count}"))
                 .collect::<Vec<_>>()
                 .join(";");
-            let cell_status = if cell.errors.is_empty() { "ok" } else { "error" };
+            let cell_status = if cell.errors.is_empty() {
+                "ok"
+            } else {
+                "error"
+            };
             per_task.push_str(&format!(
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
                 tsv(&run.label),
@@ -170,13 +206,29 @@ fn main() {
             let high = proportion.and_then(|p| p.high_95);
             let successes = proportion.map(|p| p.successes).unwrap_or(0);
             let episodes = proportion.map(|p| p.total).unwrap_or(0);
-            let mode_cells = run.cells.iter().filter(|cell| cell.meta.eval_mode == *mode).count();
+            let mode_cells = run
+                .cells
+                .iter()
+                .filter(|cell| cell.meta.eval_mode == *mode)
+                .count();
             summaries.push_str(&format!(
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
                 tsv(&run.label),
-                tsv(run.cells.first().and_then(|c| c.meta.model.as_deref()).unwrap_or("NA")),
-                tsv(run.cells.first().and_then(|c| c.meta.camera.as_deref()).unwrap_or("NA")),
-                tsv(run.cells.first().and_then(|c| c.meta.robot.as_deref()).unwrap_or("NA")),
+                tsv(run
+                    .cells
+                    .first()
+                    .and_then(|c| c.meta.model.as_deref())
+                    .unwrap_or("NA")),
+                tsv(run
+                    .cells
+                    .first()
+                    .and_then(|c| c.meta.camera.as_deref())
+                    .unwrap_or("NA")),
+                tsv(run
+                    .cells
+                    .first()
+                    .and_then(|c| c.meta.robot.as_deref())
+                    .unwrap_or("NA")),
                 tsv(mode),
                 mode_cells,
                 episodes,
@@ -189,7 +241,11 @@ fn main() {
             ));
         }
 
-        let status_errors = if run.status.errors.is_empty() { "none".to_string() } else { run.status.errors.join("; ") };
+        let status_errors = if run.status.errors.is_empty() {
+            "none".to_string()
+        } else {
+            run.status.errors.join("; ")
+        };
         audit.push_str(&format!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
             tsv(&run.label),
@@ -213,7 +269,10 @@ fn main() {
         ("audit.tsv", audit),
     ] {
         if let Err(error) = fs::write(args.out_dir.join(name), content) {
-            eprintln!("cannot write {}: {error}", args.out_dir.join(name).display());
+            eprintln!(
+                "cannot write {}: {error}",
+                args.out_dir.join(name).display()
+            );
             std::process::exit(2);
         }
     }
