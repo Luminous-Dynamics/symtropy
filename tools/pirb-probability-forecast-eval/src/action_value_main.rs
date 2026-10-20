@@ -326,9 +326,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         errors.push("target period must be later than forecast origin".to_owned());
     }
     if outcome_as_of < target_period {
-        errors.push(
-            "frozen outcome cutoff must not precede the forecast target period".to_owned(),
-        );
+        errors.push("frozen outcome cutoff must not precede the forecast target period".to_owned());
     }
 
     let capacity_grid = policy["capacity_grid"]
@@ -507,16 +505,26 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
         .iter()
         .map(|v| v.as_f64().expect("schema validated effect multipliers"))
         .collect::<Vec<_>>();
-    let minimum_group_count =
-        integer_at(policy, "minimum_group_report_count").expect("schema validated group minimum")
-            as usize;
+    let minimum_group_count = integer_at(policy, "minimum_group_report_count")
+        .expect("schema validated group minimum") as usize;
 
-    let baseline_expected_harm = rows.iter()
-        .filter_map(|row| expected_probability(row).map(|p| p * number_at(row, "expected_harm_per_event").unwrap_or_default()))
+    let baseline_expected_harm = rows
+        .iter()
+        .filter_map(|row| {
+            expected_probability(row)
+                .map(|p| p * number_at(row, "expected_harm_per_event").unwrap_or_default())
+        })
         .sum::<f64>();
-    let known_outcomes = rows.iter().filter(|row| known_outcome(row).is_some()).count();
-    let known_events = rows.iter().filter(|row| known_outcome(row) == Some(1)).count();
-    let abstained_count = rows.iter()
+    let known_outcomes = rows
+        .iter()
+        .filter(|row| known_outcome(row).is_some())
+        .count();
+    let known_events = rows
+        .iter()
+        .filter(|row| known_outcome(row) == Some(1))
+        .count();
+    let abstained_count = rows
+        .iter()
         .filter(|row| string_at(row, "forecast_disposition") == Some("abstained"))
         .count();
     let issued_count = rows.len() - abstained_count;
@@ -734,11 +742,7 @@ mod tests {
     #[test]
     fn abstained_rows_are_never_eligible_for_an_action() {
         let value = fixture();
-        let rows = value["rows"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .collect::<Vec<_>>();
+        let rows = value["rows"].as_array().unwrap().iter().collect::<Vec<_>>();
         let selected = select_indices(&rows, AllocationPolicy::RiskRanked, 99, 1.0, 1.0);
         assert!(
             selected
