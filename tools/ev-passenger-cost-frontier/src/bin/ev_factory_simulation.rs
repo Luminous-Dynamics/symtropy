@@ -712,27 +712,29 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.replication_scenario_records = runs
         .iter()
         .flat_map(|run| {
-            run.scenarios.iter().map(|scenario| ReplicationScenarioRecord {
-                seed: run.seed,
-                scenario_id: scenario.scenario_id.clone(),
-                measured_good_units_per_hour: scenario.measured_good_units_per_hour,
-                good_units_total: scenario.good_units_total,
-                released_jobs_total: scenario.released_jobs_total,
-                scrapped_jobs_total: scenario.scrapped_jobs_total,
-                measured_rework_attempts: scenario.measured_rework_attempts,
-                variant_wait_statistics: scenario.variant_wait_statistics.clone(),
-                stations: scenario
-                    .stations
-                    .iter()
-                    .map(|station| ReplicationStationRecord {
-                        station_id: station.station_id.clone(),
-                        changeovers_started: station.changeovers_started_after_warmup,
-                        output_transfers: station.output_transfers_after_warmup,
-                        out_of_order_output_transfers:
-                            station.out_of_order_output_transfers_after_warmup,
-                    })
-                    .collect(),
-            })
+            run.scenarios
+                .iter()
+                .map(|scenario| ReplicationScenarioRecord {
+                    seed: run.seed,
+                    scenario_id: scenario.scenario_id.clone(),
+                    measured_good_units_per_hour: scenario.measured_good_units_per_hour,
+                    good_units_total: scenario.good_units_total,
+                    released_jobs_total: scenario.released_jobs_total,
+                    scrapped_jobs_total: scenario.scrapped_jobs_total,
+                    measured_rework_attempts: scenario.measured_rework_attempts,
+                    variant_wait_statistics: scenario.variant_wait_statistics.clone(),
+                    stations: scenario
+                        .stations
+                        .iter()
+                        .map(|station| ReplicationStationRecord {
+                            station_id: station.station_id.clone(),
+                            changeovers_started: station.changeovers_started_after_warmup,
+                            output_transfers: station.output_transfers_after_warmup,
+                            out_of_order_output_transfers: station
+                                .out_of_order_output_transfers_after_warmup,
+                        })
+                        .collect(),
+                })
         })
         .collect();
     let mut station_statistics = Vec::new();
@@ -1654,11 +1656,19 @@ mod tests {
     #[test]
     fn report_preserves_seed_scenario_records_for_valid_paired_comparison() {
         let report = evaluate_catalog(&fixture()).expect("20-seed report");
-        assert_eq!(report.replication_scenario_records.len(), report.replication_count * report.scenario_count);
+        assert_eq!(
+            report.replication_scenario_records.len(),
+            report.replication_count * report.scenario_count
+        );
         let mut tuples = BTreeSet::new();
         for record in &report.replication_scenario_records {
             assert!(report.replication_seeds.contains(&record.seed));
-            assert!(report.scenarios.iter().any(|scenario| scenario.scenario_id == record.scenario_id));
+            assert!(
+                report
+                    .scenarios
+                    .iter()
+                    .any(|scenario| scenario.scenario_id == record.scenario_id)
+            );
             assert!(tuples.insert((record.seed, record.scenario_id.as_str())));
             assert_eq!(record.variant_wait_statistics.len(), 3);
             assert_eq!(record.stations.len(), 5);
