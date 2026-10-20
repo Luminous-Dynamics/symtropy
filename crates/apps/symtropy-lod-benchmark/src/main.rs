@@ -73,6 +73,8 @@ struct BenchmarkReport {
     claim_scope: Vec<String>,
 }
 
+type AllocationSignature = Vec<(u64, u32, u16, u32, bool)>;
+
 #[derive(Debug, Serialize)]
 struct WorkloadResult {
     workload_id: String,
@@ -93,6 +95,12 @@ struct WorkloadResult {
     allocator_wall_time_p50_ns: u64,
     allocator_wall_time_p95_ns: u64,
     allocator_wall_time_p99_ns: u64,
+    reference_scan_samples: usize,
+    reference_scan_p50_ns: u64,
+    reference_scan_p95_ns: u64,
+    reference_scan_p99_ns: u64,
+    heap_vs_reference_p50_speedup: f64,
+    reference_matches_heap: bool,
     output_sha256: String,
     repeat_outputs_identical: bool,
 }
@@ -387,9 +395,55 @@ fn run_workload(
         .filter(|choice| choice.screen_error_px > profile.max_screen_error_px)
         .count();
 
+    let production_signature = allocation_signature(&allocation);
+    let reference_scan_samples = if workload.entity_count <= 1_000 {
+        samples
+    } else {
+        samples.min(3)
+    };
+    let mut reference_elapsed_ns = Vec::with_capacity(reference_scan_samples);
+    let mut reference_signature: Option<AllocationSignature> = None;
+    let mut reference_matches_heap = true;
+
+    for _ in 0..reference_scan_samples {
+        let start = Instant::now();
+        let signature = reference_scan_signature(
+            &demands,
+            budget_units,
+            profile.max_screen_error_px,
+        )?;
+        reference_elapsed_ns.push(duration_nanos(start.elapsed())?);
+        if let Some(previous) = &reference_signature {
+            if previous != &signature {
+                reference_matches_heap = false;
+            }
+        } else {
+            reference_signature = Some(signature);
+        }
+    }
+
+    if reference_signature.as_ref() != Some(&production_signature) {
+        reference_matches_heap = false;
+    }
+    if !reference_matches_heap {
+        return Err(format!(
+            "heap allocator and independent scan reference differ for {}",
+            workload.workload_id
+        )
+        .into());
+    }
+
     let final_cost_fraction_of_finest =
         allocation.total_cost_units as f64 / finest_total as f64;
     elapsed_ns.sort_unstable();
+    reference_elapsed_ns.sort_unstable();
+    let allocator_p50_ns = percentile(&elapsed_ns, 0.50);
+    let reference_scan_p50_ns = percentile(&reference_elapsed_ns, 0.50);
+    let heap_vs_reference_p50_speedup = if allocator_p50_ns == 0 {
+        0.0
+    } else {
+        reference_scan_p50_ns as f64 / allocator_p50_ns as f64
+    };
     Ok(WorkloadResult {
         workload_id: workload.workload_id.clone(),
         entity_count: workload.entity_count,
@@ -406,9 +460,15 @@ fn run_workload(
         protected_demotion_count,
         screen_error_violations,
         weighted_screen_error_squared: allocation.total_weighted_error_squared,
-        allocator_wall_time_p50_ns: percentile(&elapsed_ns, 0.50),
+        allocator_wall_time_p50_ns: allocator_p50_ns,
         allocator_wall_time_p95_ns: percentile(&elapsed_ns, 0.95),
         allocator_wall_time_p99_ns: percentile(&elapsed_ns, 0.99),
+        reference_scan_samples,
+        reference_scan_p50_ns,
+        reference_scan_p95_ns: percentile(&reference_elapsed_ns, 0.95),
+        reference_scan_p99_ns: percentile(&reference_elapsed_ns, 0.99),
+        heap_vs_reference_p50_speedup,
+        reference_matches_heap,
         output_sha256: output_sha.ok_or("no output digest recorded")?,
         repeat_outputs_identical,
     })
@@ -485,8 +545,8 @@ fn validate_allocation(
     Ok(())
 }
 
-fn allocation_sha256(allocation: &LodAllocation) -> Result<String, Box<dyn Error>> {
-    let canonical: Vec<(u64, u32, u16, u32, bool)> = allocation
+fn allocation_signature(allocation: &LodAllocation) -> AllocationSignature {
+    allocation
         .choices
         .iter()
         .map(|choice| (
@@ -496,8 +556,83 @@ fn allocation_sha256(allocation: &LodAllocation) -> Result<String, Box<dyn Error
             choice.cost_units,
             choice.protected,
         ))
+        .collect()
+}
+
+fn allocation_sha256(allocation: &LodAllocation) -> Result<String, Box<dyn Error>> {
+    Ok(sha256_hex(&serde_json::to_vec(&allocation_signature(allocation))?))
+}
+
+fn reference_scan_signature(
+    demands: &[LodDemand],
+    budget_units: u64,
+    max_screen_error_px: f32,
+) -> Result<AllocationSignature, Box<dyn Error>> {
+    let mut selected_indices: Vec<usize> = demands
+        .iter()
+        .map(|demand| demand.candidates.len().saturating_sub(1))
         .collect();
-    Ok(sha256_hex(&serde_json::to_vec(&canonical)?))
+    let mut total_cost = demands.iter().try_fold(0_u64, |total, demand| {
+        let candidate = demand.candidates.last()?;
+        total.checked_add(u64::from(candidate.cost_units))
+    }).ok_or("reference cost overflow or empty candidate list")?;
+
+    while total_cost > budget_units {
+        let mut best: Option<(f64, u64, usize, u64)> = None;
+        for (demand_index, demand) in demands.iter().enumerate() {
+            let selected_index = selected_indices[demand_index];
+            if demand.selected || demand.critical || selected_index == 0 {
+                continue;
+            }
+            let current = demand.candidates[selected_index];
+            let next = demand.candidates[selected_index - 1];
+            if next.screen_error_px > max_screen_error_px {
+                continue;
+            }
+            let saved_cost = u64::from(current.cost_units - next.cost_units);
+            let current_error = f64::from(current.screen_error_px);
+            let next_error = f64::from(next.screen_error_px);
+            let added_error = f64::from(demand.importance)
+                * (next_error * next_error - current_error * current_error);
+            let ratio = added_error / saved_cost as f64;
+            let replace = match best {
+                None => true,
+                Some((best_ratio, best_entity_id, _, _)) => {
+                    ratio.total_cmp(&best_ratio).is_lt()
+                        || (ratio.total_cmp(&best_ratio).is_eq()
+                            && demand.entity_id < best_entity_id)
+                }
+            };
+            if replace {
+                best = Some((ratio, demand.entity_id, demand_index, saved_cost));
+            }
+        }
+
+        let Some((_, _, demand_index, saved_cost)) = best else {
+            return Err("reference scan found no feasible downgrade".into());
+        };
+        selected_indices[demand_index] -= 1;
+        total_cost = total_cost
+            .checked_sub(saved_cost)
+            .ok_or("reference cost underflow")?;
+    }
+
+    let mut signature: AllocationSignature = demands
+        .iter()
+        .zip(selected_indices)
+        .map(|(demand, selected_index)| {
+            let candidate = demand.candidates[selected_index];
+            (
+                demand.entity_id,
+                candidate.representation_id,
+                candidate.quality_rank,
+                candidate.cost_units,
+                demand.selected || demand.critical,
+            )
+        })
+        .collect();
+    signature.sort_by_key(|entry| entry.0);
+    Ok(signature)
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
