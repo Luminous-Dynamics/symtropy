@@ -31,3 +31,15 @@ The CLI does not execute solvers, inspect artifact bytes, authenticate the produ
 ## Negative controls
 
 The unit tests retain wrong-unit and frame-mismatch requests, duplicate IDs/DOFs, stale exact-request digest, a PASS with missing outputs, and a PASS that attempts to report dynamic fracture under a linear-elastic fidelity class.
+
+## Evidence interpretation
+
+Treat validation outcomes as a ladder, not one generic green check:
+
+1. **Contract valid** — fields and supported cross-field invariants are consistent.
+2. **Numerically verified** — a named implementation passes analytical/convergence checks.
+3. **Independently compared** — an eligible second implementation agrees under compatible assumptions.
+4. **Physically validated** — measured observations support a stated model envelope with uncertainty.
+5. **Engineering qualified** — the evidence is adequate for the specific intended use and risk.
+
+This CLI only contributes to the first stage. Its workflow attempts exact-head formatting, tests, strict Clippy, and fixture checks; a skipped gate, queued run, stale-head result, or formatting-only pass is not a full qualification result.
