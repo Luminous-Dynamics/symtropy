@@ -273,14 +273,15 @@ impl Episode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Kind { Fifo, Reservoir, QueryKeyed, QueryKeyedSelective }
+enum Kind { Fifo, Reservoir, QueryKeyed, QueryKeyedSelective, QueryKeyedHazardAware }
 
 impl Kind {
-    const ALL: [Self; 4] = [
+    const ALL: [Self; 5] = [
         Self::Fifo,
         Self::Reservoir,
         Self::QueryKeyed,
         Self::QueryKeyedSelective,
+        Self::QueryKeyedHazardAware,
     ];
     fn name(self) -> &'static str {
         match self {
@@ -288,6 +289,7 @@ impl Kind {
             Self::Reservoir => "uniform_reservoir",
             Self::QueryKeyed => "query_keyed_latest",
             Self::QueryKeyedSelective => "query_keyed_selective",
+            Self::QueryKeyedHazardAware => "query_keyed_hazard_aware",
         }
     }
 }
@@ -298,6 +300,43 @@ struct DecisionThreshold {
     max_age: usize,
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+struct HazardStats {
+    last_reliable: Option<Evidence>,
+    transition_count: u16,
+    elapsed_ticks: u16,
+}
+
+impl HazardStats {
+    fn observe(&mut self, evidence: Evidence) {
+        // Use only released evidence marked high-confidence. This is not an
+        // evaluator corruption flag; no hidden truth crosses this boundary.
+        if evidence.confidence < 900 { return; }
+        match self.last_reliable {
+            None => self.last_reliable = Some(evidence),
+            Some(previous) if evidence.source_tick > previous.source_tick => {
+                let gap = evidence.source_tick.saturating_sub(previous.source_tick) as u16;
+                self.elapsed_ticks = self.elapsed_ticks.saturating_add(gap);
+                if evidence.value != previous.value {
+                    self.transition_count = self.transition_count.saturating_add(1);
+                }
+                self.last_reliable = Some(evidence);
+            }
+            // Same-source duplicates and late older observations do not
+            // invent a state transition or rewind the estimator.
+            Some(_) => {}
+        }
+    }
+
+    fn estimated_flip_hazard(self) -> f64 {
+        // Regularized per-source-tick estimate with a 5% prior mean. Clamp
+        // below 0.5 to keep the symmetric two-state persistence model valid.
+        ((f64::from(self.transition_count) + 1.0)
+            / (f64::from(self.elapsed_ticks) + 20.0))
+            .clamp(0.0, 0.49)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Memory {
     kind: Kind,
@@ -306,15 +345,31 @@ struct Memory {
     entries: Vec<Evidence>,
     seen: u64,
     actor_seed: u64,
+    // Three per-query sufficient-statistic records. The hazard policy's
+    // additional state bytes are surfaced in the report, not treated as free.
+    hazard_stats: [HazardStats; QUERY_WIDTH],
 }
 
 impl Memory {
     fn new(kind: Kind, cap: usize, query: Query, actor_seed: u64) -> Self {
-        Self { kind, cap, query, entries: Vec::with_capacity(cap), seen: 0, actor_seed }
+        Self {
+            kind,
+            cap,
+            query,
+            entries: Vec::with_capacity(cap),
+            seen: 0,
+            actor_seed,
+            hazard_stats: [HazardStats::default(); QUERY_WIDTH],
+        }
     }
 
     fn observe(&mut self, e: Evidence) {
         if self.cap == 0 || e.key() >= CLAIMS { return; }
+        if self.kind == Kind::QueryKeyedHazardAware && self.query.contains(e.key()) {
+            if let Some(index) = self.query.keys.iter().position(|key| *key == e.key()) {
+                self.hazard_stats[index].observe(e);
+            }
+        }
         match self.kind {
             Kind::Fifo => {
                 self.entries.push(e);
@@ -332,7 +387,7 @@ impl Memory {
                     if draw < self.cap as u64 { self.entries[draw as usize] = e; }
                 }
             }
-            Kind::QueryKeyed | Kind::QueryKeyedSelective => {
+            Kind::QueryKeyed | Kind::QueryKeyedSelective | Kind::QueryKeyedHazardAware => {
                 // Query keys are public. The policy receives no hidden truth,
                 // future observation, seed or evaluator annotation.
                 if !self.query.contains(e.key()) { return; }
@@ -376,10 +431,46 @@ impl Memory {
         }
         Some(positive >= 2)
     }
+
+    fn decide_hazard_aware(&self, tick: usize) -> Option<bool> {
+        let mut probabilities = [0.5_f64; QUERY_WIDTH];
+        for (index, key) in self.query.keys.iter().copied().enumerate() {
+            let evidence = self.freshest(key)?;
+            let age = tick.saturating_sub(usize::from(evidence.source_tick));
+            let reliability = (f64::from(evidence.confidence) / 1_000.0).clamp(0.5, 0.99);
+            let hazard = self.hazard_stats[index].estimated_flip_hazard();
+            let parity_persistence = (1.0 - 2.0 * hazard).powi(age as i32);
+            let probability_same = 0.5 + (reliability - 0.5) * parity_persistence;
+            probabilities[index] = if evidence.value { probability_same } else { 1.0 - probability_same };
+        }
+
+        // Exact majority probability for the benchmark's independent binary
+        // claims; answer only when expected 0/1 loss beats 0.25 abstention loss.
+        let [p0, p1, p2] = probabilities;
+        let p_majority_true =
+            p0 * p1 * (1.0 - p2)
+            + p0 * (1.0 - p1) * p2
+            + (1.0 - p0) * p1 * p2
+            + p0 * p1 * p2;
+        if p_majority_true > 0.75 {
+            Some(true)
+        } else if p_majority_true < 0.25 {
+            Some(false)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
-struct Outcome { loss: f64, answered: bool, correct: bool, fresh_claims: usize, entries: usize }
+struct Outcome {
+    loss: f64,
+    answered: bool,
+    correct: bool,
+    fresh_claims: usize,
+    entries: usize,
+    logical_state_bytes: usize,
+}
 
 fn evaluate(ep: &Episode, kind: Kind, cap: usize, actor_seed: u64) -> Outcome {
     evaluate_with_threshold(ep, kind, cap, actor_seed, DecisionThreshold {
@@ -397,18 +488,28 @@ fn evaluate_with_threshold(
 ) -> Outcome {
     let mut memory = Memory::new(kind, cap, ep.query, actor_seed);
     for e in ep.stream.iter().copied() { memory.observe(e); }
-    let decision = if kind == Kind::QueryKeyedSelective {
-        memory.decide_with_threshold(HORIZON, threshold)
-    } else {
-        memory.decide(HORIZON)
+    let decision = match kind {
+        Kind::QueryKeyedSelective => memory.decide_with_threshold(HORIZON, threshold),
+        Kind::QueryKeyedHazardAware => memory.decide_hazard_aware(HORIZON),
+        _ => memory.decide(HORIZON),
     };
     let correct = decision.is_some_and(|answer| answer == ep.target_answer());
+    // Logical serialized-state estimate: retained evidence plus hazard
+    // sufficient statistics. Allocator overhead and executable/runtime memory
+    // are excluded and must not be presented as measured RAM.
+    let logical_state_bytes = memory.entries.len() * std::mem::size_of::<Evidence>()
+        + if kind == Kind::QueryKeyedHazardAware {
+            std::mem::size_of::<[HazardStats; QUERY_WIDTH]>()
+        } else {
+            0
+        };
     Outcome {
         loss: match decision { None => 0.25, Some(_) if correct => 0.0, Some(_) => 1.0 },
         answered: decision.is_some(),
         correct,
         fresh_claims: memory.fresh_claims(HORIZON),
         entries: memory.entries.len(),
+        logical_state_bytes,
     }
 }
 
@@ -420,6 +521,7 @@ struct Acc {
     correct: u64,
     fresh_claims: u64,
     entries: u64,
+    logical_state_bytes_sum: u64,
     delta_vs_fifo: Vec<f64>,
 }
 
@@ -431,6 +533,7 @@ impl Acc {
         self.correct += u64::from(o.correct);
         self.fresh_claims += o.fresh_claims as u64;
         self.entries += o.entries as u64;
+        self.logical_state_bytes_sum += o.logical_state_bytes as u64;
         if let Some(d) = delta { self.delta_vs_fifo.push(d); }
     }
     fn mean_loss(&self) -> f64 { self.loss_sum / self.n.max(1) as f64 }
@@ -438,6 +541,9 @@ impl Acc {
     fn accuracy(&self) -> String {
         if self.answered == 0 { "NA".to_string() }
         else { format!("{:.4}", self.correct as f64 / self.answered as f64) }
+    }
+    fn mean_logical_state_bytes(&self) -> f64 {
+        self.logical_state_bytes_sum as f64 / self.n.max(1) as f64
     }
 }
 
@@ -520,7 +626,7 @@ fn report() {
     println!("8 claims; public majority query over 3; 48 revealed events; source time can differ from arrival time");
     println!("paired policies, correlated distractor bursts, changing claims, delayed and occasionally corrupted evidence");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
-    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
+    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
     for family in [Family::Development, Family::HeldOut] {
         let mut cells = vec![Acc::default(); Kind::ALL.len() * CAPS.len()];
@@ -579,9 +685,9 @@ fn report() {
                 };
                 let coverage = cell.fresh_claims as f64 / (cell.n.max(1) * QUERY_WIDTH as u64) as f64;
                 let mean_entries = cell.entries as f64 / cell.n.max(1) as f64;
-                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.4}\t{:.4}\t{:.4}",
+                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.1}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(), kind.name(), cap, cell.n, cell.mean_loss(), cell.answer_rate(),
-                    cell.accuracy(), coverage, mean_entries, delta, lo, hi);
+                    cell.accuracy(), coverage, mean_entries, cell.mean_logical_state_bytes(), delta, lo, hi);
             }
         }
 
