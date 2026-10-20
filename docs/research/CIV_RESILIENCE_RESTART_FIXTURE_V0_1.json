@@ -192,7 +192,86 @@
     "shared_observations_through_step": 1,
     "left_hidden_event_at_step_2": "controller failure",
     "right_hidden_event_at_step_2": "no controller failure",
-    "expected": "For the same deterministic policy version, actions through step 1 must be identical. The policy must not receive the scenario ID or hidden event schedule."
+    "expected": "For the same deterministic policy version, actions through step 1 must be identical. The policy must not receive the scenario ID or hidden event schedule.",
+    "policy_trace_pair": {
+      "schema_version": "civ-res-policy-trace-pair/0.1",
+      "left": {
+        "policy_id": "criticality-heuristic",
+        "policy_version": "fixture-policy/1",
+        "steps": [
+          {
+            "step": 0,
+            "visible_history": [{"step": 0, "observation": {"power_available": 6, "controller_operational": true}}],
+            "policy_input": {"step": 0, "observation_history": [{"step": 0, "observation": {"power_available": 6, "controller_operational": true}}]},
+            "action": {"kind": "preserve_essential_service_floors"}
+          },
+          {
+            "step": 1,
+            "visible_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}}
+            ],
+            "policy_input": {"step": 1, "observation_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}}
+            ]},
+            "action": {"kind": "reserve_repair_stock"}
+          },
+          {
+            "step": 2,
+            "visible_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}},
+              {"step": 2, "observation": {"power_available": 6, "controller_operational": false}}
+            ],
+            "policy_input": {"step": 2, "observation_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}},
+              {"step": 2, "observation": {"power_available": 6, "controller_operational": false}}
+            ]},
+            "action": {"kind": "request_controller_repair"}
+          }
+        ]
+      },
+      "right": {
+        "policy_id": "criticality-heuristic",
+        "policy_version": "fixture-policy/1",
+        "steps": [
+          {
+            "step": 0,
+            "visible_history": [{"step": 0, "observation": {"power_available": 6, "controller_operational": true}}],
+            "policy_input": {"step": 0, "observation_history": [{"step": 0, "observation": {"power_available": 6, "controller_operational": true}}]},
+            "action": {"kind": "preserve_essential_service_floors"}
+          },
+          {
+            "step": 1,
+            "visible_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}}
+            ],
+            "policy_input": {"step": 1, "observation_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}}
+            ]},
+            "action": {"kind": "reserve_repair_stock"}
+          },
+          {
+            "step": 2,
+            "visible_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}},
+              {"step": 2, "observation": {"power_available": 6, "controller_operational": true}}
+            ],
+            "policy_input": {"step": 2, "observation_history": [
+              {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+              {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}},
+              {"step": 2, "observation": {"power_available": 6, "controller_operational": true}}
+            ]},
+            "action": {"kind": "produce_if_gates_pass"}
+          }
+        ]
+      }
+    },
   },
   "verification_notes": [
     "Every value is synthetic and unit-scoped; do not interpret these numbers as plant capacities or engineering recommendations.",
