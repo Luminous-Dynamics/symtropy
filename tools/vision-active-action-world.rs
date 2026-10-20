@@ -463,15 +463,21 @@ impl Policy {
                         return VisionAction::ChangeView;
                     }
                 }
-                if observation.surprise_milli >= 800 && observation.alternate_view_available {
+                if observation.surprise_milli >= 800
+                    && observation.novelty_milli < 700
+                    && observation.alternate_view_available
+                {
                     return VisionAction::ChangeView;
                 }
                 if observation.novelty_milli >= 700 {
-                    if observation.alternate_view_available {
-                        return VisionAction::ChangeView;
-                    }
                     if observation.next_sample_available {
                         return VisionAction::AcquireNext;
+                    }
+                    if observation.timed_event_available {
+                        return VisionAction::WaitForEvent;
+                    }
+                    if observation.alternate_view_available {
+                        return VisionAction::ChangeView;
                     }
                 }
                 if observation.confidence_milli < 400 {
