@@ -39,16 +39,16 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path research/physical-solver-contract/Cargo.toml --all -- --check
       - name: Test semantic validation and negative controls
-        run: cargo test --manifest-path research/physical-solver-contract/Cargo.toml
+        run: cargo test --locked --manifest-path research/physical-solver-contract/Cargo.toml
       - name: Clippy with warnings denied
-        run: cargo clippy --manifest-path research/physical-solver-contract/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path research/physical-solver-contract/Cargo.toml --all-targets -- -D warnings
       - name: Validate fixtures at exact head and assert unresolved claim ceiling
         shell: bash
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
-          cargo run --quiet --manifest-path research/physical-solver-contract/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
             --request schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json \
             --validator-revision "$source_commit" > solver-contract-supported-receipt.json
           jq -e --arg source_commit "$source_commit" '
@@ -60,7 +60,7 @@ jobs:
             and .physics_omitted == []
             and (.request_sha256 | test("^[0-9a-f]{64}$"))
           ' solver-contract-supported-receipt.json
-          cargo run --quiet --manifest-path research/physical-solver-contract/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
             --request schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json \
             --validator-revision "$source_commit" > solver-contract-unsupported-receipt.json
           jq -e '
@@ -78,11 +78,3 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Emit resolved standalone lockfile for exact pinning
-        if: always()
-        shell: bash
-        run: |
-          set +e
-          echo "BEGIN_PHYSICAL_SOLVER_CONTRACT_LOCKFILE"
-          cat research/physical-solver-contract/Cargo.lock
-          echo "END_PHYSICAL_SOLVER_CONTRACT_LOCKFILE"
