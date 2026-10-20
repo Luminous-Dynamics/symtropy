@@ -80,7 +80,7 @@
   "decision_utility_spec": null,
   "operational_context": null,
   "limitations": [
-    "Fixture tests schema decoding and claim gates only",
+    "Synthetic-only fixture tests schema decoding and claim gates",
     "No hydrodynamic solver output, observed event or empirical skill is represented"
   ]
 }
