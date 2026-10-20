@@ -12,7 +12,7 @@ The Rust helper in efficiency.rs validates measurement identity and performs ari
 
 ## Fairness rules
 
-1. Freeze the exact case/configuration identity and compare only matching case digests.
+1. Freeze the scenario identity—geometry, forcing, boundaries, time horizon and observation support—and compare only matching case digests. Every run separately records a digest of the exact solver/configuration variant; these configuration digests are expected to differ between uniform and adaptive methods.
 2. Match hardware/backend identity for runtime and memory comparisons. Cross-hardware comparisons require a separate normalized protocol and must not use these paired ratios.
 3. Require identical quality metric dimensions for every compared run.
 4. Missing energy is not measured, never zero. An energy-aware comparison must meter both runs at the same declared boundary.
