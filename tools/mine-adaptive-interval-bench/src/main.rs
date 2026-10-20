@@ -901,6 +901,10 @@ impl Accumulator {
             self.coverage_recovery_attempts += 1;
             if let Some(delay) = coverage_band_recovery_delay(outcomes, onset) {
                 self.coverage_recovery_delays.push(delay);
+                if let Some((in_band, observed)) = post_recovery_window_counts(outcomes, onset) {
+                    self.post_recovery_windows_in_band += in_band;
+                    self.post_recovery_windows_observed += observed;
+                }
             }
         }
 
@@ -989,6 +993,14 @@ impl Accumulator {
             .collect::<Vec<_>>();
         let coverage_recovery_delay_p95_ticks = quantile(&recovery_delays_f64, 95);
         let coverage_recovery_delay_max_ticks = self.coverage_recovery_delays.iter().copied().max();
+        let post_recovery_persistence_rate = if self.post_recovery_windows_observed == 0 {
+            None
+        } else {
+            Some(
+                self.post_recovery_windows_in_band as f64
+                    / self.post_recovery_windows_observed as f64,
+            )
+        };
         let detection_delay_mean_ticks = if self.detection_delays.is_empty() {
             None
         } else {
@@ -1020,6 +1032,9 @@ impl Accumulator {
             coverage_recovery_delay_mean_ticks,
             coverage_recovery_delay_p95_ticks,
             coverage_recovery_delay_max_ticks,
+            post_recovery_windows_in_band: self.post_recovery_windows_in_band,
+            post_recovery_windows_observed: self.post_recovery_windows_observed,
+            post_recovery_persistence_rate,
             mean_interval_width,
             p95_interval_width,
             max_interval_width,
