@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-mesh-refinement-study-report-v0.1.schema.json",
+  "title": "Physical Mesh Refinement Study Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "study_status", "study_id", "study_manifest_sha256",
+    "reference_id", "reference_sha256", "comparison_protocol_id",
+    "request_id", "request_sha256", "scene_sha256", "scene_revision", "case_id",
+    "mesh_family_id", "mesh_generator_identity", "refinement_method",
+    "primary_observable_id", "primary_unit", "primary_reference_value",
+    "primary_absolute_tolerance", "primary_relative_tolerance", "level_count",
+    "minimum_levels_required", "strictly_decreasing_error_required",
+    "strictly_decreasing_primary_error", "finest_level_id",
+    "finest_comparison_status", "finest_primary_absolute_error",
+    "finest_primary_within_tolerance", "levels", "observed_order_estimates",
+    "diagnostics", "physical_result_qualified", "real_world_validation_status", "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-mesh-refinement-study-report-v0.1" },
+    "study_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "study_id": { "$ref": "#/$defs/token" },
+    "study_manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "reference_id": { "$ref": "#/$defs/token" },
+    "reference_sha256": { "$ref": "#/$defs/sha256" },
+    "comparison_protocol_id": { "$ref": "#/$defs/token" },
+    "request_id": { "$ref": "#/$defs/token" },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "case_id": { "$ref": "#/$defs/token" },
+    "mesh_family_id": { "$ref": "#/$defs/token" },
+    "mesh_generator_identity": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "refinement_method": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "primary_observable_id": { "$ref": "#/$defs/token" },
+    "primary_unit": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "primary_reference_value": { "type": "number" },
+    "primary_absolute_tolerance": { "type": "number", "minimum": 0 },
+    "primary_relative_tolerance": { "type": "number", "minimum": 0 },
+    "level_count": { "type": "integer", "minimum": 3, "maximum": 32 },
+    "minimum_levels_required": { "type": "integer", "minimum": 3, "maximum": 32 },
+    "strictly_decreasing_error_required": { "type": "boolean" },
+    "strictly_decreasing_primary_error": { "type": "boolean" },
+    "finest_level_id": { "$ref": "#/$defs/token" },
+    "finest_comparison_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "finest_primary_absolute_error": { "type": ["number", "null"], "minimum": 0 },
+    "finest_primary_within_tolerance": { "type": "boolean" },
+    "levels": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "level_id", "mesh_size_h_m", "degrees_of_freedom", "comparison_report_sha256",
+          "comparison_status", "artifact_verification_status", "producer_status",
+          "primary_observable_id", "primary_observed_value", "primary_reference_value",
+          "primary_absolute_error", "primary_allowed_absolute_error", "primary_within_tolerance",
+          "error_trend_from_previous_level"
+        ],
+        "properties": {
+          "level_id": { "$ref": "#/$defs/token" },
+          "mesh_size_h_m": { "type": "number", "exclusiveMinimum": 0 },
+          "degrees_of_freedom": { "type": "integer", "minimum": 1 },
+          "comparison_report_sha256": { "$ref": "#/$defs/sha256" },
+          "comparison_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+          "artifact_verification_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+          "producer_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+          "primary_observable_id": { "$ref": "#/$defs/token" },
+          "primary_observed_value": { "type": ["number", "null"] },
+          "primary_reference_value": { "type": ["number", "null"] },
+          "primary_absolute_error": { "type": ["number", "null"], "minimum": 0 },
+          "primary_allowed_absolute_error": { "type": ["number", "null"], "minimum": 0 },
+          "primary_within_tolerance": { "type": ["boolean", "null"] },
+          "error_trend_from_previous_level": { "enum": ["not_applicable", "unresolved", "decreased", "unchanged", "increased"] }
+        }
+      }
+    },
+    "observed_order_estimates": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 31,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "coarse_level_id", "fine_level_id", "coarse_mesh_size_h_m", "fine_mesh_size_h_m",
+          "coarse_absolute_error", "fine_absolute_error", "observed_order_estimate",
+          "order_estimate_status", "error_decreased"
+        ],
+        "properties": {
+          "coarse_level_id": { "$ref": "#/$defs/token" },
+          "fine_level_id": { "$ref": "#/$defs/token" },
+          "coarse_mesh_size_h_m": { "type": "number", "exclusiveMinimum": 0 },
+          "fine_mesh_size_h_m": { "type": "number", "exclusiveMinimum": 0 },
+          "coarse_absolute_error": { "type": ["number", "null"], "minimum": 0 },
+          "fine_absolute_error": { "type": ["number", "null"], "minimum": 0 },
+          "observed_order_estimate": { "type": ["number", "null"] },
+          "order_estimate_status": { "enum": ["unresolved", "undefined_zero_error", "estimated", "overflow"] },
+          "error_decreased": { "type": "boolean" }
+        }
+      }
+    },
+    "diagnostics": { "type": "array", "items": { "type": "string", "maxLength": 2048 } },
+    "physical_result_qualified": { "const": false },
+    "real_world_validation_status": { "const": "UNRESOLVED" },
+    "claim_ceiling": { "type": "string", "minLength": 1, "maxLength": 2048 }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
