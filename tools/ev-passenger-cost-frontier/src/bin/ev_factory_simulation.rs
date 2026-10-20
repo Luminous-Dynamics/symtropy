@@ -1286,8 +1286,7 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 ) {
                     continue;
                 }
-                let last_variant =
-                    state.stations[station_index].servers[server_index].last_variant;
+                let last_variant = state.stations[station_index].servers[server_index].last_variant;
                 let job = if station_index == 0 {
                     let value = dispatch_pop(
                         &mut state.source_buffer,
@@ -1456,27 +1455,20 @@ mod tests {
 
     #[test]
     fn fifo_policy_never_reorders_input_queue() {
-        let mut queue = VecDeque::from([
-            job(1, 0, 0),
-            job(2, 1, 1),
-            job(3, 0, 2),
-        ]);
+        let mut queue = VecDeque::from([job(1, 0, 0), job(2, 1, 1), job(3, 0, 2)]);
         assert_eq!(
-            dispatch_pop(&mut queue, DispatchPolicy::Fifo, Some(1), 3, 10)
-                .map(|item| item.id),
+            dispatch_pop(&mut queue, DispatchPolicy::Fifo, Some(1), 3, 10).map(|item| item.id),
             Some(1)
         );
-        assert_eq!(queue.iter().map(|item| item.id).collect::<Vec<_>>(), vec![2, 3]);
+        assert_eq!(
+            queue.iter().map(|item| item.id).collect::<Vec<_>>(),
+            vec![2, 3]
+        );
     }
 
     #[test]
     fn minimize_changeover_selects_oldest_matching_variant_with_fifo_ties() {
-        let mut queue = VecDeque::from([
-            job(1, 0, 0),
-            job(2, 1, 2),
-            job(3, 1, 3),
-            job(4, 0, 4),
-        ]);
+        let mut queue = VecDeque::from([job(1, 0, 0), job(2, 1, 2), job(3, 1, 3), job(4, 0, 4)]);
         assert_eq!(
             dispatch_pop(
                 &mut queue,
@@ -1503,10 +1495,7 @@ mod tests {
 
     #[test]
     fn aging_threshold_forces_oldest_job_and_prevents_indefinite_skipping() {
-        let mut queue = VecDeque::from([
-            job(1, 0, 0),
-            job(2, 1, 80),
-        ]);
+        let mut queue = VecDeque::from([job(1, 0, 0), job(2, 1, 80)]);
         assert_eq!(
             dispatch_pop(
                 &mut queue,
