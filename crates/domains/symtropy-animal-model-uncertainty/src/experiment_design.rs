@@ -71,7 +71,11 @@ pub fn score_observation_designs(
     let shared_actions: BTreeSet<String> = models[0]
         .admissible_actions
         .iter()
-        .filter(|action| models.iter().all(|model| model.admissible_actions.contains(*action)))
+        .filter(|action| {
+            models
+                .iter()
+                .all(|model| model.admissible_actions.contains(*action))
+        })
         .cloned()
         .collect();
     if shared_actions.is_empty() {
@@ -113,8 +117,10 @@ pub fn score_observation_designs(
         }
 
         let mut valid_design = true;
-        let mut likelihood_sums: BTreeMap<&str, f64> =
-            models.iter().map(|model| (model.model_id.as_str(), 0.0)).collect();
+        let mut likelihood_sums: BTreeMap<&str, f64> = models
+            .iter()
+            .map(|model| (model.model_id.as_str(), 0.0))
+            .collect();
 
         for (outcome, likelihoods_by_model) in &design.outcome_likelihoods {
             if outcome.trim().is_empty() {
@@ -367,10 +373,8 @@ mod tests {
     fn entropy_relevant_but_decision_irrelevant_observation_has_zero_value() {
         let mut models = two_disagreeing_models();
         for model in &mut models {
-            model.action_losses = BTreeMap::from([
-                ("act_a".to_owned(), 2.0),
-                ("act_b".to_owned(), 6.0),
-            ]);
+            model.action_losses =
+                BTreeMap::from([("act_a".to_owned(), 2.0), ("act_b".to_owned(), 6.0)]);
         }
         let result =
             score_observation_designs(&models, &[informative_design(0.0)]).expect("valid signal");
@@ -392,9 +396,8 @@ mod tests {
         let mut expensive = informative_design(2.0);
         expensive.observation_id = "second_sample".to_owned();
         expensive.outcome_likelihoods = cheaper.outcome_likelihoods.clone();
-        let result =
-            score_observation_designs(&two_disagreeing_models(), &[expensive, cheaper])
-                .expect("valid designs");
+        let result = score_observation_designs(&two_disagreeing_models(), &[expensive, cheaper])
+            .expect("valid designs");
         assert_eq!(result[0].observation_id, "plume_sample");
         assert!(result[0].net_decision_value > result[1].net_decision_value);
     }
@@ -402,7 +405,10 @@ mod tests {
     #[test]
     fn rejects_unnormalized_likelihoods() {
         let mut design = informative_design(0.0);
-        design.outcome_likelihoods.get_mut("cue_b").expect("cue_b")
+        design
+            .outcome_likelihoods
+            .get_mut("cue_b")
+            .expect("cue_b")
             .insert("structure_a".to_owned(), 0.2);
         assert!(score_observation_designs(&two_disagreeing_models(), &[design]).is_err());
     }
@@ -410,14 +416,21 @@ mod tests {
     #[test]
     fn rejects_missing_model_likelihood() {
         let mut design = informative_design(0.0);
-        design.outcome_likelihoods.get_mut("cue_a").expect("cue_a").remove("structure_b");
+        design
+            .outcome_likelihoods
+            .get_mut("cue_a")
+            .expect("cue_a")
+            .remove("structure_b");
         assert!(score_observation_designs(&two_disagreeing_models(), &[design]).is_err());
     }
 
     #[test]
     fn rejects_unknown_model_likelihood() {
         let mut design = informative_design(0.0);
-        design.outcome_likelihoods.get_mut("cue_a").expect("cue_a")
+        design
+            .outcome_likelihoods
+            .get_mut("cue_a")
+            .expect("cue_a")
             .insert("unregistered_structure".to_owned(), 0.0);
         assert!(score_observation_designs(&two_disagreeing_models(), &[design]).is_err());
     }
