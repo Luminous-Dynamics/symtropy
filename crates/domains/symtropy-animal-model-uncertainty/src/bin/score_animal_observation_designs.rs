@@ -26,6 +26,14 @@ const EMBEDDED_REPORT_SCHEMA: &str = include_str!(
     "../../../../../docs/living-world/ANIMAL_MODEL_OBSERVATION_DESIGN_REPORT_V1.schema.json"
 );
 
+fn valid_identifier(value: &str) -> bool {
+    let mut characters = value.chars();
+    matches!(characters.next(), Some('a'..='z'))
+        && characters.all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_'
+        })
+}
+
 fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<(), String> {
     let object = value
         .as_object()
@@ -83,8 +91,10 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
         let model_id = value
             .get("model_id")
             .and_then(Value::as_str)
-            .filter(|id| !id.trim().is_empty())
-            .ok_or_else(|| format!("{prefix}.model_id must be a non-empty string"))?
+            .filter(|id| valid_identifier(id))
+            .ok_or_else(|| {
+                format!("{prefix}.model_id must match lowercase snake_case identifier syntax")
+            })?
             .to_owned();
         let weight = value
             .get("weight")
@@ -97,6 +107,11 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
             .ok_or_else(|| format!("{prefix}.action_losses must be a non-empty object"))?;
         let mut action_losses = BTreeMap::new();
         for (action, loss_value) in loss_values {
+            if !valid_identifier(action) {
+                return Err(format!(
+                    "{prefix}.action_losses contains invalid action identifier '{action}'"
+                ));
+            }
             let loss = loss_value
                 .as_f64()
                 .ok_or_else(|| format!("{prefix}.action_losses.{action} must be a number"))?;
@@ -111,9 +126,9 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
         for (action_index, action_value) in action_values.iter().enumerate() {
             let action = action_value
                 .as_str()
-                .filter(|value| !value.trim().is_empty())
+                .filter(|value| valid_identifier(value))
                 .ok_or_else(|| {
-                    format!("{prefix}.admissible_actions[{action_index}] must be a non-empty string")
+                    format!("{prefix}.admissible_actions[{action_index}] must be a lowercase snake_case identifier")
                 })?;
             admissible_actions.insert(action.to_owned());
         }
@@ -144,8 +159,10 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
         let observation_id = value
             .get("observation_id")
             .and_then(Value::as_str)
-            .filter(|id| !id.trim().is_empty())
-            .ok_or_else(|| format!("{prefix}.observation_id must be a non-empty string"))?
+            .filter(|id| valid_identifier(id))
+            .ok_or_else(|| {
+                format!("{prefix}.observation_id must match lowercase snake_case identifier syntax")
+            })?
             .to_owned();
         let loss_equivalent_cost = value
             .get("loss_equivalent_cost")
@@ -158,6 +175,11 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
             .ok_or_else(|| format!("{prefix}.outcome_likelihoods must be a non-empty object"))?;
         let mut outcome_likelihoods = BTreeMap::new();
         for (outcome, likelihoods_value) in outcome_values {
+            if !valid_identifier(outcome) {
+                return Err(format!(
+                    "{prefix}.outcome_likelihoods contains invalid outcome identifier '{outcome}'"
+                ));
+            }
             let outcome_prefix = format!("{prefix}.outcome_likelihoods.{outcome}");
             let likelihoods = likelihoods_value
                 .as_object()
@@ -165,6 +187,11 @@ fn parse_input(root: &Value) -> Result<(String, Vec<ModelOutcome>, Vec<Observati
                 .ok_or_else(|| format!("{outcome_prefix} must be a non-empty object"))?;
             let mut probabilities = BTreeMap::new();
             for (model_id, probability_value) in likelihoods {
+                if !valid_identifier(model_id) {
+                    return Err(format!(
+                        "{outcome_prefix} contains invalid model identifier '{model_id}'"
+                    ));
+                }
                 let probability = probability_value.as_f64().ok_or_else(|| {
                     format!("{outcome_prefix}.{model_id} must be a number")
                 })?;
@@ -349,6 +376,14 @@ mod tests {
         let mut root: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON must parse");
         root["hidden_truth"] = json!("privileged");
+        assert!(parse_input(&root).is_err());
+    }
+
+    #[test]
+    fn parser_rejects_noncanonical_model_identifiers() {
+        let mut root: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON must parse");
+        root["models"][0]["model_id"] = json!("Structure A");
         assert!(parse_input(&root).is_err());
     }
 
