@@ -174,5 +174,7 @@
     "disclosure_review_status": "not_applicable",
     "disclosure_review_reference": "synthetic-fixture-no-sensitive-data",
     "independent_source_capture_verified": false
-  }
+  },
+  "prior_fit_cutoff_index": 8,
+  "likelihood_fit_cutoff_index": 9
 }
