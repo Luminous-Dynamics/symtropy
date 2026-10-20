@@ -109,7 +109,10 @@ fn best_action(prior: &Distribution, actions: &ActionUtilities) -> (String, f64)
     // not replace the first action already selected.
     for (action_id, utilities) in actions {
         let value = expected_utility(prior, utilities);
-        if best.as_ref().is_none_or(|(_, best_value)| value > *best_value) {
+        if best
+            .as_ref()
+            .is_none_or(|(_, best_value)| value > *best_value)
+        {
             best = Some((action_id.clone(), value));
         }
     }
@@ -184,12 +187,11 @@ fn evaluate_source(
     let source_id = string_at(source, "source_id")
         .expect("schema validation requires source_id")
         .to_owned();
-    let acquisition_cost = number_at(source, "acquisition_cost")
-        .expect("schema validation requires acquisition_cost");
+    let acquisition_cost =
+        number_at(source, "acquisition_cost").expect("schema validation requires acquisition_cost");
     let delay_penalty =
         number_at(source, "delay_penalty").expect("schema validation requires delay_penalty");
-    let inadmissible_reason =
-        source_is_admissible(source, evidence_scope, decision_deadline)?;
+    let inadmissible_reason = source_is_admissible(source, evidence_scope, decision_deadline)?;
     if let Some(reason) = inadmissible_reason {
         return Ok(SourceEvaluation {
             source_id: source_id.clone(),
@@ -226,8 +228,8 @@ fn evaluate_source(
     let mut expected_post_information_utility = 0.0;
 
     for signal in signals {
-        let signal_id = string_at(signal, "signal_id")
-            .expect("schema validation requires signal_id");
+        let signal_id =
+            string_at(signal, "signal_id").expect("schema validation requires signal_id");
         let likelihoods = signal["state_likelihoods"]
             .as_array()
             .expect("schema validation requires state_likelihoods")
@@ -333,9 +335,9 @@ fn best_source_by<'a>(
             let value_order = match metric {
                 "net_evsi" => left.net_evsi.partial_cmp(&right.net_evsi),
                 "acquisition_cost" => right.acquisition_cost.partial_cmp(&left.acquisition_cost),
-                "signal_entropy_nats" => {
-                    left.signal_entropy_nats.partial_cmp(&right.signal_entropy_nats)
-                }
+                "signal_entropy_nats" => left
+                    .signal_entropy_nats
+                    .partial_cmp(&right.signal_entropy_nats),
                 _ => Some(Ordering::Equal),
             }
             .unwrap_or(Ordering::Equal);
@@ -381,7 +383,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         prior_sum += number_at(state, "prior_probability").unwrap_or_default();
     }
     if (prior_sum - 1.0).abs() > EPSILON {
-        errors.push(format!("state prior probabilities sum to {prior_sum}, not 1"));
+        errors.push(format!(
+            "state prior probabilities sum to {prior_sum}, not 1"
+        ));
     }
 
     let mut action_ids = BTreeSet::new();
@@ -589,9 +593,8 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
             "value-of-information registration JSON is invalid: {error}"
         )]
     })?;
-    let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
-        vec![format!("embedded VOI schema JSON is invalid: {error}")]
-    })?;
+    let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
+        .map_err(|error| vec![format!("embedded VOI schema JSON is invalid: {error}")])?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
         vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
     })?;
@@ -640,7 +643,6 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
         .iter()
         .map(|evaluation| evaluation.report.clone())
         .collect::<Vec<_>>();
-
 
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
     let input_sha256 = sha256_hex(input);
@@ -715,7 +717,8 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("cannot read VOI registration {input_path}: {error}"))?;
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
-    let receipt = validate_and_evaluate(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
+    let receipt =
+        validate_and_evaluate(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -760,12 +763,24 @@ mod tests {
     fn informative_signal_has_exact_golden_evsi_and_net_value() {
         let receipt = evaluate(&fixture()).expect("synthetic VOI registration is valid");
         assert_eq!(receipt["current_best_action_id"], "action-prevent");
-        assert!((number_at(&receipt, "current_best_expected_utility").unwrap() - 2.0).abs() < EPSILON);
+        assert!(
+            (number_at(&receipt, "current_best_expected_utility").unwrap() - 2.0).abs() < EPSILON
+        );
         let briefing = source(&receipt, "source-briefing");
         assert_eq!(briefing["admissible"], true);
-        assert_eq!(briefing["signal_diagnostics"][0]["signal_id"], "signal-alarm");
-        assert!((number_at(&briefing["signal_diagnostics"][0], "signal_probability").unwrap() - 0.24).abs() < EPSILON);
-        assert!((number_at(briefing, "expected_post_information_utility").unwrap() - 4.4).abs() < EPSILON);
+        assert_eq!(
+            briefing["signal_diagnostics"][0]["signal_id"],
+            "signal-alarm"
+        );
+        assert!(
+            (number_at(&briefing["signal_diagnostics"][0], "signal_probability").unwrap() - 0.24)
+                .abs()
+                < EPSILON
+        );
+        assert!(
+            (number_at(briefing, "expected_post_information_utility").unwrap() - 4.4).abs()
+                < EPSILON
+        );
         assert!((number_at(briefing, "gross_evsi").unwrap() - 2.4).abs() < EPSILON);
         assert!((number_at(briefing, "net_evsi").unwrap() - 1.7).abs() < EPSILON);
     }
@@ -795,7 +810,10 @@ mod tests {
         let receipt = evaluate(&fixture()).expect("late source is reported, not used");
         let late = source(&receipt, "source-late-review");
         assert_eq!(late["admissible"], false);
-        assert_eq!(late["inadmissible_reason"], "arrives_after_decision_deadline");
+        assert_eq!(
+            late["inadmissible_reason"],
+            "arrives_after_decision_deadline"
+        );
         assert!(late["gross_evsi"].is_null());
         assert!(late["net_evsi"].is_null());
     }
@@ -814,7 +832,11 @@ mod tests {
         value["information_sources"][0]["signals"][1]["state_likelihoods"][0]["probability"] =
             json!(0.8);
         let errors = evaluate(&value).expect_err("conditional signal likelihoods must normalize");
-        assert!(errors.iter().any(|error| error.contains("likelihoods for state state-stable sum")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("likelihoods for state state-stable sum"))
+        );
     }
 
     #[test]
@@ -828,8 +850,13 @@ mod tests {
             json!(1.0);
         value["information_sources"][1]["signals"][1]["state_likelihoods"][1]["probability"] =
             json!(1.0);
-        let errors = evaluate(&value).expect_err("zero-probability observation cannot form a posterior");
-        assert!(errors.iter().any(|error| error.contains("zero marginal probability")));
+        let errors =
+            evaluate(&value).expect_err("zero-probability observation cannot form a posterior");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("zero marginal probability"))
+        );
     }
 
     #[test]
@@ -837,7 +864,11 @@ mod tests {
         let mut value = fixture();
         value["likelihood_fit_cutoff_index"] = json!(10);
         let errors = evaluate(&value).expect_err("future-fitted likelihoods are leakage");
-        assert!(errors.iter().any(|error| error.contains("likelihood fit cutoff")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("likelihood fit cutoff"))
+        );
     }
 
     #[test]
@@ -859,7 +890,12 @@ mod tests {
         value["information_sources"][0]["source_status"] = json!("authorized");
         value["information_sources"][1]["source_status"] = json!("authorized");
         value["information_sources"][2]["source_status"] = json!("authorized");
-        let errors = evaluate(&value).expect_err("historical source requires authentic pinned digests");
-        assert!(errors.iter().any(|error| error.contains("non-placeholder scenario model")));
+        let errors =
+            evaluate(&value).expect_err("historical source requires authentic pinned digests");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("non-placeholder scenario model"))
+        );
     }
 }
