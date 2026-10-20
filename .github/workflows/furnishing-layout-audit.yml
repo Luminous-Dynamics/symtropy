@@ -4,8 +4,13 @@ on:
   push:
     branches:
       - feat/furnishing-spatial-index-benchmark-v0-3-20261020
+      - test/furnishing-geometry-adversarial-v0-4-20261020
   pull_request:
-    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020"]
+    branches:
+      - main
+      - research/furnishing-layout-benchmark-v0-1-20261020
+      - feat/furnishing-functional-envelope-oracle-v0-2-20261020
+      - feat/furnishing-spatial-index-benchmark-v0-3-20261020
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.json'
@@ -13,6 +18,10 @@ on:
       - 'fixtures/interiors/furnishing_functional_envelopes_v0_2.json'
       - 'fixtures/interiors/furnishing_functional_envelopes_v0_2.schema.json'
       - 'tools/furnishing-layout-audit/**'
+      - 'docs/research/interiors/FURNISHING_GEOMETRY_ADVERSARIAL_V0_4.md'
+      - 'docs/research/interiors/evidence/FURNISHING_GEOMETRY_STRESS_CI_RUN_39481555651.json'
+      - 'docs/research/interiors/FURNISHING_GEOMETRY_SCALE_100K_V0_5.md'
+      - 'docs/research/interiors/evidence/FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json'
       - '.github/workflows/furnishing-layout-audit.yml'
 permissions:
   contents: read
@@ -58,4 +67,8 @@ jobs:
           free -h || true
       - name: Benchmark functional-envelope oracle at 25/100/1000/10000 tasks
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_scaling
+      - name: Stress sparse, tight-clearance and dense-overlap geometry
+        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_stress
+      - name: Scale indexed oracle beyond 10k items
+        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_large_scale
 
