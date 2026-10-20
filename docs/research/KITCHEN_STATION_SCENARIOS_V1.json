@@ -405,10 +405,19 @@
     "targets_are_not_certification_criteria": true
   },
   "references": [
-    "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P10180T6.TXT",
-    "https://www.fda.gov/food/fda-food-code/food-code-2022",
-    "https://www.nsf.org/knowledge-library/whats-new-nsf-ansi-2-food-equipment-standard",
-    "https://doi.org/10.1016/j.foodcont.2021.108433",
-    "https://doi.org/10.1016/j.jhin.2021.04.017"
-  ]
+    "https://www.energystar.gov/products/refrigerators",
+    "https://www.energystar.gov/products/refrigerators/key_product_criteria",
+    "https://www.energy.gov/cmei/buildings/refrigeration-products",
+    "https://doi.org/10.1016/j.applthermaleng.2025.125421",
+    "https://doi.org/10.1016/j.ijrefrig.2025.02.007",
+    "https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely",
+    "https://doi.org/10.4324/9780429401701-16",
+    "https://doi.org/10.1002/jsfa.12934",
+    "https://standards.nsf.org/discussion/nsfansi-2-2026-food-equipment-uploaded",
+    "https://www.health.gov.za/food-control-regulations/",
+    "https://www.gov.za/sites/default/files/gcis_document/201709/41100gon982.pdf",
+    "https://la.kohler.com/en/product-detail/23650"
+  ],
+  "record_schema": "docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json",
+  "metric_registry": "docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json"
 }
