@@ -9,6 +9,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod scoring;
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
