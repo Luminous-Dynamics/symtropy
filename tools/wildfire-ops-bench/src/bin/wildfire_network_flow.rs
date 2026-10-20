@@ -1014,11 +1014,13 @@ mod tests {
 
     #[test]
     fn rejects_disconnected_routes_and_capacity_guardrail_violations() {
-        let mut fixture = fixture();
-        fixture["cases"][0]["demands"][0]["route_edge_ids"] = json!(["A_J", "BRIDGE_S", "K_S"]);
-        assert!(validate_fixture(&fixture).is_err());
-        let mut fixture = fixture();
-        fixture["cases"][0]["horizon_steps"] = json!(MAX_HORIZON + 1);
-        assert!(validate_fixture(&fixture).is_err());
+        let mut disconnected_route_fixture = fixture();
+        disconnected_route_fixture["cases"][0]["demands"][0]["route_edge_ids"] =
+            json!(["A_J", "BRIDGE_S", "K_S"]);
+        assert!(validate_fixture(&disconnected_route_fixture).is_err());
+
+        let mut overlong_horizon_fixture = fixture();
+        overlong_horizon_fixture["cases"][0]["horizon_steps"] = json!(MAX_HORIZON + 1);
+        assert!(validate_fixture(&overlong_horizon_fixture).is_err());
     }
 }
