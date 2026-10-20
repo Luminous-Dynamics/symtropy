@@ -340,6 +340,67 @@ mod tests {
     }
 
     #[test]
+    fn perspective_bound_contains_deterministic_perturbation_samples() {
+        let viewport_height_px = 1_080_u32;
+        let vertical_fov_radians = 1.0_f64;
+        let min_camera_depth_units = 10.0_f64;
+        let max_radial_distance_units = 20.0_f64;
+        let delta = 0.25_f64;
+        let model = ProjectionModel::Perspective {
+            viewport_height_px,
+            vertical_fov_radians,
+            min_camera_depth_units,
+            max_radial_distance_units,
+        };
+        let bound = projected_error_bound_px(delta, model).expect("fixture bound is valid");
+        let focal_length_px =
+            f64::from(viewport_height_px) / (2.0 * (vertical_fov_radians / 2.0).tan());
+        let mut seed = 0x5eed_2026_cafe_f00d_u64;
+
+        for _ in 0..2_048 {
+            let mut x = (2.0 * next_unit(&mut seed) - 1.0) * max_radial_distance_units;
+            let mut y = (2.0 * next_unit(&mut seed) - 1.0) * max_radial_distance_units;
+            let radius = x.hypot(y);
+            if radius > max_radial_distance_units {
+                let scale = max_radial_distance_units / radius;
+                x *= scale;
+                y *= scale;
+            }
+            let z = min_camera_depth_units + next_unit(&mut seed) * 40.0;
+
+            let mut dx = 2.0 * next_unit(&mut seed) - 1.0;
+            let mut dy = 2.0 * next_unit(&mut seed) - 1.0;
+            let mut dz = 2.0 * next_unit(&mut seed) - 1.0;
+            let perturbation_norm = (dx * dx + dy * dy + dz * dz).sqrt();
+            if perturbation_norm == 0.0 {
+                continue;
+            }
+            let magnitude = delta * next_unit(&mut seed);
+            dx *= magnitude / perturbation_norm;
+            dy *= magnitude / perturbation_norm;
+            dz *= magnitude / perturbation_norm;
+
+            let before_x = focal_length_px * x / z;
+            let before_y = focal_length_px * y / z;
+            let after_x = focal_length_px * (x + dx) / (z + dz);
+            let after_y = focal_length_px * (y + dy) / (z + dz);
+            let measured = ((after_x - before_x).powi(2) + (after_y - before_y).powi(2)).sqrt();
+
+            assert!(
+                measured <= bound * (1.0 + 1e-10),
+                "projected displacement {measured} exceeded analytical bound {bound}"
+            );
+        }
+    }
+
+    fn next_unit(seed: &mut u64) -> f64 {
+        *seed = seed
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((*seed >> 11) as f64) / ((1_u64 << 53) as f64)
+    }
+
+    #[test]
     fn rejects_invalid_orthographic_span() {
         assert_eq!(
             projected_error_bound_px(
