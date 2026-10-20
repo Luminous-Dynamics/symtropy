@@ -27,6 +27,18 @@ The `pirb-hierarchy-coherence-audit` binary measures parent/child consistency fo
 
 The checked-in hierarchy fixture has invented aggregate counts. Its all-zero/all-one artifact digests are placeholders and do not identify captured provider data. The fixture includes two complete exact-sum constraints and one incomplete spatial constraint whose missing child must not be imputed as zero. See `docs/tech/PIRB_HIERARCHICAL_FORECAST_COHERENCE_V0_1.md` for the contract and claim limits.
 
+## Value of information and evidence acquisition
+
+The `pirb-voi-audit` binary enumerates a registered finite-state prior, state-contingent utility and candidate-source likelihood models. For each source and each possible signal, it calculates the posterior, chooses the best expected-utility action, computes gross EVSI, then subtracts the declared acquisition cost and delay penalty. It also compares against maximum-signal-entropy and lowest-cost heuristics, because entropy/cost alone may select a source that has negative net decision value.
+
+Every signal must have a valid probability under the prior; zero-probability signals fail closed. A source arriving after the decision deadline is reported as inadmissible and receives no actionable EVSI. Historical scope requires authority, approved disclosure, independently verified source capture, pre-origin prior/likelihood fitting cutoffs and non-placeholder digests.
+
+Run the synthetic finite-state audit:
+
+    cargo run --bin pirb-voi-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-voi-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+
+See `docs/tech/PIRB_VALUE_OF_INFORMATION_AUDIT_V0_1.md` for formulas, baselines and claim boundaries. EVSI is expected decision value under registered assumptions, not observed impact or a causal estimate.
+
 ## Capacity-constrained action value
 
 The `pirb-action-value-audit` binary compares no-action, risk-ranked top-K, and expected-net-benefit top-K policies across every pre-registered capacity, cost-multiplier and effectiveness-multiplier scenario. It uses the same forecast-issued case pool and registered assumptions for all policies. Receipts distinguish model-expected avoided harm, assumed action costs, net benefit, residual model-estimated harm, observed event capture and label coverage.

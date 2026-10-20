@@ -37,4 +37,8 @@ path = "src/selective_forecast_main.rs"
 name = "pirb-action-value-audit"
 path = "src/action_value_main.rs"
 
+[[bin]]
+name = "pirb-voi-audit"
+path = "src/voi_main.rs"
+
 [workspace]

@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-voi-v0.1.schema.json",
+  "title": "PIRB Value-of-Information Audit v0.1",
+  "description": "Exact finite-state expected value of sample information (EVSI) under declared priors, utilities, signal likelihoods, source costs and decision deadlines. Output is model-based, not causal impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "actions",
+    "decision_deadline_index",
+    "evidence_scope",
+    "forecast_origin_index",
+    "governance",
+    "information_sources",
+    "likelihood_fit_cutoff_index",
+    "model",
+    "prior_fit_cutoff_index",
+    "privacy",
+    "registration_id",
+    "schema_version",
+    "states",
+    "target_id",
+    "target_period_index",
+    "value_unit"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-voi-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "target_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "forecast_origin_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_deadline_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "target_period_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "value_unit": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Common utility/cost unit; all VOI values are conditional on this unit."
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "scenario_model_sha256",
+        "utility_model_sha256",
+        "attribution"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "utility_model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state_id",
+          "prior_probability"
+        ],
+        "properties": {
+          "state_id": {
+            "type": "string",
+            "pattern": "^state-[A-Za-z0-9_-]+$"
+          },
+          "prior_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action_id",
+          "state_utilities"
+        ],
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "pattern": "^action-[A-Za-z0-9_-]+$"
+          },
+          "state_utilities": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state_id",
+                "utility"
+              ],
+              "properties": {
+                "state_id": {
+                  "type": "string",
+                  "pattern": "^state-[A-Za-z0-9_-]+$"
+                },
+                "utility": {
+                  "type": "number",
+                  "minimum": -1000000000,
+                  "maximum": 1000000000
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "information_sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "available_by_index",
+          "acquisition_cost",
+          "delay_penalty",
+          "source_status",
+          "source_artifact_sha256",
+          "likelihood_sha256",
+          "signals"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^source-[A-Za-z0-9_-]+$"
+          },
+          "available_by_index": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "When the evidence is available to affect the action. Sources later than decision_deadline_index are not actionable."
+          },
+          "acquisition_cost": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "delay_penalty": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "source_status": {
+            "enum": [
+              "authorized",
+              "pending",
+              "denied",
+              "not_applicable"
+            ]
+          },
+          "source_artifact_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "likelihood_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "signals": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "signal_id",
+                "state_likelihoods"
+              ],
+              "properties": {
+                "signal_id": {
+                  "type": "string",
+                  "pattern": "^signal-[A-Za-z0-9_-]+$"
+                },
+                "state_likelihoods": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state_id",
+                      "probability"
+                    ],
+                    "properties": {
+                      "state_id": {
+                        "type": "string",
+                        "pattern": "^state-[A-Za-z0-9_-]+$"
+                      },
+                      "probability": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "governed_source_policy_reference"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "governed_source_policy_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_authority_status",
+        "data_authority_reference",
+        "disclosure_review_status",
+        "disclosure_review_reference",
+        "independent_source_capture_verified"
+      ],
+      "properties": {
+        "data_authority_status": {
+          "enum": [
+            "authorized",
+            "pending",
+            "denied",
+            "not_applicable"
+          ]
+        },
+        "data_authority_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disclosure_review_status": {
+          "enum": [
+            "approved",
+            "pending",
+            "rejected",
+            "not_applicable"
+          ]
+        },
+        "disclosure_review_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_source_capture_verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "prior_fit_cutoff_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Last period used to fit/estimate the registered prior; must be strictly before forecast origin."
+    },
+    "likelihood_fit_cutoff_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Last period used to fit/estimate source signal likelihoods; must be strictly before forecast origin."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_scope": {
+            "const": "authorized_historical"
+          }
+        },
+        "required": [
+          "evidence_scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "governance": {
+            "properties": {
+              "data_authority_status": {
+                "const": "authorized"
+              },
+              "disclosure_review_status": {
+                "const": "approved"
+              },
+              "independent_source_capture_verified": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

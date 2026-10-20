@@ -1,0 +1,180 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-voi-synthetic-decision-relevant-information",
+  "evidence_scope": "synthetic",
+  "target_id": "state-based-country-month-brd25",
+  "forecast_origin_index": 10,
+  "decision_deadline_index": 12,
+  "target_period_index": 14,
+  "value_unit": "synthetic expected-utility units",
+  "model": {
+    "model_id": "invented-two-state-conflict-prevention-model-v0.1",
+    "scenario_model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "utility_model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "attribution": "All states, priors, utilities, signal likelihoods, costs and time indices are invented for deterministic software tests."
+  },
+  "states": [
+    {
+      "state_id": "state-stable",
+      "prior_probability": 0.8
+    },
+    {
+      "state_id": "state-escalation",
+      "prior_probability": 0.2
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "action-monitor",
+      "state_utilities": [
+        {
+          "state_id": "state-stable",
+          "utility": 0
+        },
+        {
+          "state_id": "state-escalation",
+          "utility": 0
+        }
+      ]
+    },
+    {
+      "action_id": "action-prevent",
+      "state_utilities": [
+        {
+          "state_id": "state-stable",
+          "utility": -5
+        },
+        {
+          "state_id": "state-escalation",
+          "utility": 30
+        }
+      ]
+    }
+  ],
+  "information_sources": [
+    {
+      "source_id": "source-briefing",
+      "available_by_index": 11,
+      "acquisition_cost": 0.5,
+      "delay_penalty": 0.2,
+      "source_status": "not_applicable",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "likelihood_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "signals": [
+        {
+          "signal_id": "signal-alarm",
+          "state_likelihoods": [
+            {
+              "state_id": "state-stable",
+              "probability": 0.1
+            },
+            {
+              "state_id": "state-escalation",
+              "probability": 0.8
+            }
+          ]
+        },
+        {
+          "signal_id": "signal-quiet",
+          "state_likelihoods": [
+            {
+              "state_id": "state-stable",
+              "probability": 0.9
+            },
+            {
+              "state_id": "state-escalation",
+              "probability": 0.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "source-random-feed",
+      "available_by_index": 11,
+      "acquisition_cost": 0.1,
+      "delay_penalty": 0.1,
+      "source_status": "not_applicable",
+      "source_artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "likelihood_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "signals": [
+        {
+          "signal_id": "signal-positive",
+          "state_likelihoods": [
+            {
+              "state_id": "state-stable",
+              "probability": 0.5
+            },
+            {
+              "state_id": "state-escalation",
+              "probability": 0.5
+            }
+          ]
+        },
+        {
+          "signal_id": "signal-negative",
+          "state_likelihoods": [
+            {
+              "state_id": "state-stable",
+              "probability": 0.5
+            },
+            {
+              "state_id": "state-escalation",
+              "probability": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "source-late-review",
+      "available_by_index": 13,
+      "acquisition_cost": 0.05,
+      "delay_penalty": 0.01,
+      "source_status": "not_applicable",
+      "source_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "likelihood_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "signals": [
+        {
+          "signal_id": "signal-late-alarm",
+          "state_likelihoods": [
+            {
+              "state_id": "state-stable",
+              "probability": 0.01
+            },
+            {
+              "state_id": "state-escalation",
+              "probability": 0.99
+            }
+          ]
+        },
+        {
+          "signal_id": "signal-late-quiet",
+          "state_likelihoods": [
+            {
+              "state_id": "state-stable",
+              "probability": 0.99
+            },
+            {
+              "state_id": "state-escalation",
+              "probability": 0.01
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "privacy": {
+    "aggregate_only": true,
+    "governed_source_policy_reference": "synthetic fixture; no real source or individual data"
+  },
+  "governance": {
+    "data_authority_status": "not_applicable",
+    "data_authority_reference": "synthetic-fixture-no-provider-data",
+    "disclosure_review_status": "not_applicable",
+    "disclosure_review_reference": "synthetic-fixture-no-sensitive-data",
+    "independent_source_capture_verified": false
+  },
+  "prior_fit_cutoff_index": 8,
+  "likelihood_fit_cutoff_index": 9
+}
