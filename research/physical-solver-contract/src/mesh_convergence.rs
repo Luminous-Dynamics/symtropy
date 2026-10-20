@@ -1004,6 +1004,13 @@ mod tests {
                 "solver_version":"0.1",
                 "solver_build_ref":"fixture-only:no-solver-executed"
             },
+            "input_artifacts":[{
+                "input_id":"mesh",
+                "kind":"finite_element_mesh",
+                "sha256":mesh_sha,
+                "media_type":"text/plain",
+                "artifact_ref":format!("levels/{level_id}/mesh.inp")
+            }],
             "status":"PASS",
             "evidence_class":"synthetic",
             "physics_evaluated":["static_linear_elastic"],
