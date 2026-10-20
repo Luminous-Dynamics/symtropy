@@ -1,7 +1,7 @@
 # Physical Transformation Reference Kernel v0.1
 
 **Tracking:** [PHYS-TRANSFORM-001 #2209](https://github.com/Luminous-Dynamics/symtropy/issues/2209)  
-**Status:** initial dependency-free software reference; not a mechanics solver.
+**Status:** initial dependency-free software reference with two analytical cases; not a general mechanics solver.
 
 ## What is implemented
 
@@ -13,7 +13,7 @@
 - Explicit units, positive-domain checks, non-finite/overflow rejection, signed load behavior, and frozen known-answer outputs for stress, strain, extension, deflection and bending stress.
 - Frozen synthetic fixture: three components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one.
 - Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, unbalanced mass, numeric overflow and malformed identifiers.
-- Independent integration tests pin the expected graph and ledger outcomes.
+- Eleven unit tests and three integration tests pin topology, accounting, and analytical outcomes against explicit expected values.
 - Deterministic JSON receipt bound to the 40-character source commit supplied by the caller.
 
 ## Run locally
@@ -33,6 +33,8 @@ The CLI emits one JSON receipt. The source commit binds the receipt to versioned
 Treat destruction, construction and repair as the same state-transition problem. A broken connection modifies topology, a removed component requires valid preconditions, and a rejected event cannot partially mutate the world. Material accounting follows the same principle: all outputs must reconcile to declared input, with unknown mass kept visible rather than disappearing into an aggregate “recycling rate.”
 
 This is intentionally a small slice. Graph connectivity does not prove whether a building is stable, whether an element will actually fall, or how stress redistributes. The current mass fields are declared accounting values, not sensor measurements or verified material properties. The two mechanics fixtures verify only their closed-form idealizations; they do not validate a mesh, nonlinear constitutive law, real connection behavior, dynamic collapse, or solver integration.
+
+For the wider industry matrix and proposed numerical acceptance targets, see [PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md](../../../docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md).
 
 ## Comparison with the field
 
