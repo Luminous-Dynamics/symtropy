@@ -139,7 +139,7 @@ jobs:
             and (.output_enclosures | has("axial_stress_pa"))
             and (.output_enclosures | has("axial_strain"))
             and (.output_enclosures | has("extension_m"))
-            and (.output_enclosures | to_entries | all(.[]; (.value.lower <= .value.nominal) and (.value.nominal <= .value.upper) and (.value.lower | isfinite) and (.value.nominal | isfinite) and (.value.upper | isfinite)))
+            and (.output_enclosures | to_entries | all(.[]; (.value.lower <= .value.nominal) and (.value.nominal <= .value.upper) and (.value.lower | isfinite) and (.value.nominal | isfinite) and (.value.upper | isfinite) and (.value.width >= 0) and (.value.width | isfinite)))
             and .output_enclosures.axial_stress_pa.unit == "Pa"
             and .output_enclosures.axial_stress_pa.nominal == .outputs.axial_stress_pa
           ' analytical-adapter-bar-bounds-receipt.json
