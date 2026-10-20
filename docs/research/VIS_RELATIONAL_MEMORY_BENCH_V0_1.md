@@ -201,6 +201,23 @@ On held-out episodes where a queried fact changed after the latest source eviden
 
 **Decision:** keep the corrected confidence channel. Keep the gap-aware implementation as a comparison baseline, but do not promote it over the simpler hazard estimator without a new frozen hypothesis and measured advantage. The next useful experiment is to audit/calibrate the observation-reliability mapping and report transition-hazard estimation error (evaluator-only), not add further state to chase the scalar loss.
 
+## Joint latent-state / sensor-noise candidate — under qualification
+
+A separate candidate, `query_keyed_joint_noise`, is now implemented on the branch. It is not yet a performance result.
+
+The preceding evaluator diagnosis found that the gap-aware transition posterior both estimated hazard less accurately (held-out RMSE 0.0487 vs 0.0234 for naive hazard) and had higher task loss. The next hypothesis is that the temporal likelihood needs an explicit sensor-emission model rather than treating each observed value change as a latent state change.
+
+For each queried claim, the joint policy keeps a bounded posterior over 7 candidate state-transition hazards × 6 candidate sensor corruption base rates. It propagates the probability of the latent binary state over source-time gaps, then updates with the released observed value and confidence tier's conditional emission error. The policy sees only observations, confidence, source/arrival timestamps and public query; it does not see the episode's true transition rate, base corruption rate, hidden truth, seed or corrupted flag. Out-of-order source timestamps do not rewind the filter. All of the additional posterior bytes are included in the policy's logical-state cost.
+
+The report emits direct paired comparisons for:
+- gap-aware minus naive hazard;
+- joint-noise minus naive hazard;
+- joint-noise minus gap-aware.
+
+It also reports evaluator-only hazard MAE/RMSE after policy decisions. Tests must verify that modifying only a hidden evaluator rate changes the diagnostic score but not the decision or task loss; such labels are allowed only in evaluator-owned calculation code.
+
+This candidate was devised after inspection of earlier corrected-confidence results. It is exploratory and must not be called confirmatory. The next exact-head run must pass the Rust tests, deterministic TSV replay, expected row/contrast checks and SHA artifact. If the joint model's task-loss interval or calibration error does not improve over the simpler hazard policy enough to justify its state cost, reject it rather than expanding the model again.
+
 ## Reproduce
 
 ```sh
