@@ -173,6 +173,47 @@ The figures below are **proposed stretch targets**, not published SOTA claims, c
 
 The first honest win is not necessarily beating every published number. It is reproducing the strongest applicable baselines, then demonstrating a robust, uncertainty-qualified improvement on genuinely held-out cases while preserving invariants. If baseline reproduction fails, report the replication failure; do not quietly substitute a weaker comparator.
 
+## First integrated pilot: flood–forage–risk corridor
+
+The first integration test should be a small, fully synthetic river-corridor world, not a visually elaborate open world. It is intentionally designed to compose contracts from the separate workstreams and create opportunities for cross-layer failures.
+
+### Frozen scenario
+
+- The world contains two refuges connected by habitat corridors, a finite forage/water budget, an explicit current/depth field, and a declared predator-encounter process.
+- The focal animal receives local observations with a specified detection/latency/noise contract. Exact refuge coordinates, future flood state, causal intervention labels, and the simulator's hidden model ID remain evaluator-only.
+- At a frozen time, a flood changes current, depth, and corridor connectivity. A concurrent resource shortage creates a genuinely held-out combination, not seen as a full combination in tuning.
+- The animal can spend a bounded sensing budget to inspect a cue, choose a route/action, or abstain/re-plan. Movement cost and risk are charged. If social agents are enabled, their state and interactions are separate factors rather than an untracked reward multiplier.
+- Two registered candidate ecological mechanisms fit the reference history but differ on the delayed post-flood forage response. A blinded challenger, generated from a held-out mechanism family, can expose a shared candidate-model mistake.
+- The renderer is free to show the same appearance for two hidden flow/depth states; policy behavior must be driven by authorized sensory and process inputs, not camera pixels or hidden values.
+
+### Evaluation outputs
+
+Do not collapse this to a winner-takes-all scalar. Each run should emit:
+1. **Process closure:** water/resource fluxes and nutrient-equivalent state are reconciled; rejected process updates have zero mutation.
+2. **Perception and active sensing:** local evidence provenance, cue latency, sensing cost and the selected sensor action.
+3. **Mechanism uncertainty:** per-model predictions, explicit disagreement by horizon/regime, and the difference between model-specific and robust actions.
+4. **Behavior:** route feasibility, action costs, success/failure, calibrated uncertainty or abstention, and adaptation under the held-out combination.
+5. **Ecological consequences:** per-individual outcomes, refuge/forage use, population/resource trajectories if multi-agent behavior is enabled, and any adverse outcome tails.
+6. **Evidence receipt:** exact source, config, scenario, split, seed-family, evaluator and budget identity; failed selected episodes remain recorded.
+
+### Comparator ladder and ablations
+
+Use a transparent reactive heuristic, the unchanged candidate baseline, the adaptive candidate, and a privileged planner only as a separately labelled upper bound. Match candidate/baseline initial states, process inputs, observation/action budgets and exogenous disturbance streams wherever a paired pathwise comparison is meaningful. Because genuinely different ecological structures can diverge pathwise, compare distributions and decision regret as well as paired deltas; do not force identical trajectories across different models.
+
+Run at least these ablations:
+- disable active sensing while keeping the world identical;
+- restore full sensing but hide future/intervention labels from all candidate agents (they should never have them);
+- remove the flood while preserving all other random streams;
+- remove the resource shortage while preserving flood timing;
+- swap the two observationally equivalent model structures;
+- reveal one held-out environmental factor only to the evaluator and verify no policy-access change;
+- alter rendering/camera/FPS with identical state, process and authorized sensor observations;
+- compare matched budgets against an explicitly larger-budget cost-tradeoff run.
+
+### What would count as a result
+
+A synthetic pass means only that the pipeline respects the frozen contract under the selected known-answer cases. A candidate improvement requires a preregistered task metric, a budget-matched comparator, independent seeds/units, uncertainty intervals and no hard invariant/authority violation. Before any ecological or species claim, calibrate the relevant process and behavior layers against licensed, appropriate measurements and report the model's domain of validity.
+
 ## Roadmap: fastest path to real evidence
 
 1. Land the synthetic oracle plus deterministic structural validator.
