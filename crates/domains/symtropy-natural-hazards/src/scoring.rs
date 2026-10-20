@@ -77,8 +77,7 @@ pub fn reliability_bins(
 
     for forecast in forecasts {
         // p=1 belongs to the final bin rather than an out-of-range bin.
-        let index = ((forecast.probability * bin_count as f64).floor() as usize)
-            .min(bin_count - 1);
+        let index = ((forecast.probability * bin_count as f64).floor() as usize).min(bin_count - 1);
         counts[index] += 1;
         probability_sums[index] += forecast.probability;
         if forecast.observed {
@@ -108,10 +107,7 @@ pub fn reliability_bins(
 /// The implementation uses the sorted-ensemble identity and is O(n log n),
 /// rather than constructing all pairwise ensemble differences. Lower is better.
 /// Units are the same as the observed quantity.
-pub fn ensemble_crps(
-    ensemble: &[f64],
-    observation: f64,
-) -> Result<f64, ScoringError> {
+pub fn ensemble_crps(ensemble: &[f64], observation: f64) -> Result<f64, ScoringError> {
     if ensemble.is_empty() {
         return Err(ScoringError::EmptySample);
     }
@@ -143,10 +139,7 @@ pub fn ensemble_crps(
 ///
 /// A positive value improves on the reference, zero ties it, and a negative
 /// value is worse. A zero reference score makes the ratio undefined.
-pub fn brier_skill_score(
-    model_brier: f64,
-    reference_brier: f64,
-) -> Result<f64, ScoringError> {
+pub fn brier_skill_score(model_brier: f64, reference_brier: f64) -> Result<f64, ScoringError> {
     if !model_brier.is_finite()
         || !reference_brier.is_finite()
         || model_brier < 0.0
@@ -165,8 +158,7 @@ fn validate_binary_forecasts(forecasts: &[BinaryForecast]) -> Result<(), Scoring
         return Err(ScoringError::EmptySample);
     }
     if forecasts.iter().any(|forecast| {
-        !forecast.probability.is_finite()
-            || !(0.0..=1.0).contains(&forecast.probability)
+        !forecast.probability.is_finite() || !(0.0..=1.0).contains(&forecast.probability)
     }) {
         return Err(ScoringError::InvalidProbability);
     }
