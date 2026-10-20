@@ -319,8 +319,7 @@ jobs:
             and .numerical_observable_comparison == "PASS"
             and .physical_result_qualified == false
             and .real_world_validation_status == "UNRESOLVED"
-            and .observable_results[0].relative_error_defined == false or
-            (.comparison_status == "PASS" and .physical_result_qualified == false)
+            and .observable_results[0].within_tolerance == true
           ' solver-contract-numerical-comparison-pass.json
 
           # Change the observed value, then update the output hash so this tests
@@ -371,6 +370,7 @@ jobs:
           path: |
             solver-contract-*-receipt.json
             solver-contract-*verification.json
+            solver-contract-numerical-comparison-*.json
           if-no-files-found: error
           retention-days: 90
 
