@@ -1,0 +1,381 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-policy-impact-registration-v0.1.schema.json",
+  "title": "PIRB Forecast-to-Action Policy Impact Admissibility Contract v0.1",
+  "description": "Validates whether a policy-impact evaluation registration contains required design and governance declarations. Does not estimate an effect or prove causal identification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "evidence_scope",
+    "privacy",
+    "forecast_lane",
+    "action_lane",
+    "outcome_lane",
+    "design",
+    "counterfactual",
+    "policy_comparison",
+    "causal_lane",
+    "governance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-policy-impact-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "small_cell_suppression"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "small_cell_suppression": {
+          "const": true
+        }
+      }
+    },
+    "forecast_lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forecast_registration_reference",
+        "forecast_artifact_sha256",
+        "target_definition",
+        "issue_cutoff_index",
+        "heldout_scoring_separate"
+      ],
+      "properties": {
+        "forecast_registration_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issue_cutoff_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "heldout_scoring_separate": {
+          "const": true
+        }
+      }
+    },
+    "action_lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "action_definition",
+        "offer_assignment_recorded",
+        "delivery_recorded",
+        "receipt_or_adherence_recorded",
+        "action_cost_definition",
+        "no_action_baseline_included"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offer_assignment_recorded": {
+          "type": "boolean"
+        },
+        "delivery_recorded": {
+          "type": "boolean"
+        },
+        "receipt_or_adherence_recorded": {
+          "type": "boolean"
+        },
+        "action_cost_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "no_action_baseline_included": {
+          "type": "boolean"
+        }
+      }
+    },
+    "outcome_lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_outcome",
+        "outcome_measurement_process",
+        "outcome_release_sha256",
+        "follow_up_end_index",
+        "reporting_shift_assessment",
+        "missingness_policy"
+      ],
+      "properties": {
+        "primary_outcome": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_measurement_process": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_release_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "follow_up_end_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reporting_shift_assessment": {
+          "enum": [
+            "assessed_no_material_shift",
+            "assessed_shift_modelled",
+            "not_assessed"
+          ]
+        },
+        "missingness_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design_type",
+        "assignment_mechanism",
+        "comparison_strategy",
+        "analysis_plan_reference",
+        "analysis_plan_sha256",
+        "independent_design_review_verified",
+        "interference_assessment",
+        "spillover_boundary",
+        "estimand_reference"
+      ],
+      "properties": {
+        "design_type": {
+          "enum": [
+            "synthetic_known_truth",
+            "randomized_trial",
+            "difference_in_differences",
+            "synthetic_control",
+            "interrupted_time_series",
+            "before_after",
+            "observational_adjusted",
+            "none"
+          ]
+        },
+        "assignment_mechanism": {
+          "enum": [
+            "randomized",
+            "as_if_random",
+            "observational",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "comparison_strategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_plan_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_plan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "independent_design_review_verified": {
+          "type": "boolean"
+        },
+        "interference_assessment": {
+          "enum": [
+            "explicitly_modelled",
+            "bounded_and_tested",
+            "none",
+            "unknown"
+          ]
+        },
+        "spillover_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "estimand_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "counterfactual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "counterfactual_defined",
+        "identification_assumptions",
+        "diagnostics_plan",
+        "sensitivity_analysis_plan",
+        "treatment_timing_defined"
+      ],
+      "properties": {
+        "counterfactual_defined": {
+          "type": "boolean"
+        },
+        "identification_assumptions": {
+          "type": "string",
+          "minLength": 1
+        },
+        "diagnostics_plan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensitivity_analysis_plan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "treatment_timing_defined": {
+          "type": "boolean"
+        }
+      }
+    },
+    "policy_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixed_resource_capacity",
+        "capacity_unit",
+        "comparison_policies",
+        "subgroup_harm_review",
+        "thresholds_preregistered"
+      ],
+      "properties": {
+        "fixed_resource_capacity": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "capacity_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison_policies": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "subgroup_harm_review": {
+          "type": "boolean"
+        },
+        "thresholds_preregistered": {
+          "const": true
+        }
+      }
+    },
+    "causal_lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect_status",
+        "causal_effect_estimated",
+        "effect_estimate",
+        "forecast_and_impact_lanes_separate",
+        "independent_review_eligibility"
+      ],
+      "properties": {
+        "effect_status": {
+          "enum": [
+            "unestimated",
+            "synthetic_method_test_only",
+            "eligible_for_independent_review"
+          ]
+        },
+        "causal_effect_estimated": {
+          "const": false
+        },
+        "effect_estimate": {
+          "type": "null"
+        },
+        "forecast_and_impact_lanes_separate": {
+          "const": true
+        },
+        "independent_review_eligibility": {
+          "enum": [
+            "not_identified",
+            "eligible_for_independent_review"
+          ]
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_authority_status",
+        "disclosure_review_status",
+        "data_authority_reference",
+        "disclosure_review_reference",
+        "publication_review_status"
+      ],
+      "properties": {
+        "data_authority_status": {
+          "enum": [
+            "not_applicable_synthetic",
+            "authorized",
+            "pending",
+            "denied"
+          ]
+        },
+        "disclosure_review_status": {
+          "enum": [
+            "not_applicable_synthetic",
+            "approved",
+            "pending",
+            "denied"
+          ]
+        },
+        "data_authority_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disclosure_review_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publication_review_status": {
+          "enum": [
+            "not_applicable_synthetic",
+            "approved",
+            "pending",
+            "denied"
+          ]
+        }
+      }
+    }
+  }
+}

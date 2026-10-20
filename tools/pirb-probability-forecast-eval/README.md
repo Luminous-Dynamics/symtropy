@@ -13,6 +13,7 @@ From the repository root:
     cargo run --bin pirb-cross-provider-benchmark-validate --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-cross-provider-benchmark-incompatible-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-hierarchy-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-joint-sample-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+    cargo run --bin pirb-policy-impact-admissibility --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
 
@@ -35,6 +36,12 @@ The `pirb-joint-sample-coherence-audit` binary checks whether each registered jo
 The synthetic fixture has four invented joint draws: the raw samples have 6/8 coherent complete constraint-draw pairs, while the submitted reconciled samples have 8/8; only 2/4 raw draws satisfy all complete constraints simultaneously, versus 4/4 reconciled draws. One incomplete spatial constraint is not included in the coherence denominator. These are test-oracle values, not empirical results from VIEWS, ACLED CAST, or any production forecaster.
 
 This command audits submitted samples—it does not implement MinTraceSparse or another reconciliation algorithm, and it does not calculate sample calibration, interval coverage, energy score, variogram score, count skill, decision utility or causal effect. Proper scoring rules have different validity conditions when comparing coherent and incoherent distributions. See `docs/tech/PIRB_JOINT_PREDICTIVE_SAMPLE_COHERENCE_V0_1.md`, [ACLED CAST methodology](https://acleddata.com/methodology/cast-methodology), and [Panagiotelis et al. on probabilistic reconciliation](https://doi.org/10.1016/j.ejor.2022.07.040).
+
+## Forecast-to-action policy impact admissibility
+
+The `pirb-policy-impact-admissibility` binary checks whether a policy-evaluation registration keeps forecast verification, action delivery, observed outcomes and causal evaluation as separate lanes. It requires a no-action baseline, fixed resource capacity, action offer/delivery/adherence records, a measurement and missingness policy, reporting-shift assessment, counterfactual/estimand and design references, and governance declarations. Historical registrations claiming independent-review eligibility must also satisfy declared design-review, outcome-maturity, spillover, source-authority and disclosure gates. The tool accepts no causal effect estimate and never sets impact established.
+
+The checked-in fixture is a synthetic before/after negative control. It passes as `not_identified`, with no effect estimate, because a before/after association alone is not an identified causal effect. Even an eligible receipt means “eligible for independent review”, not that identification assumptions are true or an effect has been estimated. See `docs/tech/PIRB_POLICY_IMPACT_ADMISSIBILITY_V0_1.md` and [issue #2248](https://github.com/Luminous-Dynamics/symtropy/issues/2248).
 
 ## Outcome-vintage sensitivity
 

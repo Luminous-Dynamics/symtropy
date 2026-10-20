@@ -1,0 +1,75 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-policy-impact-synthetic-before-after-not-identified",
+  "evidence_scope": "synthetic",
+  "privacy": {
+    "aggregate_only": true,
+    "small_cell_suppression": true
+  },
+  "forecast_lane": {
+    "forecast_registration_reference": "synthetic:forecast-registration-v0.1",
+    "forecast_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "target_definition": "Invented synthetic event-count forecast; no external rows.",
+    "issue_cutoff_index": 10,
+    "heldout_scoring_separate": true
+  },
+  "action_lane": {
+    "policy_id": "synthetic-warning-and-service-policy",
+    "action_definition": "Invented response policy used only to test the contract.",
+    "offer_assignment_recorded": true,
+    "delivery_recorded": true,
+    "receipt_or_adherence_recorded": false,
+    "action_cost_definition": "Synthetic unit-cost placeholder; no monetary or real response claim.",
+    "no_action_baseline_included": true
+  },
+  "outcome_lane": {
+    "primary_outcome": "invented aggregate event count in a fixed follow-up window",
+    "outcome_measurement_process": "Synthetic data-generating process only; not a real-world outcome measurement protocol.",
+    "outcome_release_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "follow_up_end_index": 12,
+    "reporting_shift_assessment": "not_assessed",
+    "missingness_policy": "Unobserved outcomes remain missing; do not code unknown as zero."
+  },
+  "design": {
+    "design_type": "before_after",
+    "assignment_mechanism": "observational",
+    "comparison_strategy": "Naive before/after contrast, included as a negative control that must not qualify for causal claims.",
+    "analysis_plan_reference": "synthetic:no-preregistered-identification-plan",
+    "analysis_plan_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "independent_design_review_verified": false,
+    "interference_assessment": "unknown",
+    "spillover_boundary": "Synthetic geography only; real displacement/interference not assessed.",
+    "estimand_reference": "synthetic:descriptive-post-minus-pre-contrast-not-causal"
+  },
+  "counterfactual": {
+    "counterfactual_defined": false,
+    "identification_assumptions": "No causal identification claim is made by this negative control.",
+    "diagnostics_plan": "Demonstrate that before/after contrast is insufficient.",
+    "sensitivity_analysis_plan": "No causal estimate; future authorized evaluation requires design-specific sensitivity analysis.",
+    "treatment_timing_defined": true
+  },
+  "policy_comparison": {
+    "fixed_resource_capacity": 10,
+    "capacity_unit": "synthetic response slots",
+    "comparison_policies": [
+      "no_action",
+      "synthetic_current_practice"
+    ],
+    "subgroup_harm_review": false,
+    "thresholds_preregistered": true
+  },
+  "causal_lane": {
+    "effect_status": "unestimated",
+    "causal_effect_estimated": false,
+    "effect_estimate": null,
+    "forecast_and_impact_lanes_separate": true,
+    "independent_review_eligibility": "not_identified"
+  },
+  "governance": {
+    "data_authority_status": "not_applicable_synthetic",
+    "disclosure_review_status": "not_applicable_synthetic",
+    "data_authority_reference": "synthetic-only",
+    "disclosure_review_reference": "synthetic-only",
+    "publication_review_status": "not_applicable_synthetic"
+  }
+}
