@@ -208,6 +208,164 @@ mod tests {
         );
     }
 
+    // Independent reference for the derivative oracle. Keep this expression
+    // separate from the production group-velocity implementation.
+    fn omega_reference(gravity_m_s2: f64, wavenumber_rad_m: f64, depth_m: f64) -> f64 {
+        (gravity_m_s2 * wavenumber_rad_m * (wavenumber_rad_m * depth_m).tanh()).sqrt()
+    }
+
+    fn central_difference_group_velocity(
+        gravity_m_s2: f64,
+        wavenumber_rad_m: f64,
+        depth_m: f64,
+        step_rad_m: f64,
+    ) -> f64 {
+        (omega_reference(
+            gravity_m_s2,
+            wavenumber_rad_m + step_rad_m,
+            depth_m,
+        ) - omega_reference(
+            gravity_m_s2,
+            wavenumber_rad_m - step_rad_m,
+            depth_m,
+        )) / (2.0 * step_rad_m)
+    }
+
+    #[test]
+    fn group_velocity_matches_independent_dispersion_derivative() {
+        // Covers deep, intermediate, and shallow values of k*h.
+        let cases = [
+            (9.81, 0.1, 1000.0),
+            (9.81, 0.2, 2.0),
+            (9.81, 0.4, 3.75),
+            (9.81, 0.1, 0.5),
+            (9.81, 0.1, 0.01),
+        ];
+
+        for (gravity, wavenumber, depth) in cases {
+            let actual = dispersion(gravity, wavenumber, depth).expect("valid wave parameters");
+            let coarse = central_difference_group_velocity(
+                gravity,
+                wavenumber,
+                depth,
+                wavenumber * 1.0e-2,
+            );
+            let fine = central_difference_group_velocity(
+                gravity,
+                wavenumber,
+                depth,
+                wavenumber * 1.0e-4,
+            );
+            let scale = actual.group_velocity_m_s.abs().max(1.0);
+            let coarse_error = (coarse - actual.group_velocity_m_s).abs();
+            let fine_error = (fine - actual.group_velocity_m_s).abs();
+
+            assert!(
+                fine_error <= 1.0e-6 * scale,
+                "group-velocity derivative mismatch at k*h={}: expected {}, got {}",
+                wavenumber * depth,
+                fine,
+                actual.group_velocity_m_s
+            );
+            assert!(
+                fine_error <= coarse_error * 1.1 + 1.0e-8 * scale,
+                "finite-difference refinement did not converge at k*h={}: coarse error {}, fine error {}",
+                wavenumber * depth,
+                coarse_error,
+                fine_error
+            );
+        }
+    }
+
+    #[test]
+    fn dimensionless_kh_scaling_relations_hold() {
+        let gravity = 9.81;
+        let wavenumber = 0.2;
+        let depth = 2.0;
+        let base = dispersion(gravity, wavenumber, depth).expect("valid base case");
+
+        // Scaling k by s and depth by 1/s preserves k*h. Under the same g,
+        // omega scales by sqrt(s), period/celerities by 1/sqrt(s), and
+        // wavelength by 1/s.
+        for scale in [0.25, 2.0, 7.5] {
+            let transformed = dispersion(
+                gravity,
+                wavenumber * scale,
+                depth / scale,
+            )
+            .expect("valid transformed case");
+            near(
+                transformed.omega_rad_s,
+                base.omega_rad_s * scale.sqrt(),
+                1.0e-10,
+            );
+            near(
+                transformed.period_s,
+                base.period_s / scale.sqrt(),
+                1.0e-10,
+            );
+            near(
+                transformed.phase_velocity_m_s,
+                base.phase_velocity_m_s / scale.sqrt(),
+                1.0e-10,
+            );
+            near(
+                transformed.group_velocity_m_s,
+                base.group_velocity_m_s / scale.sqrt(),
+                1.0e-10,
+            );
+            near(
+                transformed.wavelength_m,
+                base.wavelength_m / scale,
+                1.0e-10,
+            );
+        }
+    }
+
+    #[test]
+    fn independent_derivative_rejects_known_wrong_group_velocity_formulas() {
+        let gravity = 9.81;
+        let wavenumber = 0.4;
+        let depth = 3.75;
+        let actual = dispersion(gravity, wavenumber, depth).expect("valid wave parameters");
+        let oracle = central_difference_group_velocity(
+            gravity,
+            wavenumber,
+            depth,
+            wavenumber * 1.0e-4,
+        );
+        let scale = oracle.abs().max(1.0);
+
+        // Negative controls: wrong sign, missing one-half factor, or confusing
+        // phase velocity with group velocity must disagree with the oracle.
+        let wrong_sign = -actual.group_velocity_m_s;
+        let missing_half_factor = actual.phase_velocity_m_s
+            * (1.0 + (2.0 * wavenumber * depth) / (2.0 * wavenumber * depth).sinh());
+        let phase_group_swap = actual.phase_velocity_m_s;
+
+        for (name, mutant) in [
+            ("wrong_sign", wrong_sign),
+            ("missing_half_factor", missing_half_factor),
+            ("phase_group_swap", phase_group_swap),
+        ] {
+            assert!(
+                (mutant - oracle).abs() > 1.0e-2 * scale,
+                "negative control {name} was not distinguished from derivative oracle"
+            );
+        }
+        near(actual.group_velocity_m_s, oracle, 1.0e-6);
+    }
+
+    #[test]
+    fn shallow_water_limit_matches_sqrt_gh() {
+        let gravity = 9.81;
+        let depth = 0.01;
+        let result = dispersion(gravity, 0.1, depth).expect("valid shallow-water case");
+        let shallow_speed = (gravity * depth).sqrt();
+        near(result.phase_velocity_m_s, shallow_speed, 1.0e-5);
+        near(result.group_velocity_m_s, shallow_speed, 1.0e-5);
+    }
+
     #[test]
     fn invalid_configuration_fails_closed() {
         assert_eq!(dispersion(0.0, 0.1, 10.0), Err(WaveError::InvalidGravity));
