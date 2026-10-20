@@ -1,6 +1,6 @@
-#[path = "../../sumo_behavior_case.rs"]
+#[path = "../sumo_behavior_case.rs"]
 mod evaluator;
-#[path = "../../sumo_behavior_xml.rs"]
+#[path = "../sumo_behavior_xml.rs"]
 mod xml;
 
 use serde_json::{Value, json};
