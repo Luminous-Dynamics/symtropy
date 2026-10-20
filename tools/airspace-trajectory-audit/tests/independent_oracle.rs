@@ -361,10 +361,7 @@ fn exhaustive_sloped_segments_match_integer_rational_closest_approach_oracle() {
                             source_sha256: "a".repeat(64),
                             horizontal_uncertainty_bound_m: 0.0,
                             vertical_uncertainty_bound_m: 0.0,
-                            points: vec![
-                                point(T0, 0.0, 0.0, 100.0),
-                                point(T1, 100.0, 0.0, 100.0),
-                            ],
+                            points: vec![point(T0, 0.0, 0.0, 100.0), point(T1, 100.0, 0.0, 100.0)],
                         };
                         let b = Trajectory {
                             trajectory_id: "B-rational-oracle".to_owned(),
@@ -376,12 +373,7 @@ fn exhaustive_sloped_segments_match_integer_rational_closest_approach_oracle() {
                             horizontal_uncertainty_bound_m: 0.0,
                             vertical_uncertainty_bound_m: 0.0,
                             points: vec![
-                                point(
-                                    T0,
-                                    f64::from(r0_x),
-                                    f64::from(r0_y),
-                                    100.0,
-                                ),
+                                point(T0, f64::from(r0_x), f64::from(r0_y), 100.0),
                                 point(
                                     T1,
                                     100.0 + f64::from(r0_x + d_x),
@@ -393,9 +385,7 @@ fn exhaustive_sloped_segments_match_integer_rational_closest_approach_oracle() {
 
                         let report = audit_trajectory_pair(&a, &b, &criteria)
                             .expect("bounded integer-rational fixture must be valid");
-                        let case = format!(
-                            "r0=({r0_x},{r0_y}), d=({d_x},{d_y}), R={radius_m} m"
-                        );
+                        let case = format!("r0=({r0_x},{r0_y}), d=({d_x},{d_y}), R={radius_m} m");
                         if expected_conflict {
                             assert_eq!(
                                 report.disposition,
@@ -423,4 +413,3 @@ fn exhaustive_sloped_segments_match_integer_rational_closest_approach_oracle() {
         }
     }
 }
-
