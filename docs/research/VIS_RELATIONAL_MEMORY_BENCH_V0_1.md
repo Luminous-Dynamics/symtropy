@@ -250,6 +250,14 @@ A dedicated negative control changes only the hidden corruption-rate label on an
 
 Interpret the result carefully: q-estimation error is a model diagnostic, not task performance. If the joint posterior improves q estimation but worsens task loss, memory use and task outcomes still decide whether the candidate advances. Conversely, lower q MAE alone is not enough to justify deploying a 42-hypothesis posterior per queried claim.
 
+## Joint parameter identifiability and sample-complexity sweep — candidate
+
+The report now adds a controlled single-claim diagnostic independent of the decision-task generator. It simulates known two-state transition hazards and confidence-conditioned sensor base rates on the model's declared grid, with every source tick observed. For each parameter pair and observation length (8, 16, 32, 64, 128), 24 fixed-seed trajectories are generated. The estimator receives only each observation's value, confidence and source timestamp; the true hazard and corruption rate are used only after filtering to calculate estimation errors.
+
+Each row reports hazard MAE/RMSE and sensor-base MAE/RMSE, alongside an evidence-free uniform-grid prior q MAE. This sweep is designed to distinguish limited information per claim from a biased/mis-specified joint filter. It is an **on-grid** diagnostic: it does not establish robustness to transition/sensor rates outside the model's grid or to the irregular delays/distractor bursts of the full task benchmark.
+
+The focused workflow checks that all 210 length × hazard × sensor-rate rows are present and deterministic. If the estimation curves do not improve with more observations, that is a model correctness or likelihood-computation failure. If they improve but the 48-tick end-task results remain poor, it instead suggests the full task stream is too sparse or confounded for this parameter grid to deliver a useful decision benefit. Neither outcome alone is evidence of robotic performance.
+
 ## Reproduce
 
 ```sh
