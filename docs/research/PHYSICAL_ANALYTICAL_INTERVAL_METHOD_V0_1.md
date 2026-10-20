@@ -33,3 +33,12 @@ The request may include `input_bounds` using schema `physical-input-bounds-v0.1`
 Receipts include the original bound contract and one `output_enclosures` entry per output, each containing `lower`, `nominal`, `upper`, a finite non-negative `width`, and `unit`. `uncertainty_method` distinguishes not-supplied bounds from executed interval propagation and unresolved propagation. `real_world_validation_status` remains `UNRESOLVED` regardless of the mathematical enclosure.
 
 CI additionally executes a bounded axial-bar fixture and a cantilever force interval crossing zero, checks that all enclosures are finite and ordered, checks widths are finite/nonnegative, and requires the absolute-stress lower bound to be exactly zero for the zero-crossing interval.
+
+
+## Standards and independent conformance boundary
+
+This project-specific interval layer is **not currently claimed to conform to IEEE 1788-2015 or IEEE 1788.1-2017**. Moving each round-to-nearest endpoint one representable value outward is the implementation's declared arithmetic strategy for the basic operations it uses; it is not a substitute for auditing the complete applicable interval model, domain exceptions, signed-zero behavior, subnormals, and standard-required special cases.
+
+[PHYS-UQ-CONFORMANCE-001 #2348](https://github.com/Luminous-Dynamics/symtropy/issues/2348) tracks a separately gated comparison against a pinned independent test suite and the Rust [inari interval arithmetic implementation](https://docs.rs/inari/latest/inari/). An open-access framework by Benet, Ferranti, and Revol explains how JSON test cases can evaluate interval-library behavior against IEEE 1788-2015 and why a small set of domain-specific unit tests is insufficient for a general conformance claim: https://doi.org/10.1002/cpe.7856.
+
+Until that track passes its declared subset, describe this as **outward-rounded interval propagation for three analytical formulas**, not an IEEE-conforming interval-arithmetic library. The seeded interior sweep is exploratory test coverage; endpoint tests and formula-specific reasoning remain separate, and neither should be described as a formal proof of all f64 operations.
