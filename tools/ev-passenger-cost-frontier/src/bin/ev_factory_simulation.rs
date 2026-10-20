@@ -1962,6 +1962,10 @@ mod tests {
         let mut catalog = fixture();
         catalog.buffer_capacities[0] = 0;
         assert!(validate_catalog(&catalog).is_err());
+
+        let mut catalog = fixture();
+        catalog.maximum_consecutive_skips = 0;
+        assert!(validate_catalog(&catalog).is_err());
     }
 
     #[test]
