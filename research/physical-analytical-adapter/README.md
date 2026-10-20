@@ -49,3 +49,8 @@ These formulas do not prove that a real member has the declared geometry, materi
 3. Add a solver dispatcher with an explicit allowlisted capability manifest.
 4. Qualify one specialist solver using the same receipt contract and an independently reproduced known-answer case.
 5. Validate against a rights-cleared measured dataset before claiming physical accuracy or state-of-the-art improvement.
+
+
+## Industry comparison and next qualification gates
+
+See [PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md](../../docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md) for the matched comparison ladder against the published SOFiSTiK 2026 verification catalog, NIST tiered verification/validation/calibration guidance, and the open 2026 synthetic SHM robustness benchmark. The current adapter is at the closed-form equation-contract tier only; numerical solver verification, measured validation, and uncertainty qualification remain separate gates.
