@@ -28,6 +28,17 @@ Candidate inserts include a removable wash tub, draining produce colander, over-
 
 Physical separation can help organize workflows, but changing an insert or changing its color is not a sanitation step. Any transition among raw food, produce, dirty utensils and ready-to-eat tasks must follow an appropriate cleaning/sanitizing procedure.
 
+### C.1. Commercial pre-rinse sprayers: spray force and soil removal, not flow alone
+
+Keep commercial pre-rinse valves on a separate benchmark track from household faucets. EPA's WaterSense research found that its earlier efficiency test method did not correlate well with user satisfaction and that flowing pressure/spray force materially affected performance. ASTM F2324-13R26 is listed as an active test method covering flow rate and spray force for commercial pre-rinse valves. This is direct evidence for a better experiment: hold soil, target, distance and pressure protocol fixed; measure force and coverage together with whole-task water, trigger time, soil removal and splash. Lower flow alone is not a win if staff rinse for longer or repeat the pass.
+
+- EPA pre-rinse valve research: https://www.epa.gov/watersense/pre-rinse-spray-valves
+- ASTM F2324-13R26: https://store.astm.org/f2324-13r26.html
+- ASME A112.18.1/CSA B125.1-2024 scope: https://www.asme.org/codes-standards/find-codes-standards/plumbing-supply-fittings-%28with-10-18-errata%29
+- Implementation track: [KITCHEN-PRERINSE-001 #2359](https://github.com/Luminous-Dynamics/symtropy/issues/2359)
+
+The valve test method and any applicable commercial certification/compliance process do not replace a matched, real-task soil-removal test.
+
 ### C. Efficient water delivery and batch-versus-flow washing
 
 Do not assume the best water-saving change is always a lower-flow faucet. Compare a measured-volume batch-wash workflow with continuous-flow rinsing and lower-flow stream/spray controls using the same load, cleaning endpoint and final-rinse rule. South Africa's CoGTA consumer guidance recommends a plugged sink instead of a running tap for washing dishes and for rinsing vegetables; treat this as a useful behavior/design hypothesis, not measured performance evidence.
