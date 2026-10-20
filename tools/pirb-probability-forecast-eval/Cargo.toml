@@ -29,4 +29,8 @@ path = "src/benchmark_registration_main.rs"
 name = "pirb-hierarchy-coherence-audit"
 path = "src/hierarchy_coherence_main.rs"
 
+[[bin]]
+name = "pirb-joint-sample-coherence-audit"
+path = "src/joint_sample_coherence_main.rs"
+
 [workspace]

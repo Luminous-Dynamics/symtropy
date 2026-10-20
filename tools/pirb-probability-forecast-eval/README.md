@@ -12,6 +12,7 @@ From the repository root:
     cargo run --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-probability-forecast-v0.1.json --source-commit "$(git rev-parse HEAD)" --rustc-version "$(rustc --version)" --cargo-version "$(cargo --version)"
     cargo run --bin pirb-cross-provider-benchmark-validate --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-cross-provider-benchmark-incompatible-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-hierarchy-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+    cargo run --bin pirb-joint-sample-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
 
@@ -26,6 +27,14 @@ The checked-in VIEWS/ACLED CAST example deliberately exits successfully as a val
 The `pirb-hierarchy-coherence-audit` binary measures parent/child consistency for count forecasts before and after reconciliation. It reports raw and reconciled residuals, adjustment magnitudes, completeness coverage, and explicit `not_assessable` constraints when children are missing or coverage is not verified. Every constraint pins expected child keys; a complete constraint rejects missing child rows and existing child rows silently omitted from the declared set, and the aggregation graph must be acyclic. This is not a forecast-accuracy score and the audit does not implement a reconciliation method such as MinTraceSparse; it checks the declared hierarchy constraints and records their coherence diagnostics.
 
 The checked-in hierarchy fixture has invented aggregate counts. Its all-zero/all-one artifact digests are placeholders and do not identify captured provider data. The fixture includes two complete exact-sum constraints and one incomplete spatial constraint whose missing child must not be imputed as zero. See `docs/tech/PIRB_HIERARCHICAL_FORECAST_COHERENCE_V0_1.md` for the contract and claim limits.
+
+## Joint predictive sample coherence
+
+The `pirb-joint-sample-coherence-audit` binary checks whether each registered joint predictive draw satisfies the declared spatial and event-type aggregation constraints. It preserves the paired base and reconciled values, measures coherence by constraint and by complete draw, reports raw/reconciled residuals and adjustment magnitudes, and keeps incomplete constraints explicitly `not_assessable`. Every declared forecast node must have a row for every registered draw; missing values are rejected, never imputed.
+
+The synthetic fixture has four invented joint draws: the raw samples have 6/8 coherent complete constraint-draw pairs, while the submitted reconciled samples have 8/8; only 2/4 raw draws satisfy all complete constraints simultaneously, versus 4/4 reconciled draws. One incomplete spatial constraint is not included in the coherence denominator. These are test-oracle values, not empirical results from VIEWS, ACLED CAST, or any production forecaster.
+
+This command audits submitted samples—it does not implement MinTraceSparse or another reconciliation algorithm, and it does not calculate sample calibration, interval coverage, energy score, variogram score, count skill, decision utility or causal effect. Proper scoring rules have different validity conditions when comparing coherent and incoherent distributions. See `docs/tech/PIRB_JOINT_PREDICTIVE_SAMPLE_COHERENCE_V0_1.md`, [ACLED CAST methodology](https://acleddata.com/methodology/cast-methodology), and [Panagiotelis et al. on probabilistic reconciliation](https://doi.org/10.1016/j.ejor.2022.07.040).
 
 ## Outcome-vintage sensitivity
 

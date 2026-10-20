@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json",
+  "title": "PIRB Joint Predictive Sample Coherence Contract v0.1",
+  "description": "Validates paired base and reconciled joint predictive sample rows against registered aggregation constraints. Does not score accuracy, establish calibration, or estimate impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "evidence_scope",
+    "privacy",
+    "provider",
+    "forecast_origin_index",
+    "target_period_index",
+    "temporal_index_policy",
+    "sample_policy",
+    "forecast_nodes",
+    "sample_rows",
+    "aggregation_constraints"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-joint-samples-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "forecast_release_id",
+        "model_version",
+        "target_definition",
+        "analysis_unit_scheme",
+        "temporal_aggregation",
+        "source_reference",
+        "method_reference",
+        "license_reference",
+        "forecast_artifact_sha256",
+        "hierarchy_sha256",
+        "attribution"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_release_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_unit_scheme": {
+          "type": "string",
+          "minLength": 1
+        },
+        "temporal_aggregation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "license_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hierarchy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "forecast_origin_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "target_period_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "temporal_index_policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "draw_ids",
+        "expected_draw_count",
+        "method_reference",
+        "method_sha256",
+        "parameter_fit_cutoff_index",
+        "uses_test_outcomes",
+        "uses_future_data",
+        "preserves_base_samples"
+      ],
+      "properties": {
+        "representation": {
+          "const": "joint_predictive_samples"
+        },
+        "draw_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^draw-[A-Za-z0-9_-]+$"
+          }
+        },
+        "expected_draw_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "method_reference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pins the sample reconciliation or transformation used to produce the reconciled_count rows."
+        },
+        "method_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parameter_fit_cutoff_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uses_test_outcomes": {
+          "const": false
+        },
+        "uses_future_data": {
+          "const": false
+        },
+        "preserves_base_samples": {
+          "const": true
+        }
+      }
+    },
+    "forecast_nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "forecast_id",
+          "unit_id",
+          "event_type_id",
+          "period_index"
+        ],
+        "properties": {
+          "forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "unit_id": {
+            "type": "string",
+            "pattern": "^unit-[A-Za-z0-9_-]+$"
+          },
+          "event_type_id": {
+            "type": "string",
+            "pattern": "^event-[A-Za-z0-9_-]+$"
+          },
+          "period_index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "sample_rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "draw_id",
+          "forecast_id",
+          "raw_count",
+          "reconciled_count"
+        ],
+        "properties": {
+          "draw_id": {
+            "type": "string",
+            "pattern": "^draw-[A-Za-z0-9_-]+$"
+          },
+          "forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "raw_count": {
+            "type": "number",
+            "minimum": 0
+          },
+          "reconciled_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "aggregation_constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "constraint_id",
+          "kind",
+          "parent_forecast_id",
+          "child_forecast_ids",
+          "expected_child_keys",
+          "completeness",
+          "absolute_tolerance"
+        ],
+        "properties": {
+          "constraint_id": {
+            "type": "string",
+            "pattern": "^constraint-[A-Za-z0-9_-]+$"
+          },
+          "kind": {
+            "enum": [
+              "spatial",
+              "event_type"
+            ]
+          },
+          "parent_forecast_id": {
+            "type": "string",
+            "pattern": "^fc-[A-Za-z0-9_-]+$"
+          },
+          "child_forecast_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^fc-[A-Za-z0-9_-]+$"
+            }
+          },
+          "expected_child_keys": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "completeness": {
+            "enum": [
+              "complete",
+              "incomplete",
+              "unknown"
+            ]
+          },
+          "absolute_tolerance": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
