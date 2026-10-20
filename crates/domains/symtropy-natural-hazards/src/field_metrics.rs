@@ -20,12 +20,14 @@ pub enum FieldMetricError {
 /// Mean absolute error for paired predicted/reference values.
 pub fn mean_absolute_error(predicted: &[f64], reference: &[f64]) -> Result<f64, FieldMetricError> {
     validate_pair(predicted, reference)?;
-    Ok(predicted
-        .iter()
-        .zip(reference)
-        .map(|(predicted, reference)| (predicted - reference).abs())
-        .sum::<f64>()
-        / predicted.len() as f64)
+    finite_metric(
+        predicted
+            .iter()
+            .zip(reference)
+            .map(|(predicted, reference)| (predicted - reference).abs())
+            .sum::<f64>()
+            / predicted.len() as f64,
+    )
 }
 
 /// Root mean square error for paired predicted/reference values.
@@ -40,18 +42,20 @@ pub fn root_mean_square_error(
         .map(|(predicted, reference)| (predicted - reference).powi(2))
         .sum::<f64>()
         / predicted.len() as f64;
-    Ok(mean_square.sqrt())
+    finite_metric(mean_square.sqrt())
 }
 
 /// Mean signed bias, defined as prediction minus reference.
 pub fn mean_bias(predicted: &[f64], reference: &[f64]) -> Result<f64, FieldMetricError> {
     validate_pair(predicted, reference)?;
-    Ok(predicted
-        .iter()
-        .zip(reference)
-        .map(|(predicted, reference)| predicted - reference)
-        .sum::<f64>()
-        / predicted.len() as f64)
+    finite_metric(
+        predicted
+            .iter()
+            .zip(reference)
+            .map(|(predicted, reference)| predicted - reference)
+            .sum::<f64>()
+            / predicted.len() as f64,
+    )
 }
 
 /// Maximum absolute paired error. Useful for guardrails, not a replacement for distributional metrics.
@@ -60,11 +64,13 @@ pub fn maximum_absolute_error(
     reference: &[f64],
 ) -> Result<f64, FieldMetricError> {
     validate_pair(predicted, reference)?;
-    Ok(predicted
-        .iter()
-        .zip(reference)
-        .map(|(predicted, reference)| (predicted - reference).abs())
-        .fold(0.0, f64::max))
+    finite_metric(
+        predicted
+            .iter()
+            .zip(reference)
+            .map(|(predicted, reference)| (predicted - reference).abs())
+            .fold(0.0, f64::max),
+    )
 }
 
 /// Weighted RMSE for a declared observation operator (e.g. cell-area weighting).
@@ -103,7 +109,15 @@ pub fn weighted_root_mean_square_error(
     if !weighted_mean_square.is_finite() {
         return Err(FieldMetricError::NonFiniteValue);
     }
-    Ok(weighted_mean_square.sqrt())
+    finite_metric(weighted_mean_square.sqrt())
+}
+
+fn finite_metric(value: f64) -> Result<f64, FieldMetricError> {
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(FieldMetricError::NonFiniteValue)
+    }
 }
 
 fn validate_pair(predicted: &[f64], reference: &[f64]) -> Result<(), FieldMetricError> {
@@ -121,6 +135,14 @@ fn validate_pair(predicted: &[f64], reference: &[f64]) -> Result<(), FieldMetric
         return Err(FieldMetricError::NonFiniteValue);
     }
     Ok(())
+}
+
+fn finite_ledger_value(value: f64) -> Result<f64, LedgerError> {
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(LedgerError::NonFiniteAmount)
+    }
 }
 
 /// Errors from a declared scalar conservation ledger.
@@ -179,7 +201,7 @@ impl ConservationLedger {
     /// Signed closure residual in the declared units; positive means unaccounted quantity.
     pub fn residual(&self) -> Result<f64, LedgerError> {
         self.validate()?;
-        Ok(self.start + self.inputs - self.outputs - self.end)
+        finite_ledger_value(self.start + self.inputs - self.outputs - self.end)
     }
 
     /// A scale for relative residuals. Returns None for a completely empty ledger.
@@ -197,7 +219,10 @@ impl ConservationLedger {
     /// Relative signed residual; None when every ledger amount is zero.
     pub fn relative_residual(&self) -> Result<Option<f64>, LedgerError> {
         let residual = self.residual()?;
-        Ok(self.scale()?.map(|scale| residual / scale))
+        match self.scale()? {
+            Some(scale) => finite_ledger_value(residual / scale).map(Some),
+            None => Ok(None),
+        }
     }
 
     /// Closure within the declared absolute tolerance, after input validation.
@@ -293,6 +318,18 @@ mod tests {
     }
 
     #[test]
+    fn finite_inputs_that_overflow_the_metric_are_rejected() {
+        assert_eq!(
+            root_mean_square_error(&[f64::MAX], &[-f64::MAX]),
+            Err(FieldMetricError::NonFiniteValue)
+        );
+        assert_eq!(
+            mean_absolute_error(&[f64::MAX, f64::MAX], &[-f64::MAX, -f64::MAX]),
+            Err(FieldMetricError::NonFiniteValue)
+        );
+    }
+
+    #[test]
     fn conservation_ledger_rejects_broken_or_undefined_ledgers() {
         let mut broken = balanced_ledger();
         broken.end = 89.0;
@@ -315,6 +352,11 @@ mod tests {
         let mut negative = balanced_ledger();
         negative.inputs = -1.0;
         assert_eq!(negative.validate(), Err(LedgerError::NegativeAmount));
+
+        let mut overflowing = balanced_ledger();
+        overflowing.start = f64::MAX;
+        overflowing.inputs = f64::MAX;
+        assert_eq!(overflowing.residual(), Err(LedgerError::NonFiniteAmount));
 
         let mut invalid_tolerance = balanced_ledger();
         invalid_tolerance.absolute_tolerance = f64::NAN;
