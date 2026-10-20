@@ -32,7 +32,7 @@ struct OracleCase {
 #[serde(rename_all = "snake_case")]
 enum Mutation {
     #[serde(rename = "none")]
-    NoMutation,
+    Unchanged,
     EmptyProfileId,
     WhitespaceProfileId,
     SyntheticTaxonBinding,
@@ -82,7 +82,7 @@ enum Mutation {
 
 fn apply_mutation(mut profile: AnimalProfile, mutation: Mutation) -> AnimalProfile {
     match mutation {
-        Mutation::NoMutation => {}
+        Mutation::Unchanged => {}
         Mutation::EmptyProfileId => profile.id.clear(),
         Mutation::WhitespaceProfileId => profile.id = "   ".to_owned(),
         Mutation::SyntheticTaxonBinding => {
