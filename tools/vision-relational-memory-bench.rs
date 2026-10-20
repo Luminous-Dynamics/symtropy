@@ -992,7 +992,7 @@ const IDENTIFIABILITY_LENGTHS: [usize; 5] = [8, 16, 32, 64, 128];
 fn joint_noise_identifiability_report() {
     println!("Joint transition/noise identifiability diagnostic (controlled on-grid synthetic trajectories)");
     println!("Only the evaluator knows the simulated hazard and corruption rate; the estimator sees confidence, observed binary value and source tick");
-    println!("CALIBRATION\\tobservations_per_claim\\ttrue_hazard\\ttrue_sensor_base_per_thousand\\treplicates\\thazard_mae\\thazard_rmse\\tsensor_base_mae\\tsensor_base_rmse\\tuniform_prior_sensor_mae");
+    println!("CALIBRATION\tobservations_per_claim\ttrue_hazard\ttrue_sensor_base_per_thousand\treplicates\thazard_mae\thazard_rmse\tsensor_base_mae\tsensor_base_rmse\tuniform_prior_sensor_mae");
 
     let prior_sensor_rate = SENSOR_BASE_RATES.iter().map(|rate| *rate as f64).sum::<f64>()
         / SENSOR_BASE_RATES.len() as f64 / 1_000.0;
@@ -1053,7 +1053,7 @@ fn joint_noise_identifiability_report() {
 
                 let denominator = IDENTIFIABILITY_REPLICATES as f64;
                 println!(
-                    "CALIBRATION\\t{}\\t{:.4}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{:.4}\\t{:.4}\\t{:.4}",
+                    "CALIBRATION\t{}\t{:.4}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}",
                     observations_per_claim,
                     true_hazard,
                     true_sensor_rate,
