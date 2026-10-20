@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ASSESSMENT_RECEIPT_V1.schema.json",
+  "title": "Animal Model-Set Adequacy Assessment Receipt V1",
+  "description": "Typed evidence contract for a bounded blinded-challenge assessment. A receipt binds disposition to a candidate-model registry and challenge-family manifest; it does not prove universal model completeness or biological validity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "assessment_id",
+    "disposition",
+    "candidate_model_set_digest",
+    "challenge_family_manifest_sha256",
+    "source_commit",
+    "evaluator_version",
+    "scope",
+    "independent_unit_manifest_sha256",
+    "pre_reveal_prediction_digest",
+    "challenger_case_count",
+    "independent_unit_count"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ANIMAL-MODEL-SET-ADEQUACY-ASSESSMENT-RECEIPT-V1"
+    },
+    "status": {
+      "const": "blind_challenge_assessment_receipt"
+    },
+    "assessment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disposition": {
+      "enum": [
+        "qualified_within_challenge_scope",
+        "omission_detected",
+        "unresolved",
+        "incomplete"
+      ]
+    },
+    "candidate_model_set_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "challenge_family_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}$"
+    },
+    "evaluator_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "independent_unit_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "pre_reveal_prediction_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "challenger_case_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "independent_unit_count": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "$comment": "The decision CLI hashes the exact supplied receipt bytes and checks the candidate model registry and challenger-family manifest against the decision input. This digest binds the supplied bytes but is not a digital signature or proof of issuer authenticity; production actuation must additionally verify trusted evaluator/CI provenance. `qualified_within_challenge_scope` is restricted to this declared assessment scope, never universal adequacy or biological truth."
+}
