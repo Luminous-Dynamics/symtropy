@@ -65,6 +65,10 @@ jobs:
           grep -Fq "bootstrap95_lo_vs_fifo" vis-relational-memory.tsv
           grep -Fq "STRATUM" vis-relational-memory.tsv
           grep -Fq "query_evidence_arrived_out_of_order" vis-relational-memory.tsv
+          grep -Fq "profile_high_distractor_rate" vis-relational-memory.tsv
+          grep -Fq "profile_high_claim_flip_rate" vis-relational-memory.tsv
+          grep -Fq "profile_high_max_delay" vis-relational-memory.tsv
+          grep -Fq "profile_high_corruption_rate" vis-relational-memory.tsv
           test "$(grep -c '^held_out' vis-relational-memory.tsv)" -eq 20
           sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
           sha256sum -c vis-relational-memory.sha256
