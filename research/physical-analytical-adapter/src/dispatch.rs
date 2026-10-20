@@ -8,7 +8,6 @@
 use crate::capabilities::{SelectionStatus, resolve_request};
 use crate::evaluate_request_bytes;
 use serde_json::{Value, json};
-use std::collections::BTreeMap;
 
 pub type Check<T> = Result<T, String>;
 
@@ -200,7 +199,13 @@ mod tests {
         assert_eq!(receipt["outputs"], Value::Null);
         assert_eq!(receipt["model_evaluation_attempted"], false);
         assert_eq!(receipt["external_solver_invoked"], false);
-        assert!(receipt["physics_omitted"].as_array().unwrap().iter().any(|v| v == "fracture"));
+        assert!(
+            receipt["physics_omitted"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v == "fracture")
+        );
     }
 
     #[test]
