@@ -581,9 +581,9 @@ mod tests {
 
     #[test]
     fn ritter_solution_has_correct_tail_origin_and_front() {
-        let h0 = 2.0;
-        let g = 9.81;
-        let t = 0.7;
+        let h0: f64 = 2.0;
+        let g: f64 = 9.81;
+        let t: f64 = 0.7;
         let c0 = (g * h0).sqrt();
 
         let tail = ritter_dam_break(-c0 * t, t, h0, g).unwrap();
