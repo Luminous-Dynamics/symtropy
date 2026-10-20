@@ -1039,6 +1039,14 @@ mod tests {
         audit_fixtures(&document)
     }
 
+    fn functional_errors_after(
+        mut document: Value,
+        mutate: impl FnOnce(&mut Value),
+    ) -> Vec<String> {
+        mutate(&mut document);
+        audit_functional_envelopes(&document)
+    }
+
     #[test]
     fn frozen_known_truth_fixtures_pass() {
         let errors = audit_fixtures(&baseline());
@@ -1178,7 +1186,7 @@ mod tests {
 
     #[test]
     fn drawer_access_collision_cannot_be_forged_as_clear() {
-        let errors = errors_after(functional_baseline(), |doc| {
+        let errors = functional_errors_after(functional_baseline(), |doc| {
             doc["scenarios"][0]["alternatives"][1]["expected_checks"][0]["outcome"] = json!("pass");
         });
         assert!(
@@ -1190,7 +1198,7 @@ mod tests {
 
     #[test]
     fn quarter_turn_rotates_the_functional_envelope_with_its_item() {
-        let errors = errors_after(functional_baseline(), |doc| {
+        let errors = functional_errors_after(functional_baseline(), |doc| {
             doc["scenarios"][1]["alternatives"][1]["placements"][1]["x_m"] = json!(0.9);
         });
         assert!(
@@ -1202,7 +1210,7 @@ mod tests {
 
     #[test]
     fn unknown_mandatory_envelope_evidence_cannot_be_promoted() {
-        let errors = errors_after(functional_baseline(), |doc| {
+        let errors = functional_errors_after(functional_baseline(), |doc| {
             doc["scenarios"][2]["alternatives"][0]["promotion_disposition"] =
                 json!("candidate_only");
         });
@@ -1225,7 +1233,7 @@ mod tests {
             errors.is_empty(),
             "outside-room fixture must have a correct blocked oracle: {errors:#?}"
         );
-        let errors = errors_after(functional_baseline(), |doc| {
+        let errors = functional_errors_after(functional_baseline(), |doc| {
             doc["scenarios"][3]["alternatives"][0]["expected_checks"][0]["outcome"] = json!("pass");
         });
         assert!(
@@ -1237,7 +1245,7 @@ mod tests {
 
     #[test]
     fn duplicate_functional_envelope_id_is_rejected() {
-        let errors = errors_after(functional_baseline(), |doc| {
+        let errors = functional_errors_after(functional_baseline(), |doc| {
             doc["scenarios"][0]["catalog"][1]["functional_envelopes"] = json!([{
                 "envelope_id":"drawer_front",
                 "task_kind":"drawer_open",
