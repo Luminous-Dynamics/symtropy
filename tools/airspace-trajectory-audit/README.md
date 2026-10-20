@@ -32,7 +32,7 @@ Run these commands in an environment with Rust/Cargo installed:
 - cargo clippy --manifest-path tools/airspace-trajectory-audit/Cargo.toml --all-targets -- -D warnings
 - cargo fmt --manifest-path tools/airspace-trajectory-audit/Cargo.toml -- --check
 
-The suite contains 19 unit tests plus five integration tests: 9,225 closed-form comparisons over synchronized parallel paths, exact inclusive-boundary tests, and three metamorphic invariants (pair argument-order reversal, collinear waypoint subdivision, and uniform time-origin translation). The analytical oracle is deliberately separate from the implementation's closest-approach minimizer. These tests are authored but have not been executed locally in the current authoring environment.
+The suite contains 19 unit tests plus six integration tests: 9,225 closed-form comparisons over synchronized parallel paths; 72,600 integer-rational comparisons over sloped/crossing segments and inclusive radii; exact inclusive-boundary tests; and three metamorphic invariants (pair argument-order reversal, collinear waypoint subdivision, and uniform time-origin translation). The rational oracle compares squared-distance numerators with integer arithmetic instead of reusing the production floating-point minimizer. The authoring environment has no local Rust/Cargo toolchain; use the dedicated CI job for exact-head execution.
 
 ## Strict exclusions
 
