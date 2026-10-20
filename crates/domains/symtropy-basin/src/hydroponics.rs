@@ -166,6 +166,56 @@ pub fn step(before: ReservoirState, flux: DailyFlux) -> Result<DailyBalance, Bal
     })
 }
 
+/// One independently accounted growing module in a federation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ModuleStep {
+    /// Stable module identity within this scenario; duplicate IDs are invalid.
+    pub module_id: u64,
+    pub before: ReservoirState,
+    pub flux: DailyFlux,
+}
+
+/// Per-module result. A physical/accounting failure is scoped to this module.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ModuleOutcome {
+    pub module_id: u64,
+    pub result: Result<DailyBalance, BalanceError>,
+}
+
+/// Scenario-level structural error, distinct from an individual module failure.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FederationError {
+    DuplicateModuleId { module_id: u64 },
+}
+
+/// Step independent modules in input order without coupling their reservoirs.
+///
+/// Duplicate identities invalidate the scenario because results would be
+/// ambiguous. Once identities are valid, an invalid flux in one module is
+/// returned as that module's error and does not suppress results for peers.
+/// The caller decides how to interpret a failed module; this function does not
+/// assert biological independence or real-world fault-containment.
+pub fn step_federation(
+    modules: &[ModuleStep],
+) -> Result<Vec<ModuleOutcome>, FederationError> {
+    let mut seen = std::collections::BTreeSet::new();
+    for module in modules {
+        if !seen.insert(module.module_id) {
+            return Err(FederationError::DuplicateModuleId {
+                module_id: module.module_id,
+            });
+        }
+    }
+
+    Ok(modules
+        .iter()
+        .map(|module| ModuleOutcome {
+            module_id: module.module_id,
+            result: step(module.before, module.flux),
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -324,6 +374,69 @@ mod tests {
                 field: "evaporation_l"
             }
         );
+    }
+
+
+    #[test]
+    fn one_module_failure_does_not_suppress_independent_peer_results() {
+        let modules = [
+            ModuleStep {
+                module_id: 7,
+                before: ReservoirState {
+                    water_l: 1.0,
+                    dissolved_nutrients_g: 1.0,
+                },
+                flux: DailyFlux {
+                    crop_water_uptake_l: 2.0,
+                    ..DailyFlux::default()
+                },
+            },
+            ModuleStep {
+                module_id: 8,
+                before: ReservoirState {
+                    water_l: 10.0,
+                    dissolved_nutrients_g: 2.0,
+                },
+                flux: DailyFlux {
+                    crop_water_uptake_l: 1.0,
+                    ..DailyFlux::default()
+                },
+            },
+        ];
+
+        let outcomes = step_federation(&modules).expect("unique module identities");
+        assert_eq!(outcomes.len(), 2);
+        assert_eq!(outcomes[0].module_id, 7);
+        assert!(matches!(
+            outcomes[0].result,
+            Err(BalanceError::WaterDemandExceedsAvailable { .. })
+        ));
+        assert_eq!(outcomes[1].module_id, 8);
+        assert_eq!(
+            outcomes[1].result.expect("peer module remains evaluable").after.water_l,
+            9.0
+        );
+    }
+
+    #[test]
+    fn duplicate_module_identity_rejects_ambiguous_scenario() {
+        let module = ModuleStep {
+            module_id: 3,
+            before: ReservoirState {
+                water_l: 1.0,
+                dissolved_nutrients_g: 1.0,
+            },
+            flux: DailyFlux::default(),
+        };
+        assert_eq!(
+            step_federation(&[module, module]),
+            Err(FederationError::DuplicateModuleId { module_id: 3 })
+        );
+    }
+
+    #[test]
+    fn empty_federation_is_valid_and_deterministic() {
+        assert_eq!(step_federation(&[]), Ok(Vec::new()));
     }
 
     #[test]
