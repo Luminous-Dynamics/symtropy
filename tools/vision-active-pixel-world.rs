@@ -1044,10 +1044,11 @@ mod randomized_timing {
         ProvenancePassive,
         ActiveRevision,
         FixedSweep,
+        RandomLegalView,
     }
 
     impl TimedPolicy {
-        const ALL: [Self; 8] = [
+        const ALL: [Self; 9] = [
             Self::NoMemory,
             Self::PassiveNoView,
             Self::LastObservation,
@@ -1056,6 +1057,7 @@ mod randomized_timing {
             Self::ProvenancePassive,
             Self::ActiveRevision,
             Self::FixedSweep,
+            Self::RandomLegalView,
         ];
 
         fn name(self) -> &'static str {
@@ -1068,6 +1070,7 @@ mod randomized_timing {
                 Self::ProvenancePassive => "provenance_memory_passive",
                 Self::ActiveRevision => "active_revision",
                 Self::FixedSweep => "fixed_sweep",
+                Self::RandomLegalView => "random_legal_view",
             }
         }
 
@@ -1079,10 +1082,11 @@ mod randomized_timing {
                 Self::ConfidenceGated => Policy::ConfidenceGated,
                 Self::ProvenancePassive => Policy::ProvenancePassive,
                 Self::ActiveRevision => Policy::ActiveRevision,
+                Self::RandomLegalView => Policy::BoundedFifo,
             }
         }
 
-        fn propose(self, frame: &RgbFrame, attempted: bool) -> Action {
+        fn propose(self, frame: &RgbFrame, attempted: bool, actor_seed: u64) -> Action {
             match self {
                 Self::PassiveNoView => Action::Wait,
                 // The fixed-sweep baseline acts at two predeclared ticks when
@@ -1093,6 +1097,21 @@ mod randomized_timing {
                         && frame.side_view_available
                         && !attempted
                     {
+                        Action::ChangeView
+                    } else {
+                        Action::Wait
+                    }
+                }
+                Self::RandomLegalView => {
+                    // Actor-owned pseudo-randomness is domain-separated from
+                    // world/sensor generation; legality and budgets stay with
+                    // the environment evaluator.
+                    let draw = mix64(
+                        actor_seed
+                            ^ u64::from(frame.tick)
+                                .wrapping_mul(0x9E37_79B9_7F4A_7C15),
+                    );
+                    if frame.side_view_available && !attempted && draw % 2 == 0 {
                         Action::ChangeView
                     } else {
                         Action::Wait
@@ -1119,7 +1138,7 @@ mod randomized_timing {
         budget_violations: u64,
     }
 
-    fn run_episode(world: TimedWorld, policy: TimedPolicy) -> TimedResult {
+    fn run_episode(world: TimedWorld, policy: TimedPolicy, actor_seed: u64) -> TimedResult {
         let memory_policy = policy.memory_policy();
         let mut memory = Memory::new(memory_policy);
         let mut attempted = false;
@@ -1174,7 +1193,7 @@ mod randomized_timing {
                 continue;
             }
 
-            let proposed = policy.propose(&frame, attempted);
+            let proposed = policy.propose(&frame, attempted, actor_seed);
             if proposed == Action::ChangeView {
                 attempted = true;
                 // Attempt, execution and information are distinct. A policy
@@ -1409,8 +1428,14 @@ mod randomized_timing {
                     let is_early = persistent.occlusion_onset <= 2;
 
                     for (index, policy) in policies.iter().copied().enumerate() {
-                        let present_result = run_episode(persistent, policy);
-                        let removed_result = run_episode(removed, policy);
+                        let actor_seed = mix64(
+                            0x4143_544F_525F_5345
+                                ^ (replicate as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                                ^ (pair as u64).wrapping_mul(0xD1B5_4A32_D192_ED03)
+                                ^ (index as u64).wrapping_mul(0xA24B_AED4_963E_E407),
+                        );
+                        let present_result = run_episode(persistent, policy, actor_seed);
+                        let removed_result = run_episode(removed, policy, actor_seed);
                         totals[index].record(present_result);
                         totals[index].record(removed_result);
                         if is_early {
@@ -1621,7 +1646,7 @@ mod randomized_timing {
                 view_delay: 1,
                 ..world
             };
-            let result = run_episode(forced, TimedPolicy::ActiveRevision);
+            let result = run_episode(forced, TimedPolicy::ActiveRevision, 0xF0CED);
             assert!(result.fresh_view_evidence);
             assert_eq!(result.view_attributable_recovery_steps, Some(1));
             assert!(result.natural_or_view_recovery_steps.is_some());
@@ -1643,7 +1668,7 @@ mod randomized_timing {
                 view_delay: 1,
                 ..world
             };
-            let result = run_episode(failed, TimedPolicy::ActiveRevision);
+            let result = run_episode(failed, TimedPolicy::ActiveRevision, 0xFA1ED);
             assert!(result.attempt);
             assert!(result.executed);
             assert!(result.completed);
@@ -1664,7 +1689,7 @@ mod randomized_timing {
                 view_delay: 4,
                 ..world
             };
-            let result = run_episode(late, TimedPolicy::ActiveRevision);
+            let result = run_episode(late, TimedPolicy::ActiveRevision, 0x1A7E);
             assert!(result.attempt);
             assert!(result.executed);
             assert!(!result.fresh_view_evidence);
@@ -1696,7 +1721,7 @@ mod randomized_timing {
             let (world, _) = paired(0x0BADC0DE, SceneFamily::HeldOut);
             for tick in 0..=HORIZON {
                 let frame = world.frame(tick, false, None);
-                assert_eq!(TimedPolicy::PassiveNoView.propose(&frame, false), Action::Wait);
+                assert_eq!(TimedPolicy::PassiveNoView.propose(&frame, false, 0), Action::Wait);
             }
         }
 
@@ -1710,11 +1735,41 @@ mod randomized_timing {
                 } else {
                     Action::Wait
                 };
-                assert_eq!(TimedPolicy::FixedSweep.propose(&occluded, false), expected);
+                assert_eq!(TimedPolicy::FixedSweep.propose(&occluded, false, 0), expected);
             }
             let sweep = world.frame(2, false, None);
             if sweep.side_view_available {
-                assert_eq!(TimedPolicy::FixedSweep.propose(&sweep, false), Action::ChangeView);
+                assert_eq!(TimedPolicy::FixedSweep.propose(&sweep, false, 0), Action::ChangeView);
+            }
+        }
+
+        #[test]
+        fn random_legal_view_uses_actor_seed_and_never_violates_legality() {
+            let (world, _) = paired(0xBEEF_1234, SceneFamily::HeldOut);
+            let mut frame = world.frame(world.occlusion_onset, false, None);
+            frame.side_view_available = true;
+
+            let mut attempts = 0_u64;
+            for actor_seed in 0..64_u64 {
+                let first = TimedPolicy::RandomLegalView.propose(&frame, false, actor_seed);
+                let second = TimedPolicy::RandomLegalView.propose(&frame, false, actor_seed);
+                assert_eq!(first, second, "same actor seed must replay deterministically");
+                attempts += u64::from(first == Action::ChangeView);
+            }
+            assert!(attempts > 8 && attempts < 56, "seeded legal-action baseline should vary");
+
+            let world = TimedWorld {
+                view_available: true,
+                view_successful: false,
+                occlusion_onset: 1,
+                occlusion_duration: 4,
+                view_delay: 1,
+                ..world
+            };
+            for actor_seed in 0..64_u64 {
+                let result = run_episode(world, TimedPolicy::RandomLegalView, actor_seed);
+                assert!(result.latency_units <= LATENCY_BUDGET);
+                assert_eq!(result.budget_violations, 0);
             }
         }
 
@@ -1734,8 +1789,8 @@ mod randomized_timing {
         fn every_timed_policy_stays_within_budgets_and_is_deterministic() {
             let world = TimedWorld::generated(0x9911, false, SceneFamily::HeldOut);
             for policy in TimedPolicy::ALL {
-                let a = run_episode(world, policy);
-                let b = run_episode(world, policy);
+                let a = run_episode(world, policy, 0xD37E_0001);
+                let b = run_episode(world, policy, 0xD37E_0001);
                 assert_eq!(a.loss, b.loss);
                 assert!(a.latency_units <= LATENCY_BUDGET);
                 assert_eq!(a.budget_violations, 0);
