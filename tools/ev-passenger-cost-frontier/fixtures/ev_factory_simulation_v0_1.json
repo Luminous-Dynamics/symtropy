@@ -10,7 +10,12 @@
   "mean_supply_interarrival_seconds": 235,
   "supply_interarrival_variability_fraction": 0.55,
   "source_buffer_capacity": 8,
-  "buffer_capacities": [2, 2, 1, 2],
+  "buffer_capacities": [
+    2,
+    2,
+    1,
+    2
+  ],
   "input_evidence_class": "synthetic",
   "calibration_gate": "unknown",
   "local_compliance_gate": "unknown",
@@ -88,5 +93,27 @@
       "note": "Synthetic test duration and yield; not a homologation, battery safety or product-release test specification."
     }
   ],
-  "claim_ceiling": "Synthetic line-design sensitivity only; all rates, yields, variability, breakdown/repair values, buffer sizes, source timing, and annual operating hours are assumptions. Not measured site performance, a calibrated digital twin, a safety case or a machinery investment recommendation."
+  "claim_ceiling": "Synthetic line-design sensitivity only; all rates, yields, variability, breakdown/repair values, buffer sizes, source timing, and annual operating hours are assumptions. Not measured site performance, a calibrated digital twin, a safety case or a machinery investment recommendation.",
+  "replication_seeds": [
+    20261020,
+    20261021,
+    20261022,
+    20261023,
+    20261024,
+    20261025,
+    20261026,
+    20261027,
+    20261028,
+    20261029,
+    20261030,
+    20261031,
+    20261032,
+    20261033,
+    20261034,
+    20261035,
+    20261036,
+    20261037,
+    20261038,
+    20261039
+  ]
 }
