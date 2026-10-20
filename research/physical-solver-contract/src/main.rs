@@ -223,7 +223,7 @@ fn run() -> Result<(), String> {
         let scaled_receipt_bytes = fs::read(&scaled_receipt_path).map_err(|error| {
             format!("could not read scaled receipt {scaled_receipt_path}: {error}")
         })?;
-        let manifest_bytes = fs::read(&manifest_path).map_err(|error| {
+        let manifest_bytes = fs::read(manifest_path).map_err(|error| {
             format!("could not read load-scaling manifest {manifest_path}: {error}")
         })?;
         let report = assess_load_scaling_relation_bytes(
