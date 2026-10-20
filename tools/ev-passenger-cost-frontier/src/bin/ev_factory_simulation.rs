@@ -637,8 +637,6 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         None => "baseline".to_string(),
         Some(index) => format!("add-one-server-{}", catalog.stations[index].station_id),
     };
-    let stations = station_results;
-    let _ = stations;
     Ok(ScenarioResult {
         scenario_id: baseline_id,
         intervention_station_id: extra_server_at.map(|index| catalog.stations[index].station_id.clone()),
@@ -763,17 +761,15 @@ fn complete_operation(
     else {
         return Err("completion_event_server_not_busy".into());
     };
+
     let station = &catalog.stations[station_index];
-    if state.rng.unit() >= station.good_yield_fraction
-        && station_attempts <= station.max_rework_attempts
-    {
+    let passed = state.rng.unit() < station.good_yield_fraction;
+    if !passed && station_attempts <= station.max_rework_attempts {
         let rework_seconds = sample_service_seconds(state, station);
         let runtime = &mut state.stations[station_index];
-        runtime.metrics.rework_attempts_after_warmup +=
-            u64::from(state.now >= catalog.warmup_seconds);
-        runtime.metrics.attempts_started_after_warmup +=
-            u64::from(state.now >= catalog.warmup_seconds);
         if state.now >= catalog.warmup_seconds {
+            runtime.metrics.rework_attempts_after_warmup += 1;
+            runtime.metrics.attempts_started_after_warmup += 1;
             state.measured_rework_attempts += 1;
         }
         runtime.servers[server_index].state = ServerState::Busy {
@@ -792,12 +788,34 @@ fn complete_operation(
         return Ok(());
     }
 
-    let passed = state.rng.unit() < station.good_yield_fraction
-        || station.good_yield_fraction >= 1.0;
-    // Draw the outcome once per attempt in the real path; this branch is corrected
-    // below by using the per-attempt result stored in a small deterministic helper.
-    // The second draw above is intentionally not used for state transitions.
-    let _ = passed;
+    let machine_fails =
+        machine_fails_after_job(state, station, service_seconds_for_job);
+    if passed {
+        if state.now >= catalog.warmup_seconds {
+            state.stations[station_index]
+                .metrics
+                .successful_attempts_after_warmup += 1;
+        }
+        state.stations[station_index].servers[server_index].state =
+            ServerState::WaitingOutput {
+                job,
+                machine_fails_after_release: machine_fails,
+            };
+    } else {
+        state.scrapped_jobs_total += 1;
+        if state.now >= catalog.warmup_seconds {
+            state.stations[station_index]
+                .metrics
+                .scrapped_jobs_after_warmup += 1;
+        }
+        release_server_after_operation(
+            state,
+            catalog,
+            station_index,
+            server_index,
+            machine_fails,
+        );
+    }
     Ok(())
 }
 
