@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-score-admissibility-log-score-reconciliation-negative-control",
+  "evidence_scope": "synthetic",
+  "forecast_estimand_id": "synthetic-joint-count-distribution-v0.1",
+  "prediction_representation": "multivariate_joint_samples",
+  "outcome_type": "multivariate_outcome",
+  "comparison_type": "reconciled_vs_unreconciled_distribution",
+  "common_evaluation_policy": {
+    "common_rows_policy_reference": "synthetic:common-row-contract-v0.1",
+    "common_rows_verified": true,
+    "heldout_outcomes": true,
+    "outcome_release_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "outcome_maturity_status": "synthetic",
+    "dependence_aware_uncertainty_plan": "No performance interval is estimated; this fixture tests only score admissibility."
+  },
+  "score": {
+    "score_name": "log_score",
+    "score_orientation": "higher_is_better",
+    "formula_reference": "synthetic:log-score-label-for-negative-control-only",
+    "formula_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "implementation_reference": "synthetic:no-score-implementation-executed",
+    "implementation_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "score_version": "synthetic-v0.1",
+    "parameters": {},
+    "independent_oracle_reference": "synthetic:admissibility-negative-control"
+  },
+  "governance": {
+    "data_authority_status": "not_applicable_synthetic",
+    "disclosure_review_status": "not_applicable_synthetic",
+    "data_authority_reference": "synthetic-only",
+    "disclosure_review_reference": "synthetic-only"
+  },
+  "claims": {
+    "score_calculated": false,
+    "comparison_superiority_established": false,
+    "causal_impact_established": false,
+    "live_decision_authority": false
+  }
+}
