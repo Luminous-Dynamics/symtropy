@@ -40,3 +40,17 @@ cargo run --locked --manifest-path research/physical-solver-contract/Cargo.toml 
 Receipt mode verifies exact request-byte SHA-256, request ID and source revision; validates the receipt's nested shape and key types; requires `physics_evaluated` and `physics_omitted` to form a disjoint, complete partition of the request's physics; checks that every required output kind appears for producer-`PASS`; and blocks a producer-`PASS` for physics outside the declared fidelity class. The fixture workflow binds the unresolved receipt to the exact checked-in request bytes before verifying it.
 
 The verifier's own report says `receipt_contract_validation = PASS` separately from `producer_status`. It always reports `solver_execution_authenticated = false` and `output_artifact_bytes_verified = false`: no signature, output-file retrieval, solver execution attestation, numerical comparison, or physical validation is performed by this function. It validates the receipt/request relationship, not the truth of the receipt. Reuse the existing evidence-bundle/signature authorities for byte verification and authenticity instead of creating a competing ledger.
+
+
+## Local solver-output byte verification
+
+Receipt mode can optionally verify every declared output against local file bytes under a supplied artifact root:
+
+```sh
+cargo run --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+  --request request.json --receipt solver-receipt.json --artifact-root ./solver-output-bundle
+```
+
+Without `--artifact-root`, the tool only checks request/receipt consistency and keeps `output_artifact_bytes_verified = false`. With a root, each output must resolve to a normalized relative POSIX path below that canonical root, be a regular file, and match the declared SHA-256 over exact bytes. Traversal, absolute/URL-like references, missing files and symlink targets outside the root remain `UNRESOLVED`; observed digest mismatch is `FAIL`; empty output sets cannot pass.
+
+**This proves byte identity only.** It does not authenticate solver execution or authorship, determine whether the bytes encode the declared quantity, verify numerical correctness, establish measurement truth or qualify a physical model. Keep the bundle immutable during verification. Signing and execution-attestation remain with the existing evidence authorities.
