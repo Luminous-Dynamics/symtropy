@@ -897,12 +897,7 @@ fn checked_sub(left: f64, right: f64) -> Result<f64, AuditInputError> {
 /// Product residuals use fused multiply-add, and the summation uses error-free two-sum
 /// transformations under ordinary IEEE-754 round-to-nearest semantics. Very small subnormal
 /// products fail closed because the residual itself may not be representable.
-fn compensated_sum_products(
-    a: f64,
-    b: f64,
-    c: f64,
-    d: f64,
-) -> Result<(f64, f64), AuditInputError> {
+fn compensated_sum_products(a: f64, b: f64, c: f64, d: f64) -> Result<(f64, f64), AuditInputError> {
     let (p, p_error) = product_with_residual(a, b)?;
     let (q, q_error) = product_with_residual(c, d)?;
     let (sum, sum_error) = two_sum(p, q)?;
@@ -910,10 +905,7 @@ fn compensated_sum_products(
     let (low, low_roundoff) = two_sum(products_error, sum_error)?;
     let (high, renormalize_error) = two_sum(sum, low)?;
     let (low, renormalize_roundoff) = two_sum(renormalize_error, products_roundoff)?;
-    let final_low = checked_add(
-        checked_add(low, low_roundoff)?,
-        renormalize_roundoff,
-    )?;
+    let final_low = checked_add(checked_add(low, low_roundoff)?, renormalize_roundoff)?;
     Ok((high, final_low))
 }
 

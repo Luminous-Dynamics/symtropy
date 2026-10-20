@@ -687,4 +687,3 @@ fn exact_tangency_at_large_coordinate_scale_must_not_be_reported_clear() {
     );
     assert!(!report.conflicts.is_empty());
 }
-
