@@ -1042,4 +1042,51 @@ mod tests {
                 .all(|scenario| !scenario.release_ready)
         );
     }
+
+
+    #[test]
+    fn pcb_cell_route_fixtures_are_deterministic_and_never_release_from_synthetic_evidence() {
+        let fixtures = [
+            (
+                "PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY",
+                include_str!("../../fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"),
+                5usize,
+            ),
+            (
+                "PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY",
+                include_str!("../../fixtures/pcb_cell_p1_local_milling_v0_1.json"),
+                7usize,
+            ),
+        ];
+
+        for (expected_id, fixture_json, expected_stations) in fixtures {
+            let catalog: Catalog =
+                serde_json::from_str(fixture_json).expect("PCB cell fixture parses");
+            validate_catalog(&catalog).expect("PCB cell fixture validates");
+            assert_eq!(catalog.benchmark_id, expected_id);
+            assert_eq!(catalog.stations.len(), expected_stations);
+            assert_eq!(catalog.buffer_capacities.len(), expected_stations - 1);
+            assert_eq!(catalog.input_evidence_class, EvidenceClass::Synthetic);
+            assert_eq!(catalog.calibration_gate, GateStatus::Unknown);
+            assert_eq!(catalog.local_compliance_gate, GateStatus::Unknown);
+            assert_eq!(catalog.line_safety_gate, GateStatus::Unknown);
+            assert_eq!(catalog.product_quality_release_gate, GateStatus::Unknown);
+
+            let first = evaluate_catalog(&catalog).expect("first PCB cell simulation");
+            let second = evaluate_catalog(&catalog).expect("repeat PCB cell simulation");
+            assert_eq!(first, second, "fixture {expected_id} is deterministic");
+            assert_eq!(first.scenario_count, expected_stations + 1);
+            assert!(!first.release_ready);
+            assert!(first.output_never_exceeds_released_input);
+            assert!(first.all_buffers_respected_capacity);
+            assert!(first.station_time_accounting_within_horizon);
+            assert!(first.scenarios.iter().all(|scenario| {
+                !scenario.release_ready
+                    && scenario.good_units_total <= scenario.released_jobs_total
+                    && scenario.all_buffers_respected_capacity
+                    && scenario.station_time_accounting_within_horizon
+            }));
+        }
+    }
+
 }
