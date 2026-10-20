@@ -910,8 +910,12 @@ mod tests {
         let mut models = example_models();
         models[0].action_losses.insert("wait".to_owned(), 3.0001);
         models[1].action_losses.insert("wait".to_owned(), 3.0002);
-        models[0].action_losses.insert("retreat".to_owned(), 3.00015);
-        models[1].action_losses.insert("retreat".to_owned(), 3.00019);
+        models[0]
+            .action_losses
+            .insert("retreat".to_owned(), 3.00015);
+        models[1]
+            .action_losses
+            .insert("retreat".to_owned(), 3.00019);
         let intervals = vec![
             ModelWeightInterval {
                 model_id: "predator_coupled".to_owned(),
@@ -925,11 +929,7 @@ mod tests {
             },
         ];
         let result = compare_actions_under_weight_uncertainty(
-            &models,
-            "wait",
-            "retreat",
-            &intervals,
-            0.0001,
+            &models, "wait", "retreat", &intervals, 0.0001,
         )
         .expect("valid margin and model set");
         assert_eq!(result.stability, PreferenceStability::Equivalent);
@@ -980,8 +980,9 @@ mod tests {
                 upper: 0.6,
             },
         ];
-        let errors = compare_actions_under_weight_uncertainty(&models, "wait", "wait", &intervals, 0.0)
-            .expect_err("an action cannot be compared with itself");
+        let errors =
+            compare_actions_under_weight_uncertainty(&models, "wait", "wait", &intervals, 0.0)
+                .expect_err("an action cannot be compared with itself");
         assert!(errors.iter().any(|error| error.contains("distinct")));
     }
 }
