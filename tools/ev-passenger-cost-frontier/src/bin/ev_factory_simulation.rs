@@ -1540,7 +1540,10 @@ mod tests {
         let aware_report =
             evaluate_catalog(&variant_aware).expect("variant-aware no-setup control");
         assert_eq!(fifo_report.scenarios, aware_report.scenarios);
-        assert_eq!(fifo_report.scenario_statistics, aware_report.scenario_statistics);
+        assert_eq!(
+            fifo_report.scenario_statistics,
+            aware_report.scenario_statistics
+        );
         assert_eq!(
             fifo_report.station_sequence_statistics,
             aware_report.station_sequence_statistics
