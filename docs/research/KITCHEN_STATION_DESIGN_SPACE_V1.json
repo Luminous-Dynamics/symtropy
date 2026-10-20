@@ -272,6 +272,41 @@
         "household workflow is assumed compliant for regulated food-service warewashing"
       ],
       "exit_gate": "Matched physical trials show lower task water without cleaning/rewash regression; handling, drain, cleanability and use-case compliance gates pass."
+    },
+    {
+      "candidate_id": "P7-COMMERCIAL-PRERINSE",
+      "name": "Force-qualified commercial pre-rinse sprayer",
+      "type": "commercial_food_service_only",
+      "configuration": {
+        "nozzle": "replaceable, mechanically controlled nozzle and trigger",
+        "validation_scope": "separate commercial pre-rinse fixture; do not pool household sink/rack data",
+        "control": "manual, no network or powered function required for ordinary operation",
+        "service": "replaceable nozzle/seals/trigger with post-service flow/force/coverage check"
+      },
+      "questions": [
+        "What water and trigger time achieve a matched soil-removal endpoint?",
+        "Can adequate force and coverage be maintained across the declared flowing-pressure envelope?",
+        "Does an efficiency improvement persist under realistic trigger patterns and nozzle wear?"
+      ],
+      "must_measure": [
+        "water_l_during_protocol",
+        "spray_force_n",
+        "spray_coverage_area_cm2",
+        "soil_removal_fraction",
+        "task_duration",
+        "user_effort_scale",
+        "cleaning_endpoint"
+      ],
+      "failure_modes": [
+        "lower flow causes longer trigger-on time and more total water",
+        "force passes at one pressure but fails elsewhere in the declared envelope",
+        "central force looks adequate while edge coverage misses soil",
+        "soil-removal average conceals a difficult-soil failure",
+        "spray relocates tracer deposition onto clean food-contact surfaces",
+        "nozzle wear or clogging degrades results after initial trial",
+        "household sink results are incorrectly pooled with commercial pre-rinse trials"
+      ],
+      "exit_gate": "Matched commercial task trials meet the preregistered soil-removal endpoint across the required pressure envelope; water, splash, effort, service and applicable product-compliance gates are not regressed."
     }
   ],
   "staged_experiment": [
