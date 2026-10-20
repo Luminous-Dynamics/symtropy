@@ -703,13 +703,18 @@ mod tests {
             let mut scaled_nominal = nominal.clone();
             *scaled_nominal.get_mut(load_key).expect("load input exists") *= 2.0;
             let mut scaled_bounds = bounds.clone();
-            let load = scaled_bounds.get_mut(load_key).expect("load interval exists");
+            let load = scaled_bounds
+                .get_mut(load_key)
+                .expect("load interval exists");
             load.lower *= 2.0;
             load.upper *= 2.0;
             let doubled =
                 propagate(case_id, &scaled_nominal, &scaled_bounds).expect("doubled interval case");
 
-            assert_eq!(base.keys().collect::<Vec<_>>(), doubled.keys().collect::<Vec<_>>());
+            assert_eq!(
+                base.keys().collect::<Vec<_>>(),
+                doubled.keys().collect::<Vec<_>>()
+            );
             for (output, interval) in &base {
                 let doubled_interval = doubled.get(output).expect("matching output");
                 assert_near(doubled_interval.lower, interval.lower * 2.0);
@@ -725,5 +730,4 @@ mod tests {
             "observed {observed:.17e}, expected {expected:.17e}, tolerance {tolerance:.17e}"
         );
     }
-
 }
