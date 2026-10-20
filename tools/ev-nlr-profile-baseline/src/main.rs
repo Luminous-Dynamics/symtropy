@@ -93,6 +93,7 @@ struct Options {
     reference_average_csv: Option<String>,
     reference_minimum_peak_csv: Option<String>,
     reference_maximum_peak_csv: Option<String>,
+    reference_bundle_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -202,6 +203,7 @@ struct Report {
     operation_day_csv_sha256: String,
     schedule_csv_sha256: String,
     profile_evidence_class: String,
+    published_reference_bundle_sha256: Option<String>,
     strategy: String,
     fleet_size: usize,
     sample_count: usize,
@@ -242,6 +244,7 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         "--reference-average-csv",
         "--reference-minimum-peak-csv",
         "--reference-maximum-peak-csv",
+        "--reference-bundle-sha256",
     ];
     let required = [
         "--input-report",
@@ -297,6 +300,7 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         reference_average_csv: values.get("--reference-average-csv").cloned(),
         reference_minimum_peak_csv: values.get("--reference-minimum-peak-csv").cloned(),
         reference_maximum_peak_csv: values.get("--reference-maximum-peak-csv").cloned(),
+        reference_bundle_sha256: values.get("--reference-bundle-sha256").cloned(),
     };
     if options.fleet_size == 0 || options.sample_count == 0 {
         return Err("fleet_size_and_samples_must_be_positive".to_string());
@@ -635,6 +639,7 @@ struct ReferenceProfiles {
     average_path: String,
     minimum_peak_path: String,
     maximum_peak_path: String,
+    bundle_sha256: String,
     average: Vec<f64>,
     minimum_peak: Vec<f64>,
     maximum_peak: Vec<f64>,
