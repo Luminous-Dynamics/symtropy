@@ -179,6 +179,36 @@ jobs:
           test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/demand.rou.xml
           test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/closures.add.xml
 
+      - name: Build exported networks with pinned SUMO netconvert
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/eclipse-sumo/sumo@sha256:87623396d3501ca8d0ac25154e202bc38baa55a31c724e4dfd6ae60f297c6bf2"
+          docker pull "$image"
+          docker run --rm \
+            --mount "type=bind,src=$PWD/wildfire-sumo-export,dst=/data" \
+            "$image" bash -lc '
+              set -euo pipefail
+              netconvert --version > /data/netconvert-version.txt 2>&1
+              sumo --version > /data/sumo-version.txt 2>&1
+              grep -q "Version 1.27.1" /data/netconvert-version.txt
+              grep -q "Version 1.27.1" /data/sumo-version.txt
+              for case_dir in /data/*/; do
+                test -f "$case_dir/manifest.json" || continue
+                netconvert \
+                  --node-files "$case_dir/nodes.nod.xml" \
+                  --edge-files "$case_dir/edges.edg.xml" \
+                  --output-file "$case_dir/network.net.xml"
+              done
+            '
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_sumo_export -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
+            wildfire-sumo-export \
+            "$source_commit"
+
+      - name: Upload deterministic benchmark receipts
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:

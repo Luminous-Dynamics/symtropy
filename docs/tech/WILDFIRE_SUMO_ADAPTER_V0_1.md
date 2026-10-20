@@ -30,11 +30,11 @@ netconvert --node-files nodes.nod.xml --edge-files edges.edg.xml --output-file n
 
 sumo -n network.net.xml -r demand.rou.xml --additional-files closures.add.xml
 
-The exporter creates synthetic coordinates and edge lengths purely to construct structurally connected examples; it does not imply geographic fidelity.
+The exporter creates synthetic coordinates and edge lengths purely to construct structurally connected examples; it does not imply geographic fidelity. CI uses the official Eclipse SUMO `v1_27_1` container pinned by digest, records `sumo` and `netconvert` version output, builds each network via `netconvert`, and independently checks that all source edge IDs survive in the generated `.net.xml`.
 
 ## Semantic differences — do not silently equate the models
 
-This is an export adapter, not evidence of behavioral equivalence:
+This is an export adapter plus network-build smoke test, not evidence of behavioral equivalence:
 - Abstract vehicles-per-step capacity and finite storage are written to the manifest; SUMO lane/speed flow has not been calibrated to enforce equivalent per-step limits.
 - Sink ingress, total capacity and accessibility constraints are sidecar metadata, not enforced SUMO arrival gates in this adapter.
 - The accessible vehicle type is a parameter label only, not an accessibility enforcement model.
