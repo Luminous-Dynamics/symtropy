@@ -39,6 +39,9 @@ jobs:
       - name: Clippy with warnings denied
         run: cargo clippy --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --all-targets -- -D warnings
 
+      - name: Characterize audit latency at frozen event scales
+        run: cargo run --release --quiet --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --example scale
+
       - name: Check deterministic synthetic output
         shell: bash
         run: |
