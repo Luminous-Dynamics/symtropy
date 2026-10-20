@@ -22,6 +22,13 @@ const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
 const ROOT_SEED: u64 = 0x6A09_E667_F3BC_C909;
 const CAPS: [usize; 5] = [1, 2, 3, 4, 8];
+const STRATA_COUNT: usize = 4;
+const STRATA_NAMES: [&str; STRATA_COUNT] = [
+    "claim_changed_after_latest_source",
+    "query_evidence_arrived_out_of_order",
+    "latest_query_evidence_low_confidence",
+    "query_observation_delay_gt_2",
+];
 
 fn mix64(mut x: u64) -> u64 {
     x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -84,7 +91,9 @@ struct Evidence {
 
 impl Evidence {
     fn key(self) -> usize { usize::from(self.key) }
-    fn rank(self) -> (u8, u16, u8) { (self.source_tick, self.confidence, self.arrival_tick) }
+    // Source time determines freshness; for equal source times use arrival
+    // order as the deterministic tie-break. Confidence is not chronology.
+    fn rank(self) -> (u8, u8) { (self.source_tick, self.arrival_tick) }
     fn newer_than(self, old: Self) -> bool { self.rank() > old.rank() }
     fn fresh_at(self, tick: usize) -> bool {
         tick.saturating_sub(usize::from(self.source_tick)) <= FRESHNESS_LIMIT
@@ -149,6 +158,60 @@ impl Episode {
 
     fn target_answer(&self) -> bool {
         self.query.keys.iter().filter(|key| self.truth[HORIZON][**key]).count() >= 2
+    }
+
+    /// Evaluator-only diagnostic labels. This method never feeds the memory
+    /// policy; it inspects hidden truth strictly for stratified evaluation.
+    fn evaluator_strata(&self) -> [bool; STRATA_COUNT] {
+        let mut latest_source: [Option<Evidence>; CLAIMS] = [None; CLAIMS];
+        let mut max_source_seen: [Option<u8>; CLAIMS] = [None; CLAIMS];
+        let mut out_of_order = false;
+        let mut long_delay = false;
+
+        for evidence in self.stream.iter().copied() {
+            let key = evidence.key();
+            if !self.query.contains(key) { continue; }
+
+            if let Some(maximum) = max_source_seen[key] {
+                if evidence.source_tick < maximum {
+                    out_of_order = true;
+                }
+            }
+            max_source_seen[key] = Some(max_source_seen[key]
+                .map_or(evidence.source_tick, |old| old.max(evidence.source_tick)));
+
+            if usize::from(evidence.arrival_tick)
+                .saturating_sub(usize::from(evidence.source_tick)) > 2
+            {
+                long_delay = true;
+            }
+
+            if latest_source[key].is_none_or(|old| evidence.newer_than(old)) {
+                latest_source[key] = Some(evidence);
+            }
+        }
+
+        let mut truth_changed_after_latest = false;
+        let mut low_confidence_latest = false;
+        for key in self.query.keys {
+            if let Some(evidence) = latest_source[key] {
+                low_confidence_latest |= evidence.confidence < 900;
+                for tick in usize::from(evidence.source_tick) + 1..=HORIZON {
+                    if self.truth[tick][key] != self.truth[tick - 1][key] {
+                        truth_changed_after_latest = true;
+                    }
+                }
+            } else {
+                truth_changed_after_latest = true;
+            }
+        }
+
+        [
+            truth_changed_after_latest,
+            out_of_order,
+            low_confidence_latest,
+            long_delay,
+        ]
     }
 }
 
@@ -404,10 +467,12 @@ fn report() {
 
     for family in [Family::Development, Family::HeldOut] {
         let mut cells = vec![Acc::default(); Kind::ALL.len() * CAPS.len()];
+        let mut strata_cells = vec![Acc::default(); STRATA_COUNT * 2 * Kind::ALL.len()];
         for rep in 0..REPLICATES {
             for pair in 0..PAIRS {
                 let seed = seed_for(rep, pair, family);
                 let ep = Episode::generate(seed, family);
+                let evaluator_strata = ep.evaluator_strata();
                 for (ci, cap) in CAPS.iter().copied().enumerate() {
                     let mut fifo_loss = 0.0;
                     for (pi, kind) in Kind::ALL.iter().copied().enumerate() {
@@ -421,6 +486,21 @@ fn report() {
                             cells[cell].record(outcome, None);
                         } else {
                             cells[cell].record(outcome, Some(outcome.loss - fifo_loss));
+                        }
+
+                        // The four evaluator labels are recorded only for the
+                        // preregistered primary capacity; they never reach policy code.
+                        if cap == 3 {
+                            for (stratum_index, active) in evaluator_strata.iter().copied().enumerate() {
+                                let level = usize::from(active);
+                                let strata_index = (stratum_index * 2 + level) * Kind::ALL.len() + pi;
+                                if pi == 0 {
+                                    strata_cells[strata_index].record(outcome, None);
+                                } else {
+                                    strata_cells[strata_index]
+                                        .record(outcome, Some(outcome.loss - fifo_loss));
+                                }
+                            }
                         }
                     }
                 }
@@ -445,6 +525,33 @@ fn report() {
                 println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(), kind.name(), cap, cell.n, cell.mean_loss(), cell.answer_rate(),
                     cell.accuracy(), coverage, mean_entries, delta, lo, hi);
+            }
+        }
+
+        println!("VIS-MEM-002 evaluator-only failure-mode strata (capacity=3; groups may overlap)");
+        println!("STRATUM\\tfamily\\tmode\\tlevel\\tpolicy\\tepisodes\\tmean_loss\\tanswer_rate\\taccuracy_when_answered\\tdelta_loss_vs_fifo\\tbootstrap95_lo_vs_fifo\\tbootstrap95_hi_vs_fifo");
+        for (stratum_index, stratum_name) in STRATA_NAMES.iter().copied().enumerate() {
+            for level in 0..=1 {
+                for (policy_index, kind) in Kind::ALL.iter().copied().enumerate() {
+                    let index = (stratum_index * 2 + level) * Kind::ALL.len() + policy_index;
+                    let cell = &strata_cells[index];
+                    if cell.n == 0 { continue; }
+                    let (delta, lo, hi) = if policy_index == 0 {
+                        (0.0, 0.0, 0.0)
+                    } else {
+                        let delta = cell.delta_vs_fifo.iter().sum::<f64>()
+                            / cell.delta_vs_fifo.len().max(1) as f64;
+                        let seed = mix64(ROOT_SEED
+                            ^ (stratum_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
+                            ^ (level as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9)
+                            ^ (policy_index as u64).wrapping_mul(0xD1B5_4A32_D192_ED03));
+                        let (lo, hi) = bootstrap_ci(&cell.delta_vs_fifo, seed);
+                        (delta, lo, hi)
+                    };
+                    println!("STRATUM\\t{}\\t{}\\t{}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{}\\t{:.4}\\t{:.4}\\t{:.4}",
+                        family.name(), stratum_name, level == 1, kind.name(), cell.n,
+                        cell.mean_loss(), cell.answer_rate(), cell.accuracy(), delta, lo, hi);
+                }
             }
         }
     }
@@ -535,6 +642,21 @@ mod tests {
         assert_eq!(a, b);
         assert!([350, 900].contains(&a.min_confidence));
         assert!([2, 4, FRESHNESS_LIMIT].contains(&a.max_age));
+    }
+
+    #[test]
+    fn evaluator_strata_flag_drift_out_of_order_confidence_and_delay() {
+        let query = Query { keys: [1, 2, 3] };
+        let mut truth = vec![[false; CLAIMS]; HORIZON + 1];
+        for tick in 6..=HORIZON { truth[tick][1] = true; }
+        let stream = vec![
+            Evidence { key: 1, value: false, source_tick: 5, arrival_tick: 5, confidence: 950 },
+            Evidence { key: 1, value: false, source_tick: 2, arrival_tick: 6, confidence: 950 },
+            Evidence { key: 2, value: false, source_tick: 3, arrival_tick: 6, confidence: 350 },
+            Evidence { key: 3, value: false, source_tick: 40, arrival_tick: 47, confidence: 950 },
+        ];
+        let episode = Episode { query, truth, stream };
+        assert_eq!(episode.evaluator_strata(), [true, true, true, true]);
     }
 
     #[test]
