@@ -14,8 +14,10 @@ use std::{
 
 const SCHEMA_BYTES: &[u8] =
     include_bytes!("../../../docs/schemas/pirb-joint-score-registration-v0.1.schema.json");
+#[cfg(test)]
 const FOUR_DRAW_BYTES: &[u8] =
     include_bytes!("../../../docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json");
+#[cfg(test)]
 const THREE_DRAW_BYTES: &[u8] =
     include_bytes!("../../../docs/fixtures/pirb-joint-score-three-draw-synthetic-v0.1.json");
 const IMPLEMENTATION_BYTES: &[u8] = include_bytes!("joint_score_main.rs");
