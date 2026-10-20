@@ -22,6 +22,7 @@ use std::fs;
 use std::process;
 
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use symtropy_animal_model_uncertainty::decision::{ModelOutcome, score_model_ensemble};
 
 const SYNTHETIC_EXAMPLE: &str =
@@ -91,6 +92,11 @@ fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
     Ok((models, cvar_alpha))
 }
 
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
     let Some(path) = arguments.next() else {
@@ -140,6 +146,9 @@ fn main() {
         "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
         "status": "computed_risk_summary_not_model_validation",
         "cvar_alpha": cvar_alpha,
+        "input_sha256": sha256_hex(raw.as_bytes()),
+        "scenario": root.get("scenario").and_then(Value::as_str).unwrap_or("unspecified"),
+        "model_ids": models.iter().map(|model| model.model_id.as_str()).collect::<Vec<_>>(),
         "model_count": models.len(),
         "scores": scores.iter().map(|score| json!({
             "action": score.action,
@@ -195,6 +204,14 @@ mod tests {
             example["models"]
                 .as_array()
                 .is_some_and(|models| !models.is_empty())
+        );
+    }
+
+    #[test]
+    fn sha256_digest_matches_known_vector() {
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
     }
 
