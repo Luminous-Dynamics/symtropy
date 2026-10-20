@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
-   equilibrium::assess_equilibrium_bytes, mesh_convergence::assess_mesh_refinement_study_bytes,
+    equilibrium::assess_equilibrium_bytes, mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables, validate_request_bytes,
     validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
@@ -59,9 +59,9 @@ fn run() -> Result<(), String> {
                 }
                 equilibrium_manifest_path = Some(
                     args.get(i + 1)
-                       .ok_or_else(|| {
-                           "--equilibrium-manifest requires a manifest path".to_owned()
-                       })?
+                        .ok_or_else(|| {
+                            "--equilibrium-manifest requires a manifest path".to_owned()
+                        })?
                         .clone(),
                 );
                 i += 2;
@@ -72,9 +72,9 @@ fn run() -> Result<(), String> {
                 }
                 reaction_force_output_id = Some(
                     args.get(i + 1)
-                       .ok_or_else(|| {
-                           "--reaction-force-output-id requires an output ID".to_owned()
-                       })?
+                        .ok_or_else(|| {
+                            "--reaction-force-output-id requires an output ID".to_owned()
+                        })?
                         .clone(),
                 );
                 i += 2;
@@ -85,9 +85,9 @@ fn run() -> Result<(), String> {
                 }
                 reaction_moment_output_id = Some(
                     args.get(i + 1)
-                       .ok_or_else(|| {
-                           "--reaction-moment-output-id requires an output ID".to_owned()
-                       })?
+                        .ok_or_else(|| {
+                            "--reaction-moment-output-id requires an output ID".to_owned()
+                        })?
                         .clone(),
                 );
                 i += 2;
@@ -187,11 +187,18 @@ fn run() -> Result<(), String> {
         {
             return Err("--equilibrium-manifest cannot be combined with mesh-study, reference-comparison, or request-validator options".to_owned());
         }
-        let request_path = request_path.ok_or_else(|| "--equilibrium-manifest requires --request".to_owned())?;
-        let receipt_path = receipt_path.ok_or_else(|| "--equilibrium-manifest requires --receipt".to_owned())?;
-        let root = artifact_root.ok_or_else(|| "--equilibrium-manifest requires --artifact-root".to_owned())?;
-        let force_id = reaction_force_output_id.ok_or_else(|| "--equilibrium-manifest requires --reaction-force-output-id".to_owned())?;
-        let moment_id = reaction_moment_output_id.ok_or_else(|| "--equilibrium-manifest requires --reaction-moment-output-id".to_owned())?;
+        let request_path =
+            request_path.ok_or_else(|| "--equilibrium-manifest requires --request".to_owned())?;
+        let receipt_path =
+            receipt_path.ok_or_else(|| "--equilibrium-manifest requires --receipt".to_owned())?;
+        let root = artifact_root
+            .ok_or_else(|| "--equilibrium-manifest requires --artifact-root".to_owned())?;
+        let force_id = reaction_force_output_id.ok_or_else(|| {
+            "--equilibrium-manifest requires --reaction-force-output-id".to_owned()
+        })?;
+        let moment_id = reaction_moment_output_id.ok_or_else(|| {
+            "--equilibrium-manifest requires --reaction-moment-output-id".to_owned()
+        })?;
         let request_bytes = fs::read(&request_path)
             .map_err(|error| format!("could not read {request_path}: {error}"))?;
         let receipt_bytes = fs::read(&receipt_path)
