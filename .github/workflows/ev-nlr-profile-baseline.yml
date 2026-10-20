@@ -1,0 +1,139 @@
+name: EV NLR Reference Profile Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-nlr-profile-baseline/**"
+      - ".github/workflows/ev-nlr-profile-baseline.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-nlr-profile-baseline/**"
+      - ".github/workflows/ev-nlr-profile-baseline.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profiles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting and run unit / negative-control tests
+        run: |
+          cargo fmt --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-nlr-profile-baseline/Cargo.toml --all -- --check
+          cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-nlr-profile-baseline/Cargo.toml --all-targets
+      - name: Download and audit all three pinned NLR source vocations
+        shell: bash
+        run: |
+          set -euo pipefail
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          for vocation in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules/${vocation}"
+            op_file="${RUNNER_TEMP}/${vocation}-veh_op_days.csv"
+            schedule_file="${RUNNER_TEMP}/${vocation}-veh_schedules.csv"
+            curl --fail --show-error --silent --location "${BASE}/veh_op_days.csv" -o "${op_file}"
+            curl --fail --show-error --silent --location "${BASE}/veh_schedules.csv" -o "${schedule_file}"
+            cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+              "${op_file}" "${schedule_file}" \
+              --fleet-id "${vocation}" --dataset-id nlr-hdev-depot-charging-2021 \
+              --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+              --source-revision "${REV}" --evidence-class published_operational_summary \
+              --kwh-per-mile 1.8 > "nlr-${vocation}-audit.json"
+            jq -e '.operation_days_input_rows == .operation_days_parsed_valid_rows and (.operation_days_invalid_rows|length == 0) and .schedule_input_rows == .schedule_parsed_valid_rows_with_known_operation_day_ids and (.schedule_invalid_rows|length == 0) and .reconciled_operation_day_count == .operation_days_input_rows and (.operation_day_reconciliation_issues|length == 0) and (.reconciled_operation_day_segments|length == .schedule_input_rows) and .source_revision == "61530df51f6cd7d64f014ebbf8714cef24c8ca70"' "nlr-${vocation}-audit.json"
+          done
+          jq -e '.operation_days_input_rows == 76 and .schedule_input_rows == 234' nlr-fleet1-beverage-delivery-audit.json
+          jq -e '.operation_days_input_rows == 100 and .schedule_input_rows == 302' nlr-fleet2-warehouse-delivery-audit.json
+          jq -e '.operation_days_input_rows == 236 and .schedule_input_rows == 782' nlr-fleet3-food-delivery-audit.json
+      - name: Generate 81 NLR-style reference curves across 27 matched cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p nlr-reference-profiles
+          for vocation in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            audit="nlr-${vocation}-audit.json"
+            for fleet_size in 10 50 100; do
+              for strategy in immediate delayed min_power; do
+                output="nlr-reference-profiles/${vocation}-fleet-${fleet_size}-${strategy}.json"
+                cargo run --quiet --manifest-path tools/ev-nlr-profile-baseline/Cargo.toml -- \
+                  --input-report "${audit}" \
+                  --fleet-size "${fleet_size}" \
+                  --strategy "${strategy}" \
+                  --samples 50 --seed 0 --kwh-per-mile 1.8 --charger-power-kw 100 > "${output}"
+                jq -e --arg vocation "${vocation}" --arg strategy "${strategy}" --argjson fleet_size "${fleet_size}" '
+                  .source_fleet_id == $vocation and .strategy == $strategy and .fleet_size == $fleet_size and
+                  .sample_count == 50 and .profile_resolution_minutes == 15 and .profile_intervals_per_day == 96 and
+                  .profile_evidence_class == "model_reimplementation" and
+                  (.daily_average_profile|length == 96) and (.daily_minimum_peak_profile|length == 96) and (.daily_maximum_peak_profile|length == 96) and
+                  all(.daily_average_profile[]; .average_power_kw >= 0) and
+                  all(.daily_minimum_peak_profile[]; .average_power_kw >= 0) and
+                  all(.daily_maximum_peak_profile[]; .average_power_kw >= 0) and
+                  all(.samples[]; ((.energy_reconciliation_residual_kwh|fabs) <= (.instantaneous_peak_kw / 3600 + 0.000001)))
+                ' "${output}"
+              done
+            done
+          done
+      - name: Aggregate the 81 load curves and source-backed profile diagnostics
+        run: |
+          jq -s '
+            {
+              schema_version:"0.1.0",
+              benchmark_id:"EV-NLR-REFERENCE-PROFILES-001",
+              source_dataset_id:"nlr-hdev-depot-charging-2021",
+              source_revision:"61530df51f6cd7d64f014ebbf8714cef24c8ca70",
+              evidence_class:"model_reimplementation",
+              reference_profile_count:(length*3),
+              case_count:length,
+              profile_resolution_minutes:15,
+              samples_per_case:50,
+              fleet_sizes:[10,50,100],
+              strategies:["immediate","delayed","min_power"],
+              vocations:["fleet1-beverage-delivery","fleet2-warehouse-delivery","fleet3-food-delivery"],
+              claim_ceiling:"These are NLR-style modeled profiles generated from pinned published operational summaries. This uses a separate deterministic sampler, not NLR's exact Python/Pandas random draws, and is not yet a numeric comparison against the published 81-profile ZIP.",
+              cases:map({
+                source_fleet_id,
+                fleet_size,
+                strategy,
+                profile_evidence_class,
+                kwh_per_mile_assumption,
+                fixed_charger_power_kw,
+                sample_count,
+                operation_day_csv_sha256,
+                schedule_csv_sha256,
+                daily_requested_energy_kwh,
+                daily_grid_energy_delivered_kwh,
+                daily_energy_service_fraction,
+                instantaneous_peak_kw,
+                daily_minimum_peak_profile,
+                daily_average_profile,
+                daily_maximum_peak_profile
+              })
+            }
+          ' nlr-reference-profiles/*.json > ev-nlr-reference-profile-index.json
+          jq -e '.case_count == 27 and .reference_profile_count == 81 and (.cases|length == 27) and (.cases|map(.source_fleet_id)|unique|length == 3) and (.cases|map(.strategy)|unique|length == 3) and (.cases|map(.fleet_size)|unique|length == 3)' ev-nlr-reference-profile-index.json
+      - name: Hash source summaries, tool and generated profiles
+        run: |
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-nlr-profile-baseline/Cargo.toml tools/ev-nlr-profile-baseline/src/main.rs nlr-fleet1-beverage-delivery-audit.json nlr-fleet2-warehouse-delivery-audit.json nlr-fleet3-food-delivery-audit.json nlr-reference-profiles/*.json ev-nlr-reference-profile-index.json > ev-nlr-reference-profile.sha256
+          (cd "${RUNNER_TEMP}" && sha256sum fleet1-beverage-delivery-veh_op_days.csv fleet1-beverage-delivery-veh_schedules.csv fleet2-warehouse-delivery-veh_op_days.csv fleet2-warehouse-delivery-veh_schedules.csv fleet3-food-delivery-veh_op_days.csv fleet3-food-delivery-veh_schedules.csv) >> ev-nlr-reference-profile.sha256
+      - name: Upload reproducible reference profile evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-nlr-reference-profiles-${{ github.sha }}
+          path: |
+            nlr-fleet1-beverage-delivery-audit.json
+            nlr-fleet2-warehouse-delivery-audit.json
+            nlr-fleet3-food-delivery-audit.json
+            ev-nlr-reference-profile-index.json
+            ev-nlr-reference-profile.sha256
+          if-no-files-found: error
+          retention-days: 14
