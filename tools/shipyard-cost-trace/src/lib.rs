@@ -252,11 +252,11 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
 
 fn find_lineage_cycles<'a>(
     events: &'a [LedgerEvent],
-    events_by_id: &BTreeMap<&'a str, &'a LedgerEvent>,
+    events_by_id: &BTreeMap<String, &'a LedgerEvent>,
 ) -> Vec<String> {
     // Iterative DFS avoids call-stack growth for large ledgers.
     // State values: 0 = unseen, 1 = active, 2 = complete.
-    let mut states: BTreeMap<&str, u8> = BTreeMap::new();
+    let mut states: BTreeMap<String, u8> = BTreeMap::new();
     let mut errors = Vec::new();
 
     for event in events {
@@ -268,7 +268,7 @@ fn find_lineage_cycles<'a>(
         let mut stack: Vec<(&str, bool)> = vec![(root, false)];
         while let Some((event_id, exiting)) = stack.pop() {
             if exiting {
-                states.insert(event_id, 2);
+                states.insert(event_id.to_owned(), 2);
                 continue;
             }
 
@@ -281,7 +281,7 @@ fn find_lineage_cycles<'a>(
                 _ => {}
             }
 
-            states.insert(event_id, 1);
+            states.insert(event_id.to_owned(), 1);
             stack.push((event_id, true));
             if let Some(current) = events_by_id.get(event_id) {
                 for related_id in current.related_event_ids.iter().rev() {
@@ -343,9 +343,9 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         validate_event(event, &mut errors);
     }
 
-    let events_by_id: BTreeMap<&str, &LedgerEvent> = events
+    let events_by_id: BTreeMap<String, &LedgerEvent> = events
         .iter()
-        .map(|event| (event.event_id.as_str(), event))
+        .map(|event| (event.event_id.clone(), event))
         .collect();
 
     for event in events {
