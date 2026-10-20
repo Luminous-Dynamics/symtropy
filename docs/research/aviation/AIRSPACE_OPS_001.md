@@ -46,6 +46,12 @@ Malformed references, digest syntax, time ordering, frame mismatches, vertical-d
 - Verify result determinism under equivalent candidate ordering and stable event deduplication.
 - The integration suite includes three metamorphic checks: pair-order reversal, collinear waypoint subdivision, and uniform time-origin translation. It now also enumerates 72,600 sloped-segment cases and computes expected closest approach using integer-rational squared-distance arithmetic, independent of the production floating-point minimizer. Together with the 9,225 constant-relative-position cases and exact boundaries, this is an 81,825-case finite synthetic oracle suite plus metamorphic checks. It narrows but does not close the unbounded floating-point near-tangency proof gap; high-precision/interval analysis and adversarial magnitudes remain required.
 
+### Broadphase acceptance gate (new implementation slice)
+
+The isolated trajectory kernel now has `broadphase_candidate_pairs`, a sweep-and-prune filter over time-overlapping, outward-expanded trajectory AABBs. Its contract is intentionally restrictive: one shared local Cartesian frame and vertical datum, scenario criteria covering the fleet's full time span, outward-rounded margins, and fail-closed behavior if extents cannot be represented finitely. The base separation threshold is applied on each trajectory box, which is conservative but may inflate the candidate set. The broadphase is only a filter; every candidate still needs the pairwise geometry audit.
+
+The new frozen 96-trajectory synthetic test enumerates every brute-force pair and asserts that every `ConflictDetected` pair survives candidate generation. It also verifies pruning versus all-pairs enumeration and checks rejection of incomplete criteria windows and mixed frame/datum inputs. This is a contract test, not a benchmark claim. Before scale claims, publish per-size (10/100/1k/10k) candidate recall, candidate count, false-positive ratio, p50/p95 runtime, memory, and brute-force reference runtime on a pinned host. Require 100% recall against the brute-force oracle; do not average a missed conflict away in a general quality score.
+
 ### Model credibility
 - Add negative controls where a nominal centerline misses but the uncertainty-expanded tube conflicts.
 - Add out-of-domain cases: sharp turns, implausible velocity/acceleration, discontinuous observations, non-local coordinate frames, unknown vertical datum, stale criteria and missing segments must not be presented as physically qualified.

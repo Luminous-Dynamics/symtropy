@@ -34,6 +34,14 @@ Run these commands in an environment with Rust/Cargo installed:
 
 The suite contains 19 unit tests plus six integration tests: 9,225 closed-form comparisons over synchronized parallel paths; 72,600 integer-rational comparisons over sloped/crossing segments and inclusive radii; exact inclusive-boundary tests; and three metamorphic invariants (pair argument-order reversal, collinear waypoint subdivision, and uniform time-origin translation). The rational oracle compares squared-distance numerators with integer arithmetic instead of reusing the production floating-point minimizer. The authoring environment has no local Rust/Cargo toolchain; use the dedicated CI job for exact-head execution.
 
+## Conservative fleet broadphase (research v0.1)
+
+`broadphase_candidate_pairs` generates a deterministic sweep-and-prune candidate list over expanded trajectory AABBs. Candidate indices refer to the original input slice; every returned pair must still go through `audit_trajectory_pair`.
+
+The current implementation deliberately expands each trajectory box by the declared base separation threshold plus that trajectory's uncertainty on each side. This double-counts the base threshold across a pair, increasing false positives rather than risking a missed candidate. The computed margin is rounded upward and bounds are expanded outward by one representable float step. Non-finite bounds fail closed. The input fleet must use one shared frame and vertical datum, and the supplied criteria must cover the full fleet time span; otherwise the function rejects the call so missing time coverage cannot be pruned into a no-conflict claim.
+
+CI includes a 96-trajectory synthetic fleet where broadphase candidates are checked against brute-force pairwise audits. The target is 100% candidate recall for every pairwise `ConflictDetected` result while pruning at least some pairs in this fixed fixture. This is only a bounded regression test; it is not a 10k-fleet performance result and does not constitute interval-arithmetic proof for arbitrary magnitudes. Later work must report candidate recall, false-positive ratio, pair counts, runtime and memory across fixed sizes (10, 100, 1,000, 10,000) on a pinned machine. A false-negative candidate is an unconditional failure; higher false positives are acceptable until performance is measured.
+
 ## Strict exclusions
 
 This crate does not ingest live surveillance, filed flight plans, active NOTAMs, weather feeds or real-time restrictions. It does not perform geodetic/Earth-frame transformations, enforce aircraft acceleration/turn/climb envelopes, validate vehicle performance, provide traffic advisories, issue clearances, authorize dispatch, control a vehicle, or qualify real-world separation minima.
