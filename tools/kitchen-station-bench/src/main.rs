@@ -16,6 +16,7 @@ struct Contracts {
     scenario_gate_ids: BTreeMap<String, BTreeSet<String>>,
     metric_ids: BTreeSet<String>,
     metric_unit_options: BTreeMap<String, BTreeSet<String>>,
+    metric_qualifying_values: BTreeMap<String, BTreeSet<String>>,
     contract_digests: BTreeMap<String, String>,
 }
 
@@ -124,6 +125,7 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
     }
     let metric_ids = registry_map.keys().cloned().collect::<BTreeSet<_>>();
     let mut metric_unit_options = BTreeMap::new();
+    let mut metric_qualifying_values = BTreeMap::new();
     for (id, metric) in registry_map {
         let options = metric.get("unit_options").and_then(Value::as_array)
             .ok_or_else(|| format!("metric {id} lacks machine-readable unit_options"))?
@@ -132,13 +134,22 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
             .collect::<Check<BTreeSet<_>>>()?;
         if options.is_empty() { return Err(format!("metric {id} has no unit options")); }
         metric_unit_options.insert(id.clone(), options);
+        if let Some(qualifying) = metric.get("qualifying_values") {
+            let values = qualifying.as_array()
+                .ok_or_else(|| format!("metric {id} qualifying_values must be an array"))?
+                .iter().map(|v| v.as_str().map(str::to_owned)
+                    .ok_or_else(|| format!("metric {id} qualifying_values must contain strings")))
+                .collect::<Check<BTreeSet<_>>>()?;
+            if values.is_empty() { return Err(format!("metric {id} qualifying_values cannot be empty")); }
+            metric_qualifying_values.insert(id.clone(), values);
+        }
     }
     for (scenario, metrics) in &scenario_metrics {
         for metric in metrics {
             if !metric_ids.contains(metric) { return Err(format!("scenario {scenario} has unregistered metric {metric}")); }
         }
     }
-    Ok(Contracts { candidate_ids, scenario_metrics, scenario_gate_ids, metric_ids, metric_unit_options, contract_digests })
+    Ok(Contracts { candidate_ids, scenario_metrics, scenario_gate_ids, metric_ids, metric_unit_options, metric_qualifying_values, contract_digests })
 }
 
 fn artifact_is_remote(uri: &str) -> bool {
@@ -461,16 +472,21 @@ fn physically_eligible(v: &Value, contracts: &Contracts) -> bool {
     let Some(scenario) = v.get("scenario_id").and_then(Value::as_str) else { return false; };
     let Some(expected) = contracts.scenario_metrics.get(scenario) else { return false; };
     let indexed = metrics_by_id(v);
-    let all_primary_metrics_observed = expected.iter().all(|id| {
-        indexed.get(id).is_some_and(|m| matches!(
-            m.get("metric_status").and_then(Value::as_str), Some("measured" | "derived")
-        ))
+    let all_primary_metrics_observed_and_qualified = expected.iter().all(|id| {
+        let Some(metric) = indexed.get(id) else { return false; };
+        if !matches!(metric.get("metric_status").and_then(Value::as_str), Some("measured" | "derived")) {
+            return false;
+        }
+        if let Some(allowed) = contracts.metric_qualifying_values.get(id) {
+            return metric.get("value").and_then(Value::as_str).is_some_and(|v| allowed.contains(v));
+        }
+        true
     });
     v.get("run_status").and_then(Value::as_str) == Some("complete")
         && matches!(v.get("evidence_class").and_then(Value::as_str),
             Some("physical_observation" | "derived_from_physical"))
         && gate_qualified(v, contracts)
-        && all_primary_metrics_observed
+        && all_primary_metrics_observed_and_qualified
 }
 fn read_records(dir: &Path) -> Check<LoadedRecords> {
     let mut paths = fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))?
@@ -757,6 +773,7 @@ mod tests {
                 ("water_l".to_owned(), ["L/task".to_owned()].into_iter().collect()),
                 ("cleaning_endpoint".to_owned(), ["1".to_owned()].into_iter().collect())
             ].into_iter().collect(),
+            metric_qualifying_values:[("cleaning_endpoint".to_owned(), ["pass".to_owned()].into_iter().collect())].into_iter().collect(),
             contract_digests:BTreeMap::new()
         }
     }
@@ -801,6 +818,7 @@ mod tests {
         assert!(loaded.metric_ids.len() >= 67);
         assert_eq!(loaded.metric_unit_options.len(), loaded.metric_ids.len());
         assert!(loaded.metric_unit_options.values().all(|opts| !opts.is_empty()));
+        assert!(loaded.metric_qualifying_values.contains_key("cleaning_endpoint"));
         assert_eq!(loaded.contract_digests.len(), 4);
         assert!(loaded.contract_digests.values().all(|h| valid_sha256(h)));
         assert!(loaded.scenario_metrics.contains_key("SINK-PRERINSE-FORCE-013"));
@@ -853,6 +871,22 @@ mod tests {
             assert!(!gates.is_empty(), "{scenario} must specify required safety gates");
             assert!(gates.iter().all(|g| g.starts_with("GATE-")), "{scenario} gate IDs need namespace");
         }
+    }
+
+    #[test]
+    fn failed_categorical_cleaning_endpoint_blocks_eligibility_even_if_gates_pass() {
+        let mut r = record();
+        r["metrics"][1]["value"] = json!("fail");
+        assert!(!physically_eligible(&r, &contracts()));
+    }
+
+    #[test]
+    fn qualifying_categorical_value_is_enforced_from_registry() {
+        let mut r = record();
+        r["metrics"][1]["value"] = json!("pass");
+        assert!(physically_eligible(&r, &contracts()));
+        r["metrics"][1]["value"] = json!("met");
+        assert!(!physically_eligible(&r, &contracts()));
     }
 
 }
