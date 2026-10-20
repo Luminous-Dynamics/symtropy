@@ -144,53 +144,132 @@ jobs:
           ' ev-factory-variant-aware-report.json
 
           jq -n --slurpfile fifo ev-factory-simulation-report.json --slurpfile aware ev-factory-variant-aware-report.json '
-            {
-              schema_version: "ev-factory-dispatch-policy-comparison/0.1",
+            def paired_summary($values):
+              ($values | length) as $n
+              | ($values | add / $n) as $mean
+              | (if $n > 1
+                 then ([$values[] | (. - $mean) * (. - $mean)] | add / ($n - 1) | sqrt)
+                 else 0 end) as $sd
+              | (if $n > 1 then 2.093 else null end) as $t
+              | {
+                  sample_count: $n,
+                  mean: $mean,
+                  sample_standard_deviation: (if $n > 1 then $sd else null end),
+                  mean_confidence_95_lower: (if $n > 1 then $mean - $t * $sd / ($n | sqrt) else null end),
+                  mean_confidence_95_upper: (if $n > 1 then $mean + $t * $sd / ($n | sqrt) else null end)
+                };
+
+            ($fifo[0].replication_scenario_records | sort_by(.seed, .scenario_id) | map([.seed, .scenario_id])) as $fifo_keys
+            | ($aware[0].replication_scenario_records | sort_by(.seed, .scenario_id) | map([.seed, .scenario_id])) as $aware_keys
+            | {
+              schema_version: "ev-factory-dispatch-policy-comparison/0.2",
               benchmark_id: $fifo[0].benchmark_id,
               fifo_dispatch_policy: $fifo[0].dispatch_policy,
               variant_aware_dispatch_policy: $aware[0].dispatch_policy,
               replication_seeds_equal: ($fifo[0].replication_seeds == $aware[0].replication_seeds),
+              replication_records_matched_by_seed_and_scenario: ($fifo_keys == $aware_keys),
               replication_count: $fifo[0].replication_count,
               scenario_pairs: [
                 $fifo[0].scenario_statistics[] as $f |
                 ($aware[0].scenario_statistics[] | select(.scenario_id == $f.scenario_id)) as $a |
+                ($fifo[0].replication_scenario_records | map(select(.scenario_id == $f.scenario_id)) | sort_by(.seed)) as $fr |
+                ($aware[0].replication_scenario_records | map(select(.scenario_id == $f.scenario_id)) | sort_by(.seed)) as $ar |
+                ([
+                  range(0; ($fr | length)) as $i |
+                  {
+                    seed: $fr[$i].seed,
+                    good_units_per_hour_delta: ($ar[$i].measured_good_units_per_hour - $fr[$i].measured_good_units_per_hour),
+                    total_good_units_delta: ($ar[$i].good_units_total - $fr[$i].good_units_total),
+                    scrap_delta: ($ar[$i].scrapped_jobs_total - $fr[$i].scrapped_jobs_total),
+                    rework_delta: ($ar[$i].measured_rework_attempts - $fr[$i].measured_rework_attempts),
+                    variant_wait_deltas: [
+                      range(0; ($fr[$i].variant_wait_statistics | length)) as $v |
+                      {
+                        variant: $fr[$i].variant_wait_statistics[$v].variant,
+                        average_wait_delta_seconds: (
+                          $ar[$i].variant_wait_statistics[$v].average_wait_seconds
+                          - $fr[$i].variant_wait_statistics[$v].average_wait_seconds
+                        ),
+                        p95_wait_delta_seconds: (
+                          $ar[$i].variant_wait_statistics[$v].p95_wait_seconds
+                          - $fr[$i].variant_wait_statistics[$v].p95_wait_seconds
+                        ),
+                        maximum_wait_delta_seconds: (
+                          $ar[$i].variant_wait_statistics[$v].maximum_wait_seconds
+                          - $fr[$i].variant_wait_statistics[$v].maximum_wait_seconds
+                        )
+                      }
+                    ]
+                  }
+                ]) as $paired |
                 {
                   scenario_id: $f.scenario_id,
                   fifo_good_units_per_hour_mean: $f.good_units_per_hour.mean,
                   variant_aware_good_units_per_hour_mean: $a.good_units_per_hour.mean,
-                  mean_good_units_per_hour_delta: ($a.good_units_per_hour.mean - $f.good_units_per_hour.mean),
-                  fifo_variant_wait_statistics: $f.variant_wait_statistics,
-                  variant_aware_variant_wait_statistics: $a.variant_wait_statistics
+                  unpaired_difference_of_means_units_per_hour: ($a.good_units_per_hour.mean - $f.good_units_per_hour.mean),
+                  paired_good_units_per_hour_delta_ci95: paired_summary([$paired[].good_units_per_hour_delta]),
+                  paired_total_good_units_delta_ci95: paired_summary([$paired[].total_good_units_delta]),
+                  paired_scrap_delta_ci95: paired_summary([$paired[].scrap_delta]),
+                  paired_rework_delta_ci95: paired_summary([$paired[].rework_delta]),
+                  paired_seed_deltas: $paired,
+                  per_variant_paired_wait_deltas: [
+                    range(0; ($f.variant_wait_statistics | length)) as $v |
+                    {
+                      variant: $f.variant_wait_statistics[$v].variant,
+                      average_wait_delta_ci95_seconds: paired_summary([$paired[].variant_wait_deltas[$v].average_wait_delta_seconds]),
+                      p95_wait_delta_ci95_seconds: paired_summary([$paired[].variant_wait_deltas[$v].p95_wait_delta_seconds]),
+                      maximum_wait_delta_ci95_seconds: paired_summary([$paired[].variant_wait_deltas[$v].maximum_wait_delta_seconds])
+                    }
+                  ]
                 }
               ],
               station_pairs: [
                 $fifo[0].station_sequence_statistics[] as $f |
                 ($aware[0].station_sequence_statistics[] | select(.scenario_id == $f.scenario_id and .station_id == $f.station_id)) as $a |
+                ($fifo[0].replication_scenario_records | map(select(.scenario_id == $f.scenario_id)) | sort_by(.seed)) as $fr |
+                ($aware[0].replication_scenario_records | map(select(.scenario_id == $f.scenario_id)) | sort_by(.seed)) as $ar |
+                ([
+                  range(0; ($fr | length)) as $i |
+                  ($fr[$i].stations | map(select(.station_id == $f.station_id)) | .[0]) as $fs |
+                  ($ar[$i].stations | map(select(.station_id == $f.station_id)) | .[0]) as $as |
+                  {
+                    seed: $fr[$i].seed,
+                    changeovers_delta: ($as.changeovers_started - $fs.changeovers_started),
+                    output_transfers_delta: ($as.output_transfers - $fs.output_transfers),
+                    out_of_order_transfers_delta: ($as.out_of_order_output_transfers - $fs.out_of_order_output_transfers)
+                  }
+                ]) as $paired |
                 {
                   scenario_id: $f.scenario_id,
                   station_id: $f.station_id,
                   fifo_mean_changeovers: $f.changeovers_started.mean,
                   variant_aware_mean_changeovers: $a.changeovers_started.mean,
-                  mean_changeover_delta: ($a.changeovers_started.mean - $f.changeovers_started.mean),
+                  unpaired_difference_mean_changeovers: ($a.changeovers_started.mean - $f.changeovers_started.mean),
+                  paired_changeovers_delta_ci95: paired_summary([$paired[].changeovers_delta]),
+                  paired_output_transfers_delta_ci95: paired_summary([$paired[].output_transfers_delta]),
                   fifo_mean_out_of_order_transfers: $f.out_of_order_output_transfers.mean,
-                  variant_aware_mean_out_of_order_transfers: $a.out_of_order_output_transfers.mean
+                  variant_aware_mean_out_of_order_transfers: $a.out_of_order_output_transfers.mean,
+                  paired_out_of_order_transfers_delta_ci95: paired_summary([$paired[].out_of_order_transfers_delta]),
+                  paired_seed_deltas: $paired
                 }
               ],
-              claim_ceiling: "Paired synthetic simulation comparison only; no plant performance or release claim."
+              claim_ceiling: "Paired synthetic simulation comparison only; confidence intervals describe the frozen seed set and do not imply physical performance or release readiness."
             }
           ' > ev-factory-dispatch-policy-comparison.json
 
           jq -e '
-            .schema_version == "ev-factory-dispatch-policy-comparison/0.1"
+            .schema_version == "ev-factory-dispatch-policy-comparison/0.2"
             and .benchmark_id == "EV-FACTORY-SIM-001"
             and .fifo_dispatch_policy == "fifo"
             and .variant_aware_dispatch_policy == "minimize_changeover"
             and .replication_seeds_equal
+            and .replication_records_matched_by_seed_and_scenario
             and .replication_count == 20
             and (.scenario_pairs | length) == 6
             and (.station_pairs | length) == 30
-            and all(.scenario_pairs[]; (.fifo_good_units_per_hour_mean | type) == "number" and (.variant_aware_good_units_per_hour_mean | type) == "number")
-            and all(.station_pairs[]; (.fifo_mean_changeovers | type) == "number" and (.variant_aware_mean_changeovers | type) == "number")
+            and all(.scenario_pairs[]; .paired_good_units_per_hour_delta_ci95.sample_count == 20 and .paired_good_units_per_hour_delta_ci95.mean_confidence_95_lower != null and .paired_good_units_per_hour_delta_ci95.mean_confidence_95_upper != null)
+            and all(.scenario_pairs[]; (.per_variant_paired_wait_deltas | length) == 3 and all(.per_variant_paired_wait_deltas[]; .average_wait_delta_ci95_seconds.sample_count == 20))
+            and all(.station_pairs[]; .paired_changeovers_delta_ci95.sample_count == 20 and .paired_out_of_order_transfers_delta_ci95.sample_count == 20)
           ' ev-factory-dispatch-policy-comparison.json
 
       - name: Run PCB cell routes and assert fail-closed invariants
