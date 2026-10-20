@@ -157,7 +157,7 @@ jobs:
                   site_budget_kw_p50:([.[].site_budget_kw]|sort|.[(length-1)/2|floor]),
                   scenario_count:length,
                   passed_scenarios:([.[]|select(.passed)]|length),
-                  empirical_scenario_pass_rate:([.[]|select(.passed)]|length)/length
+                  empirical_scenario_pass_rate:(([.[]|select(.passed)]|length)/length)
                 })
               )
             }
@@ -165,12 +165,36 @@ jobs:
           jq -e '.cases | length == 90' ev-depot-robustness-cases.json
           jq -e '.sampled_minimum_capacity_distribution | length == 6' ev-depot-robustness-summary.json
           jq -e '.empirical_capacity_pass_rates | length == 120' ev-depot-robustness-summary.json
+          jq '
+            . as $summary |
+            [
+              [10,50,100][] as $n |
+              ["fcfs","earliest_departure_first"][] as $policy |
+              ([$summary.empirical_capacity_pass_rates[] |
+                select(.fleet_size == $n and .policy == $policy and .empirical_scenario_pass_rate >= 0.95)]
+                | sort_by(.capacity_fraction_of_45kw_per_vehicle) | .[0]) as $hit |
+              {
+                fleet_size:$n,
+                policy:$policy,
+                resamples:$summary.resample_count_per_fleet_size,
+                required_passes:(($summary.resample_count_per_fleet_size * 0.95) | ceil),
+                minimum_capacity_fraction_for_95pct_empirical_scenario_pass_rate:($hit.capacity_fraction_of_45kw_per_vehicle // null),
+                minimum_capacity_kw_per_vehicle:(if $hit == null then null else 45 * $hit.capacity_fraction_of_45kw_per_vehicle end),
+                sampled_site_budget_kw:(if $hit == null then null else 45 * $n * $hit.capacity_fraction_of_45kw_per_vehicle end),
+                empirical_pass_rate_at_capacity:($hit.empirical_scenario_pass_rate // null),
+                threshold_met_within_45_kw_per_vehicle:($hit != null)
+              }
+            ]
+          ' ev-depot-robustness-summary.json > ev-depot-robust-frontier.json
+          jq --slurpfile robust ev-depot-robust-frontier.json '. + {empirical_95pct_scenario_capacity_frontier:$robust[0]}' ev-depot-robustness-summary.json > ev-depot-robustness-summary.tmp
+          mv ev-depot-robustness-summary.tmp ev-depot-robustness-summary.json
+          jq -e '.empirical_95pct_scenario_capacity_frontier | length == 6' ev-depot-robustness-summary.json
       - name: Print frontier distribution for review
         run: |
           jq -r '.sampled_minimum_capacity_distribution[] | [.fleet_size,.policy,.resamples,.infeasible_at_or_below_base_budget,.p50_minimum_sampled_kw_per_vehicle,.p95_minimum_sampled_kw_per_vehicle,.p95_missed_departure_fraction,.minimum_base_energy_service_fraction] | @tsv' ev-depot-robustness-summary.json
       - name: Hash tools, public data, case set and summary
         run: |
-          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-duty-audit-report.json ev-depot-robustness-cases.json ev-depot-robustness-summary.json > ev-depot-robustness.sha256
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-duty-audit-report.json ev-depot-robustness-cases.json ev-depot-robustness-summary.json ev-depot-robust-frontier.json > ev-depot-robustness.sha256
           (cd "${RUNNER_TEMP}" && sha256sum nlr-veh_op_days.csv nlr-veh_schedules.csv) >> ev-depot-robustness.sha256
       - name: Upload complete robust benchmark evidence
         uses: actions/upload-artifact@v4
@@ -180,6 +204,7 @@ jobs:
             nlr-duty-audit-report.json
             ev-depot-robustness-cases.json
             ev-depot-robustness-summary.json
+            ev-depot-robust-frontier.json
             ev-depot-robustness.sha256
           if-no-files-found: error
           retention-days: 14
