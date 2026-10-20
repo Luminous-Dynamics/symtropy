@@ -1,0 +1,34 @@
+name: Large-World Coordinate Tests
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/bridges/symtropy-render-bridge/src/large_world.rs"
+      - "crates/bridges/symtropy-render-bridge/src/lib.rs"
+      - "docs/research/RENDER_SOLAR_SCALE_001.md"
+      - ".github/workflows/large-world-coordinate-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  large-world-coordinate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run render bridge library tests
+        run: cargo test -p symtropy-render-bridge --lib
+      - name: Run strict render bridge Clippy
+        run: cargo clippy -p symtropy-render-bridge --all-targets -- -D warnings
