@@ -299,7 +299,7 @@
           "status": "conflicted",
           "observed_at": "2026-07-04T11:00:00Z",
           "source": "synthetic_sensor_pair",
-          "claim": "contradictory_sensor_reports"
+          "claim": "thermal_anomaly_point"
         }
       ],
       "edges": [
