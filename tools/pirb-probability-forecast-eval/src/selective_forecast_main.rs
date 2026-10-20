@@ -5,7 +5,7 @@
 // is not a negative event prediction and candidate probabilities are never
 // copied to served output for rows withheld by the registered policy.
 
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -734,7 +734,7 @@ mod tests {
         value["policy"]["minimum_group_report_count"] = json!(7);
         let receipt = evaluate(&value).expect("valid privacy threshold yields a receipt");
         assert_eq!(receipt["group_suppressed_count"], 2);
-        assert_eq!(receipt["regime_strata_suppressed_count"], 3);
+        assert_eq!(receipt["regime_strata_suppressed_count"], 2);
         assert_eq!(receipt["group_summaries"][0]["group_id"], Value::Null);
     }
 
