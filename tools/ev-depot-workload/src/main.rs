@@ -307,7 +307,10 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
     if !["release_on_charge_completion", "hold_until_departure"]
         .contains(&options.port_release_policy.as_str())
     {
-        return Err("--port-release-policy_must_be_release_on_charge_completion_or_hold_until_departure".to_string());
+        return Err(
+            "--port-release-policy_must_be_release_on_charge_completion_or_hold_until_departure"
+                .to_string(),
+        );
     }
     if options.fleet_size == 0 || options.charger_port_count == 0 {
         return Err("fleet_size_and_charger_ports_must_be_positive".to_string());
@@ -859,9 +862,17 @@ mod tests {
         opts.port_release_policy = "hold_until_departure".into();
         let (corpus, manifest) =
             generate(&r, b"same-audit-report-bytes", &eligible, &opts).unwrap();
-        assert_eq!(corpus.scenarios[0].port_release_policy, "hold_until_departure");
+        assert_eq!(
+            corpus.scenarios[0].port_release_policy,
+            "hold_until_departure"
+        );
         assert_eq!(manifest.port_release_policy, "hold_until_departure");
-        assert!(manifest.assumption_notes.iter().any(|note| note.contains("hold_until_departure")));
+        assert!(
+            manifest
+                .assumption_notes
+                .iter()
+                .any(|note| note.contains("hold_until_departure"))
+        );
     }
 
 }
