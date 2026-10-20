@@ -1012,6 +1012,135 @@ mod tests {
         }
     }
 
+    fn draw(state: &mut u64, upper_exclusive: u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (*state >> 32) % upper_exclusive
+    }
+
+    fn random_closure(state: &mut u64) -> Value {
+        if draw(state, 5) == 0 {
+            json!(3 + draw(state, 10))
+        } else {
+            Value::Null
+        }
+    }
+
+    #[test]
+    fn seeded_small_network_sweep_preserves_conservation_and_capacity() {
+        for seed in 0u64..128 {
+            let mut rng = seed.wrapping_add(0xA11C_E5EED);
+            let origin_count = 2 + draw(&mut rng, 3) as usize;
+            let mut edges = Vec::<Value>::new();
+            let mut demands = Vec::<Value>::new();
+            let mut total_demand = 0u64;
+
+            for origin in 0..origin_count {
+                let capacity = 1 + draw(&mut rng, 4);
+                let storage = capacity + draw(&mut rng, 5);
+                let vehicles = 1 + draw(&mut rng, 5);
+                let accessible = draw(&mut rng, vehicles + 1);
+                let departure = 1 + draw(&mut rng, 3);
+                let edge_id = format!("ORIGIN-{origin}-J");
+                let origin_node = format!("ORIGIN-{origin}");
+                let travel_time = 1 + draw(&mut rng, 3);
+                let closed_from = random_closure(&mut rng);
+                edges.push(json!({
+                    "id": edge_id,
+                    "from": origin_node,
+                    "to": "J",
+                    "capacity_per_step": capacity,
+                    "storage": storage,
+                    "travel_time_steps": travel_time,
+                    "closed_from_step": closed_from
+                }));
+                total_demand += vehicles;
+                demands.push(json!({
+                    "id": format!("DEMAND-{origin}"),
+                    "origin_node": origin_node,
+                    "destination_sink_id": "SINK",
+                    "vehicles": vehicles,
+                    "accessible_vehicles": accessible,
+                    "departure_step": departure,
+                    "route_edge_ids": [edge_id, "J-K", "K-S"]
+                }));
+            }
+
+            for (edge_id, from, to) in [("J-K", "J", "K"), ("K-S", "K", "S")] {
+                let capacity = 1 + draw(&mut rng, 4);
+                let storage = capacity + draw(&mut rng, 5);
+                let travel_time = 1 + draw(&mut rng, 3);
+                let closed_from = random_closure(&mut rng);
+                edges.push(json!({
+                    "id": edge_id,
+                    "from": from,
+                    "to": to,
+                    "capacity_per_step": capacity,
+                    "storage": storage,
+                    "travel_time_steps": travel_time,
+                    "closed_from_step": closed_from
+                }));
+            }
+
+            let total_capacity = draw(&mut rng, total_demand + 1);
+            let accessible_capacity = draw(&mut rng, total_capacity + 1);
+            let ingress_capacity = 1 + draw(&mut rng, 4);
+            let case = json!({
+                "case_id": format!("GENERATED-{seed:03}"),
+                "horizon_steps": 40,
+                "edges": edges,
+                "sinks": [{
+                    "id": "SINK",
+                    "node_id": "S",
+                    "ingress_capacity_per_step": ingress_capacity,
+                    "total_capacity": total_capacity,
+                    "accessible_capacity": accessible_capacity
+                }],
+                "demands": demands
+            });
+
+            let result = simulate_case(&case).expect("generated network must conserve demand");
+            assert_eq!(result["mass_balance_ok"], true, "seed {seed}");
+            assert_eq!(result["capacity_checks_ok"], true, "seed {seed}");
+            assert_eq!(
+                result["served_vehicles"].as_u64().unwrap_or(0)
+                    + result["unserved_or_stranded_vehicles"].as_u64().unwrap_or(0),
+                total_demand,
+                "seed {seed}"
+            );
+            assert!(
+                result["served_by_sink"]["SINK"]["served_vehicles"]
+                    .as_u64()
+                    .unwrap_or(u64::MAX)
+                    <= total_capacity,
+                "seed {seed}: total sink capacity"
+            );
+            assert!(
+                result["served_by_sink"]["SINK"]["accessible_served_vehicles"]
+                    .as_u64()
+                    .unwrap_or(u64::MAX)
+                    <= accessible_capacity,
+                "seed {seed}: accessible sink capacity"
+            );
+            for step in result["steps"].as_array().expect("step trace") {
+                assert_eq!(step["mass_balance_ok"], true, "seed {seed}");
+            }
+            for edge in result["edges"].as_array().expect("edge trace") {
+                assert!(
+                    edge["max_occupancy"].as_u64().unwrap_or(u64::MAX)
+                        <= edge["storage"].as_u64().unwrap_or(0),
+                    "seed {seed}: edge storage"
+                );
+                assert_eq!(
+                    edge["entries_at_or_after_closure"].as_u64(),
+                    Some(0),
+                    "seed {seed}: closure"
+                );
+            }
+        }
+    }
+
     #[test]
     fn rejects_disconnected_routes_and_capacity_guardrail_violations() {
         let mut disconnected_route_fixture = fixture();
