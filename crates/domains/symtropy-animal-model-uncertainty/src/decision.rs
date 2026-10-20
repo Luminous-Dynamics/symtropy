@@ -320,11 +320,7 @@ mod tests {
     #[test]
     fn cvar_alpha_must_be_strictly_between_zero_and_one() {
         let errors = score_model_ensemble(&example_models(), 1.0).expect_err("alpha 1 must fail");
-        assert!(
-            errors
-                .iter()
-                .any(|error| error.contains("cvar_alpha"))
-        );
+        assert!(errors.iter().any(|error| error.contains("cvar_alpha")));
     }
 
     #[test]
