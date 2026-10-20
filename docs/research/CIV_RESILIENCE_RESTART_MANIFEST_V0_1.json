@@ -7,7 +7,7 @@
   "cargo_lock_path": "Cargo.lock",
   "fixture_sha256": "72f5acd61651ea10f46731e4eecd7fe9198b96c944dcba1090c1ef05acf727f3",
   "evaluator_version": "civ-res-ind-oracle/0.1.0",
-  "evaluator_source_sha256": "200c2f60e402aa2e6f9e54b694c2609991653ea9258dc962ce67ba7fc82344aa",
+  "evaluator_source_sha256": "cc07554a513488e6723c3522aaafe3e6d226b74d1c92a92f15853c5270dd5a35",
   "cargo_lock_sha256": "40c7c1da301e410937c5605e0c81e78a69cf4785ee02a952ce7d77e97791445a",
   "policy_id": "civ-res-reference-accounting-v0.1",
   "claim_ceiling": "The report verifies only the declared synthetic accounting rules and expected dispositions. It establishes no physical performance, safety, site suitability, savings, or real-world resilience."
