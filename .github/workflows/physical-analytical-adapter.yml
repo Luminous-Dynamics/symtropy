@@ -173,7 +173,7 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           dispatcher="research/physical-analytical-adapter/Cargo.toml"
 
           cargo run --quiet --locked --manifest-path "$dispatcher" --bin physical-solver-dispatch -- \
