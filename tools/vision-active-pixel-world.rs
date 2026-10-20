@@ -510,7 +510,7 @@ fn run_episode(world: HiddenWorld, policy: Policy) -> EpisodeResult {
                     if frame.side_view_available
                         && !view_used
                         && latency_units.saturating_add(3) <= LATENCY_BUDGET
-                        && u64::from(view_used) < VIEW_ACTION_BUDGET =>
+                        && (view_used as u64) < VIEW_ACTION_BUDGET =>
                 {
                     view_used = true;
                     latency_units += 3;
@@ -537,7 +537,7 @@ fn run_episode(world: HiddenWorld, policy: Policy) -> EpisodeResult {
         terminal = frame;
     }
 
-    if latency_units > LATENCY_BUDGET || u64::from(view_used) > VIEW_ACTION_BUDGET {
+    if latency_units > LATENCY_BUDGET || (view_used as u64) > VIEW_ACTION_BUDGET {
         budget_violations += 1;
     }
 
