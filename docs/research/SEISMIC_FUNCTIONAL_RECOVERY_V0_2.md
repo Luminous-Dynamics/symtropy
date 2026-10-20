@@ -66,7 +66,7 @@ A second fixture forces service to fall from 80% to 30% before recovering, verif
 
 1. **Contract correctness:** hand calculations, boundary values, monotonic and non-monotonic curves, missing horizon recovery, malformed records, and numerical overflow.
 2. **Safety negatives:** zero false-safe outputs in seeded hard-stop tests. This is only a finite-suite software acceptance criterion, not evidence of zero real-world risk.
-3. **Scenario completeness:** the current branch adds a bounded dependency-capacity kernel, including common-cause failure of paths with a shared declared dependency. Extend it with repair precedence and constrained crews, spatially correlated failures, and coupled infrastructure outage scenarios.
+3. **Scenario completeness:** the current branch adds a bounded dependency-capacity kernel and deterministic repair scheduling under task precedence and finite multi-skill crews. Extend these with spatially correlated failures, stochastic task durations, coupled infrastructure outages, and resource mobilization constraints.
 4. **Model validity:** reproduce a published scenario only when inputs and model assumptions can be reconstructed, then test on held-out experimental or historical cases. Separate synthetic, sourced, measured, and independently reviewed inputs.
 5. **Industry comparison:** compare recovery curves, T50/T90/T95, cumulative unmet demand, censoring, and scenario coverage against traceable published frameworks and cases with a matched service contract. Do not claim “better than SOTA” until data, thresholds, uncertainty, and independent evaluation are comparable.
 
@@ -83,6 +83,21 @@ If a dependency is Unknown, NotApplicable, or missing:
 - Failed dependencies make affected paths unavailable. Output path lists are sorted for deterministic reports.
 
 This module intentionally does not compute hazard-driven dependency failures, probability of common causes, network flow/assignment, demand elasticity, route travel times, egress/inspection authority, or repair actions. The set of dependency states and each path capacity remain supplied inputs; the evaluator cannot authenticate their evidence. Scenarios should eventually be generated from a declared dependency graph and correlated hazard model, then validated against observed incidents or published test cases. Never interpret the synthetic 40% example as a real corridor prediction.
+
+## Constrained repair scheduling prototype
+
+The `repair` module provides a deterministic, non-preemptive greedy scheduler over supplied repair tasks. A task declares its duration, required crew skills and counts, type, and predecessor tasks. Crew pools constrain concurrency, and a task starts only when all predecessors have completed and all crew requirements can be reserved together.
+
+The reference scenario has:
+- a two-hour assessment requiring one engineering crew;
+- a four-hour civil repair and a six-hour power restoration task, both starting after assessment and running concurrently with separate crews;
+- a one-hour post-event inspection which depends on both repairs.
+
+The deterministic schedule yields assessment 0–2 h, civil repair 2–6 h, power restoration 2–8 h, inspection 8–9 h, and authorized service-ready time 9 h when the separate re-entry authorization state is explicitly `Satisfied`. The hand-worked test also checks a shared maintenance-crew bottleneck that serializes two otherwise independent repairs and delays service readiness to 8 h.
+
+**Critical safety boundary:** completing an inspection task does not itself authorize re-entry. The scheduler requires an explicit external `reentry_authorization` state. If Unknown or NotApplicable, it can return a planning schedule but reports no authorized service-ready time and sets disposition to `NEEDS_EVIDENCE`. If Failed, it reports no authorized service-ready time and marks the case `INELIGIBLE`.
+
+The current scheduler is intentionally simple: fixed durations, non-preemptive tasks, a deterministic task-ID priority, and greedy scheduling. It is not optimal; it does not derive damage tasks, estimate durations, represent travel/mobilization or shift calendars, use probabilistic duration distributions, or authorize real work. Sourced durations require source references, but this module does not authenticate those references. A real recovery model must represent repair uncertainty, resource mobilization, safety constraints, dependencies, and the responsible operator/authority's decision process.
 
 ## Exclusions
 
