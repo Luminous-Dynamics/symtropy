@@ -30,10 +30,13 @@ use symtropy_animal_model_uncertainty::decision::{
     score_weight_sensitivity,
 };
 
+#[cfg(test)]
 const SYNTHETIC_EXAMPLE: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_EXAMPLE_V1.json");
+#[cfg(test)]
 const EMBEDDED_INPUT_SCHEMA: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json");
+#[cfg(test)]
 const EMBEDDED_REPORT_SCHEMA: &str = include_str!(
     "../../../../../docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json"
 );
