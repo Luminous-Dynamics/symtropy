@@ -57,6 +57,12 @@ PASS means the request met a narrow, predeclared contract for its declared model
 
 Never convert missing output, solver timeout, unconverged iteration, unsupported physics, stale state or missing units into PASS. Do not convert UNRESOLVED to FAIL unless the contract identifies a criterion that actually failed.
 
+## Output artifact byte identity
+
+After request/receipt consistency, an optional offline verifier checks every declared output's exact bytes against the receipt SHA-256. It accepts normalized relative paths under a caller-supplied canonical root, rejects traversal and links resolving outside that root, and reports artifact `PASS` / `FAIL` / `UNRESOLVED` separately from producer status.
+
+A byte-verification pass does not authenticate who ran the solver, prove that the solver ran, establish the output's semantics or numerical accuracy, or qualify a physical claim. The bundle must be immutable during verification; signing and execution authentication remain separate authorities.
+
 ## Near-term implementation sequence
 
 1. Validate the request and receipt schemas plus frozen examples.
