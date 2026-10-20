@@ -220,23 +220,25 @@ This candidate was devised after inspection of earlier corrected-confidence resu
 
 ## Joint transition/noise filter results — exploratory, not an advancement
 
-The joint filter passed exact-head qualification on source head `a89f05e74bad35983b98daf718a45a6cd47e2f1b`; [focused run #39498520329](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39498520329) passed **24 tests**, deterministic report replay, row/strata/pairwise checks and SHA validation. [Artifact #12299455188](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39498520329/artifacts/12299455188), archive SHA-256 `31aa21356b719a6b1425fa9a7b9ebd6cc557dea79131b85d791605ddc17d9fa9`. Cross-platform CI for this same head had not completed at the time of this report.
+The joint filter and sensor-base-rate comparison passed focused exact-head qualification on source head `22858bcdb865386763ecce0cb751425ce857924c`; [focused run #39499054636](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39499054636) passed **24 tests**, deterministic report replay, row/strata/pairwise checks and SHA validation. [Artifact #12298383243](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39499054636/artifacts/12298383243), archive SHA-256 `baa90d9e342e4121307f0439dae7c274113b645b2e33a72f39a2b63616f06f69`. Cross-platform CI for this same head had not completed at the time of this report.
 
 Held-out results at capacity 3:
 
-| Policy | Mean loss ↓ | Answer rate ↑ | Answered accuracy ↑ | Logical state bytes | Hazard MAE ↓ | Hazard RMSE ↓ | Delta vs FIFO (paired 95% CI) |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| FIFO | 0.2422 | 5.21% | 90.00% | 18 | N/A | N/A | baseline |
-| Query-keyed latest | 0.2480 | 27.86% | 75.70% | 18 | N/A | N/A | +0.0059 [-0.0150, +0.0280] |
-| Naive hazard-aware | **0.2227** | 40.10% | 81.82% | 48 | **0.0192** | **0.0239** | -0.0195 [-0.0443, +0.0059] |
-| Gap-aware likelihood | 0.2279 | 31.77% | 81.97% | 126 | 0.0357 | 0.0501 | -0.0143 [-0.0358, +0.0085] |
-| Joint transition/noise | 0.2350 | 51.82% | 77.89% | 786 | 0.0325 | 0.0456 | -0.0072 [-0.0365, +0.0254] |
+| Policy | Mean loss ↓ | Answer rate ↑ | Answered accuracy ↑ | Logical state bytes | Hazard MAE ↓ | Hazard RMSE ↓ | Sensor-base MAE ↓ | Sensor-base RMSE ↓ | Fixed-prior sensor MAE | Fixed-prior sensor RMSE | Delta vs FIFO (paired 95% CI) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| FIFO | 0.2422 | 5.21% | 90.00% | 18 | N/A | N/A | N/A | N/A | 0.0223 | 0.0255 | baseline |
+| Query-keyed latest | 0.2480 | 27.86% | 75.70% | 18 | N/A | N/A | N/A | N/A | 0.0223 | 0.0255 | +0.0059 [-0.0150, +0.0280] |
+| Naive hazard-aware | **0.2227** | 40.10% | 81.82% | 48 | **0.0192** | **0.0239** | N/A | N/A | 0.0223 | 0.0255 | -0.0195 [-0.0443, +0.0059] |
+| Gap-aware likelihood | 0.2279 | 31.77% | 81.97% | 126 | 0.0357 | 0.0501 | N/A | N/A | 0.0223 | 0.0255 | -0.0143 [-0.0358, +0.0085] |
+| Joint transition/noise | 0.2350 | 51.82% | 77.89% | 786 | 0.0325 | 0.0456 | 0.0212 | 0.0246 | 0.0223 | 0.0255 | -0.0072 [-0.0365, +0.0254] |
 
-The joint candidate's high coverage does not translate to better task loss or estimation. Against FIFO its paired interval includes zero. Against the naive hazard estimator the point difference is **+0.0124 loss**, 95% CI **[-0.0072, +0.0345]**; against the gap-aware likelihood it is **+0.0072**, 95% CI **[-0.0156, +0.0293]**. Neither direct held-out contrast demonstrates the joint model is superior. It also consumes **786 logical state bytes**, versus 48 for naive hazard, and has worse hazard MAE/RMSE than the naive estimator.
+The joint candidate's high coverage does not translate to better task loss or transition estimation. Against FIFO its paired interval includes zero. Against the naive hazard estimator the point difference is **+0.0124 loss**, 95% CI **[-0.0072, +0.0345]**; against the gap-aware likelihood it is **+0.0072**, 95% CI **[-0.0156, +0.0293]**. Neither direct held-out contrast demonstrates the joint model is superior. It also consumes **786 logical state bytes**, versus 48 for naive hazard, and has worse hazard MAE/RMSE than the naive estimator.
+
+The joint sensor estimate is slightly better than the evidence-free uniform-grid prior, but the margin is small: held-out sensor-base MAE is **0.0212 vs 0.0223**, with a paired 95% interval for joint-minus-prior **[-0.0016, -0.0008]**; RMSE is **0.0246 vs 0.0255**. On development data, the paired MAE delta is -0.0034, 95% CI [-0.0038, -0.0029]. This is statistically detectable in the synthetic generator, but too small to rescue the task-level result or justify the 786-byte state overhead by itself.
 
 On development episodes, the joint model scored 0.1081 and beat the gap-aware model (paired joint-minus-gap loss -0.0221, 95% CI [-0.0404, -0.0026]). The held-out result loses that advantage, consistent with weak generalization of the joint prior/likelihood under the stress shift. Its synthetic task result is therefore not accepted as advancement.
 
-**Decision:** do not promote `query_keyed_joint_noise`. Before revising its state grid, add evaluator-only calibration for the inferred corruption base rate and a synthetic identifiability test separating transition changes from emission flips. If the model cannot infer sensor noise reliably under known synthetic rates, retire the joint grid and keep the smaller hazard estimator as a comparison baseline only. The next issue is [VIS-MEM-006](https://github.com/Luminous-Dynamics/symtropy/issues/2424); this result motivates adding a q-rate diagnostic to [VIS-MEM-005](https://github.com/Luminous-Dynamics/symtropy/issues/2423).
+**Decision:** do not promote `query_keyed_joint_noise`. The model modestly improves corruption-rate estimation over its prior, but loses task-level accuracy/coverage trade-offs against the simpler hazard model and consumes much more state. Retain it as a diagnostic comparison only; any refinement needs to show task-loss improvement on a fresh, frozen generator and a clear resource-quality trade-off. The evaluator-only q-rate diagnostic is tracked in [VIS-MEM-005](https://github.com/Luminous-Dynamics/symtropy/issues/2423), and the joint-model design/claim boundary in [VIS-MEM-006](https://github.com/Luminous-Dynamics/symtropy/issues/2424).
 
 ## Sensor-base-rate identifiability diagnostic — current candidate
 
