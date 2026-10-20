@@ -26,11 +26,12 @@ The HUD explicitly labels the orbits as illustrative, not ephemeris.
 - Presentation-only minimum-size exaggeration for subpixel distant objects, recorded in the HUD and never written back to physical radius.
 - A surface proxy stage with a local feature, plus system and planet proxy views.
 - A slowly interpolated camera/near-far profile transition.
+- Deterministic circular guide paths for the eight planets and the Moon, split into reusable cuboid segments, positioned relative to the camera and hidden in local/surface views. The guides are illustrative and use a presentation-only thickness for overview readability.
 
 ## What is not implemented
 
 - No NASA/JPL SPICE integration, epoch, timescale, body-fixed orientation, or dynamically computed ephemeris.
-- No surface imagery/DEM tiles, terrain LOD, atmospheres, rings, eclipses, orbital dynamics or spacecraft trails.
+- No surface imagery/DEM tiles, terrain LOD, atmospheres, rings, eclipses, orbital dynamics or spacecraft trails. Orbit guides are static circular geometry, not integrated paths.
 - No high/middle/low GPU vertex shader path; this prototype uses budget-checked camera-relative f32 transforms. Shader-space precision still needs separate validation.
 - No qualified depth strategy. The stage-dependent near/far ranges are fixture inputs, not a recommendation for the final renderer.
 - No GPU timestamp receipt or matched comparison against Gaia Sky, Cesium, Unreal or Unity.
