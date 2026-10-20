@@ -346,7 +346,7 @@ enum PolicyKind {
 }
 
 impl PolicyKind {
-    const ALL: [Self; 7] = [
+    const ALL: [Self; 8] = [
         Self::RoundRobin,
         Self::UniformRandom,
         Self::LeastObserved,
@@ -486,6 +486,7 @@ impl PolicyState {
                 | PolicyKind::ValueOfInformation => QUERY_COUNT as u64,
             PolicyKind::ExpectedTaskLossReduction =>
                 (QUERY_COUNT * DELAY_PRIORS.len() * CONFIDENCE_TIERS.len() * 2 + QUERY_COUNT) as u64,
+            PolicyKind::RiskThresholdStop => QUERY_COUNT as u64 + 1,
         };
         self.estimated_scoring_work_units = self.estimated_scoring_work_units
             .saturating_add(work_this_action);
