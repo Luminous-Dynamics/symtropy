@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Auditable mesh-refinement studies over request-bound numerical comparison reports.
+//! Auditable mesh-refinement studies over exact request/receipt/output comparisons.
 //!
-//! This module measures solution-verification evidence across a declared mesh
-//! family. It does not execute a solver, prove that the meshes are appropriate,
-//! authenticate report authorship, or validate the model against physical reality.
+//! This module audits a declared coarse-to-fine mesh series. It does not execute
+//! a solver, prove asymptotic convergence, validate a model against physical reality,
+//! or qualify a design for engineering use.
 
-use crate::sha256_hex;
+use crate::{
+    reference_compare::compare_reference_observables, sha256_hex, validate_solver_receipt_bytes,
+};
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub type MeshStudyResult<T> = Result<T, String>;
 
@@ -17,25 +23,43 @@ const REPORT_SCHEMA: &str = "physical-numerical-comparison-report-v0.1";
 const MINIMUM_LEVELS: usize = 3;
 const MAXIMUM_LEVELS: usize = 32;
 
-/// Audit a frozen mesh-refinement study manifest and one comparison report per
-/// declared level. Report bytes must match their per-level SHA-256 commitments.
+/// Audit a frozen mesh-refinement manifest using exact request, reference,
+/// per-level solver-receipt bytes, normalized output artifacts and comparison
+/// report bytes. Every report is recomputed by the canonical numerical comparator
+/// and must be structurally identical to the supplied report.
 ///
-/// The report digest identifies the report bytes, but does not prove that report
-/// creation preceded the study or that any source solver was actually executed.
+/// The request is common to the series; per-level mesh/solver configuration is
+/// bound by each receipt. If a workflow changes the physical request per level,
+/// it must use a separately designed scenario protocol rather than silently mixing
+/// subjects in one mesh-refinement study.
 pub fn audit_mesh_refinement_study(
     study_bytes: &[u8],
+    request_bytes: &[u8],
     reference_bytes: &[u8],
+    artifact_root: &Path,
+    solver_receipt_bytes: &[Vec<u8>],
     comparison_report_bytes: &[Vec<u8>],
 ) -> MeshStudyResult<Value> {
     let study_sha256 = sha256_hex(study_bytes);
+    let request_sha256 = sha256_hex(request_bytes);
     let reference_sha256 = sha256_hex(reference_bytes);
+
     let study_value: Value = serde_json::from_slice(study_bytes)
         .map_err(|error| format!("invalid mesh study JSON: {error}"))?;
     let study = parse_study(&study_value)?;
-    let reference_value: Value = serde_json::from_slice(reference_bytes)
-        .map_err(|error| format!("invalid reference JSON: {error}"))?;
-    let reference = parse_reference_for_study(&reference_value, &study, &reference_sha256)?;
-
+    if study.request_sha256 != request_sha256 {
+        return Err("mesh study request_sha256 does not match exact request bytes".to_owned());
+    }
+    if study.reference_sha256 != reference_sha256 {
+        return Err("mesh study reference_sha256 does not match exact reference bytes".to_owned());
+    }
+    if solver_receipt_bytes.len() != study.levels.len() {
+        return Err(format!(
+            "solver receipt count {} does not match manifest level count {}",
+            solver_receipt_bytes.len(),
+            study.levels.len()
+        ));
+    }
     if comparison_report_bytes.len() != study.levels.len() {
         return Err(format!(
             "comparison report count {} does not match manifest level count {}",
@@ -44,77 +68,134 @@ pub fn audit_mesh_refinement_study(
         ));
     }
 
+    let request_value: Value = serde_json::from_slice(request_bytes)
+        .map_err(|error| format!("invalid solver request JSON: {error}"))?;
+    if get_str(&request_value, "request_id", "request")? != study.request_id
+        || get_str(&request_value, "scene_sha256", "request")? != study.scene_sha256
+        || get_u64(&request_value, "scene_revision", "request")? != study.scene_revision
+    {
+        return Err("mesh study request/scene identity does not match exact request bytes".to_owned());
+    }
+
+    let reference_value: Value = serde_json::from_slice(reference_bytes)
+        .map_err(|error| format!("invalid reference JSON: {error}"))?;
+    let reference = parse_reference(&reference_value, &study, &reference_sha256)?;
+
     let mut levels = Vec::<Value>::new();
     let mut primary_errors = Vec::<f64>::new();
     let mut level_statuses = Vec::<String>::new();
     let mut diagnostic_list = Vec::<String>::new();
+    let mut identities = Vec::<Option<SolverIdentity>>::new();
+    let mut receipt_hashes = BTreeSet::<String>::new();
     let mut has_unresolved = false;
     let mut strictly_decreasing = true;
 
-    for (index, (level, report_bytes)) in study
+    for (index, ((level, receipt_bytes), report_bytes)) in study
         .levels
         .iter()
+        .zip(solver_receipt_bytes.iter())
         .zip(comparison_report_bytes.iter())
         .enumerate()
     {
-        let expected_report_sha256 = &level.comparison_report_sha256;
-        let observed_report_sha256 = sha256_hex(report_bytes);
-        if &observed_report_sha256 != expected_report_sha256 {
+        let observed_receipt_sha256 = sha256_hex(receipt_bytes);
+        if observed_receipt_sha256 != level.solver_receipt_sha256 {
             return Err(format!(
-                "level '{}' comparison report SHA-256 mismatch",
+                "level '{}' solver-receipt SHA-256 mismatch",
                 level.level_id
             ));
         }
-
-        let report_value: Value = serde_json::from_slice(report_bytes)
-            .map_err(|error| format!("level '{}' report JSON invalid: {error}", level.level_id))?;
-        let report = parse_comparison_report(
-            &report_value,
-            &study,
-            &reference,
-            &observed_report_sha256,
-        )?;
-
-        let level_status = report.comparison_status.clone();
-        let primary = report.primary_observable.clone();
-        if report.artifact_verification_status != "PASS" || report.producer_status != "PASS" {
+        let observed_report_sha256 = sha256_hex(report_bytes);
+        if observed_report_sha256 != level.comparison_report_sha256 {
+            return Err(format!(
+                "level '{}' comparison-report SHA-256 mismatch",
+                level.level_id
+            ));
+        }
+        if !receipt_hashes.insert(observed_receipt_sha256.clone()) {
             has_unresolved = true;
             diagnostic_list.push(format!(
-                "level '{}' lacks a producer PASS or verified output bytes",
+                "level '{}' reuses a solver receipt already bound to another mesh level",
                 level.level_id
             ));
         }
-        if report.comparison_status == "UNRESOLVED" {
+
+        let contract_report = validate_solver_receipt_bytes(request_bytes, receipt_bytes)?;
+        if contract_report["receipt_contract_validation"] != "PASS" {
+            has_unresolved = true;
+            diagnostic_list.push(format!(
+                "level '{}' receipt/request contract did not PASS",
+                level.level_id
+            ));
+        }
+
+        let receipt_value: Value = serde_json::from_slice(receipt_bytes)
+            .map_err(|error| format!("level '{}' receipt JSON invalid: {error}", level.level_id))?;
+        let report_value: Value = serde_json::from_slice(report_bytes)
+            .map_err(|error| format!("level '{}' comparison report JSON invalid: {error}", level.level_id))?;
+        let observation_output_id = get_str(
+            &report_value,
+            "observation_output_id",
+            "comparison report",
+        )?;
+
+        let recomputed_report = compare_reference_observables(
+            request_bytes,
+            receipt_bytes,
+            artifact_root,
+            observation_output_id,
+            reference_bytes,
+        )?;
+        if recomputed_report != report_value {
+            return Err(format!(
+                "level '{}' comparison report does not reproduce from the exact request, receipt, artifact bytes and reference",
+                level.level_id
+            ));
+        }
+
+        let comparison_status = get_str(&recomputed_report, "comparison_status", "comparison report")?;
+        let artifact_status = get_str(
+            &recomputed_report,
+            "artifact_verification_status",
+            "comparison report",
+        )?;
+        let producer_status = get_str(&recomputed_report, "producer_status", "comparison report")?;
+        if artifact_status != "PASS" || producer_status != "PASS" {
+            has_unresolved = true;
+            diagnostic_list.push(format!(
+                "level '{}' lacks a producer PASS or fully verified output bytes",
+                level.level_id
+            ));
+        }
+        if comparison_status == "UNRESOLVED" {
             has_unresolved = true;
             diagnostic_list.push(format!(
                 "level '{}' numerical comparison is UNRESOLVED",
                 level.level_id
             ));
         }
+        level_statuses.push(comparison_status.to_owned());
 
-        if let Some(primary) = primary.as_ref() {
-            primary_errors.push(primary.absolute_error);
-            if primary.observable_id != study.primary_observable_id {
-                return Err(format!(
-                    "level '{}' primary observable differs from study declaration",
-                    level.level_id
-                ));
+        let identity = solver_identity(&receipt_value);
+        if producer_status == "PASS" && artifact_status == "PASS" {
+            match identity {
+                Ok(identity) => identities.push(Some(identity)),
+                Err(reason) => {
+                    identities.push(None);
+                    has_unresolved = true;
+                    diagnostic_list.push(format!("level '{}': {reason}", level.level_id));
+                }
             }
-            if primary.unit != reference.primary_unit {
-                return Err(format!(
-                    "level '{}' primary observable unit does not match reference",
-                    level.level_id
-                ));
-            }
-            if primary.reference_value != reference.primary_expected_value
-                || primary.absolute_tolerance != reference.primary_absolute_tolerance
-                || primary.relative_tolerance != reference.primary_relative_tolerance
-            {
-                return Err(format!(
-                    "level '{}' primary observable reference/tolerance differs from exact reference manifest",
-                    level.level_id
-                ));
-            }
+        } else {
+            identities.push(None);
+        }
+
+        let primary = find_primary_observable(
+            &recomputed_report,
+            &study.primary_observable_id,
+            &reference,
+        )?;
+        if let Some(item) = primary.as_ref() {
+            primary_errors.push(item.absolute_error);
         } else {
             primary_errors.push(f64::NAN);
         }
@@ -150,10 +231,18 @@ pub fn audit_mesh_refinement_study(
             "level_id": level.level_id,
             "mesh_size_h_m": level.mesh_size_h_m,
             "degrees_of_freedom": level.degrees_of_freedom,
+            "solver_receipt_sha256": observed_receipt_sha256,
             "comparison_report_sha256": observed_report_sha256,
-            "comparison_status": report.comparison_status,
-            "artifact_verification_status": report.artifact_verification_status,
-            "producer_status": report.producer_status,
+            "comparison_status": comparison_status,
+            "artifact_verification_status": artifact_status,
+            "producer_status": producer_status,
+            "receipt_adapter_id": identity.as_ref().map(|item| item.adapter_id.as_str()),
+            "receipt_adapter_version": identity.as_ref().map(|item| item.adapter_version.as_str()),
+            "receipt_adapter_executable_sha256": identity.as_ref().map(|item| item.executable_sha256.as_str()),
+            "receipt_adapter_configuration_sha256": identity.as_ref().map(|item| item.configuration_sha256.as_str()),
+            "solver_name": identity.as_ref().map(|item| item.solver_name.as_str()),
+            "solver_version": identity.as_ref().map(|item| item.solver_version.as_str()),
+            "solver_build_ref": identity.as_ref().map(|item| item.solver_build_ref.as_str()),
             "primary_observable_id": study.primary_observable_id,
             "primary_observed_value": primary.as_ref().map(|item| item.observed_value),
             "primary_reference_value": primary.as_ref().map(|item| item.reference_value),
@@ -162,7 +251,22 @@ pub fn audit_mesh_refinement_study(
             "primary_within_tolerance": primary.as_ref().map(|item| item.within_tolerance),
             "error_trend_from_previous_level": error_trend
         }));
-        level_statuses.push(level_status);
+    }
+
+    let identity_reference = identities.iter().flatten().next().cloned();
+    let solver_identity_consistent = identity_reference.as_ref().is_some_and(|expected| {
+        identities.iter().all(|maybe_identity| {
+            maybe_identity
+                .as_ref()
+                .is_some_and(|identity| identity.same_solver_build(expected))
+        })
+    });
+    if !solver_identity_consistent {
+        has_unresolved = true;
+        diagnostic_list.push(
+            "solver/adapter build identity is missing or changes across mesh levels; refinement results are not directly comparable"
+                .to_owned(),
+        );
     }
 
     let mut interval_orders = Vec::<Value>::new();
@@ -254,6 +358,13 @@ pub fn audit_mesh_refinement_study(
         "mesh_family_id": study.mesh_family_id,
         "mesh_generator_identity": study.mesh_generator_identity,
         "refinement_method": study.refinement_method,
+        "solver_identity_consistent": solver_identity_consistent,
+        "solver_name": identity_reference.as_ref().map(|item| item.solver_name.as_str()),
+        "solver_version": identity_reference.as_ref().map(|item| item.solver_version.as_str()),
+        "solver_build_ref": identity_reference.as_ref().map(|item| item.solver_build_ref.as_str()),
+        "adapter_id": identity_reference.as_ref().map(|item| item.adapter_id.as_str()),
+        "adapter_version": identity_reference.as_ref().map(|item| item.adapter_version.as_str()),
+        "adapter_executable_sha256": identity_reference.as_ref().map(|item| item.executable_sha256.as_str()),
         "primary_observable_id": study.primary_observable_id,
         "primary_unit": reference.primary_unit,
         "primary_reference_value": reference.primary_expected_value,
@@ -272,7 +383,7 @@ pub fn audit_mesh_refinement_study(
         "diagnostics": diagnostic_list,
         "physical_result_qualified": false,
         "real_world_validation_status": "UNRESOLVED",
-        "claim_ceiling": "mesh-refinement trend and finest-level reference comparison for the named outputs and declared mesh family only; no solver execution authentication, physical validation, universal convergence claim or engineering-use qualification"
+        "claim_ceiling": "mesh-refinement trend and finest-level reference comparison for the named outputs and declared mesh family only; no execution authentication, physical validation, universal convergence claim or engineering-use qualification"
     }))
 }
 
@@ -281,6 +392,7 @@ struct StudyLevel {
     level_id: String,
     mesh_size_h_m: f64,
     degrees_of_freedom: u64,
+    solver_receipt_sha256: String,
     comparison_report_sha256: String,
 }
 
@@ -317,12 +429,11 @@ struct ReferenceForStudy {
     primary_unit: String,
     primary_absolute_tolerance: f64,
     primary_relative_tolerance: f64,
-    observable_ids: BTreeSet<String>,
-    observables: BTreeMap<String, ReferenceObservableForStudy>,
+    observables: BTreeMap<String, ReferenceObservable>,
 }
 
 #[derive(Clone, Debug)]
-struct ReferenceObservableForStudy {
+struct ReferenceObservable {
     expected_value: f64,
     unit: String,
     absolute_tolerance: f64,
@@ -330,24 +441,35 @@ struct ReferenceObservableForStudy {
 }
 
 #[derive(Clone, Debug)]
-struct ReportPrimary {
-    observable_id: String,
-    unit: String,
+struct PrimaryObservable {
     observed_value: f64,
     reference_value: f64,
     absolute_error: f64,
-    absolute_tolerance: f64,
-    relative_tolerance: f64,
     allowed_absolute_error: f64,
     within_tolerance: bool,
 }
 
 #[derive(Clone, Debug)]
-struct ComparisonReport {
-    comparison_status: String,
-    artifact_verification_status: String,
-    producer_status: String,
-    primary_observable: Option<ReportPrimary>,
+struct SolverIdentity {
+    receipt_sha256: String,
+    adapter_id: String,
+    adapter_version: String,
+    executable_sha256: String,
+    configuration_sha256: String,
+    solver_name: String,
+    solver_version: String,
+    solver_build_ref: String,
+}
+
+impl SolverIdentity {
+    fn same_solver_build(&self, other: &Self) -> bool {
+        self.adapter_id == other.adapter_id
+            && self.adapter_version == other.adapter_version
+            && self.executable_sha256 == other.executable_sha256
+            && self.solver_name == other.solver_name
+            && self.solver_version == other.solver_version
+            && self.solver_build_ref == other.solver_build_ref
+    }
 }
 
 fn parse_study(value: &Value) -> MeshStudyResult<StudyManifest> {
@@ -435,6 +557,7 @@ fn parse_study(value: &Value) -> MeshStudyResult<StudyManifest> {
                 "level_id",
                 "mesh_size_h_m",
                 "degrees_of_freedom",
+                "solver_receipt_sha256",
                 "comparison_report_sha256",
             ],
             &at,
@@ -451,9 +574,9 @@ fn parse_study(value: &Value) -> MeshStudyResult<StudyManifest> {
         if degrees_of_freedom == 0 {
             return Err(format!("{at}.degrees_of_freedom must be positive"));
         }
+        let solver_receipt_sha256 = digest(raw, "solver_receipt_sha256", &at)?;
         let comparison_report_sha256 = digest(raw, "comparison_report_sha256", &at)?;
         if let Some(previous) = levels.last() {
-            let previous: &StudyLevel = previous;
             if mesh_size_h_m >= previous.mesh_size_h_m {
                 return Err(format!(
                     "{at}.mesh_size_h_m must strictly decrease in coarse-to-fine order"
@@ -469,6 +592,7 @@ fn parse_study(value: &Value) -> MeshStudyResult<StudyManifest> {
             level_id,
             mesh_size_h_m,
             degrees_of_freedom,
+            solver_receipt_sha256,
             comparison_report_sha256,
         });
     }
@@ -493,7 +617,7 @@ fn parse_study(value: &Value) -> MeshStudyResult<StudyManifest> {
     })
 }
 
-fn parse_reference_for_study(
+fn parse_reference(
     value: &Value,
     study: &StudyManifest,
     reference_sha256: &str,
@@ -550,7 +674,6 @@ fn parse_reference_for_study(
     if obs.is_empty() {
         return Err("reference manifest must include observables".to_owned());
     }
-    let mut observable_ids = BTreeSet::new();
     let mut observables = BTreeMap::new();
     let mut primary = None;
     for (index, item) in obs.iter().enumerate() {
@@ -567,9 +690,6 @@ fn parse_reference_for_study(
             &at,
         )?;
         let id = token(get_str(item, "observable_id", &at)?, "reference observable ID")?;
-        if !observable_ids.insert(id.clone()) {
-            return Err(format!("{at}.observable_id '{id}' is duplicated"));
-        }
         let expected_value = get_finite_number(item, "expected_value", &at)?;
         let unit = non_empty(get_str(item, "unit", &at)?, &format!("{at}.unit"), 64)?;
         let absolute_tolerance = get_finite_number(item, "absolute_tolerance", &at)?;
@@ -581,7 +701,7 @@ fn parse_reference_for_study(
         if !allowed.is_finite() {
             return Err(format!("{at} allowed error overflows"));
         }
-        let record = ReferenceObservableForStudy {
+        let record = ReferenceObservable {
             expected_value,
             unit: unit.clone(),
             absolute_tolerance,
@@ -601,9 +721,6 @@ fn parse_reference_for_study(
                 study.primary_observable_id
             )
         })?;
-    if study.reference_sha256 != reference_sha256 {
-        return Err("study.reference_sha256 does not match exact reference bytes".to_owned());
-    }
 
     Ok(ReferenceForStudy {
         reference_id,
@@ -617,232 +734,87 @@ fn parse_reference_for_study(
         primary_unit,
         primary_absolute_tolerance,
         primary_relative_tolerance,
-        observable_ids,
         observables,
     })
 }
 
-fn parse_comparison_report(
-    value: &Value,
-    study: &StudyManifest,
+fn find_primary_observable(
+    report: &Value,
+    primary_id: &str,
     reference: &ReferenceForStudy,
-    report_sha256: &str,
-) -> MeshStudyResult<ComparisonReport> {
-    let _ = report_sha256;
-    exact_keys(
-        value,
-        &[
-            "schema_version",
-            "comparison_status",
-            "comparison_method",
-            "comparison_protocol_id",
-            "reference_id",
-            "reference_sha256",
-            "oracle_method",
-            "oracle_identity",
-            "oracle_source_ref",
-            "request_sha256",
-            "case_id",
-            "request_id",
-            "scene_sha256",
-            "scene_revision",
-            "observation_output_id",
-            "observation_artifact_sha256",
-            "artifact_verification_status",
-            "producer_status",
-            "numerical_observable_comparison",
-            "physical_result_qualified",
-            "real_world_validation_status",
-            "diagnostics",
-            "observable_results",
-            "claim_ceiling",
-        ],
-        "comparison report",
-    )?;
-    expect_str(
-        value,
-        "comparison_method",
-        "per_observable_absolute_plus_relative_tolerance",
-        "comparison report",
-    )?;
-    let status = get_str(value, "comparison_status", "comparison report")?;
-    if !["PASS", "FAIL", "UNRESOLVED"].contains(&status) {
-        return Err("comparison report has an unsupported comparison_status".to_owned());
+) -> MeshStudyResult<Option<PrimaryObservable>> {
+    if get_str(report, "comparison_status", "comparison report")? == "UNRESOLVED" {
+        return Ok(None);
     }
-    expect_str(value, "schema_version", REPORT_SCHEMA, "comparison report")?;
-    for (key, expected, at) in [
-        ("reference_id", reference.reference_id.as_str(), "comparison report"),
-        ("reference_sha256", study.reference_sha256.as_str(), "comparison report"),
-        ("comparison_protocol_id", study.comparison_protocol_id.as_str(), "comparison report"),
-        ("request_id", study.request_id.as_str(), "comparison report"),
-        ("request_sha256", study.request_sha256.as_str(), "comparison report"),
-        ("scene_sha256", study.scene_sha256.as_str(), "comparison report"),
-        ("case_id", study.case_id.as_str(), "comparison report"),
-    ] {
-        if get_str(value, key, at)? != expected {
-            return Err(format!("comparison report {key} does not match mesh study"));
-        }
-    }
-    if get_u64(value, "scene_revision", "comparison report")? != study.scene_revision {
-        return Err("comparison report scene_revision does not match mesh study".to_owned());
-    }
-    let artifact_status = get_str(value, "artifact_verification_status", "comparison report")?;
-    let producer_status = get_str(value, "producer_status", "comparison report")?;
-    if !["PASS", "FAIL", "UNRESOLVED"].contains(&artifact_status)
-        || !["PASS", "FAIL", "UNRESOLVED"].contains(&producer_status)
+    let results = get_array(report, "observable_results", "comparison report")?;
+    let primary = results
+        .iter()
+        .find(|item| item.get("observable_id").and_then(Value::as_str) == Some(primary_id))
+        .ok_or_else(|| format!("comparison report lacks primary observable '{primary_id}'"))?;
+    let unit = get_str(primary, "unit", "primary observable")?;
+    let reference_value = get_finite_number(primary, "reference_value", "primary observable")?;
+    let observed_value = get_finite_number(primary, "observed_value", "primary observable")?;
+    let absolute_error = get_finite_number(primary, "absolute_error", "primary observable")?;
+    let allowed_absolute_error =
+        get_finite_number(primary, "allowed_absolute_error", "primary observable")?;
+    let within_tolerance = primary
+        .get("within_tolerance")
+        .and_then(Value::as_bool)
+        .ok_or_else(|| "primary observable within_tolerance must be boolean".to_owned())?;
+    let expected = reference
+        .observables
+        .get(primary_id)
+        .ok_or_else(|| "primary observable missing from reference registry".to_owned())?;
+    if unit != expected.unit
+        || reference_value != expected.expected_value
+        || allowed_absolute_error
+            != expected.absolute_tolerance
+                + expected.relative_tolerance * expected.expected_value.abs()
+        || within_tolerance != (absolute_error <= allowed_absolute_error)
     {
-        return Err("comparison report contains an unsupported prerequisite status".to_owned());
+        return Err("primary comparison result is inconsistent with the exact reference".to_owned());
     }
-    if value.get("physical_result_qualified").and_then(Value::as_bool) != Some(false)
-        || get_str(value, "real_world_validation_status", "comparison report")? != "UNRESOLVED"
-    {
-        return Err("comparison report exceeds the expected claim ceiling".to_owned());
-    }
-    if get_str(value, "numerical_observable_comparison", "comparison report")? != status {
-        return Err("comparison report numerical status disagrees with comparison_status".to_owned());
-    }
-    if status == "UNRESOLVED" {
-        return Ok(ComparisonReport {
-            comparison_status: status.to_owned(),
-            artifact_verification_status: artifact_status.to_owned(),
-            producer_status: producer_status.to_owned(),
-            primary_observable: None,
-        });
-    }
-    let results = get_array(value, "observable_results", "comparison report")?;
-    let mut ids = BTreeSet::new();
-    let mut any_failing = false;
-    let mut primary = None;
-    for (index, item) in results.iter().enumerate() {
-        let at = format!("comparison report.observable_results[{index}]");
-        exact_keys(
-            item,
-            &[
-                "observable_id",
-                "unit",
-                "reference_value",
-                "observed_value",
-                "absolute_error",
-                "relative_error",
-                "relative_error_defined",
-                "relative_error_status",
-                "absolute_tolerance",
-                "relative_tolerance",
-                "allowed_absolute_error",
-                "within_tolerance",
-            ],
-            &at,
-        )?;
-        let id = token(get_str(item, "observable_id", &at)?, "report observable ID")?;
-        if !ids.insert(id.clone()) {
-            return Err(format!("{at}.observable_id is duplicated"));
-        }
-        let unit = non_empty(get_str(item, "unit", &at)?, &format!("{at}.unit"), 64)?;
-        let manifest_reference = reference
-            .observables
-            .get(&id)
-            .ok_or_else(|| format!("{at}.observable_id is absent from the reference manifest"))?;
-        let expected_value = get_finite_number(item, "reference_value", &at)?;
-        if unit != manifest_reference.unit
-            || expected_value != manifest_reference.expected_value
-            || get_finite_number(item, "absolute_tolerance", &at)?
-                != manifest_reference.absolute_tolerance
-            || get_finite_number(item, "relative_tolerance", &at)?
-                != manifest_reference.relative_tolerance
-        {
-            return Err(format!(
-                "{at} reference values, units or tolerances do not match the exact reference manifest"
-            ));
-        }
-        let observed_value = get_finite_number(item, "observed_value", &at)?;
-        let absolute_error = get_finite_number(item, "absolute_error", &at)?;
-        let absolute_tolerance = get_finite_number(item, "absolute_tolerance", &at)?;
-        let relative_tolerance = get_finite_number(item, "relative_tolerance", &at)?;
-        let allowed_absolute_error = get_finite_number(item, "allowed_absolute_error", &at)?;
-        if absolute_error < 0.0 || absolute_tolerance < 0.0 || relative_tolerance < 0.0 {
-            return Err(format!("{at} has negative error/tolerance"));
-        }
-        let computed_error = (observed_value - expected_value).abs();
-        let computed_allowed = absolute_tolerance + relative_tolerance * expected_value.abs();
-        if !computed_error.is_finite()
-            || !computed_allowed.is_finite()
-            || absolute_error != computed_error
-            || allowed_absolute_error != computed_allowed
-        {
-            return Err(format!("{at} error arithmetic is inconsistent"));
-        }
-        let expected_within_tolerance = computed_error <= computed_allowed;
-        if item.get("within_tolerance").and_then(Value::as_bool) != Some(expected_within_tolerance) {
-            return Err(format!("{at}.within_tolerance is inconsistent with its errors"));
-        }
+    Ok(Some(PrimaryObservable {
+        observed_value,
+        reference_value,
+        absolute_error,
+        allowed_absolute_error,
+        within_tolerance,
+    }))
+}
 
-        let relative_error_defined = item
-            .get("relative_error_defined")
-            .and_then(Value::as_bool)
-            .ok_or_else(|| format!("{at}.relative_error_defined must be boolean"))?;
-        let relative_error_status = get_str(item, "relative_error_status", &at)?;
-        let relative_error = item
-            .get("relative_error")
-            .ok_or_else(|| format!("{at}.relative_error is missing"))?;
-        if expected_value == 0.0 {
-            if relative_error_defined
-                || relative_error_status != "undefined_zero_reference"
-                || !relative_error.is_null()
-            {
-                return Err(format!("{at} zero-reference relative-error semantics are inconsistent"));
-            }
-        } else {
-            let expected_relative_error = computed_error / expected_value.abs();
-            if expected_relative_error.is_finite() {
-                if !relative_error_defined
-                    || relative_error_status != "computed"
-                    || relative_error.as_f64() != Some(expected_relative_error)
-                {
-                    return Err(format!("{at} relative error is inconsistent"));
-                }
-            } else if !relative_error_defined
-                || relative_error_status != "overflow"
-                || !relative_error.is_null()
-            {
-                return Err(format!("{at} relative-error overflow status is inconsistent"));
-            }
-        }
-
-        if !expected_within_tolerance {
-            any_failing = true;
-        }
-        if id == study.primary_observable_id {
-            if unit != reference.primary_unit
-                || expected_value != reference.primary_expected_value
-                || absolute_tolerance != reference.primary_absolute_tolerance
-                || relative_tolerance != reference.primary_relative_tolerance
-            {
-                return Err(format!("{at} does not match the exact primary reference"));
-            }
-            primary = Some(ReportPrimary {
-                observable_id: id,
-                unit,
-                observed_value,
-                reference_value: expected_value,
-                absolute_error,
-                absolute_tolerance,
-                relative_tolerance,
-                allowed_absolute_error,
-                within_tolerance: expected_within_tolerance,
-            });
-        }
-    }
-    if ids != reference.observable_ids {
-        return Err("comparison report observable inventory does not match reference manifest".to_owned());
-    }
-    if (status == "PASS" && any_failing) || (status == "FAIL" && !any_failing) {
-        return Err("comparison report overall status is inconsistent with observable results".to_owned());
-    }
-    Ok(ComparisonReport {
-        comparison_status: status.to_owned(),
-        artifact_verification_status: artifact_status.to_owned(),
-        producer_status: producer_status.to_owned(),
-        primary_observable: primary,
+fn solver_identity(receipt: &Value) -> MeshStudyResult<SolverIdentity> {
+    let adapter = receipt
+        .get("adapter")
+        .ok_or_else(|| "solver receipt has no adapter".to_owned())?;
+    Ok(SolverIdentity {
+        receipt_sha256: sha256_hex(
+            &serde_json::to_vec(receipt)
+                .map_err(|error| format!("receipt serialization failed: {error}"))?,
+        ),
+        adapter_id: token(get_str(adapter, "adapter_id", "receipt.adapter")?, "adapter ID")?,
+        adapter_version: non_empty(
+            get_str(adapter, "version", "receipt.adapter")?,
+            "receipt.adapter.version",
+            128,
+        )?,
+        executable_sha256: digest(adapter, "executable_sha256", "receipt.adapter")?,
+        configuration_sha256: digest(adapter, "configuration_sha256", "receipt.adapter")?,
+        solver_name: non_empty(
+            get_str(adapter, "solver_name", "receipt.adapter")?,
+            "receipt.adapter.solver_name",
+            256,
+        )?,
+        solver_version: non_empty(
+            get_str(adapter, "solver_version", "receipt.adapter")?,
+            "receipt.adapter.solver_version",
+            128,
+        )?,
+        solver_build_ref: non_empty(
+            get_str(adapter, "solver_build_ref", "receipt.adapter")?,
+            "receipt.adapter.solver_build_ref",
+            2048,
+        )?,
     })
 }
 
@@ -898,7 +870,11 @@ fn get_finite_number(value: &Value, key: &str, at: &str) -> MeshStudyResult<f64>
 
 fn digest(value: &Value, key: &str, at: &str) -> MeshStudyResult<String> {
     let digest = get_str(value, key, at)?;
-    if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
+    if digest.len() != 64
+        || !digest
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
         return Err(format!("{at}.{key} must be a lowercase SHA-256 digest"));
     }
     Ok(digest.to_owned())
