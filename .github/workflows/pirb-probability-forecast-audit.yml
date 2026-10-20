@@ -51,6 +51,17 @@ jobs:
       - name: Assert public CI fixture is synthetic and aggregate-only
         run: jq -e '.evidence_class == "synthetic" and .privacy.aggregate_only == true' docs/fixtures/pirb-probability-forecast-v0.1.json > /dev/null
 
+      - name: Assert hierarchy fixture is synthetic and aggregate-only
+        run: |
+          jq -e '
+            .evidence_scope == "synthetic"
+            and .privacy.aggregate_only == true
+            and .predictive_samples.representation == "finite_joint_count_samples"
+            and .provider.forecast_artifact_sha256 == "0000000000000000000000000000000000000000000000000000000000000000"
+            and .provider.hierarchy_sha256 == "1111111111111111111111111111111111111111111111111111111111111111"
+            and .reconciliation_policy.method_sha256 == "2222222222222222222222222222222222222222222222222222222222222222"
+          ' docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json > /dev/null
+
       - name: Run schema, metric, maturity, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
 
@@ -130,6 +141,72 @@ jobs:
               and .test_suppressed_unit_count == 1
               and (.test_unit_metrics | length == 2)
             ' pirb-probability-forecast-receipt.json
+
+      - name: Audit joint sample hierarchy coherence and independently verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          input="docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json"
+          schema="docs/schemas/pirb-hierarchy-forecast-v0.1.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+          expected_lock_sha="$(sha256sum tools/pirb-probability-forecast-eval/Cargo.lock | awk '{print $1}')"
+          rustc_version="$(rustc --version)"
+          cargo_version="$(cargo --version)"
+
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-hierarchy-coherence-audit -- \
+            --input "$input" --source-commit "$source_commit" \
+            --dependency-lock-sha256 "$expected_lock_sha" \
+            --rustc-version "$rustc_version" --cargo-version "$cargo_version" \
+            > pirb-hierarchy-coherence-receipt.json
+
+          expected_receipt_commitment="$(printf 'pirb-hierarchy-coherence-receipt-v0.1\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
+            "pirb-hierarchy-cast-synthetic-coherence-example" "$source_commit" \
+            "$expected_schema_sha" "$expected_input_sha" "$expected_lock_sha" \
+            "$rustc_version" "$cargo_version" | sha256sum | awk '{print $1}')"
+
+          jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_input_sha" \
+            --arg schema_sha "$expected_schema_sha" --arg lock_sha "$expected_lock_sha" \
+            --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" \
+            --arg receipt_commitment "$expected_receipt_commitment" '
+              .receipt_version == "0.1"
+              and .receipt_type == "hierarchy_coherence_audit"
+              and .registration_id == "pirb-hierarchy-cast-synthetic-coherence-example"
+              and .source_commit == $source_commit
+              and .source_commit_pinned == true
+              and .dependency_lock_sha256 == $lock_sha
+              and .rustc_version == $rustc_version
+              and .cargo_version == $cargo_version
+              and .input_sha256 == $input_sha
+              and .schema_sha256 == $schema_sha
+              and .forecast_artifact_sha256 == "0000000000000000000000000000000000000000000000000000000000000000"
+              and .hierarchy_sha256 == "1111111111111111111111111111111111111111111111111111111111111111"
+              and .reconciliation_method_sha256 == "2222222222222222222222222222222222222222222222222222222222222222"
+              and .summary.constraint_count == 3
+              and .summary.assessable_constraint_count == 2
+              and .summary.reconciled_coherent_constraint_count == 2
+              and .summary.not_assessable_constraint_count == 1
+              and .summary.raw_coherence_rate == 1
+              and .summary.reconciled_coherence_rate == 1
+              and .summary.predictive_sample_count == 2
+              and .summary.assessable_sample_constraint_count == 4
+              and .summary.raw_incoherent_sample_constraint_count == 2
+              and .summary.reconciled_coherent_sample_constraint_count == 4
+              and .summary.reconciled_incoherent_sample_constraint_count == 0
+              and .summary.not_assessable_sample_constraint_count == 2
+              and .summary.raw_sample_coherence_rate == 0.5
+              and .summary.reconciled_sample_coherence_rate == 1
+              and (.predictive_sample_diagnostics | length == 6)
+              and .predictive_sample_diagnostics[0].raw_signed_residual == 1
+              and .claims.contract_validated == true
+              and .claims.predictive_sample_coherence_measured == true
+              and .claims.forecast_accuracy_established == false
+              and .claims.decision_utility_established == false
+              and .claims.causal_impact_established == false
+              and .claims.live_decision_authority == false
+              and .receipt_commitment_sha256 == $receipt_commitment
+            ' pirb-hierarchy-coherence-receipt.json
 
       - name: Compare frozen outcome vintages with invariant forecast inventory
         shell: bash
@@ -225,6 +302,9 @@ jobs:
           name: pirb-probability-forecast-synthetic-receipt
           path: |
             pirb-probability-forecast-receipt.json
+            pirb-hierarchy-coherence-receipt.json
+            docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json
+            docs/schemas/pirb-hierarchy-forecast-v0.1.schema.json
             pirb-views-import-receipt.json
             pirb-views-normalized.json
             pirb-views-score-receipt.json
