@@ -45,6 +45,7 @@ fn invoice_event(amount_minor_units: i64) -> LedgerEvent {
             transaction_ref: "invoice-1:line-1".to_owned(),
             amount_minor_units,
             currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
+                minor_unit_exponent: 2,
         }),
     }
 }
@@ -53,6 +54,7 @@ fn test_rate(rate: f64) -> QuantityRate {
     QuantityRate {
         unit_rate: rate,
         currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
+                minor_unit_exponent: 2,
         rate_card_ref: "oracle-rate-card-v1".to_owned(),
     }
 }
