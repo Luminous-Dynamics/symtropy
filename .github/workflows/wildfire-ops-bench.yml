@@ -220,6 +220,8 @@ jobs:
                   --no-step-log true \
                   --duration-log.disable true \
                   --tripinfo-output "$case_dir/tripinfo.xml" \
+                  --tripinfo-output.write-unfinished true \
+                  --tripinfo-output.write-undeparted true \
                   > "$case_dir/sumo-smoke.stdout.log" 2> "$case_dir/sumo-smoke.stderr.log"; then
                   cat "$case_dir/sumo-smoke.stdout.log"
                   cat "$case_dir/sumo-smoke.stderr.log"
@@ -230,10 +232,25 @@ jobs:
             '
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          export SOURCE_COMMIT="$source_commit"
           cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_sumo_export -- \
             benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
             wildfire-sumo-export \
             "$source_commit"
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-SUMO-OUTCOMES-001"
+            and .case_count == 6
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.cases | length == 6)
+            and (.cases | all(.sumo_behavior.planned_vehicle_count == .sumo_behavior.tripinfo_record_count))
+            and (.cases | all(.sumo_behavior.arrived_by_horizon_vehicle_count + .sumo_behavior.not_arrived_by_horizon_vehicle_count == .sumo_behavior.planned_vehicle_count))
+            and (.cases | all(.sumo_behavior.trip_duration_seconds.count == .sumo_behavior.arrived_by_horizon_vehicle_count))
+            and (.cases | all(.sumo_behavior.trip_waiting_seconds.count == .sumo_behavior.arrived_by_horizon_vehicle_count))
+            and (.cases | all(.sumo_behavior.trip_time_loss_seconds.count == .sumo_behavior.arrived_by_horizon_vehicle_count))
+            and (.cases | all(.sumo_behavior.claim_boundary | contains("not equivalent to Symtropy")))
+          ' wildfire-sumo-export/sumo-behavior-receipt.json
 
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
@@ -243,6 +260,7 @@ jobs:
             wildfire-ops-reference-receipt.json
             wildfire-traffic-ctm-receipt.json
             wildfire-network-flow-reference-receipt.json
+            wildfire-sumo-export/sumo-behavior-receipt.json
             wildfire-sumo-export/
           if-no-files-found: error
           retention-days: 90
