@@ -3,7 +3,9 @@
 //! This relation is a code-verification invariant, not physical validation.
 
 use crate::{
-    reference_compare::{MAX_NORMALIZED_BYTES, ObservedObservable, parse_observation, safe_relative_path},
+    reference_compare::{
+        MAX_NORMALIZED_BYTES, ObservedObservable, parse_observation, safe_relative_path,
+    },
     sha256_hex, verify_solver_output_artifact_bytes,
 };
 use serde_json::{Value, json};
@@ -72,26 +74,48 @@ pub fn assess_superposition_relation_bytes(
         || manifest.request_b_sha256 != request_b_sha256
         || manifest.request_combined_sha256 != request_combined_sha256
     {
-        return Ok(unresolved(report, "relation manifest does not bind all three exact request byte streams"));
+        return Ok(unresolved(
+            report,
+            "relation manifest does not bind all three exact request byte streams",
+        ));
     }
 
     let request_a: Value = match serde_json::from_slice(request_a_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("request A JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("request A JSON is invalid: {error}"),
+            ));
+        }
     };
     let request_b: Value = match serde_json::from_slice(request_b_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("request B JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("request B JSON is invalid: {error}"),
+            ));
+        }
     };
     let request_combined: Value = match serde_json::from_slice(request_combined_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("combined request JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("combined request JSON is invalid: {error}"),
+            ));
+        }
     };
     if let Err(reason) = validate_request_relation(&request_a, &request_b, &request_combined) {
         return Ok(unresolved(report, reason));
     }
 
-    let paired_kinds: BTreeSet<&str> = manifest.output_pairs.iter().map(|pair| pair.kind.as_str()).collect();
+    let paired_kinds: BTreeSet<&str> = manifest
+        .output_pairs
+        .iter()
+        .map(|pair| pair.kind.as_str())
+        .collect();
     let requested_kinds: BTreeSet<&str> = req_array(&request_a, "required_outputs")?
         .iter()
         .map(|value| value.as_str().unwrap_or(""))
@@ -99,17 +123,37 @@ pub fn assess_superposition_relation_bytes(
     if paired_kinds != requested_kinds {
         return Ok(unresolved(
             report,
-            format!("output pairs must cover the exact required-output inventory; requested={requested_kinds:?}, paired={paired_kinds:?}"),
+            format!(
+                "output pairs must cover the exact required-output inventory; requested={requested_kinds:?}, paired={paired_kinds:?}"
+            ),
         ));
     }
 
-    let verify_a = match verify_solver_output_artifact_bytes(request_a_bytes, receipt_a_bytes, artifact_root) {
+    let verify_a = match verify_solver_output_artifact_bytes(
+        request_a_bytes,
+        receipt_a_bytes,
+        artifact_root,
+    ) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("run A receipt/artifact verification failed: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("run A receipt/artifact verification failed: {error}"),
+            ));
+        }
     };
-    let verify_b = match verify_solver_output_artifact_bytes(request_b_bytes, receipt_b_bytes, artifact_root) {
+    let verify_b = match verify_solver_output_artifact_bytes(
+        request_b_bytes,
+        receipt_b_bytes,
+        artifact_root,
+    ) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("run B receipt/artifact verification failed: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("run B receipt/artifact verification failed: {error}"),
+            ));
+        }
     };
     let verify_combined = match verify_solver_output_artifact_bytes(
         request_combined_bytes,
@@ -117,7 +161,12 @@ pub fn assess_superposition_relation_bytes(
         artifact_root,
     ) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("combined receipt/artifact verification failed: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("combined receipt/artifact verification failed: {error}"),
+            ));
+        }
     };
     set_verification_fields(&mut report, "a", &verify_a);
     set_verification_fields(&mut report, "b", &verify_b);
@@ -136,21 +185,39 @@ pub fn assess_superposition_relation_bytes(
             ));
         }
         if verification["producer_status"] != "PASS" {
-            return Ok(unresolved(report, format!("run {label} producer receipt is not PASS")));
+            return Ok(unresolved(
+                report,
+                format!("run {label} producer receipt is not PASS"),
+            ));
         }
     }
 
     let receipt_a: Value = match serde_json::from_slice(receipt_a_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("receipt A JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("receipt A JSON is invalid: {error}"),
+            ));
+        }
     };
     let receipt_b: Value = match serde_json::from_slice(receipt_b_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("receipt B JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("receipt B JSON is invalid: {error}"),
+            ));
+        }
     };
     let receipt_combined: Value = match serde_json::from_slice(receipt_combined_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(unresolved(report, format!("combined receipt JSON is invalid: {error}"))),
+        Err(error) => {
+            return Ok(unresolved(
+                report,
+                format!("combined receipt JSON is invalid: {error}"),
+            ));
+        }
     };
 
     let mut output_results = Vec::with_capacity(manifest.output_pairs.len());
@@ -159,14 +226,26 @@ pub fn assess_superposition_relation_bytes(
     let mut observable_count = 0usize;
     let mut diagnostics = Vec::new();
     for pair in &manifest.output_pairs {
-        let output_a = match bind_output(artifact_root, &receipt_a, &verify_a, &pair.a_id, &pair.kind) {
-            Ok(value) => value,
-            Err(reason) => return Ok(unresolved(report, format!("run A output '{}': {reason}", pair.a_id))),
-        };
-        let output_b = match bind_output(artifact_root, &receipt_b, &verify_b, &pair.b_id, &pair.kind) {
-            Ok(value) => value,
-            Err(reason) => return Ok(unresolved(report, format!("run B output '{}': {reason}", pair.b_id))),
-        };
+        let output_a =
+            match bind_output(artifact_root, &receipt_a, &verify_a, &pair.a_id, &pair.kind) {
+                Ok(value) => value,
+                Err(reason) => {
+                    return Ok(unresolved(
+                        report,
+                        format!("run A output '{}': {reason}", pair.a_id),
+                    ));
+                }
+            };
+        let output_b =
+            match bind_output(artifact_root, &receipt_b, &verify_b, &pair.b_id, &pair.kind) {
+                Ok(value) => value,
+                Err(reason) => {
+                    return Ok(unresolved(
+                        report,
+                        format!("run B output '{}': {reason}", pair.b_id),
+                    ));
+                }
+            };
         let output_combined = match bind_output(
             artifact_root,
             &receipt_combined,
@@ -175,20 +254,40 @@ pub fn assess_superposition_relation_bytes(
             &pair.kind,
         ) {
             Ok(value) => value,
-            Err(reason) => return Ok(unresolved(report, format!("combined output '{}': {reason}", pair.combined_id))),
+            Err(reason) => {
+                return Ok(unresolved(
+                    report,
+                    format!("combined output '{}': {reason}", pair.combined_id),
+                ));
+            }
         };
 
         let value_a: Value = match serde_json::from_slice(&output_a.bytes) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("run A normalized output JSON is invalid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("run A normalized output JSON is invalid: {error}"),
+                ));
+            }
         };
         let value_b: Value = match serde_json::from_slice(&output_b.bytes) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("run B normalized output JSON is invalid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("run B normalized output JSON is invalid: {error}"),
+                ));
+            }
         };
         let value_combined: Value = match serde_json::from_slice(&output_combined.bytes) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("combined normalized output JSON is invalid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("combined normalized output JSON is invalid: {error}"),
+                ));
+            }
         };
 
         let observables_a = match parse_observation(
@@ -200,7 +299,12 @@ pub fn assess_superposition_relation_bytes(
             &manifest.case_id,
         ) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("run A observation is not request-bound/valid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("run A observation is not request-bound/valid: {error}"),
+                ));
+            }
         };
         let observables_b = match parse_observation(
             &value_b,
@@ -211,7 +315,12 @@ pub fn assess_superposition_relation_bytes(
             &manifest.case_id,
         ) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("run B observation is not request-bound/valid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("run B observation is not request-bound/valid: {error}"),
+                ));
+            }
         };
         let observables_combined = match parse_observation(
             &value_combined,
@@ -222,22 +331,42 @@ pub fn assess_superposition_relation_bytes(
             &manifest.case_id,
         ) {
             Ok(value) => value,
-            Err(error) => return Ok(unresolved(report, format!("combined observation is not request-bound/valid: {error}"))),
+            Err(error) => {
+                return Ok(unresolved(
+                    report,
+                    format!("combined observation is not request-bound/valid: {error}"),
+                ));
+            }
         };
 
         let inventory_a: BTreeSet<&String> = observables_a.keys().collect();
         let inventory_b: BTreeSet<&String> = observables_b.keys().collect();
         let inventory_combined: BTreeSet<&String> = observables_combined.keys().collect();
         if inventory_a != inventory_b || inventory_a != inventory_combined {
-            return Ok(unresolved(report, format!("observable inventory differs across A, B and combined runs for output kind '{}'", pair.kind)));
+            return Ok(unresolved(
+                report,
+                format!(
+                    "observable inventory differs across A, B and combined runs for output kind '{}'",
+                    pair.kind
+                ),
+            ));
         }
         for (label, output, observables) in [
             ("A", &output_a, &observables_a),
             ("B", &output_b, &observables_b),
             ("combined", &output_combined, &observables_combined),
         ] {
-            if observables.values().any(|observable| observable.unit != output.declared_unit) {
-                return Ok(unresolved(report, format!("run {label} normalized units disagree with receipt-declared unit for output kind '{}'", pair.kind)));
+            if observables
+                .values()
+                .any(|observable| observable.unit != output.declared_unit)
+            {
+                return Ok(unresolved(
+                    report,
+                    format!(
+                        "run {label} normalized units disagree with receipt-declared unit for output kind '{}'",
+                        pair.kind
+                    ),
+                ));
             }
         }
         let (results, violations, unresolved_values, count) = compare_observables(
@@ -377,20 +506,36 @@ fn compare_observables(
 }
 
 fn validate_request_relation(a: &Value, b: &Value, combined: &Value) -> Check<()> {
-    let a_object = a.as_object().ok_or_else(|| "request A must be an object".to_owned())?;
-    let b_object = b.as_object().ok_or_else(|| "request B must be an object".to_owned())?;
-    let combined_object = combined.as_object().ok_or_else(|| "combined request must be an object".to_owned())?;
+    let a_object = a
+        .as_object()
+        .ok_or_else(|| "request A must be an object".to_owned())?;
+    let b_object = b
+        .as_object()
+        .ok_or_else(|| "request B must be an object".to_owned())?;
+    let combined_object = combined
+        .as_object()
+        .ok_or_else(|| "combined request must be an object".to_owned())?;
     let fidelity = req_str(a, "model_fidelity")?;
     if !["analytical_linear_elastic", "continuum_linear_elastic"].contains(&fidelity) {
-        return Err("superposition requires analytical_linear_elastic or continuum_linear_elastic fidelity".to_owned());
+        return Err(
+            "superposition requires analytical_linear_elastic or continuum_linear_elastic fidelity"
+                .to_owned(),
+        );
     }
     let physics = req_string_array(a, "requested_physics")?;
     if physics.len() != 1 || physics[0] != "static_linear_elastic" {
-        return Err("superposition only supports static_linear_elastic as the sole requested physics".to_owned());
+        return Err(
+            "superposition only supports static_linear_elastic as the sole requested physics"
+                .to_owned(),
+        );
     }
     for (label, request) in [("B", b), ("combined", combined)] {
-        if req_str(request, "model_fidelity")? != fidelity || req_string_array(request, "requested_physics")? != physics {
-            return Err(format!("request {label} does not declare the same eligible fidelity and physics"));
+        if req_str(request, "model_fidelity")? != fidelity
+            || req_string_array(request, "requested_physics")? != physics
+        {
+            return Err(format!(
+                "request {label} does not declare the same eligible fidelity and physics"
+            ));
         }
     }
     let ids = [
@@ -414,7 +559,10 @@ fn validate_request_relation(a: &Value, b: &Value, combined: &Value) -> Check<()
         || req_str(a, "coordinate_frame_id")? != req_str(b, "coordinate_frame_id")?
         || req_str(a, "coordinate_frame_id")? != req_str(combined, "coordinate_frame_id")?
     {
-        return Err("A, B and combined requests must bind the same scene revision and coordinate frame".to_owned());
+        return Err(
+            "A, B and combined requests must bind the same scene revision and coordinate frame"
+                .to_owned(),
+        );
     }
     for (label, object) in [("B", b_object), ("combined", combined_object)] {
         for (key, value) in a_object {
@@ -435,14 +583,19 @@ fn validate_request_relation(a: &Value, b: &Value, combined: &Value) -> Check<()
     let loads_a = req_array(a, "loads")?;
     let loads_b = req_array(b, "loads")?;
     let loads_combined = req_array(combined, "loads")?;
-    if loads_a.is_empty() || loads_b.is_empty() || loads_combined.len() != loads_a.len() + loads_b.len() {
+    if loads_a.is_empty()
+        || loads_b.is_empty()
+        || loads_combined.len() != loads_a.len() + loads_b.len()
+    {
         return Err("A and B must have non-empty load inventories and combined must contain exactly their union".to_owned());
     }
     let mut union: BTreeMap<String, Value> = BTreeMap::new();
     for (label, loads) in [("A", loads_a), ("B", loads_b)] {
         for (index, load) in loads.iter().enumerate() {
             if req_str(load, "kind")? != "point_force" {
-                return Err(format!("request {label} load {index} is outside v0.1 point_force-only scope"));
+                return Err(format!(
+                    "request {label} load {index} is outside v0.1 point_force-only scope"
+                ));
             }
             let id = req_token(load, "load_id")?;
             if union.insert(id.clone(), load.clone()).is_some() {
@@ -453,18 +606,24 @@ fn validate_request_relation(a: &Value, b: &Value, combined: &Value) -> Check<()
     let mut combined_ids = BTreeSet::new();
     for (index, load) in loads_combined.iter().enumerate() {
         if req_str(load, "kind")? != "point_force" {
-            return Err(format!("combined request load {index} is outside v0.1 point_force-only scope"));
+            return Err(format!(
+                "combined request load {index} is outside v0.1 point_force-only scope"
+            ));
         }
         let id = req_token(load, "load_id")?;
         if !combined_ids.insert(id.clone()) {
             return Err(format!("combined request duplicates load ID '{id}'"));
         }
         if union.get(&id) != Some(load) {
-            return Err(format!("combined request load '{id}' is not byte-semantically equal to the union of A and B loads"));
+            return Err(format!(
+                "combined request load '{id}' is not byte-semantically equal to the union of A and B loads"
+            ));
         }
     }
     if combined_ids.len() != union.len() || union.keys().any(|id| !combined_ids.contains(id)) {
-        return Err("combined request load inventory is not exactly the union of A and B".to_owned());
+        return Err(
+            "combined request load inventory is not exactly the union of A and B".to_owned(),
+        );
     }
     Ok(())
 }
@@ -477,43 +636,61 @@ fn bind_output(
     expected_kind: &str,
 ) -> Check<BoundOutput> {
     let outputs = req_array(receipt, "outputs")?;
-    let matches: Vec<&Value> = outputs.iter().filter(|output| {
-        output.get("output_id").and_then(Value::as_str) == Some(output_id)
-    }).collect();
+    let matches: Vec<&Value> = outputs
+        .iter()
+        .filter(|output| output.get("output_id").and_then(Value::as_str) == Some(output_id))
+        .collect();
     if matches.len() != 1 {
-        return Err(format!("receipt must contain exactly one output ID '{output_id}'"));
+        return Err(format!(
+            "receipt must contain exactly one output ID '{output_id}'"
+        ));
     }
     let output = matches[0];
     if req_str(output, "kind")? != expected_kind {
         return Err(format!("output kind is not '{expected_kind}'"));
     }
-    let declared_unit = output.get("unit")
+    let declared_unit = output
+        .get("unit")
         .and_then(Value::as_str)
         .filter(|unit| !unit.trim().is_empty() && unit.len() <= 64)
-        .ok_or_else(|| "scored superposition output requires an explicit non-empty unit".to_owned())?
+        .ok_or_else(|| {
+            "scored superposition output requires an explicit non-empty unit".to_owned()
+        })?
         .to_owned();
-    let result_entries = verification.get("artifact_results").and_then(Value::as_array)
+    let result_entries = verification
+        .get("artifact_results")
+        .and_then(Value::as_array)
         .ok_or_else(|| "artifact verifier omitted artifact_results".to_owned())?;
-    let verified = result_entries.iter().find(|entry| {
-        entry.get("output_id").and_then(Value::as_str) == Some(output_id)
-    }).ok_or_else(|| format!("output '{output_id}' is missing a verifier entry"))?;
+    let verified = result_entries
+        .iter()
+        .find(|entry| entry.get("output_id").and_then(Value::as_str) == Some(output_id))
+        .ok_or_else(|| format!("output '{output_id}' is missing a verifier entry"))?;
     if verified.get("status").and_then(Value::as_str) != Some("PASS") {
-        return Err(format!("output '{output_id}' did not pass byte verification"));
+        return Err(format!(
+            "output '{output_id}' did not pass byte verification"
+        ));
     }
     let expected_sha = req_str(output, "sha256")?;
     if req_str(verified, "observed_sha256")? != expected_sha {
-        return Err(format!("output '{output_id}' verifier digest differs from receipt"));
+        return Err(format!(
+            "output '{output_id}' verifier digest differs from receipt"
+        ));
     }
-    let canonical_root = fs::canonicalize(root).map_err(|error| format!("cannot canonicalize artifact root: {error}"))?;
+    let canonical_root = fs::canonicalize(root)
+        .map_err(|error| format!("cannot canonicalize artifact root: {error}"))?;
     let relative = safe_relative_path(req_str(output, "artifact_ref")?)?;
     let candidate = canonical_root.join(relative);
-    let canonical = fs::canonicalize(&candidate).map_err(|error| format!("cannot resolve output: {error}"))?;
+    let canonical =
+        fs::canonicalize(&candidate).map_err(|error| format!("cannot resolve output: {error}"))?;
     if !canonical.starts_with(&canonical_root) {
         return Err("output resolves outside the canonical artifact root".to_owned());
     }
-    let metadata = fs::metadata(&canonical).map_err(|error| format!("cannot inspect output: {error}"))?;
+    let metadata =
+        fs::metadata(&canonical).map_err(|error| format!("cannot inspect output: {error}"))?;
     if !metadata.is_file() || metadata.len() > MAX_NORMALIZED_BYTES {
-        return Err("normalized output is not a regular file within the parser byte budget".to_owned());
+        return Err(
+            "normalized output is not a regular file within the parser byte budget".to_owned(),
+        );
     }
     let bytes = fs::read(&canonical).map_err(|error| format!("cannot read output: {error}"))?;
     let observed_sha = sha256_hex(&bytes);
@@ -530,27 +707,42 @@ fn bind_output(
 }
 
 fn set_verification_fields(report: &mut Value, label: &str, verification: &Value) {
-    report[format!("{label}_artifact_verification_status")] =
-        verification.get("artifact_verification_status").cloned().unwrap_or(Value::Null);
-    report[format!("{label}_output_artifact_bytes_verified")] =
-        verification.get("output_artifact_bytes_verified").cloned().unwrap_or(Value::Bool(false));
-    report[format!("{label}_producer_status")] =
-        verification.get("producer_status").cloned().unwrap_or(Value::Null);
+    report[format!("{label}_artifact_verification_status")] = verification
+        .get("artifact_verification_status")
+        .cloned()
+        .unwrap_or(Value::Null);
+    report[format!("{label}_output_artifact_bytes_verified")] = verification
+        .get("output_artifact_bytes_verified")
+        .cloned()
+        .unwrap_or(Value::Bool(false));
+    report[format!("{label}_producer_status")] = verification
+        .get("producer_status")
+        .cloned()
+        .unwrap_or(Value::Null);
 }
 
 fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
-    let value: Value = serde_json::from_slice(bytes).map_err(|error| format!("invalid superposition manifest JSON: {error}"))?;
+    let value: Value = serde_json::from_slice(bytes)
+        .map_err(|error| format!("invalid superposition manifest JSON: {error}"))?;
     exact_keys(
         &value,
         &[
-            "schema_version", "relation_id", "case_id", "request_a_sha256",
-            "request_b_sha256", "request_combined_sha256", "absolute_tolerance",
-            "relative_tolerance", "output_pairs"
+            "schema_version",
+            "relation_id",
+            "case_id",
+            "request_a_sha256",
+            "request_b_sha256",
+            "request_combined_sha256",
+            "absolute_tolerance",
+            "relative_tolerance",
+            "output_pairs",
         ],
         "superposition manifest",
     )?;
     if req_str(&value, "schema_version")? != MANIFEST_SCHEMA {
-        return Err(format!("manifest.schema_version must equal '{MANIFEST_SCHEMA}'"));
+        return Err(format!(
+            "manifest.schema_version must equal '{MANIFEST_SCHEMA}'"
+        ));
     }
     let relation_id = req_token(&value, "relation_id")?;
     let case_id = req_token(&value, "case_id")?;
@@ -580,7 +772,16 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
     let mut combined_ids = BTreeSet::new();
     for (index, pair) in pairs.iter().enumerate() {
         let at = format!("manifest.output_pairs[{index}]");
-        exact_keys(pair, &["output_kind", "output_a_id", "output_b_id", "output_combined_id"], &at)?;
+        exact_keys(
+            pair,
+            &[
+                "output_kind",
+                "output_a_id",
+                "output_b_id",
+                "output_combined_id",
+            ],
+            &at,
+        )?;
         let kind = req_token(pair, "output_kind")?;
         let a_id = req_token(pair, "output_a_id")?;
         let b_id = req_token(pair, "output_b_id")?;
@@ -590,13 +791,26 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
             || !b_ids.insert(b_id.clone())
             || !combined_ids.insert(combined_id.clone())
         {
-            return Err(format!("{at} duplicates an output kind or a same-run output ID"));
+            return Err(format!(
+                "{at} duplicates an output kind or a same-run output ID"
+            ));
         }
-        output_pairs.push(OutputPair { kind, a_id, b_id, combined_id });
+        output_pairs.push(OutputPair {
+            kind,
+            a_id,
+            b_id,
+            combined_id,
+        });
     }
     Ok(RelationManifest {
-        relation_id, case_id, request_a_sha256, request_b_sha256,
-        request_combined_sha256, absolute_tolerance, relative_tolerance, output_pairs
+        relation_id,
+        case_id,
+        request_a_sha256,
+        request_b_sha256,
+        request_combined_sha256,
+        absolute_tolerance,
+        relative_tolerance,
+        output_pairs,
     })
 }
 
@@ -647,48 +861,77 @@ fn unresolved(mut report: Value, reason: impl Into<String>) -> Value {
 }
 
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
-    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{at} must be an object"))?;
     let expected: BTreeSet<&str> = expected.iter().copied().collect();
     let actual: BTreeSet<&str> = object.keys().map(String::as_str).collect();
     let missing: Vec<_> = expected.difference(&actual).copied().collect();
     let unknown: Vec<_> = actual.difference(&expected).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
-        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
     }
     Ok(())
 }
 
 fn req_str<'a>(value: &'a Value, key: &str) -> Check<&'a str> {
-    value.get(key).and_then(Value::as_str).ok_or_else(|| format!("{key} must be a string"))
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("{key} must be a string"))
 }
 fn req_u64(value: &Value, key: &str) -> Check<u64> {
-    value.get(key).and_then(Value::as_u64).ok_or_else(|| format!("{key} must be a non-negative integer"))
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| format!("{key} must be a non-negative integer"))
 }
 fn req_number(value: &Value, key: &str) -> Check<f64> {
-    value.get(key).and_then(Value::as_f64).filter(|number| number.is_finite()).ok_or_else(|| format!("{key} must be finite numeric"))
+    value
+        .get(key)
+        .and_then(Value::as_f64)
+        .filter(|number| number.is_finite())
+        .ok_or_else(|| format!("{key} must be finite numeric"))
 }
 fn req_array<'a>(value: &'a Value, key: &str) -> Check<&'a Vec<Value>> {
-    value.get(key).and_then(Value::as_array).ok_or_else(|| format!("{key} must be an array"))
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .ok_or_else(|| format!("{key} must be an array"))
 }
 fn req_string_array(value: &Value, key: &str) -> Check<Vec<String>> {
     req_array(value, key)?
         .iter()
-        .map(|item| item.as_str().map(str::to_owned).ok_or_else(|| format!("{key} entries must be strings")))
+        .map(|item| {
+            item.as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| format!("{key} entries must be strings"))
+        })
         .collect()
 }
 fn req_token(value: &Value, key: &str) -> Check<String> {
     let value = req_str(value, key)?;
     if value.is_empty()
         || value.len() > 128
-        || !value.chars().all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':'))
+        || !value.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':')
+        })
     {
         return Err(format!("{key} must be a stable token"));
     }
     Ok(value.to_owned())
 }
 fn valid_sha(value: &str, label: &str) -> Check<()> {
-    if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
-        return Err(format!("{label} must be 64 lowercase hexadecimal characters"));
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(format!(
+            "{label} must be 64 lowercase hexadecimal characters"
+        ));
     }
     Ok(())
 }
@@ -723,7 +966,8 @@ mod tests {
     fn make_bundle(combined_uy: f64) -> Bundle {
         let mut a: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
-        )).unwrap();
+        ))
+        .unwrap();
         a["request_id"] = json!("fixture:superposition-a");
         a["requested_physics"] = json!(["static_linear_elastic"]);
         a["required_outputs"] = json!(["displacement"]);
@@ -738,10 +982,7 @@ mod tests {
 
         let mut combined = a.clone();
         combined["request_id"] = json!("fixture:superposition-combined");
-        combined["loads"] = json!([
-            a["loads"][0].clone(),
-            b["loads"][0].clone()
-        ]);
+        combined["loads"] = json!([a["loads"][0].clone(), b["loads"][0].clone()]);
 
         let request_a = serde_json::to_vec(&a).unwrap();
         let request_b = serde_json::to_vec(&b).unwrap();
@@ -754,11 +995,19 @@ mod tests {
 
         let root = std::env::temp_dir().join(format!(
             "symtropy-superposition-{}-{}",
-            std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&root).unwrap();
 
-        fn observation(request: &Value, request_sha: &str, scene_sha: &str, scene_revision: u64, ux: f64, uy: f64) -> Vec<u8> {
+        fn observation(
+            request: &Value,
+            request_sha: &str,
+            scene_sha: &str,
+            scene_revision: u64,
+            ux: f64,
+            uy: f64,
+        ) -> Vec<u8> {
             serde_json::to_vec(&json!({
                 "schema_version":"physical-normalized-observables-v0.1",
                 "request_sha256":request_sha,
@@ -770,16 +1019,30 @@ mod tests {
                     {"observable_id":"tip_ux","value":ux,"unit":"m"},
                     {"observable_id":"tip_uy","value":uy,"unit":"m"}
                 ]
-            })).unwrap()
+            }))
+            .unwrap()
         }
         let bytes_a = observation(&a, &sha_a, scene_sha, scene_revision, 0.01, 0.0);
         let bytes_b = observation(&b, &sha_b, scene_sha, scene_revision, 0.0, 0.02);
-        let bytes_combined = observation(&combined, &sha_combined, scene_sha, scene_revision, 0.01, combined_uy);
+        let bytes_combined = observation(
+            &combined,
+            &sha_combined,
+            scene_sha,
+            scene_revision,
+            0.01,
+            combined_uy,
+        );
         fs::write(root.join("a-displacement.json"), &bytes_a).unwrap();
         fs::write(root.join("b-displacement.json"), &bytes_b).unwrap();
         fs::write(root.join("combined-displacement.json"), &bytes_combined).unwrap();
 
-        fn receipt(request: &Value, request_bytes: &[u8], output_id: &str, artifact_ref: &str, output_bytes: &[u8]) -> Vec<u8> {
+        fn receipt(
+            request: &Value,
+            request_bytes: &[u8],
+            output_id: &str,
+            artifact_ref: &str,
+            output_bytes: &[u8],
+        ) -> Vec<u8> {
             serde_json::to_vec(&json!({
                 "schema_version":"physical-solver-receipt-v0.1",
                 "request_id":request["request_id"],
@@ -817,11 +1080,18 @@ mod tests {
                 },
                 "claim_ceiling":"Synthetic relation fixture only; not physical qualification.",
                 "diagnostics":[]
-            })).unwrap()
+            }))
+            .unwrap()
         }
         let receipt_a = receipt(&a, &request_a, "output-a", "a-displacement.json", &bytes_a);
         let receipt_b = receipt(&b, &request_b, "output-b", "b-displacement.json", &bytes_b);
-        let receipt_combined = receipt(&combined, &request_combined, "output-combined", "combined-displacement.json", &bytes_combined);
+        let receipt_combined = receipt(
+            &combined,
+            &request_combined,
+            "output-combined",
+            "combined-displacement.json",
+            &bytes_combined,
+        );
 
         let manifest = json!({
             "schema_version":MANIFEST_SCHEMA,
@@ -847,17 +1117,22 @@ mod tests {
             receipt_b,
             request_combined,
             receipt_combined,
-            manifest:serde_json::to_vec(&manifest).unwrap()
+            manifest: serde_json::to_vec(&manifest).unwrap(),
         }
     }
 
     fn assess(bundle: &Bundle) -> Value {
         assess_superposition_relation_bytes(
-            &bundle.request_a, &bundle.receipt_a,
-            &bundle.request_b, &bundle.receipt_b,
-            &bundle.request_combined, &bundle.receipt_combined,
-            &bundle.root, &bundle.manifest
-        ).unwrap()
+            &bundle.request_a,
+            &bundle.receipt_a,
+            &bundle.request_b,
+            &bundle.receipt_b,
+            &bundle.request_combined,
+            &bundle.receipt_combined,
+            &bundle.root,
+            &bundle.manifest,
+        )
+        .unwrap()
     }
 
     #[test]
