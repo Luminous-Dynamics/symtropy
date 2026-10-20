@@ -15,7 +15,8 @@
     "model_weights",
     "model_count",
     "scores",
-    "weight_sensitivity"
+    "weight_sensitivity",
+    "action_preference"
   ],
   "properties": {
     "schema_version": {
@@ -179,7 +180,47 @@
           }
         }
       }
+    },
+    "action_preference": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "first_action",
+          "second_action",
+          "minimum_loss_difference",
+          "maximum_loss_difference",
+          "stability"
+        ],
+        "properties": {
+          "first_action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "second_action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minimum_loss_difference": {
+            "type": "number"
+          },
+          "maximum_loss_difference": {
+            "type": "number"
+          },
+          "stability": {
+            "enum": [
+              "first_strictly_better",
+              "first_never_worse",
+              "second_strictly_better",
+              "second_never_worse",
+              "equivalent",
+              "ranking_can_flip"
+            ]
+          }
+        }
+      }
     }
   },
-  "$comment": "JSON Schema does not prove model_ids match every per_model_regret key, model_count matches model_ids.length, action coverage is complete, or risk metrics are mathematically correct. Semantic checks and the Rust scorer remain required. weight_sensitivity entries are optional in meaning (empty when no intervals are declared) and otherwise report extrema over the supplied bounded simplex; JSON Schema does not prove weights sum to one or validate optimality."
+  "$comment": "JSON Schema does not prove model_ids match every per_model_regret key, model_count matches model_ids.length, action coverage is complete, or risk metrics are mathematically correct. Semantic checks and the Rust scorer remain required. weight_sensitivity entries are optional in meaning (empty when no intervals are declared) and otherwise report extrema over the supplied bounded simplex; JSON Schema does not prove weights sum to one or validate optimality. action_preference reports paired difference extrema under one shared feasible weight vector; a ranking_can_flip result is stronger evidence of preference reversibility than overlap between independent action-loss envelopes. Empty when no intervals are supplied."
 }
