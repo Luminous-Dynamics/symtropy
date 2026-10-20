@@ -17,6 +17,119 @@ pub const COMMITTED_ORACLE_JSON: &str =
 pub const COMMITTED_SCHEMA_JSON: &str =
     include_str!("../../../../docs/living-world/ANIMAL_ECOLOGICAL_TRANSFER_ORACLE_V1.schema.json");
 
+pub const PILOT_SCHEMA_VERSION: &str = "ANIMAL-FLOOD-FORAGE-RISK-PILOT-V0";
+pub const COMMITTED_PILOT_JSON: &str =
+    include_str!("../../../../docs/living-world/ANIMAL_FLOOD_FORAGE_RISK_PILOT_V0.json");
+pub const COMMITTED_PILOT_SCHEMA_JSON: &str =
+    include_str!("../../../../docs/living-world/ANIMAL_FLOOD_FORAGE_RISK_PILOT_V0.schema.json");
+
+const PILOT_ROOT_KEYS: &[&str] = &[
+    "schema_version",
+    "status",
+    "tracking_issue",
+    "scenario_id",
+    "independent_unit",
+    "note",
+    "randomization",
+    "horizon",
+    "world",
+    "refuges",
+    "corridors",
+    "model_registry",
+    "agent",
+    "sensory_contract",
+    "budget_contract",
+    "policy_comparison",
+    "primary_metrics",
+    "ablations",
+    "hard_invariants",
+];
+const RANDOMIZATION_KEYS: &[&str] = &[
+    "seed_family",
+    "seeds",
+    "paired_exogenous_noise",
+    "pairing_scope",
+];
+const HORIZON_KEYS: &[&str] = &["ticks", "tick_duration_ms"];
+const WORLD_KEYS: &[&str] = &[
+    "width_cells",
+    "height_cells",
+    "initial_water_depth_cm",
+    "initial_resource_stock_units",
+    "resource_replenishment_units_per_tick",
+    "flood",
+    "resource_shortage",
+    "held_out_combination",
+];
+const FLOOD_KEYS: &[&str] = &[
+    "event_id",
+    "start_tick",
+    "end_tick",
+    "water_depth_cm",
+    "current_xy",
+    "closes_corridor_id",
+];
+const SHORTAGE_KEYS: &[&str] = &[
+    "event_id",
+    "start_tick",
+    "end_tick",
+    "replenishment_units_per_tick",
+];
+const REFUGE_KEYS: &[&str] = &["id", "x_cell", "y_cell"];
+const CORRIDOR_KEYS: &[&str] = &[
+    "id",
+    "from_refuge",
+    "to_refuge",
+    "traversable_before_flood",
+    "traversable_during_flood",
+];
+const MODEL_KEYS: &[&str] = &[
+    "id",
+    "role",
+    "reference_history_fit",
+    "forage_recovery_lag_ticks",
+    "policy_visible_model_id",
+    "revealed_before_evaluation",
+];
+const AGENT_KEYS: &[&str] = &[
+    "profile_id",
+    "biological_claim_scope",
+    "initial_energy_units",
+    "active_sensing_actions_per_episode",
+    "max_policy_actions",
+];
+const SENSORY_KEYS: &[&str] = &[
+    "permitted_observations",
+    "denied_inputs",
+    "cue_delivery_latency_ticks",
+    "renderer_independent",
+];
+const BUDGET_KEYS: &[&str] = &[
+    "simulated_tick_budget",
+    "max_policy_actions",
+    "active_sensing_actions_per_episode",
+    "compute_budget_units",
+    "matched_budget_required",
+    "failed_selected_episodes_remain_in_denominator",
+];
+const POLICY_COMPARISON_KEYS: &[&str] = &[
+    "qualifying_baselines",
+    "candidates",
+    "nonqualifying_upper_bounds",
+    "exact_policy_identity_required",
+    "same_initial_state_required",
+    "paired_exogenous_noise_required_within_model",
+    "report_distributional_comparison_across_model_structures",
+];
+const HARD_INVARIANT_KEYS: &[&str] = &[
+    "hidden_state_access_allowed",
+    "resource_accounting_violation_limit",
+    "selected_failures_remain_in_denominator",
+    "missing_metric_disposition",
+    "synthetic_success_claim_scope",
+    "renderer_is_world_authority",
+];
+
 const TOP_LEVEL_KEYS: &[&str] = &[
     "schema_version",
     "status",
@@ -97,6 +210,13 @@ pub struct ValidationReport {
     pub schema_version: String,
     pub case_count: usize,
     pub unique_case_ids: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PilotValidationReport {
+    pub scenario_id: String,
+    pub seed_count: usize,
+    pub model_count: usize,
 }
 
 /// Validate the machine-readable oracle without claiming to execute its scenarios.
@@ -465,6 +585,610 @@ fn is_valid_iso_date(date: &str) -> bool {
         _ => 31,
     };
     (1..=month_days).contains(&day)
+}
+
+
+/// Validate the committed synthetic flood–forage–risk pilot contract.
+///
+/// This checks scenario-manifest semantics and schema identity. It does not run
+/// the simulated world or establish empirical ecology.
+pub fn validate_pilot_manifest(
+    input: &str,
+    schema_input: &str,
+) -> Result<PilotValidationReport, ValidationError> {
+    let root: Value = serde_json::from_str(input)
+        .map_err(|error| ValidationError::new(format!("pilot JSON is invalid: {error}")))?;
+    let root_object = root
+        .as_object()
+        .ok_or_else(|| ValidationError::new("pilot root must be an object"))?;
+    check_exact_keys(root_object, PILOT_ROOT_KEYS, "pilot")?;
+    require_exact_string(&root, "schema_version", PILOT_SCHEMA_VERSION, "pilot")?;
+    require_exact_string(&root, "status", "synthetic_scenario_manifest", "pilot")?;
+    require_exact_string(
+        &root,
+        "tracking_issue",
+        "https://github.com/Luminous-Dynamics/symtropy/issues/2214",
+        "pilot",
+    )?;
+    require_exact_string(
+        &root,
+        "scenario_id",
+        "flood_forage_risk_corridor_v0",
+        "pilot",
+    )?;
+    require_exact_string(&root, "independent_unit", "episode_seed_pair", "pilot")?;
+    require_nonempty_string(&root, "note", "pilot")?;
+
+    let randomization = object_at(&root, "randomization", "pilot")?;
+    check_exact_keys(
+        randomization.as_object().ok_or_else(|| {
+            ValidationError::new("pilot.randomization must be an object")
+        })?,
+        RANDOMIZATION_KEYS,
+        "pilot.randomization",
+    )?;
+    require_nonempty_string(randomization, "seed_family", "pilot.randomization")?;
+    require_nonempty_string(randomization, "pairing_scope", "pilot.randomization")?;
+    require_exact_bool(
+        randomization,
+        "paired_exogenous_noise",
+        true,
+        "pilot.randomization",
+    )?;
+    let seeds = randomization
+        .get("seeds")
+        .and_then(Value::as_array)
+        .ok_or_else(|| ValidationError::new("pilot.randomization.seeds must be an array"))?;
+    if seeds.len() < 10 {
+        return Err(ValidationError::new(
+            "pilot.randomization.seeds must contain at least 10 seeds",
+        ));
+    }
+    let mut unique_seeds = BTreeSet::new();
+    for (index, seed) in seeds.iter().enumerate() {
+        let seed = seed.as_u64().ok_or_else(|| {
+            ValidationError::new(format!(
+                "pilot.randomization.seeds[{index}] must be a nonnegative integer"
+            ))
+        })?;
+        if !unique_seeds.insert(seed) {
+            return Err(ValidationError::new(format!(
+                "pilot.randomization.seeds contains duplicate seed {seed}"
+            )));
+        }
+    }
+
+    let horizon = object_at(&root, "horizon", "pilot")?;
+    check_exact_keys(
+        horizon
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.horizon must be an object"))?,
+        HORIZON_KEYS,
+        "pilot.horizon",
+    )?;
+    let horizon_ticks = required_u64(horizon, "ticks", "pilot.horizon")?;
+    if horizon_ticks != 1200 {
+        return Err(ValidationError::new("pilot.horizon.ticks must be 1200"));
+    }
+    if required_u64(horizon, "tick_duration_ms", "pilot.horizon")? == 0 {
+        return Err(ValidationError::new(
+            "pilot.horizon.tick_duration_ms must be positive",
+        ));
+    }
+
+    let world = object_at(&root, "world", "pilot")?;
+    check_exact_keys(
+        world
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.world must be an object"))?,
+        WORLD_KEYS,
+        "pilot.world",
+    )?;
+    let width = required_u64(world, "width_cells", "pilot.world")?;
+    let height = required_u64(world, "height_cells", "pilot.world")?;
+    if width == 0 || height == 0 {
+        return Err(ValidationError::new(
+            "pilot.world dimensions must be positive",
+        ));
+    }
+    require_number_min(world, "initial_water_depth_cm", 0.0, "pilot.world")?;
+    require_number_min(world, "initial_resource_stock_units", 0.0, "pilot.world")?;
+    require_number_min(world, "resource_replenishment_units_per_tick", 0.0, "pilot.world")?;
+    require_exact_bool(world, "held_out_combination", true, "pilot.world")?;
+
+    let flood = object_at(world, "flood", "pilot.world")?;
+    check_exact_keys(
+        flood
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.world.flood must be an object"))?,
+        FLOOD_KEYS,
+        "pilot.world.flood",
+    )?;
+    require_nonempty_string(flood, "event_id", "pilot.world.flood")?;
+    require_nonempty_string(flood, "closes_corridor_id", "pilot.world.flood")?;
+    require_number_min(flood, "water_depth_cm", 0.0, "pilot.world.flood")?;
+    let flood_start = required_u64(flood, "start_tick", "pilot.world.flood")?;
+    let flood_end = required_u64(flood, "end_tick", "pilot.world.flood")?;
+    if flood_start >= flood_end || flood_end > horizon_ticks {
+        return Err(ValidationError::new(
+            "pilot flood interval must be ordered and within the simulation horizon",
+        ));
+    }
+    let current = flood
+        .get("current_xy")
+        .and_then(Value::as_array)
+        .ok_or_else(|| ValidationError::new("pilot.world.flood.current_xy must be an array"))?;
+    if current.len() != 2 || current.iter().any(|value| !value.is_number()) {
+        return Err(ValidationError::new(
+            "pilot.world.flood.current_xy must contain exactly two numeric components",
+        ));
+    }
+
+    let shortage = object_at(world, "resource_shortage", "pilot.world")?;
+    check_exact_keys(
+        shortage
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.world.resource_shortage must be an object"))?,
+        SHORTAGE_KEYS,
+        "pilot.world.resource_shortage",
+    )?;
+    require_nonempty_string(shortage, "event_id", "pilot.world.resource_shortage")?;
+    let shortage_start = required_u64(shortage, "start_tick", "pilot.world.resource_shortage")?;
+    let shortage_end = required_u64(shortage, "end_tick", "pilot.world.resource_shortage")?;
+    require_number_min(
+        shortage,
+        "replenishment_units_per_tick",
+        0.0,
+        "pilot.world.resource_shortage",
+    )?;
+    if shortage_start >= shortage_end || shortage_end > horizon_ticks {
+        return Err(ValidationError::new(
+            "pilot resource-shortage interval must be ordered and within the simulation horizon",
+        ));
+    }
+    if flood_start.max(shortage_start) >= flood_end.min(shortage_end) {
+        return Err(ValidationError::new(
+            "pilot flood and resource-shortage intervals must overlap to form the held-out combination",
+        ));
+    }
+
+    let refuges = root
+        .get("refuges")
+        .and_then(Value::as_array)
+        .ok_or_else(|| ValidationError::new("pilot.refuges must be an array"))?;
+    if refuges.len() != 2 {
+        return Err(ValidationError::new("pilot.refuges must contain exactly two refuges"));
+    }
+    let mut refuge_ids = BTreeSet::new();
+    for (index, refuge) in refuges.iter().enumerate() {
+        let path = format!("pilot.refuges[{index}]");
+        let object = refuge
+            .as_object()
+            .ok_or_else(|| ValidationError::new(format!("{path} must be an object")))?;
+        check_exact_keys(object, REFUGE_KEYS, &path)?;
+        let id = required_string(refuge, "id", &path)?;
+        if !refuge_ids.insert(id.to_owned()) {
+            return Err(ValidationError::new(format!("duplicate refuge ID: {id}")));
+        }
+        let x = required_u64(refuge, "x_cell", &path)?;
+        let y = required_u64(refuge, "y_cell", &path)?;
+        if x >= width || y >= height {
+            return Err(ValidationError::new(format!(
+                "{path} lies outside the declared world dimensions"
+            )));
+        }
+    }
+
+    let corridors = root
+        .get("corridors")
+        .and_then(Value::as_array)
+        .filter(|items| !items.is_empty())
+        .ok_or_else(|| ValidationError::new("pilot.corridors must be a nonempty array"))?;
+    let mut corridor_ids = BTreeSet::new();
+    let mut flood_closes_declared_corridor = false;
+    for (index, corridor) in corridors.iter().enumerate() {
+        let path = format!("pilot.corridors[{index}]");
+        let object = corridor
+            .as_object()
+            .ok_or_else(|| ValidationError::new(format!("{path} must be an object")))?;
+        check_exact_keys(object, CORRIDOR_KEYS, &path)?;
+        let id = required_string(corridor, "id", &path)?;
+        if !corridor_ids.insert(id.to_owned()) {
+            return Err(ValidationError::new(format!("duplicate corridor ID: {id}")));
+        }
+        let from = required_string(corridor, "from_refuge", &path)?;
+        let to = required_string(corridor, "to_refuge", &path)?;
+        if !refuge_ids.contains(from) || !refuge_ids.contains(to) || from == to {
+            return Err(ValidationError::new(format!(
+                "{path} must connect two distinct declared refuges"
+            )));
+        }
+        let before = required_bool(corridor, "traversable_before_flood", &path)?;
+        let during = required_bool(corridor, "traversable_during_flood", &path)?;
+        if id == required_string(flood, "closes_corridor_id", "pilot.world.flood")? {
+            flood_closes_declared_corridor = before && !during;
+        }
+    }
+    if !flood_closes_declared_corridor {
+        return Err(ValidationError::new(
+            "flood must close a corridor that is traversable before but not during the flood",
+        ));
+    }
+
+    let models = root
+        .get("model_registry")
+        .and_then(Value::as_array)
+        .ok_or_else(|| ValidationError::new("pilot.model_registry must be an array"))?;
+    if models.len() != 3 {
+        return Err(ValidationError::new(
+            "pilot.model_registry must contain two candidate structures and one blind challenger",
+        ));
+    }
+    let mut model_ids = BTreeSet::new();
+    let mut lags = BTreeSet::new();
+    let mut candidate_count = 0;
+    let mut challenger_count = 0;
+    for (index, model) in models.iter().enumerate() {
+        let path = format!("pilot.model_registry[{index}]");
+        let object = model
+            .as_object()
+            .ok_or_else(|| ValidationError::new(format!("{path} must be an object")))?;
+        check_exact_keys(object, MODEL_KEYS, &path)?;
+        let id = required_string(model, "id", &path)?;
+        if !model_ids.insert(id.to_owned()) {
+            return Err(ValidationError::new(format!("duplicate model ID: {id}")));
+        }
+        require_exact_string(model, "reference_history_fit", "observationally_compatible", &path)?;
+        require_exact_bool(model, "policy_visible_model_id", false, &path)?;
+        let lag = required_u64(model, "forage_recovery_lag_ticks", &path)?;
+        if lag == 0 || !lags.insert(lag) {
+            return Err(ValidationError::new(
+                "pilot models must have distinct positive forage-recovery lags",
+            ));
+        }
+        let revealed = required_bool(model, "revealed_before_evaluation", &path)?;
+        match required_string(model, "role", &path)? {
+            "candidate_structure" => {
+                candidate_count += 1;
+                if !revealed {
+                    return Err(ValidationError::new(
+                        "registered candidate structures must be visible to the evaluator before evaluation",
+                    ));
+                }
+            }
+            "blind_challenger" => {
+                challenger_count += 1;
+                if revealed {
+                    return Err(ValidationError::new(
+                        "blind challenger must remain unrevealed before evaluation",
+                    ));
+                }
+            }
+            role => {
+                return Err(ValidationError::new(format!(
+                    "{path}.role is unsupported: {role}"
+                )));
+            }
+        }
+    }
+    if candidate_count != 2 || challenger_count != 1 {
+        return Err(ValidationError::new(
+            "pilot must register exactly two candidate structures and one blind challenger",
+        ));
+    }
+
+    let agent = object_at(&root, "agent", "pilot")?;
+    check_exact_keys(
+        agent
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.agent must be an object"))?,
+        AGENT_KEYS,
+        "pilot.agent",
+    )?;
+    require_exact_string(agent, "biological_claim_scope", "synthetic_only", "pilot.agent")?;
+    require_nonempty_string(agent, "profile_id", "pilot.agent")?;
+    require_number_min(agent, "initial_energy_units", 0.0, "pilot.agent")?;
+
+    let sensory = object_at(&root, "sensory_contract", "pilot")?;
+    check_exact_keys(
+        sensory
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.sensory_contract must be an object"))?,
+        SENSORY_KEYS,
+        "pilot.sensory_contract",
+    )?;
+    let required_observations = [
+        "local_flow_estimate",
+        "local_water_depth",
+        "local_resource_cue",
+        "local_predator_cue",
+        "refuge_visibility",
+    ];
+    let required_denied_inputs = [
+        "global_current_vector_field",
+        "future_flood_state",
+        "intervention_label",
+        "hidden_model_id",
+        "exact_global_resource_coordinates",
+    ];
+    require_unique_nonempty_string_array(
+        sensory,
+        "permitted_observations",
+        "pilot.sensory_contract",
+        &required_observations,
+    )?;
+    require_unique_nonempty_string_array(
+        sensory,
+        "denied_inputs",
+        "pilot.sensory_contract",
+        &required_denied_inputs,
+    )?;
+    require_exact_bool(sensory, "renderer_independent", true, "pilot.sensory_contract")?;
+    for permitted in sensory["permitted_observations"].as_array().ok_or_else(|| {
+        ValidationError::new("pilot permitted_observations must be an array")
+    })? {
+        if let Some(name) = permitted.as_str() {
+            if required_denied_inputs.contains(&name) {
+                return Err(ValidationError::new(format!(
+                    "sensor input {name} is both permitted and denied"
+                )));
+            }
+        }
+    }
+
+    let budget = object_at(&root, "budget_contract", "pilot")?;
+    check_exact_keys(
+        budget
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.budget_contract must be an object"))?,
+        BUDGET_KEYS,
+        "pilot.budget_contract",
+    )?;
+    if required_u64(budget, "simulated_tick_budget", "pilot.budget_contract")? != horizon_ticks
+        || required_u64(budget, "max_policy_actions", "pilot.budget_contract")?
+            != required_u64(agent, "max_policy_actions", "pilot.agent")?
+        || required_u64(
+            budget,
+            "active_sensing_actions_per_episode",
+            "pilot.budget_contract",
+        )? != required_u64(
+            agent,
+            "active_sensing_actions_per_episode",
+            "pilot.agent",
+        )?
+        || required_u64(budget, "compute_budget_units", "pilot.budget_contract")? == 0
+    {
+        return Err(ValidationError::new(
+            "pilot policy/world budgets must be positive and internally consistent",
+        ));
+    }
+    require_exact_bool(budget, "matched_budget_required", true, "pilot.budget_contract")?;
+    require_exact_bool(
+        budget,
+        "failed_selected_episodes_remain_in_denominator",
+        true,
+        "pilot.budget_contract",
+    )?;
+    require_exact_bool(
+        budget,
+        "failed_selected_episodes_remain_in_denominator",
+        true,
+        "pilot.budget_contract",
+    )?;
+
+    let comparison = object_at(&root, "policy_comparison", "pilot")?;
+    check_exact_keys(
+        comparison
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.policy_comparison must be an object"))?,
+        POLICY_COMPARISON_KEYS,
+        "pilot.policy_comparison",
+    )?;
+    require_unique_nonempty_string_array(
+        comparison,
+        "qualifying_baselines",
+        "pilot.policy_comparison",
+        &["reactive_heuristic"],
+    )?;
+    require_unique_nonempty_string_array(
+        comparison,
+        "candidates",
+        "pilot.policy_comparison",
+        &["adaptive_bounded_sensing"],
+    )?;
+    require_unique_nonempty_string_array(
+        comparison,
+        "nonqualifying_upper_bounds",
+        "pilot.policy_comparison",
+        &["privileged_planner_upper_bound"],
+    )?;
+    require_exact_bool(comparison, "exact_policy_identity_required", true, "pilot.policy_comparison")?;
+    require_exact_bool(comparison, "same_initial_state_required", true, "pilot.policy_comparison")?;
+    require_exact_bool(
+        comparison,
+        "paired_exogenous_noise_required_within_model",
+        true,
+        "pilot.policy_comparison",
+    )?;
+    require_exact_bool(
+        comparison,
+        "report_distributional_comparison_across_model_structures",
+        true,
+        "pilot.policy_comparison",
+    )?;
+
+    let metrics = root
+        .get("primary_metrics")
+        .and_then(Value::as_array)
+        .ok_or_else(|| ValidationError::new("pilot.primary_metrics must be an array"))?;
+    require_unique_nonempty_string_array(&root, "primary_metrics", "pilot", &[
+        "route_feasibility",
+        "normalized_decision_regret",
+        "integrated_performance_deficit",
+        "sensing_cost",
+        "calibration_or_abstention_quality",
+        "resource_accounting_residual",
+        "per_individual_outcome_distribution",
+        "receipt_completeness",
+    ])?;
+    if metrics.len() < 8 {
+        return Err(ValidationError::new(
+            "pilot.primary_metrics must contain at least eight distinct measures",
+        ));
+    }
+    require_unique_nonempty_string_array(
+        &root,
+        "ablations",
+        "pilot",
+        &[
+            "disable_active_sensing",
+            "remove_flood_preserve_other_random_streams",
+            "remove_resource_shortage_preserve_flood",
+            "swap_observationally_compatible_model_structures",
+            "withhold_future_and_intervention_labels",
+            "change_rendering_without_changing_world_or_authorized_observations",
+            "compare_larger_compute_budget_as_cost_tradeoff",
+        ],
+    )?;
+
+    let invariants = object_at(&root, "hard_invariants", "pilot")?;
+    check_exact_keys(
+        invariants
+            .as_object()
+            .ok_or_else(|| ValidationError::new("pilot.hard_invariants must be an object"))?,
+        HARD_INVARIANT_KEYS,
+        "pilot.hard_invariants",
+    )?;
+    require_exact_bool(invariants, "hidden_state_access_allowed", false, "pilot.hard_invariants")?;
+    require_exact_bool(
+        invariants,
+        "selected_failures_remain_in_denominator",
+        true,
+        "pilot.hard_invariants",
+    )?;
+    require_exact_bool(invariants, "renderer_is_world_authority", false, "pilot.hard_invariants")?;
+    if required_u64(invariants, "resource_accounting_violation_limit", "pilot.hard_invariants")? != 0 {
+        return Err(ValidationError::new(
+            "pilot hard resource-accounting violation limit must be zero",
+        ));
+    }
+    require_exact_string(
+        invariants,
+        "missing_metric_disposition",
+        "incomplete_or_not_assessed",
+        "pilot.hard_invariants",
+    )?;
+    require_exact_string(
+        invariants,
+        "synthetic_success_claim_scope",
+        "contract_consistency_only",
+        "pilot.hard_invariants",
+    )?;
+
+    let schema: Value = serde_json::from_str(schema_input)
+        .map_err(|error| ValidationError::new(format!("pilot schema JSON is invalid: {error}")))?;
+    require_exact_string(
+        &schema,
+        "$schema",
+        "https://json-schema.org/draft/2020-12/schema",
+        "pilot schema",
+    )?;
+    require_exact_string(
+        &schema,
+        "$id",
+        "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_FLOOD_FORAGE_RISK_PILOT_V0.schema.json",
+        "pilot schema",
+    )?;
+    require_exact_string(&schema, "type", "object", "pilot schema")?;
+    require_schema_bool(&schema, "additionalProperties", false, "pilot schema")?;
+    require_schema_required_fields(&schema, PILOT_ROOT_KEYS, "pilot schema")?;
+    let schema_properties = schema
+        .get("properties")
+        .ok_or_else(|| ValidationError::new("pilot schema.properties is required"))?;
+    let schema_property_object = schema_properties
+        .as_object()
+        .ok_or_else(|| ValidationError::new("pilot schema.properties must be an object"))?;
+    check_exact_keys(schema_property_object, PILOT_ROOT_KEYS, "pilot schema.properties")?;
+    require_schema_const(schema_properties, "schema_version", PILOT_SCHEMA_VERSION)?;
+    require_schema_const(schema_properties, "status", "synthetic_scenario_manifest")?;
+    require_schema_const(
+        schema_properties,
+        "tracking_issue",
+        "https://github.com/Luminous-Dynamics/symtropy/issues/2214",
+    )?;
+    require_schema_const(schema_properties, "scenario_id", "flood_forage_risk_corridor_v0")?;
+    require_schema_const(schema_properties, "independent_unit", "episode_seed_pair")?;
+    require_schema_string(schema_properties, "schema_version", "type", "string")?;
+    require_schema_integer(
+        schema_properties.get("randomization").ok_or_else(|| {
+            ValidationError::new("pilot schema.properties.randomization is required")
+        })?,
+        "minLength",
+        1,
+    ).err();
+
+    Ok(PilotValidationReport {
+        scenario_id: required_string(&root, "scenario_id", "pilot")?.to_owned(),
+        seed_count: seeds.len(),
+        model_count: models.len(),
+    })
+}
+
+fn object_at<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a Value, ValidationError> {
+    let object = value
+        .get(key)
+        .ok_or_else(|| ValidationError::new(format!("{path}.{key} is required")))?;
+    if !object.is_object() {
+        return Err(ValidationError::new(format!("{path}.{key} must be an object")));
+    }
+    Ok(object)
+}
+
+fn required_u64(value: &Value, key: &str, path: &str) -> Result<u64, ValidationError> {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| ValidationError::new(format!("{path}.{key} must be a nonnegative integer")))
+}
+
+fn required_bool(value: &Value, key: &str, path: &str) -> Result<bool, ValidationError> {
+    value
+        .get(key)
+        .and_then(Value::as_bool)
+        .ok_or_else(|| ValidationError::new(format!("{path}.{key} must be boolean")))
+}
+
+fn require_exact_bool(
+    value: &Value,
+    key: &str,
+    expected: bool,
+    path: &str,
+) -> Result<(), ValidationError> {
+    let actual = required_bool(value, key, path)?;
+    if actual != expected {
+        return Err(ValidationError::new(format!(
+            "{path}.{key} must be {expected}"
+        )));
+    }
+    Ok(())
+}
+
+fn require_number_min(
+    value: &Value,
+    key: &str,
+    minimum: f64,
+    path: &str,
+) -> Result<(), ValidationError> {
+    let actual = value
+        .get(key)
+        .and_then(Value::as_f64)
+        .ok_or_else(|| ValidationError::new(format!("{path}.{key} must be numeric")))?;
+    if !actual.is_finite() || actual < minimum {
+        return Err(ValidationError::new(format!(
+            "{path}.{key} must be finite and >= {minimum}"
+        )));
+    }
+    Ok(())
 }
 
 fn check_exact_keys(
