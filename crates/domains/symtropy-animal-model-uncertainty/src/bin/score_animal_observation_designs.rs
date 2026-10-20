@@ -244,6 +244,11 @@ fn build_report(
     json!({
         "schema_version": "ANIMAL-MODEL-OBSERVATION-DESIGN-REPORT-V1",
         "status": "scored_observation_designs_conditional_on_declared_model_set",
+        "qualification": {
+            "model_set_adequacy": "not_assessed",
+            "empirical_validation": "not_assessed",
+            "use_scope": "conditional_model_set_analysis_only"
+        },
         "scenario": scenario,
         "input_sha256": sha256_hex(raw_input.as_bytes()),
         "model_ids": models.iter().map(|model| model.model_id.as_str()).collect::<Vec<_>>(),
@@ -264,7 +269,8 @@ fn build_report(
                 "outcome": outcome.outcome,
                 "probability": outcome.probability,
                 "selected_action": outcome.selected_action,
-                "expected_loss_after_observation": outcome.expected_loss_after_observation
+                "expected_loss_after_observation": outcome.expected_loss_after_observation,
+                "posterior_model_weights": &outcome.posterior_model_weights
             })).collect::<Vec<Value>>()
         })).collect::<Vec<Value>>()
     })
