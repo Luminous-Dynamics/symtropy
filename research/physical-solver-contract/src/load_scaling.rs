@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 type Check<T> = Result<T, String>;
@@ -149,6 +149,7 @@ pub fn assess_load_scaling_relation_bytes(
 
     let mut output_results = Vec::with_capacity(manifest.output_pairs.len());
     let mut violation_count = 0usize;
+    let mut unresolved_count = 0usize;
     let mut total_observables = 0usize;
     let mut diagnostics = Vec::new();
 
@@ -200,7 +201,7 @@ pub fn assess_load_scaling_relation_bytes(
         {
             return Ok(unresolved(report, format!("observable inventory differs for output kind '{}'", pair.kind)));
         }
-        let (results, violations, count) = compare_observables(
+        let (results, violations, unresolved, count) = compare_observables(
             &baseline_observables,
             &scaled_observables,
             manifest.scale_factor,
@@ -208,6 +209,7 @@ pub fn assess_load_scaling_relation_bytes(
             manifest.relative_tolerance,
         );
         violation_count += violations;
+        unresolved_count += unresolved;
         total_observables += count;
         if violations > 0 {
             diagnostics.push(format!(
@@ -231,11 +233,18 @@ pub fn assess_load_scaling_relation_bytes(
         }));
     }
 
-    let status = if violation_count == 0 { "PASS" } else { "FAIL" };
+    let status = if unresolved_count > 0 {
+        "UNRESOLVED"
+    } else if violation_count == 0 {
+        "PASS"
+    } else {
+        "FAIL"
+    };
     report["relation_status"] = json!(status);
     report["output_results"] = json!(output_results);
     report["observable_count"] = json!(total_observables);
     report["violation_count"] = json!(violation_count);
+    report["unresolved_observable_count"] = json!(unresolved_count);
     report["diagnostics"] = json!(diagnostics);
     report["physical_result_qualified"] = json!(false);
     report["real_world_validation_status"] = json!("UNRESOLVED");
@@ -254,6 +263,7 @@ fn compare_observables(
 ) -> (Vec<Value>, usize, usize) {
     let mut results = Vec::with_capacity(baseline.len());
     let mut violations = 0usize;
+    let mut unresolved = 0usize;
     for (id, original) in baseline {
         let actual = scaled.get(id).expect("observable ID inventories checked");
         if original.unit != actual.unit {
@@ -263,7 +273,7 @@ fn compare_observables(
                 "status": "UNRESOLVED",
                 "diagnostic": format!("unit mismatch: baseline '{}' scaled '{}'", original.unit, actual.unit)
             }));
-            violations += 1;
+            unresolved += 1;
             continue;
         }
         let expected = original.value * alpha;
@@ -281,7 +291,7 @@ fn compare_observables(
                 "relative_error": null,
                 "relative_error_status": "overflow"
             }));
-            violations += 1;
+            unresolved += 1;
             continue;
         }
         let within = error <= allowed;
@@ -308,7 +318,7 @@ fn compare_observables(
             "status": if within { "PASS" } else { "FAIL" }
         }));
     }
-    (results, violations, baseline.len())
+    (results, violations, unresolved, baseline.len())
 }
 
 fn validate_request_relation(
