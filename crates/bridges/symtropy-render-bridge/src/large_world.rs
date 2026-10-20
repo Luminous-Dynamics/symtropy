@@ -269,13 +269,27 @@ impl LargeWorldPosition {
 
         let relative = self.relative_to_meters(origin)?;
         let mut output = [0.0_f32; 3];
-        for axis in 0..3 {
-            let rounded = relative[axis] as f32;
-            if !rounded.is_finite() || (f64::from(rounded) - relative[axis]).abs() > max_abs_error_m
+        for (((value, output_axis), (self_cell, origin_cell)), (self_local, origin_local)) in
+            relative
+                .iter()
+                .zip(output.iter_mut())
+                .zip(self.cell.iter().zip(origin.cell.iter()))
+                .zip(self.local_m.iter().zip(origin.local_m.iter()))
+        {
+            let rounded = *value as f32;
+            let cell_delta = i128::from(*self_cell) - i128::from(*origin_cell);
+            let coarse = cell_delta as f64 * WORLD_CELL_SIZE_METERS;
+            let local_delta = *self_local - *origin_local;
+            let f64_roundoff_bound =
+                2.0 * f64::EPSILON * (coarse.abs() + local_delta.abs() + value.abs());
+
+            if !rounded.is_finite()
+                || (f64::from(rounded) - *value).abs() > max_abs_error_m
+                || f64_roundoff_bound > max_abs_error_m
             {
                 return Err(LargeWorldError::RenderPrecisionBudgetExceeded);
             }
-            output[axis] = rounded;
+            *output_axis = rounded;
         }
         Ok(output)
     }
