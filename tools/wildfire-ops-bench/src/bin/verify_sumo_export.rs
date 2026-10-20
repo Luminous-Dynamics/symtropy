@@ -215,11 +215,24 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             }
         }
 
+        let tripinfo_bytes = read(&dir.join("tripinfo.xml"))?;
+        let tripinfo_xml = String::from_utf8(tripinfo_bytes.clone())
+            .map_err(|_| format!("{at}: SUMO tripinfo output is not UTF-8"))?;
+        if !tripinfo_xml.starts_with("<?xml") || !tripinfo_xml.contains("</tripinfos>") {
+            return Err(format!("{at}: SUMO tripinfo output is not a complete XML document"));
+        }
+        let stdout_bytes = read(&dir.join("sumo-smoke.stdout.log"))?;
+        let stderr_bytes = read(&dir.join("sumo-smoke.stderr.log"))?;
         receipts.push(json!({
             "case_id": case_id,
             "manifest_sha256": manifest_sha,
             "file_sha256": verified_files,
             "network_net_xml_sha256": hash(&net_bytes),
+            "sumo_tripinfo_sha256": hash(&tripinfo_bytes),
+            "sumo_smoke_stdout_sha256": hash(&stdout_bytes),
+            "sumo_smoke_stderr_sha256": hash(&stderr_bytes),
+            "sumo_smoke_completed": true,
+            "tripinfo_records": tripinfo_xml.matches("<tripinfo ").count(),
             "source_edge_count": cfg_edges.len(),
             "source_node_count": expected_nodes.len(),
             "demand_stream_count": cfg_demands.len(),

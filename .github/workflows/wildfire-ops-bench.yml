@@ -206,6 +206,17 @@ jobs:
                   --node-files "$case_dir/nodes.nod.xml" \
                   --edge-files "$case_dir/edges.edg.xml" \
                   --output-file "$case_dir/network.net.xml"
+                sumo \
+                  --net-file "$case_dir/network.net.xml" \
+                  --route-files "$case_dir/demand.rou.xml" \
+                  --additional-files "$case_dir/closures.add.xml" \
+                  --end 3000 \
+                  --time-to-teleport -1 \
+                  --no-step-log true \
+                  --duration-log.disable true \
+                  --tripinfo-output "$case_dir/tripinfo.xml" \
+                  > "$case_dir/sumo-smoke.stdout.log" 2> "$case_dir/sumo-smoke.stderr.log"
+                test -s "$case_dir/tripinfo.xml"
               done
             '
           source_commit="$(git rev-parse HEAD)"
