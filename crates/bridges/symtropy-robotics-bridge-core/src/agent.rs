@@ -115,12 +115,7 @@ mod tests {
     struct RejectingPlanner;
 
     impl MotorPlanner for RejectingPlanner {
-        fn plan(
-            &mut self,
-            _observation: &[f64],
-            _gain: f64,
-            num_actuators: usize,
-        ) -> Vec<f64> {
+        fn plan(&mut self, _observation: &[f64], _gain: f64, num_actuators: usize) -> Vec<f64> {
             vec![0.0; num_actuators]
         }
 
