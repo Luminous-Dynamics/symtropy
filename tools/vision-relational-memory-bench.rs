@@ -642,6 +642,7 @@ fn report() {
         selective_threshold.min_confidence, selective_threshold.max_age);
     println!("8 claims; public majority query over 3; 48 revealed events; source time can differ from arrival time");
     println!("paired policies, correlated distractor bursts, changing claims, delayed and occasionally corrupted evidence");
+    println!("confidence is probabilistic, not a corruption label: clean P(950,650,350)=(0.75,0.20,0.05); corrupted=(0.15,0.40,0.45)");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
     println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
