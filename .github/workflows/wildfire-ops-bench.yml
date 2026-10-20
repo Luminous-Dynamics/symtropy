@@ -150,6 +150,35 @@ jobs:
             wildfire-network-flow-reference-receipt.json \
             "$source_commit"
 
+      - name: Export frozen directed networks to SUMO plain XML
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          export SOURCE_COMMIT="$source_commit"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_sumo_export -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
+            wildfire-sumo-export \
+            "$source_commit" 60 13.9 > wildfire-sumo-export.stdout.json
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-NETWORK-001"
+            and .scenario_count == 6
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.cases | length == 6)
+            and (.cases | all(.manifest_sha256 | test("^[0-9a-f]{64}$")))
+            and (.cases | all(.file_sha256["nodes.nod.xml"] != null))
+            and (.cases | all(.file_sha256["edges.edg.xml"] != null))
+            and (.cases | all(.file_sha256["demand.rou.xml"] != null))
+            and (.cases | all(.file_sha256["closures.add.xml"] != null))
+          ' wildfire-sumo-export/index.json
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/nodes.nod.xml
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/edges.edg.xml
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/demand.rou.xml
+          test -s wildfire-sumo-export/TWO_ORIGINS_SHARED_BOTTLENECK_001/closures.add.xml
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
