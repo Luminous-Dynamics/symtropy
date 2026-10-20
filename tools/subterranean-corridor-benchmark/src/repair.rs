@@ -444,14 +444,13 @@ pub fn schedule_repairs(scenario: &RepairScheduleScenario) -> RepairScheduleEval
         skill_workload_lower_bound_hours =
             skill_workload_lower_bound_hours.max(*workload / available_crews);
     }
-    let makespan_lower_bound_hours = critical_path_lower_bound_hours
-        .max(skill_workload_lower_bound_hours);
+    let makespan_lower_bound_hours =
+        critical_path_lower_bound_hours.max(skill_workload_lower_bound_hours);
     if !makespan_lower_bound_hours.is_finite() || makespan_lower_bound_hours <= 0.0 {
         return invalid(&scenario.scenario_id, "INVALID_MAKESPAN_LOWER_BOUND");
     }
     let excess_over_lower_bound_fraction =
-        ((total_work_makespan - makespan_lower_bound_hours).max(0.0))
-            / makespan_lower_bound_hours;
+        ((total_work_makespan - makespan_lower_bound_hours).max(0.0)) / makespan_lower_bound_hours;
     if !excess_over_lower_bound_fraction.is_finite() {
         return invalid(&scenario.scenario_id, "ARITHMETIC_OVERFLOW:LOWER_BOUND_GAP");
     }
