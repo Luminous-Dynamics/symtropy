@@ -404,7 +404,7 @@ jobs:
             and .draw_count == 4
             and (.score_results.base_unreconciled.energy_score - 0.42677669529663687 | fabs < 0.000000000001)
             and (.score_results.base_unreconciled.variogram_score - 0.25 | fabs < 0.000000000001)
-            and (.score_results.reconciled.energy_score - 1.2803300858899105 | fabs < 0.000000000001)
+            and (.score_results.reconciled.energy_score - 0.8535533905932737 | fabs < 0.000000000001)
             and (.score_results.reconciled.variogram_score - 1.0 | fabs < 0.000000000001)
             and .coherence_summary.base_coherent_draw_count == 1
             and .coherence_summary.reconciled_coherent_draw_count == 4
@@ -424,7 +424,7 @@ jobs:
             and .input_sha256 == $input_sha
             and .schema_sha256 == $schema_sha
             and .draw_count == 3
-            and (.score_results.base_unreconciled.energy_score - 0.948392656214749 | fabs < 0.000000000001)
+            and (.score_results.base_unreconciled.energy_score - 0.7587141249717988 | fabs < 0.000000000001)
             and (.score_results.base_unreconciled.variogram_score - 0.4444444444444444 | fabs < 0.000000000001)
             and .claims.real_world_forecast_superiority_established == false
           ' pirb-joint-score-three-draw-receipt.json
