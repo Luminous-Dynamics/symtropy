@@ -152,6 +152,16 @@ These are proposed gates—not achieved performance. A failed, queued, skipped o
 - **ActiveArena: Benchmarking and Understanding Active Perception in Robotic Manipulation** (2026): https://arxiv.org/abs/2609.24124 and https://leeibo.github.io/ActiveArena/. Provides relevant multi-round evidence-acquisition and distribution-shift context.
 - **SAM 3.1** (official release notes, 27 Mar 2026): https://github.com/facebookresearch/sam3/blob/main/RELEASE_SAM3p1.md. A useful external task-level comparator for eligible text-prompted video tracking/segmentation tasks; published results are mixed across benchmarks. It is not a drop-in comparison for action-selection regret or embodied decision value.
 
+### External reference points—not directly comparable leaderboard numbers
+
+| Reference | Published signal | Proper use here | Limitation |
+| --- | --- | --- | --- |
+| [ActiveArena](https://arxiv.org/abs/2609.24124), 2026 | Its project page reports 35 tasks with ID/OOD splits; the strongest listed ActiveArena-OFT row reports 62.97% ID / 47.60% OOD macro task success, while MemER reports 35.31% / 23.43%. | A useful active-viewpoint, memory, multi-round evidence-acquisition and OOD reference. Compare task families, ID/OOD gap, task macro-success and action/sensing budget when compatible. | External methods retain their method-specific inputs and this is not a matched-architecture comparison. Do not claim a direct win from a different scene, action space or resource budget. |
+| [SAM 3.1 official release notes](https://github.com/facebookresearch/sam3/blob/main/RELEASE_SAM3p1.md), 27 Mar 2026 | The release reports a +2.0 J&F change on MOSEv2 val (60.3 to 62.3), while its video prompt-segmentation results are mixed across metrics/datasets. | Strong external task-level comparator where the task is genuinely video object segmentation/tracking and Symtropy emits matching masks/tracks. | Not a comparator for action-selection regret or hidden-state belief revision without a compatible task adapter. Vendor-published results are not local measurements. |
+| [The Decision Value of Perception Compute](https://arxiv.org/abs/2609.35910), 28 Sep 2026 | In its geometry/planning experiments, the authors report 34–54% of escalations that changed downstream loss made it worse; at a 20% latency budget, only lightweight routers beat random after charging allocator compute. | Strong motivation for an explicit decision-value baseline and allocator-cost accounting. | These results are specific to the authors' tested geometry/planning tasks, models and budget definition; they are not Symthaea results or a transferable target score. |
+
+These figures are research reference points to ground benchmark design, not acceptance thresholds for unlike tasks. Before any apples-to-apples claim, pin dataset/version and license, task definition, exact model/checkpoint, inference configuration, preprocessing, seed protocol, hardware, measurement method and failure accounting.
+
 Select external comparators by task compatibility and license. Freeze checkpoint, inference settings, hardware, preprocessing and measurement procedure; distinguish vendor-reported throughput from independently measured local throughput. Do not claim “better than SOTA” based on unrelated tasks or hardware.
 
 ## 10. Implementation order
