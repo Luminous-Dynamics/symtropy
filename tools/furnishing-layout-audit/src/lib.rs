@@ -142,7 +142,9 @@ impl SpatialIndex {
             } else {
                 right_rect.y + right_rect.depth * 0.5
             };
-            left_center.total_cmp(&right_center).then_with(|| left.cmp(right))
+            left_center
+                .total_cmp(&right_center)
+                .then_with(|| left.cmp(right))
         });
         let right_indices = sorted.split_off(sorted.len() / 2);
         let left = Self::build_node(sorted, entries)?;
@@ -225,7 +227,6 @@ struct EnvelopeDefinition<'a> {
     owner_id: String,
     owner_size: ItemSize,
 }
-
 
 fn unique_ids(
     items: &[Value],
@@ -821,8 +822,7 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
         let catalog_ids = unique_ids(catalog, "item_id", &format!("{label}.catalog"), &mut errors);
         let mut sizes = BTreeMap::new();
         let mut envelope_ids = BTreeSet::new();
-        let mut envelope_definitions: BTreeMap<String, EnvelopeDefinition<'_>> =
-            BTreeMap::new();
+        let mut envelope_definitions: BTreeMap<String, EnvelopeDefinition<'_>> = BTreeMap::new();
         for item in catalog {
             let Some(item_id) = text(item, "item_id") else {
                 continue;
@@ -987,8 +987,7 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
             let placements_by_id: BTreeMap<String, &Value> = placements
                 .iter()
                 .filter_map(|placement| {
-                    text(placement, "item_id")
-                        .map(|item_id| (item_id.to_owned(), placement))
+                    text(placement, "item_id").map(|item_id| (item_id.to_owned(), placement))
                 })
                 .collect();
             let mut footprints = Vec::new();
@@ -1082,12 +1081,13 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 let Some(requirement_id) = text(check, "requirement_id") else {
                     return false;
                 };
-                requirements_by_id.get(requirement_id).is_some_and(|requirement| {
-                    field(requirement, "must_be_satisfied_to_advance")
-                        .and_then(Value::as_bool)
-                        == Some(true)
-                        && matches!(text(check, "outcome"), Some("fail" | "indeterminate"))
-                })
+                requirements_by_id
+                    .get(requirement_id)
+                    .is_some_and(|requirement| {
+                        field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool)
+                            == Some(true)
+                            && matches!(text(check, "outcome"), Some("fail" | "indeterminate"))
+                    })
             });
             if mandatory_failure && text(alternative, "promotion_disposition") != Some("blocked") {
                 errors.push(format!(
@@ -1278,7 +1278,6 @@ mod tests {
         let bytes = fs::read(&path).expect("functional-envelope fixtures must exist");
         serde_json::from_slice(&bytes).expect("functional-envelope fixtures must be JSON")
     }
-
 
     #[test]
     fn spatial_index_matches_brute_force_for_overlaps_and_queries() {
