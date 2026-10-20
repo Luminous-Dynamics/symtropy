@@ -137,7 +137,7 @@ fn gates_for_independent_review(registration: &Value) -> Vec<&'static str> {
         .flatten()
         .filter_map(Value::as_str)
         .collect::<Vec<_>>();
-    if !policies.iter().any(|value| *value == "no_action") {
+    if !policies.contains(&"no_action") {
         missing.push("comparison policies must include no_action");
     }
     if policy["subgroup_harm_review"].as_bool() != Some(true) {
