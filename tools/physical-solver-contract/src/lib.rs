@@ -89,19 +89,21 @@ fn validate_provenance(value: &Value, path: &str, issues: &mut Vec<ValidationIss
             "source_ref must be a string or null",
         );
     }
-    if let Some(uncertainty) = provenance.get("uncertainty_relative") {
-        if !uncertainty.is_null()
-            && uncertainty
-                .as_f64()
-                .is_none_or(|n| !n.is_finite() || n < 0.0)
-        {
-            issue(
-                issues,
-                format!("{path}.uncertainty_relative"),
-                "range.nonnegative",
-                "uncertainty_relative must be null or a finite non-negative number",
-            );
-        }
+    if provenance
+        .get("uncertainty_relative")
+        .is_some_and(|uncertainty| {
+            !uncertainty.is_null()
+                && uncertainty
+                    .as_f64()
+                    .is_none_or(|n| !n.is_finite() || n < 0.0)
+        })
+    {
+        issue(
+            issues,
+            format!("{path}.uncertainty_relative"),
+            "range.nonnegative",
+            "uncertainty_relative must be null or a finite non-negative number",
+        );
     }
 }
 
@@ -753,15 +755,16 @@ pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
                     "require_convergence must be a boolean",
                 );
             }
-            if let Some(max_iterations) = acceptance.get("max_iterations") {
-                if max_iterations.as_u64().is_none_or(|n| n == 0) {
-                    issue(
-                        &mut issues,
-                        "$.acceptance.max_iterations",
-                        "range.positive_integer",
-                        "max_iterations must be a positive integer",
-                    );
-                }
+            if acceptance
+                .get("max_iterations")
+                .is_some_and(|v| v.as_u64().is_none_or(|n| n == 0))
+            {
+                issue(
+                    &mut issues,
+                    "$.acceptance.max_iterations",
+                    "range.positive_integer",
+                    "max_iterations must be a positive integer",
+                );
             }
             if acceptance.get("max_time_step_s").is_some() {
                 validate_nonnegative_number(
@@ -952,10 +955,10 @@ pub fn validate_receipt_json(
         return issues;
     };
     for key in ["adapter_id", "version"] {
-        if !adapter
+        if adapter
             .get(key)
             .and_then(Value::as_str)
-            .is_some_and(|s| !s.trim().is_empty())
+            .is_none_or(|s| s.trim().is_empty())
         {
             issue(
                 &mut issues,
@@ -1001,25 +1004,26 @@ pub fn validate_receipt_json(
             "unknown convergence state",
         );
     }
-    if let Some(iterations) = convergence.get("iterations") {
-        if !iterations.is_null() && iterations.as_u64().is_none() {
-            issue(
-                &mut issues,
-                "$.convergence.iterations",
-                "range.integer",
-                "iterations must be null or a non-negative integer",
-            );
-        }
+    if convergence
+        .get("iterations")
+        .is_some_and(|iterations| !iterations.is_null() && iterations.as_u64().is_none())
+    {
+        issue(
+            &mut issues,
+            "$.convergence.iterations",
+            "range.integer",
+            "iterations must be null or a non-negative integer",
+        );
     }
-    if let Some(residual) = convergence.get("residual") {
-        if !residual.is_null() && residual.as_f64().is_none_or(|n| !n.is_finite() || n < 0.0) {
-            issue(
-                &mut issues,
-                "$.convergence.residual",
-                "range.nonnegative",
-                "residual must be null or a finite non-negative number",
-            );
-        }
+    if convergence.get("residual").is_some_and(|residual| {
+        !residual.is_null() && residual.as_f64().is_none_or(|n| !n.is_finite() || n < 0.0)
+    }) {
+        issue(
+            &mut issues,
+            "$.convergence.residual",
+            "range.nonnegative",
+            "residual must be null or a finite non-negative number",
+        );
     }
     if !convergence
         .get("mesh_refinement_evaluated")
@@ -1063,10 +1067,10 @@ pub fn validate_receipt_json(
             continue;
         };
         for key in ["output_id", "kind", "media_type", "artifact_ref"] {
-            if !output
+            if output
                 .get(key)
                 .and_then(Value::as_str)
-                .is_some_and(|s| !s.trim().is_empty())
+                .is_none_or(|s| s.trim().is_empty())
             {
                 issue(
                     &mut issues,
@@ -1163,10 +1167,10 @@ pub fn validate_receipt_json(
             );
         }
         for key in ["solver_name", "solver_version", "solver_build_ref"] {
-            if !adapter
+            if adapter
                 .get(key)
                 .and_then(Value::as_str)
-                .is_some_and(|s| !s.trim().is_empty())
+                .is_none_or(|s| s.trim().is_empty())
             {
                 issue(
                     &mut issues,
