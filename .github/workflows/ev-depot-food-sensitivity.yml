@@ -1,0 +1,225 @@
+name: EV Food-Delivery Infrastructure Sensitivity
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-depot-workload/**"
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-depot-food-sensitivity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-depot-workload/**"
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-depot-food-sensitivity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sensitivity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting and run all crate tests
+        run: |
+          cargo fmt --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-depot-workload/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-fleet-resilience/Cargo.toml --all -- --check
+          cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-fleet-resilience/Cargo.toml --all-targets
+      - name: Audit pinned NLR food-delivery duty data
+        shell: bash
+        run: |
+          set -euo pipefail
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules/fleet3-food-delivery"
+          curl --fail --show-error --silent --location "${BASE}/veh_op_days.csv" -o "${RUNNER_TEMP}/food-veh_op_days.csv"
+          curl --fail --show-error --silent --location "${BASE}/veh_schedules.csv" -o "${RUNNER_TEMP}/food-veh_schedules.csv"
+          cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+            "${RUNNER_TEMP}/food-veh_op_days.csv" "${RUNNER_TEMP}/food-veh_schedules.csv" \
+            --fleet-id fleet3-food-delivery --dataset-id nlr-hdev-depot-charging-2021 \
+            --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+            --source-revision "${REV}" --evidence-class published_operational_summary \
+            --kwh-per-mile 1.8 > nlr-food-duty-audit-report.json
+          jq -e '.operation_days_input_rows == 236 and .operation_days_parsed_valid_rows == 236 and .schedule_input_rows == 782 and .schedule_parsed_valid_rows_with_known_operation_day_ids == 782 and .reconciled_operation_day_count == 236 and (.operation_day_reconciliation_issues | length == 0) and .source_revision == "61530df51f6cd7d64f014ebbf8714cef24c8ca70"' nlr-food-duty-audit-report.json
+      - name: Run paired 30-seed sensitivity for one or two vehicles per port
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p food-sensitivity-cases
+          for fleet_size in 10 50 100; do
+            site_budget_kw=$((120 * fleet_size))
+            for seed in $(seq 1 30); do
+              for port_mode in one_port_per_vehicle two_vehicles_per_port; do
+                if [ "${port_mode}" = "one_port_per_vehicle" ]; then
+                  port_count="${fleet_size}"
+                else
+                  port_count=$(((fleet_size + 1) / 2))
+                fi
+                cargo run --quiet --manifest-path tools/ev-depot-workload/Cargo.toml -- \
+                  --input-report nlr-food-duty-audit-report.json \
+                  --output-corpus "${RUNNER_TEMP}/food-workload.json" \
+                  --output-manifest "${RUNNER_TEMP}/food-manifest.json" \
+                  --fleet-size "${fleet_size}" --seed "${seed}" \
+                  --kwh-per-mile 1.8 --pack-capacity-kwh 1200 --initial-soc-fraction 0.1 \
+                  --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
+                  --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
+                  --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
+                  --charger-ports "${port_count}" --site-power-budget-kw "${site_budget_kw}"
+                cargo run --quiet --manifest-path tools/ev-fleet-resilience/Cargo.toml -- \
+                  "${RUNNER_TEMP}/food-workload.json" > "${RUNNER_TEMP}/food-simulation.json"
+                jq --arg port_mode "${port_mode}" --argjson fleet_size "${fleet_size}" --argjson seed "${seed}" \
+                  --argjson port_count "${port_count}" --argjson site_budget_kw "${site_budget_kw}" \
+                  '{vocation:"fleet3-food-delivery", port_mode:$port_mode, fleet_size:$fleet_size, seed:$seed, port_count:$port_count, base_site_budget_kw:$site_budget_kw, report:.}' \
+                  "${RUNNER_TEMP}/food-simulation.json" > "food-sensitivity-cases/${port_mode}-fleet-${fleet_size}-seed-${seed}.json"
+              done
+            done
+          done
+      - name: Aggregate paired capacity/service response
+        run: |
+          jq -s '{
+            schema_version:"0.1.0",
+            benchmark_id:"EV-DEPOT-FOOD-PORT-SENSITIVITY-001",
+            source_dataset_id:"nlr-hdev-depot-charging-2021",
+            source_revision:"61530df51f6cd7d64f014ebbf8714cef24c8ca70",
+            evidence_class:"estimate",
+            vocation:"fleet3-food-delivery",
+            resamples_per_fleet_size_and_port_mode:30,
+            fleet_sizes:[10,50,100],
+            pack_capacity_kwh:1200,
+            charger_input_limit_kw_per_port:150,
+            port_modes:["one_port_per_vehicle","two_vehicles_per_port"],
+            base_grid_connection_kw_per_vehicle:120,
+            service_target:{minimum_deadline_completion_fraction:0.95,minimum_battery_energy_service_fraction:0.95},
+            sample_resolution_percent:5,
+            cases:.
+          }' food-sensitivity-cases/*.json > ev-food-sensitivity-cases.json
+          jq '
+            def nearest_rank($xs; $q):
+              ($xs | sort) as $s |
+              if ($s|length)==0 then null else $s[((($q * ($s|length))|ceil)|floor)-1] end;
+            [
+              .cases[] as $case |
+              $case.report.capacity_frontiers[] as $front |
+              {
+                port_mode:$case.port_mode,
+                fleet_size:$case.fleet_size,
+                seed:$case.seed,
+                policy:$front.policy,
+                minimum_sampled_feasible_kw:$front.minimum_sampled_feasible_site_power_kw,
+                minimum_sampled_feasible_kw_per_vehicle:
+                  (if $front.minimum_sampled_feasible_site_power_kw == null then null else $front.minimum_sampled_feasible_site_power_kw / $case.fleet_size end),
+                no_feasible_sample_within_120_kw_per_vehicle:($front.minimum_sampled_feasible_site_power_kw == null),
+                service_monotonicity_violations:$front.service_monotonicity_violations,
+                feasibility_monotonicity_violations:$front.feasibility_monotonicity_violations,
+                base_deadline_completion_fraction:
+                  ([$case.report.results[] | select(.policy==$front.policy)][0].completed_by_deadline_count /
+                   [$case.report.results[] | select(.policy==$front.policy)][0].job_count),
+                base_energy_service_fraction:
+                  [$case.report.results[] | select(.policy==$front.policy)][0].energy_service_fraction
+              }
+            ] as $individual |
+            {
+              benchmark_id:.benchmark_id,
+              evidence_class:.evidence_class,
+              vocation:.vocation,
+              resamples_per_fleet_size_and_port_mode:.resamples_per_fleet_size_and_port_mode,
+              service_target:.service_target,
+              sampled_minimum_capacity_distribution:(
+                $individual | sort_by([.port_mode,.fleet_size,.policy]) | group_by([.port_mode,.fleet_size,.policy]) |
+                map({
+                  port_mode:.[0].port_mode,
+                  fleet_size:.[0].fleet_size,
+                  policy:.[0].policy,
+                  resamples:length,
+                  infeasible_at_or_below_120_kw_per_vehicle:([.[]|select(.no_feasible_sample_within_120_kw_per_vehicle)]|length),
+                  p50_minimum_sampled_kw_per_vehicle:nearest_rank([.[]|select(.minimum_sampled_feasible_kw_per_vehicle!=null)|.minimum_sampled_feasible_kw_per_vehicle];0.50),
+                  p95_minimum_sampled_kw_per_vehicle:nearest_rank([.[]|select(.minimum_sampled_feasible_kw_per_vehicle!=null)|.minimum_sampled_feasible_kw_per_vehicle];0.95),
+                  p95_missed_departure_fraction_at_120_kw_per_vehicle:nearest_rank([.[]|(1-.base_deadline_completion_fraction)];0.95),
+                  minimum_energy_service_fraction_at_120_kw_per_vehicle:(map(.base_energy_service_fraction)|min),
+                  service_monotonicity_violations:(map(.service_monotonicity_violations)|add),
+                  feasibility_monotonicity_violations:(map(.feasibility_monotonicity_violations)|add)
+                })
+              ),
+              empirical_capacity_pass_rates:(
+                [
+                  .cases[] as $case |
+                  $case.report.capacity_frontiers[] as $front |
+                  $front.points[] |
+                  {port_mode:$case.port_mode,fleet_size:$case.fleet_size,seed:$case.seed,policy:$front.policy,
+                   fraction:.fraction_of_declared_base_capacity,
+                   site_budget_kw:.installed_site_power_budget_kw,
+                   passed:.meets_service_target}
+                ] | sort_by([.port_mode,.fleet_size,.policy,.fraction]) | group_by([.port_mode,.fleet_size,.policy,.fraction]) |
+                map({
+                  port_mode:.[0].port_mode,
+                  fleet_size:.[0].fleet_size,
+                  policy:.[0].policy,
+                  capacity_fraction_of_120kw_per_vehicle:.[0].fraction,
+                  site_budget_kw_p50:([.[].site_budget_kw]|sort|.[(length-1)/2|floor]),
+                  scenario_count:length,
+                  passed_scenarios:([.[]|select(.passed)]|length),
+                  empirical_scenario_pass_rate:(([.[]|select(.passed)]|length)/length)
+                })
+              )
+            }
+          ' ev-food-sensitivity-cases.json > ev-food-sensitivity-summary.json
+          jq -e '.cases | length == 180' ev-food-sensitivity-cases.json
+          jq -e '.sampled_minimum_capacity_distribution | length == 12' ev-food-sensitivity-summary.json
+          jq -e '.empirical_capacity_pass_rates | length == 240' ev-food-sensitivity-summary.json
+          jq '
+            . as $summary |
+            [
+              $summary.port_modes[] as $mode |
+              [10,50,100][] as $n |
+              ["fcfs","earliest_departure_first"][] as $policy |
+              ([$summary.empirical_capacity_pass_rates[] |
+                select(.port_mode == $mode and .fleet_size == $n and .policy == $policy and .empirical_scenario_pass_rate >= 0.95)]
+                | sort_by(.capacity_fraction_of_120kw_per_vehicle) | .[0]) as $hit |
+              {
+                port_mode:$mode,
+                fleet_size:$n,
+                policy:$policy,
+                resamples:$summary.resamples_per_fleet_size_and_port_mode,
+                required_passes:(($summary.resamples_per_fleet_size_and_port_mode * 0.95) | ceil),
+                minimum_capacity_fraction_for_95pct_empirical_scenario_pass_rate:($hit.capacity_fraction_of_120kw_per_vehicle // null),
+                minimum_capacity_kw_per_vehicle:(if $hit == null then null else 120 * $hit.capacity_fraction_of_120kw_per_vehicle end),
+                sampled_site_budget_kw:(if $hit == null then null else 120 * $n * $hit.capacity_fraction_of_120kw_per_vehicle end),
+                empirical_pass_rate_at_capacity:($hit.empirical_scenario_pass_rate // null),
+                threshold_met_within_120_kw_per_vehicle:($hit != null)
+              }
+            ]
+          ' ev-food-sensitivity-summary.json > ev-food-sensitivity-frontier.json
+          jq --slurpfile robust ev-food-sensitivity-frontier.json '. + {empirical_95pct_scenario_capacity_frontier:$robust[0]}' ev-food-sensitivity-summary.json > ev-food-sensitivity-summary.tmp
+          mv ev-food-sensitivity-summary.tmp ev-food-sensitivity-summary.json
+          jq -e '.empirical_95pct_scenario_capacity_frontier | length == 12' ev-food-sensitivity-summary.json
+      - name: Print paired sensitivity results
+        run: |
+          jq -r '.sampled_minimum_capacity_distribution[] | [.port_mode,.fleet_size,.policy,.resamples,.infeasible_at_or_below_120_kw_per_vehicle,.p50_minimum_sampled_kw_per_vehicle,.p95_minimum_sampled_kw_per_vehicle,.p95_missed_departure_fraction_at_120_kw_per_vehicle,.minimum_energy_service_fraction_at_120_kw_per_vehicle] | @tsv' ev-food-sensitivity-summary.json
+          jq -r '.empirical_95pct_scenario_capacity_frontier[] | [.port_mode,.fleet_size,.policy,.minimum_capacity_kw_per_vehicle,.empirical_pass_rate_at_capacity,.threshold_met_within_120_kw_per_vehicle] | @tsv' ev-food-sensitivity-summary.json
+      - name: Hash code, source and sensitivity outputs
+        run: |
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs nlr-food-duty-audit-report.json ev-food-sensitivity-cases.json ev-food-sensitivity-summary.json ev-food-sensitivity-frontier.json > ev-food-sensitivity.sha256
+          (cd "${RUNNER_TEMP}" && sha256sum food-veh_op_days.csv food-veh_schedules.csv) >> ev-food-sensitivity.sha256
+      - name: Upload paired sensitivity evidence (no raw source data)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-depot-food-sensitivity-${{ github.sha }}
+          path: |
+            nlr-food-duty-audit-report.json
+            ev-food-sensitivity-cases.json
+            ev-food-sensitivity-summary.json
+            ev-food-sensitivity-frontier.json
+            ev-food-sensitivity.sha256
+          if-no-files-found: error
+          retention-days: 14
