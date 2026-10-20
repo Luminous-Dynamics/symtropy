@@ -498,18 +498,17 @@ fn guarded_decision(
 }
 
 fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Option<usize> {
-    if COVERAGE_WINDOW_TICKS == 0
-        || onset >= outcomes.len()
-        || onset + COVERAGE_WINDOW_TICKS > outcomes.len()
-    {
+    if COVERAGE_WINDOW_TICKS == 0 || onset >= outcomes.len() {
         return None;
     }
 
-    let first_end = onset + COVERAGE_WINDOW_TICKS - 1;
-    for end in first_end..outcomes.len() {
-        let start = end + 1 - COVERAGE_WINDOW_TICKS;
-        let matured = outcomes[start..=end]
+    for end in onset..outcomes.len() {
+        // Take the last W label outcomes that have actually matured by this time,
+        // not the last W wall-clock ticks. This makes delayed-label streams causal
+        // without shrinking their effective evaluation window to fewer than W rows.
+        let matured = outcomes
             .iter()
+            .filter(|outcome| outcome.tick >= onset && outcome.tick <= end)
             .filter_map(|outcome| {
                 let matures_at = outcome.label_matures_at?;
                 if matures_at <= end {
@@ -522,8 +521,10 @@ fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Optio
         if matured.len() < MIN_LABELS_PER_COVERAGE_WINDOW {
             continue;
         }
-        let covered = matured.iter().filter(|covered| **covered).count();
-        let empirical = covered as f64 / matured.len() as f64;
+        let start = matured.len().saturating_sub(COVERAGE_WINDOW_TICKS);
+        let window = &matured[start..];
+        let covered = window.iter().filter(|covered| **covered).count();
+        let empirical = covered as f64 / window.len() as f64;
         if (COVERAGE_BAND_LOWER..=COVERAGE_BAND_UPPER).contains(&empirical) {
             return Some(end - onset + 1);
         }
@@ -1334,6 +1335,27 @@ mod tests {
         );
         assert!((cop_threshold - 0.27).abs() < 1e-12);
         assert!((cop_integrator - 0.0975).abs() < 1e-12);
+    }
+
+    #[test]
+    fn coverage_recovery_waits_for_mature_labels_and_uses_last_eight_observations() {
+        let mut delayed = (0..13)
+            .map(|tick| StepOutcome {
+                tick,
+                radius: 1.0,
+                decision: Decision::DiagnoseOnly,
+                coverage: Some(tick != 0),
+                label_matures_at: Some(tick + 5),
+                interval_width: 2.0,
+                hard_control: false,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(Some(13), coverage_band_recovery_delay(&delayed, 0));
+
+        for outcome in &mut delayed {
+            outcome.label_matures_at = Some(outcome.tick);
+        }
+        assert_eq!(Some(8), coverage_band_recovery_delay(&delayed[..8], 0));
     }
 
     #[test]
