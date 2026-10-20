@@ -5,7 +5,7 @@
   "manifest_path": "docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json",
   "evaluator_path": "tools/civ-res-ind-oracle/src/main.rs",
   "cargo_lock_path": "Cargo.lock",
-  "fixture_sha256": "035a75c426a7de6e2c355aad69964cc56f67152b18a189fc69224a7504fcfeb0",
+  "fixture_sha256": "72f5acd61651ea10f46731e4eecd7fe9198b96c944dcba1090c1ef05acf727f3",
   "evaluator_version": "civ-res-ind-oracle/0.1.0",
   "evaluator_source_sha256": "8d94deee833ea93ea198f8681b3812d16b3b6453b3ef812c39a5b048b428bf9e",
   "cargo_lock_sha256": "40c7c1da301e410937c5605e0c81e78a69cf4785ee02a952ce7d77e97791445a",
