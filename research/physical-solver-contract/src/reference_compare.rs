@@ -535,24 +535,12 @@ mod tests {
     }
 
     fn request_bytes() -> Vec<u8> {
-        br#"{
-          "schema_version":"physical-solver-request-v0.1",
-          "request_id":"compare-cantilever-01",
-          "source_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "scene_revision":1,
-          "scene_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "model_fidelity":"analytical_linear_elastic",
-          "requested_physics":["static_linear_elastic"],
-          "coordinate_frame_id":"global",
-          "units":{"length":"m","mass":"kg","time":"s","force":"N","stress":"Pa"},
-          "materials":[{"material_id":"steel","component_ids":["beam-01"],"youngs_modulus_pa":200000000000.0,"poisson_ratio":0.3,"density_kg_m3":7850.0,"provenance":{"evidence_class":"analytical_reference","source_ref":"fixture://steel"}}],
-          "loads":[{"load_id":"tip-force","component_id":"beam-01","kind":"point_force","magnitude_n":100.0,"coordinate_frame_id":"global","position_m":[1.0,0.0,0.0],"direction":[0.0,-1.0,0.0],"provenance":{"evidence_class":"synthetic","source_ref":"fixture://load"}}],
-          "boundary_conditions":[{"boundary_id":"fixed","component_id":"beam-01","kind":"fixed_support","provenance":{"evidence_class":"synthetic","source_ref":"fixture://support"}}],
-          "required_outputs":["displacement"],
-          "acceptance":{"relative_error":1e-8,"absolute_error":1e-12,"require_convergence":true}
-        }"#.to_vec()
+        fs::read(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"),
+        )
+        .expect("existing solver request fixture is valid")
     }
-
     fn build_receipt(request: &[u8], output_sha: &str, status: &str) -> Value {
         let value: Value = serde_json::from_slice(request).unwrap();
         json!({
@@ -566,7 +554,10 @@ mod tests {
             "physics_evaluated":["static_linear_elastic"],
             "physics_omitted":[],
             "convergence":{"state":"converged","iterations":1,"residual":0.0,"mesh_refinement_evaluated":true,"details":"synthetic"},
-            "outputs":[{"output_id":"normalized","kind":"displacement","sha256":output_sha,"media_type":"application/json","unit":"m","artifact_ref":"observed.json"}],
+            "outputs":[
+                {"output_id":"normalized","kind":"displacement","sha256":output_sha,"media_type":"application/json","unit":"m","artifact_ref":"observed.json"},
+                {"output_id":"aux-stress","kind":"stress","sha256":sha256_hex(br#"{"synthetic_auxiliary":true}"#),"media_type":"application/json","unit":"Pa","artifact_ref":"stress.json"}
+            ],
             "uncertainty":{"state":"unknown","method":null,"summary":"test only"},
             "validity_envelope":{"supported_geometry":"test","supported_material_model":"test","load_regime":"test","limitations":["synthetic"]},
             "claim_ceiling":"synthetic test only; not qualified",
@@ -577,12 +568,12 @@ mod tests {
     fn reference(request: &[u8], expected: f64, abs_tol: f64, rel_tol: f64) -> Vec<u8> {
         serde_json::to_vec(&json!({
             "schema_version":REFERENCE_SCHEMA,
-            "reference_id":"cantilever-known-answer-v1",
-            "case_id":"cantilever-tip-load",
+            "reference_id":"fixture-known-answer-v1",
+            "case_id":"fixture-bar-reference",
             "request_sha256":sha256_hex(request),
-            "comparison_protocol_id":"cantilever-tol-v1",
-            "oracle":{"method":"analytical_exact","identity":"closed-form Euler-Bernoulli cantilever","source_ref":"test-oracle://cantilever-v1"},
-            "observables":[{"observable_id":"tip_deflection_m","expected_value":expected,"unit":"m","absolute_tolerance":abs_tol,"relative_tolerance":rel_tol}]
+            "comparison_protocol_id":"fixture-tolerance-v1",
+            "oracle":{"method":"analytical_exact","identity":"frozen synthetic known-answer oracle","source_ref":"test-oracle://normalized-observable-v1"},
+            "observables":[{"observable_id":"fixture_displacement_m","expected_value":expected,"unit":"m","absolute_tolerance":abs_tol,"relative_tolerance":rel_tol}]
         })).unwrap()
     }
 
@@ -590,14 +581,15 @@ mod tests {
         serde_json::to_vec(&json!({
             "schema_version":OBSERVATION_SCHEMA,
             "request_sha256":sha256_hex(request),
-            "case_id":"cantilever-tip-load",
-            "observables":[{"observable_id":"tip_deflection_m","value":value,"unit":"m"}]
+            "case_id":"fixture-bar-reference",
+            "observables":[{"observable_id":"fixture_displacement_m","value":value,"unit":"m"}]
         })).unwrap()
     }
 
     fn setup(request: &[u8], obs: &[u8]) -> (PathBuf, Vec<u8>, Vec<u8>) {
         let root = temporary_root();
         fs::write(root.join("observed.json"), obs).unwrap();
+        fs::write(root.join("stress.json"), br#"{"synthetic_auxiliary":true}"#).unwrap();
         let output_sha = sha256_hex(obs);
         let receipt = serde_json::to_vec(&build_receipt(request, &output_sha, "PASS")).unwrap();
         (root, receipt, output_sha.into_bytes())
@@ -721,6 +713,7 @@ mod tests {
         let observed = observation(&request, 0.125);
         let root = temporary_root();
         fs::write(root.join("observed.json"), &observed).unwrap();
+        fs::write(root.join("stress.json"), br#"{"synthetic_auxiliary":true}"#).unwrap();
         let receipt = serde_json::to_vec(&build_receipt(&request, &"f".repeat(64), "PASS")).unwrap();
         let reference = reference(&request, 0.125, 1e-12, 1e-10);
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
