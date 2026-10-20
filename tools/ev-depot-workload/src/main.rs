@@ -874,5 +874,4 @@ mod tests {
                 .any(|note| note.contains("hold_until_departure"))
         );
     }
-
 }
