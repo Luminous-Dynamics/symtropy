@@ -50,7 +50,7 @@ fn run() -> Result<(), String> {
             "\"source_commit\":\"{}\",",
             "\"evidence_class\":\"synthetic\",",
             "\"result\":\"pass\",",
-            "\"scope\":\"topology_and_integer_mass_accounting\",",
+            "\"scope\":\"topology_mass_accounting_and_analytical_mechanics\",",
             "\"fixtures\":{{",
             "\"topology_replay\":\"pass\",",
             "\"transactional_rejection\":\"{}\",",
