@@ -17,7 +17,10 @@ fn main() {
         Some(path) => match fs::read_to_string(&path) {
             Ok(content) => content,
             Err(error) => {
-                eprintln!("could not read oracle '{}': {error}", path.to_string_lossy());
+                eprintln!(
+                    "could not read oracle '{}': {error}",
+                    path.to_string_lossy()
+                );
                 process::exit(2);
             }
         },
