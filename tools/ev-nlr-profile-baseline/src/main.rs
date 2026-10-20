@@ -1,3 +1,4 @@
+use csv::ReaderBuilder;
 use serde::{Deserialize, Serialize};
 use std::{collections::{BTreeMap, BTreeSet}, env, fs, process::ExitCode};
 
@@ -89,6 +90,9 @@ struct Options {
     seed: u64,
     kwh_per_mile: f64,
     charger_power_kw: f64,
+    reference_average_csv: Option<String>,
+    reference_minimum_peak_csv: Option<String>,
+    reference_maximum_peak_csv: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -149,6 +153,31 @@ struct ProfilePoint {
 }
 
 #[derive(Debug, Serialize)]
+struct ComparisonMetrics {
+    reference_csv: String,
+    mean_absolute_error_kw: f64,
+    root_mean_square_error_kw: f64,
+    maximum_absolute_error_kw: f64,
+    model_daily_integral_kwh: f64,
+    reference_daily_integral_kwh: f64,
+    daily_integral_error_kwh: f64,
+    relative_daily_integral_error_fraction: Option<f64>,
+    model_peak_15min_average_kw: f64,
+    reference_peak_15min_average_kw: f64,
+    peak_15min_error_kw: f64,
+    model_peak_interval_start_minute: u32,
+    reference_peak_interval_start_minute: u32,
+    peak_timing_error_minutes: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct PublishedProfileComparison {
+    average_profile: ComparisonMetrics,
+    minimum_peak_profile: ComparisonMetrics,
+    maximum_peak_profile: ComparisonMetrics,
+}
+
+#[derive(Debug, Serialize)]
 struct SampleMetric {
     sample_index: usize,
     operation_day_ids: Vec<u64>,
@@ -189,6 +218,7 @@ struct Report {
     daily_minimum_peak_profile: Vec<ProfilePoint>,
     daily_average_profile: Vec<ProfilePoint>,
     daily_maximum_peak_profile: Vec<ProfilePoint>,
+    published_profile_comparison: Option<PublishedProfileComparison>,
     samples: Vec<SampleMetric>,
     claim_ceiling: &'static str,
 }
@@ -202,6 +232,18 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         return Err("usage: ev-nlr-profile-baseline --input-report audit.json --fleet-size N --strategy immediate|delayed|min_power --samples N --seed N --kwh-per-mile X --charger-power-kw X".to_string());
     }
     let allowed = [
+        "--input-report",
+        "--fleet-size",
+        "--strategy",
+        "--samples",
+        "--seed",
+        "--kwh-per-mile",
+        "--charger-power-kw",
+        "--reference-average-csv",
+        "--reference-minimum-peak-csv",
+        "--reference-maximum-peak-csv",
+    ];
+    let required = [
         "--input-report",
         "--fleet-size",
         "--strategy",
@@ -224,10 +266,18 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         values.insert(key.to_string(), value.clone());
         index += 2;
     }
-    for key in allowed {
+    for key in required {
         if !values.contains_key(key) {
             return Err(format!("{key}_required"));
         }
+    }
+    let reference_count = [
+        "--reference-average-csv",
+        "--reference-minimum-peak-csv",
+        "--reference-maximum-peak-csv",
+    ].iter().filter(|key| values.contains_key(**key)).count();
+    if reference_count != 0 && reference_count != 3 {
+        return Err("all_three_reference_csvs_must_be_provided_together".to_string());
     }
     let number = |key: &str| -> Result<f64, String> {
         values[key].parse::<f64>().map_err(|_| format!("{key}_must_be_numeric"))
@@ -244,6 +294,9 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         seed,
         kwh_per_mile: number("--kwh-per-mile")?,
         charger_power_kw: number("--charger-power-kw")?,
+        reference_average_csv: values.get("--reference-average-csv").cloned(),
+        reference_minimum_peak_csv: values.get("--reference-minimum-peak-csv").cloned(),
+        reference_maximum_peak_csv: values.get("--reference-maximum-peak-csv").cloned(),
     };
     if options.fleet_size == 0 || options.sample_count == 0 {
         return Err("fleet_size_and_samples_must_be_positive".to_string());
