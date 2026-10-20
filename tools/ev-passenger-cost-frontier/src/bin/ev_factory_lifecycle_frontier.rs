@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -78,15 +77,6 @@ impl StrategyKind {
         Self::ShortTermRent,
         Self::RefurbishRedeploy,
     ];
-
-    fn label(self) -> &'static str {
-        match self {
-            Self::PurchaseNew => "purchase_new",
-            Self::Lease => "lease",
-            Self::ShortTermRent => "short_term_rent",
-            Self::RefurbishRedeploy => "refurbish_redeploy",
-        }
-    }
 
     fn owns_asset(self) -> bool {
         matches!(self, Self::PurchaseNew | Self::RefurbishRedeploy)
@@ -392,10 +382,6 @@ fn discount(rate: f64, year: u32) -> f64 {
     1.0 / (1.0 + rate).powi(year as i32)
 }
 
-fn present_value_annuity(rate: f64, years: u32) -> f64 {
-    (1..=years).map(|year| discount(rate, year)).sum()
-}
-
 fn calculate_cost(
     strategy: &Strategy,
     family: &FamilyProfile,
@@ -412,8 +398,7 @@ fn calculate_cost(
     };
     let upfront = strategy.acquisition_cost
         + strategy.refurbishment_cost
-        + strategy.installation_cost
-        + expected_reuse_failure;
+        + strategy.installation_cost;
     let mut contract = 0.0;
     let mut maintenance = 0.0;
     let mut idle_carry = 0.0;
@@ -451,12 +436,9 @@ fn calculate_cost(
             1.0
         })
         * discount(discount_rate, horizon);
-    let total =
-        upfront + contract + maintenance + idle_carry + retooling + disposal - salvage_credit;
-    let owned_investment = strategy.acquisition_cost
-        + strategy.refurbishment_cost
-        + strategy.installation_cost
-        + expected_reuse_failure;
+    let total = upfront + expected_reuse_failure + contract + maintenance + idle_carry
+        + retooling + disposal - salvage_credit;
+    let owned_investment = upfront + expected_reuse_failure;
     let stranded_asset_exposure = if strategy.owns_asset {
         owned_investment * (1.0 - effective_recovery_fraction)
     } else {
@@ -861,6 +843,32 @@ mod tests {
         assert_eq!(result.upfront, 100.0);
         assert_eq!(result.maintenance, 20.0);
         assert_eq!(result.salvage_credit, 20.0);
+    }
+
+    #[test]
+    fn reuse_failure_fallback_is_reported_separately_and_counted_once() {
+        let mut family = family();
+        family.reuse_success_fraction = 0.5;
+        let mut strategy = base_strategy();
+        strategy.strategy_id = "reuse".into();
+        strategy.kind = StrategyKind::RefurbishRedeploy;
+        strategy.acquisition_cost = 20.0;
+        strategy.refurbishment_cost = 10.0;
+        strategy.installation_cost = 5.0;
+        strategy.fallback_replacement_cost_if_reuse_fails = 80.0;
+        let result = calculate_cost(&strategy, &family, 0.0, None);
+        assert_eq!(result.upfront, 35.0);
+        assert_eq!(result.reuse_failure, 40.0);
+        assert_eq!(result.total, 85.0);
+        let reconstructed = result.upfront
+            + result.reuse_failure
+            + result.contract
+            + result.maintenance
+            + result.idle_carry
+            + result.retooling
+            + result.disposal
+            - result.salvage_credit;
+        assert!((result.total - reconstructed).abs() < 1e-12);
     }
 
     #[test]
