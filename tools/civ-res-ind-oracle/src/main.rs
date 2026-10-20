@@ -603,18 +603,34 @@ fn criticality_heuristic_action(input: &Value) -> Result<Value, String> {
         .as_array()
         .and_then(|entries| entries.last())
         .ok_or_else(|| format!("{path}.observation_history: current observation missing"))?;
-    let observation = field(current, &format!("{path}.observation_history[{step}]"), "observation")?;
+    let observation = field(
+        current,
+        &format!("{path}.observation_history[{step}]"),
+        "observation",
+    )?;
 
-    if observation.get("controller_operational").and_then(Value::as_bool) == Some(false) {
+    if observation
+        .get("controller_operational")
+        .and_then(Value::as_bool)
+        == Some(false)
+    {
         return Ok(json!({"kind": "request_controller_repair"}));
     }
-    if observation.get("service_floors_met").and_then(Value::as_bool) == Some(false) {
+    if observation
+        .get("service_floors_met")
+        .and_then(Value::as_bool)
+        == Some(false)
+    {
         return Ok(json!({"kind": "preserve_essential_service_floors"}));
     }
     if step == 0 {
         return Ok(json!({"kind": "preserve_essential_service_floors"}));
     }
-    if observation.get("service_floors_met").and_then(Value::as_bool) == Some(true) {
+    if observation
+        .get("service_floors_met")
+        .and_then(Value::as_bool)
+        == Some(true)
+    {
         if step == 1 {
             return Ok(json!({"kind": "reserve_repair_stock"}));
         }
@@ -1203,7 +1219,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn criticality_heuristic_recomputes_actions_from_only_current_visible_history() {
         let first = json!({
@@ -1253,8 +1268,12 @@ mod tests {
             ],
             "future_event_schedule": ["controller-fails-at-step-2"]
         });
-        let error = criticality_heuristic_action(&input).expect_err("hidden future is not policy input");
-        assert!(error.contains("forbidden future/hidden policy input"), "{error}");
+        let error =
+            criticality_heuristic_action(&input).expect_err("hidden future is not policy input");
+        assert!(
+            error.contains("forbidden future/hidden policy input"),
+            "{error}"
+        );
     }
 
     #[test]
