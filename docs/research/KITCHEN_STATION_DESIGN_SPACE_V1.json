@@ -238,6 +238,40 @@
         "unproven_sanitization_claim"
       ],
       "exit_gate": "Passes safety review and demonstrates a preregistered net benefit without unreported trade-offs."
+    },
+    {
+      "candidate_id": "P6-BATCH-WASH",
+      "name": "Measured-volume batch-wash workflow",
+      "type": "workflow_and_removable_insert_variant",
+      "configuration": {
+        "wash_mode": "removable, cleanable wash tub or basin plug with visible fill reference; no powered system required",
+        "rinse_mode": "separate controlled final-rinse stage with potable water",
+        "default": "manual, user-controlled, no connectivity required",
+        "intended_initial_track": "household use; commercial food-service use requires a separate compliance determination"
+      },
+      "questions": [
+        "Does a matched batch-wash workflow use less total water than continuous-flow washing at the same cleaning endpoint?",
+        "Does visible, repeatable fill volume reduce user-to-user variability?",
+        "What are the ergonomic and spill costs of filling, lifting, draining and cleaning the tub?"
+      ],
+      "must_measure": [
+        "potable_litres_per_completed_task",
+        "hot_water_energy_wh_per_task",
+        "cleaning_endpoint",
+        "rewash_rate",
+        "task_duration",
+        "spill_or_overflow_events",
+        "successful_task_completion"
+      ],
+      "failure_modes": [
+        "reuse dirty wash water for final rinse",
+        "soil transfer increases between items as wash water becomes loaded",
+        "batch volume not measured and candidates start with unequal water",
+        "unsafe lifting or tipping of a heavy filled tub",
+        "insert traps soil, leaks, or blocks primary drain",
+        "household workflow is assumed compliant for regulated food-service warewashing"
+      ],
+      "exit_gate": "Matched physical trials show lower task water without cleaning/rewash regression; handling, drain, cleanability and use-case compliance gates pass."
     }
   ],
   "staged_experiment": [
