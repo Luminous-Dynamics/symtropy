@@ -20,7 +20,7 @@
     "assumptions",
     "outputs",
     "output_units",
-    "acceptance",
+    "reference_oracle_tolerances",
     "diagnostics",
     "claim_ceiling"
   ],
@@ -40,14 +40,14 @@
     "assumptions": { "type": "string" },
     "outputs": { "type": ["object", "null"] },
     "output_units": { "type": "object" },
-    "acceptance": {
+    "reference_oracle_tolerances": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["relative_tolerance", "absolute_tolerance", "acceptance_basis"],
+      "required": ["relative_tolerance", "absolute_tolerance", "scope"],
       "properties": {
         "relative_tolerance": { "type": "number", "minimum": 0 },
         "absolute_tolerance": { "type": "number", "minimum": 0 },
-        "acceptance_basis": { "type": "string" }
+        "scope": { "type": "string" }
       }
     },
     "diagnostics": { "type": "array", "items": { "type": "string" } },
