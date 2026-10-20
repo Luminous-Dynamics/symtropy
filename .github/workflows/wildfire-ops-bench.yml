@@ -73,6 +73,7 @@ jobs:
             and (.benchmark_summary.B3_evidence_bounded_feasible_choice.selected_infeasible_plan_count == 0)
             and (.benchmark_summary.B3_evidence_bounded_feasible_choice.abstention_count == 3)
             and (.benchmark_summary.B3_evidence_bounded_feasible_choice.expected_choice_match_count == 6)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.expected_choice_mismatch_count == 0)
           ' wildfire-ops-reference-receipt.json
 
       - name: Upload deterministic reference receipt
