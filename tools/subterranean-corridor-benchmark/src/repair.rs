@@ -148,7 +148,8 @@ fn validate(scenario: &RepairScheduleScenario) -> Result<(), String> {
     if scenario.crews.is_empty() {
         return Err("AT_LEAST_ONE_CREW_POOL_REQUIRED".to_owned());
     }
-    if scenario.evidence_class != super::EvidenceClass::Synthetic && scenario.source_refs.is_empty() {
+    if scenario.evidence_class != super::EvidenceClass::Synthetic && scenario.source_refs.is_empty()
+    {
         return Err("DECLARED_EVIDENCE_REQUIRES_SOURCE_REFERENCES".to_owned());
     }
 
@@ -172,7 +173,11 @@ fn validate(scenario: &RepairScheduleScenario) -> Result<(), String> {
         }
     }
 
-    let task_ids: BTreeSet<&str> = scenario.tasks.iter().map(|task| task.task_id.as_str()).collect();
+    let task_ids: BTreeSet<&str> = scenario
+        .tasks
+        .iter()
+        .map(|task| task.task_id.as_str())
+        .collect();
     if task_ids.len() != scenario.tasks.len() || task_ids.iter().any(|id| id.trim().is_empty()) {
         return Err("EMPTY_OR_DUPLICATE_TASK_ID".to_owned());
     }
@@ -243,10 +248,7 @@ fn validate(scenario: &RepairScheduleScenario) -> Result<(), String> {
     Ok(())
 }
 
-fn requirements_fit(
-    requirements: &[CrewRequirement],
-    available: &BTreeMap<String, u32>,
-) -> bool {
+fn requirements_fit(requirements: &[CrewRequirement], available: &BTreeMap<String, u32>) -> bool {
     requirements.iter().all(|req| {
         available
             .get(&req.skill_id)
@@ -369,7 +371,10 @@ pub fn schedule_repairs(scenario: &RepairScheduleScenario) -> RepairScheduleEval
             .map(|task| task.finish_hour)
             .min_by(f64::total_cmp)
         else {
-            return invalid(&scenario.scenario_id, "PRECEDENCE_CYCLE_OR_UNSCHEDULABLE_TASKS");
+            return invalid(
+                &scenario.scenario_id,
+                "PRECEDENCE_CYCLE_OR_UNSCHEDULABLE_TASKS",
+            );
         };
         if !next_time.is_finite() || next_time <= now {
             return invalid(&scenario.scenario_id, "INVALID_SCHEDULER_EVENT_TIME");
@@ -393,8 +398,11 @@ pub fn schedule_repairs(scenario: &RepairScheduleScenario) -> RepairScheduleEval
     for task in &scenario.tasks {
         let scheduled = &schedule[&task.task_id];
         for req in &task.crew_requirements {
-            let crew_hours = (scheduled.finish_hour - scheduled.start_hour) * req.crews_required as f64;
-            let total = crew_hours_by_skill.entry(req.skill_id.clone()).or_insert(0.0);
+            let crew_hours =
+                (scheduled.finish_hour - scheduled.start_hour) * req.crews_required as f64;
+            let total = crew_hours_by_skill
+                .entry(req.skill_id.clone())
+                .or_insert(0.0);
             *total += crew_hours;
             if !total.is_finite() {
                 return invalid(&scenario.scenario_id, "ARITHMETIC_OVERFLOW:CREW_HOURS");
@@ -530,7 +538,10 @@ mod tests {
     #[test]
     fn independent_repairs_overlap_but_inspection_waits_for_both() {
         let evaluation = schedule_repairs(&base_scenario());
-        assert_eq!(evaluation.disposition, RepairScheduleDisposition::ScheduledSynthetic);
+        assert_eq!(
+            evaluation.disposition,
+            RepairScheduleDisposition::ScheduledSynthetic
+        );
         let report = evaluation.report.unwrap();
         let lookup: BTreeMap<_, _> = report
             .task_schedule
@@ -618,8 +629,15 @@ mod tests {
         let mut scenario = base_scenario();
         scenario.reentry_authorization = GateState::Unknown;
         let evaluation = schedule_repairs(&scenario);
-        assert_eq!(evaluation.disposition, RepairScheduleDisposition::NeedsEvidence);
-        assert!(evaluation.reasons.contains(&"NEEDS_EVIDENCE:reentry_authorization".to_owned()));
+        assert_eq!(
+            evaluation.disposition,
+            RepairScheduleDisposition::NeedsEvidence
+        );
+        assert!(
+            evaluation
+                .reasons
+                .contains(&"NEEDS_EVIDENCE:reentry_authorization".to_owned())
+        );
         assert_eq!(
             evaluation.report.unwrap().authorized_service_ready_hours,
             None
@@ -631,8 +649,14 @@ mod tests {
         let mut scenario = base_scenario();
         scenario.reentry_authorization = GateState::Failed;
         let evaluation = schedule_repairs(&scenario);
-        assert_eq!(evaluation.disposition, RepairScheduleDisposition::Ineligible);
-        assert_eq!(evaluation.report.unwrap().authorized_service_ready_hours, None);
+        assert_eq!(
+            evaluation.disposition,
+            RepairScheduleDisposition::Ineligible
+        );
+        assert_eq!(
+            evaluation.report.unwrap().authorized_service_ready_hours,
+            None
+        );
     }
 
     #[test]
@@ -640,7 +664,10 @@ mod tests {
         let mut scenario = base_scenario();
         scenario.tasks[0].predecessors = vec!["post-event-inspection".to_owned()];
         let evaluation = schedule_repairs(&scenario);
-        assert_eq!(evaluation.disposition, RepairScheduleDisposition::InvalidInput);
+        assert_eq!(
+            evaluation.disposition,
+            RepairScheduleDisposition::InvalidInput
+        );
         assert!(evaluation.report.is_none());
     }
 
