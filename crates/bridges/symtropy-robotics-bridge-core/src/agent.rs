@@ -90,3 +90,55 @@ pub fn spawn_robot_body<const D: usize>(
 ) -> BodyHandle {
     physics.add_sphere(position, platform.default_radius(), platform.default_mass())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::motor::{MotorPlannerFault, MotorPlannerStatus};
+
+    struct TestAgent;
+
+    impl RoboticAgent for TestAgent {
+        fn body(&self) -> BodyHandle {
+            BodyHandle(0)
+        }
+
+        fn platform(&self) -> PlatformType {
+            PlatformType::Quadrotor
+        }
+
+        fn tick(&mut self, _observation: &[f64], _danger_level: f64) -> f64 {
+            0.5
+        }
+    }
+
+    struct RejectingPlanner;
+
+    impl MotorPlanner for RejectingPlanner {
+        fn plan(
+            &mut self,
+            _observation: &[f64],
+            _gain: f64,
+            num_actuators: usize,
+        ) -> Vec<f64> {
+            vec![0.0; num_actuators]
+        }
+
+        fn status(&self) -> crate::motor::MotorPlannerStatus {
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
+        }
+    }
+
+    #[test]
+    fn typed_motor_plan_preserves_rejection_status_and_vector_shape() {
+        let mut agent = TestAgent;
+        let mut planner = RejectingPlanner;
+        let result = agent.tick_motor_plan_with(&[f64::NAN], 0.0, &mut planner);
+
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
+        );
+    }
+}
