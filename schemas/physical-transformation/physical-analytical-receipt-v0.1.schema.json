@@ -321,6 +321,7 @@
         "lower",
         "nominal",
         "upper",
+        "width",
         "unit"
       ],
       "properties": {
@@ -336,6 +337,10 @@
         "unit": {
           "type": "string",
           "minLength": 1
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
