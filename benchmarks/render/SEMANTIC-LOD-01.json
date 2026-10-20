@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "SEMANTIC-LOD-01",
+  "status": "proposed_unmeasured",
+  "policy": {
+    "candidate_order": "coarse_to_fine",
+    "cost_units": "calibrated_relative_units_not_milliseconds",
+    "screen_error": "finite_nonnegative_nonincreasing_with_quality",
+    "protected": ["selected", "critical"],
+    "tie_break": "entity_id_ascending",
+    "budget_failure": "reject"
+  },
+  "known_answer_cases": [
+    {"case_id":"EMPTY","expected":"pass","invariant":"empty scene costs zero"},
+    {"case_id":"FINEST","expected":"pass","invariant":"sufficient budget keeps finest candidates"},
+    {"case_id":"PRIORITY","expected":"pass","invariant":"lowest weighted error loss per cost saved is downgraded first"},
+    {"case_id":"PROTECTED","expected":"pass","invariant":"selected and critical entities remain at finest quality"},
+    {"case_id":"INFEASIBLE","expected":"reject","invariant":"cannot exceed budget by dropping protected detail"},
+    {"case_id":"ERROR-CEILING","expected":"reject","invariant":"finest candidate must be within the screen-error ceiling"},
+    {"case_id":"ORDER","expected":"pass","invariant":"input permutation leaves the sorted allocation unchanged"},
+    {"case_id":"INVALID","expected":"reject","invariant":"malformed IDs, candidates, costs, importance or errors fail closed"}
+  ],
+  "screen_error_profiles": [
+    {"profile_id":"precision_inspection","max_screen_error_px":1.0,"status":"proposed_target"},
+    {"profile_id":"interactive_detail","max_screen_error_px":2.0,"status":"proposed_target"},
+    {"profile_id":"strategic_overview","max_screen_error_px":4.0,"status":"proposed_target"}
+  ],
+  "scaling_workloads": [
+    {"workload_id":"SEMANTIC-LOD-100","entity_count":100,"candidate_levels":3,"budget_fraction_of_finest_cost":0.6},
+    {"workload_id":"SEMANTIC-LOD-1000","entity_count":1000,"candidate_levels":3,"budget_fraction_of_finest_cost":0.6},
+    {"workload_id":"SEMANTIC-LOD-10000","entity_count":10000,"candidate_levels":3,"budget_fraction_of_finest_cost":0.6}
+  ],
+  "required_reports": [
+    "source_revision","fixture_digest","compiler_profile","workload_id","entity_count",
+    "budget_units","final_cost_units","quality_rank_histogram","protected_demotion_count",
+    "screen_error_violations","allocator_p50_p95_p99","frame_interval_p50_p95_p99",
+    "gpu_timestamp_p50_p95_p99_when_supported","peak_memory_when_measured","claim_scope"
+  ],
+  "claim_ceiling": [
+    "No performance result is measured by this manifest.",
+    "Relative cost units are not GPU time.",
+    "A passing policy test does not prove the geometric error bounds are conservative.",
+    "The first implementation does not switch Bevy assets or render-graph state.",
+    "No superiority claim over Bevy, Unreal, Unity HDRP, or 3DMark is authorized without matched measurements."
+  ]
+}
