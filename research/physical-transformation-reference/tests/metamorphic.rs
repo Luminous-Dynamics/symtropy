@@ -20,11 +20,22 @@ fn close(actual: f64, expected: f64, label: &str) {
 #[test]
 fn axial_bar_obeys_force_homogeneity_and_geometric_scaling() {
     let base = axial_bar(4_000.0, 3.0, 0.002, 70.0e9).expect("valid SI bar");
-    let doubled_force =
-        axial_bar(8_000.0, 3.0, 0.002, 70.0e9).expect("valid doubled-force bar");
-    close(doubled_force.axial_stress_pa, 2.0 * base.axial_stress_pa, "bar stress vs force");
-    close(doubled_force.axial_strain, 2.0 * base.axial_strain, "bar strain vs force");
-    close(doubled_force.extension_m, 2.0 * base.extension_m, "bar extension vs force");
+    let doubled_force = axial_bar(8_000.0, 3.0, 0.002, 70.0e9).expect("valid doubled-force bar");
+    close(
+        doubled_force.axial_stress_pa,
+        2.0 * base.axial_stress_pa,
+        "bar stress vs force",
+    );
+    close(
+        doubled_force.axial_strain,
+        2.0 * base.axial_strain,
+        "bar strain vs force",
+    );
+    close(
+        doubled_force.extension_m,
+        2.0 * base.extension_m,
+        "bar extension vs force",
+    );
 
     // Geometrically similar bar: L -> 2L and A -> 4A at fixed force/material.
     let scaled_geometry =
@@ -48,8 +59,7 @@ fn axial_bar_obeys_force_homogeneity_and_geometric_scaling() {
 
 #[test]
 fn cantilever_obeys_force_span_and_stiffness_scaling() {
-    let base =
-        cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid SI cantilever");
+    let base = cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid SI cantilever");
     let doubled_force =
         cantilever_tip_load(200.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("doubled load");
     close(
@@ -63,8 +73,8 @@ fn cantilever_obeys_force_span_and_stiffness_scaling() {
         "cantilever stress vs force",
     );
 
-    let doubled_span =
-        cantilever_tip_load(100.0, 4.0, 200.0e9, 8.0e-6, 0.1).expect("doubled span");
+    let doubled_span = cantilever_tip_load(100.0, 4.0, 200.0e9, 8.0e-6, 0.1)
+        .expect("doubled span");
     close(
         doubled_span.tip_deflection_m,
         8.0 * base.tip_deflection_m,
@@ -76,9 +86,8 @@ fn cantilever_obeys_force_span_and_stiffness_scaling() {
         "cantilever stress vs span",
     );
 
-    let doubled_stiffness =
-        cantilever_tip_load(100.0, 2.0, 400.0e9, 16.0e-6, 0.1)
-            .expect("doubled modulus and second moment");
+    let doubled_stiffness = cantilever_tip_load(100.0, 2.0, 400.0e9, 16.0e-6, 0.1)
+        .expect("doubled modulus and second moment");
     close(
         doubled_stiffness.tip_deflection_m,
         base.tip_deflection_m / 4.0,
@@ -108,8 +117,8 @@ fn simply_supported_beam_obeys_load_span_and_stiffness_scaling() {
         "beam stress vs uniform load",
     );
 
-    let doubled_span = simply_supported_uniform_load(1_000.0, 8.0, 200.0e9, 8.0e-6, 0.1)
-        .expect("doubled span");
+    let doubled_span =
+        simply_supported_uniform_load(1_000.0, 8.0, 200.0e9, 8.0e-6, 0.1).expect("doubled span");
     close(
         doubled_span.midspan_deflection_m,
         16.0 * base.midspan_deflection_m,
@@ -146,9 +155,21 @@ fn common_source_unit_encodings_normalize_to_identical_si_responses() {
         70.0 * 1.0e9,
     )
     .expect("converted bar");
-    close(bar_converted.axial_stress_pa, bar_si.axial_stress_pa, "converted bar stress");
-    close(bar_converted.axial_strain, bar_si.axial_strain, "converted bar strain");
-    close(bar_converted.extension_m, bar_si.extension_m, "converted bar extension");
+    close(
+        bar_converted.axial_stress_pa,
+        bar_si.axial_stress_pa,
+        "converted bar stress",
+    );
+    close(
+        bar_converted.axial_strain,
+        bar_si.axial_strain,
+        "converted bar strain",
+    );
+    close(
+        bar_converted.extension_m,
+        bar_si.extension_m,
+        "converted bar extension",
+    );
 
     let cantilever_si =
         cantilever_tip_load(100.0, 1.5, 70.0e9, 8.0e-6, 0.1).expect("SI cantilever");
@@ -172,8 +193,7 @@ fn common_source_unit_encodings_normalize_to_identical_si_responses() {
         "converted cantilever stress",
     );
 
-    let beam_si =
-        simply_supported_uniform_load(800.0, 4.5, 70.0e9, 6.0e-5, 0.15).expect("SI beam");
+    let beam_si = simply_supported_uniform_load(800.0, 4.5, 70.0e9, 6.0e-5, 0.15).expect("SI beam");
     // 0.8 kN/m, 4500 mm, 70 GPa, 6e7 mm^4, and 150 mm converted to SI.
     let beam_converted = simply_supported_uniform_load(
         0.8 * 1_000.0,
