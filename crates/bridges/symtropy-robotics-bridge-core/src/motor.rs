@@ -44,6 +44,8 @@ pub enum MotorPlannerFault {
     InvalidConfiguration,
     InvalidGain,
     InvalidObservation,
+    InvalidDangerLevel,
+    AgentNotAuthorized,
     EncodingFailure,
     ActuatorInterfaceMismatch,
     BridgeFailure,
