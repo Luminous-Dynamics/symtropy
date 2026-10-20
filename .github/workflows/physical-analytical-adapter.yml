@@ -226,7 +226,7 @@ jobs:
             and .outputs == null
             and .model_evaluation_attempted == false
             and .external_solver_invoked == false
-            and (.physics_omitted | index("fracture") != null)
+            and (.requested_physics | index("fracture") != null)
             and .adapter_receipt == null
           ' analytical-adapter-dispatch-unresolved-receipt.json
 
