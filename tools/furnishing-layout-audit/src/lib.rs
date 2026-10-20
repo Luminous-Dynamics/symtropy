@@ -448,12 +448,12 @@ fn validate_scenario(scenario: &Value, label: &str, errors: &mut Vec<String>) {
                     && text(peer, "expected_pareto_relation").is_some()
             });
             for peer in peers {
-                if let Some(relation) = preference_relation(alternative, peer) {
-                    if expected_relation != relation {
-                        errors.push(format!(
-                            "{label}.{alternative_id}: Pareto oracle mismatch; expected field {expected_relation:?}, calculated {relation:?}"
-                        ));
-                    }
+                if let Some(relation) = preference_relation(alternative, peer)
+                    && expected_relation != relation
+                {
+                    errors.push(format!(
+                        "{label}.{alternative_id}: Pareto oracle mismatch; expected field {expected_relation:?}, calculated {relation:?}"
+                    ));
                 }
             }
         }
