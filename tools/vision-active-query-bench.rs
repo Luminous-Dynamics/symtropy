@@ -757,6 +757,14 @@ mod tests {
     #[test]
     fn evaluator_strata_detect_claim_changes_delay_and_profile_stress() {
         let mut episode = ActiveEpisode::generate(0xA11C_E003, Family::HeldOut);
+        // Force evaluator-only profile labels high to cover those stratum branches.
+        // The observation stream is deliberately left unchanged, as in a leakage test.
+        episode.profile = Profile {
+            distractor_rate: 650,
+            flip_rate: 70,
+            max_delay: 5,
+            corruption_rate: 70,
+        };
         // Controlled evaluator-only world change after a late observation.
         for tick in 10..HORIZON {
             episode.truth[tick][QUERY_KEYS[0]] = !episode.truth[tick][QUERY_KEYS[0]];
