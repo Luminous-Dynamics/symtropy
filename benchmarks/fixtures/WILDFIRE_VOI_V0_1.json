@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "WILDFIRE-VOI-001",
+  "classification": "synthetic_only",
+  "units": {
+    "cost": "abstract_decision_loss_units",
+    "time": "discrete_steps",
+    "probability": "fraction_0_to_1",
+    "inspection_cost": "abstract_cost_units"
+  },
+  "world_model": {
+    "road_states": "independent Bernoulli priors",
+    "inspection": "perfect binary observation",
+    "max_roads_for_exact_enumeration": 16,
+    "warning": "toy assumptions only; no real sensor calibration or operational probabilities"
+  },
+  "cases": [
+    {
+      "case_id": "OFF_ROUTE_UNCERTAINTY_VS_ROUTE_CRITICAL_001",
+      "decision_deadline_step": 3,
+      "probe_budget": 1,
+      "roads": [
+        {"id": "ROAD-MAIN", "p_open": 0.8},
+        {"id": "ROAD-ALT", "p_open": 1.0},
+        {"id": "ROAD-OFFROUTE", "p_open": 0.5}
+      ],
+      "routes": [
+        {"id": "ROUTE-FAST", "travel_cost": 5, "blocked_cost": 100, "required_road_ids": ["ROAD-MAIN"]},
+        {"id": "ROUTE-SAFE", "travel_cost": 30, "blocked_cost": 100, "required_road_ids": ["ROAD-ALT"]}
+      ],
+      "observations": [
+        {"id": "OBS-OFFROUTE", "road_id": "ROAD-OFFROUTE", "inspection_cost": 1, "available_at_step": 1},
+        {"id": "OBS-MAIN", "road_id": "ROAD-MAIN", "inspection_cost": 1, "available_at_step": 1}
+      ],
+      "oracle_truth": {"expected_observation_id": "OBS-MAIN"}
+    },
+    {
+      "case_id": "NO_DECISION_IMPACT_002",
+      "decision_deadline_step": 3,
+      "probe_budget": 1,
+      "roads": [
+        {"id": "ROAD-SAFE", "p_open": 1.0},
+        {"id": "ROAD-IRRELEVANT", "p_open": 0.5}
+      ],
+      "routes": [
+        {"id": "ROUTE-SAFE", "travel_cost": 10, "blocked_cost": 100, "required_road_ids": ["ROAD-SAFE"]},
+        {"id": "ROUTE-EXPENSIVE", "travel_cost": 50, "blocked_cost": 100, "required_road_ids": ["ROAD-IRRELEVANT"]}
+      ],
+      "observations": [
+        {"id": "OBS-IRRELEVANT", "road_id": "ROAD-IRRELEVANT", "inspection_cost": 2, "available_at_step": 1},
+        {"id": "OBS-SAFE", "road_id": "ROAD-SAFE", "inspection_cost": 1, "available_at_step": 1}
+      ],
+      "oracle_truth": {"expected_observation_id": null}
+    },
+    {
+      "case_id": "BRIDGE_FAILURE_TAIL_COST_003",
+      "decision_deadline_step": 4,
+      "probe_budget": 1,
+      "roads": [
+        {"id": "ROAD-BRIDGE", "p_open": 0.95},
+        {"id": "ROAD-ALT", "p_open": 1.0},
+        {"id": "ROAD-OFFROUTE", "p_open": 0.5}
+      ],
+      "routes": [
+        {"id": "ROUTE-BRIDGE", "travel_cost": 10, "blocked_cost": 1000, "required_road_ids": ["ROAD-BRIDGE"]},
+        {"id": "ROUTE-ALT", "travel_cost": 100, "blocked_cost": 1000, "required_road_ids": ["ROAD-ALT"]}
+      ],
+      "observations": [
+        {"id": "OBS-OFFROUTE", "road_id": "ROAD-OFFROUTE", "inspection_cost": 0.1, "available_at_step": 1},
+        {"id": "OBS-BRIDGE", "road_id": "ROAD-BRIDGE", "inspection_cost": 3, "available_at_step": 2}
+      ],
+      "oracle_truth": {"expected_observation_id": "OBS-BRIDGE"}
+    },
+    {
+      "case_id": "OBSERVATION_AFTER_DEADLINE_004",
+      "decision_deadline_step": 3,
+      "probe_budget": 1,
+      "roads": [
+        {"id": "ROAD-MAIN", "p_open": 0.8},
+        {"id": "ROAD-ALT", "p_open": 1.0},
+        {"id": "ROAD-OFFROUTE", "p_open": 0.5}
+      ],
+      "routes": [
+        {"id": "ROUTE-FAST", "travel_cost": 5, "blocked_cost": 100, "required_road_ids": ["ROAD-MAIN"]},
+        {"id": "ROUTE-SAFE", "travel_cost": 30, "blocked_cost": 100, "required_road_ids": ["ROAD-ALT"]}
+      ],
+      "observations": [
+        {"id": "OBS-OFFROUTE", "road_id": "ROAD-OFFROUTE", "inspection_cost": 1, "available_at_step": 1},
+        {"id": "OBS-LATE-MAIN", "road_id": "ROAD-MAIN", "inspection_cost": 1, "available_at_step": 5}
+      ],
+      "oracle_truth": {"expected_observation_id": null}
+    }
+  ]
+}
