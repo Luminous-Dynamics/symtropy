@@ -51,7 +51,7 @@ jobs:
         run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
       - name: Emit deterministic reference report
         run: |
-          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- \
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev-passenger-cost-frontier -- \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
             > ev-passenger-cost-report.json
           jq -e '
