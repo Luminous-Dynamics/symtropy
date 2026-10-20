@@ -113,8 +113,12 @@ pub struct TrialScoreV1 {
 pub struct RunSummaryV1 {
     pub scores: Vec<TrialScoreV1>,
     pub mean_realized_loss: f64,
-    pub mean_oracle_loss: f64,
-    pub mean_regret: f64,
+    pub mean_trial_oracle_loss: f64,
+    pub mean_regret_vs_trial_oracle: f64,
+    pub mean_run_budget_feasible_counterfactual_loss: f64,
+    pub mean_regret_vs_run_budget_oracle: f64,
+    /// Evaluator-only choices, aligned to scores sorted by trial_id.
+    pub run_budget_oracle_actions: Vec<VisionAction>,
     pub total_actual_resource_units: BTreeMap<String, Option<u128>>,
     pub run_budget_status: BTreeMap<String, BudgetStatus>,
 }
@@ -133,6 +137,8 @@ pub enum EvaluationError {
     ChosenActionInfeasible,
     ChosenActionOverTrialBudget,
     NoBudgetFeasibleCandidate,
+    NoRunBudgetFeasiblePlan,
+    OracleStateLimitExceeded,
     NonFiniteCandidateLoss,
     NonFiniteRealizedLoss,
     FreshObservationWithoutExecutedAcquisition,
@@ -284,13 +290,124 @@ pub fn evaluate_trial_v1(trial: &TrialV1) -> Result<TrialScoreV1, EvaluationErro
 /// Aggregate same-profile trials and enforce declared run-wide budgets.
 /// If any actual charge is missing on an axis, that axis' total remains unknown.
 /// Per-trial losses and costs are never silently imputed as zero.
+const MAX_RUN_ORACLE_STATES: usize = 100_000;
+
+/// Exact dynamic program over declared run-budget axes. It optimizes the sum of
+/// evaluator-only counterfactual losses subject to per-trial eligibility and
+/// declared run-wide budget limits. Costs are declared estimates, not actual
+/// measurements. Fails closed rather than returning an approximate oracle when
+/// the number of unique resource states exceeds the explicit cap.
+fn run_budget_feasible_oracle_v1(
+    trials: &[TrialV1],
+) -> Result<(f64, Vec<VisionAction>), EvaluationError> {
+    let first = trials.first().ok_or(EvaluationError::EmptyRun)?;
+    let bounded_axes: Vec<(String, u128)> = first
+        .resource_profile
+        .iter()
+        .filter_map(|(axis_id, axis)| {
+            axis.run_budget.map(|budget| (axis_id.clone(), budget))
+        })
+        .collect();
+
+    let initial_state = vec![0_u128; bounded_axes.len()];
+    let mut states: BTreeMap<Vec<u128>, (f64, Vec<VisionAction>)> =
+        BTreeMap::from([(initial_state, (0.0, Vec::new()))]);
+
+    for trial in trials {
+        let mut candidates: Vec<&CandidateOutcomeV1> = trial
+            .candidates
+            .iter()
+            .filter(|candidate| {
+                candidate.feasible
+                    && under_trial_budgets(
+                        &candidate.declared_resource_units,
+                        &trial.resource_profile,
+                    )
+            })
+            .collect();
+        candidates.sort_by_key(|candidate| candidate.action);
+
+        let mut next_states: BTreeMap<Vec<u128>, (f64, Vec<VisionAction>)> = BTreeMap::new();
+        for (spent, (prior_loss, prior_actions)) in &states {
+            for candidate in &candidates {
+                let mut next_spent = spent.clone();
+                let mut within_run_budget = true;
+                for (axis_index, (axis_id, limit)) in bounded_axes.iter().enumerate() {
+                    let units = candidate
+                        .declared_resource_units
+                        .get(axis_id)
+                        .copied()
+                        .ok_or(EvaluationError::ResourceAxesMismatch)?;
+                    let total = next_spent[axis_index]
+                        .checked_add(u128::from(units))
+                        .ok_or_else(|| EvaluationError::ResourceArithmeticOverflow(axis_id.clone()))?;
+                    if total > *limit {
+                        within_run_budget = false;
+                        break;
+                    }
+                    next_spent[axis_index] = total;
+                }
+                if !within_run_budget {
+                    continue;
+                }
+
+                let total_loss = *prior_loss + candidate.counterfactual_task_loss;
+                if !total_loss.is_finite() {
+                    return Err(EvaluationError::NonFiniteAggregate);
+                }
+                let mut actions = prior_actions.clone();
+                actions.push(candidate.action);
+
+                match next_states.get_mut(&next_spent) {
+                    Some(incumbent) => {
+                        let lower_loss = total_loss.total_cmp(&incumbent.0).is_lt();
+                        let deterministic_tie_break =
+                            total_loss.total_cmp(&incumbent.0).is_eq() && actions < incumbent.1;
+                        if lower_loss || deterministic_tie_break {
+                            *incumbent = (total_loss, actions);
+                        }
+                    }
+                    None => {
+                        next_states.insert(next_spent, (total_loss, actions));
+                        if next_states.len() > MAX_RUN_ORACLE_STATES {
+                            return Err(EvaluationError::OracleStateLimitExceeded);
+                        }
+                    }
+                }
+            }
+        }
+
+        if next_states.is_empty() {
+            return Err(EvaluationError::NoRunBudgetFeasiblePlan);
+        }
+        states = next_states;
+    }
+
+    states
+        .into_values()
+        .min_by(|left, right| {
+            left.0
+                .total_cmp(&right.0)
+                .then_with(|| left.1.cmp(&right.1))
+        })
+        .map(|(loss, actions)| (loss, actions))
+        .ok_or(EvaluationError::NoRunBudgetFeasiblePlan)
+}
+
+/// Aggregate same-profile trials, compute a run-budget-constrained counterfactual
+/// oracle, and enforce actual run-wide budgets. If any actual charge is missing
+/// on an axis, that axis' measured total remains unknown. Per-trial results and
+/// oracle outcomes remain evaluator-side; do not serialize them to the policy.
 pub fn summarize_run_v1(trials: &[TrialV1]) -> Result<RunSummaryV1, EvaluationError> {
     if trials.is_empty() {
         return Err(EvaluationError::EmptyRun);
     }
 
-    let mut scores = Vec::with_capacity(trials.len());
-    for trial in trials {
+    let mut ordered_trials = trials.to_vec();
+    ordered_trials.sort_by_key(|trial| trial.trial_id);
+
+    let mut scores = Vec::with_capacity(ordered_trials.len());
+    for trial in &ordered_trials {
         scores.push(evaluate_trial_v1(trial)?);
     }
 
@@ -352,17 +469,26 @@ pub fn summarize_run_v1(trials: &[TrialV1]) -> Result<RunSummaryV1, EvaluationEr
         run_budget_status.insert(axis_id.clone(), status);
     }
 
+    let (run_oracle_total_loss, run_budget_oracle_actions) =
+        run_budget_feasible_oracle_v1(&ordered_trials)?;
     let n = scores.len() as f64;
     let mean_realized_loss = scores.iter().map(|s| s.realized_task_loss).sum::<f64>() / n;
-    let mean_oracle_loss = scores
+    let mean_trial_oracle_loss = scores
         .iter()
         .map(|s| s.best_trial_budget_feasible_counterfactual_loss)
         .sum::<f64>()
         / n;
-    let mean_regret = scores.iter().map(|s| s.regret_vs_trial_oracle).sum::<f64>() / n;
+    let mean_regret_vs_trial_oracle =
+        scores.iter().map(|s| s.regret_vs_trial_oracle).sum::<f64>() / n;
+    let mean_run_budget_feasible_counterfactual_loss = run_oracle_total_loss / n;
+    let mean_regret_vs_run_budget_oracle =
+        mean_realized_loss - mean_run_budget_feasible_counterfactual_loss;
+
     if !mean_realized_loss.is_finite()
-        || !mean_oracle_loss.is_finite()
-        || !mean_regret.is_finite()
+        || !mean_trial_oracle_loss.is_finite()
+        || !mean_regret_vs_trial_oracle.is_finite()
+        || !mean_run_budget_feasible_counterfactual_loss.is_finite()
+        || !mean_regret_vs_run_budget_oracle.is_finite()
     {
         return Err(EvaluationError::NonFiniteAggregate);
     }
@@ -370,8 +496,11 @@ pub fn summarize_run_v1(trials: &[TrialV1]) -> Result<RunSummaryV1, EvaluationEr
     Ok(RunSummaryV1 {
         scores,
         mean_realized_loss,
-        mean_oracle_loss,
-        mean_regret,
+        mean_trial_oracle_loss,
+        mean_regret_vs_trial_oracle,
+        mean_run_budget_feasible_counterfactual_loss,
+        mean_regret_vs_run_budget_oracle,
+        run_budget_oracle_actions,
         total_actual_resource_units,
         run_budget_status,
     })
