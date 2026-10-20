@@ -452,8 +452,9 @@ fn verify_policy_trace_pair(
         let right_action = field(right_step, &right_step_path, "action")?;
         let left_input_bytes = serde_json::to_vec(left_input)
             .map_err(|error| format!("{left_step_path}.policy_input: serialize failed: {error}"))?;
-        let right_input_bytes = serde_json::to_vec(right_input)
-            .map_err(|error| format!("{right_step_path}.policy_input: serialize failed: {error}"))?;
+        let right_input_bytes = serde_json::to_vec(right_input).map_err(|error| {
+            format!("{right_step_path}.policy_input: serialize failed: {error}")
+        })?;
         let left_action_bytes = serde_json::to_vec(left_action)
             .map_err(|error| format!("{left_step_path}.action: serialize failed: {error}"))?;
         let right_action_bytes = serde_json::to_vec(right_action)
@@ -1157,14 +1158,36 @@ mod tests {
         assert_eq!(trace["matched_prefix_actions"], 2);
         assert_eq!(trace["first_visible_history_divergence_step"], 2);
         assert_eq!(trace["first_action_divergence_step"], 2);
-        let receipts = trace["trace_step_receipts"].as_array().expect("step receipts");
+        let receipts = trace["trace_step_receipts"]
+            .as_array()
+            .expect("step receipts");
         assert_eq!(receipts.len(), 3);
-        assert_eq!(receipts[0]["policy_input_sha256_left"], receipts[0]["policy_input_sha256_right"]);
-        assert_eq!(receipts[0]["action_sha256_left"], receipts[0]["action_sha256_right"]);
-        assert!(receipts[0]["policy_input_digest_equal"].as_bool().expect("input digest equality"));
-        assert!(receipts[1]["action_digest_equal"].as_bool().expect("action digest equality"));
-        assert_ne!(receipts[2]["policy_input_sha256_left"], receipts[2]["policy_input_sha256_right"]);
-        assert_ne!(receipts[2]["action_sha256_left"], receipts[2]["action_sha256_right"]);
+        assert_eq!(
+            receipts[0]["policy_input_sha256_left"],
+            receipts[0]["policy_input_sha256_right"]
+        );
+        assert_eq!(
+            receipts[0]["action_sha256_left"],
+            receipts[0]["action_sha256_right"]
+        );
+        assert!(
+            receipts[0]["policy_input_digest_equal"]
+                .as_bool()
+                .expect("input digest equality")
+        );
+        assert!(
+            receipts[1]["action_digest_equal"]
+                .as_bool()
+                .expect("action digest equality")
+        );
+        assert_ne!(
+            receipts[2]["policy_input_sha256_left"],
+            receipts[2]["policy_input_sha256_right"]
+        );
+        assert_ne!(
+            receipts[2]["action_sha256_left"],
+            receipts[2]["action_sha256_right"]
+        );
         assert!(
             trace["claim_ceiling"]
                 .as_str()
