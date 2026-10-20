@@ -338,6 +338,33 @@
           "minLength": 1
         }
       }
+    },
+    "inputBound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower",
+        "upper",
+        "unit"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "N",
+            "N/m",
+            "m",
+            "m^2",
+            "Pa",
+            "m^4"
+          ]
+        }
+      }
     }
   }
 }
