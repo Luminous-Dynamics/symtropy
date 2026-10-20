@@ -409,7 +409,10 @@ mod tests {
         let assessment = compare_runs(&reference, &candidate, &budget()).unwrap();
         assert!(assessment.candidate_within_quality_budget);
         assert_eq!(assessment.wall_time_speedup, 2.5);
-        assert_ne!(reference.configuration_digest_sha256, candidate.configuration_digest_sha256);
+        assert_ne!(
+            reference.configuration_digest_sha256,
+            candidate.configuration_digest_sha256
+        );
     }
 
     #[test]
