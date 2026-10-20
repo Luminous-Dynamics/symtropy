@@ -218,10 +218,10 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
         .ok_or_else(|| "request.inputs must be an object".to_owned())?
         .clone();
     validate_case_inputs(&case_id, &inputs)?;
-    if schema_version == REQUEST_SCHEMA_V02 {
-        if let Some(input_bounds) = value.get("input_bounds") {
-            validate_input_bounds(&case_id, &inputs, input_bounds)?;
-        }
+    if schema_version == REQUEST_SCHEMA_V02
+        && let Some(input_bounds) = value.get("input_bounds")
+    {
+        validate_input_bounds(&case_id, &inputs, input_bounds)?;
     }
     let units = value
         .get("units")
@@ -632,7 +632,7 @@ mod tests {
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
         request["input_bounds"]["force_n"]["lower"] = json!(1_001.0);
-        let error = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV).unwrap_err();
+        let error = dispatch_request_bytes(request.to_string().as_bytes(), REV, REV).unwrap_err();
         assert!(error.contains("must contain its nominal input"));
     }
 
@@ -641,7 +641,7 @@ mod tests {
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
         request["requested_physics"] = json!(["static_linear_elastic", "fracture"]);
-        let receipt = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV)
+        let receipt = dispatch_request_bytes(request.to_string().as_bytes(), REV, REV)
             .expect("unsupported v0.2 physics is an abstention");
         assert_eq!(
             receipt["request_schema_version"],
@@ -681,7 +681,7 @@ mod tests {
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
         request["units"]["length"] = json!("ft");
-        let receipt = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV)
+        let receipt = dispatch_request_bytes(request.to_string().as_bytes(), REV, REV)
             .expect("well-formed but incompatible units yield an abstention receipt");
         assert_eq!(receipt["selection_status"], "UNRESOLVED");
         assert_eq!(receipt["evaluation_status"], "NOT_EVALUATED");
@@ -692,11 +692,11 @@ mod tests {
         let mut malformed_units: Value =
             serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
         malformed_units["units"]["length"] = json!(17);
-        assert!(dispatch_request_bytes(&malformed_units.to_string().as_bytes(), REV, REV).is_err());
+        assert!(dispatch_request_bytes(malformed_units.to_string().as_bytes(), REV, REV).is_err());
 
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
         request["unreviewed_override"] = json!(true);
-        assert!(dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV).is_err());
+        assert!(dispatch_request_bytes(request.to_string().as_bytes(), REV, REV).is_err());
     }
 }
