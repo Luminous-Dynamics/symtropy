@@ -1321,6 +1321,10 @@ pub fn verify_solver_output_artifact_bytes(
     } else {
         "PASS"
     };
+    let verified_input_count = input_results
+        .iter()
+        .filter(|item| item.get("status").and_then(Value::as_str) == Some("PASS"))
+        .count();
     diagnostics.extend(input_diagnostics);
 
     report["artifact_verification_status"] = json!(artifact_status);
@@ -1331,12 +1335,7 @@ pub fn verify_solver_output_artifact_bytes(
     report["input_artifact_results"] = Value::Array(input_results);
     report["artifact_diagnostics"] = json!(diagnostics);
     report["verified_output_count"] = json!(verified_output_count);
-    report["verified_input_count"] = json!(
-        input_results
-            .iter()
-            .filter(|item| item.get("status").and_then(Value::as_str) == Some("PASS"))
-            .count()
-    );
+    report["verified_input_count"] = json!(verified_input_count);
     report["output_artifact_bytes_verified"] = json!(output_status == "PASS");
     report["input_artifact_bytes_verified"] =
         json!(!input_artifacts.is_empty() && input_status == "PASS");
