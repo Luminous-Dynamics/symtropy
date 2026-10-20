@@ -160,6 +160,8 @@ jobs:
           grep -Fq "fresh_evidence_rate_per_executed_view" rendered-pixel-world.tsv
           grep -Fq "recovery_rate" rendered-pixel-world.tsv
           grep -Fq "mean_recovery_steps_when_recovered" rendered-pixel-world.tsv
+          grep -Fq "view_attributable_recovery_rate" rendered-pixel-world.tsv
+          grep -Fq "mean_view_recovery_steps_when_attributed" rendered-pixel-world.tsv
           grep -Fq "bootstrap95_lo_vs_passive" rendered-pixel-world.tsv
           grep -Fq "timing-stratum diagnostics" rendered-pixel-world.tsv
           grep -Fq "early_onset" rendered-pixel-world.tsv
