@@ -19,6 +19,7 @@ fn quantity_event(
         stage,
         source_ref: format!("fixture:{event_id}"),
         source_permission: EvidencePermission::PublicOrPermitted,
+        source_permission_ref: "fixture-rights:public-test-data".to_owned(),
         related_event_ids: Vec::new(),
         kind: EventKind::Quantity(QuantityEvent {
             quantity_key: "labor.fitter.hours".to_owned(),
@@ -38,6 +39,7 @@ fn invoice_event(amount_minor_units: i64) -> LedgerEvent {
         stage: Stage::Observed,
         source_ref: "fixture:invoice-1".to_owned(),
         source_permission: EvidencePermission::PublicOrPermitted,
+        source_permission_ref: "fixture-rights:public-test-data".to_owned(),
         related_event_ids: Vec::new(),
         kind: EventKind::FinancialActual(FinancialTransaction {
             transaction_ref: "invoice-1:line-1".to_owned(),
