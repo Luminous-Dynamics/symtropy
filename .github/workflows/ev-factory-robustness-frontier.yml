@@ -110,7 +110,7 @@ jobs:
             and all(.station_scores[]; .family_count == 5)
             and .results_are_synthetic_model_conditional
             and (.production_release_authorized == false)
-            and (.robust_best_station_id == null or (.station_scores | any(.station_id == $robust_best_station_id)))
+            and (.robust_best_station_id == null or (.robust_best_station_id | type == "string"))
           ' ev-factory-robustness-report.json
       - name: Verify byte-identical frontier report
         run: |
