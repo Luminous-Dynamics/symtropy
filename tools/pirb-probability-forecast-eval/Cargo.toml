@@ -33,4 +33,8 @@ path = "src/hierarchy_coherence_main.rs"
 name = "pirb-selective-forecast-audit"
 path = "src/selective_forecast_main.rs"
 
+[[bin]]
+name = "pirb-action-value-audit"
+path = "src/action_value_main.rs"
+
 [workspace]
