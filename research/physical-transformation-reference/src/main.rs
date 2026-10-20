@@ -15,7 +15,7 @@ fn main() -> ExitCode {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
-    let mut source_commit: Option<&str> = None;
+    let mut source_commit: Option<String> = None;
     let mut index = 0;
     while index < args.len() {
         if args[index] == "--source-commit" {
@@ -28,15 +28,16 @@ fn run() -> Result<(), String> {
             if value.len() != 40 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
                 return Err("--source-commit must be a 40-character Git SHA-1".to_owned());
             }
-            source_commit = Some(value);
+            source_commit = Some(value.clone());
             index += 2;
         } else {
             return Err(format!("unknown argument: {}", args[index]));
         }
     }
 
-    let source_commit = source_commit
-        .ok_or_else(|| "usage: physical-transformation-reference --source-commit <40-char-git-sha>".to_owned())?;
+    let source_commit = source_commit.ok_or_else(|| {
+        "usage: physical-transformation-reference --source-commit <40-char-git-sha>".to_owned()
+    })?;
     let outcome = run_reference_fixture()?;
 
     println!(
