@@ -744,12 +744,58 @@ mod tests {
         assert_eq!(result.contract, 100.0);
     }
 
+    fn catalog_fixture() -> Catalog {
+        serde_json::from_str(include_str!("../../fixtures/ev_factory_lifecycle_v0_1.json"))
+            .expect("lifecycle fixture parses")
+    }
+
     #[test]
     fn unknown_fields_and_inconsistent_strategy_kind_are_rejected() {
         let json = serde_json::json!({"unexpected": true});
         assert!(serde_json::from_value::<Catalog>(json).is_err());
-        let mut strategy = base_strategy();
-        strategy.kind = StrategyKind::Lease;
-        assert!(strategy.owns_asset);
+        let mut catalog = catalog_fixture();
+        catalog.strategies[0].kind = StrategyKind::Lease;
+        assert!(validate_catalog(&catalog).is_err());
+    }
+
+    #[test]
+    fn five_family_four_strategy_frontier_is_reproducible_and_fail_closed() {
+        let catalog = catalog_fixture();
+        validate_catalog(&catalog).expect("valid synthetic catalog");
+        let digest = "a".repeat(64);
+        let first = evaluate(&catalog, &digest).expect("frontier report");
+        let second = evaluate(&catalog, &digest).expect("repeat frontier report");
+        assert_eq!(first, second);
+        assert_eq!(first.family_count, 5);
+        assert_eq!(first.strategy_count, 4);
+        assert_eq!(first.family_strategy_results.len(), 20);
+        assert_eq!(first.purchase_vs_lease_break_even.len(), 5);
+        assert_eq!(first.sensitivity_results.len(), 9);
+        assert!(!first.economic_recommendation_authorized);
+        assert!(!first.production_release_authorized);
+        assert_eq!(first.source_catalog_sha256, digest);
+    }
+
+    #[test]
+    fn sensitivity_grid_separates_lifecycle_dimensions() {
+        let report = evaluate(&catalog_fixture(), &"b".repeat(64)).expect("report");
+        let cases: BTreeSet<String> = report.sensitivity_results
+            .iter()
+            .map(|case| case.perturbed_dimension.clone())
+            .collect();
+        for dimension in [
+            "discount_rate",
+            "useful_life",
+            "product_evolution",
+            "idle_duration",
+            "salvage_realization",
+        ] {
+            assert!(cases.contains(dimension));
+        }
+        assert!(report.sensitivity_results.iter().all(|case| {
+            case.mean_npv_cost_by_strategy.len() == 4
+                && case.worst_family_npv_cost_by_strategy.len() == 4
+                && case.evidence_class == EvidenceClass::Synthetic
+        }));
     }
 }
