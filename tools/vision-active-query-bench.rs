@@ -30,7 +30,8 @@ const HORIZON: usize = 48;
 const REPLICATES: usize = 12;
 const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
-const ROOT_SEED: u64 = 0x5BE0_CD19_137E_2179;
+// Independent seed domain for the frozen VOI replication (the policy itself is unchanged).
+const ROOT_SEED: u64 = 0x9B05_688C_2B3E_6C1F;
 const PRIOR_SENSOR_BASE_PER_THOUSAND: f64 = 32.5;
 
 fn mix64(mut x: u64) -> u64 {
