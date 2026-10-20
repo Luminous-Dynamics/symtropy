@@ -330,6 +330,10 @@ mod tests {
             schema["properties"]["schema_version"]["const"].as_str()
         );
         assert_eq!(schema["properties"]["models"]["minItems"].as_u64(), Some(1));
+        assert_eq!(
+            schema["properties"]["model_weight_intervals"]["items"]["required"],
+            json!(["model_id", "lower", "upper"])
+        );
         assert!(
             example["models"]
                 .as_array()
@@ -380,6 +384,22 @@ mod tests {
             root["models"][0]["action_losses"]
                 .as_object()
                 .map(|actions| actions.len())
+        );
+        assert_eq!(
+            report["weight_sensitivity"].as_array().map(Vec::len),
+            Some(3)
+        );
+        let graze = report["weight_sensitivity"]
+            .as_array()
+            .expect("weight sensitivity array")
+            .iter()
+            .find(|item| item["action"] == "graze")
+            .expect("graze sensitivity");
+        assert!((graze["minimum_expected_loss"].as_f64().expect("minimum") - 3.4).abs() < 1e-9);
+        assert!((graze["maximum_expected_loss"].as_f64().expect("maximum") - 6.2).abs() < 1e-9);
+        assert_eq!(
+            schema["properties"]["weight_sensitivity"]["type"].as_str(),
+            Some("array")
         );
     }
 
