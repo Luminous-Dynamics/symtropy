@@ -143,10 +143,7 @@ fn establishes_mechanism(class: EvidenceClass) -> bool {
 
 impl CausalEdge {
     pub fn validate(&self) -> Result<(), CausalEdgeValidationError> {
-        if !nonblank(&self.edge_id)
-            || !nonblank(&self.rule_id)
-            || !nonblank(&self.model_revision)
-        {
+        if !nonblank(&self.edge_id) || !nonblank(&self.rule_id) || !nonblank(&self.model_revision) {
             return Err(CausalEdgeValidationError::EmptyIdentifier);
         }
         if !nonblank(&self.source_output_field)
@@ -171,7 +168,11 @@ impl CausalEdge {
         {
             return Err(CausalEdgeValidationError::MissingUnitConversionModel);
         }
-        if self.required_target_inputs.iter().any(|input| !nonblank(input)) {
+        if self
+            .required_target_inputs
+            .iter()
+            .any(|input| !nonblank(input))
+        {
             return Err(CausalEdgeValidationError::EmptyRequiredInput);
         }
         if !nonblank(&self.evidence.suite_id) {
