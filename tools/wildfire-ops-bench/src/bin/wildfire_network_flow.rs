@@ -322,9 +322,7 @@ fn simulate_case(case: &Value) -> Check<Value> {
     let case_id = text(case, "case_id", "case")?;
     let horizon = uint(case, "horizon_steps", case_id)?;
     if horizon == 0 || horizon > MAX_HORIZON {
-        return Err(format!(
-            "{case_id}: horizon must be in 1..={MAX_HORIZON}"
-        ));
+        return Err(format!("{case_id}: horizon must be in 1..={MAX_HORIZON}"));
     }
     let (edges, edge_indices) = read_edges(case)?;
     let (sinks, sink_indices) = read_sinks(case)?;
@@ -398,7 +396,11 @@ fn simulate_case(case: &Value) -> Check<Value> {
 
         for (edge_index, current_edge) in edges.iter().enumerate() {
             for vehicle in &edge_vehicles[edge_index] {
-                if step < vehicle.entered_step.saturating_add(current_edge.travel_time) {
+                if step
+                    < vehicle
+                        .entered_step
+                        .saturating_add(current_edge.travel_time)
+                {
                     break;
                 }
                 let demand = &runtime[vehicle.demand_index].spec;
@@ -408,12 +410,12 @@ fn simulate_case(case: &Value) -> Check<Value> {
                         current_edge.id
                     ));
                 }
-                let (target_edge, target_sink) =
-                    if vehicle.route_position + 1 < demand.route.len() {
-                        (Some(demand.route[vehicle.route_position + 1]), None)
-                    } else {
-                        (None, Some(demand.sink_index))
-                    };
+                let (target_edge, target_sink) = if vehicle.route_position + 1 < demand.route.len()
+                {
+                    (Some(demand.route[vehicle.route_position + 1]), None)
+                } else {
+                    (None, Some(demand.sink_index))
+                };
                 let request = make_request(
                     vehicle.clone(),
                     target_edge,
@@ -478,20 +480,23 @@ fn simulate_case(case: &Value) -> Check<Value> {
                 let target_sink = stream_queues[active[0]][positions[active[0]]].target_sink;
                 let target_limit = if let Some(edge_index) = target_edge {
                     let edge = &edges[edge_index];
-                    if edge.closed_from.is_some_and(|close_step| step >= close_step) {
+                    if edge
+                        .closed_from
+                        .is_some_and(|close_step| step >= close_step)
+                    {
                         continue;
                     }
-                    edge.capacity
-                        .min(edge.storage.saturating_sub(edge_vehicles[edge_index].len() as u64))
+                    edge.capacity.min(
+                        edge.storage
+                            .saturating_sub(edge_vehicles[edge_index].len() as u64),
+                    )
                 } else {
                     let sink_index = target_sink.expect("one target kind");
-                    sinks[sink_index]
-                        .ingress_capacity
-                        .min(
-                            sinks[sink_index]
-                                .total_capacity
-                                .saturating_sub(sink_arrived[sink_index]),
-                        )
+                    sinks[sink_index].ingress_capacity.min(
+                        sinks[sink_index]
+                            .total_capacity
+                            .saturating_sub(sink_arrived[sink_index]),
+                    )
                 };
 
                 loop {
@@ -519,7 +524,9 @@ fn simulate_case(case: &Value) -> Check<Value> {
 
                     let cursor = target_cursor.get(target_key);
                     let start = cursor
-                        .and_then(|wanted| active.iter().position(|idx| stream_keys[*idx] >= *wanted))
+                        .and_then(|wanted| {
+                            active.iter().position(|idx| stream_keys[*idx] >= *wanted)
+                        })
                         .unwrap_or(0);
                     let mut accepted_stream = None;
 
@@ -546,8 +553,7 @@ fn simulate_case(case: &Value) -> Check<Value> {
                     let Some(stream_index) = accepted_stream else {
                         break;
                     };
-                    let request =
-                        stream_queues[stream_index][positions[stream_index]].clone();
+                    let request = stream_queues[stream_index][positions[stream_index]].clone();
                     positions[stream_index] += 1;
                     made_progress = true;
 
@@ -653,9 +659,9 @@ fn simulate_case(case: &Value) -> Check<Value> {
             .enumerate()
             .filter(|(i, edge)| {
                 edge_vehicles[*i].len() as u64 >= edge.storage
-                    && stream_queues.iter().any(|stream| {
-                        stream.iter().any(|request| request.target_edge == Some(*i))
-                    })
+                    && stream_queues
+                        .iter()
+                        .any(|stream| stream.iter().any(|request| request.target_edge == Some(*i)))
             })
             .count() as u64;
         step_metrics.push(json!({
@@ -811,7 +817,9 @@ fn validate_fixture(fixture: &Value) -> Check<Vec<Value>> {
     for (index, case) in cases.iter().enumerate() {
         let id = text(case, "case_id", "case")?;
         if id != CASE_IDS[index] || !seen.insert(id.to_owned()) {
-            return Err(format!("case inventory/order mismatch at index {index}: {id}"));
+            return Err(format!(
+                "case inventory/order mismatch at index {index}: {id}"
+            ));
         }
         results.push(simulate_case(case)?);
     }
@@ -848,8 +856,7 @@ fn run() -> Check<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 || args[2] != "--source-commit" {
         return Err(
-            "usage: wildfire-network-flow <fixture.json> --source-commit <40-hex-sha>"
-                .to_owned(),
+            "usage: wildfire-network-flow <fixture.json> --source-commit <40-hex-sha>".to_owned(),
         );
     }
     let source_commit = &args[3];
@@ -976,7 +983,12 @@ mod tests {
             results[5]["served_by_sink"]["SHELTER_S"]["accessible_served_vehicles"],
             1
         );
-        assert!(results[5]["unserved_or_stranded_vehicles"].as_u64().unwrap_or(0) > 0);
+        assert!(
+            results[5]["unserved_or_stranded_vehicles"]
+                .as_u64()
+                .unwrap_or(0)
+                > 0
+        );
     }
 
     #[test]
@@ -1003,8 +1015,7 @@ mod tests {
     #[test]
     fn rejects_disconnected_routes_and_capacity_guardrail_violations() {
         let mut fixture = fixture();
-        fixture["cases"][0]["demands"][0]["route_edge_ids"] =
-            json!(["A_J", "BRIDGE_S", "K_S"]);
+        fixture["cases"][0]["demands"][0]["route_edge_ids"] = json!(["A_J", "BRIDGE_S", "K_S"]);
         assert!(validate_fixture(&fixture).is_err());
         let mut fixture = fixture();
         fixture["cases"][0]["horizon_steps"] = json!(MAX_HORIZON + 1);
