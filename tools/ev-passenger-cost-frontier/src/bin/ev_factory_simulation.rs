@@ -1647,6 +1647,42 @@ mod tests {
     }
 
     #[test]
+    fn homogeneous_zero_setup_control_is_policy_invariant() {
+        let mut fifo = fixture();
+        fifo.variant_count = 1;
+        fifo.replication_seeds.clear();
+        fifo.dispatch_policy = DispatchPolicy::Fifo;
+        for station in &mut fifo.stations {
+            station.changeover_seconds = 0.0;
+        }
+        let mut aware = fifo.clone();
+        aware.dispatch_policy = DispatchPolicy::MinimizeChangeover;
+
+        let fifo_report = evaluate_catalog(&fifo).expect("homogeneous FIFO control");
+        let aware_report = evaluate_catalog(&aware).expect("homogeneous variant-aware control");
+        assert_eq!(fifo_report.replication_seeds, aware_report.replication_seeds);
+        assert_eq!(fifo_report.scenario_count, aware_report.scenario_count);
+        assert_eq!(fifo_report.scenarios.len(), aware_report.scenarios.len());
+        for (fifo_scenario, aware_scenario) in
+            fifo_report.scenarios.iter().zip(&aware_report.scenarios)
+        {
+            assert_eq!(fifo_scenario.scenario_id, aware_scenario.scenario_id);
+            assert_eq!(fifo_scenario.released_jobs_total, aware_scenario.released_jobs_total);
+            assert_eq!(fifo_scenario.good_units_total, aware_scenario.good_units_total);
+            assert_eq!(
+                fifo_scenario.measured_good_units_per_hour,
+                aware_scenario.measured_good_units_per_hour
+            );
+        }
+        assert!(fifo_report.station_sequence_statistics.iter().all(|stat| {
+            stat.changeovers_started.mean == 0.0
+        }));
+        assert!(aware_report.station_sequence_statistics.iter().all(|stat| {
+            stat.changeovers_started.mean == 0.0
+        }));
+    }
+
+    #[test]
     fn keyed_random_streams_are_reproducible_and_independent_of_unrelated_draws() {
         let expected_job_b =
             DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1).next_u64();
