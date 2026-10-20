@@ -51,10 +51,138 @@ impl Default for SearchState {
 }
 
 #[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
+enum PriorityRule {
+    LongestProcessingTime,
+    ShortestProcessingTime,
+    HighestNormalizedCrewLoad,
+}
+
+impl PriorityRule {
+    const ALL: [Self; 3] = [
+        Self::LongestProcessingTime,
+        Self::ShortestProcessingTime,
+        Self::HighestNormalizedCrewLoad,
+    ];
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::LongestProcessingTime => "lpt",
+            Self::ShortestProcessingTime => "spt",
+            Self::HighestNormalizedCrewLoad => "normalized_crew_load",
+        }
+    }
+}
+
 struct Comparison {
     greedy_makespan_hours: f64,
     greedy_lower_bound_hours: f64,
+    priority_makespans_hours: BTreeMap<String, f64>,
     exact: ExactResult,
+}
+
+fn normalized_crew_load(
+    task: &RepairTask,
+    capacities: &BTreeMap<String, u32>,
+) -> f64 {
+    let per_unit_load: f64 = task
+        .crew_requirements
+        .iter()
+        .map(|requirement| {
+            f64::from(requirement.crews_required)
+                / f64::from(capacities[&requirement.skill_id])
+        })
+        .sum();
+    task.duration_hours * per_unit_load
+}
+
+fn priority_order(
+    scenario: &RepairScheduleScenario,
+    rule: PriorityRule,
+) -> Result<Vec<String>, String> {
+    let by_id: BTreeMap<String, &RepairTask> = scenario
+        .tasks
+        .iter()
+        .map(|task| (task.task_id.clone(), task))
+        .collect();
+    let capacities: BTreeMap<String, u32> = scenario
+        .crews
+        .iter()
+        .map(|crew| (crew.skill_id.clone(), crew.available_crews))
+        .collect();
+
+    let mut remaining: BTreeSet<String> = by_id.keys().cloned().collect();
+    let mut order = Vec::with_capacity(remaining.len());
+    while !remaining.is_empty() {
+        let scheduled: BTreeSet<&str> = order.iter().map(String::as_str).collect();
+        let mut ready: Vec<String> = remaining
+            .iter()
+            .filter(|task_id| {
+                by_id.get(*task_id).is_some_and(|task| {
+                    task.predecessors
+                        .iter()
+                        .all(|predecessor| scheduled.contains(predecessor.as_str()))
+                })
+            })
+            .cloned()
+            .collect();
+        if ready.is_empty() {
+            return Err(format!(
+                "PRIORITY_ORDER_PRECEDENCE_CYCLE:{}",
+                scenario.scenario_id
+            ));
+        }
+
+        ready.sort_by(|left, right| {
+            let left_task = by_id[left];
+            let right_task = by_id[right];
+            let priority = match rule {
+                PriorityRule::LongestProcessingTime => {
+                    right_task.duration_hours.total_cmp(&left_task.duration_hours)
+                }
+                PriorityRule::ShortestProcessingTime => {
+                    left_task.duration_hours.total_cmp(&right_task.duration_hours)
+                }
+                PriorityRule::HighestNormalizedCrewLoad => {
+                    normalized_crew_load(right_task, &capacities)
+                        .total_cmp(&normalized_crew_load(left_task, &capacities))
+                }
+            };
+            priority.then_with(|| left.cmp(right))
+        });
+
+        let next = ready
+            .into_iter()
+            .next()
+            .ok_or_else(|| format!("PRIORITY_ORDER_EMPTY_READY_SET:{}", scenario.scenario_id))?;
+        remaining.remove(&next);
+        order.push(next);
+    }
+    Ok(order)
+}
+
+fn priority_makespan(
+    scenario: &RepairScheduleScenario,
+    rule: PriorityRule,
+) -> Result<f64, String> {
+    let by_id: BTreeMap<String, &RepairTask> = scenario
+        .tasks
+        .iter()
+        .map(|task| (task.task_id.clone(), task))
+        .collect();
+    let capacities: BTreeMap<String, u32> = scenario
+        .crews
+        .iter()
+        .map(|crew| (crew.skill_id.clone(), crew.available_crews))
+        .collect();
+    let order = priority_order(scenario, rule)?;
+    let schedule = serial_schedule_for_order(&order, &by_id, &capacities)?;
+    schedule
+        .iter()
+        .map(|task| task.finish_hour)
+        .max_by(f64::total_cmp)
+        .filter(|makespan| makespan.is_finite())
+        .ok_or_else(|| format!("PRIORITY_SCHEDULE_INVALID_MAKESPAN:{}", scenario.scenario_id))
 }
 
 fn exact_minimum_makespan(scenario: &RepairScheduleScenario) -> Result<ExactResult, String> {
@@ -328,9 +456,30 @@ fn compare(scenario: &RepairScheduleScenario) -> Result<Comparison, String> {
         ));
     }
 
+    let mut priority_makespans_hours = BTreeMap::new();
+    for rule in PriorityRule::ALL {
+        let makespan = priority_makespan(scenario, rule)?;
+        if exact.makespan_hours > makespan + EPS {
+            return Err(format!(
+                "ORACLE_EXCEEDS_PRIORITY_SCHEDULE:{}:{}",
+                scenario.scenario_id,
+                rule.label()
+            ));
+        }
+        if exact.makespan_hours + EPS < report.makespan_lower_bound_hours {
+            return Err(format!(
+                "EXACT_RESULT_BELOW_LOWER_BOUND_FOR_PRIORITY:{}:{}",
+                scenario.scenario_id,
+                rule.label()
+            ));
+        }
+        priority_makespans_hours.insert(rule.label().to_owned(), makespan);
+    }
+
     Ok(Comparison {
         greedy_makespan_hours: report.total_work_makespan_hours,
         greedy_lower_bound_hours: report.makespan_lower_bound_hours,
+        priority_makespans_hours,
         exact,
     })
 }
@@ -531,6 +680,13 @@ fn run_benchmark() -> Result<(), String> {
         hand_gap / hand.exact.makespan_hours,
         hand.exact.orders_evaluated
     );
+    for (rule, makespan) in &hand.priority_makespans_hours {
+        let relative_gap = (makespan - hand.exact.makespan_hours).max(0.0)
+            / hand.exact.makespan_hours;
+        println!(
+            "hand_checked_policy={rule} makespan_h={makespan:.2} relative_gap={relative_gap:.4}"
+        );
+    }
     println!(
         "hand_checked_exact_order={}",
         hand.exact.best_order.join(",")
@@ -540,6 +696,10 @@ fn run_benchmark() -> Result<(), String> {
     let mut max_gap = 0.0_f64;
     let mut strict_losses = 0_u64;
     let mut total_orders = 0_usize;
+    let mut policy_gap_sums: BTreeMap<String, f64> = BTreeMap::new();
+    let mut policy_max_gaps: BTreeMap<String, f64> = BTreeMap::new();
+    let mut policy_strict_losses: BTreeMap<String, u64> = BTreeMap::new();
+
     for seed in 0..GENERATED_FIXTURES {
         let result = compare(&generated_fixture(seed))?;
         let gap = (result.greedy_makespan_hours - result.exact.makespan_hours).max(0.0);
@@ -550,12 +710,33 @@ fn run_benchmark() -> Result<(), String> {
             strict_losses += 1;
         }
         total_orders = total_orders.saturating_add(result.exact.orders_evaluated);
+
+        for (rule, makespan) in result.priority_makespans_hours {
+            let policy_gap = (makespan - result.exact.makespan_hours).max(0.0)
+                / result.exact.makespan_hours;
+            *policy_gap_sums.entry(rule.clone()).or_insert(0.0) += policy_gap;
+            let max_entry = policy_max_gaps.entry(rule.clone()).or_insert(0.0);
+            *max_entry = max_entry.max(policy_gap);
+            if policy_gap > EPS {
+                *policy_strict_losses.entry(rule).or_insert(0) += 1;
+            }
+        }
     }
     println!(
-        "generated_fixtures={GENERATED_FIXTURES} strict_greedy_losses={strict_losses} mean_relative_gap={:.4} max_relative_gap={:.4} total_topological_orders={total_orders}",
+        "generated_fixtures={GENERATED_FIXTURES} parallel_greedy_strict_losses={strict_losses} parallel_greedy_mean_relative_gap={:.4} parallel_greedy_max_relative_gap={:.4} total_topological_orders={total_orders}",
         gap_sum / GENERATED_FIXTURES as f64,
         max_gap
     );
+    for rule in PriorityRule::ALL {
+        let label = rule.label();
+        println!(
+            "priority_policy={label} fixtures={GENERATED_FIXTURES} strict_losses={} mean_relative_gap={:.4} max_relative_gap={:.4}",
+            policy_strict_losses.get(label).copied().unwrap_or(0),
+            policy_gap_sums.get(label).copied().unwrap_or(0.0)
+                / GENERATED_FIXTURES as f64,
+            policy_max_gaps.get(label).copied().unwrap_or(0.0)
+        );
+    }
     println!(
         "interpretation=exact_only_for_each_enumerated_small_fixture_no_SOTA_or_field_accuracy_claim"
     );
@@ -584,24 +765,26 @@ mod tests {
     }
 
     #[test]
-    fn fifty_deterministic_fixtures_match_the_exhaustive_oracle_and_lower_bounds() {
+    fn fifty_deterministic_fixtures_match_exact_oracle_and_all_priority_baselines() {
         for seed in 0..GENERATED_FIXTURES {
             let scenario = generated_fixture(seed);
-            let greedy = schedule_repairs(&scenario);
-            let report = greedy
-                .report
-                .expect("generated scenario must produce a greedy schedule");
-            let exact = exact_minimum_makespan(&scenario)
-                .expect("bounded generated scenario must have an exact optimum");
-            assert!(exact.orders_evaluated > 0, "seed={seed}");
+            let result = compare(&scenario)
+                .expect("all bounded synthetic fixtures must be comparable");
+            assert!(result.exact.orders_evaluated > 0, "seed={seed}");
             assert!(
-                exact.makespan_hours + EPS >= report.makespan_lower_bound_hours,
+                result.exact.makespan_hours + EPS >= result.greedy_lower_bound_hours,
                 "exact optimum violated lower bound for seed={seed}"
             );
             assert!(
-                exact.makespan_hours <= report.total_work_makespan_hours + EPS,
-                "greedy schedule beat purported exact optimum for seed={seed}"
+                result.exact.makespan_hours <= result.greedy_makespan_hours + EPS,
+                "parallel greedy schedule beat purported exact optimum for seed={seed}"
             );
+            for (rule, makespan) in result.priority_makespans_hours {
+                assert!(
+                    result.exact.makespan_hours <= makespan + EPS,
+                    "priority policy {rule} beat exact optimum for seed={seed}"
+                );
+            }
         }
     }
 
