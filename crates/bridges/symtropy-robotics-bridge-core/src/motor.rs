@@ -315,10 +315,9 @@ mod tests {
 
     #[test]
     fn serialized_fault_names_match_v1_schema() {
-        let schema: serde_json::Value = serde_json::from_str(include_str!(
-            "../schemas/motor-plan-result-v1.schema.json"
-        ))
-        .expect("checked-in motor plan schema must parse");
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/motor-plan-result-v1.schema.json"))
+                .expect("checked-in motor plan schema must parse");
         let variants = schema["properties"]["status"]["oneOf"]
             .as_array()
             .expect("status schema should use oneOf");
@@ -346,7 +345,10 @@ mod tests {
             let name = value["rejected"]
                 .as_str()
                 .expect("rejected status should serialize a fault name");
-            assert!(allowed.contains(name), "serialized fault {name} is absent from schema");
+            assert!(
+                allowed.contains(name),
+                "serialized fault {name} is absent from schema"
+            );
         }
         assert_eq!(allowed.len(), faults.len());
     }
