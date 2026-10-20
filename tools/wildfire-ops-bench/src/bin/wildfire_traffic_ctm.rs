@@ -63,7 +63,9 @@ fn percentile(steps: &[u64], numerator: u64, denominator: u64) -> Option<u64> {
     if steps.is_empty() {
         return None;
     }
-    let rank = (steps.len() as u64 * numerator).div_ceil(denominator).max(1);
+    let rank = (steps.len() as u64 * numerator)
+        .div_ceil(denominator)
+        .max(1);
     steps.get((rank - 1) as usize).copied()
 }
 
@@ -121,7 +123,9 @@ fn simulate_path(demand: u64, path: &Value, max_steps: u64) -> Check<Value> {
             max_observed_flow = max_observed_flow.max(outflow[cell]);
         }
 
-        let source_flow = remaining.min(capacity).min(jam.saturating_sub(occupancy[0]));
+        let source_flow = remaining
+            .min(capacity)
+            .min(jam.saturating_sub(occupancy[0]));
         max_observed_flow = max_observed_flow.max(source_flow);
         let mut next = occupancy.clone();
         next[0] = occupancy[0] + source_flow - outflow[0];
@@ -196,7 +200,9 @@ fn simulate_case(case: &Value) -> Check<Value> {
         ));
     }
     if assisted > demand {
-        return Err(format!("{case_id}: assisted demand cannot exceed total demand"));
+        return Err(format!(
+            "{case_id}: assisted demand cannot exceed total demand"
+        ));
     }
 
     let mut ids = std::collections::BTreeSet::new();
@@ -211,8 +217,7 @@ fn simulate_case(case: &Value) -> Check<Value> {
         let total_capacity = unsigned(path, "shelter_capacity", id)?;
         let accessible_capacity = unsigned(path, "accessible_capacity", id)?;
         let shelter_ok = total_capacity >= demand && accessible_capacity >= assisted;
-        let operationally_feasible =
-            simulation["completed"].as_bool() == Some(true) && shelter_ok;
+        let operationally_feasible = simulation["completed"].as_bool() == Some(true) && shelter_ok;
         details.push(json!({
             "path_id": id,
             "free_flow_steps": cells,
@@ -254,8 +259,8 @@ fn simulate_case(case: &Value) -> Check<Value> {
         .find(|detail| detail["path_id"].as_str() == static_id);
     let dynamic_clearance =
         dynamic.and_then(|detail| detail["simulation"]["clearance_step"].as_u64());
-    let static_feasible =
-        static_detail.is_some_and(|detail| detail["operationally_feasible"].as_bool() == Some(true));
+    let static_feasible = static_detail
+        .is_some_and(|detail| detail["operationally_feasible"].as_bool() == Some(true));
 
     Ok(json!({
         "case_id": case_id,
@@ -423,7 +428,9 @@ mod tests {
                         <= sim["jam_occupancy_limit"].as_u64().unwrap_or(0)
                 );
                 assert!(
-                    sim["max_observed_flow_per_step"].as_u64().unwrap_or(u64::MAX)
+                    sim["max_observed_flow_per_step"]
+                        .as_u64()
+                        .unwrap_or(u64::MAX)
                         <= sim["capacity_per_step"].as_u64().unwrap_or(0)
                 );
             }
