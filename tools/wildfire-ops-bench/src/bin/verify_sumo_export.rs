@@ -282,6 +282,84 @@ fn parse_sumo_outcomes(xml: &str, expected_ids: &BTreeSet<String>) -> Check<Valu
     }))
 }
 
+
+fn semantic_comparability(case: &Value, manifest: &Value, at: &str) -> Check<Value> {
+    let edges = array(case, "edges", at)?;
+    let sinks = array(case, "sinks", at)?;
+    let demands = array(case, "demands", at)?;
+    let gaps = array(manifest, "semantic_gaps", at)?;
+    let mut reasons = Vec::<Value>::new();
+
+    let gap_detail = |needle: &str| -> Check<String> {
+        gaps.iter()
+            .filter_map(Value::as_str)
+            .find(|gap| gap.contains(needle))
+            .map(str::to_owned)
+            .ok_or_else(|| {
+                format!("{at}: manifest omitted required semantic-gap declaration containing {needle:?}")
+            })
+    };
+
+    let edge_limits_declared = edges.iter().any(|edge| {
+        edge.get("capacity_per_step").is_some() || edge.get("storage").is_some()
+    });
+    if edge_limits_declared {
+        reasons.push(json!({
+            "code": "EDGE_CAPACITY_STORAGE_UNCALIBRATED",
+            "severity": "blocking",
+            "detail": gap_detail("Abstract vehicles-per-step capacities and finite storage")?
+        }));
+    }
+
+    let sink_limits_declared = sinks.iter().any(|sink| {
+        sink.get("ingress_capacity_per_step").is_some()
+            || sink.get("total_capacity").is_some()
+            || sink.get("accessible_capacity").is_some()
+    });
+    if sink_limits_declared {
+        reasons.push(json!({
+            "code": "SINK_SERVICE_GATES_NOT_ENFORCED",
+            "severity": "blocking",
+            "detail": gap_detail("Sink ingress and total/accessibility constraints")?
+        }));
+    }
+
+    let accessible_demand = demands.iter().any(|demand| {
+        demand.get("accessible_vehicles").and_then(Value::as_u64).unwrap_or(0) > 0
+    });
+    if accessible_demand {
+        reasons.push(json!({
+            "code": "ACCESSIBILITY_LABEL_ONLY",
+            "severity": "blocking",
+            "detail": gap_detail("Accessible vehicle type is only a parameter label")?
+        }));
+    }
+
+    let active_closure = edges.iter().any(|edge| {
+        edge.get("closed_from_step")
+            .is_some_and(|value| !value.is_null())
+    });
+    if active_closure {
+        reasons.push(json!({
+            "code": "CLOSURE_POLICY_DIFFERS",
+            "severity": "blocking",
+            "detail": gap_detail("SUMO closingReroute may change a vehicle's route")?
+        }));
+    }
+
+    let status = if reasons.is_empty() {
+        "comparable"
+    } else {
+        "non_comparable"
+    };
+    Ok(json!({
+        "status": status,
+        "comparison_permitted": reasons.is_empty(),
+        "blocking_reasons": reasons,
+        "classification_rule": "cross-model comparison is permitted only when every applicable semantic gap is closed or explicitly mapped and validated"
+    }))
+}
+
 fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
     if !sha_format(source_sha) {
         return Err("expected source SHA must contain 40 hexadecimal characters".to_owned());
@@ -461,6 +539,7 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             ));
         }
         let sumo_behavior = parse_sumo_outcomes(&tripinfo_xml, &expected_ids)?;
+        let comparability = semantic_comparability(case, &manifest, &at)?;
         receipts.push(json!({
             "case_id": case_id,
             "manifest_sha256": manifest_sha,
@@ -472,6 +551,7 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             "sumo_smoke_completed": true,
             "tripinfo_records": tripinfo_xml.matches("<tripinfo ").count(),
             "sumo_behavior": sumo_behavior,
+            "comparability": comparability,
             "source_edge_count": cfg_edges.len(),
             "source_node_count": expected_nodes.len(),
             "demand_stream_count": cfg_demands.len(),
@@ -489,6 +569,43 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             })
         })
         .collect();
+    let comparability_cases: Vec<Value> = receipts
+        .iter()
+        .map(|case| {
+            json!({
+                "case_id": case["case_id"],
+                "status": case["comparability"]["status"],
+                "comparison_permitted": case["comparability"]["comparison_permitted"],
+                "blocking_reasons": case["comparability"]["blocking_reasons"]
+            })
+        })
+        .collect();
+    let comparable_count = comparability_cases
+        .iter()
+        .filter(|case| case["status"].as_str() == Some("comparable"))
+        .count();
+    let non_comparable_count = comparability_cases.len() - comparable_count;
+    let comparability_receipt = json!({
+        "result": "pass",
+        "benchmark_id": "WILDFIRE-SUMO-COMPARABILITY-001",
+        "source_commit": source_sha,
+        "fixture_sha256": hash(fixture_bytes),
+        "sumo_version": SUMO_VERSION,
+        "case_count": comparability_cases.len(),
+        "summary": {
+            "comparable_case_count": comparable_count,
+            "non_comparable_case_count": non_comparable_count,
+            "cross_model_comparison_permitted": non_comparable_count == 0
+        },
+        "cases": comparability_cases,
+        "claim_boundary": "this is a semantic gate, not evidence of model accuracy; non-comparable cases must not enter aggregate cross-model scorecards"
+    });
+    let comparability_path = root.join("sumo-comparability-receipt.json");
+    let comparability_bytes = serde_json::to_vec_pretty(&comparability_receipt)
+        .map_err(|e| format!("serialize SUMO comparability receipt: {e}"))?;
+    fs::write(&comparability_path, &comparability_bytes)
+        .map_err(|e| format!("write {}: {e}", comparability_path.display()))?;
+
     let behavior_receipt = json!({
         "result": "pass",
         "benchmark_id": "WILDFIRE-SUMO-OUTCOMES-001",
@@ -611,6 +728,67 @@ mod tests {
             parse_sumo_outcomes(xml, &expected)
                 .unwrap_err()
                 .contains("must be finite and non-negative")
+        );
+    }
+
+    fn fixture_for_semantic_tests() -> Value {
+        serde_json::from_str(include_str!(
+            "../../../../benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
+        ))
+        .expect("frozen network fixture parses")
+    }
+
+    fn declared_semantic_gaps() -> Value {
+        json!({
+            "semantic_gaps": [
+                "Abstract vehicles-per-step capacities and finite storage are sidecar metadata; SUMO lane/speed flow is not calibrated to enforce equivalent limits.",
+                "Sink ingress and total/accessibility constraints are sidecar metadata, not enforced by this adapter in SUMO.",
+                "Accessible vehicle type is only a parameter label; it is not an accessibility enforcement model.",
+                "SUMO closingReroute may change a vehicle's route; the source benchmark blocks entry while retaining fixed routes."
+            ]
+        })
+    }
+
+    #[test]
+    fn all_frozen_scenarios_are_explicitly_blocked_from_cross_model_scoring() {
+        let fixture = fixture_for_semantic_tests();
+        let cases = fixture["cases"].as_array().expect("cases");
+        assert_eq!(cases.len(), CASE_IDS.len());
+        for case in cases {
+            let id = case["case_id"].as_str().expect("case ID");
+            let report = semantic_comparability(case, &declared_semantic_gaps(), id)
+                .expect("manifest declares every applicable gap");
+            assert_eq!(report["status"], "non_comparable", "{id}");
+            assert_eq!(report["comparison_permitted"], false, "{id}");
+            let codes: Vec<&str> = report["blocking_reasons"]
+                .as_array()
+                .expect("reason array")
+                .iter()
+                .map(|reason| reason["code"].as_str().expect("reason code"))
+                .collect();
+            assert!(codes.contains(&"EDGE_CAPACITY_STORAGE_UNCALIBRATED"), "{id}");
+            assert!(codes.contains(&"SINK_SERVICE_GATES_NOT_ENFORCED"), "{id}");
+            assert!(codes.contains(&"ACCESSIBILITY_LABEL_ONLY"), "{id}");
+            if id == "ENTRY_CLOSURE_DURING_DEPARTURES_003" {
+                assert!(codes.contains(&"CLOSURE_POLICY_DIFFERS"));
+            } else {
+                assert!(!codes.contains(&"CLOSURE_POLICY_DIFFERS"));
+            }
+        }
+    }
+
+    #[test]
+    fn missing_semantic_gap_declaration_fails_closed() {
+        let case = json!({
+            "edges": [{"capacity_per_step": 2, "storage": 4}],
+            "sinks": [],
+            "demands": []
+        });
+        let manifest = json!({"semantic_gaps": []});
+        assert!(
+            semantic_comparability(&case, &manifest, "negative-control")
+                .unwrap_err()
+                .contains("omitted required semantic-gap declaration")
         );
     }
 
