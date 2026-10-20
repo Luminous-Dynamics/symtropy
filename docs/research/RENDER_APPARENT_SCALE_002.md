@@ -41,6 +41,10 @@ A ScaleBandLatch adds symmetric hysteresis: promoting to more detailed represent
 
 Band classification never deletes the underlying entity and does not override selected/critical-feature protection. The presentation host must preserve body/feature identity, selection remapping and source provenance across proxy/tile changes.
 
+## Frozen whole-scale workload
+
+The companion fixture `benchmarks/render/SOLAR-SCALE-01.json` defines seven traversal stages from local engineering detail through planetary surface, low orbit, Earth-Moon, inner system, outer system and return-to-local. It also lists seven coordinate precision scales and two analytic apparent-size cases. The manifest is a planned workload contract, not evidence of a rendered solar-system scene.
+
 ## Authored tests
 
 Nine unit tests cover:
