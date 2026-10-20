@@ -327,7 +327,9 @@ fn validate_simulation_report(input: &SimulationReport) -> Result<(), String> {
     if input.replication_outcomes.len() != expected_outcome_count {
         return Err("per_seed_outcome_count_must_match_seeds_times_scenarios".into());
     }
-    let known_scenarios: BTreeSet<String> = input.scenarios.iter()
+    let known_scenarios: BTreeSet<String> = input
+        .scenarios
+        .iter()
         .map(|scenario| scenario.scenario_id.clone())
         .collect();
     let mut seen_outcomes = BTreeSet::new();
@@ -345,40 +347,60 @@ fn validate_simulation_report(input: &SimulationReport) -> Result<(), String> {
         }
         if outcome.scenario_id == "baseline" {
             if outcome.intervention_station_id.is_some()
-                || outcome.paired_good_units_per_hour_delta_vs_baseline.is_some()
+                || outcome
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .is_some()
                 || (outcome.good_units_per_hour - outcome.baseline_good_units_per_hour).abs() > 1e-9
             {
                 return Err("per_seed_baseline_outcome_shape_or_value_invalid".into());
             }
         } else {
-            let station_id = outcome.intervention_station_id.as_ref()
+            let station_id = outcome
+                .intervention_station_id
+                .as_ref()
                 .ok_or_else(|| "per_seed_intervention_outcome_missing_station_id".to_string())?;
-            let scenario = input.scenarios.iter()
+            let scenario = input
+                .scenarios
+                .iter()
                 .find(|scenario| scenario.scenario_id == outcome.scenario_id)
                 .ok_or_else(|| "per_seed_outcome_scenario_missing".to_string())?;
             if scenario.intervention_station_id.as_ref() != Some(station_id) {
                 return Err("per_seed_outcome_intervention_station_mismatch".into());
             }
-            let delta = outcome.paired_good_units_per_hour_delta_vs_baseline
+            let delta = outcome
+                .paired_good_units_per_hour_delta_vs_baseline
                 .ok_or_else(|| "per_seed_intervention_delta_missing".to_string())?;
             if !delta.is_finite()
-                || (delta - (outcome.good_units_per_hour - outcome.baseline_good_units_per_hour)).abs() > 1e-9
+                || (delta - (outcome.good_units_per_hour - outcome.baseline_good_units_per_hour))
+                    .abs()
+                    > 1e-9
             {
                 return Err("per_seed_intervention_delta_does_not_match_paired_outputs".into());
             }
         }
-        outcomes_by_seed.entry(outcome.seed).or_default().push(outcome);
+        outcomes_by_seed
+            .entry(outcome.seed)
+            .or_default()
+            .push(outcome);
     }
     for seed in &input.replication_seeds {
-        let rows = outcomes_by_seed.get(seed)
+        let rows = outcomes_by_seed
+            .get(seed)
             .ok_or_else(|| "seed_has_no_replication_outcomes".to_string())?;
         if rows.len() != stations.len() + 1 {
             return Err("each_seed_must_have_baseline_and_every_intervention".into());
         }
-        let baseline_row = rows.iter().find(|outcome| outcome.scenario_id == "baseline")
+        let baseline_row = rows
+            .iter()
+            .find(|outcome| outcome.scenario_id == "baseline")
             .ok_or_else(|| "seed_missing_paired_baseline".to_string())?;
-        for outcome in rows.iter().filter(|outcome| outcome.scenario_id != "baseline") {
-            if (outcome.baseline_good_units_per_hour - baseline_row.good_units_per_hour).abs() > 1e-9 {
+        for outcome in rows
+            .iter()
+            .filter(|outcome| outcome.scenario_id != "baseline")
+        {
+            if (outcome.baseline_good_units_per_hour - baseline_row.good_units_per_hour).abs()
+                > 1e-9
+            {
                 return Err("seed_outcomes_do_not_share_same_baseline_rate".into());
             }
         }
@@ -481,9 +503,11 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
                 let outcome_b = replication_outcomes
                     .get(&(*seed, scenario_b.clone()))
                     .ok_or_else(|| format!("missing_seed_scenario_outcome_{seed}_{scenario_b}"))?;
-                let gain_a = outcome_a.paired_good_units_per_hour_delta_vs_baseline
+                let gain_a = outcome_a
+                    .paired_good_units_per_hour_delta_vs_baseline
                     .ok_or_else(|| "paired_gain_missing_for_station_a".to_string())?;
-                let gain_b = outcome_b.paired_good_units_per_hour_delta_vs_baseline
+                let gain_b = outcome_b
+                    .paired_good_units_per_hour_delta_vs_baseline
                     .ok_or_else(|| "paired_gain_missing_for_station_b".to_string())?;
                 let difference = gain_a - gain_b;
                 if difference > PRACTICAL_EQUIVALENCE_MARGIN {
@@ -497,13 +521,18 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
             let lower = paired_effect.mean_confidence_95_lower;
             let upper = paired_effect.mean_confidence_95_upper;
             let decision = match (lower, upper) {
-                (Some(lo), Some(hi)) if lo > PRACTICAL_EQUIVALENCE_MARGIN =>
-                    "station_a_meaningfully_better_under_paired_model",
-                (Some(lo), Some(hi)) if hi < -PRACTICAL_EQUIVALENCE_MARGIN =>
-                    "station_b_meaningfully_better_under_paired_model",
-                (Some(lo), Some(hi)) if lo >= -PRACTICAL_EQUIVALENCE_MARGIN
-                    && hi <= PRACTICAL_EQUIVALENCE_MARGIN =>
-                    "practically_equivalent_within_declared_margin",
+                (Some(lo), Some(hi)) if lo > PRACTICAL_EQUIVALENCE_MARGIN => {
+                    "station_a_meaningfully_better_under_paired_model"
+                }
+                (Some(lo), Some(hi)) if hi < -PRACTICAL_EQUIVALENCE_MARGIN => {
+                    "station_b_meaningfully_better_under_paired_model"
+                }
+                (Some(lo), Some(hi))
+                    if lo >= -PRACTICAL_EQUIVALENCE_MARGIN
+                        && hi <= PRACTICAL_EQUIVALENCE_MARGIN =>
+                {
+                    "practically_equivalent_within_declared_margin"
+                }
                 _ => "inconclusive_under_paired_interval",
             };
             paired_comparisons.push(PairedInterventionComparison {
@@ -522,25 +551,37 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
     let robust_best_station_id = oracle_ranked.first().and_then(|top| {
         let candidate_id = top.station_id.as_str();
         let beats_all = candidates.iter().all(|other| {
-            if other.station_id == top.station_id { return true; }
-            paired_comparisons.iter().find(|comparison| {
-                (comparison.station_a_id == top.station_id && comparison.station_b_id == other.station_id)
-                    || (comparison.station_a_id == other.station_id && comparison.station_b_id == top.station_id)
-            }).is_some_and(|comparison| {
-                if comparison.station_a_id == top.station_id {
-                    comparison.decision == "station_a_meaningfully_better_under_paired_model"
-                } else {
-                    comparison.decision == "station_b_meaningfully_better_under_paired_model"
-                }
-            })
+            if other.station_id == top.station_id {
+                return true;
+            }
+            paired_comparisons
+                .iter()
+                .find(|comparison| {
+                    (comparison.station_a_id == top.station_id
+                        && comparison.station_b_id == other.station_id)
+                        || (comparison.station_a_id == other.station_id
+                            && comparison.station_b_id == top.station_id)
+                })
+                .is_some_and(|comparison| {
+                    if comparison.station_a_id == top.station_id {
+                        comparison.decision == "station_a_meaningfully_better_under_paired_model"
+                    } else {
+                        comparison.decision == "station_b_meaningfully_better_under_paired_model"
+                    }
+                })
         });
-        if beats_all { Some(candidate_id.to_string()) } else { None }
+        if beats_all {
+            Some(candidate_id.to_string())
+        } else {
+            None
+        }
     });
     let paired_effect_recommendation_status = if robust_best_station_id.is_some() {
         "unique_best_intervention_separated_from_all_candidates_by_paired_intervals"
     } else {
         "no_robust_best_intervention_detected_abstain"
-    }.to_string();
+    }
+    .to_string();
 
     let methods: Vec<(DiagnosticMethod, fn(&StationCandidate) -> f64)> = vec![
         (DiagnosticMethod::UtilizationMaximum, |candidate| {
@@ -953,7 +994,9 @@ mod tests {
     fn paired_effect_of_effects_detects_clear_advantage_and_equivalence() {
         let a_gains = [1.0, 1.0, 1.0, 1.0, 1.0];
         let b_gains = [0.2, 0.2, 0.2, 0.2, 0.2];
-        let differences: Vec<f64> = a_gains.iter().zip(b_gains.iter())
+        let differences: Vec<f64> = a_gains
+            .iter()
+            .zip(b_gains.iter())
             .map(|(a, b)| a - b)
             .collect();
         let summary = summarize_distribution(&differences).expect("paired summary");
@@ -974,7 +1017,9 @@ mod tests {
         let baseline = [10.0, 11.0, 9.0, 12.0, 10.5];
         let a_output = [12.0, 13.0, 11.0, 14.0, 12.5];
         let b_output = [11.0, 13.0, 10.0, 13.0, 11.5];
-        let paired_effects: Vec<f64> = baseline.iter().enumerate()
+        let paired_effects: Vec<f64> = baseline
+            .iter()
+            .enumerate()
             .map(|(i, base)| (a_output[i] - base) - (b_output[i] - base))
             .collect();
         assert_eq!(paired_effects, vec![1.0, 0.0, 1.0, 1.0, 1.0]);
