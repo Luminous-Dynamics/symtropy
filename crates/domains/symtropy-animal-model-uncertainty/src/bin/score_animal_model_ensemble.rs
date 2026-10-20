@@ -26,8 +26,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use symtropy_animal_model_uncertainty::decision::{
     ActionPreferenceRange, ActionRisk, ModelOutcome, ModelWeightInterval, WeightSensitivity,
-    compare_actions_under_weight_uncertainty, score_model_ensemble,
-    score_weight_sensitivity,
+    compare_actions_under_weight_uncertainty, score_model_ensemble, score_weight_sensitivity,
 };
 
 #[cfg(test)]
@@ -448,13 +447,9 @@ mod tests {
                 .expect("valid model-weight intervals"),
             );
         }
-        let preferences = score_action_preferences(
-            &models,
-            &scores,
-            intervals.as_deref(),
-            practical_margin,
-        )
-        .expect("valid pairwise model-weight comparisons");
+        let preferences =
+            score_action_preferences(&models, &scores, intervals.as_deref(), practical_margin)
+                .expect("valid pairwise model-weight comparisons");
         let report = build_report(
             SYNTHETIC_EXAMPLE,
             &root,
