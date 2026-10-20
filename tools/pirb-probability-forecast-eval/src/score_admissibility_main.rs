@@ -11,8 +11,9 @@ use std::{env, fs, process};
 const SCHEMA_BYTES: &[u8] =
     include_bytes!("../../../docs/schemas/pirb-score-admissibility-v0.1.schema.json");
 #[cfg(test)]
-const FIXTURE_BYTES: &[u8] =
-    include_bytes!("../../../docs/fixtures/pirb-score-admissibility-log-score-reconciliation-synthetic-v0.1.json");
+const FIXTURE_BYTES: &[u8] = include_bytes!(
+    "../../../docs/fixtures/pirb-score-admissibility-log-score-reconciliation-synthetic-v0.1.json"
+);
 
 fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
@@ -41,8 +42,7 @@ fn is_placeholder_digest(digest: &str) -> bool {
 }
 
 fn representation_and_outcome_match(registration: &Value) -> bool {
-    let representation =
-        string_at(registration, "prediction_representation").unwrap_or_default();
+    let representation = string_at(registration, "prediction_representation").unwrap_or_default();
     let outcome = string_at(registration, "outcome_type").unwrap_or_default();
     let score = string_at(&registration["score"], "score_name").unwrap_or_default();
     matches!(
@@ -51,15 +51,22 @@ fn representation_and_outcome_match(registration: &Value) -> bool {
             | ("binary_probability", "binary_outcome", "log_score")
             | ("quantile_forecast", "scalar_outcome", "pinball_loss")
             | ("quantile_forecast", "scalar_outcome", "interval_score")
-            | ("multivariate_joint_samples", "multivariate_outcome", "energy_score")
-            | ("multivariate_joint_samples", "multivariate_outcome", "variogram_score")
+            | (
+                "multivariate_joint_samples",
+                "multivariate_outcome",
+                "energy_score"
+            )
+            | (
+                "multivariate_joint_samples",
+                "multivariate_outcome",
+                "variogram_score"
+            )
     )
 }
 
 fn orientation_matches(registration: &Value) -> bool {
     let score = string_at(&registration["score"], "score_name").unwrap_or_default();
-    let orientation =
-        string_at(&registration["score"], "score_orientation").unwrap_or_default();
+    let orientation = string_at(&registration["score"], "score_orientation").unwrap_or_default();
     matches!(
         (score, orientation),
         ("brier_score", "lower_is_better")
@@ -74,10 +81,8 @@ fn orientation_matches(registration: &Value) -> bool {
 fn admissibility_reasons(registration: &Value) -> Vec<&'static str> {
     let mut reasons = Vec::new();
     let score_name = string_at(&registration["score"], "score_name").unwrap_or_default();
-    let representation =
-        string_at(registration, "prediction_representation").unwrap_or_default();
-    let comparison =
-        string_at(registration, "comparison_type").unwrap_or_default();
+    let representation = string_at(registration, "prediction_representation").unwrap_or_default();
+    let comparison = string_at(registration, "comparison_type").unwrap_or_default();
     let evidence_scope = string_at(registration, "evidence_scope").unwrap_or_default();
 
     if !representation_and_outcome_match(registration) {
@@ -86,9 +91,7 @@ fn admissibility_reasons(registration: &Value) -> Vec<&'static str> {
     if !orientation_matches(registration) {
         reasons.push("SCORE_ORIENTATION_MISMATCH");
     }
-    if comparison == "reconciled_vs_unreconciled_distribution"
-        && score_name == "log_score"
-    {
+    if comparison == "reconciled_vs_unreconciled_distribution" && score_name == "log_score" {
         reasons.push("LOG_SCORE_NOT_ADMISSIBLE_FOR_RECONCILED_VS_UNRECONCILED_DISTRIBUTIONS");
     }
     if comparison == "reconciled_vs_unreconciled_distribution"
@@ -111,9 +114,7 @@ fn admissibility_reasons(registration: &Value) -> Vec<&'static str> {
         if string_at(policy, "outcome_release_sha256").is_none_or(is_placeholder_digest) {
             reasons.push("OUTCOME_RELEASE_DIGEST_NOT_PINNED");
         }
-        if string_at(&registration["score"], "formula_sha256")
-            .is_none_or(is_placeholder_digest)
-        {
+        if string_at(&registration["score"], "formula_sha256").is_none_or(is_placeholder_digest) {
             reasons.push("SCORE_FORMULA_DIGEST_NOT_PINNED");
         }
         if string_at(&registration["score"], "implementation_sha256")
@@ -121,14 +122,10 @@ fn admissibility_reasons(registration: &Value) -> Vec<&'static str> {
         {
             reasons.push("SCORE_IMPLEMENTATION_DIGEST_NOT_PINNED");
         }
-        if string_at(&registration["governance"], "data_authority_status")
-            != Some("authorized")
-        {
+        if string_at(&registration["governance"], "data_authority_status") != Some("authorized") {
             reasons.push("DATA_AUTHORITY_NOT_VERIFIED");
         }
-        if string_at(&registration["governance"], "disclosure_review_status")
-            != Some("approved")
-        {
+        if string_at(&registration["governance"], "disclosure_review_status") != Some("approved") {
             reasons.push("DISCLOSURE_REVIEW_NOT_APPROVED");
         }
     }
@@ -149,8 +146,11 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
         ]);
     }
 
-    let registration: Value = serde_json::from_slice(input)
-        .map_err(|error| vec![format!("score-admissibility registration JSON is invalid: {error}")])?;
+    let registration: Value = serde_json::from_slice(input).map_err(|error| {
+        vec![format!(
+            "score-admissibility registration JSON is invalid: {error}"
+        )]
+    })?;
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
         vec![format!(
             "embedded score-admissibility schema JSON is invalid: {error}"
@@ -177,8 +177,8 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
 
     let reasons = admissibility_reasons(&registration);
     let admissible = reasons.is_empty();
-    let evidence_scope = string_at(&registration, "evidence_scope")
-        .expect("schema validated evidence_scope");
+    let evidence_scope =
+        string_at(&registration, "evidence_scope").expect("schema validated evidence_scope");
     let comparison_status = if admissible {
         "admissible_for_score_computation"
     } else {
@@ -234,8 +234,7 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
 fn run() -> Result<(), String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     let input_path = option_value(&args, "--input")?.ok_or_else(|| {
-        "usage: pirb-score-admissibility --input REGISTRATION.json [--source-commit SHA]"
-            .to_owned()
+        "usage: pirb-score-admissibility --input REGISTRATION.json [--source-commit SHA]".to_owned()
     })?;
     let input = fs::read(&input_path)
         .map_err(|error| format!("cannot read score registration {input_path}: {error}"))?;
@@ -275,12 +274,16 @@ mod tests {
 
     #[test]
     fn log_score_is_rejected_for_reconciled_vs_unreconciled_distributions() {
-        let receipt = validate(&fixture()).expect("negative control is a structurally valid registration");
+        let receipt =
+            validate(&fixture()).expect("negative control is a structurally valid registration");
         assert_eq!(receipt["comparison_status"], "not_admissible");
         assert_eq!(receipt["score_name"], "log_score");
-        assert!(receipt["reason_codes"].as_array().unwrap().iter().any(|reason| {
-            reason == "LOG_SCORE_NOT_ADMISSIBLE_FOR_RECONCILED_VS_UNRECONCILED_DISTRIBUTIONS"
-        }));
+        assert!(
+            receipt["reason_codes"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("LOG_SCORE_NOT_ADMISSIBLE_FOR_RECONCILED_VS_UNRECONCILED_DISTRIBUTIONS"))
+        );
         assert_eq!(receipt["score_calculated"], false);
         assert_eq!(receipt["ranking_permitted"], false);
         assert_eq!(receipt["comparison_superiority_established"], false);
@@ -296,8 +299,14 @@ mod tests {
         value["score"]["score_name"] = json!("brier_score");
         value["score"]["score_orientation"] = json!("lower_is_better");
         let receipt = validate(&value).expect("compatible synthetic score registration is valid");
-        assert_eq!(receipt["comparison_status"], "admissible_for_score_computation");
-        assert_eq!(receipt["evaluation_readiness"], "synthetic_contract_test_only");
+        assert_eq!(
+            receipt["comparison_status"],
+            "admissible_for_score_computation"
+        );
+        assert_eq!(
+            receipt["evaluation_readiness"],
+            "synthetic_contract_test_only"
+        );
         assert_eq!(receipt["score_calculated"], false);
         assert_eq!(receipt["ranking_permitted"], false);
     }
@@ -308,7 +317,10 @@ mod tests {
         value["score"]["score_name"] = json!("energy_score");
         value["score"]["score_orientation"] = json!("lower_is_better");
         let receipt = validate(&value).expect("joint energy score registration is compatible");
-        assert_eq!(receipt["comparison_status"], "admissible_for_score_computation");
+        assert_eq!(
+            receipt["comparison_status"],
+            "admissible_for_score_computation"
+        );
         assert_eq!(receipt["score_calculated"], false);
         assert_eq!(receipt["ranking_permitted"], false);
     }
@@ -320,9 +332,12 @@ mod tests {
         value["score"]["score_orientation"] = json!("lower_is_better");
         let receipt = validate(&value).expect("unsupported pair is reported, not executed");
         assert_eq!(receipt["comparison_status"], "not_admissible");
-        assert!(receipt["reason_codes"].as_array().unwrap().iter().any(|reason| {
-            reason == "SCORE_REPRESENTATION_OUTCOME_MISMATCH"
-        }));
+        assert!(
+            receipt["reason_codes"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("SCORE_REPRESENTATION_OUTCOME_MISMATCH"))
+        );
     }
 
     #[test]
@@ -332,9 +347,12 @@ mod tests {
         value["score"]["score_orientation"] = json!("higher_is_better");
         let receipt = validate(&value).expect("wrong orientation must be reported");
         assert_eq!(receipt["comparison_status"], "not_admissible");
-        assert!(receipt["reason_codes"].as_array().unwrap().iter().any(|reason| {
-            reason == "SCORE_ORIENTATION_MISMATCH"
-        }));
+        assert!(
+            receipt["reason_codes"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("SCORE_ORIENTATION_MISMATCH"))
+        );
     }
 
     #[test]
@@ -346,8 +364,8 @@ mod tests {
         let receipt = validate(&value).expect("missing history prerequisites should be reported");
         assert_eq!(receipt["comparison_status"], "not_admissible");
         let reasons = receipt["reason_codes"].as_array().unwrap();
-        assert!(reasons.iter().any(|reason| reason == "OUTCOME_VINTAGE_NOT_MATURE_AND_FROZEN"));
-        assert!(reasons.iter().any(|reason| reason == "DATA_AUTHORITY_NOT_VERIFIED"));
+        assert!(reasons.contains(&json!("OUTCOME_VINTAGE_NOT_MATURE_AND_FROZEN")));
+        assert!(reasons.contains(&json!("DATA_AUTHORITY_NOT_VERIFIED"));
         assert_eq!(receipt["ranking_permitted"], false);
     }
 
