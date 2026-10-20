@@ -12,23 +12,23 @@
 //! - **4D** (D=4): Cross-section slicing — slice 4D world with 3D hyperplane,
 //!   render the intersection
 
+pub mod hierarchy_select;
 #[cfg(feature = "inspector")]
 pub mod inspector;
 pub mod large_world;
-pub mod hierarchy_select;
 pub mod material;
 pub mod projection;
 pub mod scale_policy;
 pub mod sync;
 pub mod telemetry_ssbo;
 
-#[cfg(feature = "inspector")]
-pub use inspector::SymtropyInspectorPlugin;
 pub use hierarchy_select::{
     ContentAvailability, HeldParent, HierarchyHoldReason, HierarchyNode, HierarchyPolicy,
     HierarchyRefinement, HierarchySelection, HierarchySelectionError, RepresentationNodeId,
     SelectedRepresentation, select_hierarchy,
 };
+#[cfg(feature = "inspector")]
+pub use inspector::SymtropyInspectorPlugin;
 pub use large_world::{
     CoordinateFrameId, GpuRelativePosition, LargeWorldError, LargeWorldPosition,
     WORLD_CELL_SIZE_METERS,
@@ -43,4 +43,3 @@ pub use scale_policy::{
     ScaleBandLatch, projected_sphere_diameter_px,
 };
 pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
-pub use telemetry_ssbo::{LinkTelemetryGpu, NodeTelemetryGpu, TelemetryBufferResource};
