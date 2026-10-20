@@ -24,6 +24,7 @@ When a controller has a fixed observation budget, can it improve final decision 
 5. **Maximum uncertainty**: request the claim with highest Bernoulli uncertainty.
 6. **Approximate value of information**: estimate how much the selected claim's uncertainty could change the final three-claim majority decision; then request the claim with greatest expected decision impact.
 7. **Expected terminal task-loss reduction**: integrate a frozen public prior over confidence tier, sensor corruption, source-time delay and distractor returns; hypothetically update the claim belief and estimate the expected final abstention-aware decision risk for each action. If every candidate has non-positive estimated value, fall back to deterministic round-robin.
+8. **Risk-threshold stop**: stop sensing when the current estimate of terminal Bayes risk is at or below a fixed 0.04 task-loss-unit/request threshold; otherwise select the most uncertain queried claim. This is a transparent satisficing baseline, not an optimal stopping solver.
 
 The current value-of-information policy is an explicit, inexpensive approximation—not exact environment-specific expected-loss minimization. The new expected-loss policy is also approximate: it uses fixed public priors recorded in the Rust source, not true episode/family parameters. Its hypothesis enumeration is reported as a deterministic scoring-work proxy; this is not measured wall latency.
 
@@ -121,7 +122,7 @@ The next question is resource-sensitive: what is the full task-loss versus sensi
 
 ## Acceptance gate
 
-A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The expected-risk candidate must additionally beat the approximate VOI policy on a direct paired contrast to justify its extra computation. Report all seven policies and their resource-quality trade-offs. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
+A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The expected-risk candidate must additionally beat the approximate VOI policy on a direct paired contrast to justify its extra computation. Report all eight policies and their resource-quality trade-offs, including the stopping policy's actual number of requests consumed. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
 
 ## Sensing-budget frontier — active candidate
 
@@ -131,7 +132,7 @@ The report emits a separate `BUDGET` table with mean task loss, answer rate, ans
 
 Current frontier candidate uses prefix stopping only; it is **not yet an adaptive stop-action policy**. The next step is to add explicit stopping decisions with a declared cost per request and compare against these fixed-budget operating points. A stop policy must not see terminal truth, the latent final tick or unchosen potential observations.
 
-The current head is awaiting exact-head qualification. No budget-frontier numerical result should be cited until its 70 data rows (2 families × 5 budgets × 7 policies), 16-column schema, byte-for-byte replay and report SHA have passed.
+The budget-frontier run now includes the risk-threshold stop policy. Expected schema is 80 data rows (2 families × 5 budgets × 8 policies), with 16 columns, byte-for-byte replay and report SHA. The current head is awaiting exact-head qualification; no new budget-frontier numerical result should be cited before the exact-head gates pass.
 
 ## Reproduce
 
