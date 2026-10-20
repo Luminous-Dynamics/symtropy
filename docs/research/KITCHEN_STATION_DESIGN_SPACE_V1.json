@@ -45,7 +45,12 @@
         "footprint",
         "task_time"
       ],
-      "exit_gate": "Reference performance is repeatable within declared measurement and operator uncertainty."
+      "exit_gate": "Reference performance is repeatable within declared measurement and operator uncertainty.",
+      "failure_modes": [
+        "reference fixture is not representative of the declared use case",
+        "meter uncertainty is larger than the candidate/reference effect",
+        "task load or procedure drifts across baseline repetitions"
+      ]
     },
     {
       "candidate_id": "P1-DRAINBACK",
