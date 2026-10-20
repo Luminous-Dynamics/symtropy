@@ -40,10 +40,7 @@ fn number_at(value: &Value, key: &str) -> Option<f64> {
     value.get(key).and_then(Value::as_f64)
 }
 
-fn graph_has_cycle(
-    nodes: &BTreeMap<String, &Value>,
-    constraints: &[Value],
-) -> bool {
+fn graph_has_cycle(nodes: &BTreeMap<String, &Value>, constraints: &[Value]) -> bool {
     let mut adjacency: BTreeMap<String, BTreeSet<String>> = nodes
         .keys()
         .map(|id| (id.clone(), BTreeSet::new()))
@@ -71,8 +68,7 @@ fn graph_has_cycle(
         }
     }
 
-    let mut indegree: BTreeMap<String, usize> =
-        nodes.keys().map(|id| (id.clone(), 0)).collect();
+    let mut indegree: BTreeMap<String, usize> = nodes.keys().map(|id| (id.clone(), 0)).collect();
     for children in adjacency.values() {
         for child in children {
             *indegree.entry(child.clone()).or_default() += 1;
@@ -262,28 +258,20 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                 }
                 match kind {
                     "spatial" => {
-                        if string_at(child, "event_type_id")
-                            != string_at(parent, "event_type_id")
-                        {
+                        if string_at(child, "event_type_id") != string_at(parent, "event_type_id") {
                             errors.push(format!(
                                 "spatial constraint {id} mixes event_type_id values"
                             ));
                         }
-                        if !seen_child_units
-                            .insert(string_at(child, "unit_id").unwrap_or_default())
-                        {
+                        if !seen_child_units.insert(string_at(child, "unit_id").unwrap_or_default()) {
                             errors.push(format!("spatial constraint {id} repeats a child unit"));
                         }
                     }
                     "event_type" => {
                         if string_at(child, "unit_id") != string_at(parent, "unit_id") {
-                            errors.push(format!(
-                                "event-type constraint {id} mixes unit_id values"
-                            ));
+                            errors.push(format!("event-type constraint {id} mixes unit_id values"));
                         }
-                        if string_at(child, "event_type_id")
-                            == string_at(parent, "event_type_id")
-                        {
+                        if string_at(child, "event_type_id") == string_at(parent, "event_type_id") {
                             errors.push(format!(
                                 "event-type constraint {id} repeats the parent event_type_id"
                             ));
@@ -324,18 +312,26 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         ]);
     }
 
-    let registration: Value = serde_json::from_slice(input)
-        .map_err(|error| vec![format!("joint-sample registration JSON is invalid: {error}")])?;
+    let registration: Value = serde_json::from_slice(input).map_err(|error| {
+        vec![format!(
+            "joint-sample registration JSON is invalid: {error}"
+        )]
+    })?;
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
-        vec![format!("embedded joint-sample schema JSON is invalid: {error}")]
+        vec![format!(
+            "embedded joint-sample schema JSON is invalid: {error}"
+        )]
     })?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
         vec![format!(
             "Draft 2020-12 schema meta-validation failed: {error}"
         )]
     })?;
-    let validator = jsonschema::draft202012::new(&schema)
-        .map_err(|error| vec![format!("cannot build joint-sample schema validator: {error}")])?;
+    let validator = jsonschema::draft202012::new(&schema).map_err(|error| {
+        vec![format!(
+            "cannot build joint-sample schema validator: {error}"
+        )]
+    })?;
     let mut errors = validator
         .iter_errors(&registration)
         .map(|error| format!("{} at {}", error, error.instance_path()))
@@ -466,13 +462,16 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             let parent_row = rows_by_key
                 .get(&(draw_id, parent_id))
                 .expect("semantic validation enforces a complete sample matrix");
-            let raw_parent = number_at(parent_row, "raw_count").expect("schema validated raw_count");
-            let reconciled_parent =
-                number_at(parent_row, "reconciled_count").expect("schema validated reconciled_count");
+            let raw_parent =
+                number_at(parent_row, "raw_count").expect("schema validated raw_count");
+            let reconciled_parent = number_at(parent_row, "reconciled_count")
+                .expect("schema validated reconciled_count");
             let children = child_ids
                 .iter()
                 .map(|child_value| {
-                    let child_id = child_value.as_str().expect("schema validated child forecast ID");
+                    let child_id = child_value
+                        .as_str()
+                        .expect("schema validated child forecast ID");
                     rows_by_key
                         .get(&(draw_id, child_id))
                         .expect("semantic validation enforces child sample rows")
@@ -485,8 +484,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             let reconciled_child_sum = children
                 .iter()
                 .map(|row| {
-                    number_at(row, "reconciled_count")
-                        .expect("schema validated reconciled_count")
+                    number_at(row, "reconciled_count").expect("schema validated reconciled_count")
                 })
                 .sum::<f64>();
             let raw_residual = raw_parent - raw_child_sum;
@@ -557,7 +555,10 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             })
         })
         .collect::<Vec<_>>();
-    let raw_all_draw_coherent_count = raw_all_by_draw.values().filter(|coherent| **coherent).count();
+    let raw_all_draw_coherent_count = raw_all_by_draw
+        .values()
+        .filter(|coherent| **coherent)
+        .count();
     let reconciled_all_draw_coherent_count = reconciled_all_by_draw
         .values()
         .filter(|coherent| **coherent)
@@ -715,21 +716,36 @@ mod tests {
 
     #[test]
     fn fixture_detects_base_sample_errors_and_reconciled_draw_coherence() {
-        let receipt = validate_and_audit(
-            FIXTURE_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("synthetic sample registration is valid");
+        let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+            .expect("synthetic sample registration is valid");
         assert_eq!(receipt["summary"]["constraint_count"], 3);
         assert_eq!(receipt["summary"]["assessable_constraint_count"], 2);
         assert_eq!(receipt["summary"]["not_assessable_constraint_count"], 1);
         assert_eq!(receipt["summary"]["assessed_constraint_draw_pair_count"], 8);
-        assert_eq!(receipt["summary"]["raw_coherent_constraint_draw_pair_count"], 6);
-        assert_eq!(receipt["summary"]["reconciled_coherent_constraint_draw_pair_count"], 8);
-        assert_eq!(receipt["summary"]["raw_constraint_draw_coherence_rate"], 0.75);
-        assert_eq!(receipt["summary"]["reconciled_constraint_draw_coherence_rate"], 1.0);
-        assert_eq!(receipt["summary"]["draws_coherent_across_all_complete_constraints_raw_count"], 2);
-        assert_eq!(receipt["summary"]["draws_coherent_across_all_complete_constraints_reconciled_count"], 4);
+        assert_eq!(
+            receipt["summary"]["raw_coherent_constraint_draw_pair_count"],
+            6
+        );
+        assert_eq!(
+            receipt["summary"]["reconciled_coherent_constraint_draw_pair_count"],
+            8
+        );
+        assert_eq!(
+            receipt["summary"]["raw_constraint_draw_coherence_rate"],
+            0.75
+        );
+        assert_eq!(
+            receipt["summary"]["reconciled_constraint_draw_coherence_rate"],
+            1.0
+        );
+        assert_eq!(
+            receipt["summary"]["draws_coherent_across_all_complete_constraints_raw_count"],
+            2
+        );
+        assert_eq!(
+            receipt["summary"]["draws_coherent_across_all_complete_constraints_reconciled_count"],
+            4
+        );
         assert_eq!(receipt["summary"]["raw_joint_draw_coherence_rate"], 0.5);
         assert_eq!(receipt["summary"]["reconciled_joint_draw_coherence_rate"], 1.0);
         assert_eq!(receipt["summary"]["mean_absolute_raw_constraint_residual"], 0.25);
@@ -759,24 +775,38 @@ mod tests {
     #[test]
     fn incoherent_reconciled_draw_is_reported_not_dropped() {
         let mut value = fixture();
-        let row = value["sample_rows"].as_array_mut().unwrap().iter_mut().find(|row| {
-            row["draw_id"] == "draw-002" && row["forecast_id"] == "fc-admin1-b-organized"
-        }).unwrap();
+        let row = value["sample_rows"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|row| {
+                row["draw_id"] == "draw-002" && row["forecast_id"] == "fc-admin1-b-organized"
+            })
+            .unwrap();
         row["reconciled_count"] = json!(12);
         let receipt = audit(&value).expect("incoherence is a reportable audit result");
-        assert_eq!(receipt["constraint_diagnostics"][0]["draw_diagnostics"][1]["reconciled_signed_residual"], -1.0);
-        assert_eq!(receipt["constraint_diagnostics"][0]["draw_diagnostics"][1]["reconciled_status"], "incoherent");
-        assert_eq!(receipt["summary"]["reconciled_coherent_constraint_draw_pair_count"], 7);
-        assert_eq!(receipt["summary"]["reconciled_joint_draw_coherence_rate"], 0.75);
+        assert_eq!(
+            receipt["constraint_diagnostics"][0]["draw_diagnostics"][1]["reconciled_signed_residual"],
+            -1.0
+        );
+        assert_eq!(
+            receipt["constraint_diagnostics"][0]["draw_diagnostics"][1]["reconciled_status"],
+            "incoherent"
+        );
+        assert_eq!(
+            receipt["summary"]["reconciled_coherent_constraint_draw_pair_count"],
+            7
+        );
+        assert_eq!(
+            receipt["summary"]["reconciled_joint_draw_coherence_rate"],
+            0.75
+        );
     }
 
     #[test]
     fn incomplete_constraint_is_not_scored_or_imputed() {
-        let receipt = validate_and_audit(
-            FIXTURE_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("incomplete constraint is reportable");
+        let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+            .expect("incomplete constraint is reportable");
         let diagnostic = &receipt["constraint_diagnostics"][2];
         assert_eq!(diagnostic["status"], "not_assessable");
         assert_eq!(diagnostic["draw_diagnostics"], Value::Null);
@@ -789,7 +819,11 @@ mod tests {
         value["aggregation_constraints"][0]["child_forecast_ids"] =
             json!(["fc-admin1-a-organized"]);
         let errors = audit(&value).expect_err("omitted expected child must fail closed");
-        assert!(errors.iter().any(|error| error.contains("expected_child_keys")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected_child_keys"))
+        );
     }
 
     #[test]
@@ -797,16 +831,26 @@ mod tests {
         let mut value = fixture();
         value["aggregation_constraints"][2]["completeness"] = json!("complete");
         let errors = audit(&value).expect_err("missing child forecast must fail closed");
-        assert!(errors.iter().any(|error| error.contains("claims complete coverage")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("claims complete coverage"))
+        );
     }
 
     #[test]
     fn every_declared_node_must_have_every_declared_draw() {
         let mut value = fixture();
         let rows = value["sample_rows"].as_array_mut().unwrap();
-        rows.retain(|row| !(row["draw_id"] == "draw-004" && row["forecast_id"] == "fc-admin1-b-organized"));
+        rows.retain(|row| {
+            !(row["draw_id"] == "draw-004" && row["forecast_id"] == "fc-admin1-b-organized")
+        });
         let errors = audit(&value).expect_err("missing cell cannot be filled with zero");
-        assert!(errors.iter().any(|error| error.contains("missing sample row")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("missing sample row"))
+        );
     }
 
     #[test]
@@ -815,7 +859,11 @@ mod tests {
         let row = value["sample_rows"][0].clone();
         value["sample_rows"].as_array_mut().unwrap().push(row);
         let errors = audit(&value).expect_err("duplicate draw/node pair cannot overwrite");
-        assert!(errors.iter().any(|error| error.contains("duplicate sample row")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate sample row"))
+        );
     }
 
     #[test]
@@ -823,7 +871,11 @@ mod tests {
         let mut value = fixture();
         value["sample_rows"][0]["draw_id"] = json!("draw-unknown");
         let errors = audit(&value).expect_err("samples must belong to the registered draw set");
-        assert!(errors.iter().any(|error| error.contains("undeclared draw_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("undeclared draw_id"))
+        );
     }
 
     #[test]
@@ -834,9 +886,16 @@ mod tests {
         cycle["parent_forecast_id"] = json!("fc-admin1-a-organized");
         cycle["child_forecast_ids"] = json!(["fc-country-a-organized"]);
         cycle["expected_child_keys"] = json!(["unit-country-a"]);
-        value["aggregation_constraints"].as_array_mut().unwrap().push(cycle);
+        value["aggregation_constraints"]
+            .as_array_mut()
+            .unwrap()
+            .push(cycle);
         let errors = audit(&value).expect_err("hierarchy must be acyclic");
-        assert!(errors.iter().any(|error| error.contains("aggregation constraint graph contains a cycle")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aggregation constraint graph contains a cycle"))
+        );
     }
 
     #[test]
@@ -844,6 +903,10 @@ mod tests {
         let mut value = fixture();
         value["sample_policy"]["parameter_fit_cutoff_index"] = json!(10);
         let errors = audit(&value).expect_err("future fit data leaks evaluation information");
-        assert!(errors.iter().any(|error| error.contains("fit cutoff must be strictly before forecast origin")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("fit cutoff must be strictly before forecast origin"))
+        );
     }
 }
