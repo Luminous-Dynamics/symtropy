@@ -36,24 +36,10 @@ jobs:
         with:
           toolchain: 1.96.0
           components: rustfmt, clippy
-      - name: Generate standalone dependency lockfile
-        run: cargo generate-lockfile --manifest-path tools/furnishing-layout-audit/Cargo.toml
       - name: Check formatting
         run: cargo fmt --manifest-path tools/furnishing-layout-audit/Cargo.toml -- --check
       - name: Run known-truth and mutation tests
-        run: cargo test --manifest-path tools/furnishing-layout-audit/Cargo.toml
+        run: cargo test --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml
       - name: Run Clippy
-        run: cargo clippy --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
-      - name: Emit temporary lockfile for repository bootstrap
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          lock="tools/furnishing-layout-audit/Cargo.lock"
-          if test -f "$lock"; then
-            printf 'FURNISHING_LAYOUT_LOCKFILE_B64_BEGIN\n'
-            base64 -w 0 "$lock"
-            printf '\nFURNISHING_LAYOUT_LOCKFILE_B64_END\n'
-          else
-            echo "FURNISHING_LAYOUT_LOCKFILE_MISSING"
-          fi
+        run: cargo clippy --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+
