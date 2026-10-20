@@ -1265,7 +1265,11 @@ mod tests {
         let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
         let mut receipt = solver_receipt(&request_bytes, "UNRESOLVED");
         let valid = serde_json::to_vec(&receipt).unwrap();
-        assert!(validate_solver_receipt_bytes(&request_bytes, &valid).is_ok());
+        let report = validate_solver_receipt_bytes(&request_bytes, &valid)
+            .expect("unresolved receipt contract is consistent");
+        assert_eq!(report["producer_status"], "UNRESOLVED");
+        assert_eq!(report["required_outputs_present"], false);
+        assert_eq!(report["physical_result_qualified"], false);
 
         receipt["physics_evaluated"] = json!(["dynamic_response"]);
         let overlap = serde_json::to_vec(&receipt).unwrap();
