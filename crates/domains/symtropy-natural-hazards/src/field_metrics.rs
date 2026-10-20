@@ -252,20 +252,14 @@ mod tests {
             6.0_f64.sqrt(),
         );
         close(mean_bias(&predicted, &reference).unwrap(), 4.0 / 3.0);
-        close(
-            maximum_absolute_error(&predicted, &reference).unwrap(),
-            4.0,
-        );
+        close(maximum_absolute_error(&predicted, &reference).unwrap(), 4.0);
     }
 
     #[test]
     fn weighted_rmse_respects_declared_sample_weights() {
-        let score = weighted_root_mean_square_error(
-            &[2.0, 4.0, 6.0],
-            &[1.0, 5.0, 2.0],
-            &[1.0, 1.0, 2.0],
-        )
-        .unwrap();
+        let score =
+            weighted_root_mean_square_error(&[2.0, 4.0, 6.0], &[1.0, 5.0, 2.0], &[1.0, 1.0, 2.0])
+                .unwrap();
         close(score, 8.5_f64.sqrt());
     }
 
