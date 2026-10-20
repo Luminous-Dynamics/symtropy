@@ -944,6 +944,27 @@ mod tests {
     }
 
     #[test]
+    fn predictive_sample_rows_must_be_integer_counts() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"][0]["raw_count"] = json!(1.5);
+        let errors = audit(&value).expect_err("count realizations cannot be fractional");
+        assert!(errors.iter().any(|error| error.contains("raw_count")));
+    }
+
+    #[test]
+    fn predictive_samples_cannot_reference_unknown_forecasts() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"][0]["forecast_id"] =
+            json!("fc-not-in-forecast-inventory");
+        let errors = audit(&value).expect_err("predictive samples cannot add undeclared forecast IDs");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("references unknown forecast"))
+        );
+    }
+
+    #[test]
     fn duplicate_forecast_row_in_a_predictive_draw_is_rejected() {
         let mut value = fixture();
         let first_row = value["predictive_samples"]["rows"][0].clone();
