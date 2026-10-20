@@ -681,7 +681,7 @@ fn evaluate_stream(
             &history,
         );
         if !radius.is_finite() || radius < 0.0 {
-            return Err("interval radius became non-finite or nonpositive".to_owned());
+            return Err("interval radius became non-finite or negative".to_owned());
         }
         let width = 2.0 * radius;
         let coverage = if tick.target_label_available {
@@ -1128,6 +1128,30 @@ mod tests {
             .iter()
             .all(|step| step.decision == Decision::DiagnoseOnly));
         assert!(adaptive[30].radius > fixed[30].radius);
+    }
+
+    #[test]
+    fn reference_aci_and_cop_adapters_are_diagnostic_and_respect_label_maturity() {
+        let stream = generate_stream(10_001, Split::HeldOut, ScenarioKind::DelayedLabels);
+        let calibration = calibration_residuals();
+        let fixed_radius =
+            fixed_split_radius(&calibration, 100 - NOMINAL_COVERAGE_PERCENT).expect("fixed radius");
+
+        for policy in [
+            Policy::AciClippedReferenceIntervalOnly,
+            Policy::CopReferenceIntervalOnly,
+        ] {
+            let (outcomes, label_updates, mismatches) =
+                evaluate_stream(&stream, policy, &calibration, fixed_radius)
+                    .expect("reference-derived policy evaluates");
+            assert!(outcomes
+                .iter()
+                .all(|step| step.decision == Decision::DiagnoseOnly));
+            assert_eq!(59, label_updates);
+            assert_eq!(0, mismatches);
+            assert!(outcomes.iter().all(|step| step.radius.is_finite() && step.radius >= 0.0));
+            assert!(outcomes[1].radius > 0.0);
+        }
     }
 
     #[test]
