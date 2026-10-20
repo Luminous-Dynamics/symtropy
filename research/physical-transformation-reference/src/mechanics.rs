@@ -297,6 +297,81 @@ mod tests {
         assert!(simply_supported_uniform_load(f64::NAN, 4.0, 200.0e9, 1.0, 0.1).is_err());
     }
 
+
+    #[test]
+    fn axial_bar_obeys_force_length_area_and_modulus_scaling_laws() {
+        let base = axial_bar(1_000.0, 2.0, 0.01, 200.0e9).expect("base bar");
+        let doubled_force = axial_bar(2_000.0, 2.0, 0.01, 200.0e9).expect("doubled force");
+        let doubled_length = axial_bar(1_000.0, 4.0, 0.01, 200.0e9).expect("doubled length");
+        let doubled_area = axial_bar(1_000.0, 2.0, 0.02, 200.0e9).expect("doubled area");
+        let doubled_modulus = axial_bar(1_000.0, 2.0, 0.01, 400.0e9).expect("doubled modulus");
+
+        assert!((doubled_force.axial_stress_pa / base.axial_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!((doubled_force.axial_strain / base.axial_strain - 2.0).abs() < 1.0e-12);
+        assert!((doubled_force.extension_m / base.extension_m - 2.0).abs() < 1.0e-12);
+
+        assert!((doubled_length.axial_stress_pa / base.axial_stress_pa - 1.0).abs() < 1.0e-12);
+        assert!((doubled_length.axial_strain / base.axial_strain - 1.0).abs() < 1.0e-12);
+        assert!((doubled_length.extension_m / base.extension_m - 2.0).abs() < 1.0e-12);
+
+        assert!((doubled_area.axial_stress_pa / base.axial_stress_pa - 0.5).abs() < 1.0e-12);
+        assert!((doubled_area.axial_strain / base.axial_strain - 0.5).abs() < 1.0e-12);
+        assert!((doubled_area.extension_m / base.extension_m - 0.5).abs() < 1.0e-12);
+
+        assert!((doubled_modulus.axial_stress_pa / base.axial_stress_pa - 1.0).abs() < 1.0e-12);
+        assert!((doubled_modulus.axial_strain / base.axial_strain - 0.5).abs() < 1.0e-12);
+        assert!((doubled_modulus.extension_m / base.extension_m - 0.5).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn cantilever_obeys_force_span_modulus_and_section_scaling_laws() {
+        let base = cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("base cantilever");
+        let doubled_force =
+            cantilever_tip_load(200.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("doubled force");
+        let doubled_span =
+            cantilever_tip_load(100.0, 4.0, 200.0e9, 8.0e-6, 0.1).expect("doubled span");
+        let doubled_modulus =
+            cantilever_tip_load(100.0, 2.0, 400.0e9, 8.0e-6, 0.1).expect("doubled modulus");
+        let doubled_inertia =
+            cantilever_tip_load(100.0, 2.0, 200.0e9, 16.0e-6, 0.1).expect("doubled inertia");
+        let doubled_outer_fiber =
+            cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.2).expect("doubled outer fiber");
+
+        assert!((doubled_force.tip_deflection_m / base.tip_deflection_m - 2.0).abs() < 1.0e-12);
+        assert!((doubled_force.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!((doubled_span.tip_deflection_m / base.tip_deflection_m - 8.0).abs() < 1.0e-12);
+        assert!((doubled_span.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!((doubled_modulus.tip_deflection_m / base.tip_deflection_m - 0.5).abs() < 1.0e-12);
+        assert!((doubled_modulus.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 1.0).abs() < 1.0e-12);
+        assert!((doubled_inertia.tip_deflection_m / base.tip_deflection_m - 0.5).abs() < 1.0e-12);
+        assert!((doubled_inertia.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 0.5).abs() < 1.0e-12);
+        assert!((doubled_outer_fiber.tip_deflection_m / base.tip_deflection_m - 1.0).abs() < 1.0e-12);
+        assert!((doubled_outer_fiber.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn simply_supported_beam_obeys_load_modulus_inertia_and_outer_fiber_scaling() {
+        let base = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)
+            .expect("base simply supported beam");
+        let doubled_load = simply_supported_uniform_load(2_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)
+            .expect("doubled load");
+        let doubled_modulus = simply_supported_uniform_load(1_000.0, 4.0, 400.0e9, 8.0e-6, 0.1)
+            .expect("doubled modulus");
+        let doubled_inertia = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 16.0e-6, 0.1)
+            .expect("doubled inertia");
+        let doubled_outer_fiber = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.2)
+            .expect("doubled outer fiber");
+
+        assert!((doubled_load.midspan_deflection_m / base.midspan_deflection_m - 2.0).abs() < 1.0e-12);
+        assert!((doubled_load.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+        assert!((doubled_modulus.midspan_deflection_m / base.midspan_deflection_m - 0.5).abs() < 1.0e-12);
+        assert!((doubled_modulus.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 1.0).abs() < 1.0e-12);
+        assert!((doubled_inertia.midspan_deflection_m / base.midspan_deflection_m - 0.5).abs() < 1.0e-12);
+        assert!((doubled_inertia.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 0.5).abs() < 1.0e-12);
+        assert!((doubled_outer_fiber.midspan_deflection_m / base.midspan_deflection_m - 1.0).abs() < 1.0e-12);
+        assert!((doubled_outer_fiber.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 2.0).abs() < 1.0e-12);
+    }
+
     #[test]
     fn cantilever_force_sign_changes_deflection_not_stress_magnitude() {
         let positive =
