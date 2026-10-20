@@ -376,6 +376,7 @@ enum Policy {
     ConfidenceGated,
     ProvenancePassive,
     ActiveRevision,
+    UniformReservoir,
 }
 
 impl Policy {
@@ -387,6 +388,7 @@ impl Policy {
             Self::ConfidenceGated => "confidence_gated",
             Self::ProvenancePassive => "provenance_memory_passive",
             Self::ActiveRevision => "active_revision",
+            Self::UniformReservoir => "uniform_reservoir_2",
         }
     }
 
@@ -394,7 +396,7 @@ impl Policy {
         match self {
             Self::NoMemory => 0,
             Self::LastObservation | Self::ConfidenceGated | Self::ProvenancePassive | Self::ActiveRevision => 1,
-            Self::BoundedFifo => 2,
+            Self::BoundedFifo | Self::UniformReservoir => 2,
         }
     }
 
@@ -419,16 +421,30 @@ enum Memory {
     Fifo(VecDeque<Evidence>),
     ConfidenceBest(Option<Evidence>),
     ProvenanceLatest(Option<Evidence>),
+    UniformReservoir {
+        entries: VecDeque<Evidence>,
+        seen: u64,
+        actor_seed: u64,
+    },
 }
 
 impl Memory {
     fn new(policy: Policy) -> Self {
+        Self::new_seeded(policy, 0)
+    }
+
+    fn new_seeded(policy: Policy, actor_seed: u64) -> Self {
         match policy {
             Policy::NoMemory => Self::None,
             Policy::LastObservation => Self::Last(None),
             Policy::BoundedFifo => Self::Fifo(VecDeque::with_capacity(2)),
             Policy::ConfidenceGated => Self::ConfidenceBest(None),
             Policy::ProvenancePassive | Policy::ActiveRevision => Self::ProvenanceLatest(None),
+            Policy::UniformReservoir => Self::UniformReservoir {
+                entries: VecDeque::with_capacity(2),
+                seen: 0,
+                actor_seed,
+            },
         }
     }
 
@@ -457,6 +473,24 @@ impl Memory {
                     *latest = Some(evidence);
                 }
             }
+            Self::UniformReservoir { entries, seen, actor_seed } => {
+                *seen = seen.saturating_add(1);
+                if entries.len() < 2 {
+                    entries.push_back(evidence);
+                } else {
+                    // Standard reservoir sampling gives each released frame
+                    // equal marginal retention probability. No hidden state or
+                    // outcome label is available to this update.
+                    let draw = mix64(
+                        *actor_seed
+                            ^ seen.wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                            ^ 0x554E_4946_4F52_4D52,
+                    ) % *seen;
+                    if draw < 2 {
+                        entries[draw as usize] = evidence;
+                    }
+                }
+            }
         }
     }
 
@@ -481,6 +515,14 @@ impl Memory {
             Policy::ProvenancePassive | Policy::ActiveRevision => match self {
                 Self::ProvenanceLatest(latest) => latest
                     .filter(|e| terminal.tick.saturating_sub(e.tick) <= 1)
+                    .and_then(|e| e.cue.decision())
+                    .unwrap_or(Decision::Abstain),
+                _ => Decision::Abstain,
+            },
+            Policy::UniformReservoir => match self {
+                Self::UniformReservoir { entries, .. } => entries.iter()
+                    .filter(|e| e.cue != Cue::Occluded && terminal.tick.saturating_sub(e.tick) <= 1)
+                    .max_by_key(|e| e.tick)
                     .and_then(|e| e.cue.decision())
                     .unwrap_or(Decision::Abstain),
                 _ => Decision::Abstain,
@@ -1045,10 +1087,11 @@ mod randomized_timing {
         ActiveRevision,
         FixedSweep,
         RandomLegalView,
+        UniformReservoir,
     }
 
     impl TimedPolicy {
-        const ALL: [Self; 9] = [
+        const ALL: [Self; 10] = [
             Self::NoMemory,
             Self::PassiveNoView,
             Self::LastObservation,
@@ -1058,6 +1101,7 @@ mod randomized_timing {
             Self::ActiveRevision,
             Self::FixedSweep,
             Self::RandomLegalView,
+            Self::UniformReservoir,
         ];
 
         fn name(self) -> &'static str {
@@ -1071,6 +1115,7 @@ mod randomized_timing {
                 Self::ActiveRevision => "active_revision",
                 Self::FixedSweep => "fixed_sweep",
                 Self::RandomLegalView => "random_legal_view",
+                Self::UniformReservoir => "uniform_reservoir_2",
             }
         }
 
@@ -1083,6 +1128,7 @@ mod randomized_timing {
                 Self::ProvenancePassive => Policy::ProvenancePassive,
                 Self::ActiveRevision => Policy::ActiveRevision,
                 Self::RandomLegalView => Policy::BoundedFifo,
+                Self::UniformReservoir => Policy::UniformReservoir,
             }
         }
 
@@ -1140,7 +1186,7 @@ mod randomized_timing {
 
     fn run_episode(world: TimedWorld, policy: TimedPolicy, actor_seed: u64) -> TimedResult {
         let memory_policy = policy.memory_policy();
-        let mut memory = Memory::new(memory_policy);
+        let mut memory = Memory::new_seeded(memory_policy, actor_seed);
         let mut attempted = false;
         let mut executed = false;
         let mut completed = false;
@@ -1831,6 +1877,28 @@ mod randomized_timing {
             let sweep = world.frame(2, false, None);
             if sweep.side_view_available {
                 assert_eq!(TimedPolicy::FixedSweep.propose(&sweep, false, 0), Action::ChangeView);
+            }
+        }
+
+        #[test]
+        fn uniform_reservoir_is_seeded_bounded_and_replayable() {
+            let (world, _) = paired(0x6D45_0A11, SceneFamily::HeldOut);
+            let mut left = Memory::new_seeded(Policy::UniformReservoir, 0xA11CE);
+            let mut right = Memory::new_seeded(Policy::UniformReservoir, 0xA11CE);
+            for tick in 0..=HORIZON {
+                let frame = world.frame(tick, false, None);
+                left.observe(&frame);
+                right.observe(&frame);
+                let (
+                    Memory::UniformReservoir { entries: left_entries, seen: left_seen, .. },
+                    Memory::UniformReservoir { entries: right_entries, seen: right_seen, .. },
+                ) = (&left, &right) else {
+                    panic!("uniform policy must instantiate reservoir memory");
+                };
+                assert!(left_entries.len() <= 2);
+                assert_eq!(left_entries, right_entries);
+                assert_eq!(*left_seen, u64::from(tick) + 1);
+                assert_eq!(*left_seen, *right_seen);
             }
         }
 
