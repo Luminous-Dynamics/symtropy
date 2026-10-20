@@ -99,7 +99,6 @@ pub fn cantilever_tip_load(
     })
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SimplySupportedUniformLoadResult {
     pub midspan_deflection_m: f64,
@@ -181,8 +180,7 @@ pub fn run_reference_fixtures() -> Check<MechanicsFixtureOutcome> {
         2_500_000.0,
     )?;
 
-    let simply_supported =
-        simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)?;
+    let simply_supported = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)?;
     assert_close(
         "simply supported beam midspan deflection",
         simply_supported.midspan_deflection_m,
@@ -248,7 +246,6 @@ mod tests {
         assert!((result.cantilever_maximum_bending_stress_pa - 2_500_000.0).abs() <= 1.0e-6);
     }
 
-
     #[test]
     fn simply_supported_uniform_load_matches_closed_form_and_scaling_laws() {
         let base = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)
@@ -258,13 +255,25 @@ mod tests {
 
         let doubled_span = simply_supported_uniform_load(1_000.0, 8.0, 200.0e9, 8.0e-6, 0.1)
             .expect("valid doubled-span beam");
-        assert!((doubled_span.midspan_deflection_m / base.midspan_deflection_m - 16.0).abs() <= 1.0e-12);
-        assert!((doubled_span.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 4.0).abs() <= 1.0e-12);
+        assert!(
+            (doubled_span.midspan_deflection_m / base.midspan_deflection_m - 16.0).abs()
+                <= 1.0e-12
+        );
+        assert!(
+            (doubled_span.maximum_bending_stress_pa / base.maximum_bending_stress_pa - 4.0).abs()
+                <= 1.0e-12
+        );
 
         let reversed_load = simply_supported_uniform_load(-1_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)
             .expect("valid reversed beam load");
-        assert!((reversed_load.midspan_deflection_m + base.midspan_deflection_m).abs() <= ABSOLUTE_TOLERANCE);
-        assert!((reversed_load.maximum_bending_stress_pa - base.maximum_bending_stress_pa).abs() <= 1.0e-9);
+        assert!(
+            (reversed_load.midspan_deflection_m + base.midspan_deflection_m).abs()
+                <= ABSOLUTE_TOLERANCE
+        );
+        assert!(
+            (reversed_load.maximum_bending_stress_pa - base.maximum_bending_stress_pa).abs()
+                <= 1.0e-9
+        );
     }
 
     #[test]
