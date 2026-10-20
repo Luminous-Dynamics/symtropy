@@ -327,15 +327,6 @@ fn evaluate_with_runtime(
     let forecasts = registration["forecasts"]
         .as_array()
         .expect("schema validation requires forecasts");
-    let forecast_by_id = forecasts
-        .iter()
-        .map(|forecast| {
-            (
-                string_at(forecast, "forecast_id").expect("schema validated forecast_id"),
-                forecast,
-            )
-        })
-        .collect::<BTreeMap<_, _>>();
     let mut sample_rows_by_draw: BTreeMap<String, BTreeMap<String, &Value>> = BTreeMap::new();
     for row in registration["predictive_samples"]["rows"]
         .as_array()
