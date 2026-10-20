@@ -14,8 +14,14 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimulationRun {
     pub run_id: String,
-    /// SHA-256 of frozen case inputs/configuration, not merely its human name.
+    /// SHA-256 of frozen scenario, geometry, forcing and observation support.
+    /// Solver-specific settings belong in configuration_digest_sha256 instead.
     pub case_digest_sha256: String,
+    /// Stable identity of the solver/profile variant used for this run.
+    pub solver_variant_id: String,
+    /// SHA-256 of the exact solver, numerical parameters and runtime configuration.
+    /// This is expected to differ between candidate variants.
+    pub configuration_digest_sha256: String,
     /// Stable hardware/backend identity required for fair runtime comparison.
     pub hardware_fingerprint: String,
     pub wall_time_seconds: f64,
@@ -58,6 +64,8 @@ pub struct PairwiseAssessment {
 pub enum EfficiencyError {
     EmptyRunId,
     InvalidCaseDigest,
+    EmptySolverVariantId,
+    InvalidConfigurationDigest,
     EmptyHardwareFingerprint,
     InvalidWallTime,
     InvalidPeakMemory,
@@ -93,6 +101,12 @@ impl SimulationRun {
         }
         if !is_sha256(&self.case_digest_sha256) {
             return Err(EfficiencyError::InvalidCaseDigest);
+        }
+        if !nonblank(&self.solver_variant_id) {
+            return Err(EfficiencyError::EmptySolverVariantId);
+        }
+        if !is_sha256(&self.configuration_digest_sha256) {
+            return Err(EfficiencyError::InvalidConfigurationDigest);
         }
         if !nonblank(&self.hardware_fingerprint) {
             return Err(EfficiencyError::EmptyHardwareFingerprint);
@@ -168,7 +182,8 @@ pub fn evaluate_quality_budget(
         .collect())
 }
 
-/// Compare candidates only for the same frozen case and same hardware identity.
+/// Compare candidates only for the same frozen scenario and same hardware identity.
+/// Solver variant and configuration digests are recorded but are expected to differ.
 ///
 /// The error fields must already have been evaluated against the same declared
 /// target. The reference run is not assumed to be ground truth.
@@ -307,6 +322,8 @@ mod tests {
         SimulationRun {
             run_id: id.into(),
             case_digest_sha256: "a".repeat(64),
+            solver_variant_id: id.into(),
+            configuration_digest_sha256: if id == "uniform-fine" { "c" } else { "d" }.repeat(64),
             hardware_fingerprint: "cpu-x86_64-model-a".into(),
             wall_time_seconds: time,
             peak_memory_bytes: memory,
@@ -382,6 +399,17 @@ mod tests {
             pareto_frontier(&[accurate, fast, middle, dominated]).unwrap(),
             vec!["slow-accurate", "fast-approx", "middle"]
         );
+    }
+
+    #[test]
+    fn changed_solver_configuration_remains_comparable_on_the_same_case() {
+        let reference = run("uniform-fine", 10.0, 1_000, 0.01, 0.2);
+        let mut candidate = run("adaptive", 4.0, 600, 0.10, 2.0);
+        candidate.configuration_digest_sha256 = "e".repeat(64);
+        let assessment = compare_runs(&reference, &candidate, &budget()).unwrap();
+        assert!(assessment.candidate_within_quality_budget);
+        assert_eq!(assessment.wall_time_speedup, 2.5);
+        assert_ne!(reference.configuration_digest_sha256, candidate.configuration_digest_sha256);
     }
 
     #[test]
