@@ -72,3 +72,11 @@ jobs:
           ' "$report"
           sha256sum "$report"
           jq '{status, evaluator_version, fixture_sha256, evaluator_source_sha256, cargo_lock_sha256, scenario_count, future_blindness_contract}' "$report"
+
+      - name: Upload exact reference report receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: civ-res-ind-oracle-report
+          path: ${{ runner.temp }}/civ-res-ind-oracle-report.json
+          if-no-files-found: error
+          retention-days: 30
