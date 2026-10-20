@@ -32,14 +32,6 @@ const UNIT_KEYS: &[&str] = &[
     "second_moment",
     "distributed_load",
 ];
-const EXPECTED_UNITS: &[(&str, &str)] = &[
-    ("length", "m"),
-    ("force", "N"),
-    ("area", "m^2"),
-    ("stress", "Pa"),
-    ("second_moment", "m^4"),
-    ("distributed_load", "N/m"),
-];
 const KNOWN_PHYSICS: &[&str] = &[
     "static_linear_elastic",
     "dynamic_response",
@@ -208,15 +200,13 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
         .ok_or_else(|| "request.units must be an object".to_owned())?
         .clone();
     exact_map_keys(&units, UNIT_KEYS, "request.units")?;
-    for (key, expected) in EXPECTED_UNITS {
+    for key in UNIT_KEYS {
         let actual = units
             .get(*key)
             .and_then(Value::as_str)
             .ok_or_else(|| format!("request.units.{key} must be a string"))?;
-        if actual != *expected {
-            return Err(format!(
-                "request.units.{key} must be '{expected}', got '{actual}'"
-            ));
+        if actual.trim().is_empty() {
+            return Err(format!("request.units.{key} must not be empty"));
         }
     }
     Ok(DispatchRequest {
@@ -526,11 +516,22 @@ mod tests {
     }
 
     #[test]
-    fn malformed_units_and_unknown_top_level_fields_fail_closed() {
+    fn incompatible_units_return_abstention_and_malformed_contracts_are_rejected() {
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
         request["units"]["length"] = json!("ft");
-        assert!(dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV).is_err());
+        let receipt = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV)
+            .expect("well-formed but incompatible units yield an abstention receipt");
+        assert_eq!(receipt["selection_status"], "UNRESOLVED");
+        assert_eq!(receipt["evaluation_status"], "NOT_EVALUATED");
+        assert_eq!(receipt["selected_backend"], Value::Null);
+        assert_eq!(receipt["outputs"], Value::Null);
+        assert_eq!(receipt["model_evaluation_attempted"], false);
+
+        let mut malformed_units: Value =
+            serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
+        malformed_units["units"]["length"] = json!(17);
+        assert!(dispatch_request_bytes(&malformed_units.to_string().as_bytes(), REV, REV).is_err());
 
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
