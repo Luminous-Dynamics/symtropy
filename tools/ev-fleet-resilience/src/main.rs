@@ -1554,11 +1554,15 @@ mod tests {
 
         let mut hold = scenario(jobs, 1, 10.0, vec![]);
         hold.port_release_policy = PortReleasePolicy::HoldUntilDeparture;
-        let hold_result = simulate_scenario(&templates, &hold, Policy::FirstComeFirstServed).unwrap();
+        let hold_result =
+            simulate_scenario(&templates, &hold, Policy::FirstComeFirstServed).unwrap();
 
         assert_eq!(release_result.completed_by_deadline_count, 2);
         assert!((release_result.site_input_energy_kwh - 15.0).abs() < EPSILON);
-        assert_eq!(release_result.port_release_policy, "release_on_charge_completion");
+        assert_eq!(
+            release_result.port_release_policy,
+            "release_on_charge_completion"
+        );
 
         assert_eq!(hold_result.completed_by_deadline_count, 1);
         assert_eq!(hold_result.missed_deadline_count, 1);
@@ -1569,7 +1573,11 @@ mod tests {
         assert!(hold_result.site_power_limit_respected);
         assert!(hold_result.individual_power_limits_respected);
         assert_eq!(hold_result.port_release_policy, "hold_until_departure");
-        let queued = hold_result.jobs.iter().find(|job| job.job_id == "b-queued").unwrap();
+        let queued = hold_result
+            .jobs
+            .iter()
+            .find(|job| job.job_id == "b-queued")
+            .unwrap();
         assert_eq!(queued.site_input_energy_kwh, 0.0);
         assert_eq!(queued.delivered_battery_energy_kwh, 0.0);
         assert_eq!(queued.unserved_battery_energy_kwh, 5.0);
@@ -1584,20 +1592,34 @@ mod tests {
         ];
         let mut hold = scenario(jobs, 1, 10.0, vec![]);
         hold.port_release_policy = PortReleasePolicy::HoldUntilDeparture;
-        let result =
-            simulate_scenario(&templates, &hold, Policy::FirstComeFirstServed).unwrap();
+        let result = simulate_scenario(&templates, &hold, Policy::FirstComeFirstServed).unwrap();
         assert_eq!(result.completed_by_deadline_count, 2);
         assert_eq!(result.missed_deadline_count, 0);
         assert_eq!(
-            result.jobs.iter().find(|job| job.job_id == "a-boundary").unwrap().completion_minute,
+            result
+                .jobs
+                .iter()
+                .find(|job| job.job_id == "a-boundary")
+                .unwrap()
+                .completion_minute,
             Some(60.0)
         );
         assert_eq!(
-            result.jobs.iter().find(|job| job.job_id == "b-after-release").unwrap().first_start_minute,
+            result
+                .jobs
+                .iter()
+                .find(|job| job.job_id == "b-after-release")
+                .unwrap()
+                .first_start_minute,
             Some(60.0)
         );
         assert_eq!(
-            result.jobs.iter().find(|job| job.job_id == "b-after-release").unwrap().completion_minute,
+            result
+                .jobs
+                .iter()
+                .find(|job| job.job_id == "b-after-release")
+                .unwrap()
+                .completion_minute,
             Some(90.0)
         );
     }
