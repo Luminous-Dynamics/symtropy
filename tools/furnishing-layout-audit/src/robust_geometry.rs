@@ -50,6 +50,7 @@ pub enum RangeError {
     NonFiniteBound,
     InvertedBounds,
     NonPositiveExtent,
+    NonFiniteDerivedEndpoint,
 }
 
 /// Axis-aligned rectangle whose position and extents are independently bounded.
@@ -74,6 +75,19 @@ impl IntervalRect {
     ) -> Result<Self, RangeError> {
         if width.min <= 0.0 || depth.min <= 0.0 {
             return Err(RangeError::NonPositiveExtent);
+        }
+        let derived_endpoints = [
+            x.min + width.min,
+            x.min + width.max,
+            x.max + width.min,
+            x.max + width.max,
+            y.min + depth.min,
+            y.min + depth.max,
+            y.max + depth.min,
+            y.max + depth.max,
+        ];
+        if derived_endpoints.iter().any(|value| !value.is_finite()) {
+            return Err(RangeError::NonFiniteDerivedEndpoint);
         }
         Ok(Self {
             x,
@@ -247,5 +261,14 @@ mod tests {
             range(1.0, 1.0),
         );
         assert_eq!(error, Err(RangeError::NonPositiveExtent));
+
+        let huge = range(f64::MAX * 0.75, f64::MAX * 0.75);
+        let overflow = IntervalRect::new(
+            huge,
+            range(0.0, 0.0),
+            range(f64::MAX * 0.75, f64::MAX * 0.75),
+            range(1.0, 1.0),
+        );
+        assert_eq!(overflow, Err(RangeError::NonFiniteDerivedEndpoint));
     }
 }
