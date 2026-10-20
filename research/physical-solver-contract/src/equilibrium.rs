@@ -1030,12 +1030,7 @@ mod tests {
     }
 
     fn make_bundle(force_n: Vec3, moment_nm: Vec3) -> Bundle {
-        make_bundle_with_load(
-            [0.0, -1000.0, 0.0],
-            [2.0, 0.0, 0.0],
-            force_n,
-            moment_nm,
-        )
+        make_bundle_with_load([0.0, -1000.0, 0.0], [2.0, 0.0, 0.0], force_n, moment_nm)
     }
 
     fn make_bundle_with_load(
