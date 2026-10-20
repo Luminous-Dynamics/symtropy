@@ -1488,7 +1488,12 @@ mod randomized_timing {
             let (world, _) = paired(0xABCD, SceneFamily::Development);
             let occluded = world.frame(world.occlusion_onset, false, None);
             if occluded.side_view_available {
-                assert_eq!(TimedPolicy::FixedSweep.propose(&occluded, false), Action::Wait);
+                let expected = if matches!(occluded.tick, 2 | 4) {
+                    Action::ChangeView
+                } else {
+                    Action::Wait
+                };
+                assert_eq!(TimedPolicy::FixedSweep.propose(&occluded, false), expected);
             }
             let sweep = world.frame(2, false, None);
             if sweep.side_view_available {
