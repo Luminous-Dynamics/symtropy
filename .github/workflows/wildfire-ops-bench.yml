@@ -66,6 +66,13 @@ jobs:
             and (.scenarios | all(.status == "pass"))
             and (.scenarios | all(.B1_static_shortest_route != null))
             and (.scenarios | all(.B3_evidence_bounded_feasible_choice != null))
+            and (.benchmark_summary.scenario_count == 6)
+            and (.benchmark_summary.B1_static_shortest_route.selected_infeasible_plan_count == 5)
+            and (.benchmark_summary.B1_static_shortest_route.actual_blocked_edge_violations_against_oracle == 2)
+            and (.benchmark_summary.B1_static_shortest_route.expected_choice_match_count == 1)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.selected_infeasible_plan_count == 0)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.abstention_count == 3)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.expected_choice_match_count == 6)
           ' wildfire-ops-reference-receipt.json
 
       - name: Upload deterministic reference receipt
