@@ -64,6 +64,10 @@ jobs:
             and .policy_count == 9
             and .summary_count == 216
             and .nominal_coverage_percent == 90
+            and .coverage_band_lower == 0.85
+            and .coverage_band_upper == 0.95
+            and .coverage_window_ticks == 8
+            and .min_labels_per_coverage_window == 6
             and .max_telemetry_age_periods == 1
             and .healthy_ticks_required_for_reentry == 3
             and .guarded_hard_control_acceptances == 0
@@ -76,6 +80,13 @@ jobs:
               .stream_count != 32
               or .tick_count != 2048
               or .coverage_count > .coverage_denominator
+              or .stream_coverage_count != 32
+              or .coverage_recovery_successes > .coverage_recovery_attempts
+              or (.coverage_recovery_rate != null and
+                  (.coverage_recovery_rate < 0 or .coverage_recovery_rate > 1))
+              or (.coverage_recovery_attempts == 0 and .coverage_recovery_rate != null)
+              or (.absolute_coverage_error != null and
+                  (.absolute_coverage_error < 0 or .absolute_coverage_error > 1))
               or .independent_gate_audit_mismatches != 0
             )] | length == 0)
             and ([.summaries[] | select(
