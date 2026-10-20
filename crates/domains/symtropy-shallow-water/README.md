@@ -14,6 +14,10 @@ A small, deterministic first-order finite-volume solver for the 1D inviscid Sain
 - Exact wet-bed Stoker dam-break Riemann profile, including its left rarefaction, constant star state and right-moving shock.
 - Exact symmetric double-rarefaction profile, including either a lower-depth intermediate state or a dry/vacuum gap when the outward velocity reaches the analytical threshold.
 
+## Benchmark metrics
+
+The public `field_error_metrics` helper reports sample count, MAE, RMSE, signed bias and maximum absolute error. It rejects empty, mismatched and non-finite samples. Velocity comparisons use an explicit analytical wet-cell mask; callers must declare their metric support rather than score undefined dry-cell velocity.
+
 ## Current numerical claim ceiling
 
 The code includes synthetic numerical tests for still water, dry state, storage conservation with reflective boundaries, analytical landmarks, and depth RMSE across three grid resolutions for the idealized Ritter dry-bed rarefaction, wet-bed Stoker shock/rarefaction, and symmetric double-rarefaction solution, including an explicit dry-gap negative/edge test. Passing these tests qualifies only the listed formulation and settings.
