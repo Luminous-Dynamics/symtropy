@@ -434,6 +434,50 @@
         "assume domestic method satisfies commercial sanitation requirements"
       ],
       "claim_limit": "Supports only the tested household load, detergent, source-water conditions and defined endpoint; does not establish food-service compliance or universal water savings."
+    },
+    {
+      "scenario_id": "SINK-PRERINSE-FORCE-013",
+      "domain": "commercial_pre_rinse",
+      "purpose": "Compare commercial pre-rinse spray valves by task-complete water, adequate spray force/coverage and soil-removal endpoint over a declared pressure envelope.",
+      "conditions_to_freeze": [
+        "valve/nozzle model and revision",
+        "flowing inlet pressure profile",
+        "water temperature",
+        "nozzle-to-target distance and angle",
+        "target geometry and soil/substrate recipe",
+        "initial soil amount and standardized load",
+        "trigger duty pattern and task endpoint",
+        "test method/version and deviations",
+        "measurement calibration and uncertainty",
+        "operator protocol and repetitions",
+        "predefined clean-surface splash receivers"
+      ],
+      "primary_metrics": [
+        "water_l_during_protocol",
+        "spray_force_n",
+        "spray_coverage_area_cm2",
+        "soil_removal_fraction",
+        "task_duration",
+        "user_effort_scale",
+        "cleaning_endpoint"
+      ],
+      "hard_gates": [
+        "pressure is measured under flowing conditions",
+        "matched soil/load/geometry and endpoint across candidates",
+        "force and coverage are assessed over the declared pressure envelope, not one favorable point",
+        "water includes every trigger event and any rerinse",
+        "predefined splash receivers remain fixed",
+        "applicable commercial plumbing/food-equipment compliance is reviewed separately"
+      ],
+      "adversarial_controls": [
+        "lower rated flow increases trigger-on time or rerinse volume",
+        "central force passes while edge coverage fails",
+        "pressure or nozzle distance changes across candidates",
+        "a soil class fails while the average hides it",
+        "tracer deposition moves onto another sensitive surface",
+        "initial performance is reported without post-wear or post-service checks"
+      ],
+      "claim_limit": "A valve-level and matched-task comparison under declared conditions; not a sanitation, microbial-reduction, certification or universal superiority claim."
     }
   ],
   "stretch_targets": {
@@ -457,9 +501,15 @@
     "https://la.kohler.com/en/product-detail/23650",
     "https://www.pelhamandwhite.com/workstation",
     "https://environment.durban.gov.za/uploads/0000/6/2025/09/23/water-conservation-guideline.pdf",
-    "https://www.cogta.gov.za/index.php/2020/02/25/play-part-in-saving-water/"
+    "https://www.cogta.gov.za/index.php/2020/02/25/play-part-in-saving-water/",
+    "https://www.epa.gov/watersense/pre-rinse-spray-valves",
+    "https://store.astm.org/f2324-13r26.html",
+    "https://www.asme.org/codes-standards/find-codes-standards/plumbing-supply-fittings-%28with-10-18-errata%29"
   ],
   "record_schema": "docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json",
   "metric_registry": "docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json",
-  "design_space": "docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json"
+  "design_space": "docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json",
+  "related_issues": [
+    "https://github.com/Luminous-Dynamics/symtropy/issues/2359"
+  ]
 }
