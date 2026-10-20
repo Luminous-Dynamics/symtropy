@@ -225,7 +225,7 @@ jobs:
             and .model_evaluation_attempted == false
             and .external_solver_invoked == false
             and (.physics_omitted | index("fracture") != null)
-            and .adapter_receipt.result_status == "UNRESOLVED"
+            and .adapter_receipt == null
           ' physical-solver-dispatch-unresolved-receipt.json
 
       - name: Upload analytical reference receipts
