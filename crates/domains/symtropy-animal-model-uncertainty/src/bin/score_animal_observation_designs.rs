@@ -393,6 +393,16 @@ mod tests {
             report["schema_version"].as_str(),
             schema["properties"]["schema_version"]["const"].as_str()
         );
+        assert!(
+            schema["required"]
+                .as_array()
+                .is_some_and(|required| required.contains(&json!("qualification")))
+        );
+        assert!(
+            schema["properties"]["ranked_observations"]["items"]["properties"]["outcomes"]["items"]["required"]
+                .as_array()
+                .is_some_and(|required| required.contains(&json!("posterior_model_weights")))
+        );
         assert_eq!(
             report["status"].as_str(),
             Some("scored_observation_designs_conditional_on_declared_model_set")
