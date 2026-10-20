@@ -48,20 +48,21 @@ jobs:
             and ([.catalogs[].catalog_id] | length == (unique | length))
             and ([.benchmarks[].benchmark_id] | length == (unique | length))
             and all($manifest.benchmarks[];
-              (.catalog_id as $catalog | any($manifest.catalogs[]; .catalog_id == $catalog))
-              and .status != "PASS"
-              and .equivalence_claim == "none_unverified"
+              . as $benchmark
+              | ($benchmark.catalog_id as $catalog | any($manifest.catalogs[]; .catalog_id == $catalog))
+              and ($benchmark.status != "PASS")
+              and ($benchmark.equivalence_claim == "none_unverified")
               and (
-                (["catalogued","inputs_unavailable","fixture_incomplete","implemented_unverified","equation_verified","numerically_verified","experimentally_validated"] | index(.status)) != null
+                (["catalogued","inputs_unavailable","fixture_incomplete","implemented_unverified","equation_verified","numerically_verified","experimentally_validated"] | index($benchmark.status)) != null
               )
               and (
-                (["equation_verified","numerically_verified","experimentally_validated"] | index(.status)) == null
+                (["equation_verified","numerically_verified","experimentally_validated"] | index($benchmark.status)) == null
                 or (
-                  .evidence.fixture_ref != null
-                  and (.evidence.source_digest_sha256 | test("^[0-9a-f]{64}$"))
-                  and (.evidence.oracle_ref | length > 0)
-                  and (.evidence.tolerance | length > 0)
-                  and (.evidence.exact_head_test_ref | length > 0)
+                  ($benchmark.evidence.fixture_ref | type == "string" and length > 0)
+                  and ($benchmark.evidence.source_digest_sha256 | test("^[0-9a-f]{64}$"))
+                  and ($benchmark.evidence.oracle_ref | type == "string" and length > 0)
+                  and ($benchmark.evidence.tolerance | type == "string" and length > 0)
+                  and ($benchmark.evidence.exact_head_test_ref | type == "string" and length > 0)
                 )
               )
             )
