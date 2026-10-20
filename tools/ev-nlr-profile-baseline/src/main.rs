@@ -691,17 +691,24 @@ fn read_reference_profiles(options: &Options) -> Result<Option<ReferenceProfiles
         options.reference_average_csv.as_deref(),
         options.reference_minimum_peak_csv.as_deref(),
         options.reference_maximum_peak_csv.as_deref(),
+        options.reference_bundle_sha256.as_deref(),
     ) {
-        (None, None, None) => Ok(None),
-        (Some(average_path), Some(minimum_peak_path), Some(maximum_peak_path)) => Ok(Some(ReferenceProfiles {
-            average_path: average_path.to_string(),
-            minimum_peak_path: minimum_peak_path.to_string(),
-            maximum_peak_path: maximum_peak_path.to_string(),
-            average: read_reference_curve(average_path)?,
-            minimum_peak: read_reference_curve(minimum_peak_path)?,
-            maximum_peak: read_reference_curve(maximum_peak_path)?,
-        })),
-        _ => Err("all_three_reference_csvs_must_be_provided_together".to_string()),
+        (None, None, None, None) => Ok(None),
+        (Some(average_path), Some(minimum_peak_path), Some(maximum_peak_path), Some(bundle_sha256)) => {
+            if !sha256_shape(bundle_sha256) {
+                return Err("--reference-bundle-sha256_must_be_64_hex_characters".to_string());
+            }
+            Ok(Some(ReferenceProfiles {
+                average_path: average_path.to_string(),
+                minimum_peak_path: minimum_peak_path.to_string(),
+                maximum_peak_path: maximum_peak_path.to_string(),
+                bundle_sha256: bundle_sha256.to_string(),
+                average: read_reference_curve(average_path)?,
+                minimum_peak: read_reference_curve(minimum_peak_path)?,
+                maximum_peak: read_reference_curve(maximum_peak_path)?,
+            }))
+        }
+        _ => Err("provide_all_three_reference_csvs_and_reference_bundle_sha256_together".to_string()),
     }
 }
 
@@ -843,6 +850,7 @@ fn generate_report(
         operation_day_csv_sha256: report.operation_day_csv_sha256.clone(),
         schedule_csv_sha256: report.schedule_csv_sha256.clone(),
         profile_evidence_class: "model_reimplementation".to_string(),
+        published_reference_bundle_sha256: references.map(|r| r.bundle_sha256.clone()),
         strategy: options.strategy.as_str().to_string(),
         fleet_size: options.fleet_size,
         sample_count: options.sample_count,
@@ -942,6 +950,7 @@ mod tests {
             reference_average_csv: None,
             reference_minimum_peak_csv: None,
             reference_maximum_peak_csv: None,
+            reference_bundle_sha256: None,
         }
     }
 
