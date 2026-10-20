@@ -77,13 +77,19 @@ pub fn double_rarefaction(
         if similarity_m_s < left_dry_edge_m_s {
             let celerity =
                 (2.0 * initial_celerity_m_s - outward_velocity_m_s - similarity_m_s) / 3.0;
-            (celerity * celerity / gravity_m_s2, similarity_m_s + celerity)
+            (
+                celerity * celerity / gravity_m_s2,
+                similarity_m_s + celerity,
+            )
         } else if similarity_m_s < right_dry_edge_m_s {
             (0.0, 0.0)
         } else if similarity_m_s < right_head_m_s {
             let celerity =
                 (similarity_m_s - outward_velocity_m_s + 2.0 * initial_celerity_m_s) / 3.0;
-            (celerity * celerity / gravity_m_s2, similarity_m_s - celerity)
+            (
+                celerity * celerity / gravity_m_s2,
+                similarity_m_s - celerity,
+            )
         } else {
             (initial_depth_m, outward_velocity_m_s)
         }
@@ -149,20 +155,14 @@ mod tests {
         let c0 = (gravity * depth).sqrt();
         let c_star = c0 - 0.5 * outward_velocity;
 
-        let left = double_rarefaction(-10.0 * time, time, depth, outward_velocity, gravity)
-            .unwrap();
+        let left =
+            double_rarefaction(-10.0 * time, time, depth, outward_velocity, gravity).unwrap();
         assert!((left.depth_m - depth).abs() < 1.0e-12);
         assert!((left.velocity_m_s + outward_velocity).abs() < 1.0e-12);
 
         let left_fan_xi = -0.5 * (outward_velocity + c0);
-        let left_fan = double_rarefaction(
-            left_fan_xi * time,
-            time,
-            depth,
-            outward_velocity,
-            gravity,
-        )
-        .unwrap();
+        let left_fan =
+            double_rarefaction(left_fan_xi * time, time, depth, outward_velocity, gravity).unwrap();
         let left_fan_c = (2.0 * c0 - outward_velocity - left_fan_xi) / 3.0;
         assert!((left_fan.depth_m - left_fan_c.powi(2) / gravity).abs() < 1.0e-12);
         assert!((left_fan.velocity_m_s - (left_fan_xi + left_fan_c)).abs() < 1.0e-12);
@@ -173,15 +173,20 @@ mod tests {
         assert_eq!(star.velocity_m_s, 0.0);
         assert_eq!(star.discharge_m2_s, 0.0);
 
-        let right = double_rarefaction(10.0 * time, time, depth, outward_velocity, gravity)
-            .unwrap();
+        let right =
+            double_rarefaction(10.0 * time, time, depth, outward_velocity, gravity).unwrap();
         assert!((right.depth_m - depth).abs() < 1.0e-12);
         assert!((right.velocity_m_s - outward_velocity).abs() < 1.0e-12);
     }
 
     fn field_errors(
         dx: f64,
-    ) -> (FieldErrorMetrics, FieldErrorMetrics, FieldErrorMetrics, usize) {
+    ) -> (
+        FieldErrorMetrics,
+        FieldErrorMetrics,
+        FieldErrorMetrics,
+        usize,
+    ) {
         let cfg = config(dx);
         let x_min = -5.0;
         let x_max = 5.0;
@@ -192,7 +197,11 @@ mod tests {
         let cells = (0..count)
             .map(|index| {
                 let x = x_min + (index as f64 + 0.5) * dx;
-                let velocity = if x < 0.0 { -outward_velocity } else { outward_velocity };
+                let velocity = if x < 0.0 {
+                    -outward_velocity
+                } else {
+                    outward_velocity
+                };
                 CellState {
                     depth_m: h0,
                     discharge_m2_s: h0 * velocity,
@@ -209,7 +218,10 @@ mod tests {
                 .unwrap();
             time += dt;
             steps += 1;
-            assert!(steps < 100_000, "double-rarefaction integration did not terminate");
+            assert!(
+                steps < 100_000,
+                "double-rarefaction integration did not terminate"
+            );
         }
 
         let mut actual_depth = Vec::with_capacity(count);
@@ -236,17 +248,19 @@ mod tests {
         }
 
         let depth = field_error_metrics(&actual_depth, &expected_depth).unwrap();
-        let discharge =
-            field_error_metrics(&actual_discharge, &expected_discharge).unwrap();
-        let velocity =
-            field_error_metrics(&actual_wet_velocity, &expected_wet_velocity).unwrap();
+        let discharge = field_error_metrics(&actual_discharge, &expected_discharge).unwrap();
+        let velocity = field_error_metrics(&actual_wet_velocity, &expected_wet_velocity).unwrap();
         println!(
             "DOUBLE_RAREFACTION dx_m={dx:.6} cells={count} steps={steps} time_s={t_end:.3} depth_rmse_m={:.9} discharge_rmse_m2_s={:.9} wet_velocity_rmse_m_s={:.9} wet_velocity_samples={} minimum_depth_m={:.9}",
             depth.root_mean_squared_error,
             discharge.root_mean_squared_error,
             velocity.root_mean_squared_error,
             velocity.sample_count,
-            solver.cells().iter().map(|cell| cell.depth_m).fold(f64::INFINITY, f64::min),
+            solver
+                .cells()
+                .iter()
+                .map(|cell| cell.depth_m)
+                .fold(f64::INFINITY, f64::min),
         );
         (depth, discharge, velocity, steps)
     }
