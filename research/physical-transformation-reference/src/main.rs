@@ -66,6 +66,8 @@ fn run() -> Result<(), String> {
             "\"axial_bar_extension_m\":{:.17e},",
             "\"cantilever_tip_deflection_m\":{:.17e},",
             "\"cantilever_maximum_bending_stress_pa\":{:.17e},",
+            "\"simply_supported_midspan_deflection_m\":{:.17e},",
+            "\"simply_supported_maximum_bending_stress_pa\":{:.17e},",
             "\"connected_components_before_cut\":{},",
             "\"connected_components_after_cut\":{},",
             "\"connected_components_after_reconnect\":{}",
@@ -96,6 +98,8 @@ fn run() -> Result<(), String> {
         mechanics.axial_extension_m,
         mechanics.cantilever_tip_deflection_m,
         mechanics.cantilever_maximum_bending_stress_pa,
+        mechanics.simply_supported_midspan_deflection_m,
+        mechanics.simply_supported_maximum_bending_stress_pa,
         outcome.initial_connected_components,
         outcome.after_cut_connected_components,
         outcome.after_reconnect_connected_components
