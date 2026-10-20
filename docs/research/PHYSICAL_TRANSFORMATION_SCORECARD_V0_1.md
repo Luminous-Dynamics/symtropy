@@ -14,6 +14,14 @@ The differentiator is the chain:
 
 Every arrow needs a versioned contract and known limitations. Rendering is a consumer of this evidence, not the authority that decides whether a physical claim is valid.
 
+## 2A. Measured dataset candidates (rights gate required)
+
+**First fracture candidate — CARPIUC mixed-mode concrete fracture tests.** The [Zenodo record, DOI 10.5281/zenodo.2624327](https://zenodo.org/records/2624327) describes two quasi-brittle crack-propagation tests and provides DIC crack paths, force measurements, specimen raw-data tables, specimen geometry, experimentally determined material properties, and measured boundary-condition files. That supports a bounded first validation question: can a named fracture model reproduce force–displacement curves and crack-path evolution on a specimen whose material and loading inputs are documented? It is not a building-collapse dataset. The landing page's visible **License** field is blank in the reviewed rendering, so rights are **unresolved** until version-specific metadata, the descriptor PDF, and file-level terms are inspected. Do not mirror, redistribute, or commit the source files while that question remains unresolved.
+
+**Second contact/debris candidate — experimental granular-flow data.** The [Zenodo record, DOI 10.5281/zenodo.5139266](https://zenodo.org/records/5139266) lists PIV velocity profiles, basal normal-stress measurements from a force plate, flow thickness, deposit parameters, and videos. The landing page advertises a newer version, which must be reviewed instead of assuming v1 remains canonical. Its listed video archive alone is 783.5 MB, so start by reviewing metadata and small tabular files; no large download should be the default. Its visible License field is also blank, so rights are unresolved pending review.
+
+For either dataset: pin the exact version and metadata snapshot; record file hashes only after permission is established; separate measured columns from calculated/derived columns; reconcile units and identifiers; split calibration and blind holdout by experiment/specimen to prevent leakage; and pre-register force–displacement error, crack-path distance, onset-load error, solver convergence, and uncertainty coverage. If reuse rights cannot be established, use only the bibliographic link and create independent synthetic fixtures or seek permission. A page labelled “Dataset Open” is not treated as a sufficient content-license determination.
+
 ## 2. Industry comparison: compare like with like
 
 | System / reference | Established capability documented by its maintainers | Symtropy posture |
