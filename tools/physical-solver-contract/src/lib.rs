@@ -1011,13 +1011,8 @@ pub fn validate_receipt_json(
         KNOWN_PHYSICS,
         &mut issues,
     );
-    let omitted = validate_string_set_field(
-        receipt,
-        "physics_omitted",
-        "$",
-        KNOWN_PHYSICS,
-        &mut issues,
-    );
+    let omitted =
+        validate_string_set_field(receipt, "physics_omitted", "$", KNOWN_PHYSICS, &mut issues);
     if let (Some(evaluated), Some(omitted)) = (&evaluated, &omitted) {
         for physics in evaluated.intersection(omitted) {
             issue(
@@ -1303,10 +1298,8 @@ pub fn validate_receipt_json(
                 .collect();
 
             if let (Some(evaluated_set), Some(omitted_set)) = (&evaluated, &omitted) {
-                let reported: BTreeSet<String> = evaluated_set
-                    .union(omitted_set)
-                    .cloned()
-                    .collect();
+                let reported: BTreeSet<String> =
+                    evaluated_set.union(omitted_set).cloned().collect();
 
                 for extra in reported.difference(&requested) {
                     issue(
@@ -1321,7 +1314,9 @@ pub fn validate_receipt_json(
                         &mut issues,
                         "$.physics_evaluated",
                         "physics.partition_missing",
-                        &format!("receipt does not classify requested physics capability '{missing}'"),
+                        &format!(
+                            "receipt does not classify requested physics capability '{missing}'"
+                        ),
                     );
                 }
 
@@ -1341,12 +1336,16 @@ pub fn validate_receipt_json(
                                 "PASS is forbidden when requested physics is incompatible with model fidelity",
                             );
                         }
-                        if !evaluated_set.contains(physics_name) || omitted_set.contains(physics_name) {
+                        if !evaluated_set.contains(physics_name)
+                            || omitted_set.contains(physics_name)
+                        {
                             issue(
                                 &mut issues,
                                 "$.physics_evaluated",
                                 "pass.physics_not_evaluated",
-                                &format!("PASS requires requested physics '{physics_name}' to be evaluated and not omitted"),
+                                &format!(
+                                    "PASS requires requested physics '{physics_name}' to be evaluated and not omitted"
+                                ),
                             );
                         }
                     }
