@@ -81,6 +81,7 @@ struct RgbFrame {
     // Legal action metadata is public. This flag is set by the environment,
     // not inferred from hidden truth, and does not expose the world seed.
     side_view_available: bool,
+    side_view_successful: bool,
 }
 
 impl RgbFrame {
@@ -149,6 +150,10 @@ impl HiddenWorld {
                 SceneFamily::HeldOut => 1 + (unit_milli(exogenous_seed, 0x4445_434F_595F_4E01) % 3) as u8,
             },
             side_view_available: unit_milli(exogenous_seed, 0x5349_4445_5F41_4354) >= 180,
+            side_view_successful: match family {
+                SceneFamily::Development => unit_milli(exogenous_seed, 0x5349_4445_5F53_5543) >= 100,
+                SceneFamily::HeldOut => unit_milli(exogenous_seed, 0x5349_4445_5F53_5543) >= 350,
+            },
         }
     }
 
@@ -245,11 +250,17 @@ impl HiddenWorld {
                 self.draw_wall(&mut frame);
             }
             2 if side_view => {
-                // Side parallax moves the target relative to the wall. The
-                // changed-view frame is informative for one step only.
-                if self.terminal_present {
-                    let shifted_x = (self.target_x + 6).min(WIDTH - 3);
-                    self.draw_cross(&mut frame, shifted_x, self.target_y, true, [184, 184, 184]);
+                // A committed viewpoint action can still fail to deliver fresh
+                // evidence. On failure, the returned RGB frame remains
+                // occluded and is identical in paired persistent/removal worlds.
+                if self.side_view_successful {
+                    if self.terminal_present {
+                        let shifted_x = (self.target_x + 6).min(WIDTH - 3);
+                        self.draw_cross(&mut frame, shifted_x, self.target_y, true, [184, 184, 184]);
+                    }
+                } else {
+                    self.draw_cross(&mut frame, self.target_x, self.target_y, false, [238, 238, 238]);
+                    self.draw_wall(&mut frame);
                 }
             }
             2 => {
@@ -482,6 +493,7 @@ struct EpisodeResult {
     decision: Decision,
     loss: f64,
     view_used: bool,
+    fresh_view_evidence: bool,
     latency_units: u64,
     budget_violations: u64,
     explicit_absence_seen: bool,
@@ -493,6 +505,7 @@ fn run_episode(world: HiddenWorld, policy: Policy) -> EpisodeResult {
     let mut latency_units = 0_u64;
     let mut budget_violations = 0_u64;
     let mut explicit_absence_seen = false;
+    let mut fresh_view_evidence = false;
     let mut terminal = world.render(0, false);
 
     for tick in 0..=3_u8 {
@@ -502,6 +515,9 @@ fn run_episode(world: HiddenWorld, policy: Policy) -> EpisodeResult {
         let frame = world.render(tick, side_view);
         memory.observe(&frame);
         explicit_absence_seen |= perceive(&frame).cue == Cue::Absent;
+        if tick == 2 && view_used {
+            fresh_view_evidence = perceive(&frame).cue != Cue::Occluded;
+        }
 
         if tick == 1 {
             let proposed = policy.propose(&frame, view_used);
@@ -554,6 +570,7 @@ fn run_episode(world: HiddenWorld, policy: Policy) -> EpisodeResult {
         decision,
         loss,
         view_used,
+        fresh_view_evidence,
         latency_units,
         budget_violations,
         explicit_absence_seen,
@@ -574,6 +591,8 @@ struct Counts {
     removed_with_absence: u64,
     removed_revised_correctly: u64,
     view_actions: u64,
+    fresh_view_evidence_count: u64,
+    views_without_fresh_evidence: u64,
     latency_units: u64,
     budget_violations: u64,
 }
@@ -583,6 +602,13 @@ impl Counts {
         self.episodes += 1;
         self.loss_sum += result.loss;
         self.view_actions += u64::from(result.view_used);
+        if result.view_used {
+            if result.fresh_view_evidence {
+                self.fresh_view_evidence_count += 1;
+            } else {
+                self.views_without_fresh_evidence += 1;
+            }
+        }
         self.latency_units += result.latency_units;
         self.budget_violations += result.budget_violations;
         match result.decision {
@@ -654,7 +680,7 @@ fn run_report() {
     println!("VIS-ACT-004 rendered RGB active-vision diagnostic");
     println!("32x32 RGB procedural renderer; paired persistent/removal worlds; one transient side-view observation");
     println!("synthetic resource units; no camera, GPU, robot, or physical-energy claims");
-    println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tpersistent_correct_rate\tremoved_false_persistence_rate\tremoved_revision_when_absence_seen\tremoved_absence_cases\tview_actions_per_episode\tlatency_units_per_episode\tmemory_cap\tbudget_violations");
+    println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tpersistent_correct_rate\tremoved_false_persistence_rate\tremoved_revision_when_absence_seen\tremoved_absence_cases\tview_actions_per_episode\tfresh_evidence_rate_given_view\tviews_without_fresh_evidence\tlatency_units_per_episode\tmemory_cap\tbudget_violations");
 
     for family in families {
         for policy in policies {
@@ -670,7 +696,7 @@ fn run_report() {
             }
 
             println!(
-                "{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{:.3}\t{}\t{}",
+                "{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}\t{}\t{:.3}\t{}\t{}",
                 family.name(),
                 policy.name(),
                 total.episodes,
@@ -682,6 +708,8 @@ fn run_report() {
                 Counts::rate(total.removed_revised_correctly, total.removed_with_absence),
                 total.removed_with_absence,
                 total.view_actions as f64 / total.episodes.max(1) as f64,
+                Counts::rate(total.fresh_view_evidence_count, total.view_actions),
+                total.views_without_fresh_evidence,
                 total.latency_units as f64 / total.episodes.max(1) as f64,
                 policy.memory_cap(),
                 total.budget_violations,
@@ -699,9 +727,11 @@ mod tests {
     use super::*;
 
     fn paired(family: SceneFamily, seed: u64) -> (HiddenWorld, HiddenWorld) {
+        let persistent = HiddenWorld::generated(seed, true, family);
+        let removed = HiddenWorld::generated(seed, false, family);
         (
-            HiddenWorld::generated(seed, true, family),
-            HiddenWorld::generated(seed, false, family),
+            HiddenWorld { side_view_available: true, side_view_successful: true, ..persistent },
+            HiddenWorld { side_view_available: true, side_view_successful: true, ..removed },
         )
     }
 
@@ -770,6 +800,28 @@ mod tests {
         assert_eq!(no_memory.decide(Policy::NoMemory, &terminal), Decision::Abstain);
         // Also ensure the paired persistent branch remains identifiable.
         assert_eq!(perceive(&present.render(2, true)).cue, Cue::Present);
+    }
+
+    #[test]
+    fn a_failed_view_costs_latency_but_does_not_supply_evidence() {
+        let base = HiddenWorld::generated(0xFA17, false, SceneFamily::Development);
+        let failed = HiddenWorld {
+            side_view_available: true,
+            side_view_successful: false,
+            ..base
+        };
+        let result = run_episode(failed, Policy::ActiveRevision);
+        assert!(result.view_used);
+        assert!(!result.fresh_view_evidence);
+        assert_eq!(result.decision, Decision::Abstain);
+        assert_eq!(result.budget_violations, 0);
+
+        let present = HiddenWorld { terminal_present: true, ..failed };
+        let present_frame = present.render(2, true);
+        let absent_frame = failed.render(2, true);
+        assert_eq!(present_frame.pixels, absent_frame.pixels);
+        assert_eq!(perceive(&present_frame).cue, Cue::Occluded);
+        assert_eq!(perceive(&absent_frame).cue, Cue::Occluded);
     }
 
     #[test]
