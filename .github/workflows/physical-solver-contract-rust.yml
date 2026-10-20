@@ -108,7 +108,7 @@ jobs:
           outputs_json='[]'
 
           while IFS= read -r kind; do
-            artifact_ref="\${kind}.json"
+            artifact_ref="${kind}.json"
             printf '{"synthetic_fixture_only":true,"output_kind":"%s"}\n' "$kind" \
               > "$artifact_root/$artifact_ref"
             artifact_sha256="$(sha256sum "$artifact_root/$artifact_ref" | cut -d ' ' -f 1)"
