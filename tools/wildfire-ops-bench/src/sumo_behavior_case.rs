@@ -1,25 +1,34 @@
-use crate::xml::{attrs, count, distribution, number, tags, Check};
-use serde_json::{json, Value};
+use crate::xml::{Check, attrs, count, distribution, number, tags};
+use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
 fn read_text(path: &Path) -> Check<String> {
-    let bytes = fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
+    let bytes =
+        fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
     String::from_utf8(bytes).map_err(|_| format!("{} is not UTF-8", path.display()))
 }
 
 pub fn evaluate(case: &Value, root: &Path) -> Check<Value> {
-    let id = case.get("case_id").and_then(Value::as_str)
+    let id = case
+        .get("case_id")
+        .and_then(Value::as_str)
         .ok_or_else(|| "fixture case lacks case_id".to_owned())?;
     let dir = root.join(id);
-    let demands = case.get("demands").and_then(Value::as_array)
+    let demands = case
+        .get("demands")
+        .and_then(Value::as_array)
         .ok_or_else(|| format!("{id}: demands must be an array"))?;
     let mut expected = BTreeSet::new();
     for demand in demands {
-        let stream = demand.get("id").and_then(Value::as_str)
+        let stream = demand
+            .get("id")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("{id}: demand lacks id"))?;
-        let vehicles = demand.get("vehicles").and_then(Value::as_u64)
+        let vehicles = demand
+            .get("vehicles")
+            .and_then(Value::as_u64)
             .ok_or_else(|| format!("{id}: demand {stream} lacks vehicle count"))?;
         for n in 0..vehicles {
             if !expected.insert(format!("{stream}_{n:05}")) {
@@ -32,13 +41,17 @@ pub fn evaluate(case: &Value, root: &Path) -> Check<Value> {
     let mut route_ids = BTreeSet::new();
     for tag in tags(&routes, "vehicle")? {
         let a = attrs(tag)?;
-        let vehicle = a.get("id").ok_or_else(|| format!("{id}: route vehicle lacks ID"))?;
+        let vehicle = a
+            .get("id")
+            .ok_or_else(|| format!("{id}: route vehicle lacks ID"))?;
         if !route_ids.insert(vehicle.clone()) {
             return Err(format!("{id}: duplicate exported vehicle {vehicle}"));
         }
     }
     if route_ids != expected {
-        return Err(format!("{id}: exported vehicle IDs do not match fixture demand"));
+        return Err(format!(
+            "{id}: exported vehicle IDs do not match fixture demand"
+        ));
     }
 
     let tripinfo = read_text(&dir.join("tripinfo.xml"))?;
@@ -54,7 +67,9 @@ pub fn evaluate(case: &Value, root: &Path) -> Check<Value> {
     let mut loss_values = Vec::new();
     for tag in trip_tags.iter().copied() {
         let a = attrs(tag)?;
-        let vehicle = a.get("id").ok_or_else(|| format!("{id}: tripinfo lacks ID"))?;
+        let vehicle = a
+            .get("id")
+            .ok_or_else(|| format!("{id}: tripinfo lacks ID"))?;
         if !expected.contains(vehicle) {
             return Err(format!("{id}: unknown SUMO vehicle ID {vehicle}"));
         }
@@ -73,31 +88,48 @@ pub fn evaluate(case: &Value, root: &Path) -> Check<Value> {
                 return Err(format!("{id}: {vehicle} arrived before departure"));
             }
         }
-        if has_departed { departed += 1; }
+        if has_departed {
+            departed += 1;
+        }
         if has_arrived {
             arrived += 1;
             let duration = number(&a, "duration")?
                 .ok_or_else(|| format!("{id}: arrived vehicle {vehicle} lacks duration"))?;
-            if duration < 0.0 { return Err(format!("{id}: negative duration for {vehicle}")); }
+            if duration < 0.0 {
+                return Err(format!("{id}: negative duration for {vehicle}"));
+            }
             duration_values.push(duration);
             if let Some(wait) = number(&a, "waitingTime")? {
-                if wait < 0.0 { return Err(format!("{id}: negative waiting time for {vehicle}")); }
+                if wait < 0.0 {
+                    return Err(format!("{id}: negative waiting time for {vehicle}"));
+                }
                 wait_values.push(wait);
             }
             if let Some(loss) = number(&a, "timeLoss")? {
-                if loss < 0.0 { return Err(format!("{id}: negative time loss for {vehicle}")); }
+                if loss < 0.0 {
+                    return Err(format!("{id}: negative time loss for {vehicle}"));
+                }
                 loss_values.push(loss);
             }
         }
     }
     if observed != expected {
-        let missing = expected.difference(&observed).next().map(String::as_str).unwrap_or("unknown");
-        return Err(format!("{id}: tripinfo IDs incomplete ({} of {}); first missing {missing}",
-            observed.len(), expected.len()));
+        let missing = expected
+            .difference(&observed)
+            .next()
+            .map(String::as_str)
+            .unwrap_or("unknown");
+        return Err(format!(
+            "{id}: tripinfo IDs incomplete ({} of {}); first missing {missing}",
+            observed.len(),
+            expected.len()
+        ));
     }
     let demand_count = expected.len() as u64;
     if arrived > departed || departed > demand_count {
-        return Err(format!("{id}: arrived <= departed <= demand invariant failed"));
+        return Err(format!(
+            "{id}: arrived <= departed <= demand invariant failed"
+        ));
     }
 
     let summary = read_text(&dir.join("summary.xml"))?;
@@ -105,7 +137,11 @@ pub fn evaluate(case: &Value, root: &Path) -> Check<Value> {
         return Err(format!("{id}: SUMO summary XML is incomplete"));
     }
     let steps = tags(&summary, "step")?;
-    let final_attrs = attrs(steps.last().ok_or_else(|| format!("{id}: summary has no steps"))?)?;
+    let final_attrs = attrs(
+        steps
+            .last()
+            .ok_or_else(|| format!("{id}: summary has no steps"))?,
+    )?;
     let final_time = number(&final_attrs, "time")?
         .ok_or_else(|| format!("{id}: final summary step lacks time"))?;
     Ok(json!({
@@ -141,7 +177,11 @@ mod tests {
     #[test]
     fn refuses_incomplete_tripinfo_inventory() {
         let route = r#"<routes><vehicle id="v0"/><vehicle id="v1"/></routes>"#;
-        let trip = r#"<tripinfos><tripinfo id="v0" depart="0" arrival="1" duration="1"/></tripinfos>"#;
-        assert!(tags(route, "vehicle").unwrap().len() != tags(trip, "tripinfo").unwrap().len());
+        let trip =
+            r#"<tripinfos><tripinfo id="v0" depart="0" arrival="1" duration="1"/></tripinfos>"#;
+        assert_ne!(
+            tags(route, "vehicle").unwrap().len(),
+            tags(trip, "tripinfo").unwrap().len()
+        );
     }
 }
