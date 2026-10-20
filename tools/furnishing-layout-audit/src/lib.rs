@@ -1167,7 +1167,11 @@ mod tests {
                 "rect_local_item_frame":{"x_m":0.0,"y_m":0.45,"width_m":0.45,"depth_m":0.5}
             }]);
         });
-        assert!(errors.iter().any(|error| error.contains("duplicate envelope_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate envelope_id"))
+        );
     }
 
     #[test]
