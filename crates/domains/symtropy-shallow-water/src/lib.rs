@@ -642,7 +642,11 @@ mod tests {
                 (cell.depth_m - expected.depth_m).powi(2)
             })
             .sum::<f64>();
-        (squared_error / count as f64).sqrt()
+        let rmse = (squared_error / count as f64).sqrt();
+        println!(
+            "RITTER_DAM_BREAK dx_m={dx:.6} cells={count} steps={steps} time_s={t_end:.3} depth_rmse_m={rmse:.9}"
+        );
+        rmse
     }
 
     #[test]
