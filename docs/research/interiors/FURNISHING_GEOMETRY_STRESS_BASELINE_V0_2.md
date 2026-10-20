@@ -30,7 +30,7 @@ The baseline workflow now ran v0.2 and the pinned indexed candidate `a6fadac278a
 | Tight task clearance | 10,000 | 34,611.570 ms, one sample | 69.288 ms, one sample | 499.53× | 0/0 |
 | Dense footprint overlap | 25 | 0.158 ms p95 | 0.092 ms p95 | 1.72× | 72/72 |
 | Dense footprint overlap | 100 | 1.850 ms p95 | 0.404 ms p95 | 4.58× | 342/342 |
-| Dense footprint overlap | 1,000 | 214.408 ms p95 | 5.113 ms p95 | 41.94× | 3,811/3,811 |
+| Dense footprint overlap | 1,000 | 214.408 ms p95 | 5.113 ms p95 | 41.93× | 3,811/3,811 |
 | Dense footprint overlap | 10,000 | 35,571.205 ms, one sample | 77.805 ms, one sample | 457.18× | 39,402/39,402 |
 
 All stress rows reported zero unexpected findings. The 10,000-item rows use one sample per implementation, so the ratios are **single-sample latency ratios, not p95 speedups**. On the measured generated workloads, the indexed oracle is much faster while preserving the exact expected collision counts. This is meaningful evidence for this code/workload pair, not a universal “better than SOTA” claim or a production SLA. The implementations were run sequentially, so thermal/cache/order effects remain possible; memory peak and realistic/held-out room cases remain unmeasured.
