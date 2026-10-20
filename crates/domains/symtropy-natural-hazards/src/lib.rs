@@ -107,6 +107,7 @@ pub enum EvidenceClass {
     PublishedBenchmark,
     ReferenceDifferential,
     HeldOutObservation,
+    DecisionImpact,
     OperationalSkill,
     PresentationQuality,
 }
