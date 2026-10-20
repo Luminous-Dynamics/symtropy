@@ -13,6 +13,7 @@ A small, deterministic first-order finite-volume solver for the 1D inviscid Sain
 - Exact idealized Ritter dry-bed dam-break rarefaction profile.
 - Exact wet-bed Stoker dam-break Riemann profile, including its left rarefaction, constant star state and right-moving shock.
 - Exact symmetric double-rarefaction profile, including either a lower-depth intermediate state or a dry/vacuum gap when the outward velocity reaches the analytical threshold.
+- Exact symmetric double-shock solution with a compressed stationary intermediate state and Rankine–Hugoniot jump checks.
 
 ## Benchmark metrics
 
@@ -20,7 +21,7 @@ The public `field_error_metrics` helper reports sample count, MAE, RMSE, signed 
 
 ## Current numerical claim ceiling
 
-The code includes synthetic numerical tests for still water, dry state, storage conservation with reflective boundaries, analytical landmarks, and depth RMSE across three grid resolutions for the idealized Ritter dry-bed rarefaction, wet-bed Stoker shock/rarefaction, and symmetric double-rarefaction solution, including an explicit dry-gap negative/edge test. Passing these tests qualifies only the listed formulation and settings.
+The code includes synthetic numerical tests for still water, dry state, storage conservation with reflective boundaries, analytical landmarks, and three-grid field-error convergence for the Ritter dry-bed rarefaction, wet-bed Stoker shock/rarefaction, symmetric double rarefaction (including a dry gap), and symmetric double shock. The double-shock landmark checks test the Rankine–Hugoniot mass and momentum jumps. Passing these tests qualifies only the listed formulation and settings.
 
 It is not a 2D solver and does not model bed friction, rainfall/infiltration, sediment, structures, moving beds, turbulent dynamics or real terrain. The Ritter solution assumes an inviscid semi-infinite reservoir discharging onto a flat dry bed; it is not a real-event dataset. No historical flood predictive skill, operational warning ability or superiority to a specialist model is claimed.
 
