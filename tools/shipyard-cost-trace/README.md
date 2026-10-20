@@ -34,7 +34,7 @@ Do not add view 2 to view 3. A time record costed at an hourly rate and the invo
 
 ## Test contract
 
-The unit suite contains 19 authored tests: known-answer quantity variance; simulated-vs-observed separation; missing-plan semantics; configuration-revision mismatch; rate-card estimate vs invoice separation; duplicate event and transaction identities; stage/evidence constraints; malformed digest/source; unresolved rights; missing rate metadata; overflow; unresolved lineage; cross-build/configuration/stage lineage mismatches; and input-order invariance.
+The library unit suite contains 19 authored tests: known-answer quantity variance; simulated-vs-observed separation; missing-plan semantics; configuration-revision mismatch; rate-card estimate vs invoice separation; duplicate event and transaction identities; stage/evidence constraints; malformed digest/source; unresolved rights; missing rate metadata; overflow; unresolved lineage; cross-build/configuration/stage lineage mismatches; and input-order invariance. Three integration tests in tests/oracle.rs independently check all 16 pairs of planned/observed integer quantities from 0 through 3, separate cost views, and missing-plan semantics.
 
 The next expansion should add an independently written tiny-ledger oracle and frozen fixtures for material movements, rework, overtime, credits, partial execution, and revision propagation. Do not claim the oracle gate passed until it is independently implemented and executed.
 
