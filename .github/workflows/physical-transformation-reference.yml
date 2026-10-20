@@ -63,8 +63,14 @@ jobs:
             and .fixtures.transactional_rejection == "pass"
             and .fixtures.balanced_mass_ledger == "pass"
             and .fixtures.imbalanced_mass_negative_control == "pass"
+            and .fixtures.analytical_mechanics == "pass"
             and .summary.component_count == 3
             and .summary.connection_count == 2
+            and .summary.axial_bar_stress_pa > 99999
+            and .summary.axial_bar_stress_pa < 100001
+            and .summary.axial_bar_extension_m > 0
+            and .summary.cantilever_tip_deflection_m > 0
+            and .summary.cantilever_maximum_bending_stress_pa > 2499999
             and .summary.connected_components_before_cut == 1
             and .summary.connected_components_after_cut == 2
             and .summary.connected_components_after_reconnect == 1
