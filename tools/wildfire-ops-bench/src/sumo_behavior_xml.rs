@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
 pub type Check<T> = Result<T, String>;
@@ -9,9 +9,7 @@ pub fn tags<'a>(xml: &'a str, element: &str) -> Check<Vec<&'a str>> {
     let mut out = Vec::new();
     while let Some(offset) = xml.get(cursor..).and_then(|tail| tail.find(&needle)) {
         let start = cursor + offset;
-        let end = xml
-            .get(start..)
-            .and_then(|tail| tail.find('>'))
+        let end = xml.get(start..).and_then(|tail| tail.find('>'))
             .map(|n| start + n)
             .ok_or_else(|| format!("unterminated {element} tag"))?;
         out.push(&xml[start..=end]);
@@ -38,9 +36,7 @@ pub fn attrs(tag: &str) -> Check<BTreeMap<String, String>> {
             break;
         }
         let start = cursor;
-        while cursor < bytes.len()
-            && !bytes[cursor].is_ascii_whitespace()
-            && bytes[cursor] != b'='
+        while cursor < bytes.len() && !bytes[cursor].is_ascii_whitespace() && bytes[cursor] != b'='
         {
             cursor += 1;
         }
