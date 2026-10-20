@@ -72,6 +72,17 @@ impl fmt::Display for LargeWorldError {
 
 impl Error for LargeWorldError {}
 
+/// Error-free transformation of two finite f64 values into their rounded
+/// sum plus a residual, provided the sum itself does not overflow.
+fn two_sum(a: f64, b: f64) -> (f64, f64) {
+    let sum = a + b;
+    let b_virtual = sum - a;
+    let a_virtual = sum - b_virtual;
+    let b_roundoff = b - b_virtual;
+    let a_roundoff = a - a_virtual;
+    (sum, a_roundoff + b_roundoff)
+}
+
 impl LargeWorldPosition {
     /// Construct from an explicit cell and normalized local offsets.
     ///
@@ -267,26 +278,29 @@ impl LargeWorldPosition {
             return Err(LargeWorldError::InvalidRenderErrorBudget);
         }
 
-        let relative = self.relative_to_meters(origin)?;
+        self.ensure_same_frame(origin)?;
         let mut output = [0.0_f32; 3];
-        for (((value, output_axis), (self_cell, origin_cell)), (self_local, origin_local)) in
-            relative
-                .iter()
-                .zip(output.iter_mut())
-                .zip(self.cell.iter().zip(origin.cell.iter()))
-                .zip(self.local_m.iter().zip(origin.local_m.iter()))
+        const MAX_EXACT_F64_INTEGER: u128 = 9_007_199_254_740_992;
+
+        for (((self_cell, origin_cell), (self_local, origin_local)), output_axis) in self
+            .cell
+            .iter()
+            .zip(origin.cell.iter())
+            .zip(self.local_m.iter().zip(origin.local_m.iter()))
+            .zip(output.iter_mut())
         {
-            let rounded = *value as f32;
             let cell_delta = i128::from(*self_cell) - i128::from(*origin_cell);
+            if cell_delta.unsigned_abs() > MAX_EXACT_F64_INTEGER {
+                return Err(LargeWorldError::RenderPrecisionBudgetExceeded);
+            }
+
             let coarse = cell_delta as f64 * WORLD_CELL_SIZE_METERS;
             let local_delta = *self_local - *origin_local;
-            let f64_roundoff_bound =
-                2.0 * f64::EPSILON * (coarse.abs() + local_delta.abs() + value.abs());
+            let (relative_sum, residual) = two_sum(coarse, local_delta);
+            let rounded = relative_sum as f32;
+            let round_trip_error = (f64::from(rounded) - relative_sum) - residual;
 
-            if !rounded.is_finite()
-                || (f64::from(rounded) - *value).abs() > max_abs_error_m
-                || f64_roundoff_bound > max_abs_error_m
-            {
+            if !rounded.is_finite() || round_trip_error.abs() > max_abs_error_m {
                 return Err(LargeWorldError::RenderPrecisionBudgetExceeded);
             }
             *output_axis = rounded;
@@ -404,6 +418,20 @@ mod tests {
             one_au.relative_to_f32_with_error_budget(&origin, f64::NAN),
             Err(LargeWorldError::InvalidRenderErrorBudget)
         );
+    }
+
+    #[test]
+    fn f32_error_budget_includes_small_offsets_lost_by_f64_addition() {
+        let origin = pos([0; 3], [0.0; 3]);
+        let target = pos([1_i64 << 30, 0, 0], [0.001, 0.0, 0.0]);
+
+        assert_eq!(
+            target.relative_to_f32_with_error_budget(&origin, 0.0005),
+            Err(LargeWorldError::RenderPrecisionBudgetExceeded)
+        );
+        assert!(target
+            .relative_to_f32_with_error_budget(&origin, 0.002)
+            .is_ok());
     }
 
     #[test]
