@@ -506,7 +506,9 @@ mod tests {
         let metadata =
             parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv")
                 .unwrap();
-        let csv = String::from_utf8(expected_csv()).unwrap().replace("00:15:00,100", "00:30:00,100");
+        let csv = String::from_utf8(expected_csv())
+            .unwrap()
+            .replace("00:15:00,100", "00:30:00,100");
         assert!(audit_csv(&metadata.filename, csv.as_bytes(), &metadata)
             .unwrap_err().contains("time_sequence_mismatch"));
 
