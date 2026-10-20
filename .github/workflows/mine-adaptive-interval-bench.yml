@@ -50,8 +50,7 @@ jobs:
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
-          cargo run --quiet --manifest-path tools/mine-adaptive-interval-bench/Cargo.toml -- \\
-            --source-commit "$source_commit" > mine-adaptive-interval-receipt.json
+          cargo run --quiet --manifest-path tools/mine-adaptive-interval-bench/Cargo.toml -- --source-commit "$source_commit" > mine-adaptive-interval-receipt.json
           jq -e '
             .result == "validated"
             and .suite_id == "MINE-ACP-001"
