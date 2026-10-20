@@ -114,11 +114,9 @@ fn expected_best_cost(case: &Value, fixed: Option<(&str, bool)>) -> Check<f64> {
         return Err(format!("{case_id}: at least one route is required"));
     }
     let fixed_index = if let Some((road_id, _)) = fixed {
-        Some(
-            *road_index
-                .get(road_id)
-                .ok_or_else(|| format!("{case_id}: fixed observation references unknown road {road_id}"))?,
-        )
+        Some(*road_index.get(road_id).ok_or_else(|| {
+            format!("{case_id}: fixed observation references unknown road {road_id}")
+        })?)
     } else {
         None
     };
@@ -146,7 +144,9 @@ fn expected_best_cost(case: &Value, fixed: Option<(&str, bool)>) -> Check<f64> {
 
     let total_probability: f64 = worlds.iter().map(|(_, p)| *p).sum();
     if total_probability <= 0.0 {
-        return Err(format!("{case_id}: conditional road state has zero probability"));
+        return Err(format!(
+            "{case_id}: conditional road state has zero probability"
+        ));
     }
 
     let mut best = f64::INFINITY;
@@ -219,7 +219,9 @@ fn probe_scores(case: &Value) -> Check<(f64, Vec<ProbeScore>)> {
             .get(&road_id)
             .ok_or_else(|| format!("{at}: observation references unknown road {road_id}"))?;
         if !road_index.contains_key(&road_id) {
-            return Err(format!("{at}: observation references unknown road {road_id}"));
+            return Err(format!(
+                "{at}: observation references unknown road {road_id}"
+            ));
         }
         let cost = finite_number(observation, "inspection_cost", &at)?;
         if cost < 0.0 {
@@ -351,7 +353,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         return Err(format!("{at}: deadline must be a positive step"));
     }
     if budget > 1 {
-        return Err(format!("{at}: v0.1 emits at most one probe; budget must be 0 or 1"));
+        return Err(format!(
+            "{at}: v0.1 emits at most one probe; budget must be 0 or 1"
+        ));
     }
     let (road_ids, _, road_index) = road_probabilities(case)?;
     let road_set: BTreeSet<String> = road_ids.into_iter().collect();
@@ -385,7 +389,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         let observation_at = format!("{at}.observations[{i}]");
         let id = string(observation, "id", &observation_at)?;
         if id.is_empty() || !observation_ids.insert(id.to_owned()) {
-            return Err(format!("{observation_at}: empty or duplicate observation ID"));
+            return Err(format!(
+                "{observation_at}: empty or duplicate observation ID"
+            ));
         }
         let road_id = string(observation, "road_id", &observation_at)?;
         if !road_index.contains_key(road_id) {
@@ -393,7 +399,9 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         }
         let cost = finite_number(observation, "inspection_cost", &observation_at)?;
         if cost < 0.0 {
-            return Err(format!("{observation_at}: inspection cost must be non-negative"));
+            return Err(format!(
+                "{observation_at}: inspection cost must be non-negative"
+            ));
         }
         integer(observation, "available_at_step", &observation_at)?;
     }
@@ -403,10 +411,14 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         .ok_or_else(|| format!("{at}: missing oracle expected_observation_id field"))?;
     if let Some(expected_id) = expected.as_str() {
         if !observation_ids.contains(expected_id) {
-            return Err(format!("{at}: oracle labels unknown observation {expected_id}"));
+            return Err(format!(
+                "{at}: oracle labels unknown observation {expected_id}"
+            ));
         }
     } else if !expected.is_null() {
-        return Err(format!("{at}: oracle expected_observation_id must be string or null"));
+        return Err(format!(
+            "{at}: oracle expected_observation_id must be string or null"
+        ));
     }
     Ok(case.clone())
 }
@@ -420,7 +432,10 @@ fn validate_fixture(fixture: &Value) -> Check<Vec<Value>> {
     }
     let cases = array(fixture, "cases", "fixture")?;
     if cases.len() != CASE_IDS.len() {
-        return Err(format!("fixture must contain exactly {} cases", CASE_IDS.len()));
+        return Err(format!(
+            "fixture must contain exactly {} cases",
+            CASE_IDS.len()
+        ));
     }
     let mut ids = BTreeSet::new();
     let mut results = Vec::new();
@@ -464,7 +479,9 @@ fn scorecard(cases: &[Value]) -> Value {
                 .into_iter()
                 .flatten()
                 .find(|candidate| candidate["observation_id"].as_str() == selected_id);
-            if selected.is_some_and(|candidate| candidate["eligible_by_deadline"].as_bool() != Some(true)) {
+            if selected
+                .is_some_and(|candidate| candidate["eligible_by_deadline"].as_bool() != Some(true))
+            {
                 voi_late_selections += 1;
             }
         }
@@ -493,14 +510,17 @@ fn scorecard(cases: &[Value]) -> Value {
 fn run() -> Check<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 || args[2] != "--source-commit" {
-        return Err("usage: wildfire-voi-bench <fixture.json> --source-commit <40-hex-sha>".to_owned());
+        return Err(
+            "usage: wildfire-voi-bench <fixture.json> --source-commit <40-hex-sha>".to_owned(),
+        );
     }
     let source_commit = &args[3];
     if source_commit.len() != 40 || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("--source-commit must be a 40-character hex SHA".to_owned());
     }
     let bytes = fs::read(&args[1]).map_err(|error| format!("read fixture: {error}"))?;
-    let fixture: Value = serde_json::from_slice(&bytes).map_err(|error| format!("parse fixture JSON: {error}"))?;
+    let fixture: Value =
+        serde_json::from_slice(&bytes).map_err(|error| format!("parse fixture JSON: {error}"))?;
     let cases = validate_fixture(&fixture)?;
     let summary = scorecard(&cases);
     let receipt = json!({
@@ -636,7 +656,10 @@ mod tests {
         for case in fixture["cases"].as_array_mut().expect("cases") {
             case["roads"].as_array_mut().expect("roads").reverse();
             case["routes"].as_array_mut().expect("routes").reverse();
-            case["observations"].as_array_mut().expect("observations").reverse();
+            case["observations"]
+                .as_array_mut()
+                .expect("observations")
+                .reverse();
         }
         let after = validate_fixture(&fixture).expect("reordered");
         for (a, b) in before.iter().zip(after.iter()) {
@@ -663,7 +686,10 @@ mod tests {
     #[test]
     fn rejects_worlds_beyond_exact_enumeration_limit() {
         let mut fixture = fixture();
-        let mut roads = fixture["cases"][0]["roads"].as_array().expect("roads").clone();
+        let mut roads = fixture["cases"][0]["roads"]
+            .as_array()
+            .expect("roads")
+            .clone();
         while roads.len() <= MAX_EXACT_ROADS {
             roads.push(json!({"id":format!("EXTRA-{}", roads.len()),"p_open":0.5}));
         }
