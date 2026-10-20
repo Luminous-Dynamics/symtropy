@@ -1113,16 +1113,20 @@ mod tests {
         let days = validate_and_group_report(&report).unwrap();
         let mut immediate_rng = 3;
         let mut delayed_rng = 3;
-        let (immediate, immediate_metric) =
+        let (immediate, _) =
             simulate_sample(&days, &options(Strategy::Immediate), &mut immediate_rng, 0).unwrap();
-        let (delayed, delayed_metric) =
+        let (delayed, _) =
             simulate_sample(&days, &options(Strategy::Delayed), &mut delayed_rng, 0).unwrap();
         assert_eq!(immediate.len(), 96);
         assert_eq!(delayed.len(), 96);
 
         assert!(
-            immediate[..48].iter().sum::<f64>() > delayed[..48].iter().sum::<f64>(),
-            "immediate should put the overnight charge at the start of the dwell; delayed should put it at the end"
+            immediate[36] > delayed[36],
+            "immediate should charge in the 09:00–09:15 bin on the selected day"
+        );
+        assert!(
+            delayed[31] > immediate[31],
+            "delayed should shift that request into the 07:45–08:00 bin before the next shift"
         );
     }
 
