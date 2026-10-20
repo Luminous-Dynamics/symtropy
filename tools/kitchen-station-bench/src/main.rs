@@ -14,12 +14,14 @@ struct Contracts {
     candidate_ids: BTreeSet<String>,
     scenario_metrics: BTreeMap<String, BTreeSet<String>>,
     metric_ids: BTreeSet<String>,
+    contract_digests: BTreeMap<String, String>,
 }
 
 #[derive(Debug)]
 struct LoadedRecords {
     records: Vec<(PathBuf, Value)>,
     errors: Vec<String>,
+    input_sha256: BTreeMap<String, String>,
 }
 
 fn object<'a>(v: &'a Value, at: &str) -> Check<&'a Map<String, Value>> {
@@ -57,9 +59,12 @@ fn valid_sha256(s: &str) -> bool {
     s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())
 }
 fn sha256_hex(bytes: &[u8]) -> String { format!("{:x}", Sha256::digest(bytes)) }
-fn load_json(path: &Path) -> Check<Value> {
+fn load_json_with_digest(path: &Path) -> Check<(Value, String)> {
     let raw = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    serde_json::from_slice(&raw).map_err(|e| format!("{}: invalid JSON: {e}", path.display()))
+    let digest = sha256_hex(&raw);
+    let value = serde_json::from_slice(&raw)
+        .map_err(|e| format!("{}: invalid JSON: {e}", path.display()))?;
+    Ok((value, digest))
 }
 
 fn load_contracts(dir: &Path) -> Check<Contracts> {
@@ -67,10 +72,16 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
     let registry_path = dir.join("KITCHEN_STATION_METRIC_REGISTRY_V1.json");
     let schema_path = dir.join("KITCHEN_STATION_RECORD_SCHEMA_V1.json");
     let design_path = dir.join("KITCHEN_STATION_DESIGN_SPACE_V1.json");
-    let scenarios_doc = load_json(&scenarios_path)?;
-    let registry = load_json(&registry_path)?;
-    let schema = load_json(&schema_path)?;
-    let design = load_json(&design_path)?;
+    let (scenarios_doc, scenarios_digest) = load_json_with_digest(&scenarios_path)?;
+    let (registry, registry_digest) = load_json_with_digest(&registry_path)?;
+    let (schema, schema_digest) = load_json_with_digest(&schema_path)?;
+    let (design, design_digest) = load_json_with_digest(&design_path)?;
+    let contract_digests = [
+        ("KITCHEN_STATION_SCENARIOS_V1.json".to_owned(), scenarios_digest),
+        ("KITCHEN_STATION_METRIC_REGISTRY_V1.json".to_owned(), registry_digest),
+        ("KITCHEN_STATION_RECORD_SCHEMA_V1.json".to_owned(), schema_digest),
+        ("KITCHEN_STATION_DESIGN_SPACE_V1.json".to_owned(), design_digest),
+    ].into_iter().collect::<BTreeMap<_, _>>();
     if schema.get("$schema").and_then(Value::as_str) != Some("https://json-schema.org/draft/2020-12/schema") {
         return Err(format!("{}: unexpected JSON Schema draft", schema_path.display()));
     }
@@ -105,7 +116,7 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
             if !metric_ids.contains(metric) { return Err(format!("scenario {scenario} has unregistered metric {metric}")); }
         }
     }
-    Ok(Contracts { candidate_ids, scenario_metrics, metric_ids })
+    Ok(Contracts { candidate_ids, scenario_metrics, metric_ids, contract_digests })
 }
 
 fn artifact_is_remote(uri: &str) -> bool {
@@ -411,13 +422,23 @@ fn read_records(dir: &Path) -> Check<LoadedRecords> {
     paths.sort();
     let mut records = Vec::new();
     let mut errors = Vec::new();
+    let mut input_sha256 = BTreeMap::new();
     for path in paths {
-        match load_json(&path) {
-            Ok(v) => records.push((path, v)),
-            Err(e) => errors.push(e)
+        match fs::read(&path) {
+            Ok(raw) => {
+                let digest = sha256_hex(&raw);
+                if let Some(name) = path.file_name().and_then(|x| x.to_str()) {
+                    input_sha256.insert(name.to_owned(), digest);
+                }
+                match serde_json::from_slice::<Value>(&raw) {
+                    Ok(v) => records.push((path, v)),
+                    Err(e) => errors.push(format!("{}: invalid JSON: {e}", path.display()))
+                }
+            }
+            Err(e) => errors.push(format!("{}: {e}", path.display()))
         }
     }
-    Ok(LoadedRecords { records, errors })
+    Ok(LoadedRecords { records, errors, input_sha256 })
 }
 fn validate_loaded(loaded: &LoadedRecords, dir: &Path, contracts: &Contracts) -> Vec<String> {
     let mut errors = loaded.errors.clone();
@@ -633,16 +654,23 @@ fn run() -> Check<bool> {
             };
             // Keep report order deterministic via serde_json's sorted-key map.
             if report.get("record_count").and_then(Value::as_u64)==Some(0){report["status"]=json!("blocked_no_records");}
+            report["contract_sha256"] = json!(contracts.contract_digests);
+            report["record_file_sha256"] = json!(loaded.input_sha256);
             print_report(&report,&fmt)?;
             Ok(!loaded.records.is_empty() && errors.is_empty())
         }
         "compare" => {
             if !errors.is_empty() {
-                print_report(&json!({"status":"blocked_invalid_input_records","errors":errors,"claim_limit":"Invalid input records cannot be compared."}),&fmt)?;
+                let mut report=json!({"status":"blocked_invalid_input_records","errors":errors,"claim_limit":"Invalid input records cannot be compared."});
+                report["contract_sha256"] = json!(contracts.contract_digests);
+                report["record_file_sha256"] = json!(loaded.input_sha256);
+                print_report(&report,&fmt)?;
                 return Ok(false);
             }
             let records=loaded.records.iter().map(|(_,r)|r.clone()).collect::<Vec<_>>();
-            let report=compare_records(&records,&scenario,&reference,&candidate,&contracts);
+            let mut report=compare_records(&records,&scenario,&reference,&candidate,&contracts);
+            report["contract_sha256"] = json!(contracts.contract_digests);
+            report["record_file_sha256"] = json!(loaded.input_sha256);
             let okay=report.get("status").and_then(Value::as_str)==Some("descriptive_physical_comparison");
             print_report(&report,&fmt)?;
             Ok(okay)
@@ -665,7 +693,8 @@ mod tests {
         Contracts{
             candidate_ids:["REF-0","P1-DRAINBACK"].into_iter().map(str::to_owned).collect(),
             scenario_metrics:[("SINK-TEST-001".into(),["water_l","cleaning_endpoint"].into_iter().map(str::to_owned).collect())].into_iter().collect(),
-            metric_ids:["water_l","cleaning_endpoint"].into_iter().map(str::to_owned).collect()
+            metric_ids:["water_l","cleaning_endpoint"].into_iter().map(str::to_owned).collect(),
+            contract_digests:BTreeMap::new()
         }
     }
     fn artifact()->Value{json!({"uri":"https://example.invalid/data.json","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","media_type":"application/json"})}
@@ -707,6 +736,8 @@ mod tests {
         assert!(loaded.scenario_metrics.len() >= 13);
         assert!(loaded.candidate_ids.len() >= 8);
         assert!(loaded.metric_ids.len() >= 67);
+        assert_eq!(loaded.contract_digests.len(), 4);
+        assert!(loaded.contract_digests.values().all(|h| valid_sha256(h)));
         assert!(loaded.scenario_metrics.contains_key("SINK-PRERINSE-FORCE-013"));
         assert!(loaded.candidate_ids.contains("P7-COMMERCIAL-PRERINSE"));
     }
