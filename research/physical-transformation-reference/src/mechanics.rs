@@ -82,16 +82,14 @@ pub fn cantilever_tip_load(
     let length_cubed = length_squared * length_m;
     let flexural_denominator = 3.0 * youngs_modulus_pa * second_moment_area_m4;
     let deflection_numerator = force_n * length_cubed;
-    let bending_moment_magnitude =
-        force_n.abs() * length_m * outer_fiber_distance_m;
+    let bending_moment_magnitude = force_n.abs() * length_m * outer_fiber_distance_m;
     require_finite(length_cubed, "length cubed")?;
     require_positive_finite(flexural_denominator, "flexural denominator")?;
     require_finite(deflection_numerator, "deflection numerator")?;
     require_finite(bending_moment_magnitude, "bending moment")?;
 
     let tip_deflection_m = deflection_numerator / flexural_denominator;
-    let maximum_bending_stress_pa =
-        bending_moment_magnitude / second_moment_area_m4;
+    let maximum_bending_stress_pa = bending_moment_magnitude / second_moment_area_m4;
     require_finite(tip_deflection_m, "tip deflection")?;
     require_finite(maximum_bending_stress_pa, "maximum bending stress")?;
 
@@ -184,8 +182,7 @@ mod tests {
 
     #[test]
     fn compression_reverses_bar_response_sign() {
-        let result = axial_bar(-1_000.0, 2.0, 0.01, 200.0e9)
-            .expect("valid compressive bar case");
+        let result = axial_bar(-1_000.0, 2.0, 0.01, 200.0e9).expect("valid compressive bar case");
         assert!(result.axial_stress_pa < 0.0);
         assert!(result.axial_strain < 0.0);
         assert!(result.extension_m < 0.0);
@@ -205,10 +202,10 @@ mod tests {
 
     #[test]
     fn cantilever_force_sign_changes_deflection_not_stress_magnitude() {
-        let positive = cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1)
-            .expect("valid positive load");
-        let negative = cantilever_tip_load(-100.0, 2.0, 200.0e9, 8.0e-6, 0.1)
-            .expect("valid negative load");
+        let positive =
+            cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid positive load");
+        let negative =
+            cantilever_tip_load(-100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid negative load");
         assert_eq!(positive.tip_deflection_m, -negative.tip_deflection_m);
         assert_eq!(
             positive.maximum_bending_stress_pa,
