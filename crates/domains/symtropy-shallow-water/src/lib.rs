@@ -252,7 +252,8 @@ impl ShallowWater1D {
         config: SolverConfig,
         boundaries: BoundaryConditions,
     ) -> Result<(), SolverError> {
-        self.step_with_diagnostics(dt_s, config, boundaries).map(|_| ())
+        self.step_with_diagnostics(dt_s, config, boundaries)
+            .map(|_| ())
     }
 
     /// Advance by one SSP-RK2 step and return a boundary-flux-corrected water ledger.
@@ -308,8 +309,7 @@ impl ShallowWater1D {
         let storage_after_m2 = storage_for_cells(&result, config)?;
         let left_boundary_integral_m2 = 0.5 * dt_s * (left_start + left_stage_one);
         let right_boundary_integral_m2 = 0.5 * dt_s * (right_start + right_stage_one);
-        let net_boundary_outflow_m2 =
-            right_boundary_integral_m2 - left_boundary_integral_m2;
+        let net_boundary_outflow_m2 = right_boundary_integral_m2 - left_boundary_integral_m2;
         let conservation_residual_m2 =
             storage_after_m2 - storage_before_m2 + net_boundary_outflow_m2;
         let scale_m2 = storage_before_m2
@@ -317,8 +317,7 @@ impl ShallowWater1D {
             .max(storage_after_m2.abs())
             .max(left_boundary_integral_m2.abs() + right_boundary_integral_m2.abs())
             .max(f64::MIN_POSITIVE);
-        let relative_conservation_residual =
-            conservation_residual_m2.abs() / scale_m2;
+        let relative_conservation_residual = conservation_residual_m2.abs() / scale_m2;
 
         if !left_boundary_integral_m2.is_finite()
             || !right_boundary_integral_m2.is_finite()
@@ -388,10 +387,7 @@ impl ShallowWater1D {
     }
 }
 
-fn storage_for_cells(
-    cells: &[CellState],
-    config: SolverConfig,
-) -> Result<f64, SolverError> {
+fn storage_for_cells(cells: &[CellState], config: SolverConfig) -> Result<f64, SolverError> {
     let storage = cells.iter().map(|cell| cell.depth_m).sum::<f64>() * config.cell_width_m;
     if storage.is_finite() {
         Ok(storage)
@@ -705,8 +701,8 @@ mod tests {
             let diagnostics = solver
                 .advance_with_diagnostics(0.01, config, BoundaryConditions::CLOSED)
                 .unwrap();
-            maximum_absolute_residual = maximum_absolute_residual
-                .max(diagnostics.conservation_residual_m2.abs());
+            maximum_absolute_residual =
+                maximum_absolute_residual.max(diagnostics.conservation_residual_m2.abs());
             assert!(diagnostics.left_boundary_integral_m2.abs() < 1.0e-14);
             assert!(diagnostics.right_boundary_integral_m2.abs() < 1.0e-14);
             assert!(diagnostics.conservation_residual_m2.abs() < 1.0e-12);
@@ -755,16 +751,14 @@ mod tests {
             assert!(diagnostics.right_boundary_integral_m2 > 0.0);
             assert!(diagnostics.relative_conservation_residual < 1.0e-12);
             assert!(diagnostics.conservation_residual_m2.abs() < 1.0e-12);
-            maximum_absolute_residual = maximum_absolute_residual
-                .max(diagnostics.conservation_residual_m2.abs());
+            maximum_absolute_residual =
+                maximum_absolute_residual.max(diagnostics.conservation_residual_m2.abs());
             accumulated_storage_change +=
                 diagnostics.storage_after_m2 - diagnostics.storage_before_m2;
             accumulated_net_outflow += diagnostics.net_boundary_outflow_m2;
         }
 
-        assert!(
-            (accumulated_storage_change + accumulated_net_outflow).abs() < 1.0e-11
-        );
+        assert!((accumulated_storage_change + accumulated_net_outflow).abs() < 1.0e-11);
         println!(
             "MASS_LEDGER_OPEN steps=20 max_abs_residual_m2={maximum_absolute_residual:.12e} cumulative_balance_m2={:.12e}",
             accumulated_storage_change + accumulated_net_outflow
