@@ -1139,10 +1139,10 @@ mod randomized_timing {
             }
 
             if let Some(r) = receipt {
-                if r.completion_tick == tick && tick <= DECISION_DEADLINE {
+                if r.completion_tick == tick && tick <= DECISION_DEADLINE && r.executed {
+                    debug_assert!(r.completion_tick >= r.requested_tick);
                     completed = true;
-                    fresh_view_evidence |= r.executed
-                        && r.successful
+                    fresh_view_evidence |= r.successful
                         && tick < world.natural_reveal_tick()
                         && evidence.cue != Cue::Occluded;
                 }
@@ -1200,7 +1200,7 @@ mod randomized_timing {
         };
         let view_returned_no_fresh_evidence = executed && !fresh_view_evidence;
 
-        if latency_units > LATENCY_BUDGET || u64::from(executed) > 1 {
+        if latency_units > LATENCY_BUDGET || (executed as u64) > 1 {
             budget_violations += 1;
         }
 
@@ -1235,7 +1235,6 @@ mod randomized_timing {
         recovery_observations: u64,
         budget_violations: u64,
         latency_sum: u64,
-        correct_decisions: u64,
     }
 
     impl Aggregate {
@@ -1264,7 +1263,6 @@ mod randomized_timing {
                     );
                     if correct {
                         self.correct_answered += 1;
-                        self.correct_decisions += 1;
                     }
                 }
             }
@@ -1300,7 +1298,7 @@ mod randomized_timing {
         println!("VIS-ACT-005 randomized-timing and delayed-view diagnostic");
         println!("event-driven onset/duration/delay; transient RGB evidence; hidden view-success outcomes");
         println!("fixed-sweep baseline included; resource units remain synthetic");
-        println!("family\\tpolicy\\tepisodes\\tmean_loss\\tanswered_accuracy\\tabstention_rate\\tview_attempts_per_episode\\texecuted_views\\tcompleted_views\\tfresh_evidence_rate_per_executed_view\\tviews_without_fresh_evidence\\tmean_recovery_steps\\tlatency_units_per_episode\\tbudget_violations");
+        println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tview_attempts_per_episode\texecuted_views\tcompleted_views\tfresh_evidence_rate_per_executed_view\tviews_without_fresh_evidence\tmean_recovery_steps\tlatency_units_per_episode\tbudget_violations");
 
         for family in [SceneFamily::Development, SceneFamily::HeldOut] {
             for policy in TimedPolicy::ALL {
@@ -1325,7 +1323,7 @@ mod randomized_timing {
                     )
                 };
                 println!(
-                    "{}\\t{}\\t{}\\t{:.4}\\t{}\\t{}\\t{:.3}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{:.3}\\t{}",
+                    "{}\t{}\t{}\t{:.4}\t{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}",
                     family.name(),
                     policy.name(),
                     aggregate.episodes,
@@ -1448,6 +1446,25 @@ mod randomized_timing {
             let result = run_episode(late, TimedPolicy::ActiveRevision);
             assert!(result.attempt);
             assert!(result.executed);
+            assert!(!result.fresh_view_evidence);
+            assert!(result.view_returned_no_fresh_evidence);
+        }
+
+        #[test]
+        fn deadline_late_view_is_executed_but_not_completed_or_informative() {
+            let (world, _) = paired(0xFEED_4321, SceneFamily::HeldOut);
+            let late = TimedWorld {
+                view_available: true,
+                view_successful: true,
+                occlusion_onset: 4,
+                occlusion_duration: 4,
+                view_delay: 4,
+                ..world
+            };
+            let result = run_episode(late, TimedPolicy::ActiveRevision);
+            assert!(result.attempt);
+            assert!(result.executed);
+            assert!(!result.completed);
             assert!(!result.fresh_view_evidence);
             assert!(result.view_returned_no_fresh_evidence);
         }
