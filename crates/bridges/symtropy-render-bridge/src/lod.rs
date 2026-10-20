@@ -265,14 +265,15 @@ pub fn allocate_lod(
     }
 
     let mut choices = Vec::with_capacity(demands.len());
-    let mut total_weighted_error_squared = 0.0_f64;
+    let mut weighted_error_contributions = Vec::with_capacity(demands.len());
     let mut degraded_entity_count = 0_usize;
 
     for (demand, selected_index) in demands.iter().zip(selected_indices.iter().copied()) {
         let candidate = demand.candidates[selected_index];
-        total_weighted_error_squared += f64::from(demand.importance)
+        let weighted_error_squared = f64::from(demand.importance)
             * f64::from(candidate.screen_error_px)
             * f64::from(candidate.screen_error_px);
+        weighted_error_contributions.push((demand.entity_id, weighted_error_squared));
 
         if selected_index + 1 < demand.candidates.len() {
             degraded_entity_count += 1;
@@ -289,6 +290,11 @@ pub fn allocate_lod(
     }
 
     choices.sort_by_key(|choice| choice.entity_id);
+    weighted_error_contributions.sort_by_key(|(entity_id, _)| *entity_id);
+    let total_weighted_error_squared = weighted_error_contributions
+        .iter()
+        .map(|(_, contribution)| *contribution)
+        .sum();
 
     Ok(LodAllocation {
         choices,
