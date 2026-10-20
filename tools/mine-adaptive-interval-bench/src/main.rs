@@ -549,10 +549,7 @@ fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Optio
     None
 }
 
-fn post_recovery_window_counts(
-    outcomes: &[StepOutcome],
-    onset: usize,
-) -> Option<(usize, usize)> {
+fn post_recovery_window_counts(outcomes: &[StepOutcome], onset: usize) -> Option<(usize, usize)> {
     let recovery_delay = coverage_band_recovery_delay(outcomes, onset)?;
     let recovery_end = onset + recovery_delay - 1;
     let mut last_matured_count = 0_usize;
@@ -564,7 +561,11 @@ fn post_recovery_window_counts(
             .filter(|outcome| outcome.tick >= onset && outcome.tick <= end)
             .filter_map(|outcome| {
                 let matures_at = outcome.label_matures_at?;
-                if matures_at <= end { outcome.coverage } else { None }
+                if matures_at <= end {
+                    outcome.coverage
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
         if matured.len() == last_matured_count {
@@ -1154,9 +1155,9 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
             || summary.coverage_recovery_successes > summary.coverage_recovery_attempts
             || summary.coverage_recovery_attempts > per_cell_stream_count
             || summary.post_recovery_windows_in_band > summary.post_recovery_windows_observed
-            || summary.post_recovery_persistence_rate.is_some_and(|rate| {
-                !rate.is_finite() || !(0.0..=1.0).contains(&rate)
-            })
+            || summary
+                .post_recovery_persistence_rate
+                .is_some_and(|rate| !rate.is_finite() || !(0.0..=1.0).contains(&rate))
             || (summary.post_recovery_windows_observed == 0
                 && summary.post_recovery_persistence_rate.is_some())
             || (summary.post_recovery_windows_observed > 0
