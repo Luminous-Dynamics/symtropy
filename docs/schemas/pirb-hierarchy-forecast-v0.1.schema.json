@@ -6,17 +6,18 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
-    "registration_id",
+    "aggregation_constraints",
     "evidence_scope",
-    "provider",
     "forecast_origin_index",
-    "target_period_index",
-    "temporal_index_policy",
-    "reconciliation_policy",
-    "privacy",
     "forecasts",
-    "aggregation_constraints"
+    "predictive_samples",
+    "privacy",
+    "provider",
+    "reconciliation_policy",
+    "registration_id",
+    "schema_version",
+    "target_period_index",
+    "temporal_index_policy"
   ],
   "properties": {
     "schema_version": {
@@ -267,6 +268,54 @@
           }
         }
       }
+    },
+    "predictive_samples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "rows"
+      ],
+      "properties": {
+        "representation": {
+          "const": "finite_joint_count_samples"
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "draw_id",
+              "forecast_id",
+              "raw_count",
+              "reconciled_count"
+            ],
+            "properties": {
+              "draw_id": {
+                "type": "string",
+                "pattern": "^draw-[A-Za-z0-9_-]+$"
+              },
+              "forecast_id": {
+                "type": "string",
+                "pattern": "^fc-[A-Za-z0-9_-]+$"
+              },
+              "raw_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "One simulated count realization, not a marginal mean or quantile."
+              },
+              "reconciled_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The corresponding post-reconciliation count realization."
+              }
+            }
+          }
+        }
+      },
+      "description": "Finite joint predictive draws, with one raw and reconciled nonnegative count for every declared forecast node in each draw. Coherence is checked draw-by-draw, not by summing marginal quantiles."
     }
   }
 }
