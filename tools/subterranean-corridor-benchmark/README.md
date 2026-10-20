@@ -7,8 +7,9 @@ A dependency-free Rust reference kernel for fail-closed lifecycle comparison of 
     cargo fmt --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml -- --check
     cargo test --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml --locked
     cargo run --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml --locked
+    cargo run --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml --locked --bin repair-optimality-benchmark
 
-The crate is an isolated nested Cargo workspace and does not require private Mycelix/Symtropy workspace dependencies.
+The crate is an isolated nested Cargo workspace and does not require private Mycelix/Symtropy workspace dependencies. The bounded exact repair oracle enumerates precedence-feasible orders for at most nine tasks; it is a reference for small fixed-duration scheduling cases, not a production-scale optimizer.
 
 ## Scope
 
