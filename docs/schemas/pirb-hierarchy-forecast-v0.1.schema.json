@@ -302,12 +302,14 @@
                 "pattern": "^fc-[A-Za-z0-9_-]+$"
               },
               "raw_count": {
-                "type": "number",
-                "minimum": 0
+                "type": "integer",
+                "minimum": 0,
+                "description": "One simulated count realization, not a marginal mean or quantile."
               },
               "reconciled_count": {
-                "type": "number",
-                "minimum": 0
+                "type": "integer",
+                "minimum": 0,
+                "description": "The corresponding post-reconciliation count realization."
               }
             }
           }
