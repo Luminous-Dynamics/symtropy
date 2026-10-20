@@ -24,7 +24,7 @@ When a controller has a fixed observation budget, can it improve final decision 
 5. **Maximum uncertainty**: request the claim with highest Bernoulli uncertainty.
 6. **Approximate value of information**: estimate how much the selected claim's uncertainty could change the final three-claim majority decision; then request the claim with greatest expected decision impact.
 7. **Expected terminal task-loss reduction**: integrate a frozen public prior over confidence tier, sensor corruption, source-time delay and distractor returns; hypothetically update the claim belief and estimate the expected final abstention-aware decision risk for each action. If every candidate has non-positive estimated value, fall back to deterministic round-robin.
-8. **Risk-threshold stop**: stop sensing when the current estimate of terminal Bayes risk is at or below a fixed 0.04 task-loss-unit/request threshold; otherwise select the most uncertain queried claim. This is a transparent satisficing baseline, not an optimal stopping solver.
+8. **Risk-threshold stop**: stop sensing when the current estimate of terminal Bayes risk is at or below a declared task-loss-unit/request threshold; otherwise select the most uncertain queried claim. This is a transparent satisficing baseline, not an optimal stopping solver. In addition to the default 0.04 operating point, a separate sensitivity report sweeps thresholds 0.01, 0.04, 0.08 and 0.12 on identical episode seeds.
 
 The current value-of-information policy is an explicit, inexpensive approximation—not exact environment-specific expected-loss minimization. The new expected-loss policy is also approximate: it uses fixed public priors recorded in the Rust source, not true episode/family parameters. Its hypothesis enumeration is reported as a deterministic scoring-work proxy; this is not measured wall latency.
 
@@ -132,7 +132,7 @@ The report emits a separate `BUDGET` table with mean task loss, answer rate, ans
 
 Current frontier candidate uses prefix stopping only; it is **not yet an adaptive stop-action policy**. The next step is to add explicit stopping decisions with a declared cost per request and compare against these fixed-budget operating points. A stop policy must not see terminal truth, the latent final tick or unchosen potential observations.
 
-The budget-frontier run now includes the risk-threshold stop policy. Expected schema is 80 data rows (2 families × 5 budgets × 8 policies), with 16 columns, byte-for-byte replay and report SHA. The current head is awaiting exact-head qualification; no new budget-frontier numerical result should be cited before the exact-head gates pass.
+The budget-frontier run includes the risk-threshold stop policy. Expected schema is 80 data rows (2 families × 5 budgets × 8 policies), with 16 columns. The cost-sensitivity report adds 8 data rows (2 families × 4 thresholds), with 14 columns. Both are checked with byte-for-byte replay and report SHA. The current head is awaiting exact-head qualification; no new frontier or stopping-policy result should be cited until the exact-head gates pass.
 
 ## Reproduce
 
