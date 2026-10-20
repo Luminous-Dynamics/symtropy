@@ -537,6 +537,157 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn deterministic_randomized_interior_points_are_enclosed_for_all_cases() {
+        let cases: Vec<CaseFixture> = vec![
+            (
+                "axial_bar",
+                vec![
+                    ("force_n", 1_000.0, -1_100.0, 1_100.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("area_m2", 0.01, 0.009, 0.011),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                ],
+            ),
+            (
+                "cantilever_tip_load",
+                vec![
+                    ("force_n", 100.0, -110.0, 110.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+            (
+                "simply_supported_uniform_load",
+                vec![
+                    ("load_n_per_m", 1_000.0, -1_100.0, 1_100.0),
+                    ("length_m", 4.0, 3.8, 4.2),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+        ];
+
+        let mut seed = 0x6a09_e667_f3bc_c909_u64;
+        for (case_id, entries) in cases {
+            let (nominal, bounds) = fixture(&entries);
+            let ranges = propagate(case_id, &nominal, &bounds)
+                .expect("valid randomized-sampling interval");
+            for sample_index in 0..4_096 {
+                let point: BTreeMap<String, f64> = entries
+                    .iter()
+                    .map(|(key, _, lower, upper)| {
+                        let sample = next_unit_interval(&mut seed);
+                        ((*key).to_owned(), lower + sample * (upper - lower))
+                    })
+                    .collect();
+                let outputs = evaluate_point(case_id, &point);
+                for (output_key, value) in outputs {
+                    assert!(
+                        ranges[&output_key].contains(value),
+                        "case {case_id} output {output_key} sample {sample_index}: range={:?}, value={value:.17e}, inputs={point:?}",
+                        ranges[&output_key]
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn positive_load_scaling_doubles_every_linear_response_enclosure() {
+        let cases: Vec<CaseFixture> = vec![
+            (
+                "axial_bar",
+                vec![
+                    ("force_n", 1_000.0, 900.0, 1_100.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("area_m2", 0.01, 0.009, 0.011),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                ],
+            ),
+            (
+                "cantilever_tip_load",
+                vec![
+                    ("force_n", 100.0, 90.0, 110.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+            (
+                "simply_supported_uniform_load",
+                vec![
+                    ("load_n_per_m", 1_000.0, 900.0, 1_100.0),
+                    ("length_m", 4.0, 3.8, 4.2),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+        ];
+
+        for (case_id, entries) in cases {
+            let (nominal, bounds) = fixture(&entries);
+            let original = propagate(case_id, &nominal, &bounds)
+                .expect("valid original enclosure");
+            let load_key = match case_id {
+                "axial_bar" | "cantilever_tip_load" => "force_n",
+                "simply_supported_uniform_load" => "load_n_per_m",
+                _ => unreachable!("case fixture is supported"),
+            };
+            let scaled_nominal: BTreeMap<String, f64> = nominal
+                .iter()
+                .map(|(key, value)| {
+                    (key.clone(), if key == load_key { value * 2.0 } else { *value })
+                })
+                .collect();
+            let scaled_bounds: BTreeMap<String, Interval> = bounds
+                .iter()
+                .map(|(key, interval)| {
+                    (
+                        key.clone(),
+                        if key == load_key {
+                            Interval::new(interval.lower * 2.0, interval.upper * 2.0)
+                                .expect("scaled load interval")
+                        } else {
+                            *interval
+                        },
+                    )
+                })
+                .collect();
+            let scaled = propagate(case_id, &scaled_nominal, &scaled_bounds)
+                .expect("valid doubled-load enclosure");
+            assert_eq!(original.keys().collect::<Vec<_>>(), scaled.keys().collect::<Vec<_>>());
+            for key in original.keys() {
+                assert_close_relative(scaled[key].lower, original[key].lower * 2.0);
+                assert_close_relative(scaled[key].upper, original[key].upper * 2.0);
+            }
+        }
+    }
+
+    fn next_unit_interval(seed: &mut u64) -> f64 {
+        // Fixed xorshift64* state transition: reproducible sample stream without
+        // an extra dependency or a test whose results vary run to run.
+        *seed ^= *seed >> 12;
+        *seed ^= *seed << 25;
+        *seed ^= *seed >> 27;
+        let bits = seed.wrapping_mul(0x2545_f491_4f6c_dd1d) >> 11;
+        (bits as f64) * (1.0 / ((1_u64 << 53) as f64))
+    }
+
+    fn assert_close_relative(actual: f64, expected: f64) {
+        let tolerance = expected.abs().max(f64::MIN_POSITIVE) * 5.0e-12;
+        assert!(
+            (actual - expected).abs() <= tolerance,
+            "actual={actual:.17e}, expected={expected:.17e}, tolerance={tolerance:.17e}"
+        );
+    }
+
     fn evaluate_point(case_id: &str, inputs: &BTreeMap<String, f64>) -> BTreeMap<String, f64> {
         match case_id {
             "axial_bar" => {
