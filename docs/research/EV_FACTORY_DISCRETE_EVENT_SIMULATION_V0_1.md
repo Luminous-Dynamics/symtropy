@@ -51,6 +51,7 @@ The differentiator should not be a claim that this small Rust model is already s
 - Product variants change in fixed batches. This is not a customer-order schedule, sequenced body shop or full mixed-model assembly optimizer.
 - Each station has one independent pass probability; rework repeats at that station and is bounded by the fixture setting. Correlated defects, defect modes, downstream discovery costs and engineering disposition are omitted.
 - The annualized output is simulated good units/hour multiplied by declared productive seconds/year. Shifts, meal breaks, holidays, ramp-up and planned shutdown calendars are not simulated.
+- All intervention runs are reproducible for a fixed seed, but changing server count changes event order and therefore consumes the sequential random stream differently. In v0.1, a single-seed uplift is only a screening signal, not a paired causal estimate. Use many independent replications with uncertainty intervals—or entity/station-keyed common random streams—before ranking capital interventions.
 - Demand, site costs, real product BOM, ergonomic load, skilled workforce constraints, energy, emissions, local law, homologation and battery/HV safety are not inferred from this model.
 
 Do not use this report to purchase automation or declare a plant safe. First record a real station event log, define data rights and privacy controls, calibrate on an explicitly marked training period, and validate on a held-out period. Release stays blocked until an independent, site-specific safety/quality/compliance case exists.
