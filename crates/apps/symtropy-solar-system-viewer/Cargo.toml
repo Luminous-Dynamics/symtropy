@@ -7,5 +7,20 @@ publish = false
 description = "Illustrative Bevy viewer for testing Symtropy solar-scale coordinates and apparent-size transitions"
 
 [dependencies]
-bevy = "0.19"
+bevy = { version = "0.19", default-features = false, features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_text",
+    "bevy_winit",
+    "bevy_color",
+    "bevy_state",
+    "bevy_log",
+    "bevy_shader",
+    "bevy_pbr",
+    "multi_threaded",
+    "x11",
+    "default_font",
+    "png",
+] }
 symtropy-render-bridge = { path = "../../bridges/symtropy-render-bridge" }
