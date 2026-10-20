@@ -166,7 +166,9 @@ mod tests {
         assert!((left.depth_m - depth).abs() < 1.0e-12);
         assert!((left.velocity_m_s + outward_velocity).abs() < 1.0e-12);
 
-        let left_fan_xi = -0.5 * (outward_velocity + c0);
+        let left_tail_xi = -c_star;
+        let left_head_xi = -outward_velocity - c0;
+        let left_fan_xi = 0.5 * (left_head_xi + left_tail_xi);
         let left_fan =
             double_rarefaction(left_fan_xi * time, time, depth, outward_velocity, gravity).unwrap();
         let left_fan_c = (2.0 * c0 - outward_velocity - left_fan_xi) / 3.0;
