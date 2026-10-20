@@ -7,6 +7,8 @@ on:
       - "feat/solar-system-hierarchy-selection-004"
     paths:
       - "crates/apps/symtropy-solar-system-viewer/**"
+      - "docs/research/RENDER_SOLAR_VIEWER_005.md"
+      - "crates/bridges/symtropy-render-bridge/README.md"
       - "crates/bridges/symtropy-render-bridge/src/large_world.rs"
       - "crates/bridges/symtropy-render-bridge/src/scale_policy.rs"
       - "Cargo.toml"
@@ -23,6 +25,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
