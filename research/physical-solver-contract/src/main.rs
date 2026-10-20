@@ -3,7 +3,7 @@ use physical_solver_contract::{
     equilibrium::assess_equilibrium_bytes, load_scaling::assess_load_scaling_relation_bytes,
     mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables,
-    superposition::assess_superposition_relation_bytes, validate_request_bytes,
+    superposition::{BoundSolverRun, assess_superposition_relation_bytes}, validate_request_bytes,
     validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
 use std::{env, fs, path::Path, process::ExitCode};
@@ -328,12 +328,18 @@ fn run() -> Result<(), String> {
             format!("could not read superposition manifest {manifest_path}: {error}")
         })?;
         let report = assess_superposition_relation_bytes(
-            &request_a_bytes,
-            &receipt_a_bytes,
-            &request_b_bytes,
-            &receipt_b_bytes,
-            &request_combined_bytes,
-            &receipt_combined_bytes,
+            BoundSolverRun {
+                request_bytes: &request_a_bytes,
+                receipt_bytes: &receipt_a_bytes,
+            },
+            BoundSolverRun {
+                request_bytes: &request_b_bytes,
+                receipt_bytes: &receipt_b_bytes,
+            },
+            BoundSolverRun {
+                request_bytes: &request_combined_bytes,
+                receipt_bytes: &receipt_combined_bytes,
+            },
             Path::new(&root),
             &manifest_bytes,
         )?;
