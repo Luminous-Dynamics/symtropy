@@ -433,10 +433,10 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
             "schema case challenge minLength",
         ),
         ("/properties/cases/items/properties/reason/minLength", "schema case reason minLength"),
-        (
-            "/properties/cases/items/properties/expected/properties/required_properties/items/minLength",
-            "schema expectation item minLength",
-        ),
+            (
+                "/properties/cases/items/properties/expected/properties/required_properties/items/minLength",
+                "schema expectation item minLength",
+            ),
         (
             "/properties/cases/items/properties/fail_if/items/minLength",
             "schema fail_if item minLength",
