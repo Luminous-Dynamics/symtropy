@@ -506,7 +506,9 @@ pub fn build_schedule(
     }
 
     let mut scheduled: Vec<ScheduledTaskV1> = assigned.into_values().collect();
-    scheduled.sort_by(|a, b| (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str())));
+    scheduled.sort_by(|a, b| {
+        (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str()))
+    });
     let makespan_ms = scheduled.iter().map(|task| task.end_ms).max().unwrap_or(0);
     let receipt = KitchenScheduleReceiptV1 {
         schema_version: KITCHEN_SCHEDULE_SCHEMA_VERSION,
@@ -637,7 +639,10 @@ pub fn validate_schedule(
                     &mut violations,
                     ScheduleViolationCode::DependencyLowerLagViolation,
                     Some(&task.task_id),
-                    format!("start {} is earlier than min-lag bound {}", scheduled.start_ms, earliest),
+                    format!(
+                        "start {} is earlier than min-lag bound {}",
+                        scheduled.start_ms, earliest
+                    ),
                 ),
                 None => schedule_violation(
                     &mut violations,
@@ -653,7 +658,10 @@ pub fn validate_schedule(
                         &mut violations,
                         ScheduleViolationCode::DependencyUpperLagViolation,
                         Some(&task.task_id),
-                        format!("start {} is later than max-lag bound {}", scheduled.start_ms, latest),
+                        format!(
+                            "start {} is later than max-lag bound {}",
+                            scheduled.start_ms, latest
+                        ),
                     ),
                     None => schedule_violation(
                         &mut violations,
@@ -796,21 +804,36 @@ mod tests {
             task("a", 1, &[], vec![dep("b", 0, None)]),
             task("b", 1, &[], vec![dep("a", 0, None)]),
         ]);
-        assert!(validate_plan(&source).violations.iter().any(|v| v.code == PlanViolationCode::DependencyCycle));
+        assert!(
+            validate_plan(&source)
+                .violations
+                .iter()
+                .any(|v| v.code == PlanViolationCode::DependencyCycle)
+        );
         assert!(matches!(build_schedule(&source), Err(ScheduleError::InvalidPlan(_))));
     }
 
     #[test]
     fn unknown_dependency_is_rejected() {
         let source = plan(vec![task("serve", 1, &[], vec![dep("missing", 0, None)])]);
-        assert!(validate_plan(&source).violations.iter().any(|v| v.code == PlanViolationCode::UnknownDependency));
+        assert!(
+            validate_plan(&source)
+                .violations
+                .iter()
+                .any(|v| v.code == PlanViolationCode::UnknownDependency)
+        );
     }
 
     #[test]
     fn impossible_deadline_is_rejected() {
         let mut roast = task("roast", 10, &["oven"], vec![]);
         roast.latest_finish_ms = Some(8);
-        assert!(validate_plan(&plan(vec![roast])).violations.iter().any(|v| v.code == PlanViolationCode::InvalidTaskWindow));
+        assert!(
+            validate_plan(&plan(vec![roast]))
+                .violations
+                .iter()
+                .any(|v| v.code == PlanViolationCode::InvalidTaskWindow)
+        );
     }
 
     #[test]
@@ -824,12 +847,27 @@ mod tests {
             plan_id: source.plan_id.clone(),
             scheduler_id: GREEDY_SCHEDULER_ID.to_owned(),
             tasks: vec![
-                ScheduledTaskV1 { task_id: "a".to_owned(), start_ms: 0, end_ms: 10, resource_ids: vec!["oven".to_owned()] },
-                ScheduledTaskV1 { task_id: "b".to_owned(), start_ms: 5, end_ms: 15, resource_ids: vec!["oven".to_owned()] },
+                ScheduledTaskV1 {
+                    task_id: "a".to_owned(),
+                    start_ms: 0,
+                    end_ms: 10,
+                    resource_ids: vec!["oven".to_owned()],
+                },
+                ScheduledTaskV1 {
+                    task_id: "b".to_owned(),
+                    start_ms: 5,
+                    end_ms: 15,
+                    resource_ids: vec!["oven".to_owned()],
+                },
             ],
             makespan_ms: 15,
         };
-        assert!(validate_schedule(&source, &receipt).violations.iter().any(|v| v.code == ScheduleViolationCode::ResourceOverlap));
+        assert!(
+            validate_schedule(&source, &receipt)
+                .violations
+                .iter()
+                .any(|v| v.code == ScheduleViolationCode::ResourceOverlap)
+        );
     }
 
     #[test]
@@ -839,6 +877,9 @@ mod tests {
             task("b-blocker", 5, &["pan"], vec![]),
             task("c-finish", 2, &["pan"], vec![dep("a-prep", 0, Some(0))]),
         ]);
-        assert!(matches!(build_schedule(&source), Err(ScheduleError::NoScheduleFoundByHeuristic { .. })));
+        assert!(matches!(
+            build_schedule(&source),
+            Err(ScheduleError::NoScheduleFoundByHeuristic { .. })
+        ));
     }
 }
