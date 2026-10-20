@@ -887,6 +887,16 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
         .find(|score| score.policy_id == PolicyKind::PerfectInformationOracle.id())
         .expect("oracle score exists");
 
+    // Copy decision summaries before moving the full score vector into the report.
+    let lowest_mean_entry_id = lowest_mean_entry.policy_id.clone();
+    let best_deployable_id = best_deployable.policy_id.clone();
+    let best_deployable_mean = best_deployable.mean_npv_cost_across_families;
+    let best_fixed_id = best_fixed.policy_id.clone();
+    let best_fixed_mean = best_fixed.mean_npv_cost_across_families;
+    let best_adaptive_id = best_adaptive.policy_id.clone();
+    let best_adaptive_mean = best_adaptive.mean_npv_cost_across_families;
+    let perfect_information_mean = oracle.mean_npv_cost_across_families;
+
     let mut sensitivity_cases = Vec::new();
     for (case_id, signal) in [
         ("activity_minus_0_05", "active_fraction"),
@@ -910,18 +920,16 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
             ));
             choices_all.extend(choices);
         }
-        let (base_best, noisy_best) = (
-            best_deployable.policy_id.as_str(),
-            scores
-                .iter()
-                .filter(|score| score.deployable_policy)
-                .min_by(|a, b| {
-                    a.mean_npv_cost_across_families
-                        .total_cmp(&b.mean_npv_cost_across_families)
-                })
-                .map(|score| score.policy_id.as_str())
-                .unwrap_or("none"),
-        );
+        let base_best = best_deployable_id.clone();
+        let noisy_best = scores
+            .iter()
+            .filter(|score| score.deployable_policy)
+            .min_by(|a, b| {
+                a.mean_npv_cost_across_families
+                    .total_cmp(&b.mean_npv_cost_across_families)
+            })
+            .map(|score| score.policy_id.clone())
+            .unwrap_or_else(|| "none".to_string());
         let base_lookup: BTreeMap<(String, String), String> = family_policy_results
             .iter()
             .map(|row| {
@@ -967,16 +975,16 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
         family_policy_results,
         policy_scores,
         pareto_frontier_policy_ids: frontier_ids,
-        lowest_mean_npv_entry_including_oracle: lowest_mean_entry.policy_id.clone(),
-        best_deployable_policy_by_mean_npv: best_deployable.policy_id.clone(),
-        best_fixed_policy_by_mean_npv: best_fixed.policy_id.clone(),
-        best_adaptive_policy_by_mean_npv: best_adaptive.policy_id.clone(),
-        value_of_adaptivity_vs_best_fixed_npv_cost_reduction: best_fixed.mean_npv_cost_across_families - best_adaptive.mean_npv_cost_across_families,
-        value_of_adaptivity_percent_vs_best_fixed: if best_fixed.mean_npv_cost_across_families.abs() > 1e-9 {
-            Some((best_fixed.mean_npv_cost_across_families - best_adaptive.mean_npv_cost_across_families) / best_fixed.mean_npv_cost_across_families.abs() * 100.0)
+        lowest_mean_npv_entry_including_oracle: lowest_mean_entry_id,
+        best_deployable_policy_by_mean_npv: best_deployable_id,
+        best_fixed_policy_by_mean_npv: best_fixed_id,
+        best_adaptive_policy_by_mean_npv: best_adaptive_id,
+        value_of_adaptivity_vs_best_fixed_npv_cost_reduction: best_fixed_mean - best_adaptive_mean,
+        value_of_adaptivity_percent_vs_best_fixed: if best_fixed_mean.abs() > 1e-9 {
+            Some((best_fixed_mean - best_adaptive_mean) / best_fixed_mean.abs() * 100.0)
         } else { None },
-        perfect_information_lower_bound_mean_npv_cost: oracle.mean_npv_cost_across_families,
-        mean_perfect_information_gap_vs_best_adaptive_policy: (best_deployable.mean_npv_cost_across_families - oracle.mean_npv_cost_across_families).max(0.0),
+        perfect_information_lower_bound_mean_npv_cost: perfect_information_mean,
+        mean_perfect_information_gap_vs_best_adaptive_policy: (best_deployable_mean - perfect_information_mean).max(0.0),
         sensitivity_cases,
         adaptive_policy_claim_ceiling: "Adaptive rules use only family profile signals (activity, product-change rate, reuse success and redeployability), never family IDs or per-family cost/oracle labels. Rules and overheads are declared in code and must be preregistered before measured-data use.".into(),
         economic_recommendation_authorized: false,
