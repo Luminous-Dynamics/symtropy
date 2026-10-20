@@ -60,7 +60,7 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 }
 
 /// Hash a file incrementally so mesh and field outputs need not fit in RAM.
-fn sha256_file(path: &Path) -> Check<(String, u64)> {
+pub(crate) fn sha256_file(path: &Path) -> Check<(String, u64)> {
     let mut file = File::open(path).map_err(|error| format!("open failed: {error}"))?;
     let mut hasher = Sha256::new();
     let mut buffer = [0_u8; 64 * 1024];
