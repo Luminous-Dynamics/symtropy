@@ -685,6 +685,68 @@ mod tests {
     }
 
     #[test]
+    fn heap_allocator_matches_independent_scan_reference() {
+        let candidate = |quality_rank, representation_id, screen_error_px, cost_units| {
+            LodCandidate {
+                quality_rank,
+                representation_id,
+                screen_error_px,
+                cost_units,
+            }
+        };
+        let demands = vec![
+            LodDemand {
+                entity_id: 1,
+                importance: 1,
+                selected: true,
+                critical: false,
+                candidates: vec![
+                    candidate(0, 101, 4.0, 1),
+                    candidate(1, 102, 2.0, 3),
+                    candidate(2, 103, 0.5, 8),
+                ],
+            },
+            LodDemand {
+                entity_id: 2,
+                importance: 2,
+                selected: false,
+                critical: false,
+                candidates: vec![
+                    candidate(0, 201, 4.0, 1),
+                    candidate(1, 202, 2.0, 3),
+                    candidate(2, 203, 0.5, 8),
+                ],
+            },
+            LodDemand {
+                entity_id: 3,
+                importance: 8,
+                selected: false,
+                critical: true,
+                candidates: vec![
+                    candidate(0, 301, 4.0, 1),
+                    candidate(1, 302, 2.0, 3),
+                    candidate(2, 303, 0.5, 8),
+                ],
+            },
+            LodDemand {
+                entity_id: 4,
+                importance: 3,
+                selected: false,
+                critical: false,
+                candidates: vec![
+                    candidate(0, 401, 4.0, 1),
+                    candidate(1, 402, 2.0, 3),
+                    candidate(2, 403, 0.5, 8),
+                ],
+            },
+        ];
+        let heap = allocate_lod(&demands, 22, 2.0).expect("policy allocation should be feasible");
+        let reference =
+            reference_scan_signature(&demands, 22, 2.0).expect("reference allocation should be feasible");
+        assert_eq!(allocation_signature(&heap), reference);
+    }
+
+    #[test]
     fn manifest_candidate_order_is_validated() {
         let invalid = Manifest {
             schema_version: "1.1.0".to_owned(),
