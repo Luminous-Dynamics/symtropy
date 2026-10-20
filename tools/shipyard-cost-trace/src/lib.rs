@@ -400,6 +400,32 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         errors.extend(find_lineage_cycles(events, &events_by_id));
     }
 
+    let mut currency_scales: BTreeMap<&str, u8> = BTreeMap::new();
+    for event in events {
+        let basis_scale = match &event.kind {
+            EventKind::Quantity(quantity) => quantity
+                .rate
+                .as_ref()
+                .map(|rate| (rate.currency_basis_id.as_str(), rate.minor_unit_exponent)),
+            EventKind::FinancialActual(transaction) => Some((
+                transaction.currency_basis_id.as_str(),
+                transaction.minor_unit_exponent,
+            )),
+        };
+        if let Some((basis_id, exponent)) = basis_scale {
+            if let Some(previous) = currency_scales.get(basis_id) {
+                if *previous != exponent {
+                    errors.push(format!(
+                        "{}: currency_basis_id {basis_id} has conflicting minor_unit_exponent values",
+                        event.event_id
+                    ));
+                }
+            } else {
+                currency_scales.insert(basis_id, exponent);
+            }
+        }
+    }
+
     if !errors.is_empty() {
         errors.sort();
         errors.dedup();
@@ -859,6 +885,26 @@ mod tests {
         let report = audit(&events).unwrap();
         assert_eq!(report.financial_actuals.len(), 1);
         assert_eq!(report.financial_actuals[0].amount_minor_units, 29_999);
+    }
+
+    #[test]
+    fn currency_basis_rejects_conflicting_minor_unit_exponents() {
+        let planned = quantity_event("rate", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, Some(rate()));
+        let mut actual = financial_event("invoice", "inv-1:line-1", 10_000);
+        if let EventKind::FinancialActual(transaction) = &mut actual.kind {
+            transaction.minor_unit_exponent = 0;
+        }
+        let errors = audit(&[planned, actual]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("conflicting minor_unit_exponent values")));
+    }
+
+    #[test]
+    fn minor_unit_exponents_outside_supported_range_are_rejected() {
+        let mut invalid_rate = rate();
+        invalid_rate.minor_unit_exponent = 7;
+        let event = quantity_event("rate", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, Some(invalid_rate));
+        let errors = audit(&[event]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("minor_unit_exponent must be within 0..=6")));
     }
 
     #[test]
