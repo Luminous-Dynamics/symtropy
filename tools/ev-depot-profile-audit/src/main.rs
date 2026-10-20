@@ -71,6 +71,7 @@ struct Report {
     source_zip_bytes: u64,
     zip_entry_count: usize,
     csv_entry_count: usize,
+    ignored_macos_sidecar_count: usize,
     expected_profile_count: usize,
     valid_profile_count: usize,
     invalid_profile_count: usize,
@@ -281,6 +282,7 @@ fn audit_zip(
         .map_err(|error| format!("invalid_zip_archive:{error}"))?;
     let zip_entry_count = archive.len();
     let mut csv_entry_count = 0_usize;
+    let mut ignored_macos_sidecar_count = 0_usize;
     let mut profiles = Vec::<ProfileSummary>::new();
     let mut findings = Vec::<AuditFinding>::new();
     let mut seen_keys = BTreeSet::<String>::new();
@@ -293,8 +295,18 @@ fn audit_zip(
         if entry.is_dir() || !entry.name().to_ascii_lowercase().ends_with(".csv") {
             continue;
         }
-        csv_entry_count += 1;
         let name = entry.name().to_string();
+        let basename = Path::new(&name)
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default();
+        // macOS archives often carry AppleDouble resource-fork files beside every CSV.
+        // They are archive metadata, not independent load profiles.
+        if name.split('/').any(|part| part == "__MACOSX") || basename.starts_with("._") {
+            ignored_macos_sidecar_count += 1;
+            continue;
+        }
+        csv_entry_count += 1;
         let mut bytes = Vec::new();
         if let Err(error) = entry.read_to_end(&mut bytes) {
             findings.push(AuditFinding {
@@ -370,6 +382,7 @@ fn audit_zip(
         source_zip_bytes: zip_bytes.len() as u64,
         zip_entry_count,
         csv_entry_count,
+        ignored_macos_sidecar_count,
         expected_profile_count: expected.len(),
         valid_profile_count: profiles.len(),
         invalid_profile_count: csv_entry_count.saturating_sub(profiles.len()),
