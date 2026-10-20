@@ -158,7 +158,7 @@ pub enum ProfileValidationError {
     EmptyRequiredInput,
     EmptyDeclaredOutput,
     EmptyEvidenceSuite,
-    DuplicateEvidenceClass(EvidenceClass),
+    DuplicateEvidenceSuite { class: EvidenceClass, suite_id: String },
 }
 
 impl HazardModelProfile {
@@ -197,13 +197,17 @@ impl HazardModelProfile {
             return Err(ProfileValidationError::EmptyDeclaredOutput);
         }
 
-        let mut evidence_classes = BTreeSet::new();
+        let mut evidence_suites = BTreeSet::new();
         for record in &self.evidence {
             if !nonblank(&record.suite_id) {
                 return Err(ProfileValidationError::EmptyEvidenceSuite);
             }
-            if !evidence_classes.insert(record.class) {
-                return Err(ProfileValidationError::DuplicateEvidenceClass(record.class));
+            let suite_key = (record.class, record.suite_id.clone());
+            if !evidence_suites.insert(suite_key) {
+                return Err(ProfileValidationError::DuplicateEvidenceSuite {
+                    class: record.class,
+                    suite_id: record.suite_id.clone(),
+                });
             }
         }
         Ok(())
@@ -248,23 +252,33 @@ impl HazardModelProfile {
         if let Err(reason) = self.check_scope(scope) {
             return QualificationDecision::OutOfScope(reason);
         }
-        match self
+        let matching: Vec<_> = self
             .evidence
             .iter()
-            .find(|record| record.class == required_class)
-        {
-            Some(record) => match record.status {
-                EvidenceStatus::Pass => QualificationDecision::Qualified,
-                EvidenceStatus::Fail => QualificationDecision::FailedEvidence(required_class),
-                EvidenceStatus::Unavailable => {
-                    QualificationDecision::UnavailableEvidence(required_class)
-                }
-                EvidenceStatus::NotApplicable => {
-                    QualificationDecision::NotApplicable(required_class)
-                }
-            },
-            None => QualificationDecision::MissingEvidence(required_class),
+            .filter(|record| record.class == required_class)
+            .collect();
+        if matching.is_empty() {
+            return QualificationDecision::MissingEvidence(required_class);
         }
+        if matching
+            .iter()
+            .any(|record| record.status == EvidenceStatus::Fail)
+        {
+            return QualificationDecision::FailedEvidence(required_class);
+        }
+        if matching
+            .iter()
+            .any(|record| record.status == EvidenceStatus::Unavailable)
+        {
+            return QualificationDecision::UnavailableEvidence(required_class);
+        }
+        if matching
+            .iter()
+            .any(|record| record.status == EvidenceStatus::NotApplicable)
+        {
+            return QualificationDecision::NotApplicable(required_class);
+        }
+        QualificationDecision::Qualified
     }
 }
 
@@ -358,6 +372,7 @@ pub enum ReceiptValidationError {
     InvalidInputDigest,
     InvalidOutputDigest,
     PassingRunMissingOutputDigest,
+    DeclaredBudgetDoesNotClose,
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -389,6 +404,12 @@ impl HazardRunReceipt {
         }
         if self.status == RunStatus::Pass && self.output_digest_sha256.is_none() {
             return Err(ReceiptValidationError::PassingRunMissingOutputDigest);
+        }
+        if self.status == RunStatus::Pass
+            && !self.budget_residuals.is_empty()
+            && !self.all_declared_budgets_close()
+        {
+            return Err(ReceiptValidationError::DeclaredBudgetDoesNotClose);
         }
         if !nonblank(&self.backend) {
             return Err(ReceiptValidationError::EmptyBackend);
@@ -526,6 +547,38 @@ mod tests {
     }
 
     #[test]
+    fn multiple_suites_in_one_evidence_class_are_supported_and_fail_closed() {
+        let mut model = profile();
+        model.evidence.push(EvidenceRecord {
+            class: EvidenceClass::PublishedBenchmark,
+            status: EvidenceStatus::Pass,
+            suite_id: "dam-break-suite-a".into(),
+            source_uri: None,
+            detail: "First matched suite".into(),
+        });
+        model.evidence.push(EvidenceRecord {
+            class: EvidenceClass::PublishedBenchmark,
+            status: EvidenceStatus::Pass,
+            suite_id: "dam-break-suite-b".into(),
+            source_uri: None,
+            detail: "Second matched suite".into(),
+        });
+        assert_eq!(
+            model.qualification_decision(&scope(), EvidenceClass::PublishedBenchmark),
+            QualificationDecision::Qualified
+        );
+        model.evidence[2].status = EvidenceStatus::Fail;
+        assert_eq!(
+            model.qualification_decision(&scope(), EvidenceClass::PublishedBenchmark),
+            QualificationDecision::FailedEvidence(EvidenceClass::PublishedBenchmark)
+        );
+        assert!(matches!(
+            model.validate(),
+            Ok(())
+        ));
+    }
+
+    #[test]
     fn failed_and_unavailable_evidence_are_not_passes() {
         let mut model = profile();
         model.evidence.push(EvidenceRecord {
@@ -583,6 +636,32 @@ mod tests {
         assert_eq!(
             receipt.validate(),
             Err(ReceiptValidationError::PassingRunMissingOutputDigest)
+        );
+    }
+
+    #[test]
+    fn passing_receipt_rejects_a_failed_declared_budget() {
+        let receipt = HazardRunReceipt {
+            run_id: "run-budget-fail".into(),
+            scenario_digest_sha256: "a".repeat(64),
+            source_revision: "0123456789abcdef".into(),
+            model_profile_id: "flood.reference.v1".into(),
+            input_digest_sha256: "b".repeat(64),
+            output_digest_sha256: Some("c".repeat(64)),
+            backend: "cpu-reference".into(),
+            status: RunStatus::Pass,
+            budget_residuals: vec![BudgetResidual {
+                quantity: "water_volume".into(),
+                residual: 10.0,
+                tolerance: 0.01,
+                units: "m^3".into(),
+            }],
+            warnings: vec![],
+            unavailable_outputs: vec![],
+        };
+        assert_eq!(
+            receipt.validate(),
+            Err(ReceiptValidationError::DeclaredBudgetDoesNotClose)
         );
     }
 
