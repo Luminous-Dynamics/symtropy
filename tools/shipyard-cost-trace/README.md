@@ -48,6 +48,7 @@ The 2026 review of shipyard production planning reports that hybrid discrete-eve
 ## Interoperability and credibility context
 
 NIST's July 2026 Digital Twins Workshops summary (NISTIR 8620) identifies interoperability, verification/validation/uncertainty quantification (VVUQ), cybersecurity and workforce readiness as continuing manufacturing digital-twin challenges: https://doi.org/10.6028/NIST.IR.8620. NIST's ongoing Digital Twins for Advanced Manufacturing programme also emphasizes reference architectures, standards, data exchange, VVUQ, and lifecycle digital threads: https://www.nist.gov/programs-projects/digital-twins-advanced-manufacturing.
+NIST's October 2026 report on uncertainty quantification discusses the need to harmonize modeling and metrology practices and distinguish variance propagation from distribution-based uncertainty treatment: https://doi.org/10.6028/NIST.AMS.100-85. In this ledger, deterministic accounting arithmetic must not be mistaken for calibrated measurement or model uncertainty.
 
 This Rust kernel addresses only the narrow event identity, quantity reconciliation and accounting-view boundary. It does not yet implement a standard transport payload, ISO 23247 conformance, MTConnect adapter, cybersecurity threat model, or full VVUQ process. Those should be explicit adapter and assurance layers, not implied by the existence of a digital-twin-style event ledger.
 
