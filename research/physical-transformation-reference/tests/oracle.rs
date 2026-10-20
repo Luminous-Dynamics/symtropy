@@ -2,7 +2,7 @@
 //! Integration-level acceptance oracle with frozen, explicit expected values.
 
 use physical_transformation_reference::{
-    run_reference_fixture, Component, Connection, Event, Operation, World,
+    Component, Connection, Event, Operation, World, run_reference_fixture,
 };
 
 #[test]
