@@ -18,6 +18,7 @@ This is a systems benchmark around existing capabilities. It does not create ano
 - Use ISO 6658:2017 for sensory-analysis design guidance and ISO 11136:2014 for consumer hedonic tests where relevant. Obtain and follow applicable full standard procedures before claiming a standards-conforming study: https://www.iso.org/standard/65519.html ; https://www.iso.org/standard/50125.html
 - WHO's five keys—clean, separate raw/cooked, cook thoroughly, keep food at safe temperatures, and use safe water/raw materials—are safeguards, not objectives that can be traded against time or cost: https://www.who.int/activities/promoting-safe-food-handling/five-key-to-safer-food/
 - For South African deployments, identify applicable requirements by setting; the Department of Health lists R638 (2018) for general hygiene of food premises, transport and related matters: https://www.health.gov.za/food-control-regulations/
+- The October 2026 peer-reviewed study of 27 U.S. commercial kitchens measured NO₂, CO, benzene and temperature; it reported high NO₂ in 17 of 24 gas/propane kitchens and lower pollution/temperatures in the three all-electric kitchens studied. This limited sample motivates measured air/heat scenarios, not a universal conclusion or a South African exposure estimate: https://doi.org/10.1088/1748-9326/ae9d96 ; https://news.stanford.edu/stories/2026/10/pollution-levels-commercial-kitchens-gas-stoves
 
 ## Where this differs from current capability
 
@@ -41,6 +42,7 @@ This is a systems benchmark around existing capabilities. It does not create ano
 6. **Uniform culinary canon → plural, attributed culinary knowledge.** Preserve provenance, source rights, regional context, community protocols and cook attribution during adaptation.
 7. **Automation → mastery support.** Explain why a timing/substitution is suggested, preserve manual execution, let cooks override, and measure independent skill after assistance is withdrawn.
 8. **Sustainability slogans → measured boundaries.** Measure purchased, edible, discarded, water and energy quantities within a declared boundary. Do not claim carbon benefits from incomplete factors.
+9. **Kitchen productivity → healthy working conditions.** Evaluate air quality, heat and ventilation at occupied zones during service and idle periods. Do not trade worker exposure against energy, throughput or cost; thresholds require local occupational-health review.
 
 ## Benchmark protocol
 
@@ -68,6 +70,7 @@ Split by whole recipe/task lineage, cuisine/region, ingredient family, equipment
 - **Human outcomes:** cook agency, ability to edit/decline, task workload, enjoyment, learning and independent skill retention.
 - **Culture and rights:** provenance coverage, attribution, permissions, participant-defined cultural fit and rate of prohibited/unattributed reuse.
 - **Accessibility/robustness:** successful execution by relevant ability/experience groups; missing equipment, water/power interruption and unavailable-ingredient recovery.
+- **Work environment (commercial track):** pollutant time series by occupied zone, thermal exposure, ventilation state, sensor coverage and staff-relevant outcomes; preserve high-exposure windows and use locally reviewed thresholds.
 - **Evidence quality:** exact source/manifest hashes, data classes, missingness, uncertainty, denominators and replay determinism.
 
 Do not hide subgroup failures in averages. No safety, allergy or cultural-rights gate is exchangeable for a faster schedule.
@@ -90,7 +93,7 @@ First reproduce a suitable public baseline (including Recipe2Plan for the schedu
 
 ## Scenario contract
 
-The authoritative machine-readable scenario set is `CULINARY_EXPERIENCE_SCENARIOS_V1.json`; the metric catalogue is `CULINARY_EXPERIENCE_METRICS_V1.json`.
+The authoritative machine-readable scenario set is `CULINARY_EXPERIENCE_SCENARIOS_V1.json` (13 scenarios, including a commercial air/heat exposure scenario); the metric catalogue is `CULINARY_EXPERIENCE_METRICS_V1.json` (28 metrics).
 
 Every scenario declares its required metrics, non-compensatory gates, evidence requirements, adversarial controls and claim limit. A blocked/unknown result must be explicit. A synthetic record can test the software contract but never qualify a product, recipe, safety or taste claim.
 
