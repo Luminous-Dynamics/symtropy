@@ -396,7 +396,7 @@ mod tests {
     fn refuses_comparisons_between_untransformed_reference_frames() {
         let object = pos([1, 0, 0], [0.0; 3]);
         let other = LargeWorldPosition::from_cell_local(CoordinateFrameId(2), [0; 3], [0.0; 3])
-        .expect("other frame");
+            .expect("other frame");
         assert_eq!(
             object.relative_to_meters(&other),
             Err(LargeWorldError::FrameMismatch)
