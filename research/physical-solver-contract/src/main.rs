@@ -168,7 +168,7 @@ fn run() -> Result<(), String> {
         }
         let root =
             artifact_root.ok_or_else(|| "--mesh-study requires --artifact-root".to_owned())?;
-        let study_bytes = fs::read(&study_path)
+        let study_bytes = fs::read(study_path)
             .map_err(|error| format!("could not read mesh-study manifest {study_path}: {error}"))?;
         let report = assess_mesh_refinement_study_bytes(&study_bytes, Path::new(&root))?;
         println!(
