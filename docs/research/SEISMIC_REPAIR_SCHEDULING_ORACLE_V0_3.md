@@ -23,11 +23,11 @@ The separate service-ready gate remains unchanged: a completed inspection task d
 ## Benchmark contents
 
 1. A hand-checkable case is designed to expose an ID-ordered greedy loss: the greedy schedule has a 21-hour total-work makespan, while exhaustive enumeration has a 20-hour minimum. The one-hour / 5% difference is a synthetic regression target; the unit test asserts it rather than treating it as a field result.
-2. Fifty deterministic, seeded fixtures contain three to six repair tasks plus a post-event inspection task. Every fixture is solved by exhaustive order enumeration and compared with the current greedy scheduler and the existing makespan lower bound.
+2. Fifty deterministic, seeded fixtures contain three to six repair tasks plus a post-event inspection task. Every fixture is solved by exhaustive order enumeration and compared with the current parallel greedy scheduler, three serial priority-rule baselines, and the existing makespan lower bound.
 3. Negative control: the exact oracle rejects inputs above the nine-task bound.
-4. The focused GitHub Actions workflow runs the existing locked tests and the exact-oracle demonstration without adding dependencies.
+4. Three serial schedule-generation priority rules are reported beside the existing parallel greedy baseline: longest processing time (LPT), shortest processing time (SPT), and highest normalized crew load (duration multiplied by the sum of each required skill's crew fraction). Precedence remains a hard constraint; ties break by task ID. The focused GitHub Actions workflow runs the locked tests, the existing demonstration, and this comparison without adding dependencies.
 
-The exact reference must never return a makespan below the proven lower bound, and the feasible greedy schedule must never beat the exact optimum. These are software invariants, not hazard-model acceptance thresholds. Compare average and worst relative gaps only on matched instances:
+The exact reference must never return a makespan below the proven lower bound, and no feasible greedy or priority schedule may beat the exact optimum. These are software invariants, not hazard-model acceptance thresholds. The binary reports each policy's mean and maximum relative gap and the number of generated fixtures where it is suboptimal. Compare gaps only on matched instances:
 
 \[
 \text{relative gap} = \frac{T_{\mathrm{greedy}} - T_{\mathrm{exact}}}{T_{\mathrm{exact}}}
