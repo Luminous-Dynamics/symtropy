@@ -32,7 +32,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Validate solar-scale fixture contract
         run: |
-          python3 -c 'import json; p=json.load(open("benchmarks/render/SOLAR-SCALE-01.json")); assert p["fixture_id"] == "SOLAR-SCALE-01"; assert len(p["traversal_stages"]) == 7; assert len(p["coordinate_precision_ladder"]) == 7; assert len(p["apparent_size_known_answers"]) == 2; assert all(s["stage_id"] for s in p["traversal_stages"])'
+          python3 -c 'import json; p=json.load(open("benchmarks/render/SOLAR-SCALE-01.json")); assert p["fixture_id"] == "SOLAR-SCALE-01"; assert len(p["traversal_stages"]) == 7; assert len(p["coordinate_precision_ladder"]) == 7; assert len(p["apparent_size_known_answers"]) == 2; assert len(p["hierarchy_selection_cases"]) == 8; assert all(s["stage_id"] for s in p["traversal_stages"])'
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run render bridge library tests
