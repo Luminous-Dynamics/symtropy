@@ -480,9 +480,9 @@ fn parse_input_bounds(
         }
         match fields.get("calibration_ref") {
             Some(value) => {
-                let calibration_ref = value.as_str().ok_or_else(|| {
-                    format!("{at}.calibration_ref must be a string")
-                })?;
+                let calibration_ref = value
+                    .as_str()
+                    .ok_or_else(|| format!("{at}.calibration_ref must be a string"))?;
                 if calibration_ref.trim().is_empty()
                     || calibration_ref.len() > 2048
                     || calibration_ref.chars().any(char::is_control)
