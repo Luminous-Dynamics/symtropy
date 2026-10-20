@@ -446,7 +446,7 @@ mod tests {
     fn synthetic_benchmark_requires_synthetic_source_status_and_exact_digest() {
         let bytes = snapshot(SYNTHETIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::SyntheticBenchmark);
-        assert_eq!(manifest.validate_against_snapshot(&bytes), Ok(()));
+        assert_eq!(manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty"), Ok(()));
 
         let changed = snapshot(SCHEMATIC_GEOMETRY_STATUS);
         let errors = manifest.validate_against_inputs(&changed, b"boundary-conditions-v0-empty").unwrap_err();
@@ -468,7 +468,7 @@ mod tests {
     fn analytical_reference_rejects_synthetic_input() {
         let bytes = snapshot(SYNTHETIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::AnalyticalReference);
-        let errors = manifest.validate_against_snapshot(&bytes).unwrap_err();
+        let errors = manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty").unwrap_err();
         assert!(errors.iter().any(|error| {
             error.code == "physical-claim-blocked-by-schematic-frame"
                 || error.code == "synthetic-input-not-analytical-evidence"
@@ -482,9 +482,10 @@ mod tests {
         manifest.design_snapshot.scope = "watershed".to_string();
         manifest.boundary_conditions_sha256 = "not-a-digest".to_string();
 
-        let errors = manifest.validate_against_snapshot(&bytes).unwrap_err();
+        let errors = manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty").unwrap_err();
         assert!(errors.iter().any(|error| error.code == "snapshot-reference-mismatch"));
         assert!(errors.iter().any(|error| error.code == "sha256-format-invalid"));
+        assert!(errors.iter().any(|error| error.code == "boundary-digest-mismatch"));
     }
 
     #[test]
