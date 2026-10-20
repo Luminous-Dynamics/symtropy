@@ -593,4 +593,69 @@ mod tests {
             _ => unreachable!("case fixture is supported"),
         }
     }
+    #[test]
+    fn seeded_interior_samples_are_enclosed_for_every_formula_family() {
+        let cases: Vec<CaseFixture> = vec![
+            (
+                "axial_bar",
+                vec![
+                    ("force_n", 1_000.0, -1_100.0, 1_100.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("area_m2", 0.01, 0.009, 0.011),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                ],
+            ),
+            (
+                "cantilever_tip_load",
+                vec![
+                    ("force_n", 100.0, -110.0, 110.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+            (
+                "simply_supported_uniform_load",
+                vec![
+                    ("load_n_per_m", 1_000.0, -1_100.0, 1_100.0),
+                    ("length_m", 4.0, 3.8, 4.2),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+        ];
+
+        let mut seed = 0x5eed_1788_d15c_a11u64;
+        for (case_id, entries) in cases {
+            let (nominal, bounds) = fixture(&entries);
+            let ranges = propagate(case_id, &nominal, &bounds).expect("bounded test case");
+            for _ in 0..512 {
+                let point: BTreeMap<String, f64> = entries
+                    .iter()
+                    .map(|(key, _, lower, upper)| {
+                        let fraction = next_unit(&mut seed);
+                        let value = lower + (upper - lower) * fraction;
+                        ((*key).to_owned(), value)
+                    })
+                    .collect();
+                for (output, value) in evaluate_point(case_id, &point) {
+                    assert_enclosed(ranges[&output], value);
+                }
+            }
+        }
+    }
+
+    fn next_unit(seed: &mut u64) -> f64 {
+        // Fixed xorshift64* stream: deterministic, dependency-free exploratory
+        // coverage. These samples supplement the corner/oracle tests; they are
+        // not a proof that the interval extension is sound for all inputs.
+        *seed ^= *seed >> 12;
+        *seed ^= *seed << 25;
+        *seed ^= *seed >> 27;
+        let bits = seed.wrapping_mul(0x2545_f491_4f6c_dd1d);
+        ((bits >> 11) as f64) / ((1_u64 << 53) as f64)
+    }
+
 }
