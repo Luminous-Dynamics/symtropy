@@ -272,7 +272,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         return Err("discount_rate_per_year_must_be_between_zero_and_point_five".into());
     }
     if catalog.families.len() < MIN_FAMILIES {
-        return Err(format!("at_least_{MIN_FAMILIES}_product_evolution_families_required"));
+        return Err(format!(
+            "at_least_{MIN_FAMILIES}_product_evolution_families_required"
+        ));
     }
     if catalog.strategies.len() != StrategyKind::ALL.len() {
         return Err("exactly_four_declared_lifecycle_strategies_required".into());
@@ -288,7 +290,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         valid_fraction("active_fraction", family.active_fraction)?;
         valid_fraction("reuse_success_fraction", family.reuse_success_fraction)?;
         valid_fraction("redeployability_fraction", family.redeployability_fraction)?;
-        valid_fraction("salvage_realization_fraction", family.salvage_realization_fraction)?;
+        valid_fraction(
+            "salvage_realization_fraction",
+            family.salvage_realization_fraction,
+        )?;
         valid_nonnegative(
             "product_change_events_per_year",
             family.product_change_events_per_year,
@@ -306,7 +311,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             return Err("strategy_ids_and_kinds_must_be_nonempty_and_unique".into());
         }
         if strategy.owns_asset != strategy.kind.owns_asset() {
-            return Err(format!("strategy_{}_ownership_flag_conflicts_with_kind", strategy.strategy_id));
+            return Err(format!(
+                "strategy_{}_ownership_flag_conflicts_with_kind",
+                strategy.strategy_id
+            ));
         }
         for (name, value) in [
             ("acquisition_cost", strategy.acquisition_cost),
@@ -315,8 +323,14 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             ("annual_contract_cost", strategy.annual_contract_cost),
             ("annual_maintenance_cost", strategy.annual_maintenance_cost),
             ("annual_idle_carry_cost", strategy.annual_idle_carry_cost),
-            ("retooling_cost_per_product_change", strategy.retooling_cost_per_product_change),
-            ("fallback_replacement_cost_if_reuse_fails", strategy.fallback_replacement_cost_if_reuse_fails),
+            (
+                "retooling_cost_per_product_change",
+                strategy.retooling_cost_per_product_change,
+            ),
+            (
+                "fallback_replacement_cost_if_reuse_fails",
+                strategy.fallback_replacement_cost_if_reuse_fails,
+            ),
             ("terminal_salvage_value", strategy.terminal_salvage_value),
             ("terminal_disposal_cost", strategy.terminal_disposal_cost),
         ] {
@@ -329,12 +343,18 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 || strategy.terminal_salvage_value > 0.0
                 || strategy.fallback_replacement_cost_if_reuse_fails > 0.0)
         {
-            return Err(format!("nonowning_strategy_{}_has_asset_only_cost_fields", strategy.strategy_id));
+            return Err(format!(
+                "nonowning_strategy_{}_has_asset_only_cost_fields",
+                strategy.strategy_id
+            ));
         }
         if strategy.kind != StrategyKind::RefurbishRedeploy
             && strategy.fallback_replacement_cost_if_reuse_fails > 0.0
         {
-            return Err(format!("strategy_{}_has_reuse_failure_fallback_without_reuse", strategy.strategy_id));
+            return Err(format!(
+                "strategy_{}_has_reuse_failure_fallback_without_reuse",
+                strategy.strategy_id
+            ));
         }
         if strategy.kind == StrategyKind::ShortTermRent
             && strategy.contract_payment_basis != ContractPaymentBasis::ActiveFraction
@@ -350,10 +370,20 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if strategy_kinds != StrategyKind::ALL.into_iter().collect() {
         return Err("lifecycle_strategy_kind_set_incomplete".into());
     }
-    let purchase = catalog.strategies.iter().find(|s| s.kind == StrategyKind::PurchaseNew).unwrap();
-    let lease = catalog.strategies.iter().find(|s| s.kind == StrategyKind::Lease).unwrap();
+    let purchase = catalog
+        .strategies
+        .iter()
+        .find(|s| s.kind == StrategyKind::PurchaseNew)
+        .unwrap();
+    let lease = catalog
+        .strategies
+        .iter()
+        .find(|s| s.kind == StrategyKind::Lease)
+        .unwrap();
     if purchase.acquisition_cost <= 0.0 || lease.annual_contract_cost <= 0.0 {
-        return Err("purchase_cost_and_lease_payment_must_be_positive_for_break_even_analysis".into());
+        return Err(
+            "purchase_cost_and_lease_payment_must_be_positive_for_break_even_analysis".into(),
+        );
     }
     Ok(())
 }
@@ -397,9 +427,8 @@ fn calculate_cost(
         contract += strategy.annual_contract_cost * contract_scale * df;
         maintenance += strategy.annual_maintenance_cost * active_fraction * df;
         idle_carry += strategy.annual_idle_carry_cost * idle_fraction * df;
-        retooling += strategy.retooling_cost_per_product_change
-            * family.product_change_events_per_year
-            * df;
+        retooling +=
+            strategy.retooling_cost_per_product_change * family.product_change_events_per_year * df;
     }
     let effective_recovery_fraction = if strategy.owns_asset {
         family.salvage_realization_fraction
@@ -409,14 +438,21 @@ fn calculate_cost(
         0.0
     };
     let salvage_credit = if strategy.owns_asset {
-        strategy.terminal_salvage_value * effective_recovery_fraction * discount(discount_rate, horizon)
+        strategy.terminal_salvage_value
+            * effective_recovery_fraction
+            * discount(discount_rate, horizon)
     } else {
         0.0
     };
     let disposal = strategy.terminal_disposal_cost
-        * (if strategy.owns_asset { 1.0 - effective_recovery_fraction } else { 1.0 })
+        * (if strategy.owns_asset {
+            1.0 - effective_recovery_fraction
+        } else {
+            1.0
+        })
         * discount(discount_rate, horizon);
-    let total = upfront + contract + maintenance + idle_carry + retooling + disposal - salvage_credit;
+    let total =
+        upfront + contract + maintenance + idle_carry + retooling + disposal - salvage_credit;
     let owned_investment = strategy.acquisition_cost
         + strategy.refurbishment_cost
         + strategy.installation_cost
@@ -441,10 +477,7 @@ fn calculate_cost(
     }
 }
 
-fn evaluate(
-    catalog: &Catalog,
-    source_sha256: &str,
-) -> Result<Report, String> {
+fn evaluate(catalog: &Catalog, source_sha256: &str) -> Result<Report, String> {
     if source_sha256.len() != 64 || !source_sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err("source_catalog_sha256_malformed".into());
     }
@@ -459,8 +492,13 @@ fn evaluate(
     for family in &families {
         for strategy in &strategies {
             let cost = calculate_cost(strategy, family, catalog.discount_rate_per_year, None);
-            computed.insert((family.family_id.clone(), strategy.strategy_id.clone()), cost.clone());
-            let entry = family_best.entry(family.family_id.clone()).or_insert((strategy.strategy_id.clone(), cost.total));
+            computed.insert(
+                (family.family_id.clone(), strategy.strategy_id.clone()),
+                cost.clone(),
+            );
+            let entry = family_best
+                .entry(family.family_id.clone())
+                .or_insert((strategy.strategy_id.clone(), cost.total));
             if cost.total < entry.1 {
                 *entry = (strategy.strategy_id.clone(), cost.total);
             }
@@ -501,7 +539,10 @@ fn evaluate(
             .filter(|row| row.strategy_id == strategy.strategy_id)
             .collect();
         let costs: Vec<f64> = rows.iter().map(|row| row.total_npv_cost).collect();
-        let regrets: Vec<f64> = rows.iter().map(|row| row.regret_vs_family_best_npv_cost).collect();
+        let regrets: Vec<f64> = rows
+            .iter()
+            .map(|row| row.regret_vs_family_best_npv_cost)
+            .collect();
         let exposure: Vec<f64> = rows.iter().map(|row| row.stranded_asset_exposure).collect();
         scores.push(StrategyRobustScore {
             strategy_id: strategy.strategy_id.clone(),
@@ -513,8 +554,10 @@ fn evaluate(
             maximum_regret_npv_cost: regrets.iter().copied().fold(0.0, f64::max),
             mean_stranded_asset_exposure: exposure.iter().sum::<f64>() / exposure.len() as f64,
             maximum_stranded_asset_exposure: exposure.iter().copied().fold(0.0, f64::max),
-            families_where_strategy_is_cost_best: family_best.values()
-                .filter(|(winner, _)| winner == &strategy.strategy_id).count(),
+            families_where_strategy_is_cost_best: family_best
+                .values()
+                .filter(|(winner, _)| winner == &strategy.strategy_id)
+                .count(),
             family_count: families.len(),
             pareto_nondominated: false,
         });
@@ -522,7 +565,9 @@ fn evaluate(
     let mut frontier_ids = Vec::new();
     for i in 0..scores.len() {
         let dominated = (0..scores.len()).any(|j| {
-            if i == j { return false; }
+            if i == j {
+                return false;
+            }
             let a = &scores[j];
             let b = &scores[i];
             let no_worse = a.mean_npv_cost_across_families <= b.mean_npv_cost_across_families
@@ -534,19 +579,34 @@ fn evaluate(
             no_worse && strictly_better
         });
         scores[i].pareto_nondominated = !dominated;
-        if !dominated { frontier_ids.push(scores[i].strategy_id.clone()); }
+        if !dominated {
+            frontier_ids.push(scores[i].strategy_id.clone());
+        }
     }
 
-    let purchase = strategies.iter().find(|s| s.kind == StrategyKind::PurchaseNew).unwrap();
-    let lease = strategies.iter().find(|s| s.kind == StrategyKind::Lease).unwrap();
+    let purchase = strategies
+        .iter()
+        .find(|s| s.kind == StrategyKind::PurchaseNew)
+        .unwrap();
+    let lease = strategies
+        .iter()
+        .find(|s| s.kind == StrategyKind::Lease)
+        .unwrap();
     let mut break_even_rows = Vec::new();
     for family in &families {
         let mut first_year = None;
         let mut last_buy = 0.0;
         let mut last_lease = 0.0;
         for years in 1..=family.planning_horizon_years {
-            last_buy = calculate_cost(purchase, family, catalog.discount_rate_per_year, Some(years)).total;
-            last_lease = calculate_cost(lease, family, catalog.discount_rate_per_year, Some(years)).total;
+            last_buy = calculate_cost(
+                purchase,
+                family,
+                catalog.discount_rate_per_year,
+                Some(years),
+            )
+            .total;
+            last_lease =
+                calculate_cost(lease, family, catalog.discount_rate_per_year, Some(years)).total;
             if first_year.is_none() && last_buy <= last_lease {
                 first_year = Some(years);
             }
@@ -587,73 +647,164 @@ fn evaluate(
     })
 }
 
-fn build_sensitivity(catalog: &Catalog, strategies: &[Strategy]) -> Result<Vec<SensitivityResult>, String> {
+fn build_sensitivity(
+    catalog: &Catalog,
+    strategies: &[Strategy],
+) -> Result<Vec<SensitivityResult>, String> {
     let base = catalog.clone();
     let mut cases: Vec<(String, String, String, Catalog)> = Vec::new();
-    for rate in [0.0, catalog.discount_rate_per_year, (catalog.discount_rate_per_year + 0.05).min(0.5)] {
+    for rate in [
+        0.0,
+        catalog.discount_rate_per_year,
+        (catalog.discount_rate_per_year + 0.05).min(0.5),
+    ] {
         let mut changed = base.clone();
         changed.discount_rate_per_year = rate;
-        cases.push((format!("discount-rate-{rate:.3}"), "discount_rate".into(), format!("annual discount rate set to {rate:.3}"), changed));
+        cases.push((
+            format!("discount-rate-{rate:.3}"),
+            "discount_rate".into(),
+            format!("annual discount rate set to {rate:.3}"),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.planning_horizon_years = (family.planning_horizon_years / 2).max(1); }
-        cases.push(("useful-life-short".into(), "useful_life".into(), "each family horizon reduced to half, rounded down and bounded at one year".into(), changed));
+        for family in &mut changed.families {
+            family.planning_horizon_years = (family.planning_horizon_years / 2).max(1);
+        }
+        cases.push((
+            "useful-life-short".into(),
+            "useful_life".into(),
+            "each family horizon reduced to half, rounded down and bounded at one year".into(),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.planning_horizon_years = (family.planning_horizon_years + 2).min(30); }
-        cases.push(("useful-life-long".into(), "useful_life".into(), "each family horizon extended by two years, capped at thirty".into(), changed));
+        for family in &mut changed.families {
+            family.planning_horizon_years = (family.planning_horizon_years + 2).min(30);
+        }
+        cases.push((
+            "useful-life-long".into(),
+            "useful_life".into(),
+            "each family horizon extended by two years, capped at thirty".into(),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.product_change_events_per_year = 0.0; }
-        cases.push(("product-changes-none".into(), "product_evolution".into(), "no product-change events".into(), changed));
+        for family in &mut changed.families {
+            family.product_change_events_per_year = 0.0;
+        }
+        cases.push((
+            "product-changes-none".into(),
+            "product_evolution".into(),
+            "no product-change events".into(),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.product_change_events_per_year *= 2.0; }
-        cases.push(("product-changes-double".into(), "product_evolution".into(), "product-change frequency doubled in every family".into(), changed));
+        for family in &mut changed.families {
+            family.product_change_events_per_year *= 2.0;
+        }
+        cases.push((
+            "product-changes-double".into(),
+            "product_evolution".into(),
+            "product-change frequency doubled in every family".into(),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.active_fraction = 1.0; }
-        cases.push(("idle-duration-none".into(), "idle_duration".into(), "all assets assumed active for the full planning horizon".into(), changed));
+        for family in &mut changed.families {
+            family.active_fraction = 1.0;
+        }
+        cases.push((
+            "idle-duration-none".into(),
+            "idle_duration".into(),
+            "all assets assumed active for the full planning horizon".into(),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.active_fraction = (family.active_fraction - 0.3).max(0.0); }
-        cases.push(("idle-duration-plus-30pct".into(), "idle_duration".into(), "asset active fraction reduced by 0.30, floored at zero".into(), changed));
+        for family in &mut changed.families {
+            family.active_fraction = (family.active_fraction - 0.3).max(0.0);
+        }
+        cases.push((
+            "idle-duration-plus-30pct".into(),
+            "idle_duration".into(),
+            "asset active fraction reduced by 0.30, floored at zero".into(),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.salvage_realization_fraction = 0.0; }
-        cases.push(("salvage-realization-none".into(), "salvage_realization".into(), "no terminal salvage value is realized".into(), changed));
+        for family in &mut changed.families {
+            family.salvage_realization_fraction = 0.0;
+        }
+        cases.push((
+            "salvage-realization-none".into(),
+            "salvage_realization".into(),
+            "no terminal salvage value is realized".into(),
+            changed,
+        ));
     }
     {
         let mut changed = base.clone();
-        for family in &mut changed.families { family.salvage_realization_fraction = 1.0; }
-        cases.push(("salvage-realization-full".into(), "salvage_realization".into(), "all declared terminal salvage value is realized, subject to redeployability and reuse success".into(), changed));
+        for family in &mut changed.families {
+            family.salvage_realization_fraction = 1.0;
+        }
+        cases.push((
+            "salvage-realization-full".into(),
+            "salvage_realization".into(),
+            "all declared terminal salvage value is realized, subject to redeployability and reuse success".into(),
+            changed,
+        ));
     }
 
     let mut results = Vec::new();
     for (case_id, dimension, description, changed) in cases {
-        let mut costs_by_strategy: BTreeMap<String, Vec<f64>> = strategies.iter()
-            .map(|strategy| (strategy.strategy_id.clone(), Vec::new())).collect();
+        let mut costs_by_strategy: BTreeMap<String, Vec<f64>> = strategies
+            .iter()
+            .map(|strategy| (strategy.strategy_id.clone(), Vec::new()))
+            .collect();
         for family in &changed.families {
             for strategy in strategies {
-                costs_by_strategy.get_mut(&strategy.strategy_id).unwrap()
-                    .push(calculate_cost(strategy, family, changed.discount_rate_per_year, None).total);
+                costs_by_strategy
+                    .get_mut(&strategy.strategy_id)
+                    .unwrap()
+                    .push(
+                        calculate_cost(strategy, family, changed.discount_rate_per_year, None)
+                            .total,
+                    );
             }
         }
-        let mean_cost: BTreeMap<String, f64> = costs_by_strategy.iter()
-            .map(|(strategy, costs)| (strategy.clone(), costs.iter().sum::<f64>() / costs.len() as f64))
+        let mean_cost: BTreeMap<String, f64> = costs_by_strategy
+            .iter()
+            .map(|(strategy, costs)| {
+                (
+                    strategy.clone(),
+                    costs.iter().sum::<f64>() / costs.len() as f64,
+                )
+            })
             .collect();
-        let worst_cost: BTreeMap<String, f64> = costs_by_strategy.iter()
-            .map(|(strategy, costs)| (strategy.clone(), costs.iter().copied().fold(f64::NEG_INFINITY, f64::max)))
+        let worst_cost: BTreeMap<String, f64> = costs_by_strategy
+            .iter()
+            .map(|(strategy, costs)| {
+                (
+                    strategy.clone(),
+                    costs.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+                )
+            })
             .collect();
-        let best = mean_cost.iter().min_by(|a,b| a.1.total_cmp(b.1).then_with(|| a.0.cmp(b.0)))
-            .ok_or_else(|| "sensitivity_case_has_no_strategies".to_string())?.0.clone();
+        let best = mean_cost
+            .iter()
+            .min_by(|a, b| a.1.total_cmp(b.1).then_with(|| a.0.cmp(b.0)))
+            .ok_or_else(|| "sensitivity_case_has_no_strategies".to_string())?
+            .0
+            .clone();
         results.push(SensitivityResult {
             case_id,
             perturbed_dimension: dimension,
@@ -745,8 +896,10 @@ mod tests {
     }
 
     fn catalog_fixture() -> Catalog {
-        serde_json::from_str(include_str!("../../fixtures/ev_factory_lifecycle_v0_1.json"))
-            .expect("lifecycle fixture parses")
+        serde_json::from_str(include_str!(
+            "../../fixtures/ev_factory_lifecycle_v0_1.json"
+        ))
+        .expect("lifecycle fixture parses")
     }
 
     #[test]
@@ -779,7 +932,8 @@ mod tests {
     #[test]
     fn sensitivity_grid_separates_lifecycle_dimensions() {
         let report = evaluate(&catalog_fixture(), &"b".repeat(64)).expect("report");
-        let cases: BTreeSet<String> = report.sensitivity_results
+        let cases: BTreeSet<String> = report
+            .sensitivity_results
             .iter()
             .map(|case| case.perturbed_dimension.clone())
             .collect();
