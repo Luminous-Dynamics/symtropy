@@ -175,6 +175,7 @@ members = [
     "crates/domains/symtropy-firstlight-bent-feeder",
     "crates/domains/symtropy-firstlight-catastrophe",
     "crates/domains/symtropy-natural-hazards",
+    "crates/domains/symtropy-shallow-water",
 ]
 
 [lints.clippy]
