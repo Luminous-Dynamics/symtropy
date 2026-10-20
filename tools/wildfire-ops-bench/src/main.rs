@@ -488,6 +488,70 @@ fn evaluate_case(case: &Value, index: usize) -> Check<Value> {
     }))
 }
 
+fn benchmark_summary(scenarios: &[Value]) -> Value {
+    let mut b1_selected = 0usize;
+    let mut b1_selected_infeasible = 0usize;
+    let mut b1_oracle_matches = 0usize;
+    let mut b1_actual_blocked_violations = 0usize;
+    let mut b3_selected = 0usize;
+    let mut b3_abstentions = 0usize;
+    let mut b3_oracle_matches = 0usize;
+    let mut b3_selected_infeasible = 0usize;
+
+    for scenario in scenarios {
+        let b1 = &scenario["B1_static_shortest_route"];
+        if !b1["selected_plan_id"].is_null() {
+            b1_selected += 1;
+            if b1["declared_feasible"].as_bool() != Some(true) {
+                b1_selected_infeasible += 1;
+            }
+        }
+        if b1["matches_oracle_expected_plan"].as_bool() == Some(true) {
+            b1_oracle_matches += 1;
+        }
+        b1_actual_blocked_violations += b1["actual_blocked_edge_violations_against_oracle"]
+            .as_u64().unwrap_or(0) as usize;
+
+        let b3 = &scenario["B3_evidence_bounded_feasible_choice"];
+        if b3["no_evidenced_feasible_plan"].as_bool() == Some(true) {
+            b3_abstentions += 1;
+        }
+        if !b3["selected_plan_id"].is_null() {
+            b3_selected += 1;
+            if b3["matches_oracle_expected_plan"].as_bool() != Some(true) {
+                // This counter records decision mismatch separately; hard feasibility is
+                // represented by the method's declared candidate-plan gate.
+            }
+            let selected_id = b3["selected_plan_id"].as_str();
+            let selected_plan = b3["candidate_plans"].as_array().into_iter().flatten()
+                .find(|plan| plan["plan_id"].as_str() == selected_id);
+            if selected_plan.is_none_or(|plan| plan["feasible"].as_bool() != Some(true)) {
+                b3_selected_infeasible += 1;
+            }
+        }
+        if b3["matches_oracle_expected_plan"].as_bool() == Some(true) {
+            b3_oracle_matches += 1;
+        }
+    }
+
+    json!({
+        "scenario_count": scenarios.len(),
+        "B1_static_shortest_route": {
+            "selected_plan_count": b1_selected,
+            "selected_infeasible_plan_count": b1_selected_infeasible,
+            "actual_blocked_edge_violations_against_oracle": b1_actual_blocked_violations,
+            "expected_choice_match_count": b1_oracle_matches
+        },
+        "B3_evidence_bounded_feasible_choice": {
+            "selected_plan_count": b3_selected,
+            "abstention_count": b3_abstentions,
+            "selected_infeasible_plan_count": b3_selected_infeasible,
+            "expected_choice_match_count": b3_oracle_matches
+        },
+        "claim_boundary": "synthetic fixture scorecard only; not a real-world safety or predictive-performance estimate"
+    })
+}
+
 fn validate_case(case: &Value, index: usize) -> Check<Value> {
     let at = format!("cases[{index}]");
     let case_keys = [
@@ -947,6 +1011,7 @@ fn run() -> Check<()> {
     let fixture: Value =
         serde_json::from_slice(&bytes).map_err(|e| format!("parse fixture JSON: {e}"))?;
     let scenarios = validate_corpus(&fixture)?;
+    let summary = benchmark_summary(&scenarios);
     let receipt = json!({
         "result":"pass",
         "validator_version":VERSION,
@@ -954,6 +1019,7 @@ fn run() -> Check<()> {
         "scenario_count":scenarios.len(),
         "corpus_sha256":format!("{:x}",Sha256::digest(&bytes)),
         "source_commit":source_commit,
+        "benchmark_summary":summary,
         "scenarios":scenarios
     });
     println!(
@@ -979,6 +1045,20 @@ mod tests {
     const FIXTURE: &str = include_str!("../../../benchmarks/fixtures/WILDFIRE_OPS_V0_1.json");
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).expect("synthetic fixture parses")
+    }
+
+    #[test]
+    fn corpus_scorecard_quantifies_baseline_failures_and_b3_abstention() {
+        let scenarios = validate_corpus(&fixture()).expect("fixture must validate");
+        let summary = benchmark_summary(&scenarios);
+        assert_eq!(summary["scenario_count"].as_u64(), Some(6));
+        assert_eq!(summary["B1_static_shortest_route"]["selected_plan_count"].as_u64(), Some(5));
+        assert_eq!(summary["B1_static_shortest_route"]["selected_infeasible_plan_count"].as_u64(), Some(5));
+        assert_eq!(summary["B1_static_shortest_route"]["actual_blocked_edge_violations_against_oracle"].as_u64(), Some(1));
+        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["selected_plan_count"].as_u64(), Some(3));
+        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["abstention_count"].as_u64(), Some(3));
+        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["selected_infeasible_plan_count"].as_u64(), Some(0));
+        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["expected_choice_match_count"].as_u64(), Some(6));
     }
 
     #[test]
