@@ -29,6 +29,31 @@ The next comparison should be matched by capability, not marketing language:
 - **Solution uncertainty methods:** NIST describes sources of finite-element solution uncertainty that include computing platform, element choices, mesh density, convergence, geometry, material properties, loading and model choice. A tiny analytical-formula tolerance must not be represented as covering these sources. Source: [NIST FEM solution uncertainty and accuracy assessment](https://www.nist.gov/publications/finite-element-method-solution-uncertainty-asymptotic-solution-and-new-approach).
 - **A modern robustness benchmark candidate:** the 2026 numerical SHM benchmark by Marafini et al. uses a fixed steel beam and combines environmental/operational variability, fast and slow damage, noise and sensor faults; the authors publish the generated data and code through Zenodo. It is synthetic and inherits its model assumptions, so it is a robustness test bed—not experimental ground truth for material or collapse prediction. Its scale is about 10 GB. Sources: [paper](https://arxiv.org/abs/2603.12069), [dataset DOI](https://doi.org/10.5281/zenodo.17900300).
 
+
+## Benchmark ladder: matched comparison against commercial verification practice
+
+NAFEMS states that its benchmarks were intended as independent tests of finite-element systems, with targets derived from analytical solutions where possible, and encourages users to independently verify vendor-quoted results. Its catalogue includes linear-static cases such as the Z-section cantilever (torsion from plate elements), skew plate bending, thick-plate pressure, and free-vibration cases. SOFiSTiK's current 2026 public verification catalogue includes BE3 beam stress/deflection, large-deflection cantilever cases, buckling, static nonlinear material cases, and multiple dynamics/modal cases. These are evidence of breadth in the benchmark *catalogues*, not proof that one product is more accurate than another.
+
+Sources: [NAFEMS code verification](https://www.nafems.org/publications/code-verification/), [NAFEMS Standard Benchmarks](https://www.nafems.org/publications/resource_center/p18/), [SOFiSTiK VERiFiCATiON Benchmarks 2026](https://docs.sofistik.com/2026/en/verification/index.html), and [ASME V&V 10](https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-solid-mechanics). These catalogues and guidance should inform our case selection; reproducing any benchmark still requires a permitted specification, pinned inputs, clear output definitions, and independent oracle.
+
+| Tier | Candidate cases | Required evidence before the next tier |
+|---|---|---|
+| A — closed-form | Axial bar; cantilever tip load; simply supported beam under uniform load | Independent known-answer oracle, unit checks, zero unsupported-physics fallbacks, deterministic receipt |
+| B — linear numerical | Selected NAFEMS/SOFiSTiK beam and plate benchmarks where exact inputs/results are legitimately available | Mesh refinement, equilibrium/reaction balance, prescribed-point outputs, declared error norm and case-specific tolerance |
+| C — advanced numerical | Geometric/material nonlinearity, buckling, transient/modal dynamics, and contact only after each capability is separately registered | Load/time-step controls, convergence evidence, residual/equilibrium checks, branch/path sensitivity where relevant, negative controls |
+| D — physical validation | Non-load-bearing, instrumented bench specimens first; then only context-appropriate independent measured datasets | Traceable geometry/material/loading/boundaries, calibration, holdout data, uncertainty, failed/censored outcomes retained |
+| E — engineering use | A specific context of use with identified hazards and acceptance authority | Qualified professional review and evidence suitable for the actual intended decision; never inferred from a software PASS |
+
+### Metrics to publish as a vector, not a composite score
+
+For every case publish: case/source digest; input and output units; absolute and relative error; norm and extraction location; equilibrium/reaction imbalance; solver convergence and refinement deltas; interval width and containment status when input bounds are supplied; unsupported-request abstention rate; negative-control escape count; run reproducibility by toolchain/architecture; and resource cost on a pinned machine. A single weighted leaderboard can conceal an unsafe weakness in one output or a failed case.
+
+**Candidate internal gates (not universal industry standards):** zero false PASS results across the frozen negative-control matrix; 100% frozen receipt/request digest checks; analytical cases within their declared (10^{-12}) relative / (10^{-15}) absolute oracle tolerance; for future FE cases, pre-register case-specific tolerances before testing and require convergence over at least three controlled refinements plus a normalized equilibrium residual threshold chosen for that formulation. Do not set a single stress percentage for singular fields or compare stress at unlike extraction points. Numerical targets for a future backend must be tied to its case definition, output quantity, and reference-source uncertainty.
+
+### Intervals and standard claims
+
+The current interval extension is formula-domain-specific and does not claim IEEE 1788 conformance. The separate [PHYS-UQ-CONFORMANCE-001 #2348](https://github.com/Luminous-Dynamics/symtropy/issues/2348) track is required before advertising standard-conforming interval arithmetic. ASME V&V 10 supplies a computational-solid-mechanics V&V framework; it does not make an analytical known-answer test equivalent to physical validation.
+
 ## Proposed qualification ladder
 
 ### Gate A — closed-form equation contract
