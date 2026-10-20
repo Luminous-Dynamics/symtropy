@@ -195,7 +195,9 @@ mod tests {
     impl MotorPlanner for TestPlanner {
         fn plan(&mut self, _observation: &[f64], _gain: f64, num_actuators: usize) -> Vec<f64> {
             self.calls += 1;
-            self.commands.clone().unwrap_or_else(|| vec![0.25; num_actuators])
+            self.commands
+                .clone()
+                .unwrap_or_else(|| vec![0.25; num_actuators])
         }
 
         fn status(&self) -> MotorPlannerStatus {
@@ -297,8 +299,7 @@ mod tests {
         let mut agent = TestAgent::new();
         let mut planner = TestPlanner::ready();
         planner.commands = Some(vec![0.9; 4]);
-        planner.result_status =
-            MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure);
+        planner.result_status = MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure);
 
         let result = agent.tick_motor_plan_with(&[0.5], 0.1, &mut planner);
         assert_eq!(result.commands, vec![0.0; 4]);
@@ -312,8 +313,7 @@ mod tests {
     fn typed_motor_plan_preserves_rejection_status_and_vector_shape() {
         let mut agent = TestAgent::new();
         let mut planner = TestPlanner::ready();
-        planner.result_status =
-            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation);
+        planner.result_status = MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation);
 
         let result = agent.tick_motor_plan_with(&[0.5], 0.0, &mut planner);
         assert_eq!(result.commands, vec![0.0; 4]);
