@@ -541,12 +541,19 @@ fn build_output_enclosures(
             .get(&output_key)
             .and_then(Value::as_str)
             .ok_or_else(|| format!("output unit for {output_key} is missing"))?;
+        let width = interval.upper - interval.lower;
+        if !width.is_finite() || width < 0.0 {
+            return Err(format!(
+                "output enclosure width for {output_key} is not finite and non-negative"
+            ));
+        }
         enclosures.insert(
             output_key,
             json!({
                 "lower": interval.lower,
                 "nominal": nominal,
                 "upper": interval.upper,
+                "width": width,
                 "unit": unit
             }),
         );
@@ -806,7 +813,10 @@ mod tests {
             let nominal = enclosure["nominal"].as_f64().unwrap();
             let upper = enclosure["upper"].as_f64().unwrap();
             assert!(lower.is_finite() && nominal.is_finite() && upper.is_finite());
+            let width = enclosure["width"].as_f64().unwrap();
             assert!(lower <= nominal && nominal <= upper);
+            assert!(width.is_finite() && width >= 0.0);
+            assert_eq!(width, upper - lower);
             assert_eq!(enclosure["unit"], receipt["output_units"][key]);
         }
         assert_eq!(
