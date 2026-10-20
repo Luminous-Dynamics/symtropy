@@ -471,8 +471,12 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                     let cost_key = RateCardGroupKey {
                         build_id: event.build_id.clone(),
                         configuration_sha256: event.configuration_sha256.clone(),
+                        task_id: event.task_id.clone(),
+                        quantity_key: quantity.quantity_key.clone(),
+                        unit: quantity.unit.clone(),
                         stage: event.stage,
                         currency_basis_id: rate.currency_basis_id.clone(),
+                        minor_unit_exponent: rate.minor_unit_exponent,
                         rate_card_ref: rate.rate_card_ref.clone(),
                     };
                     let prior = estimated_costs.get(&cost_key).copied().unwrap_or(0.0);
