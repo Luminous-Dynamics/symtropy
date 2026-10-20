@@ -128,3 +128,6 @@ The comparison is deliberately tier-matched rather than a blanket claim that Sym
 5. **Decision utility:** interval width, rejection/abstention rates, sensitivity to input bounds, runtime/memory on pinned hardware, and downstream false-confidence/false-pass rate.
 
 Target: zero silent fallback, zero false PASS in frozen unsupported/invalid fixtures, 100% deterministic output for pinned request/manifest/revisions, and a published per-case error matrix. Set numerical superiority thresholds only after selecting matched references and preregistering the evaluation; do not compare unlike model classes or conceal unresolved cases.
+
+
+The dispatcher accepts both the point-only request/receipt pair v0.1 and bounded-input pair v0.2. For v0.2 it checks that any declared intervals cover the exact inputs, preserve nominal values, use the correct SI unit, and obey positive-domain bounds before resolving capabilities. It then either returns a pre-evaluation abstention or nests the v0.2 analytical receipt after a single qualified backend is selected. The nested result's interval is still conditional on the declared equation and bounds, not a probability or model-validation claim.
