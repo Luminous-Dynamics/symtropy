@@ -3,8 +3,8 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Sync ND physics bodies to Bevy Transform components.
 
-use bevy::prelude::*;
 use crate::projection::Projector4D;
+use bevy::prelude::*;
 use symtropy_physics::body::BodyHandle;
 
 /// Bevy component that links an entity to a physics body.
@@ -175,7 +175,6 @@ pub struct PhysicsWorldRes4D {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn w_slice_projection_is_fully_opaque_on_the_slice_plane() {
