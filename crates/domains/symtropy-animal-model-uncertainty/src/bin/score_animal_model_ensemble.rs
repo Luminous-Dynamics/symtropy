@@ -246,6 +246,8 @@ fn build_report(
         "action_preference": action_preferences.iter().map(|result| json!({
             "first_action": result.first_action,
             "second_action": result.second_action,
+            "first_admissible_across_all_models": result.first_admissible_across_all_models,
+            "second_admissible_across_all_models": result.second_admissible_across_all_models,
             "minimum_loss_difference": result.minimum_loss_difference,
             "maximum_loss_difference": result.maximum_loss_difference,
             "minimizing_weights": result.minimizing_weights,
@@ -459,6 +461,14 @@ mod tests {
         assert_eq!(
             graze_retreat["stability"].as_str(),
             Some("ranking_can_flip")
+        );
+        assert_eq!(
+            graze_retreat["first_admissible_across_all_models"].as_bool(),
+            Some(false)
+        );
+        assert_eq!(
+            graze_retreat["second_admissible_across_all_models"].as_bool(),
+            Some(true)
         );
         let retreat_wait = report["action_preference"]
             .as_array()
