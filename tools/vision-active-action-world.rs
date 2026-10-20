@@ -379,6 +379,7 @@ enum Policy {
     SurpriseOnly,
     DeterministicRandom,
     SequentialEvidence,
+    NuisanceMatched,
 }
 
 impl Policy {
@@ -390,6 +391,7 @@ impl Policy {
             Self::SurpriseOnly => "surprise_only",
             Self::DeterministicRandom => "deterministic_random",
             Self::SequentialEvidence => "sequential_evidence",
+            Self::NuisanceMatched => "nuisance_matched",
         }
     }
 
@@ -432,6 +434,59 @@ impl Policy {
                     .collect();
                 let index = (observation.public_hash(policy_seed) % available.len() as u64) as usize;
                 available[index]
+            }
+            Self::NuisanceMatched => {
+                // Hypothesis: use the action that can address the dominant
+                // visible nuisance. Compute can help blur but cannot recover
+                // hidden geometry; a legal view can address occlusion, while
+                // a fresh sample can help when current-frame blur dominates.
+                if observation.occlusion_milli >= 650 {
+                    if observation.alternate_view_available {
+                        return VisionAction::ChangeView;
+                    }
+                    if observation.next_sample_available {
+                        return VisionAction::AcquireNext;
+                    }
+                    if observation.timed_event_available {
+                        return VisionAction::WaitForEvent;
+                    }
+                    return VisionAction::AbstainOrHandoff;
+                }
+                if observation.blur_milli >= 600 {
+                    if observation.compute_available {
+                        return VisionAction::EscalateCurrent;
+                    }
+                    if observation.next_sample_available {
+                        return VisionAction::AcquireNext;
+                    }
+                    if observation.alternate_view_available {
+                        return VisionAction::ChangeView;
+                    }
+                }
+                if observation.surprise_milli >= 800 && observation.alternate_view_available {
+                    return VisionAction::ChangeView;
+                }
+                if observation.novelty_milli >= 700 {
+                    if observation.alternate_view_available {
+                        return VisionAction::ChangeView;
+                    }
+                    if observation.next_sample_available {
+                        return VisionAction::AcquireNext;
+                    }
+                }
+                if observation.confidence_milli < 400 {
+                    if observation.next_sample_available {
+                        return VisionAction::AcquireNext;
+                    }
+                    if observation.timed_event_available {
+                        return VisionAction::WaitForEvent;
+                    }
+                    return VisionAction::AbstainOrHandoff;
+                }
+                if observation.confidence_milli < 550 && observation.compute_available {
+                    return VisionAction::EscalateCurrent;
+                }
+                VisionAction::KeepCheap
             }
             Self::SequentialEvidence => {
                 if observation.occlusion_milli >= 600 {
@@ -691,6 +746,7 @@ fn run_report() -> Result<(), EvaluationError> {
         Policy::SurpriseOnly,
         Policy::DeterministicRandom,
         Policy::SequentialEvidence,
+        Policy::NuisanceMatched,
     ];
 
     println!("VIS-ACT-002 causal synthetic active-vision pilot");
@@ -844,6 +900,32 @@ mod tests {
     }
 
     #[test]
+    fn nuisance_matched_policy_uses_compute_for_blur_and_view_for_occlusion() {
+        let blurred = PublicObservation {
+            initial_guess: false,
+            confidence_milli: 300,
+            surprise_milli: 100,
+            occlusion_milli: 100,
+            blur_milli: 900,
+            novelty_milli: 100,
+            compute_available: true,
+            next_sample_available: true,
+            alternate_view_available: true,
+            timed_event_available: true,
+        };
+        assert_eq!(
+            Policy::NuisanceMatched.propose(blurred, 0),
+            VisionAction::EscalateCurrent
+        );
+
+        let occluded = PublicObservation { occlusion_milli: 900, blur_milli: 100, ..blurred };
+        assert_eq!(
+            Policy::NuisanceMatched.propose(occluded, 0),
+            VisionAction::ChangeView
+        );
+    }
+
+    #[test]
     fn all_policies_stay_within_shared_budgets_and_summary_is_repeatable() {
         let worlds = generate_worlds(EPISODE_COUNT, ROOT_SEED);
         for policy in [
@@ -853,6 +935,7 @@ mod tests {
             Policy::SurpriseOnly,
             Policy::DeterministicRandom,
             Policy::SequentialEvidence,
+            Policy::NuisanceMatched,
         ] {
             let first = evaluate_policy(policy, &worlds, 0).unwrap();
             let second = evaluate_policy(policy, &worlds, 0).unwrap();
