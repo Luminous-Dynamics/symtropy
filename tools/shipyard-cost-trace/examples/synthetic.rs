@@ -15,6 +15,7 @@ fn main() {
             stage: Stage::Planned,
             source_ref: "fixture:planned-hours".to_owned(),
             source_permission: EvidencePermission::PublicOrPermitted,
+        source_permission_ref: "fixture-rights:public-test-data".to_owned(),
             related_event_ids: vec![],
             kind: EventKind::Quantity(QuantityEvent {
                 quantity_key: "labor.welder.hours".to_owned(),
@@ -35,6 +36,7 @@ fn main() {
             stage: Stage::Observed,
             source_ref: "fixture:observed-hours".to_owned(),
             source_permission: EvidencePermission::PublicOrPermitted,
+        source_permission_ref: "fixture-rights:public-test-data".to_owned(),
             related_event_ids: vec!["planned-weld-hours".to_owned()],
             kind: EventKind::Quantity(QuantityEvent {
                 quantity_key: "labor.welder.hours".to_owned(),
@@ -55,6 +57,7 @@ fn main() {
             stage: Stage::Observed,
             source_ref: "fixture:invoice-0001".to_owned(),
             source_permission: EvidencePermission::PublicOrPermitted,
+        source_permission_ref: "fixture-rights:public-test-data".to_owned(),
             related_event_ids: vec!["observed-weld-hours".to_owned()],
             kind: EventKind::FinancialActual(FinancialTransaction {
                 transaction_ref: "invoice-0001:line-1".to_owned(),
