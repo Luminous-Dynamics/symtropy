@@ -436,10 +436,10 @@ fn validate_and_own(report: SimulationReport, coordinate: &Coordinate) -> Result
     if !scenario_id.ends_with(&expected_suffix) {
         return Err(format!("scenario_id_does_not_match_run_coordinate:expected_suffix={expected_suffix}"));
     }
-    if report.results.iter().any(|result| result.scenario_id != scenario_id || result.evidence_class != "estimate") {
+    if report.results.iter().any(|result| result.scenario_id != scenario_id || result.evidence_class != "estimate" || result.port_release_policy != coordinate.port_release_policy) {
         return Err("policy_results_must_share_scenario_and_be_estimate_evidence".into());
     }
-    if report.capacity_frontiers.iter().any(|frontier| frontier.scenario_id != scenario_id || frontier.evidence_class != "estimate") {
+    if report.capacity_frontiers.iter().any(|frontier| frontier.scenario_id != scenario_id || frontier.evidence_class != "estimate" || frontier.port_release_policy != coordinate.port_release_policy) {
         return Err("frontiers_must_share_scenario_and_be_estimate_evidence".into());
     }
 
@@ -547,6 +547,7 @@ fn validate_and_own(report: SimulationReport, coordinate: &Coordinate) -> Result
         }
         owned_frontiers.push(FrontierOwned {
             policy: frontier.policy.clone(),
+            port_release_policy: frontier.port_release_policy.clone(),
             base_site_power_budget_kw: frontier.base_site_power_budget_kw,
             points,
         });
@@ -554,6 +555,7 @@ fn validate_and_own(report: SimulationReport, coordinate: &Coordinate) -> Result
     let evidence_reference = report.results.first().unwrap().evidence_reference.clone();
     let owned_results = report.results.into_iter().map(|result| PolicyResultOwned {
         policy: result.policy,
+        port_release_policy: result.port_release_policy,
         job_count: result.job_count,
         completed_by_deadline_count: result.completed_by_deadline_count,
         missed_deadline_count: result.missed_deadline_count,
