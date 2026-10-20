@@ -74,7 +74,8 @@ jobs:
             and .summary.deconstruction_step_count == 3
             and .summary.deconstruction_recovered_component_count == 2
             and .summary.deconstruction_recovered_mass_mg == 3000
-            and .summary.recovery_comparison_status == "synthetic"
+            and .summary.recovery_evidence_status == "synthetic"
+            and .summary.recovery_plan_agreement == "deviates"
             and .summary.recovery_observed_mass_residual_mg == 40
             and .summary.recovery_reused_delta_mg == -50
             and .summary.recovery_recycled_delta_mg == -20
