@@ -99,9 +99,15 @@ impl CaseKind {
 
     fn assumptions(self) -> &'static str {
         match self {
-            Self::AxialBar => "Uniform axial bar, constant cross-sectional area, static linear elasticity; tension is positive and compression negative; small strain.",
-            Self::CantileverTipLoad => "Static, small-deflection, linear-elastic Euler-Bernoulli cantilever with constant section and a point load at the free tip. Force sign determines deflection direction; maximum bending stress is reported as a non-negative magnitude.",
-            Self::SimplySupportedUniformLoad => "Static, small-deflection, linear-elastic Euler-Bernoulli simply supported prismatic beam with constant section and uniform load across the full span. Load sign determines deflection direction; maximum bending stress is reported as a non-negative magnitude.",
+            Self::AxialBar => {
+                "Uniform axial bar, constant cross-sectional area, static linear elasticity; tension is positive and compression negative; small strain."
+            }
+            Self::CantileverTipLoad => {
+                "Static, small-deflection, linear-elastic Euler-Bernoulli cantilever with constant section and a point load at the free tip. Force sign determines deflection direction; maximum bending stress is reported as a non-negative magnitude."
+            }
+            Self::SimplySupportedUniformLoad => {
+                "Static, small-deflection, linear-elastic Euler-Bernoulli simply supported prismatic beam with constant section and uniform load across the full span. Load sign determines deflection direction; maximum bending stress is reported as a non-negative magnitude."
+            }
         }
     }
 }
@@ -170,7 +176,9 @@ pub fn evaluate_request_bytes(bytes: &[u8], adapter_revision: &str) -> Check<Val
             &input_digest,
             "UNRESOLVED",
             Value::Null,
-            vec![format!("analytical evaluation could not be completed: {error}")],
+            vec![format!(
+                "analytical evaluation could not be completed: {error}"
+            )],
         )),
     }
 }
@@ -369,17 +377,15 @@ fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
     exact_keys_map(object, expected, at)
 }
 
-fn exact_keys_map(
-    actual: &Map<String, Value>,
-    expected: &[&str],
-    at: &str,
-) -> Check<()> {
+fn exact_keys_map(actual: &Map<String, Value>, expected: &[&str], at: &str) -> Check<()> {
     let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
     let actual_set: BTreeSet<&str> = actual.keys().map(String::as_str).collect();
     let missing: Vec<_> = expected_set.difference(&actual_set).copied().collect();
     let unknown: Vec<_> = actual_set.difference(&expected_set).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
-        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
     }
     Ok(())
 }
@@ -448,7 +454,9 @@ fn validate_hex(value: &str, length: usize, label: &str) -> Check<()> {
             .bytes()
             .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
     {
-        return Err(format!("{label} must be {length} lowercase hexadecimal characters"));
+        return Err(format!(
+            "{label} must be {length} lowercase hexadecimal characters"
+        ));
     }
     Ok(())
 }
