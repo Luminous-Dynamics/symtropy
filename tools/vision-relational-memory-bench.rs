@@ -24,6 +24,9 @@ const BOOTSTRAPS: usize = 2_000;
 // The algorithm is still an exploratory candidate, not preregistered evidence.
 const ROOT_SEED: u64 = 0x510E_527F_ADE6_82D1;
 const CAPS: [usize; 5] = [1, 2, 3, 4, 8];
+const HAZARD_RATES: [f64; 7] = [0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.4];
+const HAZARD_LOG_PRIOR: [i32; 7] = [-1234, -1550, -1755, -2016, -2588, -3067, -3590];
+const LOG_SCORE_SCALE: f64 = 1024.0;
 const STRATA_COUNT: usize = 8;
 const STRATA_NAMES: [&str; STRATA_COUNT] = [
     "claim_changed_after_latest_source",
@@ -300,15 +303,16 @@ impl Episode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Kind { Fifo, Reservoir, QueryKeyed, QueryKeyedSelective, QueryKeyedHazardAware }
+enum Kind { Fifo, Reservoir, QueryKeyed, QueryKeyedSelective, QueryKeyedHazardAware, QueryKeyedGapAware }
 
 impl Kind {
-    const ALL: [Self; 5] = [
+    const ALL: [Self; 6] = [
         Self::Fifo,
         Self::Reservoir,
         Self::QueryKeyed,
         Self::QueryKeyedSelective,
         Self::QueryKeyedHazardAware,
+        Self::QueryKeyedGapAware,
     ];
     fn name(self) -> &'static str {
         match self {
@@ -317,6 +321,7 @@ impl Kind {
             Self::QueryKeyed => "query_keyed_latest",
             Self::QueryKeyedSelective => "query_keyed_selective",
             Self::QueryKeyedHazardAware => "query_keyed_hazard_aware",
+            Self::QueryKeyedGapAware => "query_keyed_gap_aware",
         }
     }
 }
@@ -364,6 +369,60 @@ impl HazardStats {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+struct GapAwareStats {
+    last_reliable: Option<Evidence>,
+    log_scores: [i32; HAZARD_RATES.len()],
+}
+
+impl Default for GapAwareStats {
+    fn default() -> Self {
+        Self {
+            last_reliable: None,
+            log_scores: HAZARD_LOG_PRIOR,
+        }
+    }
+}
+
+impl GapAwareStats {
+    fn observe(&mut self, evidence: Evidence) {
+        // Use only the released high-confidence tier. Confidence is not a
+        // corruption label, and evaluator truth never reaches this policy.
+        if evidence.confidence < 900 { return; }
+        match self.last_reliable {
+            None => self.last_reliable = Some(evidence),
+            Some(previous) if evidence.source_tick > previous.source_tick => {
+                let gap = i32::from(evidence.source_tick - previous.source_tick);
+                let changed = evidence.value != previous.value;
+                for (index, hazard) in HAZARD_RATES.iter().copied().enumerate() {
+                    // Symmetric two-state Markov likelihood for an irregular
+                    // observation interval of length gap.
+                    let persistence = (1.0 - 2.0 * hazard).powi(gap);
+                    let probability_changed = ((1.0 - persistence) / 2.0).clamp(1e-9, 0.5 - 1e-9);
+                    let likelihood = if changed { probability_changed } else { 1.0 - probability_changed };
+                    let increment = (likelihood.ln() * LOG_SCORE_SCALE).round() as i32;
+                    self.log_scores[index] = self.log_scores[index].saturating_add(increment);
+                }
+                self.last_reliable = Some(evidence);
+            }
+            // Same-source duplicates and delayed older reports cannot rewind
+            // source-time likelihood statistics.
+            Some(_) => {}
+        }
+    }
+
+    fn estimated_flip_hazard(self) -> f64 {
+        let max_score = *self.log_scores.iter().max().unwrap_or(&0);
+        let weights: [f64; HAZARD_RATES.len()] = std::array::from_fn(|index| {
+            (f64::from(self.log_scores[index] - max_score) / LOG_SCORE_SCALE).exp()
+        });
+        let denominator = weights.iter().sum::<f64>().max(f64::MIN_POSITIVE);
+        HAZARD_RATES.iter().zip(weights.iter())
+            .map(|(rate, weight)| rate * weight)
+            .sum::<f64>() / denominator
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Memory {
     kind: Kind,
@@ -372,9 +431,10 @@ struct Memory {
     entries: Vec<Evidence>,
     seen: u64,
     actor_seed: u64,
-    // Three per-query sufficient-statistic records. The hazard policy's
-    // additional state bytes are surfaced in the report, not treated as free.
+    // Per-query sufficient statistics are included in logical policy cost
+    // only for the policy that consumes them.
     hazard_stats: [HazardStats; QUERY_WIDTH],
+    gap_aware_stats: [GapAwareStats; QUERY_WIDTH],
 }
 
 impl Memory {
@@ -387,14 +447,19 @@ impl Memory {
             seen: 0,
             actor_seed,
             hazard_stats: [HazardStats::default(); QUERY_WIDTH],
+            gap_aware_stats: [GapAwareStats::default(); QUERY_WIDTH],
         }
     }
 
     fn observe(&mut self, e: Evidence) {
         if self.cap == 0 || e.key() >= CLAIMS { return; }
-        if self.kind == Kind::QueryKeyedHazardAware && self.query.contains(e.key()) {
+        if self.query.contains(e.key()) {
             if let Some(index) = self.query.keys.iter().position(|key| *key == e.key()) {
-                self.hazard_stats[index].observe(e);
+                if self.kind == Kind::QueryKeyedHazardAware {
+                    self.hazard_stats[index].observe(e);
+                } else if self.kind == Kind::QueryKeyedGapAware {
+                    self.gap_aware_stats[index].observe(e);
+                }
             }
         }
         match self.kind {
@@ -414,7 +479,7 @@ impl Memory {
                     if draw < self.cap as u64 { self.entries[draw as usize] = e; }
                 }
             }
-            Kind::QueryKeyed | Kind::QueryKeyedSelective | Kind::QueryKeyedHazardAware => {
+            Kind::QueryKeyed | Kind::QueryKeyedSelective | Kind::QueryKeyedHazardAware | Kind::QueryKeyedGapAware => {
                 // Query keys are public. The policy receives no hidden truth,
                 // future observation, seed or evaluator annotation.
                 if !self.query.contains(e.key()) { return; }
@@ -457,6 +522,33 @@ impl Memory {
             positive += usize::from(e.value);
         }
         Some(positive >= 2)
+    }
+
+    fn decide_gap_aware(&self, tick: usize) -> Option<bool> {
+        let mut probabilities = [0.5_f64; QUERY_WIDTH];
+        for (index, key) in self.query.keys.iter().copied().enumerate() {
+            let evidence = self.freshest(key)?;
+            let age = tick.saturating_sub(usize::from(evidence.source_tick));
+            let reliability = (f64::from(evidence.confidence) / 1_000.0).clamp(0.5, 0.99);
+            let hazard = self.gap_aware_stats[index].estimated_flip_hazard();
+            let parity_persistence = (1.0 - 2.0 * hazard).powi(age as i32);
+            let probability_same = 0.5 + (reliability - 0.5) * parity_persistence;
+            probabilities[index] = if evidence.value { probability_same } else { 1.0 - probability_same };
+        }
+
+        let [p0, p1, p2] = probabilities;
+        let p_majority_true =
+            p0 * p1 * (1.0 - p2)
+            + p0 * (1.0 - p1) * p2
+            + (1.0 - p0) * p1 * p2
+            + p0 * p1 * p2;
+        if p_majority_true > 0.75 {
+            Some(true)
+        } else if p_majority_true < 0.25 {
+            Some(false)
+        } else {
+            None
+        }
     }
 
     fn decide_hazard_aware(&self, tick: usize) -> Option<bool> {
@@ -518,6 +610,7 @@ fn evaluate_with_threshold(
     let decision = match kind {
         Kind::QueryKeyedSelective => memory.decide_with_threshold(HORIZON, threshold),
         Kind::QueryKeyedHazardAware => memory.decide_hazard_aware(HORIZON),
+        Kind::QueryKeyedGapAware => memory.decide_gap_aware(HORIZON),
         _ => memory.decide(HORIZON),
     };
     let correct = decision.is_some_and(|answer| answer == ep.target_answer());
@@ -525,10 +618,10 @@ fn evaluate_with_threshold(
     // sufficient statistics. Allocator overhead and executable/runtime memory
     // are excluded and must not be presented as measured RAM.
     let logical_state_bytes = memory.entries.len() * std::mem::size_of::<Evidence>()
-        + if kind == Kind::QueryKeyedHazardAware {
-            std::mem::size_of::<[HazardStats; QUERY_WIDTH]>()
-        } else {
-            0
+        + match kind {
+            Kind::QueryKeyedHazardAware => std::mem::size_of::<[HazardStats; QUERY_WIDTH]>(),
+            Kind::QueryKeyedGapAware => std::mem::size_of::<[GapAwareStats; QUERY_WIDTH]>(),
+            _ => 0,
         };
     Outcome {
         loss: match decision { None => 0.25, Some(_) if correct => 0.0, Some(_) => 1.0 },
