@@ -48,16 +48,24 @@ struct BoundOutput {
 /// Assess response(A + B) == response(A) + response(B) for a narrowly declared
 /// linear-static model envelope. The exact requests, receipts and selected outputs
 /// are hashed and bound; all required output kinds must be scored.
+pub struct BoundSolverRun<'a> {
+    pub request_bytes: &'a [u8],
+    pub receipt_bytes: &'a [u8],
+}
+
 pub fn assess_superposition_relation_bytes(
-    request_a_bytes: &[u8],
-    receipt_a_bytes: &[u8],
-    request_b_bytes: &[u8],
-    receipt_b_bytes: &[u8],
-    request_combined_bytes: &[u8],
-    receipt_combined_bytes: &[u8],
+    run_a: BoundSolverRun<'_>,
+    run_b: BoundSolverRun<'_>,
+    run_combined: BoundSolverRun<'_>,
     artifact_root: &Path,
     manifest_bytes: &[u8],
 ) -> Check<Value> {
+    let request_a_bytes = run_a.request_bytes;
+    let receipt_a_bytes = run_a.receipt_bytes;
+    let request_b_bytes = run_b.request_bytes;
+    let receipt_b_bytes = run_b.receipt_bytes;
+    let request_combined_bytes = run_combined.request_bytes;
+    let receipt_combined_bytes = run_combined.receipt_bytes;
     let manifest_sha256 = sha256_hex(manifest_bytes);
     let request_a_sha256 = sha256_hex(request_a_bytes);
     let request_b_sha256 = sha256_hex(request_b_bytes);
@@ -1123,12 +1131,18 @@ mod tests {
 
     fn assess(bundle: &Bundle) -> Value {
         assess_superposition_relation_bytes(
-            &bundle.request_a,
-            &bundle.receipt_a,
-            &bundle.request_b,
-            &bundle.receipt_b,
-            &bundle.request_combined,
-            &bundle.receipt_combined,
+            BoundSolverRun {
+                request_bytes: &bundle.request_a,
+                receipt_bytes: &bundle.receipt_a,
+            },
+            BoundSolverRun {
+                request_bytes: &bundle.request_b,
+                receipt_bytes: &bundle.receipt_b,
+            },
+            BoundSolverRun {
+                request_bytes: &bundle.request_combined,
+                receipt_bytes: &bundle.receipt_combined,
+            },
             &bundle.root,
             &bundle.manifest,
         )
