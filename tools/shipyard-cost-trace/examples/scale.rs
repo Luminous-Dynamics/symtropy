@@ -23,6 +23,7 @@ fn workload(size: usize) -> Vec<LedgerEvent> {
             stage: Stage::Observed,
             source_ref: format!("synthetic:event-{index:06}"),
             source_permission: EvidencePermission::PublicOrPermitted,
+        source_permission_ref: "fixture-rights:public-test-data".to_owned(),
             related_event_ids,
             kind: EventKind::Quantity(QuantityEvent {
                 quantity_key: "labor.fitter.hours".to_owned(),
