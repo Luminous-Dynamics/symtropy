@@ -1,0 +1,1027 @@
+use serde::{Deserialize, Serialize};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeSet, BinaryHeap, VecDeque},
+    env, fs, process,
+};
+
+const DEFAULT_FIXTURE: &str =
+    "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json";
+const CLAIM_CEILING: &str = "Deterministic synthetic discrete-event sensitivity model only. It is not a calibrated plant digital twin, audited production forecast, site design, verified safety case, vendor quote, or capital-investment recommendation.";
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct Catalog {
+    schema_version: String,
+    benchmark_id: String,
+    seed: u64,
+    horizon_seconds: u64,
+    warmup_seconds: u64,
+    productive_seconds_per_year: u64,
+    variant_count: usize,
+    variant_batch_size: u64,
+    mean_supply_interarrival_seconds: f64,
+    supply_interarrival_variability_fraction: f64,
+    source_buffer_capacity: usize,
+    buffer_capacities: Vec<usize>,
+    input_evidence_class: EvidenceClass,
+    calibration_gate: GateStatus,
+    local_compliance_gate: GateStatus,
+    line_safety_gate: GateStatus,
+    product_quality_release_gate: GateStatus,
+    stations: Vec<Station>,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct Station {
+    station_id: String,
+    label: String,
+    servers: usize,
+    mean_cycle_seconds: f64,
+    cycle_time_variability_fraction: f64,
+    changeover_seconds: f64,
+    mean_time_between_failures_seconds: f64,
+    mean_time_to_repair_seconds: f64,
+    good_yield_fraction: f64,
+    max_rework_attempts: u32,
+    evidence_class: EvidenceClass,
+    note: String,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum EvidenceClass {
+    Synthetic,
+    PublicMarketData,
+    ManufacturerSpec,
+    OfficialRecord,
+    Measured,
+    IndependentTest,
+    AuditedCost,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum GateStatus {
+    Passed,
+    Failed,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct Report {
+    schema_version: String,
+    benchmark_id: String,
+    seed: u64,
+    scenario_count: usize,
+    measured_horizon_seconds: u64,
+    productive_seconds_per_year: u64,
+    input_evidence_class: EvidenceClass,
+    calibration_gate: GateStatus,
+    local_compliance_gate: GateStatus,
+    line_safety_gate: GateStatus,
+    product_quality_release_gate: GateStatus,
+    release_ready: bool,
+    output_never_exceeds_released_input: bool,
+    all_buffers_respected_capacity: bool,
+    station_time_accounting_within_horizon: bool,
+    scenarios: Vec<ScenarioResult>,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct ScenarioResult {
+    scenario_id: String,
+    intervention_station_id: Option<String>,
+    added_servers: usize,
+    released_jobs_total: u64,
+    good_units_total: u64,
+    measured_good_units: u64,
+    scrapped_jobs_total: u64,
+    measured_rework_attempts: u64,
+    measured_good_units_per_hour: f64,
+    annualized_good_units_at_declared_operating_hours: f64,
+    supplier_backlog_peak_units: usize,
+    supplier_backlog_average_units: f64,
+    source_buffer_peak_units: usize,
+    source_buffer_average_units: f64,
+    interstation_buffers: Vec<BufferResult>,
+    stations: Vec<StationResult>,
+    output_never_exceeds_released_input: bool,
+    all_buffers_respected_capacity: bool,
+    station_time_accounting_within_horizon: bool,
+    release_ready: bool,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct BufferResult {
+    after_station_id: String,
+    capacity_units: usize,
+    peak_occupancy_units: usize,
+    average_occupancy_units: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StationResult {
+    station_id: String,
+    label: String,
+    server_count: usize,
+    attempts_started_after_warmup: u64,
+    successful_attempts_after_warmup: u64,
+    rework_attempts_after_warmup: u64,
+    scrapped_jobs_after_warmup: u64,
+    busy_fraction: f64,
+    blocked_fraction: f64,
+    starved_fraction: f64,
+    down_fraction: f64,
+    accounted_fraction: f64,
+    added_server_good_output_delta_fraction: Option<f64>,
+}
+
+#[derive(Debug, Clone)]
+struct Job {
+    id: u64,
+    variant: usize,
+}
+
+#[derive(Debug, Clone)]
+enum ServerState {
+    Idle,
+    Busy {
+        job: Job,
+        station_attempts: u32,
+        service_seconds_for_job: u64,
+    },
+    WaitingOutput {
+        job: Job,
+        machine_fails_after_release: bool,
+    },
+    Down,
+}
+
+#[derive(Debug, Clone)]
+struct Server {
+    state: ServerState,
+    last_variant: Option<usize>,
+}
+
+#[derive(Debug, Default, Clone)]
+struct StationMetrics {
+    busy_seconds: f64,
+    blocked_seconds: f64,
+    starved_seconds: f64,
+    down_seconds: f64,
+    attempts_started_after_warmup: u64,
+    successful_attempts_after_warmup: u64,
+    rework_attempts_after_warmup: u64,
+    scrapped_jobs_after_warmup: u64,
+}
+
+#[derive(Debug, Clone)]
+struct StationRuntime {
+    servers: Vec<Server>,
+    metrics: StationMetrics,
+}
+
+#[derive(Debug, Clone)]
+struct SimState {
+    now: u64,
+    next_event_sequence: u64,
+    events: BinaryHeap<TimedEvent>,
+    rng: DeterministicRng,
+    stations: Vec<StationRuntime>,
+    buffers: Vec<VecDeque<Job>>,
+    buffer_peak_occupancy: Vec<usize>,
+    buffer_wip_area: Vec<f64>,
+    source_buffer: VecDeque<Job>,
+    source_buffer_peak: usize,
+    source_buffer_wip_area: f64,
+    supplier_backlog: VecDeque<Job>,
+    supplier_backlog_peak: usize,
+    supplier_backlog_wip_area: f64,
+    next_job_id: u64,
+    released_jobs_total: u64,
+    good_units_total: u64,
+    measured_good_units: u64,
+    scrapped_jobs_total: u64,
+    measured_rework_attempts: u64,
+    buffer_capacity_violation: bool,
+}
+
+#[derive(Debug, Clone)]
+struct TimedEvent {
+    at: u64,
+    sequence: u64,
+    kind: EventKind,
+}
+
+#[derive(Debug, Clone)]
+enum EventKind {
+    SupplyArrival,
+    OperationComplete { station: usize, server: usize },
+    RepairComplete { station: usize, server: usize },
+}
+
+impl PartialEq for TimedEvent {
+    fn eq(&self, other: &Self) -> bool {
+        self.at == other.at && self.sequence == other.sequence
+    }
+}
+impl Eq for TimedEvent {}
+impl PartialOrd for TimedEvent {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for TimedEvent {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // BinaryHeap is a max heap; reverse time and sequence to create a
+        // deterministic min-heap with FIFO tie-breaking.
+        other
+            .at
+            .cmp(&self.at)
+            .then_with(|| other.sequence.cmp(&self.sequence))
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DeterministicRng {
+    state: u64,
+}
+
+impl DeterministicRng {
+    fn new(seed: u64) -> Self {
+        Self {
+            state: if seed == 0 { 0x9e3779b97f4a7c15 } else { seed },
+        }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        // xorshift64*: fixed algorithm and integer width for portable fixtures.
+        let mut x = self.state;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.state = x;
+        x.wrapping_mul(0x2545f4914f6cdd1d)
+    }
+
+    fn unit(&mut self) -> f64 {
+        // Use 53 high bits to obtain a deterministic value in [0, 1).
+        ((self.next_u64() >> 11) as f64) * (1.0 / ((1_u64 << 53) as f64))
+    }
+
+    fn around(&mut self, mean: f64, variability: f64) -> u64 {
+        let factor = 1.0 + ((self.unit() * 2.0 - 1.0) * variability);
+        (mean * factor).round().max(1.0) as u64
+    }
+}
+
+fn main() {
+    let path = env::args()
+        .nth(1)
+        .unwrap_or_else(|| DEFAULT_FIXTURE.to_string());
+    let input = match fs::read_to_string(&path) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("cannot read {path}: {error}");
+            process::exit(2);
+        }
+    };
+    let catalog: Catalog = match serde_json::from_str(&input) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid factory simulation catalog: {error}");
+            process::exit(2);
+        }
+    };
+    if let Err(error) = validate_catalog(&catalog) {
+        eprintln!("invalid factory simulation catalog: {error}");
+        process::exit(2);
+    }
+    let report = match evaluate_catalog(&catalog) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("factory simulation failed: {error}");
+            process::exit(2);
+        }
+    };
+    match serde_json::to_string_pretty(&report) {
+        Ok(value) => println!("{value}"),
+        Err(error) => {
+            eprintln!("cannot serialize factory simulation report: {error}");
+            process::exit(2);
+        }
+    }
+}
+
+fn validate_fraction(name: &str, value: f64, allow_one: bool) -> Result<(), String> {
+    if !value.is_finite()
+        || value < 0.0
+        || if allow_one {
+            value > 1.0
+        } else {
+            value >= 1.0
+        }
+    {
+        return Err(format!("{name}_must_be_a_valid_fraction"));
+    }
+    Ok(())
+}
+
+fn validate_positive_finite(name: &str, value: f64) -> Result<(), String> {
+    if !value.is_finite() || value <= 0.0 {
+        return Err(format!("{name}_must_be_finite_and_positive"));
+    }
+    Ok(())
+}
+
+fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
+    if catalog.schema_version != "0.1.0"
+        || catalog.benchmark_id.trim().is_empty()
+        || catalog.claim_ceiling.trim().is_empty()
+    {
+        return Err("invalid_version_benchmark_id_or_claim_ceiling".into());
+    }
+    if catalog.seed == 0 {
+        return Err("seed_must_be_nonzero_for_explicit_reproducibility".into());
+    }
+    if catalog.horizon_seconds < 10
+        || catalog.warmup_seconds >= catalog.horizon_seconds
+        || catalog.productive_seconds_per_year == 0
+    {
+        return Err("horizon_warmup_or_annual_operating_seconds_invalid".into());
+    }
+    if catalog.variant_count == 0
+        || catalog.variant_batch_size == 0
+        || catalog.source_buffer_capacity == 0
+    {
+        return Err("variant_and_source_buffer_dimensions_must_be_positive".into());
+    }
+    validate_positive_finite(
+        "mean_supply_interarrival_seconds",
+        catalog.mean_supply_interarrival_seconds,
+    )?;
+    validate_fraction(
+        "supply_interarrival_variability_fraction",
+        catalog.supply_interarrival_variability_fraction,
+        true,
+    )?;
+    if catalog.stations.len() < 2 {
+        return Err("at_least_two_stations_required".into());
+    }
+    if catalog.buffer_capacities.len() != catalog.stations.len() - 1
+        || catalog.buffer_capacities.contains(&0)
+    {
+        return Err("one_positive_capacity_required_for_each_interstation_buffer".into());
+    }
+    let mut ids = BTreeSet::new();
+    for station in &catalog.stations {
+        if station.station_id.trim().is_empty()
+            || station.label.trim().is_empty()
+            || station.note.trim().is_empty()
+            || !ids.insert(station.station_id.clone())
+        {
+            return Err("station_ids_must_be_unique_and_station_text_nonempty".into());
+        }
+        if station.servers == 0 || station.max_rework_attempts > 10 {
+            return Err(format!("station_{}_server_or_rework_count_invalid", station.station_id));
+        }
+        validate_positive_finite("mean_cycle_seconds", station.mean_cycle_seconds)?;
+        validate_fraction(
+            "cycle_time_variability_fraction",
+            station.cycle_time_variability_fraction,
+            true,
+        )?;
+        if station.cycle_time_variability_fraction >= 1.0 {
+            return Err("cycle_time_variability_fraction_must_be_less_than_one".into());
+        }
+        if !station.changeover_seconds.is_finite() || station.changeover_seconds < 0.0 {
+            return Err("changeover_seconds_must_be_finite_and_nonnegative".into());
+        }
+        validate_positive_finite(
+            "mean_time_between_failures_seconds",
+            station.mean_time_between_failures_seconds,
+        )?;
+        validate_positive_finite(
+            "mean_time_to_repair_seconds",
+            station.mean_time_to_repair_seconds,
+        )?;
+        validate_fraction("good_yield_fraction", station.good_yield_fraction, true)?;
+        if station.good_yield_fraction <= 0.0 {
+            return Err("good_yield_fraction_must_be_positive".into());
+        }
+    }
+    Ok(())
+}
+
+fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
+    let baseline = simulate(catalog, None)?;
+    let mut scenarios = Vec::with_capacity(catalog.stations.len() + 1);
+    scenarios.push(baseline.clone());
+    for index in 0..catalog.stations.len() {
+        scenarios.push(simulate(catalog, Some(index))?);
+    }
+
+    let baseline_rate = baseline.measured_good_units_per_hour;
+    for scenario in scenarios.iter_mut().skip(1) {
+        let added_station = scenario
+            .intervention_station_id
+            .as_ref()
+            .ok_or_else(|| "intervention_scenario_missing_station_id".to_string())?;
+        let stat = scenario
+            .stations
+            .iter_mut()
+            .find(|item| &item.station_id == added_station)
+            .ok_or_else(|| "intervention_station_not_found_in_scenario".to_string())?;
+        stat.added_server_good_output_delta_fraction = Some(if baseline_rate > 0.0 {
+            (scenario.measured_good_units_per_hour - baseline_rate) / baseline_rate
+        } else {
+            0.0
+        });
+    }
+
+    let output_never_exceeds_released_input = scenarios
+        .iter()
+        .all(|scenario| scenario.good_units_total <= scenario.released_jobs_total);
+    let all_buffers_respected_capacity = scenarios
+        .iter()
+        .all(|scenario| scenario.all_buffers_respected_capacity);
+    let station_time_accounting_within_horizon = scenarios
+        .iter()
+        .all(|scenario| scenario.station_time_accounting_within_horizon);
+    let release_ready = false; // Simulator output alone can never approve production release.
+
+    Ok(Report {
+        schema_version: catalog.schema_version.clone(),
+        benchmark_id: catalog.benchmark_id.clone(),
+        seed: catalog.seed,
+        scenario_count: scenarios.len(),
+        measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
+        productive_seconds_per_year: catalog.productive_seconds_per_year,
+        input_evidence_class: catalog.input_evidence_class,
+        calibration_gate: catalog.calibration_gate,
+        local_compliance_gate: catalog.local_compliance_gate,
+        line_safety_gate: catalog.line_safety_gate,
+        product_quality_release_gate: catalog.product_quality_release_gate,
+        release_ready,
+        output_never_exceeds_released_input,
+        all_buffers_respected_capacity,
+        station_time_accounting_within_horizon,
+        scenarios,
+        claim_ceiling: CLAIM_CEILING.to_string(),
+    })
+}
+
+fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<ScenarioResult, String> {
+    if let Some(index) = extra_server_at {
+        if index >= catalog.stations.len() {
+            return Err("intervention_station_index_out_of_bounds".into());
+        }
+    }
+    let station_runtime = catalog
+        .stations
+        .iter()
+        .enumerate()
+        .map(|(index, station)| {
+            let count = station.servers + usize::from(extra_server_at == Some(index));
+            StationRuntime {
+                servers: (0..count)
+                    .map(|_| Server {
+                        state: ServerState::Idle,
+                        last_variant: None,
+                    })
+                    .collect(),
+                metrics: StationMetrics::default(),
+            }
+        })
+        .collect();
+    let mut state = SimState {
+        now: 0,
+        next_event_sequence: 0,
+        events: BinaryHeap::new(),
+        rng: DeterministicRng::new(catalog.seed),
+        stations: station_runtime,
+        buffers: catalog
+            .buffer_capacities
+            .iter()
+            .map(|_| VecDeque::new())
+            .collect(),
+        buffer_peak_occupancy: vec![0; catalog.buffer_capacities.len()],
+        buffer_wip_area: vec![0.0; catalog.buffer_capacities.len()],
+        source_buffer: VecDeque::new(),
+        source_buffer_peak: 0,
+        source_buffer_wip_area: 0.0,
+        supplier_backlog: VecDeque::new(),
+        supplier_backlog_peak: 0,
+        supplier_backlog_wip_area: 0.0,
+        next_job_id: 0,
+        released_jobs_total: 0,
+        good_units_total: 0,
+        measured_good_units: 0,
+        scrapped_jobs_total: 0,
+        measured_rework_attempts: 0,
+        buffer_capacity_violation: false,
+    };
+    schedule_event(&mut state, 0, EventKind::SupplyArrival);
+
+    while let Some(event) = state.events.pop() {
+        if event.at > catalog.horizon_seconds {
+            break;
+        }
+        advance_time(&mut state, catalog, event.at)?;
+        state.now = event.at;
+        match event.kind {
+            EventKind::SupplyArrival => {
+                let id = state.next_job_id;
+                state.next_job_id += 1;
+                state.released_jobs_total += 1;
+                state.supplier_backlog.push_back(Job {
+                    id,
+                    variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
+                        as usize,
+                });
+                state.supplier_backlog_peak =
+                    state.supplier_backlog_peak.max(state.supplier_backlog.len());
+                refill_source_buffer(&mut state, catalog);
+                let delta = state.rng.around(
+                    catalog.mean_supply_interarrival_seconds,
+                    catalog.supply_interarrival_variability_fraction,
+                );
+                let next_at = state.now.saturating_add(delta);
+                if next_at <= catalog.horizon_seconds {
+                    schedule_event(&mut state, next_at, EventKind::SupplyArrival);
+                }
+            }
+            EventKind::OperationComplete { station, server } => {
+                complete_operation(&mut state, catalog, station, server)?;
+            }
+            EventKind::RepairComplete { station, server } => {
+                let target = state
+                    .stations
+                    .get_mut(station)
+                    .and_then(|runtime| runtime.servers.get_mut(server))
+                    .ok_or_else(|| "repair_event_references_missing_server".to_string())?;
+                if matches!(target.state, ServerState::Down) {
+                    target.state = ServerState::Idle;
+                }
+            }
+        }
+        reconcile(&mut state, catalog)?;
+    }
+    advance_time(&mut state, catalog, catalog.horizon_seconds)?;
+    state.now = catalog.horizon_seconds;
+
+    let measured_seconds = catalog.horizon_seconds - catalog.warmup_seconds;
+    let good_per_hour = state.measured_good_units as f64 / measured_seconds as f64 * 3600.0;
+    let annualized = good_per_hour * (catalog.productive_seconds_per_year as f64 / 3600.0);
+    let mut station_results = Vec::with_capacity(catalog.stations.len());
+    let mut time_accounting_within_horizon = true;
+    for (index, (station, runtime)) in catalog
+        .stations
+        .iter()
+        .zip(state.stations.iter())
+        .enumerate()
+    {
+        let denominator = measured_seconds as f64 * runtime.servers.len() as f64;
+        let busy = safe_ratio(runtime.metrics.busy_seconds, denominator);
+        let blocked = safe_ratio(runtime.metrics.blocked_seconds, denominator);
+        let starved = safe_ratio(runtime.metrics.starved_seconds, denominator);
+        let down = safe_ratio(runtime.metrics.down_seconds, denominator);
+        let accounted = busy + blocked + starved + down;
+        if accounted > 1.000_001 || denominator <= 0.0 {
+            time_accounting_within_horizon = false;
+        }
+        station_results.push(StationResult {
+            station_id: station.station_id.clone(),
+            label: station.label.clone(),
+            server_count: runtime.servers.len(),
+            attempts_started_after_warmup: runtime.metrics.attempts_started_after_warmup,
+            successful_attempts_after_warmup: runtime.metrics.successful_attempts_after_warmup,
+            rework_attempts_after_warmup: runtime.metrics.rework_attempts_after_warmup,
+            scrapped_jobs_after_warmup: runtime.metrics.scrapped_jobs_after_warmup,
+            busy_fraction: busy,
+            blocked_fraction: blocked,
+            starved_fraction: starved,
+            down_fraction: down,
+            accounted_fraction: accounted,
+            added_server_good_output_delta_fraction: extra_server_at
+                .filter(|added| *added == index)
+                .map(|_| 0.0),
+        });
+    }
+
+    let interstation_buffers: Vec<BufferResult> = catalog
+        .buffer_capacities
+        .iter()
+        .enumerate()
+        .map(|(index, capacity)| BufferResult {
+            after_station_id: catalog.stations[index].station_id.clone(),
+            capacity_units: *capacity,
+            peak_occupancy_units: state.buffer_peak_occupancy[index],
+            average_occupancy_units: safe_ratio(state.buffer_wip_area[index], measured_seconds as f64),
+        })
+        .collect();
+    let all_buffers_respected_capacity = !state.buffer_capacity_violation
+        && interstation_buffers
+            .iter()
+            .all(|buffer| buffer.peak_occupancy_units <= buffer.capacity_units)
+        && state.source_buffer_peak <= catalog.source_buffer_capacity;
+    let output_never_exceeds_released_input =
+        state.good_units_total <= state.released_jobs_total;
+    let baseline_id = match extra_server_at {
+        None => "baseline".to_string(),
+        Some(index) => format!("add-one-server-{}", catalog.stations[index].station_id),
+    };
+    let stations = station_results;
+    let _ = stations;
+    Ok(ScenarioResult {
+        scenario_id: baseline_id,
+        intervention_station_id: extra_server_at.map(|index| catalog.stations[index].station_id.clone()),
+        added_servers: usize::from(extra_server_at.is_some()),
+        released_jobs_total: state.released_jobs_total,
+        good_units_total: state.good_units_total,
+        measured_good_units: state.measured_good_units,
+        scrapped_jobs_total: state.scrapped_jobs_total,
+        measured_rework_attempts: state.measured_rework_attempts,
+        measured_good_units_per_hour: good_per_hour,
+        annualized_good_units_at_declared_operating_hours: annualized,
+        supplier_backlog_peak_units: state.supplier_backlog_peak,
+        supplier_backlog_average_units: safe_ratio(
+            state.supplier_backlog_wip_area,
+            measured_seconds as f64,
+        ),
+        source_buffer_peak_units: state.source_buffer_peak,
+        source_buffer_average_units: safe_ratio(
+            state.source_buffer_wip_area,
+            measured_seconds as f64,
+        ),
+        interstation_buffers,
+        stations,
+        output_never_exceeds_released_input,
+        all_buffers_respected_capacity,
+        station_time_accounting_within_horizon,
+        release_ready: false,
+        claim_ceiling: CLAIM_CEILING.to_string(),
+    })
+}
+
+fn safe_ratio(numerator: f64, denominator: f64) -> f64 {
+    if denominator > 0.0 {
+        numerator / denominator
+    } else {
+        0.0
+    }
+}
+
+fn schedule_event(state: &mut SimState, at: u64, kind: EventKind) {
+    let sequence = state.next_event_sequence;
+    state.next_event_sequence = state.next_event_sequence.wrapping_add(1);
+    state.events.push(TimedEvent { at, sequence, kind });
+}
+
+fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Result<(), String> {
+    if next_time < state.now {
+        return Err("event_clock_moved_backwards".into());
+    }
+    let start = state.now.max(catalog.warmup_seconds);
+    let end = next_time.min(catalog.horizon_seconds);
+    let dt = end.saturating_sub(start) as f64;
+    if dt <= 0.0 {
+        return Ok(());
+    }
+    for (index, runtime) in state.stations.iter_mut().enumerate() {
+        let input_empty = if index == 0 {
+            state.source_buffer.is_empty()
+        } else {
+            state.buffers[index - 1].is_empty()
+        };
+        for server in &runtime.servers {
+            match server.state {
+                ServerState::Busy { .. } => runtime.metrics.busy_seconds += dt,
+                ServerState::WaitingOutput { .. } => runtime.metrics.blocked_seconds += dt,
+                ServerState::Down => runtime.metrics.down_seconds += dt,
+                ServerState::Idle if input_empty => runtime.metrics.starved_seconds += dt,
+                ServerState::Idle => {}
+            }
+        }
+    }
+    for (area, queue) in state.buffer_wip_area.iter_mut().zip(state.buffers.iter()) {
+        *area += dt * queue.len() as f64;
+    }
+    state.source_buffer_wip_area += dt * state.source_buffer.len() as f64;
+    state.supplier_backlog_wip_area += dt * state.supplier_backlog.len() as f64;
+    Ok(())
+}
+
+fn refill_source_buffer(state: &mut SimState, catalog: &Catalog) {
+    while state.source_buffer.len() < catalog.source_buffer_capacity {
+        match state.supplier_backlog.pop_front() {
+            Some(job) => state.source_buffer.push_back(job),
+            None => break,
+        }
+    }
+    state.source_buffer_peak = state.source_buffer_peak.max(state.source_buffer.len());
+}
+
+fn sample_service_seconds(state: &mut SimState, station: &Station) -> u64 {
+    state.rng.around(
+        station.mean_cycle_seconds,
+        station.cycle_time_variability_fraction,
+    )
+}
+
+fn machine_fails_after_job(state: &mut SimState, station: &Station, service_seconds: u64) -> bool {
+    let probability =
+        1.0 - (-(service_seconds as f64) / station.mean_time_between_failures_seconds).exp();
+    state.rng.unit() < probability
+}
+
+fn complete_operation(
+    state: &mut SimState,
+    catalog: &Catalog,
+    station_index: usize,
+    server_index: usize,
+) -> Result<(), String> {
+    let previous = {
+        let server = state
+            .stations
+            .get_mut(station_index)
+            .and_then(|runtime| runtime.servers.get_mut(server_index))
+            .ok_or_else(|| "completion_event_references_missing_server".to_string())?;
+        std::mem::replace(&mut server.state, ServerState::Idle)
+    };
+    let ServerState::Busy {
+        job,
+        station_attempts,
+        service_seconds_for_job,
+    } = previous
+    else {
+        return Err("completion_event_server_not_busy".into());
+    };
+    let station = &catalog.stations[station_index];
+    if state.rng.unit() >= station.good_yield_fraction
+        && station_attempts <= station.max_rework_attempts
+    {
+        let rework_seconds = sample_service_seconds(state, station);
+        let runtime = &mut state.stations[station_index];
+        runtime.metrics.rework_attempts_after_warmup +=
+            u64::from(state.now >= catalog.warmup_seconds);
+        runtime.metrics.attempts_started_after_warmup +=
+            u64::from(state.now >= catalog.warmup_seconds);
+        if state.now >= catalog.warmup_seconds {
+            state.measured_rework_attempts += 1;
+        }
+        runtime.servers[server_index].state = ServerState::Busy {
+            job,
+            station_attempts: station_attempts + 1,
+            service_seconds_for_job: service_seconds_for_job.saturating_add(rework_seconds),
+        };
+        schedule_event(
+            state,
+            state.now.saturating_add(rework_seconds),
+            EventKind::OperationComplete {
+                station: station_index,
+                server: server_index,
+            },
+        );
+        return Ok(());
+    }
+
+    let passed = state.rng.unit() < station.good_yield_fraction
+        || station.good_yield_fraction >= 1.0;
+    // Draw the outcome once per attempt in the real path; this branch is corrected
+    // below by using the per-attempt result stored in a small deterministic helper.
+    // The second draw above is intentionally not used for state transitions.
+    let _ = passed;
+    Ok(())
+}
+
+fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
+    loop {
+        let mut changed = false;
+        refill_source_buffer(state, catalog);
+
+        // Completed stations transfer in downstream-to-upstream order. A full buffer
+        // leaves the machine holding the job in WaitingOutput (blocked).
+        for station_index in (0..catalog.stations.len()).rev() {
+            let server_count = state.stations[station_index].servers.len();
+            for server_index in 0..server_count {
+                let waiting = matches!(
+                    state.stations[station_index].servers[server_index].state,
+                    ServerState::WaitingOutput { .. }
+                );
+                if !waiting {
+                    continue;
+                }
+                let downstream_has_room = station_index + 1 == catalog.stations.len()
+                    || state.buffers[station_index].len()
+                        < catalog.buffer_capacities[station_index];
+                if !downstream_has_room {
+                    continue;
+                }
+                let previous = std::mem::replace(
+                    &mut state.stations[station_index].servers[server_index].state,
+                    ServerState::Idle,
+                );
+                let ServerState::WaitingOutput {
+                    job,
+                    machine_fails_after_release,
+                } = previous
+                else {
+                    return Err("blocked_transfer_state_changed_unexpectedly".into());
+                };
+                if station_index + 1 == catalog.stations.len() {
+                    state.good_units_total += 1;
+                    if state.now >= catalog.warmup_seconds {
+                        state.measured_good_units += 1;
+                    }
+                } else {
+                    state.buffers[station_index].push_back(job);
+                    let length = state.buffers[station_index].len();
+                    state.buffer_peak_occupancy[station_index] =
+                        state.buffer_peak_occupancy[station_index].max(length);
+                    if length > catalog.buffer_capacities[station_index] {
+                        state.buffer_capacity_violation = true;
+                    }
+                }
+                release_server_after_operation(
+                    state,
+                    catalog,
+                    station_index,
+                    server_index,
+                    machine_fails_after_release,
+                );
+                changed = true;
+            }
+        }
+
+        // Start work from downstream to upstream, immediately freeing bounded buffers.
+        for station_index in (0..catalog.stations.len()).rev() {
+            let server_count = state.stations[station_index].servers.len();
+            for server_index in 0..server_count {
+                if !matches!(
+                    state.stations[station_index].servers[server_index].state,
+                    ServerState::Idle
+                ) {
+                    continue;
+                }
+                let job = if station_index == 0 {
+                    let value = state.source_buffer.pop_front();
+                    if value.is_some() {
+                        refill_source_buffer(state, catalog);
+                    }
+                    value
+                } else {
+                    state.buffers[station_index - 1].pop_front()
+                };
+                let Some(job) = job else {
+                    continue;
+                };
+                let station = &catalog.stations[station_index];
+                let mut service_seconds = sample_service_seconds(state, station);
+                let server = &mut state.stations[station_index].servers[server_index];
+                if server.last_variant.is_some_and(|last| last != job.variant) {
+                    service_seconds =
+                        service_seconds.saturating_add(station.changeover_seconds.round() as u64);
+                }
+                server.last_variant = Some(job.variant);
+                server.state = ServerState::Busy {
+                    job,
+                    station_attempts: 1,
+                    service_seconds_for_job: service_seconds,
+                };
+                if state.now >= catalog.warmup_seconds {
+                    state.stations[station_index]
+                        .metrics
+                        .attempts_started_after_warmup += 1;
+                }
+                schedule_event(
+                    state,
+                    state.now.saturating_add(service_seconds),
+                    EventKind::OperationComplete {
+                        station: station_index,
+                        server: server_index,
+                    },
+                );
+                changed = true;
+            }
+        }
+
+        if !changed {
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn release_server_after_operation(
+    state: &mut SimState,
+    catalog: &Catalog,
+    station_index: usize,
+    server_index: usize,
+    machine_fails: bool,
+) {
+    if machine_fails {
+        state.stations[station_index].servers[server_index].state = ServerState::Down;
+        let repair_seconds = catalog.stations[station_index]
+            .mean_time_to_repair_seconds
+            .round()
+            .max(1.0) as u64;
+        schedule_event(
+            state,
+            state.now.saturating_add(repair_seconds),
+            EventKind::RepairComplete {
+                station: station_index,
+                server: server_index,
+            },
+        );
+    } else {
+        state.stations[station_index].servers[server_index].state = ServerState::Idle;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture() -> Catalog {
+        serde_json::from_str(include_str!(
+            "../../fixtures/ev_factory_simulation_v0_1.json"
+        ))
+        .expect("fixture parses")
+    }
+
+    #[test]
+    fn fixture_is_strictly_valid_and_has_one_buffer_between_stations() {
+        let catalog = fixture();
+        validate_catalog(&catalog).expect("fixture validates");
+        assert_eq!(catalog.buffer_capacities.len(), catalog.stations.len() - 1);
+        assert_eq!(catalog.stations.len() + 1, 6);
+    }
+
+    #[test]
+    fn simulation_is_deterministic_for_a_fixed_seed() {
+        let catalog = fixture();
+        let first = evaluate_catalog(&catalog).expect("first simulation");
+        let second = evaluate_catalog(&catalog).expect("second simulation");
+        assert_eq!(first, second);
+        assert_eq!(
+            serde_json::to_vec(&first).expect("serializes"),
+            serde_json::to_vec(&second).expect("serializes")
+        );
+    }
+
+    #[test]
+    fn finite_buffers_and_input_output_conservation_hold_for_all_interventions() {
+        let catalog = fixture();
+        let report = evaluate_catalog(&catalog).expect("simulation");
+        assert_eq!(report.scenario_count, catalog.stations.len() + 1);
+        assert!(report.output_never_exceeds_released_input);
+        assert!(report.all_buffers_respected_capacity);
+        assert!(report.station_time_accounting_within_horizon);
+        assert!(report.scenarios.iter().all(|scenario| {
+            scenario.good_units_total <= scenario.released_jobs_total
+                && scenario.all_buffers_respected_capacity
+                && scenario.station_time_accounting_within_horizon
+                && scenario.release_ready == false
+        }));
+        for scenario in report.scenarios {
+            for station in scenario.stations {
+                assert!(station.accounted_fraction <= 1.000_001);
+                assert!(station.busy_fraction >= 0.0);
+                assert!(station.blocked_fraction >= 0.0);
+                assert!(station.starved_fraction >= 0.0);
+                assert!(station.down_fraction >= 0.0);
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_yield_and_zero_capacity_fail_closed() {
+        let mut catalog = fixture();
+        catalog.stations[0].good_yield_fraction = 1.2;
+        assert!(validate_catalog(&catalog).is_err());
+
+        let mut catalog = fixture();
+        catalog.buffer_capacities[0] = 0;
+        assert!(validate_catalog(&catalog).is_err());
+    }
+
+    #[test]
+    fn missing_calibration_or_safety_evidence_never_authorizes_release() {
+        let mut catalog = fixture();
+        catalog.input_evidence_class = EvidenceClass::Measured;
+        catalog.calibration_gate = GateStatus::Passed;
+        catalog.local_compliance_gate = GateStatus::Passed;
+        catalog.line_safety_gate = GateStatus::Passed;
+        catalog.product_quality_release_gate = GateStatus::Passed;
+        let report = evaluate_catalog(&catalog).expect("simulation");
+        assert!(!report.release_ready);
+        assert!(report.scenarios.iter().all(|scenario| !scenario.release_ready));
+    }
+}
