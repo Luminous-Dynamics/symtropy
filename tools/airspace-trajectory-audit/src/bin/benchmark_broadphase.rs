@@ -64,7 +64,9 @@ fn criteria() -> SeparationCriteria {
 }
 
 fn percentile(sorted: &[u128], numerator: usize, denominator: usize) -> u128 {
-    let index = (sorted.len() * numerator).div_ceil(denominator).saturating_sub(1);
+    let index = (sorted.len() * numerator)
+        .div_ceil(denominator)
+        .saturating_sub(1);
     sorted[index.min(sorted.len() - 1)]
 }
 

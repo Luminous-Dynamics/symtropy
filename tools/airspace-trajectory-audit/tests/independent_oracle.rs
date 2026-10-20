@@ -441,7 +441,12 @@ fn broadphase_has_full_recall_against_brute_force_pairwise_audits() {
             points: vec![
                 point(start, x0, y0, z0),
                 point(start + 10_000, x0 + drift_x, y0 + drift_y, z0 + drift_z),
-                point(start + 20_000, x0 + 2.0 * drift_x, y0 + 2.0 * drift_y, z0 + 2.0 * drift_z),
+                point(
+                    start + 20_000,
+                    x0 + 2.0 * drift_x,
+                    y0 + 2.0 * drift_y,
+                    z0 + 2.0 * drift_z,
+                ),
             ],
         });
     }
@@ -462,14 +467,21 @@ fn broadphase_has_full_recall_against_brute_force_pairwise_audits() {
                 .expect("brute-force pairwise comparison must be valid");
             if report.disposition == ConflictDisposition::ConflictDetected {
                 brute_force_conflicts += 1;
-                assert!(candidates.contains(&(i, j)),
-                    "broadphase omitted brute-force conflict pair ({i}, {j})");
+                assert!(
+                    candidates.contains(&(i, j)),
+                    "broadphase omitted brute-force conflict pair ({i}, {j})"
+                );
             }
         }
     }
-    assert!(brute_force_conflicts > 0, "fixture must contain actual conflicts");
-    assert!(candidates.len() < fleet.len() * (fleet.len() - 1) / 2,
-        "broadphase fixture should demonstrate pruning versus all-pairs enumeration");
+    assert!(
+        brute_force_conflicts > 0,
+        "fixture must contain actual conflicts"
+    );
+    assert!(
+        candidates.len() < fleet.len() * (fleet.len() - 1) / 2,
+        "broadphase fixture should demonstrate pruning versus all-pairs enumeration"
+    );
 }
 
 #[test]
@@ -480,9 +492,11 @@ fn broadphase_fails_closed_when_criteria_do_not_cover_fleet_time_span() {
     rule.valid_until_utc_ms = 10_000;
     assert_eq!(
         broadphase_candidate_pairs(&[a, b], &rule),
-        Err(symtropy_airspace_trajectory_audit::AuditInputError::InvalidCriteria(
-            "broadphase requires criteria validity to cover the full fleet time span"
-        ))
+        Err(
+            symtropy_airspace_trajectory_audit::AuditInputError::InvalidCriteria(
+                "broadphase requires criteria validity to cover the full fleet time span"
+            )
+        )
     );
 }
 
@@ -503,4 +517,3 @@ fn broadphase_rejects_mixed_reference_frames_and_vertical_datums() {
         Err(symtropy_airspace_trajectory_audit::AuditInputError::VerticalDatumMismatch)
     );
 }
-

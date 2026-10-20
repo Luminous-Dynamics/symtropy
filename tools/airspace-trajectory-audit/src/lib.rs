@@ -193,7 +193,6 @@ impl fmt::Display for AuditInputError {
 
 impl Error for AuditInputError {}
 
-
 /// One conservatively selected trajectory pair, expressed as indices into the input fleet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TrajectoryPairCandidate {
@@ -257,10 +256,20 @@ pub fn broadphase_candidate_pairs(
         return Err(AuditInputError::VerticalDatumMismatch);
     }
 
-    let fleet_start = trajectories.iter().map(|t| t.points[0].time_utc_ms).min()
-        .ok_or(AuditInputError::InvalidTrajectory("trajectory has no points"))?;
-    let fleet_end = trajectories.iter().map(|t| t.points[t.points.len() - 1].time_utc_ms).max()
-        .ok_or(AuditInputError::InvalidTrajectory("trajectory has no points"))?;
+    let fleet_start = trajectories
+        .iter()
+        .map(|t| t.points[0].time_utc_ms)
+        .min()
+        .ok_or(AuditInputError::InvalidTrajectory(
+            "trajectory has no points",
+        ))?;
+    let fleet_end = trajectories
+        .iter()
+        .map(|t| t.points[t.points.len() - 1].time_utc_ms)
+        .max()
+        .ok_or(AuditInputError::InvalidTrajectory(
+            "trajectory has no points",
+        ))?;
     if criteria.valid_from_utc_ms > fleet_start || criteria.valid_until_utc_ms < fleet_end {
         return Err(AuditInputError::InvalidCriteria(
             "broadphase requires criteria validity to cover the full fleet time span",
@@ -306,8 +315,11 @@ pub fn broadphase_candidate_pairs(
         });
     }
 
-    envelopes.sort_by(|a, b| a.min_x.total_cmp(&b.min_x)
-        .then_with(|| a.input_index.cmp(&b.input_index)));
+    envelopes.sort_by(|a, b| {
+        a.min_x
+            .total_cmp(&b.min_x)
+            .then_with(|| a.input_index.cmp(&b.input_index))
+    });
     let mut active: Vec<ExpandedTrajectoryEnvelope> = Vec::new();
     let mut candidates = Vec::new();
     for current in envelopes {
@@ -329,7 +341,10 @@ pub fn broadphase_candidate_pairs(
             } else {
                 (current.input_index, previous.input_index)
             };
-            candidates.push(TrajectoryPairCandidate { first_index, second_index });
+            candidates.push(TrajectoryPairCandidate {
+                first_index,
+                second_index,
+            });
         }
         active.push(current);
     }
@@ -344,7 +359,11 @@ fn outward_lower(value: f64, margin: f64) -> Result<f64, AuditInputError> {
         return Err(AuditInputError::NumericOverflow);
     }
     let outward = expanded.next_down();
-    if outward.is_finite() { Ok(outward) } else { Err(AuditInputError::NumericOverflow) }
+    if outward.is_finite() {
+        Ok(outward)
+    } else {
+        Err(AuditInputError::NumericOverflow)
+    }
 }
 
 fn outward_upper(value: f64, margin: f64) -> Result<f64, AuditInputError> {
