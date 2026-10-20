@@ -442,7 +442,7 @@ fn parse_input_bounds(
         let item = bound_inputs
             .get(*key)
             .ok_or_else(|| format!("{at} is required"))?;
-        exact_keys(item, &["lower", "upper", "unit"], &at)?;
+        exact_keys(item, &["lower", "upper", "unit", "basis", "source_ref"], &at)?;
         let fields = item
             .as_object()
             .ok_or_else(|| format!("{at} must be an object"))?;
@@ -794,10 +794,10 @@ mod tests {
         request["input_bounds"] = json!({
             "schema_version": "physical-input-bounds-v0.1",
             "inputs": {
-                "force_n": {"lower": 900.0, "upper": 1100.0, "unit": "N"},
-                "length_m": {"lower": 1.9, "upper": 2.1, "unit": "m"},
-                "area_m2": {"lower": 0.009, "upper": 0.011, "unit": "m^2"},
-                "youngs_modulus_pa": {"lower": 195.0e9, "upper": 205.0e9, "unit": "Pa"}
+                "force_n": {"lower": 900.0, "upper": 1100.0, "unit": "N", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "length_m": {"lower": 1.9, "upper": 2.1, "unit": "m", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "area_m2": {"lower": 0.009, "upper": 0.011, "unit": "m^2", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "youngs_modulus_pa": {"lower": 195.0e9, "upper": 205.0e9, "unit": "Pa", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"}
             }
         });
         let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
@@ -836,10 +836,10 @@ mod tests {
         request["input_bounds"] = json!({
             "schema_version": "physical-input-bounds-v0.1",
             "inputs": {
-                "force_n": {"lower": 900.0, "upper": 1100.0, "unit": "N"},
-                "length_m": {"lower": 1.9, "upper": 2.1, "unit": "m"},
-                "area_m2": {"lower": 0.009, "upper": 0.011, "unit": "m^2"},
-                "youngs_modulus_pa": {"lower": 195.0e9, "upper": 205.0e9, "unit": "Pa"}
+                "force_n": {"lower": 900.0, "upper": 1100.0, "unit": "N", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "length_m": {"lower": 1.9, "upper": 2.1, "unit": "m", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "area_m2": {"lower": 0.009, "upper": 0.011, "unit": "m^2", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "youngs_modulus_pa": {"lower": 195.0e9, "upper": 205.0e9, "unit": "Pa", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"}
             }
         });
 
@@ -857,8 +857,21 @@ mod tests {
 
         let mut mutated = request.clone();
         mutated["input_bounds"]["inputs"]["unreviewed_override"] = json!({
-            "lower": 1.0, "upper": 2.0, "unit": "m"
+            "lower": 1.0, "upper": 2.0, "unit": "m", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"
         });
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+
+        let mut mutated = request.clone();
+        mutated["input_bounds"]["inputs"]["area_m2"]["basis"] = json!("guesswork");
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+        let mut mutated = request.clone();
+        mutated["input_bounds"]["inputs"]["area_m2"]["source_ref"] = json!(" ");
+        assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
+
+        let mut mutated = request.clone();
+        mutated["input_bounds"]["inputs"]["area_m2"].as_object_mut().unwrap().remove("source_ref");
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
 
         let mut mutated = request;
@@ -876,11 +889,11 @@ mod tests {
         request["input_bounds"] = json!({
             "schema_version": "physical-input-bounds-v0.1",
             "inputs": {
-                "force_n": {"lower": -100.0, "upper": 100.0, "unit": "N"},
-                "length_m": {"lower": 2.0, "upper": 2.0, "unit": "m"},
-                "youngs_modulus_pa": {"lower": 200.0e9, "upper": 200.0e9, "unit": "Pa"},
-                "second_moment_area_m4": {"lower": 8.0e-6, "upper": 8.0e-6, "unit": "m^4"},
-                "outer_fiber_distance_m": {"lower": 0.1, "upper": 0.1, "unit": "m"}
+                "force_n": {"lower": -100.0, "upper": 100.0, "unit": "N", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "length_m": {"lower": 2.0, "upper": 2.0, "unit": "m", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "youngs_modulus_pa": {"lower": 200.0e9, "upper": 200.0e9, "unit": "Pa", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "second_moment_area_m4": {"lower": 8.0e-6, "upper": 8.0e-6, "unit": "m^4", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"},
+                "outer_fiber_distance_m": {"lower": 0.1, "upper": 0.1, "unit": "m", "basis": "scenario_bound", "source_ref": "fixture://synthetic-scenario"}
             }
         });
         let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
