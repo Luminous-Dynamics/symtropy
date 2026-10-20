@@ -104,7 +104,7 @@ jobs:
           grep -Fq "value_of_information" vis-active-query.tsv
           grep -Fq "round_robin" vis-active-query.tsv
           grep -Fq "uniform_random" vis-active-query.tsv
-          grep -Fq "claim_changed_after_latest_source" vis-active-query.tsv
+          grep -Fq "world_query_claim_changed_last_8_ticks" vis-active-query.tsv
           grep -Fq "query_evidence_arrived_out_of_order" vis-active-query.tsv
           grep -Fq "query_observation_delay_gt_2" vis-active-query.tsv
           grep -Fq "profile_high_claim_flip_rate" vis-active-query.tsv
