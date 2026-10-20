@@ -82,3 +82,36 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # Isolated synthetic oracle for the furnishing-layout benchmark. It is
+    # deliberately dependency-light and does not qualify physical building
+    # performance or regulatory compliance.
+    - name: Generate furnishing audit lockfile (temporary bootstrap)
+      if: runner.os == 'Linux'
+      run: cargo generate-lockfile --manifest-path tools/furnishing-layout-audit/Cargo.toml
+
+    - name: Check furnishing audit formatting
+      if: runner.os == 'Linux'
+      run: cargo fmt --manifest-path tools/furnishing-layout-audit/Cargo.toml -- --check
+
+    - name: Run furnishing layout known-truth and mutation tests
+      if: runner.os == 'Linux'
+      run: cargo test --manifest-path tools/furnishing-layout-audit/Cargo.toml
+
+    - name: Run furnishing layout audit Clippy
+      if: runner.os == 'Linux'
+      run: cargo clippy --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+
+    - name: Emit temporary furnishing lockfile for repository bootstrap
+      if: always() && runner.os == 'Linux'
+      shell: bash
+      run: |
+        set -euo pipefail
+        lock="tools/furnishing-layout-audit/Cargo.lock"
+        if test -f "$lock"; then
+          printf 'FURNISHING_LAYOUT_LOCKFILE_B64_BEGIN\n'
+          base64 -w 0 "$lock"
+          printf '\nFURNISHING_LAYOUT_LOCKFILE_B64_END\n'
+        else
+          echo "FURNISHING_LAYOUT_LOCKFILE_MISSING"
+        fi
