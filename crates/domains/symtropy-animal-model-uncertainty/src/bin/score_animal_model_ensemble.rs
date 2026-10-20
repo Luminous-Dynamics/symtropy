@@ -118,6 +118,7 @@ fn build_report(
         "input_sha256": sha256_hex(raw_input.as_bytes()),
         "scenario": root.get("scenario").and_then(Value::as_str).unwrap_or("unspecified"),
         "model_ids": models.iter().map(|model| model.model_id.as_str()).collect::<Vec<_>>(),
+        "model_weights": models.iter().map(|model| json!({ "model_id": model.model_id, "weight": model.weight })).collect::<Vec<Value>>(),
         "model_count": models.len(),
         "scores": scores.iter().map(|score| json!({
             "action": score.action,
@@ -242,6 +243,7 @@ mod tests {
             Some(sha256_hex(SYNTHETIC_EXAMPLE.as_bytes()).as_str())
         );
         assert_eq!(report["model_count"].as_u64(), Some(2));
+        assert_eq!(report["model_weights"][0]["weight"].as_f64(), Some(0.6));
         assert_eq!(report["model_ids"].as_array().map(Vec::len), Some(2));
         assert_eq!(
             report["scores"].as_array().map(Vec::len),
