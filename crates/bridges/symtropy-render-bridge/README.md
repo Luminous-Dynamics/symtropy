@@ -8,6 +8,20 @@ Project `symtropy-physics` N-dimensional physics worlds into Bevy 3D rendering.
 - **3D projection** — `PhysicsWorld<3>` to Bevy 3D meshes.
 - **4D cross-section slicing** — `PhysicsWorld<4>` projected to 3D via a configurable hyperplane, Miegakure-style. First-class support for ND collider visualisation.
 
+## Semantic screen-space LOD policy
+
+The bridge also exposes a pure Rust LOD allocation kernel through `allocate_lod`.
+A host supplies representation candidates with stable IDs, projected screen-error
+estimates and calibrated relative cost units. The allocator preserves finest
+detail for selected and critical entities, respects a declared screen-error
+ceiling, and rejects infeasible budgets instead of silently relaxing constraints.
+
+This is currently a policy API, not automatic Bevy mesh switching. The host is
+responsible for computing conservative projected-error bounds and calibrating
+relative costs. Relative cost units are not GPU milliseconds. See
+[the qualification note](../../../docs/research/RENDER_SEMANTIC_LOD_001.md) and
+[the proposed workload manifest](../../../benchmarks/render/SEMANTIC-LOD-01.json).
+
 ## Licensing
 
 **Apache-2.0 OR MIT.** Zero AGPL dependencies — safe to use in proprietary projects. See the [repository LICENSING.md](https://github.com/luminous-dynamics/symtropy/blob/main/LICENSING.md) for the full dual-track breakdown.
