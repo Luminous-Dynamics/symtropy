@@ -60,10 +60,10 @@
   },
   "causal_lane": {
     "effect_status": "unestimated",
-    "causal_estimation_claim_permitted": false,
     "causal_effect_estimated": false,
     "effect_estimate": null,
-    "forecast_and_impact_lanes_separate": true
+    "forecast_and_impact_lanes_separate": true,
+    "independent_review_eligibility": "not_identified"
   },
   "governance": {
     "data_authority_status": "not_applicable_synthetic",
