@@ -10,6 +10,8 @@ on:
       - "research/physical-analytical-adapter/README.md"
       - "schemas/physical-transformation/analytical-fixtures/**"
       - "schemas/physical-transformation/physical-analytical-*.schema.json"
+      - "schemas/physical-transformation/analytical-*.schema.json"
+      - "schemas/physical-transformation/fixtures/physical-analytical-*.json"
       - ".github/workflows/physical-analytical-adapter.yml"
       - ".github/workflows/physical-transformation-reference.yml"
   pull_request:
