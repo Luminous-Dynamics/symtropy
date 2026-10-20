@@ -16,7 +16,7 @@
 - Explicit units, positive-domain checks, non-finite/overflow rejection, signed load behavior, and frozen known-answer outputs for stress, strain, extension, cantilever deflection, simply supported midspan deflection and bending stress.
 - Frozen synthetic fixture: three topology components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one. A separate component is then recovered through the state transition and its declared 1,000 mg reconciles exactly to recovery outputs.
 - Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, connected-component recovery, unbalanced component recovery, standalone ledger imbalance, numeric overflow and malformed identifiers.
-- Twenty-one unit tests and four integration tests pin topology, accounting, deconstruction planning, and analytical outcomes against explicit expected values.
+- Twenty-one unit tests and nine integration tests (four independent known-answer/topology oracles and five metamorphic tests) pin topology, accounting, deconstruction planning, analytical outcomes, scaling laws, source-unit normalization equivalence, and a fixed-seed 128-case parameter sweep.
 - Deterministic JSON receipt bound to the 40-character source commit supplied by the caller, including state-bound recovered-component count and mass.
 
 ## Run locally
