@@ -6,14 +6,15 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
-    "registration_id",
     "evidence_scope",
-    "provider",
+    "governance",
+    "outcome_as_of_index",
     "policy",
     "privacy",
-    "governance",
-    "rows"
+    "provider",
+    "registration_id",
+    "rows",
+    "schema_version"
   ],
   "properties": {
     "schema_version": {
@@ -71,14 +72,15 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "target_id",
-        "forecast_origin_index",
-        "target_period_index",
+        "action_cost_multiplier_grid",
         "action_features_cutoff_index",
         "capacity_grid",
-        "action_cost_multiplier_grid",
         "effectiveness_multiplier_grid",
-        "minimum_group_report_count"
+        "forecast_origin_index",
+        "minimum_group_report_count",
+        "target_id",
+        "target_period_index",
+        "value_unit"
       ],
       "properties": {
         "target_id": {
@@ -129,6 +131,11 @@
         "minimum_group_report_count": {
           "type": "integer",
           "minimum": 1
+        },
+        "value_unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Common unit for expected harm and action cost; all results are conditional on this unit."
         }
       }
     },
@@ -401,6 +408,11 @@
           }
         ]
       }
+    },
+    "outcome_as_of_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Frozen outcome release cutoff index; must be no earlier than the target period."
     }
   },
   "allOf": [
