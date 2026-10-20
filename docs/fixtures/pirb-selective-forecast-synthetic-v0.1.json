@@ -26,7 +26,8 @@
     "abstain_on_stale_inputs": true,
     "abstain_on_unknown_inputs": true,
     "abstain_on_shifted_regime": true,
-    "abstain_on_unknown_regime": true
+    "abstain_on_unknown_regime": true,
+    "minimum_group_report_count": 3
   },
   "privacy": {
     "aggregate_only": true,
