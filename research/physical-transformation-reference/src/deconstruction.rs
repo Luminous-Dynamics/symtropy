@@ -379,7 +379,6 @@ mod tests {
         assert_eq!(world.canonical_snapshot(), before_tamper);
     }
 
-
     #[test]
     fn plan_cannot_be_replayed_against_a_different_world_at_same_revision() {
         let original = connected_pair();
