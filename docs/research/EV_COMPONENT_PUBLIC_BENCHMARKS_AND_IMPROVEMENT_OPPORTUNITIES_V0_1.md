@@ -110,6 +110,23 @@ These are scenario inputs only. Tariff classification, origin rules, preference 
 
 For each route, calculate fixed tooling/certification, yield and scrap, labor, imported-content exposure, FX risk, logistics, local supplier capability and annual volume. Do not assume SKD kit assembly will retain policy advantages.
 
+## Cost-volume sensitivity: tooling can dominate the first 1,000 units
+
+This section derives from the current **synthetic fixture**, not a public tooling quote. The fixture assumes fixed program investments of R150–250 million for the cost-first design, R175–300 million for the serviceability-first design and R200–350 million for the structural-pack design. Amortized per vehicle, the cost-first design alone carries:
+
+| Assumed units over which program cost is amortized | Fixed-cost contribution per vehicle |
+|---:|---:|
+| 1,000 | R150,000–R250,000 |
+| 10,000 | R15,000–R25,000 |
+| 50,000 | R3,000–R5,000 |
+| 100,000 | R1,500–R2,500 |
+
+The structural-pack variant's assumed range is R200,000–R350,000 per unit at 1,000 vehicles and R2,000–R3,500 at 100,000. This does **not** establish what actual tooling will cost. It shows that the result is extremely sensitive to volume and program boundaries: a first low-volume batch cannot finance a clean-sheet platform, dedicated dies, engineering, validation and homologation under the same unit economics as an established platform.
+
+At the current synthetic 50,000-unit amortization, the high-cost case would need a cost reduction of approximately **18.5%** (cost-first), **21.8%** (serviceability-first), **24.2%** (structural pack), or **20.3%** (45 kWh range-margin derivative) to reach the assumed COGS ceiling. Those are model-derived reductions from unverified cost assumptions, not forecasts. A reduction in BOM costs also cannot be allowed to weaken safety, payload, repairability or warranty coverage.
+
+**Design implication:** treat platform reuse/carryover, shared tooling, contract manufacturing, module commonality and a staged localization route as first-class alternatives—not as afterthoughts. Any shared investment must be allocated once across the products that actually use it; do not charge all tooling to every vehicle or silently spread it across unrealistic lifetime volumes.
+
 ## What we should implement next in the model
 
 1. Preserve every public source and evidence class in the machine-readable ledger; never replace unknown production prices with public consumer proxies.

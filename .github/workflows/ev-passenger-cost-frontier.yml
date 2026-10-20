@@ -38,6 +38,9 @@ jobs:
             and .derived_checks.current_synthetic_42kwh_cost_first_pack_low_ZAR == 60800
             and .derived_checks.current_synthetic_42kwh_cost_first_pack_high_ZAR == 80300
             and (.sources | any(.id == "south-africa-local-manufacturing-policy-announcement"))
+            and .scenario_calculations_from_synthetic_cost_fixture.fixed_program_amortization_ZAR_per_vehicle[0].designs.cost_first.low == 150000
+            and .scenario_calculations_from_synthetic_cost_fixture.fixed_program_amortization_ZAR_per_vehicle[3].designs.cost_first.high == 2500
+            and (.scenario_calculations_from_synthetic_cost_fixture.cost_frontier_at_current_fixture_amortization_50000_units | length) == 4
           ' tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json
       - name: Format check
         run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check

@@ -1041,6 +1041,42 @@ mod tests {
     }
 
     #[test]
+    fn public_benchmark_ledger_preserves_market_anchors_and_tooling_sensitivity() {
+        let raw = include_str!("../fixtures/ev_component_public_benchmarks_v0_1.json");
+        let ledger: serde_json::Value = serde_json::from_str(raw).expect("ledger parses");
+        assert_eq!(
+            ledger["benchmark_id"].as_str(),
+            Some("EV-PUBLIC-COMPONENT-BENCHMARKS-001")
+        );
+        let sources = ledger["sources"].as_array().expect("sources array");
+        assert_eq!(sources.len(), 13);
+        let bev_pack = sources
+            .iter()
+            .find(|source| source["id"] == "bnef-bev-pack-average-2025")
+            .expect("BNEF BEV pack benchmark");
+        assert_eq!(bev_pack["value"].as_f64(), Some(99.0));
+        assert!((ledger["derived_checks"]["global_bev_pack_reference_42kwh_ZAR"]
+            .as_f64()
+            .expect("42 kWh benchmark")
+            - 68_364.5886)
+            .abs()
+            < 1e-4);
+        let volume_rows = ledger["scenario_calculations_from_synthetic_cost_fixture"]
+            ["fixed_program_amortization_ZAR_per_vehicle"]
+            .as_array()
+            .expect("volume sensitivity rows");
+        assert_eq!(volume_rows.len(), 4);
+        assert_eq!(
+            volume_rows[0]["designs"]["cost_first"]["low"].as_f64(),
+            Some(150_000.0)
+        );
+        assert_eq!(
+            volume_rows[3]["designs"]["cost_first"]["high"].as_f64(),
+            Some(2_500.0)
+        );
+    }
+
+    #[test]
     fn synthetic_frontier_exposes_high_cost_shortfall_without_claiming_feasibility() {
         let raw = include_str!("../fixtures/ev_passenger_cost_v0_1.json");
         let catalog: Catalog = serde_json::from_str(raw).expect("fixture parses");

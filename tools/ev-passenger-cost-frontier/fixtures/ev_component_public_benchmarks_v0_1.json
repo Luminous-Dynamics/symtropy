@@ -241,5 +241,119 @@
     "four_tyres_illustrative_fitment_included_min_ZAR": 4180,
     "four_tyres_illustrative_fitment_included_max_ZAR": 15708
   },
-  "claim_ceiling": "This ledger preserves public, published observations and arithmetic derivatives. It is not a set of procurement quotations, supplier commitments, an audited bill of materials, confirmation of local manufacturing incentives or a vehicle safety/engineering qualification."
+  "claim_ceiling": "This ledger preserves public, published observations and arithmetic derivatives. It is not a set of procurement quotations, supplier commitments, an audited bill of materials, confirmation of local manufacturing incentives or a vehicle safety/engineering qualification.",
+  "scenario_calculations_from_synthetic_cost_fixture": {
+    "label": "Synthetic scenario calculations; not source evidence or quotes",
+    "target_retail_ceiling_ZAR": 307710,
+    "oem_net_revenue_at_target_ZAR": 246168.00000000003,
+    "maximum_affordable_cogs_ZAR": 216627.84000000003,
+    "fixed_program_amortization_ZAR_per_vehicle": [
+      {
+        "units": 1000,
+        "designs": {
+          "cost_first": {
+            "low": 150000,
+            "high": 250000
+          },
+          "serviceable": {
+            "low": 175000,
+            "high": 300000
+          },
+          "structural_pack": {
+            "low": 200000,
+            "high": 350000
+          }
+        }
+      },
+      {
+        "units": 10000,
+        "designs": {
+          "cost_first": {
+            "low": 15000,
+            "high": 25000
+          },
+          "serviceable": {
+            "low": 17500,
+            "high": 30000
+          },
+          "structural_pack": {
+            "low": 20000,
+            "high": 35000
+          }
+        }
+      },
+      {
+        "units": 50000,
+        "designs": {
+          "cost_first": {
+            "low": 3000,
+            "high": 5000
+          },
+          "serviceable": {
+            "low": 3500,
+            "high": 6000
+          },
+          "structural_pack": {
+            "low": 4000,
+            "high": 7000
+          }
+        }
+      },
+      {
+        "units": 100000,
+        "designs": {
+          "cost_first": {
+            "low": 1500,
+            "high": 2500
+          },
+          "serviceable": {
+            "low": 1750,
+            "high": 3000
+          },
+          "structural_pack": {
+            "low": 2000,
+            "high": 3500
+          }
+        }
+      }
+    ],
+    "cost_frontier_at_current_fixture_amortization_50000_units": [
+      {
+        "candidate_id": "compact-42-lfp-cost-first",
+        "cogs_low_ZAR": 188463.9175257732,
+        "cogs_high_ZAR": 265773.1958762887,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 18.491464391000775,
+        "implied_retail_low_ZAR": 267704.42830365506,
+        "implied_retail_high_ZAR": 377518.7441424555
+      },
+      {
+        "candidate_id": "compact-42-lfp-serviceable",
+        "cogs_low_ZAR": 200581.6326530612,
+        "cogs_high_ZAR": 276897.9591836735,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 21.766183962264147,
+        "implied_retail_low_ZAR": 284917.0918367346,
+        "implied_retail_high_ZAR": 393320.9647495362
+      },
+      {
+        "candidate_id": "compact-42-lfp-structural-pack",
+        "cogs_low_ZAR": 196894.73684210528,
+        "cogs_high_ZAR": 285842.10526315786,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 24.214160191493264,
+        "implied_retail_low_ZAR": 279680.02392344497,
+        "implied_retail_high_ZAR": 406025.7177033492
+      },
+      {
+        "candidate_id": "compact-45-lfp-range-margin",
+        "cogs_low_ZAR": 193293.8144329897,
+        "cogs_high_ZAR": 271891.7525773196,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 20.325703907331224,
+        "implied_retail_low_ZAR": 274565.0773195876,
+        "implied_retail_high_ZAR": 386209.8758200562
+      }
+    ]
+  }
 }
