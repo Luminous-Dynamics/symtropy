@@ -569,9 +569,7 @@ fn sort_and_deduplicate_conflicts(mut events: Vec<ConflictEvent>) -> Vec<Conflic
     let mut deduplicated: Vec<ConflictEvent> = Vec::with_capacity(events.len());
     for event in events {
         match deduplicated.last_mut() {
-            Some(previous)
-                if previous.closest_approach_utc_ms == event.closest_approach_utc_ms =>
-            {
+            Some(previous) if previous.closest_approach_utc_ms == event.closest_approach_utc_ms => {
                 if event.horizontal_separation_m < previous.horizontal_separation_m {
                     *previous = event;
                 }
