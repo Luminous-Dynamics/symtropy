@@ -33,8 +33,10 @@ pub enum EvidencePermission {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct QuantityRate {
+    /// Estimated minor currency units per quantity unit. Fractional minor units are allowed
+    /// here because these are model estimates, not posted financial transactions.
     pub unit_rate: f64,
-    /// Must identify currency, price year and region/basis, not just a currency symbol.
+    /// Must identify currency, minor-unit denomination, price year and region/basis.
     pub currency_basis_id: String,
     /// Immutable identity for the rate-card/method revision used.
     pub rate_card_ref: String,
@@ -625,7 +627,7 @@ mod tests {
             financial_event("invoice-line", "inv-42:line-3", 35_000),
         ];
         let report = audit(&events).unwrap();
-        assert_eq!(report.rate_card_costs.iter().find(|row| row.stage == Stage::Observed).unwrap().amount, 200.0);
+        assert_eq!(report.rate_card_costs.iter().find(|row| row.stage == Stage::Observed).unwrap().amount, 20_000.0);
         assert_eq!(report.financial_actuals.len(), 1);
         assert_eq!(report.financial_actuals[0].amount_minor_units, 35_000);
     }
@@ -652,7 +654,7 @@ mod tests {
 
     #[test]
     fn financial_actual_in_planned_stage_is_rejected() {
-        let mut event = financial_event("event-1", "inv-42:line-3", 350.0);
+        let mut event = financial_event("event-1", "inv-42:line-3", 35_000);
         event.stage = Stage::Planned;
         let errors = audit(&[event]).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("must have Observed stage")));
@@ -754,8 +756,8 @@ mod tests {
         let original = financial_event("invoice-original", "inv-42:line-1", 20_000);
         let report = audit(&[original, revised]).unwrap();
         assert_eq!(report.financial_actuals.len(), 2);
-        assert!(report.financial_actuals.iter().any(|row| row.configuration_sha256 == CONFIG_A && row.amount == 200.0));
-        assert!(report.financial_actuals.iter().any(|row| row.configuration_sha256 == CONFIG_B && row.amount == 125.0));
+        assert!(report.financial_actuals.iter().any(|row| row.configuration_sha256 == CONFIG_A && row.amount_minor_units == 20_000));
+        assert!(report.financial_actuals.iter().any(|row| row.configuration_sha256 == CONFIG_B && row.amount_minor_units == 12_500));
     }
 
     #[test]
@@ -810,7 +812,7 @@ mod tests {
         let first = vec![
             quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor.welder", 10.0, Some(rate())),
             quantity_event("actual", Stage::Observed, CONFIG_A, "weld-01", "labor.welder", 12.0, Some(rate())),
-            financial_event("invoice-line", "inv-42:line-3", 350.0),
+            financial_event("invoice-line", "inv-42:line-3", 35_000),
         ];
         let mut second = first.clone();
         second.reverse();
