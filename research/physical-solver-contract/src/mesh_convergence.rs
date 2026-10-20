@@ -820,13 +820,13 @@ pub fn assess_mesh_refinement_study_bytes(study_bytes: &[u8], study_root: &Path)
                     }
                     convergence_status = "PASS";
                     gci_applicability = "CONDITIONAL_MONOTONE_GEOMETRIC_REFINEMENT";
-                    if let Some(min_order) = study.expected_order_min {
-                        if order < min_order {
-                            diagnostics.push(format!(
-                                "observed order {order} is below expected_order_min {min_order}"
-                            ));
-                            convergence_status = "FAIL";
-                        }
+                    if let Some(min_order) = study.expected_order_min
+                        && order < min_order
+                    {
+                        diagnostics.push(format!(
+                            "observed order {order} is below expected_order_min {min_order}"
+                        ));
+                        convergence_status = "FAIL";
                     }
                 }
             }
