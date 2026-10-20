@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-solar-system-viewer"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Illustrative Bevy viewer for testing Symtropy solar-scale coordinates and apparent-size transitions"
+
+[dependencies]
+bevy = "0.19"
+symtropy-render-bridge = { path = "../../bridges/symtropy-render-bridge" }
