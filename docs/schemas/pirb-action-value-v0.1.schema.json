@@ -1,0 +1,449 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-action-value-v0.1.schema.json",
+  "title": "PIRB Capacity-Constrained Action Value Audit v0.1",
+  "description": "Compares no-action, risk-ranked and expected-net-benefit policies under pre-registered response capacity and assumption sensitivity. Expected avoided harm is model-based, not observed or causally identified impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_scope",
+    "governance",
+    "outcome_as_of_index",
+    "policy",
+    "privacy",
+    "provider",
+    "registration_id",
+    "rows",
+    "schema_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-action-value-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "model_version",
+        "forecast_artifact_sha256",
+        "outcome_snapshot_sha256",
+        "action_assumptions_sha256",
+        "attribution"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "action_assumptions_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_cost_multiplier_grid",
+        "action_features_cutoff_index",
+        "capacity_grid",
+        "effectiveness_multiplier_grid",
+        "forecast_origin_index",
+        "minimum_group_report_count",
+        "target_id",
+        "target_period_index",
+        "value_unit"
+      ],
+      "properties": {
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_origin_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_period_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "action_features_cutoff_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capacity_grid": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "action_cost_multiplier_grid": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          }
+        },
+        "effectiveness_multiplier_grid": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "minimum_group_report_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "value_unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Common unit for expected harm and action cost; all results are conditional on this unit."
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "group_policy_reference"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "group_policy_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_authority_status",
+        "data_authority_reference",
+        "disclosure_review_status",
+        "disclosure_review_reference",
+        "independent_source_capture_verified"
+      ],
+      "properties": {
+        "data_authority_status": {
+          "enum": [
+            "authorized",
+            "pending",
+            "denied",
+            "not_applicable"
+          ]
+        },
+        "data_authority_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disclosure_review_status": {
+          "enum": [
+            "approved",
+            "pending",
+            "rejected",
+            "not_applicable"
+          ]
+        },
+        "disclosure_review_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_source_capture_verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "group_id",
+          "target_id",
+          "offline_candidate_probability",
+          "forecast_disposition",
+          "reason_code",
+          "served_probability",
+          "expected_harm_per_event",
+          "action_cost",
+          "assumed_effectiveness",
+          "outcome_status",
+          "outcome"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^case-[A-Za-z0-9_-]+$"
+          },
+          "group_id": {
+            "type": "string",
+            "pattern": "^group-[A-Za-z0-9_-]+$"
+          },
+          "target_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "offline_candidate_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "forecast_disposition": {
+            "enum": [
+              "forecast_issued",
+              "abstained"
+            ]
+          },
+          "reason_code": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "abstain_insufficient_evidence",
+                  "abstain_stale_inputs",
+                  "abstain_unknown_inputs",
+                  "abstain_out_of_support",
+                  "abstain_unknown_regime",
+                  "abstain_low_selection_score"
+                ]
+              }
+            ]
+          },
+          "served_probability": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_harm_per_event": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Locally governed model input, not an observed cost or validated causal parameter."
+          },
+          "action_cost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Locally governed cost assumption, in the registration's declared common unit."
+          },
+          "assumed_effectiveness": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Assumed fractional reduction in expected harm from action, not causal evidence."
+          },
+          "outcome_status": {
+            "enum": [
+              "known",
+              "unknown",
+              "immature"
+            ]
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome_status": {
+                  "const": "known"
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "type": "integer",
+                  "enum": [
+                    0,
+                    1
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome_status": {
+                  "enum": [
+                    "unknown",
+                    "immature"
+                  ]
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "forecast_disposition": {
+                  "const": "forecast_issued"
+                }
+              },
+              "required": [
+                "forecast_disposition"
+              ]
+            },
+            "then": {
+              "properties": {
+                "reason_code": {
+                  "type": "null"
+                },
+                "served_probability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "forecast_disposition": {
+                  "const": "abstained"
+                }
+              },
+              "required": [
+                "forecast_disposition"
+              ]
+            },
+            "then": {
+              "properties": {
+                "reason_code": {
+                  "enum": [
+                    "abstain_insufficient_evidence",
+                    "abstain_stale_inputs",
+                    "abstain_unknown_inputs",
+                    "abstain_out_of_support",
+                    "abstain_unknown_regime",
+                    "abstain_low_selection_score"
+                  ]
+                },
+                "served_probability": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "outcome_as_of_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Frozen outcome release cutoff index; must be no earlier than the target period."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_scope": {
+            "const": "authorized_historical"
+          }
+        },
+        "required": [
+          "evidence_scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "governance": {
+            "properties": {
+              "data_authority_status": {
+                "const": "authorized"
+              },
+              "disclosure_review_status": {
+                "const": "approved"
+              },
+              "independent_source_capture_verified": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
