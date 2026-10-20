@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub type Check<T> = Result<T, String>;
 
+pub mod deconstruction;
 pub mod mechanics;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -407,6 +408,9 @@ pub struct FixtureOutcome {
     pub rejected_mutation_was_atomic: bool,
     pub recovered_component_count: usize,
     pub recovered_mass_mg: u64,
+    pub deconstruction_step_count: usize,
+    pub deconstruction_recovered_component_count: usize,
+    pub deconstruction_recovered_mass_mg: u64,
 }
 
 pub fn run_reference_fixture() -> Check<FixtureOutcome> {
@@ -524,6 +528,59 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
     let recovered_component_count = recovery_world.recovered_component_count();
     let recovered_mass_mg = recovery_world.recovered_mass_mg()?;
 
+    let mut deconstruction_world = World::default();
+    deconstruction_world.apply(Event {
+        id: "install-DECON-A".to_owned(),
+        operation: Operation::InstallComponent(Component {
+            id: "DECON-A".to_owned(),
+            material: "steel".to_owned(),
+            mass_mg: 1_000,
+        }),
+    })?;
+    deconstruction_world.apply(Event {
+        id: "install-DECON-B".to_owned(),
+        operation: Operation::InstallComponent(Component {
+            id: "DECON-B".to_owned(),
+            material: "concrete".to_owned(),
+            mass_mg: 2_000,
+        }),
+    })?;
+    deconstruction_world.apply(Event {
+        id: "connect-DECON-AB".to_owned(),
+        operation: Operation::CreateConnection(Connection {
+            id: "DECON-AB".to_owned(),
+            a: "DECON-A".to_owned(),
+            b: "DECON-B".to_owned(),
+        }),
+    })?;
+    let deconstruction_plan = deconstruction::preview(
+        &deconstruction_world,
+        "fixture-deconstruction",
+        vec![
+            deconstruction::RecoveryAllocation {
+                component_id: "DECON-A".to_owned(),
+                reused_mg: 500,
+                recycled_mg: 300,
+                contaminated_mg: 50,
+                waste_mg: 100,
+                unaccounted_mg: 50,
+            },
+            deconstruction::RecoveryAllocation {
+                component_id: "DECON-B".to_owned(),
+                reused_mg: 1_000,
+                recycled_mg: 500,
+                contaminated_mg: 100,
+                waste_mg: 200,
+                unaccounted_mg: 200,
+            },
+        ],
+    )?;
+    let deconstruction_step_count = deconstruction_plan.steps.len();
+    deconstruction::execute(&mut deconstruction_world, &deconstruction_plan)?;
+    let deconstruction_recovered_component_count =
+        deconstruction_world.recovered_component_count();
+    let deconstruction_recovered_mass_mg = deconstruction_world.recovered_mass_mg()?;
+
     let outcome = FixtureOutcome {
         initial_connected_components,
         after_cut_connected_components,
@@ -535,6 +592,9 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
         rejected_mutation_was_atomic,
         recovered_component_count,
         recovered_mass_mg,
+        deconstruction_step_count,
+        deconstruction_recovered_component_count,
+        deconstruction_recovered_mass_mg,
     };
 
     if outcome.initial_connected_components != 1
@@ -547,6 +607,9 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
         || !outcome.rejected_mutation_was_atomic
         || outcome.recovered_component_count != 1
         || outcome.recovered_mass_mg != 1_000
+        || outcome.deconstruction_step_count != 3
+        || outcome.deconstruction_recovered_component_count != 2
+        || outcome.deconstruction_recovered_mass_mg != 3_000
     {
         return Err(format!(
             "frozen fixture did not meet expected contract: {outcome:?}"
@@ -597,6 +660,9 @@ mod tests {
         assert!(result.rejected_mutation_was_atomic);
         assert_eq!(result.recovered_component_count, 1);
         assert_eq!(result.recovered_mass_mg, 1_000);
+        assert_eq!(result.deconstruction_step_count, 3);
+        assert_eq!(result.deconstruction_recovered_component_count, 2);
+        assert_eq!(result.deconstruction_recovered_mass_mg, 3_000);
     }
 
     #[test]
