@@ -799,6 +799,59 @@ mod tests {
     }
 
     #[test]
+    fn hazard_aware_belief_downweights_old_evidence_after_repeated_changes() {
+        let query = Query { keys: [1, 2, 3] };
+        let mut hazard = Memory::new(Kind::QueryKeyedHazardAware, 3, query, 99);
+        let mut ordinary = Memory::new(Kind::QueryKeyed, 3, query, 99);
+
+        // Repeated high-confidence source-time changes estimate elevated
+        // transition risk without providing any hidden truth to the policy.
+        for tick in (0_u8..=40).step_by(2) {
+            let e = Evidence {
+                key: 1,
+                value: (tick / 2) % 2 == 0,
+                source_tick: tick,
+                arrival_tick: tick,
+                confidence: 950,
+            };
+            hazard.observe(e);
+            ordinary.observe(e);
+        }
+        for e in [
+            Evidence { key: 2, value: true, source_tick: 40, arrival_tick: 40, confidence: 950 },
+            Evidence { key: 3, value: false, source_tick: 40, arrival_tick: 40, confidence: 950 },
+        ] {
+            hazard.observe(e);
+            ordinary.observe(e);
+        }
+
+        assert!(hazard.hazard_stats[0].transition_count > 0);
+        assert_eq!(ordinary.decide(HORIZON), Some(true));
+        assert_eq!(hazard.decide_hazard_aware(HORIZON), None);
+    }
+
+    #[test]
+    fn hazard_policy_reports_its_additional_logical_state_cost() {
+        let ep = Episode::generate(0xA2A_D123, Family::HeldOut);
+        let simple = evaluate(&ep, Kind::QueryKeyed, 3, 0x1234);
+        let hazard = evaluate(&ep, Kind::QueryKeyedHazardAware, 3, 0x1234);
+        assert_eq!(simple.entries, hazard.entries);
+        assert!(hazard.logical_state_bytes > simple.logical_state_bytes);
+    }
+
+    #[test]
+    fn hazard_statistics_ignore_late_or_low_confidence_updates() {
+        let mut stats = HazardStats::default();
+        stats.observe(Evidence { key: 1, value: true, source_tick: 5, arrival_tick: 5, confidence: 950 });
+        stats.observe(Evidence { key: 1, value: false, source_tick: 3, arrival_tick: 7, confidence: 950 });
+        stats.observe(Evidence { key: 1, value: false, source_tick: 6, arrival_tick: 8, confidence: 350 });
+        stats.observe(Evidence { key: 1, value: true, source_tick: 7, arrival_tick: 9, confidence: 950 });
+        assert_eq!(stats.transition_count, 0);
+        assert_eq!(stats.elapsed_ticks, 2);
+        assert_eq!(stats.last_reliable.unwrap().source_tick, 7);
+    }
+
+    #[test]
     fn development_calibration_is_deterministic_and_uses_declared_grid() {
         let a = calibrate_threshold();
         let b = calibrate_threshold();
