@@ -25,6 +25,7 @@ struct AuditRuntime {
 }
 
 impl AuditRuntime {
+    #[cfg(test)]
     fn unpinned() -> Self {
         Self {
             dependency_lock_sha256: "UNPINNED_LOCAL_RUN".to_owned(),
@@ -322,6 +323,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     errors
 }
 
+#[cfg(test)]
 fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<String>> {
     validate_and_audit_with_runtime(input, source_commit, &AuditRuntime::unpinned())
 }
