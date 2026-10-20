@@ -42,6 +42,12 @@ The three tests in tests/oracle.rs provide an independently hand-calculated tiny
 
 The 2026 review of shipyard production planning reports that hybrid discrete-event simulation plus optimization is comparatively operationally credible under bounded conditions, while publicly reproducible high-resolution shipyard datasets and longitudinal yard-wide KPI validation remain limited ([Bordbar et al., 2026](https://doi.org/10.3390/jmse14040396)). The purpose here is to close a narrow execution-to-economics traceability gap, not to claim the ledger itself improves productivity.
 
+## Interoperability and credibility context
+
+NIST's July 2026 Digital Twins Workshops summary (NISTIR 8620) identifies interoperability, verification/validation/uncertainty quantification (VVUQ), cybersecurity and workforce readiness as continuing manufacturing digital-twin challenges: https://doi.org/10.6028/NIST.IR.8620. NIST's ongoing Digital Twins for Advanced Manufacturing programme also emphasizes reference architectures, standards, data exchange, VVUQ, and lifecycle digital threads: https://www.nist.gov/programs-projects/digital-twins-advanced-manufacturing.
+
+This Rust kernel addresses only the narrow event identity, quantity reconciliation and accounting-view boundary. It does not yet implement a standard transport payload, ISO 23247 conformance, MTConnect adapter, cybersecurity threat model, or full VVUQ process. Those should be explicit adapter and assurance layers, not implied by the existence of a digital-twin-style event ledger.
+
 ## Benchmark targets (goals, not achieved results)
 
 - 100% agreement with independent hand-calculated quantity/cost fixtures.
