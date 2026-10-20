@@ -201,6 +201,58 @@ fn make_catalog() -> Vec<SolarBody> {
     ]
 }
 
+fn make_orbit_segments(bodies: &[SolarBody]) -> Vec<OrbitSegment> {
+    const SEGMENT_COUNT: u32 = 96;
+    let sun = bodies
+        .iter()
+        .find(|body| body.id == "sun")
+        .expect("Sun is catalogued");
+    let earth = bodies
+        .iter()
+        .find(|body| body.id == "earth")
+        .expect("Earth is catalogued");
+    let mut segments = Vec::new();
+
+    for body in bodies {
+        let origin = if body.id == "moon" {
+            earth.position
+        } else {
+            sun.position
+        };
+        if body.id == "sun" {
+            continue;
+        }
+        let relative = body
+            .position
+            .relative_to_meters(&origin)
+            .expect("illustrative bodies share a coordinate frame");
+        let radius = relative[0].hypot(relative[1]).hypot(relative[2]);
+        if !radius.is_finite() || radius <= 0.0 {
+            continue;
+        }
+
+        // A thin presentation guide keeps the orbit readable at overview scale;
+        // this thickness is not a physical orbital structure.
+        let thickness_m = (radius * 0.002).max(10.0);
+        for index in 0..SEGMENT_COUNT {
+            let a0 = 2.0 * PI * f64::from(index) / f64::from(SEGMENT_COUNT);
+            let a1 = 2.0 * PI * f64::from(index + 1) / f64::from(SEGMENT_COUNT);
+            let start = origin
+                .offset_by_meters([radius * a0.cos(), radius * a0.sin(), 0.0])
+                .expect("orbit waypoint is representable");
+            let end = origin
+                .offset_by_meters([radius * a1.cos(), radius * a1.sin(), 0.0])
+                .expect("orbit waypoint is representable");
+            segments.push(OrbitSegment {
+                start,
+                end,
+                thickness_m,
+            });
+        }
+    }
+    segments
+}
+
 fn focus_for_stage(
     stage: ViewStage,
     bodies: &[SolarBody],
@@ -291,49 +343,22 @@ fn setup(
         ));
     }
 
-    // Deterministic, illustrative circular paths. These are visual guides, not ephemerides.
+    // Deterministic circular guides are separate render representations; the
+    // catalog positions are not advanced along them and remain illustrative.
     let orbit_mesh = meshes.add(Cuboid::new(1.0, 1.0, 1.0));
     let orbit_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.20, 0.34, 0.58),
         unlit: true,
         ..default()
     });
-    let sun = state.bodies.iter().find(|body| body.id == "sun").copied().expect("Sun is catalogued");
-    let earth = state.bodies.iter().find(|body| body.id == "earth").copied().expect("Earth is catalogued");
-    for body in &state.bodies {
-        let orbit_origin = if body.id == "moon" { earth.position } else { sun.position };
-        if body.id == "sun" {
-            continue;
-        }
-        let relative = body.position.relative_to_meters(&orbit_origin)
-            .expect("illustrative bodies share a coordinate frame");
-        let orbit_radius = relative[0].hypot(relative[1]).hypot(relative[2]);
-        if !orbit_radius.is_finite() || orbit_radius <= 0.0 {
-            continue;
-        }
-        let segment_count = 96_u32;
-        let thickness_m = (orbit_radius * 0.002).max(10.0);
-        for segment_index in 0..segment_count {
-            let a0 = 2.0 * PI * f64::from(segment_index) / f64::from(segment_count);
-            let a1 = 2.0 * PI * f64::from(segment_index + 1) / f64::from(segment_count);
-            let start = orbit_origin.offset_by_meters([
-                orbit_radius * a0.cos(),
-                orbit_radius * a0.sin(),
-                0.0,
-            ]).expect("orbit waypoint is representable");
-            let end = orbit_origin.offset_by_meters([
-                orbit_radius * a1.cos(),
-                orbit_radius * a1.sin(),
-                0.0,
-            ]).expect("orbit waypoint is representable");
-            commands.spawn((
-                Mesh3d(orbit_mesh.clone()),
-                MeshMaterial3d(orbit_material.clone()),
-                Transform::default(),
-                Visibility::Hidden,
-                OrbitSegment { start, end, thickness_m },
-            ));
-        }
+    for segment in make_orbit_segments(&state.bodies) {
+        commands.spawn((
+            Mesh3d(orbit_mesh.clone()),
+            MeshMaterial3d(orbit_material.clone()),
+            Transform::default(),
+            Visibility::Hidden,
+            segment,
+        ));
     }
 
     let tile_mesh = meshes.add(Plane3d::default().mesh().size(1.0, 1.0));
@@ -811,6 +836,21 @@ mod tests {
         let radius = delta[0].hypot(delta[1]).hypot(delta[2]);
         assert!(radius > 4.4e12);
         assert!(radius < 4.7e12);
+    }
+
+    #[test]
+    fn orbital_guide_segments_span_the_catalog_without_mutating_body_positions() {
+        let bodies = make_catalog();
+        let before = bodies.clone();
+        let segments = make_orbit_segments(&bodies);
+        assert_eq!(segments.len(), 9 * 96);
+        assert_eq!(bodies, before);
+        assert!(segments.iter().all(|segment| segment.thickness_m.is_finite() && segment.thickness_m > 0.0));
+        for segment in segments {
+            let delta = segment.end.relative_to_meters(&segment.start).expect("segment frame");
+            let length = delta[0].hypot(delta[1]).hypot(delta[2]);
+            assert!(length.is_finite() && length > 0.0);
+        }
     }
 
     #[test]
