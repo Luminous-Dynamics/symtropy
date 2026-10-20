@@ -116,3 +116,19 @@ The furnishing benchmark now has a proposed, effects-disabled offer-profile comp
 - Exploration is read-only and effects-disabled. No buyer authorization, checkout, reservation, payment or public floor-plan disclosure is implied by a compatibility check.
 
 The current Marketplace implementation is pre-alpha; the new profile is a contract proposal, not a functioning adapter. Do not change the production Marketplace transaction path until the profile is mapped field-by-field to its existing wire contracts and its independent checks pass.
+
+
+## Independent Rust fixture oracle
+
+The isolated `tools/furnishing-layout-audit/` crate now independently audits the synthetic fixture and its expected outcomes. It checks scenario/catalog/zone/requirement identities, reference integrity, nominal room bounds after rotation, rectangle collisions between furnishings, expected keep-clear-zone outcomes, unknown-site abstention, mandatory-requirement blocking, and the synthetic preference Pareto relation.
+
+Run it with:
+
+```sh
+cargo fmt --manifest-path tools/furnishing-layout-audit/Cargo.toml -- --check
+cargo test --manifest-path tools/furnishing-layout-audit/Cargo.toml
+cargo clippy --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+cargo run --manifest-path tools/furnishing-layout-audit/Cargo.toml
+```
+
+The checker is an independent **synthetic 2D rectangle oracle**, not an architectural solver. Its tests prove only that these fixture inputs, cross-references and expected outcomes are internally consistent. The fixture coordinates and clearances are not building rules; successful validation does not establish accessibility, egress/code compliance, physical performance, manufacturability, or suitability of a real dwelling. The dedicated exact-head workflow checks formatting, mutation tests and Clippy before this helper is treated as a maintained benchmark gate.
