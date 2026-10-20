@@ -52,9 +52,24 @@ impl Workload {
         side: usize,
         item_count: usize,
     ) -> &'static str {
-        let has_next_row_same_column = index.saturating_add(side) < item_count;
-        if self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON && has_next_row_same_column
-        {
+        let row = index / side.max(1);
+        let column = index % side.max(1);
+        let next_row = row + 1;
+        let vertical_overlap =
+            self.pitch() < ITEM_DEPTH + ENVELOPE_DEPTH - GEOMETRY_EPSILON;
+        let next_row_intrudes = vertical_overlap
+            && next_row < side
+            && (-1isize..=1).any(|delta_column| {
+                let next_column = column as isize + delta_column;
+                if next_column < 0 || next_column >= side as isize {
+                    return false;
+                }
+                let next_index = next_row * side + next_column as usize;
+                next_index < item_count
+                    && (delta_column.unsigned_abs() as f64) * self.pitch()
+                        < ITEM_WIDTH - GEOMETRY_EPSILON
+            });
+        if next_row_intrudes {
             "fail"
         } else {
             "pass"
