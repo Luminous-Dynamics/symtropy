@@ -211,6 +211,159 @@ jobs:
             and any(.artifact_results[]; .status == "UNRESOLVED")
           ' solver-contract-artifact-path-escape-verification.json
 
+      - name: Compare normalized numerical observables against exact request-bound reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          request="schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+          artifact_root="solver-contract-reference-artifacts"
+          mkdir -p "$artifact_root"
+          request_sha256="$(sha256sum "$request" | cut -d ' ' -f 1)"
+          request_id="$(jq -r '.request_id' "$request")"
+          source_revision="$(jq -r '.source_revision' "$request")"
+          case_id="fixture-bar-reference"
+
+          jq -n \
+            --arg digest "$request_sha256" \
+            --arg case_id "$case_id" \
+            '{
+              schema_version:"physical-normalized-observables-v0.1",
+              request_sha256:$digest,
+              case_id:$case_id,
+              observables:[{observable_id:"fixture_displacement_m",value:0.125,unit:"m"}]
+            }' > "$artifact_root/normalized.json"
+          printf '{"synthetic_auxiliary":true}\n' > "$artifact_root/stress.json"
+          normalized_sha256="$(sha256sum "$artifact_root/normalized.json" | cut -d ' ' -f 1)"
+          stress_sha256="$(sha256sum "$artifact_root/stress.json" | cut -d ' ' -f 1)"
+
+          jq -n \
+            --arg request_id "$request_id" \
+            --arg digest "$request_sha256" \
+            --arg revision "$source_revision" \
+            --arg normalized_sha "$normalized_sha256" \
+            --arg stress_sha "$stress_sha256" \
+            --slurpfile request "$request" '
+            {
+              schema_version:"physical-solver-receipt-v0.1",
+              request_id:$request_id,
+              request_sha256:$digest,
+              source_revision:$revision,
+              adapter:{
+                adapter_id:"synthetic-numerical-compare-fixture",
+                version:"0.1.0",
+                executable_sha256:("b" * 64),
+                configuration_sha256:("c" * 64),
+                solver_name:"synthetic-test-only",
+                solver_version:"0.1.0",
+                solver_build_ref:"fixture-only:no-solver-executed"
+              },
+              status:"PASS",
+              evidence_class:"synthetic",
+              physics_evaluated:$request[0].requested_physics,
+              physics_omitted:[],
+              convergence:{
+                state:"not_applicable",
+                iterations:null,
+                residual:null,
+                mesh_refinement_evaluated:false,
+                details:"Synthetic numerical-comparator control only; no solver executed."
+              },
+              outputs:[
+                {output_id:"normalized",kind:"displacement",sha256:$normalized_sha,media_type:"application/json",unit:"m",artifact_ref:"normalized.json"},
+                {output_id:"aux-stress",kind:"stress",sha256:$stress_sha,media_type:"application/json",unit:"Pa",artifact_ref:"stress.json"}
+              ],
+              uncertainty:{
+                state:"unknown",
+                method:null,
+                summary:"No physical uncertainty is represented in this fixture."
+              },
+              validity_envelope:{
+                supported_geometry:"synthetic fixture only",
+                supported_material_model:"synthetic fixture only",
+                load_regime:"synthetic fixture only",
+                limitations:["No numerical or physical result is asserted."]
+              },
+              claim_ceiling:"Synthetic comparator fixture only; not physical qualification.",
+              diagnostics:[]
+            }' > solver-contract-numerical-receipt.json
+
+          jq -n \
+            --arg digest "$request_sha256" \
+            --arg case_id "$case_id" '
+            {
+              schema_version:"physical-reference-observables-v0.1",
+              reference_id:"fixture-known-answer-v1",
+              case_id:$case_id,
+              request_sha256:$digest,
+              comparison_protocol_id:"fixture-tolerance-v1",
+              oracle:{
+                method:"analytical_exact",
+                identity:"frozen synthetic known-answer oracle",
+                source_ref:"test-oracle://normalized-observable-v1"
+              },
+              observables:[
+                {observable_id:"fixture_displacement_m",expected_value:0.125,unit:"m",absolute_tolerance:1e-12,relative_tolerance:1e-10}
+              ]
+            }' > solver-contract-reference-manifest.json
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" \
+            --receipt solver-contract-numerical-receipt.json \
+            --artifact-root "$artifact_root" \
+            --reference solver-contract-reference-manifest.json \
+            --observation-output-id normalized \
+            > solver-contract-numerical-comparison-pass.json
+          jq -e '
+            .comparison_status == "PASS"
+            and .artifact_verification_status == "PASS"
+            and .numerical_observable_comparison == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and .observable_results[0].relative_error_defined == false or
+            (.comparison_status == "PASS" and .physical_result_qualified == false)
+          ' solver-contract-numerical-comparison-pass.json
+
+          # Change the observed value, then update the output hash so this tests
+          # numerical disagreement rather than a mere byte-integrity failure.
+          jq '.observables[0].value = 0.13' "$artifact_root/normalized.json" > "$artifact_root/normalized-mutated.json"
+          mv "$artifact_root/normalized-mutated.json" "$artifact_root/normalized.json"
+          mutated_sha256="$(sha256sum "$artifact_root/normalized.json" | cut -d ' ' -f 1)"
+          jq --arg digest "$mutated_sha256" '.outputs[0].sha256 = $digest' \
+            solver-contract-numerical-receipt.json > solver-contract-numerical-mutated-receipt.json
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" \
+            --receipt solver-contract-numerical-mutated-receipt.json \
+            --artifact-root "$artifact_root" \
+            --reference solver-contract-reference-manifest.json \
+            --observation-output-id normalized \
+            > solver-contract-numerical-comparison-fail.json
+          jq -e '
+            .artifact_verification_status == "PASS"
+            and .comparison_status == "FAIL"
+            and .numerical_observable_comparison == "FAIL"
+            and .physical_result_qualified == false
+            and .observable_results[0].within_tolerance == false
+          ' solver-contract-numerical-comparison-fail.json
+
+          jq '.observables[0].unit = "mm"' "$artifact_root/normalized.json" > "$artifact_root/normalized-mutated.json"
+          mv "$artifact_root/normalized-mutated.json" "$artifact_root/normalized.json"
+          unit_mutated_sha256="$(sha256sum "$artifact_root/normalized.json" | cut -d ' ' -f 1)"
+          jq --arg digest "$unit_mutated_sha256" '.outputs[0].sha256 = $digest' \
+            solver-contract-numerical-receipt.json > solver-contract-numerical-unit-mismatch-receipt.json
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" \
+            --receipt solver-contract-numerical-unit-mismatch-receipt.json \
+            --artifact-root "$artifact_root" \
+            --reference solver-contract-reference-manifest.json \
+            --observation-output-id normalized \
+            > solver-contract-numerical-comparison-unit-mismatch.json
+          jq -e '
+            .artifact_verification_status == "PASS"
+            and .comparison_status == "UNRESOLVED"
+            and any(.diagnostics[]; contains("unit mismatch"))
+            and .physical_result_qualified == false
+          ' solver-contract-numerical-comparison-unit-mismatch.json
+
       - name: Upload validation receipts and reports
         uses: actions/upload-artifact@v4
         with:
