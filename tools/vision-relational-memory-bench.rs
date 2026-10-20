@@ -369,6 +369,12 @@ impl HazardStats {
     }
 }
 
+fn probability_different_after_gap(hazard: f64, gap: u8) -> f64 {
+    assert!(gap > 0, "source-time gap must be positive");
+    let persistence = (1.0 - 2.0 * hazard.clamp(0.0, 0.5 - 1e-9)).powi(i32::from(gap));
+    ((1.0 - persistence) / 2.0).clamp(1e-9, 0.5 - 1e-9)
+}
+
 #[derive(Clone, Copy, Debug)]
 struct GapAwareStats {
     last_reliable: Option<Evidence>,
@@ -392,13 +398,12 @@ impl GapAwareStats {
         match self.last_reliable {
             None => self.last_reliable = Some(evidence),
             Some(previous) if evidence.source_tick > previous.source_tick => {
-                let gap = i32::from(evidence.source_tick - previous.source_tick);
+                let gap = evidence.source_tick - previous.source_tick;
                 let changed = evidence.value != previous.value;
                 for (index, hazard) in HAZARD_RATES.iter().copied().enumerate() {
                     // Symmetric two-state Markov likelihood for an irregular
                     // observation interval of length gap.
-                    let persistence = (1.0 - 2.0 * hazard).powi(gap);
-                    let probability_changed = ((1.0 - persistence) / 2.0).clamp(1e-9, 0.5 - 1e-9);
+                    let probability_changed = probability_different_after_gap(hazard, gap);
                     let likelihood = if changed { probability_changed } else { 1.0 - probability_changed };
                     let increment = (likelihood.ln() * LOG_SCORE_SCALE).round() as i32;
                     self.log_scores[index] = self.log_scores[index].saturating_add(increment);
@@ -747,6 +752,7 @@ fn report() {
     println!("paired policies, correlated distractor bursts, changing claims, delayed and occasionally corrupted evidence");
     println!("confidence is sampled independently; P(confidence 950,850,650)=(0.75,0.20,0.05)");
     println!("conditional corruption p per tier = base_rate * (20,160,320)/63 per thousand; aggregate rate approximately preserved");
+    println!("gap-aware policy: candidate per-tick hazards={HAZARD_RATES:?}; Bayesian fixed-point log-likelihood grid, irregular source-time gaps");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
     println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
@@ -1001,6 +1007,56 @@ mod tests {
         assert_eq!(stats.transition_count, 0);
         assert_eq!(stats.elapsed_ticks, 2);
         assert_eq!(stats.last_reliable.unwrap().source_tick, 7);
+    }
+
+    #[test]
+    fn gap_transition_likelihood_normalizes_and_is_monotone() {
+        for gap in 1..=8 {
+            let mut previous = 0.0;
+            for hazard in [0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.4] {
+                let p_change = probability_different_after_gap(hazard, gap);
+                assert!((0.0..=0.5).contains(&p_change));
+                assert!((p_change + (1.0 - p_change) - 1.0).abs() < 1e-12);
+                assert!(p_change > previous);
+                previous = p_change;
+            }
+        }
+        for hazard in HAZARD_RATES {
+            assert!((probability_different_after_gap(hazard, 1) - hazard).abs() < 1e-8);
+        }
+    }
+
+    #[test]
+    fn gap_aware_posterior_accounts_for_irregular_observation_intervals() {
+        let mut one_tick = GapAwareStats::default();
+        one_tick.observe(Evidence { key: 1, value: true, source_tick: 0, arrival_tick: 0, confidence: 950 });
+        one_tick.observe(Evidence { key: 1, value: false, source_tick: 1, arrival_tick: 1, confidence: 950 });
+
+        let mut five_ticks = GapAwareStats::default();
+        five_ticks.observe(Evidence { key: 1, value: true, source_tick: 0, arrival_tick: 0, confidence: 950 });
+        five_ticks.observe(Evidence { key: 1, value: false, source_tick: 5, arrival_tick: 5, confidence: 950 });
+
+        assert!(one_tick.estimated_flip_hazard() > five_ticks.estimated_flip_hazard());
+    }
+
+    #[test]
+    fn gap_aware_statistics_ignore_delayed_old_source_updates() {
+        let mut stats = GapAwareStats::default();
+        stats.observe(Evidence { key: 1, value: true, source_tick: 4, arrival_tick: 4, confidence: 950 });
+        stats.observe(Evidence { key: 1, value: false, source_tick: 8, arrival_tick: 8, confidence: 950 });
+        let scores_before = stats.log_scores;
+        stats.observe(Evidence { key: 1, value: false, source_tick: 6, arrival_tick: 10, confidence: 950 });
+        assert_eq!(stats.log_scores, scores_before);
+        assert_eq!(stats.last_reliable.unwrap().source_tick, 8);
+    }
+
+    #[test]
+    fn gap_aware_policy_reports_larger_logical_state_cost() {
+        let episode = Episode::generate(0xCAFE_BABE, Family::HeldOut);
+        let simple = evaluate(&episode, Kind::QueryKeyedHazardAware, 3, 0x1234);
+        let gap_aware = evaluate(&episode, Kind::QueryKeyedGapAware, 3, 0x1234);
+        assert_eq!(simple.entries, gap_aware.entries);
+        assert!(gap_aware.logical_state_bytes > simple.logical_state_bytes);
     }
 
     #[test]
