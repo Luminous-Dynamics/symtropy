@@ -70,7 +70,10 @@ impl DailyFlux {
     fn validate(self) -> Result<(), BalanceError> {
         for (field, value) in [
             ("rainwater_input_l", self.rainwater_input_l),
-            ("supplemental_water_input_l", self.supplemental_water_input_l),
+            (
+                "supplemental_water_input_l",
+                self.supplemental_water_input_l,
+            ),
             ("crop_water_uptake_l", self.crop_water_uptake_l),
             ("evaporation_l", self.evaporation_l),
             ("leakage_or_overflow_l", self.leakage_or_overflow_l),
@@ -88,24 +91,27 @@ impl DailyFlux {
 ///
 /// This kernel does not infer fluxes from weather or plant traits. It accounts
 /// for supplied fluxes and returns an error if inventory would be overdrawn.
-pub fn step(
-    before: ReservoirState,
-    flux: DailyFlux,
-) -> Result<DailyBalance, BalanceError> {
+pub fn step(before: ReservoirState, flux: DailyFlux) -> Result<DailyBalance, BalanceError> {
     before.validate()?;
     flux.validate()?;
 
     let water_in = flux.rainwater_input_l + flux.supplemental_water_input_l;
     if !water_in.is_finite() {
-        return Err(BalanceError::NonFinite { field: "water_in_l" });
+        return Err(BalanceError::NonFinite {
+            field: "water_in_l",
+        });
     }
     let water_out = flux.crop_water_uptake_l + flux.evaporation_l + flux.leakage_or_overflow_l;
     if !water_out.is_finite() {
-        return Err(BalanceError::NonFinite { field: "water_out_l" });
+        return Err(BalanceError::NonFinite {
+            field: "water_out_l",
+        });
     }
     let water_available = before.water_l + water_in;
     if !water_available.is_finite() {
-        return Err(BalanceError::NonFinite { field: "water_available_l" });
+        return Err(BalanceError::NonFinite {
+            field: "water_available_l",
+        });
     }
     if water_out > water_available {
         return Err(BalanceError::WaterDemandExceedsAvailable {
@@ -116,11 +122,15 @@ pub fn step(
 
     let nutrients_available = before.dissolved_nutrients_g + flux.nutrient_input_g;
     if !nutrients_available.is_finite() {
-        return Err(BalanceError::NonFinite { field: "nutrients_available_g" });
+        return Err(BalanceError::NonFinite {
+            field: "nutrients_available_g",
+        });
     }
     let nutrients_out = flux.crop_nutrient_uptake_g + flux.nutrient_discharge_g;
     if !nutrients_out.is_finite() {
-        return Err(BalanceError::NonFinite { field: "nutrients_out_g" });
+        return Err(BalanceError::NonFinite {
+            field: "nutrients_out_g",
+        });
     }
     if nutrients_out > nutrients_available {
         return Err(BalanceError::NutrientDemandExceedsAvailable {
@@ -134,12 +144,14 @@ pub fn step(
         dissolved_nutrients_g: nutrients_available - nutrients_out,
     };
     let water_balance_residual_l = after.water_l - (before.water_l + water_in - water_out);
-    let nutrient_balance_residual_g =
-        after.dissolved_nutrients_g - (before.dissolved_nutrients_g + flux.nutrient_input_g - nutrients_out);
+    let nutrient_balance_residual_g = after.dissolved_nutrients_g
+        - (before.dissolved_nutrients_g + flux.nutrient_input_g - nutrients_out);
     let nutrient_concentration_g_per_l = if after.water_l > 0.0 {
         let concentration = after.dissolved_nutrients_g / after.water_l;
         if !concentration.is_finite() {
-            return Err(BalanceError::NonFinite { field: "nutrient_concentration_g_per_l" });
+            return Err(BalanceError::NonFinite {
+                field: "nutrient_concentration_g_per_l",
+            });
         }
         Some(concentration)
     } else {
@@ -162,7 +174,10 @@ mod tests {
 
     #[test]
     fn water_and_nutrient_mass_balance_close() {
-        let before = ReservoirState { water_l: 100.0, dissolved_nutrients_g: 10.0 };
+        let before = ReservoirState {
+            water_l: 100.0,
+            dissolved_nutrients_g: 10.0,
+        };
         let flux = DailyFlux {
             rainwater_input_l: 2.0,
             crop_water_uptake_l: 7.0,
@@ -182,11 +197,18 @@ mod tests {
 
     #[test]
     fn rain_dilutes_solution_without_inventing_nutrients() {
-        let before = ReservoirState { water_l: 50.0, dissolved_nutrients_g: 5.0 };
-        let result = step(before, DailyFlux {
-            rainwater_input_l: 5.0,
-            ..DailyFlux::default()
-        }).expect("rain-only balance");
+        let before = ReservoirState {
+            water_l: 50.0,
+            dissolved_nutrients_g: 5.0,
+        };
+        let result = step(
+            before,
+            DailyFlux {
+                rainwater_input_l: 5.0,
+                ..DailyFlux::default()
+            },
+        )
+        .expect("rain-only balance");
         assert_eq!(result.after.water_l, 55.0);
         assert_eq!(result.after.dissolved_nutrients_g, 5.0);
         assert!((result.nutrient_concentration_g_per_l.unwrap() - (5.0 / 55.0)).abs() < EPSILON);
@@ -195,41 +217,74 @@ mod tests {
     #[test]
     fn rejects_water_overdraw_instead_of_clamping() {
         let error = step(
-            ReservoirState { water_l: 1.0, dissolved_nutrients_g: 1.0 },
-            DailyFlux { crop_water_uptake_l: 1.1, ..DailyFlux::default() },
-        ).unwrap_err();
-        assert!(matches!(error, BalanceError::WaterDemandExceedsAvailable { .. }));
+            ReservoirState {
+                water_l: 1.0,
+                dissolved_nutrients_g: 1.0,
+            },
+            DailyFlux {
+                crop_water_uptake_l: 1.1,
+                ..DailyFlux::default()
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            BalanceError::WaterDemandExceedsAvailable { .. }
+        ));
     }
 
     #[test]
     fn rejects_nutrient_overdraw_instead_of_clamping() {
         let error = step(
-            ReservoirState { water_l: 1.0, dissolved_nutrients_g: 0.2 },
-            DailyFlux { crop_nutrient_uptake_g: 0.3, ..DailyFlux::default() },
-        ).unwrap_err();
-        assert!(matches!(error, BalanceError::NutrientDemandExceedsAvailable { .. }));
+            ReservoirState {
+                water_l: 1.0,
+                dissolved_nutrients_g: 0.2,
+            },
+            DailyFlux {
+                crop_nutrient_uptake_g: 0.3,
+                ..DailyFlux::default()
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            BalanceError::NutrientDemandExceedsAvailable { .. }
+        ));
     }
 
     #[test]
     fn rejects_non_finite_inputs() {
         let error = step(
-            ReservoirState { water_l: f64::NAN, dissolved_nutrients_g: 1.0 },
+            ReservoirState {
+                water_l: f64::NAN,
+                dissolved_nutrients_g: 1.0,
+            },
             DailyFlux::default(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(error, BalanceError::NonFinite { field: "water_l" });
     }
 
     #[test]
     fn rejects_overflowing_flux_totals() {
         let error = step(
-            ReservoirState { water_l: 0.0, dissolved_nutrients_g: 0.0 },
+            ReservoirState {
+                water_l: 0.0,
+                dissolved_nutrients_g: 0.0,
+            },
             DailyFlux {
                 rainwater_input_l: f64::MAX,
                 supplemental_water_input_l: f64::MAX,
                 ..DailyFlux::default()
             },
-        ).unwrap_err();
-        assert_eq!(error, BalanceError::NonFinite { field: "water_in_l" });
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            BalanceError::NonFinite {
+                field: "water_in_l"
+            }
+        );
     }
 
     #[test]
@@ -240,25 +295,50 @@ mod tests {
                 dissolved_nutrients_g: f64::MAX,
             },
             DailyFlux::default(),
-        ).unwrap_err();
-        assert_eq!(error, BalanceError::NonFinite { field: "nutrient_concentration_g_per_l" });
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            BalanceError::NonFinite {
+                field: "nutrient_concentration_g_per_l"
+            }
+        );
     }
 
     #[test]
     fn rejects_negative_flux() {
         let error = step(
-            ReservoirState { water_l: 1.0, dissolved_nutrients_g: 1.0 },
-            DailyFlux { evaporation_l: -0.1, ..DailyFlux::default() },
-        ).unwrap_err();
-        assert_eq!(error, BalanceError::Negative { field: "evaporation_l" });
+            ReservoirState {
+                water_l: 1.0,
+                dissolved_nutrients_g: 1.0,
+            },
+            DailyFlux {
+                evaporation_l: -0.1,
+                ..DailyFlux::default()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            BalanceError::Negative {
+                field: "evaporation_l"
+            }
+        );
     }
 
     #[test]
     fn zero_water_has_no_defined_solution_concentration() {
         let result = step(
-            ReservoirState { water_l: 1.0, dissolved_nutrients_g: 0.0 },
-            DailyFlux { crop_water_uptake_l: 1.0, ..DailyFlux::default() },
-        ).expect("fully consumed water");
+            ReservoirState {
+                water_l: 1.0,
+                dissolved_nutrients_g: 0.0,
+            },
+            DailyFlux {
+                crop_water_uptake_l: 1.0,
+                ..DailyFlux::default()
+            },
+        )
+        .expect("fully consumed water");
         assert_eq!(result.nutrient_concentration_g_per_l, None);
         assert_eq!(result.after.water_l, 0.0);
     }
