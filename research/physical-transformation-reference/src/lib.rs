@@ -9,6 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub type Check<T> = Result<T, String>;
 
+pub mod mechanics;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Component {
     pub id: String,
