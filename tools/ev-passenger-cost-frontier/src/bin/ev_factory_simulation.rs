@@ -22,6 +22,10 @@ struct Catalog {
     productive_seconds_per_year: u64,
     variant_count: usize,
     variant_batch_size: u64,
+    #[serde(default)]
+    dispatch_policy: DispatchPolicy,
+    #[serde(default = "default_maximum_consecutive_skips")]
+    maximum_consecutive_skips: u32,
     mean_supply_interarrival_seconds: f64,
     supply_interarrival_variability_fraction: f64,
     source_buffer_capacity: usize,
@@ -65,6 +69,18 @@ enum EvidenceClass {
     Unknown,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+enum DispatchPolicy {
+    #[default]
+    Fifo,
+    MinimizeChangeover,
+}
+
+fn default_maximum_consecutive_skips() -> u32 {
+    3
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum GateStatus {
@@ -81,6 +97,8 @@ struct Report {
     replication_count: usize,
     replication_seeds: Vec<u64>,
     random_stream_policy: String,
+    dispatch_policy: DispatchPolicy,
+    maximum_consecutive_skips: u32,
     scenario_count: usize,
     scenario_statistics: Vec<ScenarioStatistics>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
@@ -102,6 +120,8 @@ struct Report {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 struct ScenarioResult {
     scenario_id: String,
+    dispatch_policy: DispatchPolicy,
+    maximum_consecutive_skips: u32,
     intervention_station_id: Option<String>,
     added_servers: usize,
     released_jobs_total: u64,
@@ -116,6 +136,7 @@ struct ScenarioResult {
     source_buffer_peak_units: usize,
     source_buffer_average_units: f64,
     interstation_buffers: Vec<BufferResult>,
+    variant_wait_statistics: Vec<VariantWaitStatistics>,
     stations: Vec<StationResult>,
     output_never_exceeds_released_input: bool,
     all_buffers_respected_capacity: bool,
@@ -147,6 +168,25 @@ struct ScenarioStatistics {
     paired_relative_output_delta_fraction_vs_baseline: Option<DistributionSummary>,
     scrapped_jobs_total: DistributionSummary,
     measured_rework_attempts: DistributionSummary,
+    variant_wait_statistics: Vec<VariantWaitScenarioStatistics>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct VariantWaitStatistics {
+    variant: usize,
+    sample_count: usize,
+    average_wait_seconds: Option<f64>,
+    p95_wait_seconds: Option<f64>,
+    maximum_wait_seconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct VariantWaitScenarioStatistics {
+    variant: usize,
+    sample_count: DistributionSummary,
+    average_wait_seconds: Option<DistributionSummary>,
+    p95_wait_seconds: Option<DistributionSummary>,
+    maximum_wait_seconds: Option<DistributionSummary>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -190,6 +230,8 @@ struct StationResult {
 struct Job {
     id: u64,
     variant: usize,
+    enqueued_at_seconds: u64,
+    consecutive_skips: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -257,6 +299,7 @@ struct SimState {
     measured_good_units: u64,
     scrapped_jobs_total: u64,
     measured_rework_attempts: u64,
+    variant_wait_samples_seconds: Vec<Vec<u64>>,
     buffer_capacity_violation: bool,
 }
 
