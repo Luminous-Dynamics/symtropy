@@ -102,9 +102,13 @@ pub fn design_snapshot_ref(bytes: &[u8]) -> Result<DesignSnapshotRef, ContractVi
     })?;
 
     let string = |path: &'static str, key: &'static str| {
-        value.get(key).and_then(Value::as_str).map(str::to_owned).ok_or_else(|| {
-            ContractViolation::new("snapshot-field-invalid", path, "expected a string")
-        })
+        value
+            .get(key)
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .ok_or_else(|| {
+                ContractViolation::new("snapshot-field-invalid", path, "expected a string")
+            })
     };
 
     let schema = string("$.schema", "schema")?;
@@ -326,7 +330,8 @@ impl LandscapeScenarioManifest {
                     ));
                 }
             }
-            LandscapeRunPurpose::AnalyticalReference | LandscapeRunPurpose::ScientificSimulation => {
+            LandscapeRunPurpose::AnalyticalReference
+            | LandscapeRunPurpose::ScientificSimulation => {
                 violations.push(ContractViolation::new(
                     "physical-claim-blocked-by-schematic-frame",
                     "$.design_snapshot.coordinate_frame_kind",
@@ -432,8 +437,14 @@ mod tests {
         ))
         .expect("scenario manifest schema must be valid JSON");
 
-        assert_eq!(schema["$id"], "https://luminousdynamics.io/schemas/landscape-scenario-manifest-v0.schema.json");
-        assert_eq!(schema["properties"]["schema"]["const"], SCENARIO_MANIFEST_SCHEMA);
+        assert_eq!(
+            schema["$id"],
+            "https://luminousdynamics.io/schemas/landscape-scenario-manifest-v0.schema.json"
+        );
+        assert_eq!(
+            schema["properties"]["schema"]["const"],
+            SCENARIO_MANIFEST_SCHEMA
+        );
         assert_eq!(
             schema["properties"]["design_snapshot"]["properties"]["schema"]["const"],
             DESIGN_SNAPSHOT_SCHEMA
@@ -447,11 +458,13 @@ mod tests {
             LOCAL_DRAWING_FRAME
         );
         for purpose in ["schema-qualification", "synthetic-benchmark"] {
-            assert!(schema["properties"]["purpose"]["enum"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|value| value.as_str() == Some(purpose)));
+            assert!(
+                schema["properties"]["purpose"]["enum"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|value| value.as_str() == Some(purpose))
+            );
         }
     }
 
@@ -467,7 +480,10 @@ mod tests {
     fn schema_qualification_accepts_a_pinned_local_schematic() {
         let bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::SchemaQualification);
-        assert_eq!(manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty"), Ok(()));
+        assert_eq!(
+            manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty"),
+            Ok(())
+        );
     }
 
     #[test]
@@ -477,26 +493,42 @@ mod tests {
         assert_eq!(manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty"), Ok(()));
 
         let changed = snapshot(SCHEMATIC_GEOMETRY_STATUS);
-        let errors = manifest.validate_against_inputs(&changed, b"boundary-conditions-v0-empty").unwrap_err();
-        assert!(errors.iter().any(|error| error.code == "snapshot-digest-mismatch"));
-        assert!(errors.iter().any(|error| error.code == "synthetic-evidence-required"));
+        let errors = manifest
+            .validate_against_inputs(&changed, b"boundary-conditions-v0-empty")
+            .unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "snapshot-digest-mismatch")
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "synthetic-evidence-required")
+        );
     }
 
     #[test]
     fn scientific_claim_is_blocked_for_v0_local_drawing_units() {
         let bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::ScientificSimulation);
-        let errors = manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty").unwrap_err();
-        assert!(errors.iter().any(|error| {
-            error.code == "physical-claim-blocked-by-schematic-frame"
-        }));
+        let errors = manifest
+            .validate_against_inputs(&bytes, b"boundary-conditions-v0-empty")
+            .unwrap_err();
+        assert!(
+            errors.iter().any(
+                |error| { error.code == "physical-claim-blocked-by-schematic-frame" }
+            )
+        );
     }
 
     #[test]
     fn analytical_reference_rejects_synthetic_input() {
         let bytes = snapshot(SYNTHETIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::AnalyticalReference);
-        let errors = manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty").unwrap_err();
+        let errors = manifest
+            .validate_against_inputs(&bytes, b"boundary-conditions-v0-empty")
+            .unwrap_err();
         assert!(errors.iter().any(|error| {
             error.code == "physical-claim-blocked-by-schematic-frame"
                 || error.code == "synthetic-input-not-analytical-evidence"
@@ -510,10 +542,24 @@ mod tests {
         manifest.design_snapshot.scope = "watershed".to_string();
         manifest.boundary_conditions_sha256 = "not-a-digest".to_string();
 
-        let errors = manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty").unwrap_err();
-        assert!(errors.iter().any(|error| error.code == "snapshot-reference-mismatch"));
-        assert!(errors.iter().any(|error| error.code == "sha256-format-invalid"));
-        assert!(errors.iter().any(|error| error.code == "boundary-digest-mismatch"));
+        let errors = manifest
+            .validate_against_inputs(&bytes, b"boundary-conditions-v0-empty")
+            .unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "snapshot-reference-mismatch")
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "sha256-format-invalid")
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "boundary-digest-mismatch")
+        );
     }
 
     #[test]
