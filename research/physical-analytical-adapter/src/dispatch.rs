@@ -12,9 +12,10 @@ use std::collections::BTreeSet;
 
 pub type Check<T> = Result<T, String>;
 
-const REQUEST_SCHEMA: &str = "physical-analytical-request-v0.1";
+const REQUEST_SCHEMA_V01: &str = "physical-analytical-request-v0.1";
+const REQUEST_SCHEMA_V02: &str = "physical-analytical-request-v0.2";
 const RECEIPT_SCHEMA: &str = "physical-solver-dispatch-receipt-v0.1";
-const REQUEST_KEYS: &[&str] = &[
+const REQUEST_KEYS_V01: &[&str] = &[
     "schema_version",
     "request_id",
     "source_revision",
@@ -23,6 +24,17 @@ const REQUEST_KEYS: &[&str] = &[
     "requested_physics",
     "units",
     "inputs",
+];
+const REQUEST_KEYS_V02: &[&str] = &[
+    "schema_version",
+    "request_id",
+    "source_revision",
+    "case_id",
+    "assumption_profile",
+    "requested_physics",
+    "units",
+    "inputs",
+    "input_bounds",
 ];
 const UNIT_KEYS: &[&str] = &[
     "length",
@@ -35,7 +47,6 @@ const UNIT_KEYS: &[&str] = &[
 const KNOWN_PHYSICS: &[&str] = &[
     "static_linear_elastic",
     "dynamic_response",
-    "nonlinear_material",
     "fracture",
     "rigid_contact",
     "granular_contact",
@@ -44,6 +55,7 @@ const KNOWN_PHYSICS: &[&str] = &[
 
 #[derive(Clone, Debug)]
 struct DispatchRequest {
+    schema_version: String,
     request_id: String,
     source_revision: String,
     case_id: String,
@@ -77,6 +89,7 @@ pub fn dispatch_request_bytes(
         return Ok(json!({
             "schema_version": RECEIPT_SCHEMA,
             "request_id": request.request_id,
+            "request_schema_version": request.schema_version,
             "request_sha256": request_digest,
             "source_revision": request.source_revision,
             "dispatcher_revision": dispatcher_revision,
@@ -140,6 +153,7 @@ pub fn dispatch_request_bytes(
     Ok(json!({
         "schema_version": RECEIPT_SCHEMA,
         "request_id": request.request_id,
+        "request_schema_version": request.schema_version,
         "request_sha256": adapter_receipt["request_sha256"],
         "source_revision": request.source_revision,
         "dispatcher_revision": dispatcher_revision,
@@ -161,8 +175,18 @@ pub fn dispatch_request_bytes(
 }
 
 fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
-    exact_keys(value, REQUEST_KEYS, "request")?;
-    expect_string(value, "schema_version", REQUEST_SCHEMA, "request")?;
+    let schema_version = required_string(value, "schema_version", "request")?;
+    match schema_version.as_str() {
+        REQUEST_SCHEMA_V01 => exact_keys(value, REQUEST_KEYS_V01, "request")?,
+        REQUEST_SCHEMA_V02 => {
+            if value.get("input_bounds").is_some() {
+                exact_keys(value, REQUEST_KEYS_V02, "request")?;
+            } else {
+                exact_keys(value, REQUEST_KEYS_V01, "request")?;
+            }
+        }
+        other => return Err(format!("request.schema_version is unsupported: {other}")),
+    }
     let request_id = required_string(value, "request_id", "request")?;
     validate_token(&request_id, "request ID")?;
     let source_revision = required_string(value, "source_revision", "request")?;
@@ -194,6 +218,11 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
         .ok_or_else(|| "request.inputs must be an object".to_owned())?
         .clone();
     validate_case_inputs(&case_id, &inputs)?;
+    if schema_version == REQUEST_SCHEMA_V02 {
+        if let Some(input_bounds) = value.get("input_bounds") {
+            validate_input_bounds(&case_id, &inputs, input_bounds)?;
+        }
+    }
     let units = value
         .get("units")
         .and_then(Value::as_object)
@@ -210,6 +239,7 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
         }
     }
     Ok(DispatchRequest {
+        schema_version,
         request_id,
         source_revision,
         case_id,
@@ -217,6 +247,106 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
         requested_physics,
         units,
     })
+}
+
+fn validate_input_bounds(
+    case_id: &str,
+    inputs: &Map<String, Value>,
+    bounds: &Value,
+) -> Check<()> {
+    let expected: &[&str] = match case_id {
+        "axial_bar" => &["force_n", "length_m", "area_m2", "youngs_modulus_pa"],
+        "cantilever_tip_load" => &[
+            "force_n",
+            "length_m",
+            "youngs_modulus_pa",
+            "second_moment_area_m4",
+            "outer_fiber_distance_m",
+        ],
+        "simply_supported_uniform_load" => &[
+            "load_n_per_m",
+            "length_m",
+            "youngs_modulus_pa",
+            "second_moment_area_m4",
+            "outer_fiber_distance_m",
+        ],
+        _ => return Ok(()),
+    };
+    let bound_map = bounds
+        .as_object()
+        .ok_or_else(|| "request.input_bounds must be an object".to_owned())?;
+    exact_map_keys(bound_map, expected, "request.input_bounds")?;
+    const BOUND_KEYS: &[&str] = &[
+        "lower",
+        "upper",
+        "unit",
+        "evidence_class",
+        "source_ref",
+    ];
+    for key in expected {
+        let at = format!("request.input_bounds.{key}");
+        let bound = bound_map
+            .get(*key)
+            .and_then(Value::as_object)
+            .ok_or_else(|| format!("{at} must be an object"))?;
+        exact_map_keys(bound, BOUND_KEYS, &at)?;
+        let lower = bound
+            .get("lower")
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("{at}.lower must be finite numeric"))?;
+        let upper = bound
+            .get("upper")
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("{at}.upper must be finite numeric"))?;
+        if lower > upper {
+            return Err(format!("{at}.lower must not exceed upper"));
+        }
+        let nominal = inputs
+            .get(*key)
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("request.inputs.{key} must be finite"))?;
+        if nominal < lower || nominal > upper {
+            return Err(format!("{at} must contain its nominal input"));
+        }
+        let (expected_unit, require_positive) = match *key {
+            "force_n" => ("N", false),
+            "length_m" => ("m", true),
+            "area_m2" => ("m^2", true),
+            "youngs_modulus_pa" => ("Pa", true),
+            "second_moment_area_m4" => ("m^4", true),
+            "outer_fiber_distance_m" => ("m", true),
+            "load_n_per_m" => ("N/m", false),
+            _ => return Err(format!("{at} names an unrecognized input")),
+        };
+        let unit = bound
+            .get("unit")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("{at}.unit must be a string"))?;
+        if unit != expected_unit {
+            return Err(format!("{at}.unit must be '{expected_unit}'"));
+        }
+        if require_positive && lower <= 0.0 {
+            return Err(format!("{at}.lower must be strictly positive"));
+        }
+        let evidence = bound
+            .get("evidence_class")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("{at}.evidence_class must be a string"))?;
+        if !["specified", "measured", "estimated", "synthetic", "unknown"]
+            .contains(&evidence)
+        {
+            return Err(format!("{at}.evidence_class is unsupported"));
+        }
+        match bound.get("source_ref") {
+            Some(Value::Null) => {}
+            Some(Value::String(source_ref)) if !source_ref.trim().is_empty() => {}
+            _ => return Err(format!("{at}.source_ref must be a non-empty string or null")),
+        }
+    }
+    Ok(())
 }
 
 fn validate_case_inputs(case_id: &str, inputs: &Map<String, Value>) -> Check<()> {
