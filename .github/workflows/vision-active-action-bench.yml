@@ -156,6 +156,7 @@ jobs:
           grep -Fq "budget_violations" rendered-pixel-world.tsv
           grep -Fq "VIS-ACT-005 randomized-timing" rendered-pixel-world.tsv
           grep -Fq "fixed_sweep" rendered-pixel-world.tsv
+          grep -Fq "passive_no_view" rendered-pixel-world.tsv
           grep -Fq "fresh_evidence_rate_per_executed_view" rendered-pixel-world.tsv
           grep -Fq "recovery_rate" rendered-pixel-world.tsv
           grep -Fq "mean_recovery_steps_when_recovered" rendered-pixel-world.tsv
