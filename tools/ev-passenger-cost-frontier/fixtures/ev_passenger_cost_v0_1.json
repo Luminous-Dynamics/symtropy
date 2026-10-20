@@ -58,27 +58,31 @@
       },
       "components": [
         {
-          "component_id": "battery-pack",
-          "quantity_per_vehicle": 1,
+          "component_id": "battery-cells",
+          "quantity_per_vehicle": 42,
+          "quantity_unit": "kWh_pack_nominal",
+          "unit_cost_basis": "ZAR_per_kWh",
           "unit_cost": {
-            "low": 60000,
-            "high": 78000,
+            "low": 900,
+            "high": 1150,
             "evidence_class": "synthetic",
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
-            "note": "Illustrative pack cost range; not a supplier quote."
+            "note": "Synthetic per-kWh cell allowance, multiplied by 42 kWh nominal pack capacity; not a quote."
           }
         },
         {
-          "component_id": "drive-unit-inverter-reduction",
+          "component_id": "bms-hv-protection",
           "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
           "unit_cost": {
-            "low": 13000,
-            "high": 18000,
+            "low": 8000,
+            "high": 12000,
             "evidence_class": "synthetic",
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
-            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+            "note": "Synthetic BMS, contactors, HV isolation, fuse and protection allowance per vehicle."
           }
         },
         {
@@ -91,6 +95,64 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative structure, closures and crash components; tooling treatment is separate."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "cabin-hvac-thermal",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative cabin, HVAC and thermal-system allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "drive-unit-inverter-reduction",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "electrical-electronics-wiring",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 8000,
+            "high": 13000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "pack-enclosure-thermal",
+          "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
+          "unit_cost": {
+            "low": 15000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic enclosure, cooling and pack integration allowance per vehicle."
           }
         },
         {
@@ -103,31 +165,9 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative chassis component allowance."
-          }
-        },
-        {
-          "component_id": "cabin-hvac-thermal",
-          "quantity_per_vehicle": 1,
-          "unit_cost": {
-            "low": 13000,
-            "high": 20000,
-            "evidence_class": "synthetic",
-            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
-            "as_of": "2026-10-20",
-            "note": "Illustrative cabin, HVAC and thermal-system allowance."
-          }
-        },
-        {
-          "component_id": "electrical-electronics-wiring",
-          "quantity_per_vehicle": 1,
-          "unit_cost": {
-            "low": 8000,
-            "high": 13000,
-            "evidence_class": "synthetic",
-            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
-            "as_of": "2026-10-20",
-            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
-          }
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
         },
         {
           "component_id": "wheels-seats-glazing-lights-trim",
@@ -139,7 +179,9 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative remaining parts allowance."
-          }
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
         }
       ],
       "factory_conversion_cost": {
@@ -205,27 +247,31 @@
       },
       "components": [
         {
-          "component_id": "battery-pack",
-          "quantity_per_vehicle": 1,
+          "component_id": "battery-cells",
+          "quantity_per_vehicle": 42,
+          "quantity_unit": "kWh_pack_nominal",
+          "unit_cost_basis": "ZAR_per_kWh",
           "unit_cost": {
-            "low": 60000,
-            "high": 78000,
+            "low": 900,
+            "high": 1200,
             "evidence_class": "synthetic",
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
-            "note": "Illustrative serviceable pack cost range; not a supplier quote."
+            "note": "Synthetic per-kWh cell allowance, multiplied by 42 kWh nominal pack capacity; not a quote."
           }
         },
         {
-          "component_id": "drive-unit-inverter-reduction",
+          "component_id": "bms-hv-protection",
           "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
           "unit_cost": {
-            "low": 13000,
-            "high": 18000,
+            "low": 9000,
+            "high": 14000,
             "evidence_class": "synthetic",
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
-            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+            "note": "Synthetic BMS, contactors, HV isolation, fuse and protection allowance per vehicle."
           }
         },
         {
@@ -238,6 +284,64 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative structure, closures and crash components; tooling treatment is separate."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "cabin-hvac-thermal",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative cabin, HVAC and thermal-system allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "drive-unit-inverter-reduction",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "electrical-electronics-wiring",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 8000,
+            "high": 13000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "pack-enclosure-thermal",
+          "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
+          "unit_cost": {
+            "low": 19000,
+            "high": 22000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic enclosure, cooling and pack integration allowance per vehicle."
           }
         },
         {
@@ -250,31 +354,9 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative chassis component allowance."
-          }
-        },
-        {
-          "component_id": "cabin-hvac-thermal",
-          "quantity_per_vehicle": 1,
-          "unit_cost": {
-            "low": 13000,
-            "high": 20000,
-            "evidence_class": "synthetic",
-            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
-            "as_of": "2026-10-20",
-            "note": "Illustrative cabin, HVAC and thermal-system allowance."
-          }
-        },
-        {
-          "component_id": "electrical-electronics-wiring",
-          "quantity_per_vehicle": 1,
-          "unit_cost": {
-            "low": 8000,
-            "high": 13000,
-            "evidence_class": "synthetic",
-            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
-            "as_of": "2026-10-20",
-            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
-          }
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
         },
         {
           "component_id": "wheels-seats-glazing-lights-trim",
@@ -286,7 +368,9 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative remaining parts allowance."
-          }
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
         }
       ],
       "factory_conversion_cost": {
@@ -352,27 +436,31 @@
       },
       "components": [
         {
-          "component_id": "battery-pack",
-          "quantity_per_vehicle": 1,
+          "component_id": "battery-cells",
+          "quantity_per_vehicle": 42,
+          "quantity_unit": "kWh_pack_nominal",
+          "unit_cost_basis": "ZAR_per_kWh",
           "unit_cost": {
-            "low": 60000,
-            "high": 78000,
+            "low": 900,
+            "high": 1150,
             "evidence_class": "synthetic",
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
-            "note": "Illustrative structural-pack cost range; not a supplier quote."
+            "note": "Synthetic per-kWh cell allowance, multiplied by 42 kWh nominal pack capacity; not a quote."
           }
         },
         {
-          "component_id": "drive-unit-inverter-reduction",
+          "component_id": "bms-hv-protection",
           "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
           "unit_cost": {
-            "low": 12000,
-            "high": 17000,
+            "low": 8000,
+            "high": 12000,
             "evidence_class": "synthetic",
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
-            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+            "note": "Synthetic BMS, contactors, HV isolation, fuse and protection allowance per vehicle."
           }
         },
         {
@@ -385,6 +473,64 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative more-integrated structure; repair and crash implications unverified."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "cabin-hvac-thermal",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative cabin, HVAC and thermal-system allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "drive-unit-inverter-reduction",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 12000,
+            "high": 17000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "electrical-electronics-wiring",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 8000,
+            "high": 13000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "pack-enclosure-thermal",
+          "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
+          "unit_cost": {
+            "low": 16000,
+            "high": 25000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic enclosure, cooling and pack integration allowance per vehicle."
           }
         },
         {
@@ -397,31 +543,9 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative chassis component allowance."
-          }
-        },
-        {
-          "component_id": "cabin-hvac-thermal",
-          "quantity_per_vehicle": 1,
-          "unit_cost": {
-            "low": 13000,
-            "high": 20000,
-            "evidence_class": "synthetic",
-            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
-            "as_of": "2026-10-20",
-            "note": "Illustrative cabin, HVAC and thermal-system allowance."
-          }
-        },
-        {
-          "component_id": "electrical-electronics-wiring",
-          "quantity_per_vehicle": 1,
-          "unit_cost": {
-            "low": 8000,
-            "high": 13000,
-            "evidence_class": "synthetic",
-            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
-            "as_of": "2026-10-20",
-            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
-          }
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
         },
         {
           "component_id": "wheels-seats-glazing-lights-trim",
@@ -433,7 +557,9 @@
             "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
             "as_of": "2026-10-20",
             "note": "Illustrative remaining parts allowance."
-          }
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
         }
       ],
       "factory_conversion_cost": {
