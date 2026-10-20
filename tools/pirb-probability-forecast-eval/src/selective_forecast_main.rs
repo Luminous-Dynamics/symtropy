@@ -324,12 +324,12 @@ fn disposition_summary(records: &[&Value], disposition: &str) -> Value {
 }
 
 fn group_summaries(records: &[&Value], minimum: usize, epsilon: f64) -> (Vec<Value>, usize) {
-    let mut by_group: BTreeMap<&str, Vec<&Value>> = BTreeMap::new();
+    let mut by_group: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
     for record in records {
-        by_group
-            .entry(string_at(record, "group_id").expect("schema requires group_id"))
-            .or_default()
-            .push(*record);
+        let group_id = string_at(record, "group_id")
+            .expect("schema requires group_id")
+            .to_owned();
+        by_group.entry(group_id).or_default().push(*record);
     }
 
     let mut results = Vec::new();
