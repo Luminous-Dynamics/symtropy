@@ -122,3 +122,30 @@ The generator writes the port release policy into the emitted simulator scenario
 
 For realistic infrastructure sizing, run both on exactly the same workload. Do not call release_on_charge_completion a valet strategy: a credible valet comparison requires reposition travel time, finite labor/worker capacity, parking/staging capacity and connection/disconnection overhead.
 
+## Matched scale-and-seed benchmark matrix
+
+The end-to-end workflow now extends the six-job smoke test with nine reproducible workloads:
+- fleet sizes 10, 50 and 100;
+- seeds 12345, 54321 and 99991 at each fleet size;
+- 50% as many charging ports as vehicles (5, 25, 50);
+- 30 kW of declared site import budget per vehicle (300, 1,500 and 3,000 kW);
+- the same explicit pack, energy-use, temperature, efficiency and per-port assumptions across all cases.
+
+This is a **controlled scaling study**, not an industry result. The matrix is generated from the same pinned NLR beverage-delivery operational-summary population, sampled with replacement, so seed variation is workload resampling and does not represent new independent field observations. Port availability and site-budget ratios are chosen experimental settings, not observed NLR depot equipment.
+
+For each scenario, FCFS and earliest-departure-first run on the exact same sampled jobs. The pipeline reports:
+- deadline completions, missed departures, delivered/unserved energy, queue wait tails and peak modeled import;
+- the minimum sampled site-capacity point meeting the explicit 95% deadline-completion and 95% energy-service targets;
+- paired FCFS-vs-EDF capacity differences;
+- feasibility/service monotonicity violations across the capacity sweep, which must remain zero for the current fixed-input stress matrix or CI fails;
+- provenance and assumption manifests per seed/fleet size, plus a combined report and checksum file.
+
+The 20-point sweep uses 5-percentage-point increments and is not continuous optimization. A scenario may return no feasible sampled connection if the full modeled base limit cannot meet the service target; that result should remain visible rather than be hidden. Compare per-vehicle capacity and service outcomes across fleet sizes, not raw kW totals alone.
+
+## External comparison and preregistration
+
+Before claiming SOTA improvement, compare matched public load profiles and duty schedules. The first target is the NLR dataset's 81 modeled 15-minute load profiles across three vocations, fleet sizes 10/50/100, three charging strategies and average/minimum/peak days: https://data.nlr.gov/submissions/162; study DOI https://doi.org/10.1038/s41560-021-00855-0. Report MAE/RMSE of 15-minute kW, daily energy integral residual, peak demand error, deadline service, minimum site capacity and runtime/feasibility against the same workload. Its aggregate profiles are modeled from schedules, not individual metered charge sessions.
+
+A second external challenge target is the published Applied Energy study that found an average 64% grid-capacity reduction for vehicle-valet strategy in a 30-vehicle depot configuration (5th/95th percentile 55%/73%) and 13% levelized charging-cost reduction (8%/24%). Our simulator does not implement valets or the paper's optimization/cost model, so this is a future reproduction task only after matching its constraints and cost boundaries—not a result we may claim now: https://doi.org/10.1016/j.apenergy.2025.126563.
+
+Use the recent SSRN preprint on real-world depot requirements (over 400 trucks, nearly 40,000 tours across nine depots) only after reviewing its data access and methods; it is a preprint, not a peer-reviewed benchmark release: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7543981.
