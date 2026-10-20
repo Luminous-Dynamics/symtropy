@@ -88,7 +88,7 @@ The optional `design_for_disassembly` module adds a **vector-valued** connector 
 - connector reuse: reusable, not reusable, or unknown;
 - metadata completeness counts and a sorted list of connections that remain unresolved.
 
-The assessment binds itself to the world's numeric revision and canonical source-state snapshot. Duplicate connector profiles and profiles referring to foreign connection IDs are rejected. A missing profile is represented as unknown, not silently ignored; once any effort is missing, the total remains unresolved even if later profiles have effort estimates. Checked arithmetic rejects total-effort overflow.
+The assessment binds itself to the world's numeric revision and canonical source-state snapshot. The CLI now emits a frozen DfD known-answer vector (2 connections, 1 reversible fastener, 1 cut-required connector, 17 declared person-minutes, zero incomplete profiles) into the deterministic reference receipt. Duplicate connector profiles and profiles referring to foreign connection IDs are rejected. A missing profile is represented as unknown, not silently ignored; once any effort is missing, the total remains unresolved even if later profiles have effort estimates. Checked arithmetic rejects total-effort overflow.
 
 There is deliberately no scalar "DfD score": the vector makes trade-offs and missing dimensions visible rather than allowing arbitrary weights to mask unknown connection behavior. `Complete` means only that the declared metadata vector is complete for the graph. It is not a structural stability result or a qualified safe-removal sequence.
 
