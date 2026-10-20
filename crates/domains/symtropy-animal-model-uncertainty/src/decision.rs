@@ -156,7 +156,7 @@ pub fn score_model_ensemble(
         let mut remaining_mass = tail_mass;
         let mut weighted_tail_loss = 0.0;
         for (loss, weight) in conditional_losses {
-            if remaining_mass <= WEIGHT_SUM_TOLERANCE {
+            if remaining_mass <= 0.0 {
                 break;
             }
             let included_mass = weight.min(remaining_mass);
@@ -325,6 +325,17 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("cvar_alpha"))
         );
+    }
+
+    #[test]
+    fn cvar_near_one_keeps_small_tail_mass() {
+        let scores = score_model_ensemble(&example_models(), 1.0 - 1e-12)
+            .expect("valid high-confidence tail");
+        let graze = scores
+            .iter()
+            .find(|score| score.action == "graze")
+            .expect("graze score");
+        assert_eq!(graze.cvar_loss, 9.0);
     }
 
     #[test]
