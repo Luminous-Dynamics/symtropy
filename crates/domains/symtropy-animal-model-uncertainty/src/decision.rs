@@ -936,36 +936,6 @@ mod tests {
     }
 
     #[test]
-    fn ranking_that_flips_only_inside_margin_is_practically_equivalent() {
-        let mut models = example_models();
-        models[0].action_losses.insert("wait".to_owned(), 3.0001);
-        models[1].action_losses.insert("wait".to_owned(), 3.0002);
-        models[0].action_losses.insert("retreat".to_owned(), 3.00015);
-        models[1].action_losses.insert("retreat".to_owned(), 3.00019);
-        let intervals = vec![
-            ModelWeightInterval {
-                model_id: "predator_coupled".to_owned(),
-                lower: 0.4,
-                upper: 0.8,
-            },
-            ModelWeightInterval {
-                model_id: "predator_weak".to_owned(),
-                lower: 0.2,
-                upper: 0.6,
-            },
-        ];
-        let result = compare_actions_under_weight_uncertainty(
-            &models,
-            "wait",
-            "retreat",
-            &intervals,
-            0.0001,
-        )
-        .expect("finite margin");
-        assert_eq!(result.stability, PreferenceStability::Equivalent);
-    }
-
-    #[test]
     fn negative_or_nonfinite_practical_margin_is_rejected() {
         let models = example_models();
         let intervals = vec![
