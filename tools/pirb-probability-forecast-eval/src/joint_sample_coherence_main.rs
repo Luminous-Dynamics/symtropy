@@ -458,9 +458,6 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             continue;
         }
 
-        let parent = nodes_by_id
-            .get(parent_id)
-            .expect("semantic validation requires parent node");
         let mut draw_diagnostics = Vec::new();
         let mut constraint_raw_coherent = 0usize;
         let mut constraint_reconciled_coherent = 0usize;
@@ -547,7 +544,6 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             "unexpected_child_keys": unexpected_child_keys,
             "absolute_tolerance": tolerance
         }));
-        let _ = parent;
     }
 
     let draw_coherence = draw_ids
