@@ -59,7 +59,7 @@ fn run() -> Result<(), String> {
                 }
                 equilibrium_manifest_path = Some(
                     args.get(i + 1)
-                        .ok_or_else(|| {
+                       .ok_or_else(|| {
                            "--equilibrium-manifest requires a manifest path".to_owned()
                        })?
                         .clone(),
@@ -72,7 +72,7 @@ fn run() -> Result<(), String> {
                 }
                 reaction_force_output_id = Some(
                     args.get(i + 1)
-                        .ok_or_else(|| {
+                       .ok_or_else(|| {
                            "--reaction-force-output-id requires an output ID".to_owned()
                        })?
                         .clone(),
@@ -85,7 +85,7 @@ fn run() -> Result<(), String> {
                 }
                 reaction_moment_output_id = Some(
                     args.get(i + 1)
-                        .ok_or_else(|| {
+                       .ok_or_else(|| {
                            "--reaction-moment-output-id requires an output ID".to_owned()
                        })?
                         .clone(),
