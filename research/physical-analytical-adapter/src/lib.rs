@@ -169,27 +169,24 @@ pub fn evaluate_request_bytes(bytes: &[u8], adapter_revision: &str) -> Check<Val
     match evaluate_case(request.case, &request.inputs) {
         Ok(outputs) => {
             let output_enclosures = match request.input_bounds.as_ref() {
-                Some(bounds) => match build_output_enclosures(
-                    request.case,
-                    &request.inputs,
-                    &outputs,
-                    bounds,
-                ) {
-                    Ok(enclosures) => enclosures,
-                    Err(error) => {
-                        return Ok(receipt(
-                            &request,
-                            adapter_revision,
-                            &input_digest,
-                            "UNRESOLVED",
-                            Value::Null,
-                            Value::Null,
-                            vec![format!(
-                                "bounded uncertainty propagation could not be completed: {error}"
-                            )],
-                        ));
+                Some(bounds) => {
+                    match build_output_enclosures(request.case, &request.inputs, &outputs, bounds) {
+                        Ok(enclosures) => enclosures,
+                        Err(error) => {
+                            return Ok(receipt(
+                                &request,
+                                adapter_revision,
+                                &input_digest,
+                                "UNRESOLVED",
+                                Value::Null,
+                                Value::Null,
+                                vec![format!(
+                                    "bounded uncertainty propagation could not be completed: {error}"
+                                )],
+                            ));
+                        }
                     }
-                },
+                }
                 None => Value::Null,
             };
             Ok(receipt(
@@ -456,8 +453,8 @@ fn parse_input_bounds(
         if map_string(fields, "unit", &at)? != expected_unit {
             return Err(format!("{at}.unit must be '{expected_unit}'"));
         }
-        let interval = uncertainty::Interval::new(lower, upper)
-            .map_err(|error| format!("{at}: {error}"))?;
+        let interval =
+            uncertainty::Interval::new(lower, upper).map_err(|error| format!("{at}: {error}"))?;
         let nominal = nominal_inputs
             .get(*key)
             .and_then(Value::as_f64)
@@ -776,7 +773,10 @@ mod tests {
         assert_eq!(receipt["result_status"], "PASS");
         assert_eq!(receipt["input_bounds"], Value::Null);
         assert_eq!(receipt["output_enclosures"], Value::Null);
-        assert_eq!(receipt["uncertainty_method"], "none_input_bounds_not_supplied");
+        assert_eq!(
+            receipt["uncertainty_method"],
+            "none_input_bounds_not_supplied"
+        );
         assert_eq!(receipt["real_world_validation_status"], "UNRESOLVED");
     }
 
@@ -796,7 +796,10 @@ mod tests {
         let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
             .expect("valid bounded request");
         assert_eq!(receipt["result_status"], "PASS");
-        assert_eq!(receipt["uncertainty_method"], "deterministic_interval_outward_rounded_v0.1");
+        assert_eq!(
+            receipt["uncertainty_method"],
+            "deterministic_interval_outward_rounded_v0.1"
+        );
         for key in ["axial_stress_pa", "axial_strain", "extension_m"] {
             let enclosure = &receipt["output_enclosures"][key];
             let lower = enclosure["lower"].as_f64().unwrap();
@@ -806,8 +809,14 @@ mod tests {
             assert!(lower <= nominal && nominal <= upper);
             assert_eq!(enclosure["unit"], receipt["output_units"][key]);
         }
-        assert_eq!(receipt["output_enclosures"]["axial_stress_pa"]["nominal"], 100_000.0);
-        assert_eq!(receipt["input_bounds"]["schema_version"], "physical-input-bounds-v0.1");
+        assert_eq!(
+            receipt["output_enclosures"]["axial_stress_pa"]["nominal"],
+            100_000.0
+        );
+        assert_eq!(
+            receipt["input_bounds"]["schema_version"],
+            "physical-input-bounds-v0.1"
+        );
     }
 
     #[test]
@@ -843,7 +852,10 @@ mod tests {
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
 
         let mut mutated = request;
-        mutated["input_bounds"]["inputs"]["area_m2"].as_object_mut().unwrap().remove("upper");
+        mutated["input_bounds"]["inputs"]["area_m2"]
+            .as_object_mut()
+            .unwrap()
+            .remove("upper");
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
     }
 
@@ -864,10 +876,12 @@ mod tests {
         let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
             .expect("signed interval crossing zero is supported");
         assert_eq!(receipt["result_status"], "PASS");
-        assert_eq!(receipt["output_enclosures"]["maximum_bending_stress_pa"]["lower"], 0.0);
+        assert_eq!(
+            receipt["output_enclosures"]["maximum_bending_stress_pa"]["lower"],
+            0.0
+        );
         let enclosure = &receipt["output_enclosures"]["tip_deflection_m"];
         assert!(enclosure["lower"].as_f64().unwrap() <= enclosure["nominal"].as_f64().unwrap());
         assert!(enclosure["nominal"].as_f64().unwrap() <= enclosure["upper"].as_f64().unwrap());
     }
-
 }
