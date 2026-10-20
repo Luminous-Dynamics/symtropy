@@ -688,9 +688,7 @@ mod tests {
         for (case_index, frozen_case) in cases.iter().enumerate() {
             for sample in 0..32u64 {
                 let mut case = frozen_case.clone();
-                let mut state = 0x5359_4d54_524f_5059u64
-                    ^ ((case_index as u64) << 32)
-                    ^ sample;
+                let mut state = 0x5359_4d54_524f_5059u64 ^ ((case_index as u64) << 32) ^ sample;
 
                 for edge in case["edges"].as_array_mut().expect("edge array") {
                     let capacity = next_seed(&mut state) % 4 + 1;
@@ -719,23 +717,19 @@ mod tests {
                     baseline.objective
                 );
                 assert_eq!(
-                    oracle.simulation["mass_balance_ok"],
-                    true,
+                    oracle.simulation["mass_balance_ok"], true,
                     "{case_id} sample {sample}: oracle mass balance"
                 );
                 assert_eq!(
-                    baseline.simulation["mass_balance_ok"],
-                    true,
+                    baseline.simulation["mass_balance_ok"], true,
                     "{case_id} sample {sample}: baseline mass balance"
                 );
                 assert_eq!(
-                    oracle.simulation["capacity_checks_ok"],
-                    true,
+                    oracle.simulation["capacity_checks_ok"], true,
                     "{case_id} sample {sample}: oracle capacity check"
                 );
                 assert_eq!(
-                    baseline.simulation["capacity_checks_ok"],
-                    true,
+                    baseline.simulation["capacity_checks_ok"], true,
                     "{case_id} sample {sample}: baseline capacity check"
                 );
                 assert!(
