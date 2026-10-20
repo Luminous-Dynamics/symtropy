@@ -1,0 +1,90 @@
+name: Mine Reference Trace Oracle
+
+on:
+  push:
+    branches: ["feat/mine-reference-trace-oracle-v0-1"]
+    paths:
+      - "tools/mine-reference-trace-oracle/**"
+      - "docs/tech/MINE_REFERENCE_TRACE_ORACLE_V0_1.md"
+      - ".github/workflows/mine-reference-trace-oracle.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/mine-reference-trace-oracle/**"
+      - "docs/tech/MINE_REFERENCE_TRACE_ORACLE_V0_1.md"
+      - ".github/workflows/mine-reference-trace-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mine-reference-traces-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upstream-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact Symtropy head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Checkout pinned upstream reference
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: creator-xi/Conformal-Optimistic-Prediction
+          ref: a41c0dcadc10979d8521ab9b5b8f3d460807d883
+          path: reference-upstream
+          persist-credentials: false
+
+      - name: Assert exact source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git -C reference-upstream rev-parse HEAD)" = "a41c0dcadc10979d8521ab9b5b8f3d460807d883"
+          python3 --version
+          rustc --version
+
+      - name: Create isolated test-only Python environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/mine-reference-venv
+          /tmp/mine-reference-venv/bin/python -m pip install --disable-pip-version-check numpy==1.26.4 pandas==2.2.3 statsmodels==0.14.4 tqdm==4.67.1
+
+      - name: Generate independent upstream traces
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/mine-reference-venv/bin/python tools/mine-reference-trace-oracle/reference/generate_traces.py --repo reference-upstream --inputs tools/mine-reference-trace-oracle/fixtures/reference-trace-inputs-v0.1.json --output reference-traces-upstream.json
+
+      - name: Run Rust trace port
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path tools/mine-reference-trace-oracle/Cargo.toml -- --check
+          cargo test --manifest-path tools/mine-reference-trace-oracle/Cargo.toml
+          cargo run --quiet --manifest-path tools/mine-reference-trace-oracle/Cargo.toml -- --inputs tools/mine-reference-trace-oracle/fixtures/reference-trace-inputs-v0.1.json > reference-traces-rust.json
+
+      - name: Compare every trace step
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/mine-reference-venv/bin/python tools/mine-reference-trace-oracle/reference/compare_traces.py --expected reference-traces-upstream.json --actual reference-traces-rust.json
+
+      - name: Retain parity evidence
+        if: always()
+        uses: cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: mine-reference-traces-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/mine-reference-trace-oracle/fixtures/reference-trace-inputs-v0.1.json
+            reference-traces-upstream.json
+            reference-traces-rust.json
+          if-no-files-found: warn
+          retention-days: 30
