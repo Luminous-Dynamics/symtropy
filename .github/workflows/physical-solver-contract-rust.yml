@@ -534,7 +534,7 @@ jobs:
           jq -e '
             .study_status == "UNRESOLVED"
             and .all_level_receipt_and_output_bytes_verified == false
-            and any(.diagnostics[]; contains("mesh_sha256"))
+            and any(.diagnostics[]; contains("input artifact bytes"))
             and .physical_result_qualified == false
           ' solver-contract-mesh-study-tampered-mesh/report.json
 
