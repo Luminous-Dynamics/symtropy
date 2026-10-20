@@ -60,6 +60,16 @@ const REQUIRED_UNCERTAINTY_LAYERS: &[&str] = &[
     "omission_misspecification",
 ];
 
+const REQUIRED_COMPARISON_POLICY: &[&str] = &[
+    "test_model_set_adequacy_separately_from_within_set_risk",
+    "challenge_generator_is_blinded",
+    "missing_metric_is_not_zero",
+    "failed_selected_experiments_remain_counted",
+    "budget_mismatch_is_cost_tradeoff",
+    "keep_model_revision_receipts_immutable",
+    "synthetic_success_is_not_empirical_validation",
+];
+
 const REQUIRED_CASE_FIELDS: &[&str] = &[
     "id",
     "kind",
@@ -107,6 +117,23 @@ fn validate_oracle_value(oracle: &Value, schema: &Value) -> Result<usize, Vec<St
         "research_snapshot",
     ] {
         require_nonempty_string(root, field, &mut errors);
+    }
+
+    if !root
+        .get("research_snapshot")
+        .and_then(Value::as_str)
+        .is_some_and(valid_iso_date)
+    {
+        errors.push("research_snapshot must be a valid ISO date (YYYY-MM-DD)".to_owned());
+    }
+    if !root
+        .get("tracking_issue")
+        .and_then(Value::as_str)
+        .is_some_and(valid_tracking_issue_url)
+    {
+        errors.push(
+            "tracking_issue must be a canonical Symtropy GitHub issue URL".to_owned(),
+        );
     }
 
     let cases = match root.get("cases").and_then(Value::as_array) {
@@ -173,6 +200,12 @@ fn validate_oracle_value(oracle: &Value, schema: &Value) -> Result<usize, Vec<St
 
     validate_unique_string_array(
         root.get("comparison_policy"),
+        "comparison_policy",
+        &mut errors,
+    );
+    check_required_members(
+        root.get("comparison_policy"),
+        REQUIRED_COMPARISON_POLICY,
         "comparison_policy",
         &mut errors,
     );
@@ -285,6 +318,35 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
         "schema tracking_issue format",
         errors,
     );
+
+    require_schema_string(
+        schema,
+        "/properties/research_snapshot/type",
+        "string",
+        "schema research_snapshot type",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/research_snapshot/minLength",
+        1,
+        "schema research_snapshot minLength",
+        errors,
+    );
+    require_schema_string(
+        schema,
+        "/properties/tracking_issue/type",
+        "string",
+        "schema tracking_issue type",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/tracking_issue/minLength",
+        1,
+        "schema tracking_issue minLength",
+        errors,
+    );
     require_schema_unsigned(
         schema,
         "/properties/case_count/const",
@@ -337,6 +399,59 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
         "schema case ID pattern",
         errors,
     );
+
+    for (pointer, label) in [
+        ("/properties/cases/items/properties/id/type", "schema case ID type"),
+        ("/properties/cases/items/properties/kind/type", "schema case kind type"),
+        ("/properties/cases/items/properties/setup/type", "schema case setup type"),
+        ("/properties/cases/items/properties/challenge/type", "schema case challenge type"),
+        ("/properties/cases/items/properties/reason/type", "schema case reason type"),
+        (
+            "/properties/cases/items/properties/expected/properties/required_properties/items/type",
+            "schema expectation item type",
+        ),
+        (
+            "/properties/cases/items/properties/fail_if/items/type",
+            "schema fail_if item type",
+        ),
+        (
+            "/properties/required_run_identity/items/type",
+            "schema run identity item type",
+        ),
+        (
+            "/properties/comparison_policy/items/type",
+            "schema comparison policy item type",
+        ),
+    ] {
+        require_schema_string(schema, pointer, "string", label, errors);
+    }
+    for (pointer, label) in [
+        ("/properties/cases/items/properties/kind/minLength", "schema case kind minLength"),
+        ("/properties/cases/items/properties/setup/minLength", "schema case setup minLength"),
+        (
+            "/properties/cases/items/properties/challenge/minLength",
+            "schema case challenge minLength",
+        ),
+        ("/properties/cases/items/properties/reason/minLength", "schema case reason minLength"),
+        (
+            "/properties/cases/items/properties/expected/properties/required_properties/items/minLength",
+            "schema expectation item minLength",
+        ),
+        (
+            "/properties/cases/items/properties/fail_if/items/minLength",
+            "schema fail_if item minLength",
+        ),
+        (
+            "/properties/required_run_identity/items/minLength",
+            "schema run identity item minLength",
+        ),
+        (
+            "/properties/comparison_policy/items/minLength",
+            "schema comparison policy item minLength",
+        ),
+    ] {
+        require_schema_unsigned(schema, pointer, 1, label, errors);
+    }
 
     require_schema_string(
         schema,
@@ -422,6 +537,21 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
         "/properties/required_run_identity/uniqueItems",
         true,
         "schema required_run_identity uniqueItems",
+        errors,
+    );
+
+    require_schema_unsigned(
+        schema,
+        "/properties/comparison_policy/minItems",
+        REQUIRED_COMPARISON_POLICY.len(),
+        "schema comparison_policy minItems",
+        errors,
+    );
+    require_schema_boolean(
+        schema,
+        "/properties/comparison_policy/uniqueItems",
+        true,
+        "schema comparison_policy uniqueItems",
         errors,
     );
     require_schema_string(
@@ -619,6 +749,49 @@ fn check_exact_members(
     }
 }
 
+fn valid_tracking_issue_url(value: &str) -> bool {
+    let Some(issue_number) =
+        value.strip_prefix("https://github.com/Luminous-Dynamics/symtropy/issues/")
+    else {
+        return false;
+    };
+    !issue_number.is_empty() && issue_number.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+fn valid_iso_date(value: &str) -> bool {
+    let mut parts = value.split('-');
+    let (Some(year), Some(month), Some(day), None) =
+        (parts.next(), parts.next(), parts.next(), parts.next())
+    else {
+        return false;
+    };
+    if year.len() != 4
+        || month.len() != 2
+        || day.len() != 2
+        || !year.bytes().all(|byte| byte.is_ascii_digit())
+        || !month.bytes().all(|byte| byte.is_ascii_digit())
+        || !day.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return false;
+    }
+    let (Ok(year), Ok(month), Ok(day)) = (
+        year.parse::<u32>(),
+        month.parse::<u32>(),
+        day.parse::<u32>(),
+    ) else {
+        return false;
+    };
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=days_in_month).contains(&day)
+}
+
 fn valid_case_id(id: &str) -> bool {
     !id.is_empty()
         && id.as_bytes()[0].is_ascii_lowercase()
@@ -808,6 +981,44 @@ mod tests {
         let errors = validate_oracle_value(&oracle, &schema)
             .expect_err("expected schema must reject unreviewed properties");
         assert!(errors.iter().any(|e| e.contains("expected additionalProperties")));
+    }
+
+    #[test]
+    fn required_comparison_policies_cannot_be_removed() {
+        let mut fixture = parsed_fixture();
+        fixture["comparison_policy"]
+            .as_array_mut()
+            .expect("comparison policy")
+            .retain(|value| value.as_str() != Some("challenge_generator_is_blinded"));
+        let errors = validate_oracle_json(&fixture.to_string())
+            .expect_err("removing blinding policy must fail closed");
+        assert!(errors.iter().any(|e| e.contains("challenge_generator_is_blinded")));
+    }
+
+    #[test]
+    fn malformed_research_date_is_rejected() {
+        let mut fixture = parsed_fixture();
+        fixture["research_snapshot"] = Value::String("2026-02-30".to_owned());
+        let errors = validate_oracle_json(&fixture.to_string())
+            .expect_err("impossible calendar date must fail closed");
+        assert!(errors.iter().any(|e| e.contains("ISO date")));
+    }
+
+    #[test]
+    fn noncanonical_tracking_issue_url_is_rejected() {
+        let mut fixture = parsed_fixture();
+        fixture["tracking_issue"] = Value::String("https://example.com/issue/2334".to_owned());
+        let errors = validate_oracle_json(&fixture.to_string())
+            .expect_err("foreign URL must fail closed");
+        assert!(errors.iter().any(|e| e.contains("canonical Symtropy GitHub issue URL")));
+    }
+
+    #[test]
+    fn date_parser_handles_leap_year_boundary() {
+        assert!(valid_iso_date("2024-02-29"));
+        assert!(!valid_iso_date("2023-02-29"));
+        assert!(valid_iso_date("2000-02-29"));
+        assert!(!valid_iso_date("1900-02-29"));
     }
 
     #[test]
