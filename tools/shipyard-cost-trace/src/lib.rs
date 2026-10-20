@@ -894,6 +894,16 @@ mod tests {
     }
 
     #[test]
+    fn rate_card_estimates_remain_separated_by_work_package() {
+        let welding = quantity_event("weld-hours", Stage::Observed, CONFIG_A, "welding-block-a", "labor.welder.hours", 1.0, Some(rate()));
+        let painting = quantity_event("paint-hours", Stage::Observed, CONFIG_A, "painting-block-a", "labor.painter.hours", 2.0, Some(rate()));
+        let report = audit(&[welding, painting]).unwrap();
+        assert_eq!(report.rate_card_costs.len(), 2);
+        assert!(report.rate_card_costs.iter().any(|row| row.task_id == "welding-block-a" && row.amount == 10_000.0));
+        assert!(report.rate_card_costs.iter().any(|row| row.task_id == "painting-block-a" && row.amount == 20_000.0));
+    }
+
+    #[test]
     fn financial_actuals_remain_separated_by_work_package() {
         let mut welding = financial_event("invoice-weld", "inv-1:line-1", 30_000);
         welding.task_id = "welding-block-a".to_owned();
