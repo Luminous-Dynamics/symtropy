@@ -335,7 +335,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         );
     }
 
-    if string_at(&registration, "evidence_scope") == Some("authorized_historical") {
+    if string_at(registration, "evidence_scope") == Some("authorized_historical") {
         for (field, label) in [
             ("forecast_artifact_sha256", "forecast artifact"),
             ("outcome_snapshot_sha256", "outcome snapshot"),
