@@ -115,3 +115,10 @@ For this controlled frontier suite, the shared truck archetype is **1,100 kWh no
 To isolate fleet-size scaling, the suite holds the port ratio constant at one port per two vehicles (ceil(N/2)) and the declared base grid connection at 45 kW per vehicle: 450, 2,250 and 4,500 kW for 10, 50 and 100 vehicles respectively. The grid-capacity frontier then samples 5–100% of that declared base connection. These assumptions and the upper-envelope pack must be read as a controlled comparison, not as typical infrastructure or pack recommendations. Separate robustness/sensitivity workflows explore vocation-specific pack sizes, port ratios and energy-use assumptions.
 
 The 27-case suite's minimum grid capacities remain sampled estimates, not continuous optimality or real-site recommendations. Cross-vocation comparisons are conditioned on the common high-capacity pack assumption and published U.S. operating patterns. A later controller claim should additionally compare 15-minute load traces to NLR's 81 published modeled aggregate reference profiles and replicate the reference study's exact service/cost boundaries before claiming an industry improvement.
+
+## Connector occupancy is an explicit workload assumption
+
+The generator writes the port release policy into the emitted simulator scenario and records it in the assumption manifest. The optional CLI setting --port-release-policy accepts release_on_charge_completion (the backwards-compatible default, an optimistic zero-turnover assumption) or hold_until_departure (the connector stays occupied until the vehicle's declared departure even after its energy target is met).
+
+For realistic infrastructure sizing, run both on exactly the same workload. Do not call release_on_charge_completion a valet strategy: a credible valet comparison requires reposition travel time, finite labor/worker capacity, parking/staging capacity and connection/disconnection overhead.
+
