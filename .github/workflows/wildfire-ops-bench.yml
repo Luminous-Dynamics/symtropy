@@ -115,6 +115,30 @@ jobs:
             and (.cases | all(.paths | all(.simulation.mass_balance_ok == true)))
           ' wildfire-traffic-ctm-receipt.json
 
+      - name: Simulate the frozen directed-network flow benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          export SOURCE_COMMIT="$source_commit"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_network_flow -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
+            --source-commit "$source_commit" > wildfire-network-flow-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-NETWORK-001"
+            and .scenario_count == 6
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.cases | length == 6)
+            and (.cases | all(.status == "pass"))
+            and (.scorecard.scenario_count == 6)
+            and (.scorecard.all_cases_preserve_mass_balance == true)
+            and (.scorecard.all_cases_respect_entry_capacity == true)
+            and (.cases | all(.edges | all(.entries_at_or_after_closure == 0)))
+          ' wildfire-network-flow-reference-receipt.json
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
@@ -122,5 +146,6 @@ jobs:
           path: |
             wildfire-ops-reference-receipt.json
             wildfire-traffic-ctm-receipt.json
+            wildfire-network-flow-reference-receipt.json
           if-no-files-found: error
           retention-days: 90

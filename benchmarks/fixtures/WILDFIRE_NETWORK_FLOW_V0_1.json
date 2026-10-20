@@ -1,0 +1,379 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "WILDFIRE-NETWORK-001",
+  "classification": "synthetic_only",
+  "units": {
+    "time_step": "discrete_steps",
+    "demand": "synthetic_vehicles",
+    "link_capacity": "synthetic_vehicles_per_step",
+    "storage": "synthetic_vehicles",
+    "travel_time": "discrete_steps"
+  },
+  "model_boundary": "fixed-route directed network queues; conservative receiving storage; entry closure blocks new admissions but does not teleport or remove vehicles already admitted",
+  "cases": [
+    {
+      "case_id": "TWO_ORIGINS_SHARED_BOTTLENECK_001",
+      "horizon_steps": 24,
+      "edges": [
+        {
+          "id": "A_J",
+          "from": "A",
+          "to": "J",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "B_J",
+          "from": "B",
+          "to": "J",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "J_K",
+          "from": "J",
+          "to": "K",
+          "capacity_per_step": 2,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "K_S",
+          "from": "K",
+          "to": "S",
+          "capacity_per_step": 2,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SHELTER_S",
+          "node_id": "S",
+          "ingress_capacity_per_step": 2,
+          "total_capacity": 8,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_A",
+          "origin_node": "A",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 4,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "A_J",
+            "J_K",
+            "K_S"
+          ]
+        },
+        {
+          "id": "DEMAND_B",
+          "origin_node": "B",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 4,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "B_J",
+            "J_K",
+            "K_S"
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "expected_served_vehicles": 8,
+        "expected_served_by_demand": {
+          "DEMAND_A": 4,
+          "DEMAND_B": 4
+        }
+      }
+    },
+    {
+      "case_id": "FINITE_STORAGE_BACKPRESSURE_002",
+      "horizon_steps": 32,
+      "edges": [
+        {
+          "id": "O_A",
+          "from": "O",
+          "to": "A",
+          "capacity_per_step": 2,
+          "storage": 3,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "A_B",
+          "from": "A",
+          "to": "B",
+          "capacity_per_step": 2,
+          "storage": 3,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "B_S",
+          "from": "B",
+          "to": "S",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SHELTER_S",
+          "node_id": "S",
+          "ingress_capacity_per_step": 1,
+          "total_capacity": 10,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_MAIN",
+          "origin_node": "O",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 8,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "O_A",
+            "A_B",
+            "B_S"
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "expected_served_vehicles": 8,
+        "expected_stranded_vehicles": 0
+      }
+    },
+    {
+      "case_id": "ENTRY_CLOSURE_DURING_DEPARTURES_003",
+      "horizon_steps": 20,
+      "edges": [
+        {
+          "id": "O_A",
+          "from": "O",
+          "to": "A",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "A_BRIDGE",
+          "from": "A",
+          "to": "B",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": 4
+        },
+        {
+          "id": "BRIDGE_S",
+          "from": "B",
+          "to": "S",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SHELTER_S",
+          "node_id": "S",
+          "ingress_capacity_per_step": 2,
+          "total_capacity": 8,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_EVAC",
+          "origin_node": "O",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 8,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "O_A",
+            "A_BRIDGE",
+            "BRIDGE_S"
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "expected_bridge_entries_at_or_after_step_4": 0,
+        "expected_stranded_vehicles_greater_than": 0
+      }
+    },
+    {
+      "case_id": "ROUND_ROBIN_MERGE_FAIRNESS_004",
+      "horizon_steps": 24,
+      "edges": [
+        {
+          "id": "A_J",
+          "from": "A",
+          "to": "J",
+          "capacity_per_step": 2,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "B_J",
+          "from": "B",
+          "to": "J",
+          "capacity_per_step": 2,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "J_S",
+          "from": "J",
+          "to": "S",
+          "capacity_per_step": 1,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SHELTER_S",
+          "node_id": "S",
+          "ingress_capacity_per_step": 2,
+          "total_capacity": 6,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_A",
+          "origin_node": "A",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 3,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "A_J",
+            "J_S"
+          ]
+        },
+        {
+          "id": "DEMAND_B",
+          "origin_node": "B",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 3,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "B_J",
+            "J_S"
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "expected_served_by_demand": {
+          "DEMAND_A": 3,
+          "DEMAND_B": 3
+        }
+      }
+    },
+    {
+      "case_id": "TOTAL_SHELTER_CAPACITY_HARD_GATE_005",
+      "horizon_steps": 20,
+      "edges": [
+        {
+          "id": "O_S",
+          "from": "O",
+          "to": "S",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SHELTER_S",
+          "node_id": "S",
+          "ingress_capacity_per_step": 3,
+          "total_capacity": 4,
+          "accessible_capacity": 1
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_CAP",
+          "origin_node": "O",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 6,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "O_S"
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "expected_served_vehicles": 4,
+        "expected_accessible_served": 1
+      }
+    },
+    {
+      "case_id": "ACCESSIBLE_CAPACITY_HARD_GATE_006",
+      "horizon_steps": 16,
+      "edges": [
+        {
+          "id": "O_S",
+          "from": "O",
+          "to": "S",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SHELTER_S",
+          "node_id": "S",
+          "ingress_capacity_per_step": 2,
+          "total_capacity": 6,
+          "accessible_capacity": 1
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_ACCESS",
+          "origin_node": "O",
+          "destination_sink_id": "SHELTER_S",
+          "vehicles": 4,
+          "accessible_vehicles": 2,
+          "departure_step": 1,
+          "route_edge_ids": [
+            "O_S"
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "expected_accessible_served": 1,
+        "expected_unserved_vehicles_greater_than": 0
+      }
+    }
+  ]
+}
