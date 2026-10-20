@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
     env,
-    fs::{self, File},
+    fs,
     io::Read,
     path::Path,
     process::ExitCode,
@@ -373,7 +373,7 @@ fn audit_zip(
         csv_entry_count,
         expected_profile_count: expected.len(),
         valid_profile_count: profiles.len(),
-        invalid_profile_count: findings.len(),
+        invalid_profile_count: csv_entry_count.saturating_sub(profiles.len()),
         unique_profile_key_count,
         missing_profile_keys: missing_keys,
         duplicate_profile_keys,
@@ -493,7 +493,7 @@ mod tests {
             "fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv",
         )
         .unwrap();
-        let csv = String::from_utf8(expected_csv()).unwrap().replace("00:15:00,0", "00:30:00,0");
+        let csv = String::from_utf8(expected_csv()).unwrap().replace("00:15:00,100", "00:30:00,100");
         assert!(audit_csv(&metadata.filename, csv.as_bytes(), &metadata)
             .unwrap_err().contains("time_sequence_mismatch"));
 
