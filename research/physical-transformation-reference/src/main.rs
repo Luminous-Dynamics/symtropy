@@ -81,7 +81,7 @@ fn run() -> Result<(), String> {
             "\"source_commit\":\"{}\",",
             "\"evidence_class\":\"synthetic\",",
             "\"result\":\"pass\",",
-            "\"scope\":\"topology_mass_accounting_and_analytical_mechanics\",",
+            "\"scope\":\"topology_mass_accounting_analytical_mechanics_deconstruction_recovery_comparison\",",
             "\"fixtures\":{{",
             "\"topology_replay\":\"pass\",",
             "\"transactional_rejection\":\"{}\",",
@@ -116,7 +116,7 @@ fn run() -> Result<(), String> {
             "\"recovery_waste_delta_mg\":{},",
             "\"recovery_unaccounted_delta_mg\":{}",
             "}},",
-            "\"claim_ceiling\":\"software_invariants_and_closed_form_analytical_cases_only_not_structural_or_collapse_prediction\"",
+            "\"claim_ceiling\":\"software_invariants_closed_form_mechanics_and_recovery_accounting_only_not_structural_or_collapse_prediction\"",
             "}}"
         ),
         source_commit.to_ascii_lowercase(),
