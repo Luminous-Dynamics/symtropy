@@ -256,13 +256,12 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), Box<dyn Error>> {
         {
             return Err("candidate costs/errors/representation offsets are invalid".into());
         }
-        if let Some(prior) = previous {
-            if candidate.quality_rank <= prior.quality_rank
+        if previous.is_some_and(|prior| {
+            candidate.quality_rank <= prior.quality_rank
                 || candidate.cost_units <= prior.cost_units
                 || candidate.screen_error_px > prior.screen_error_px
-            {
-                return Err("candidate levels must be ordered coarse-to-fine".into());
-            }
+        }) {
+            return Err("candidate levels must be ordered coarse-to-fine".into());
         }
         previous = Some(candidate);
     }
