@@ -247,6 +247,91 @@ pub fn assess(world: &World, profiles: Vec<ConnectorProfile>) -> Check<DfdAssess
     })
 }
 
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DfdFixtureSummary {
+    pub status: AssessmentStatus,
+    pub connection_count: usize,
+    pub reversible_fastener_count: usize,
+    pub cut_required_count: usize,
+    pub declared_effort_total_person_minutes: Option<u64>,
+    pub metadata_incomplete_count: usize,
+}
+
+/// Run a frozen synthetic DfD known-answer fixture for machine-readable receipts.
+pub fn run_reference_fixture() -> Check<DfdFixtureSummary> {
+    let mut world = World::default();
+    for (id, material, mass_mg) in [
+        ("A", "steel", 1_000),
+        ("B", "concrete", 2_000),
+        ("C", "timber", 1_500),
+    ] {
+        world.apply(crate::Event {
+            id: format!("dfd-install-{id}"),
+            operation: crate::Operation::InstallComponent(crate::Component {
+                id: id.to_owned(),
+                material: material.to_owned(),
+                mass_mg,
+            }),
+        })?;
+    }
+    for (id, a, b) in [("AB", "A", "B"), ("BC", "B", "C")] {
+        world.apply(crate::Event {
+            id: format!("dfd-connect-{id}"),
+            operation: crate::Operation::CreateConnection(crate::Connection {
+                id: id.to_owned(),
+                a: a.to_owned(),
+                b: b.to_owned(),
+            }),
+        })?;
+    }
+
+    let assessment = assess(
+        &world,
+        vec![
+            ConnectorProfile {
+                connection_id: "AB".to_owned(),
+                kind: ConnectorKind::ReversibleFastener,
+                disassembly_effort_person_minutes: Some(5),
+                tool_access: AccessState::Accessible,
+                required_tool_class: RequiredToolClass::StandardHandTool,
+                inspection_access: AccessState::Accessible,
+                damage_risk: DamageRisk::Low,
+                connector_reuse: ConnectorReuse::Reusable,
+            },
+            ConnectorProfile {
+                connection_id: "BC".to_owned(),
+                kind: ConnectorKind::CutRequired,
+                disassembly_effort_person_minutes: Some(12),
+                tool_access: AccessState::Constrained,
+                required_tool_class: RequiredToolClass::ThermalCutting,
+                inspection_access: AccessState::Blocked,
+                damage_risk: DamageRisk::High,
+                connector_reuse: ConnectorReuse::NotReusable,
+            },
+        ],
+    )?;
+
+    let summary = DfdFixtureSummary {
+        status: assessment.status,
+        connection_count: assessment.vector.connection_count,
+        reversible_fastener_count: assessment.vector.connector_kinds.reversible_fastener,
+        cut_required_count: assessment.vector.connector_kinds.cut_required,
+        declared_effort_total_person_minutes: assessment.vector.declared_effort_total_person_minutes,
+        metadata_incomplete_count: assessment.vector.metadata_incomplete_count,
+    };
+    if summary.status != AssessmentStatus::Complete
+        || summary.connection_count != 2
+        || summary.reversible_fastener_count != 1
+        || summary.cut_required_count != 1
+        || summary.declared_effort_total_person_minutes != Some(17)
+        || summary.metadata_incomplete_count != 0
+    {
+        return Err(format!("frozen DfD fixture failed its known-answer contract: {summary:?}"));
+    }
+    Ok(summary)
+}
+
 fn count_access(value: AccessState, counts: &mut AccessCounts) {
     match value {
         AccessState::Accessible => counts.accessible += 1,
@@ -452,6 +537,18 @@ mod tests {
         assert_eq!(result.vector.effort_declared_count, 1);
         assert_eq!(result.vector.declared_effort_total_person_minutes, None);
         assert_eq!(result.unresolved_connection_ids, vec!["AB"]);
+    }
+
+
+    #[test]
+    fn frozen_dfd_receipt_fixture_matches_declared_vector() {
+        let result = run_reference_fixture().expect("frozen DfD fixture");
+        assert_eq!(result.status, AssessmentStatus::Complete);
+        assert_eq!(result.connection_count, 2);
+        assert_eq!(result.reversible_fastener_count, 1);
+        assert_eq!(result.cut_required_count, 1);
+        assert_eq!(result.declared_effort_total_person_minutes, Some(17));
+        assert_eq!(result.metadata_incomplete_count, 0);
     }
 
     #[test]
