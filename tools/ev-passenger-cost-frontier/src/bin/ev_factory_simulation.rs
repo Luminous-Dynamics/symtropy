@@ -15,6 +15,8 @@ struct Catalog {
     schema_version: String,
     benchmark_id: String,
     seed: u64,
+    #[serde(default)]
+    replication_seeds: Vec<u64>,
     horizon_seconds: u64,
     warmup_seconds: u64,
     productive_seconds_per_year: u64,
@@ -76,8 +78,11 @@ struct Report {
     schema_version: String,
     benchmark_id: String,
     seed: u64,
+    replication_count: usize,
+    replication_seeds: Vec<u64>,
     random_stream_policy: String,
     scenario_count: usize,
+    scenario_statistics: Vec<ScenarioStatistics>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
     input_evidence_class: EvidenceClass,
@@ -116,6 +121,31 @@ struct ScenarioResult {
     station_time_accounting_within_horizon: bool,
     release_ready: bool,
     claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct DistributionSummary {
+    sample_count: usize,
+    mean: f64,
+    sample_standard_deviation: Option<f64>,
+    minimum: f64,
+    p05: f64,
+    median: f64,
+    p95: f64,
+    maximum: f64,
+    mean_confidence_95_lower: Option<f64>,
+    mean_confidence_95_upper: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct ScenarioStatistics {
+    scenario_id: String,
+    intervention_station_id: Option<String>,
+    good_units_per_hour: DistributionSummary,
+    paired_good_units_per_hour_delta_vs_baseline: Option<DistributionSummary>,
+    paired_relative_output_delta_fraction_vs_baseline: Option<DistributionSummary>,
+    scrapped_jobs_total: DistributionSummary,
+    measured_rework_attempts: DistributionSummary,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -372,6 +402,17 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.seed == 0 {
         return Err("seed_must_be_nonzero_for_explicit_reproducibility".into());
     }
+    if !catalog.replication_seeds.is_empty() {
+        if catalog.replication_seeds[0] != catalog.seed {
+            return Err("replication_seeds_must_start_with_primary_seed".into());
+        }
+        let mut seen_seeds = BTreeSet::new();
+        for seed in &catalog.replication_seeds {
+            if *seed == 0 || !seen_seeds.insert(*seed) {
+                return Err("replication_seeds_must_be_positive_and_unique".into());
+            }
+        }
+    }
     if catalog.horizon_seconds < 10
         || catalog.warmup_seconds >= catalog.horizon_seconds
         || catalog.productive_seconds_per_year == 0
@@ -445,6 +486,175 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
 }
 
 fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
+    let seeds = if catalog.replication_seeds.is_empty() {
+        vec![catalog.seed]
+    } else {
+        catalog.replication_seeds.clone()
+    };
+    let mut runs = Vec::with_capacity(seeds.len());
+    for seed in &seeds {
+        let mut run_catalog = catalog.clone();
+        run_catalog.seed = *seed;
+        run_catalog.replication_seeds.clear();
+        runs.push(evaluate_single_seed(&run_catalog)?);
+    }
+    let reference = runs
+        .first()
+        .cloned()
+        .ok_or_else(|| "replication_seed_list_must_not_be_empty".to_string())?;
+    if runs
+        .iter()
+        .any(|run| run.scenario_count != reference.scenario_count)
+    {
+        return Err("replications_returned_inconsistent_scenario_counts".into());
+    }
+
+    let baseline_rates: Vec<f64> = runs
+        .iter()
+        .map(|run| run.scenarios[0].measured_good_units_per_hour)
+        .collect();
+    let mut statistics = Vec::with_capacity(reference.scenario_count);
+    for scenario_index in 0..reference.scenario_count {
+        let first_scenario = &reference.scenarios[scenario_index];
+        let mut good_rates = Vec::with_capacity(runs.len());
+        let mut delta_rates = Vec::with_capacity(runs.len());
+        let mut relative_deltas = Vec::with_capacity(runs.len());
+        let mut scrapped = Vec::with_capacity(runs.len());
+        let mut rework = Vec::with_capacity(runs.len());
+        for (run, baseline_rate) in runs.iter().zip(baseline_rates.iter()) {
+            let scenario = &run.scenarios[scenario_index];
+            if scenario.scenario_id != first_scenario.scenario_id {
+                return Err("replications_returned_inconsistent_scenario_order".into());
+            }
+            good_rates.push(scenario.measured_good_units_per_hour);
+            scrapped.push(scenario.scrapped_jobs_total as f64);
+            rework.push(scenario.measured_rework_attempts as f64);
+            if scenario_index > 0 {
+                delta_rates.push(scenario.measured_good_units_per_hour - baseline_rate);
+                if *baseline_rate > 0.0 {
+                    relative_deltas.push(
+                        (scenario.measured_good_units_per_hour - baseline_rate) / baseline_rate,
+                    );
+                }
+            }
+        }
+        statistics.push(ScenarioStatistics {
+            scenario_id: first_scenario.scenario_id.clone(),
+            intervention_station_id: first_scenario.intervention_station_id.clone(),
+            good_units_per_hour: summarize_distribution(&good_rates)?,
+            paired_good_units_per_hour_delta_vs_baseline: if scenario_index > 0 {
+                Some(summarize_distribution(&delta_rates)?)
+            } else {
+                None
+            },
+            paired_relative_output_delta_fraction_vs_baseline: if scenario_index > 0
+                && !relative_deltas.is_empty()
+            {
+                Some(summarize_distribution(&relative_deltas)?)
+            } else {
+                None
+            },
+            scrapped_jobs_total: summarize_distribution(&scrapped)?,
+            measured_rework_attempts: summarize_distribution(&rework)?,
+        });
+    }
+
+    let mut report = reference;
+    report.replication_count = runs.len();
+    report.replication_seeds = seeds;
+    report.scenario_statistics = statistics;
+    report.output_never_exceeds_released_input = runs
+        .iter()
+        .all(|run| run.output_never_exceeds_released_input);
+    report.all_buffers_respected_capacity =
+        runs.iter().all(|run| run.all_buffers_respected_capacity);
+    report.station_time_accounting_within_horizon = runs
+        .iter()
+        .all(|run| run.station_time_accounting_within_horizon);
+    report.release_ready = false;
+    Ok(report)
+}
+
+fn summarize_distribution(values: &[f64]) -> Result<DistributionSummary, String> {
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err("distribution_requires_nonempty_finite_samples".into());
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let count = sorted.len();
+    let mean = sorted.iter().sum::<f64>() / count as f64;
+    let sample_standard_deviation = if count > 1 {
+        let sum_squares = sorted
+            .iter()
+            .map(|value| (value - mean).powi(2))
+            .sum::<f64>();
+        Some((sum_squares / (count - 1) as f64).sqrt())
+    } else {
+        None
+    };
+    let confidence = sample_standard_deviation.map(|sd| {
+        let margin = student_t_critical_95((count - 1) as u32) * sd / (count as f64).sqrt();
+        (mean - margin, mean + margin)
+    });
+    Ok(DistributionSummary {
+        sample_count: count,
+        mean,
+        sample_standard_deviation,
+        minimum: sorted[0],
+        p05: quantile_sorted(&sorted, 0.05),
+        median: quantile_sorted(&sorted, 0.50),
+        p95: quantile_sorted(&sorted, 0.95),
+        maximum: sorted[count - 1],
+        mean_confidence_95_lower: confidence.map(|bounds| bounds.0),
+        mean_confidence_95_upper: confidence.map(|bounds| bounds.1),
+    })
+}
+
+fn quantile_sorted(sorted: &[f64], probability: f64) -> f64 {
+    let position = probability.clamp(0.0, 1.0) * (sorted.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    let fraction = position - lower_index as f64;
+    sorted[lower_index] * (1.0 - fraction) + sorted[upper_index] * fraction
+}
+
+fn student_t_critical_95(degrees_of_freedom: u32) -> f64 {
+    match degrees_of_freedom {
+        0 => f64::NAN,
+        1 => 12.706,
+        2 => 4.303,
+        3 => 3.182,
+        4 => 2.776,
+        5 => 2.571,
+        6 => 2.447,
+        7 => 2.365,
+        8 => 2.306,
+        9 => 2.262,
+        10 => 2.228,
+        11 => 2.201,
+        12 => 2.179,
+        13 => 2.160,
+        14 => 2.145,
+        15 => 2.131,
+        16 => 2.120,
+        17 => 2.110,
+        18 => 2.101,
+        19 => 2.093,
+        20 => 2.086,
+        21 => 2.080,
+        22 => 2.074,
+        23 => 2.069,
+        24 => 2.064,
+        25 => 2.060,
+        26 => 2.056,
+        27 => 2.052,
+        28 => 2.048,
+        29 => 2.045,
+        _ => 1.960,
+    }
+}
+
+fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
     let baseline = simulate(catalog, None)?;
     let mut scenarios = Vec::with_capacity(catalog.stations.len() + 1);
     scenarios.push(baseline.clone());
@@ -485,9 +695,12 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         schema_version: catalog.schema_version.clone(),
         benchmark_id: catalog.benchmark_id.clone(),
         seed: catalog.seed,
+        replication_count: 1,
+        replication_seeds: vec![catalog.seed],
         random_stream_policy:
             "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
         scenario_count: scenarios.len(),
+        scenario_statistics: Vec::new(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
         input_evidence_class: catalog.input_evidence_class,
@@ -1055,6 +1268,74 @@ mod tests {
             DeterministicRng::for_key(20261020, "quality-outcome", "battery-module", 42, 1)
                 .next_u64()
         );
+    }
+
+    #[test]
+    fn paired_replication_statistics_have_expected_shape_and_intervals() {
+        let catalog = fixture();
+        let report = evaluate_catalog(&catalog).expect("replicated simulation");
+        assert_eq!(report.replication_count, 20);
+        assert_eq!(report.replication_seeds.len(), 20);
+        assert_eq!(report.replication_seeds[0], catalog.seed);
+        assert_eq!(report.scenario_statistics.len(), report.scenario_count);
+        let baseline = &report.scenario_statistics[0];
+        assert_eq!(baseline.good_units_per_hour.sample_count, 20);
+        assert!(
+            baseline
+                .paired_good_units_per_hour_delta_vs_baseline
+                .is_none()
+        );
+        for statistic in report.scenario_statistics.iter().skip(1) {
+            let delta = statistic
+                .paired_good_units_per_hour_delta_vs_baseline
+                .as_ref()
+                .expect("paired intervention delta");
+            assert_eq!(delta.sample_count, 20);
+            assert!(delta.mean_confidence_95_lower.is_some());
+            assert!(delta.mean_confidence_95_upper.is_some());
+        }
+        assert!(report.output_never_exceeds_released_input);
+        assert!(report.all_buffers_respected_capacity);
+        assert!(report.station_time_accounting_within_horizon);
+        assert!(!report.release_ready);
+    }
+
+    #[test]
+    fn one_replication_does_not_claim_confidence_interval() {
+        let mut catalog = fixture();
+        catalog.replication_seeds.clear();
+        let report = evaluate_catalog(&catalog).expect("single-seed simulation");
+        assert_eq!(report.replication_count, 1);
+        assert_eq!(
+            report.scenario_statistics[0]
+                .good_units_per_hour
+                .sample_count,
+            1
+        );
+        assert!(
+            report.scenario_statistics[0]
+                .good_units_per_hour
+                .mean_confidence_95_lower
+                .is_none()
+        );
+        assert!(
+            report.scenario_statistics[1]
+                .paired_good_units_per_hour_delta_vs_baseline
+                .as_ref()
+                .expect("paired delta")
+                .mean_confidence_95_lower
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn distribution_summary_uses_sample_standard_deviation_and_quantiles() {
+        let summary = summarize_distribution(&[1.0, 2.0, 3.0]).expect("summary");
+        assert!((summary.mean - 2.0).abs() < 1e-12);
+        assert!((summary.sample_standard_deviation.unwrap() - 1.0).abs() < 1e-12);
+        assert!((summary.median - 2.0).abs() < 1e-12);
+        assert!((summary.p05 - 1.1).abs() < 1e-12);
+        assert!((summary.p95 - 2.9).abs() < 1e-12);
     }
 
     #[test]

@@ -9,6 +9,7 @@ on:
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
+      - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
     branches: [main]
@@ -85,6 +86,11 @@ jobs:
           jq -e '
             .benchmark_id == "EV-FACTORY-SIM-001"
             and .random_stream_policy == "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream"
+            and .replication_count == 20
+            and (.replication_seeds | length) == 20
+            and (.scenario_statistics | length) == 6
+            and all(.scenario_statistics[]; .good_units_per_hour.sample_count == 20)
+            and all(.scenario_statistics[] | select(.scenario_id != "baseline"); .paired_good_units_per_hour_delta_vs_baseline.sample_count == 20 and .paired_good_units_per_hour_delta_vs_baseline.mean_confidence_95_lower != null and .paired_good_units_per_hour_delta_vs_baseline.mean_confidence_95_upper != null)
             and .scenario_count == 6
             and .measured_horizon_seconds == 518400
             and .input_evidence_class == "synthetic"
@@ -153,6 +159,7 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json \
             docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
             docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
+            docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
