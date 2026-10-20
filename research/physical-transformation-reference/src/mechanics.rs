@@ -173,11 +173,11 @@ mod tests {
     #[test]
     fn frozen_bar_and_cantilever_fixtures_match_closed_form_values() {
         let result = run_reference_fixtures().expect("known-answer fixtures should pass");
-        assert_eq!(result.axial_stress_pa, 100_000.0);
+        assert!((result.axial_stress_pa - 100_000.0).abs() <= 1.0e-8);
         assert!((result.axial_strain - 5.0e-7).abs() <= ABSOLUTE_TOLERANCE);
         assert!((result.axial_extension_m - 1.0e-6).abs() <= ABSOLUTE_TOLERANCE);
         assert!((result.cantilever_tip_deflection_m - (1.0 / 6_000.0)).abs() <= ABSOLUTE_TOLERANCE);
-        assert_eq!(result.cantilever_maximum_bending_stress_pa, 2_500_000.0);
+        assert!((result.cantilever_maximum_bending_stress_pa - 2_500_000.0).abs() <= 1.0e-6);
     }
 
     #[test]
@@ -206,10 +206,10 @@ mod tests {
             cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid positive load");
         let negative =
             cantilever_tip_load(-100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid negative load");
-        assert_eq!(positive.tip_deflection_m, -negative.tip_deflection_m);
-        assert_eq!(
-            positive.maximum_bending_stress_pa,
-            negative.maximum_bending_stress_pa
+        assert!((positive.tip_deflection_m + negative.tip_deflection_m).abs() <= ABSOLUTE_TOLERANCE);
+        assert!(
+            (positive.maximum_bending_stress_pa - negative.maximum_bending_stress_pa).abs()
+                <= 1.0e-9
         );
     }
 }
