@@ -930,6 +930,7 @@ mod tests {
         let results = evaluate_catalog(&catalog);
         for option_id in ["manual", "assisted", "automated"] {
             let rows: Vec<_> = results
+                .results
                 .iter()
                 .filter(|r| r.option_id == option_id)
                 .collect();
