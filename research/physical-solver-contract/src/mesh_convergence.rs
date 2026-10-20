@@ -74,10 +74,7 @@ struct LevelObservation {
     producer_status: String,
 }
 
-fn object<'a>(
-    value: &'a Value,
-    at: &str,
-) -> Check<&'a serde_json::Map<String, Value>> {
+fn object<'a>(value: &'a Value, at: &str) -> Check<&'a serde_json::Map<String, Value>> {
     value
         .as_object()
         .ok_or_else(|| format!("{at} must be an object"))
