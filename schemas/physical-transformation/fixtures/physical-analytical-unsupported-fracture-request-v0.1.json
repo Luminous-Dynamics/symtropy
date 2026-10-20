@@ -1,0 +1,22 @@
+{
+  "schema_version": "physical-analytical-request-v0.1",
+  "request_id": "analytical-fracture-unsupported-001",
+  "source_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "scene_revision": 4,
+  "scene_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "case_id": "phase_field_fracture",
+  "requested_physics": [
+    "fracture",
+    "dynamic_response"
+  ],
+  "units": {
+    "length": "m",
+    "area": "m^2",
+    "force": "N",
+    "youngs_modulus": "Pa",
+    "second_moment_area": "m^4",
+    "outer_fiber_distance": "m",
+    "distributed_load": "N/m"
+  },
+  "parameters": {}
+}
