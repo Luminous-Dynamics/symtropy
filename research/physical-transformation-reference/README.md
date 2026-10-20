@@ -34,7 +34,7 @@ Treat destruction, construction and repair as the same state-transition problem.
 
 This is intentionally a small slice. Graph connectivity does not prove whether a building is stable, whether an element will actually fall, or how stress redistributes. The current mass fields are declared accounting values, not sensor measurements or verified material properties. The two mechanics fixtures verify only their closed-form idealizations; they do not validate a mesh, nonlinear constitutive law, real connection behavior, dynamic collapse, or solver integration.
 
-For the wider industry matrix and proposed numerical acceptance targets, see [PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md](../../../docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md).
+For the wider industry matrix and proposed numerical acceptance targets, see [PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md](../../docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md).
 
 ## Comparison with the field
 
