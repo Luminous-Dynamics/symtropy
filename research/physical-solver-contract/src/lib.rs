@@ -211,9 +211,10 @@ fn validate_shape(request: &Value) -> Check<()> {
     )?;
 
     let units = object(request, "units", "request")?;
-    exact_keys(
+    allowed_keys(
         units,
         &["length", "mass", "time", "force", "stress"],
+        &[],
         "request.units",
     )?;
     for (key, required) in [
