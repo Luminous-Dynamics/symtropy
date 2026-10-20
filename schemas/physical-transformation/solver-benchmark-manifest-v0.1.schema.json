@@ -161,7 +161,8 @@
         "kind",
         "source_url",
         "source_permission",
-        "outputs"
+        "outputs",
+        "source_revision"
       ],
       "properties": {
         "kind": {
@@ -218,6 +219,10 @@
               }
             }
           }
+        },
+        "source_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
         }
       }
     },
