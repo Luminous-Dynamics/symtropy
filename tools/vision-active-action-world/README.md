@@ -20,7 +20,7 @@ The focused workflow `.github/workflows/vision-active-action-bench.yml` runs bot
 
 ## How this differs from VIS-ACT-001's first pilot
 
-The earlier 11-case diagnostic deliberately hand-authors action losses to test evaluation plumbing and recognizable failure modes. This world harness instead generates 96 worlds from a deterministic cross of occlusion, blur, distractor salience and novelty. Target identity, sensor noise and action availability use domain-separated deterministic seed draws. Task loss is computed from hidden target identity and an action-conditioned sensor decision; it is not a hand-authored per-action loss table.
+The earlier 11-case diagnostic deliberately hand-authors action losses to test evaluation plumbing and recognizable failure modes. This world harness instead generates 36 pilot worlds from a deterministic cross of occlusion, blur, distractor salience and novelty. Target identity, sensor noise and action availability use domain-separated deterministic seed draws. Task loss is computed from hidden target identity and an action-conditioned sensor decision; it is not a hand-authored per-action loss table.
 
 A paired-world test constructs two worlds with the same exogenous observation seed but opposite hidden target identities. When both targets are fully occluded, their entire policy-visible initial observation is identical, while a noiseless legal alternate view yields different identity evidence. High occlusion cannot be cured by spending more compute on the same frame.
 
