@@ -1153,7 +1153,7 @@ mod randomized_timing {
             }
 
             memory.observe(&frame);
-            terminal = frame;
+            terminal = frame.clone();
 
             if tick == HORIZON {
                 break;
@@ -1298,7 +1298,7 @@ mod randomized_timing {
         )
     }
 
-    fn run_report() {
+    pub(super) fn run_report() {
         println!("VIS-ACT-005 randomized-timing and delayed-view diagnostic");
         println!("event-driven onset/duration/delay; transient RGB evidence; hidden view-success outcomes");
         println!("fixed-sweep baseline included; resource units remain synthetic");
