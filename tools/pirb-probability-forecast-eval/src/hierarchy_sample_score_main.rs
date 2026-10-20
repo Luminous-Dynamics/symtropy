@@ -335,6 +335,7 @@ fn evaluate_with_runtime(
         .collect::<BTreeMap<_, _>>();
 
     let mut per_forecast_scores = Vec::new();
+    let mut eligible_forecast_ids = Vec::new();
     let mut scored_count = 0usize;
     let mut unknown_outcome_count = 0usize;
     let mut raw_crps_total = 0.0_f64;
@@ -385,6 +386,7 @@ fn evaluate_with_runtime(
         let reconciled_crps = empirical_crps(&reconciled_samples, observed)
             .map_err(|error| vec![format!("cannot score reconciled samples for {forecast_id}: {error}")])?;
         let improvement = raw_crps - reconciled_crps;
+        eligible_forecast_ids.push(forecast_id.to_owned());
         raw_crps_total += raw_crps;
         reconciled_crps_total += reconciled_crps;
         improvement_total += improvement;
@@ -473,6 +475,8 @@ fn evaluate_with_runtime(
         "forecast_count": forecasts.len(),
         "predictive_sample_count": sample_rows_by_draw.len(),
         "matured_scored_count": scored_count,
+        "score_denominator": scored_count,
+        "eligible_forecast_ids": eligible_forecast_ids,
         "unknown_outcome_count": unknown_outcome_count,
         "mean_raw_empirical_crps": mean_raw_crps,
         "mean_reconciled_empirical_crps": mean_reconciled_crps,
