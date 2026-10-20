@@ -16,7 +16,7 @@ rustc --edition=2024 --test tools/vision-active-action-benchmark.rs -o /tmp/vis-
 /tmp/vis-act-tests
 ```
 
-The benchmark imports `tools/vision-active-action-reference.rs` and its tests. The harness uses 11 hand-authored synthetic episodes and six policy baselines: always-cheap, always-escalate, confidence-threshold, surprise-only, deterministic-random, and sequential-evidence heuristic. It includes examples where surprise is misleading, a different viewpoint resolves occlusion/novelty, a later sample beats compute escalation, and abstention is preferable when no useful evidence action is available.
+The benchmark imports `tools/vision-active-action-reference.rs` and its tests. The harness uses 11 hand-authored synthetic episodes and six policy baselines: always-cheap, always-escalate, confidence-threshold, surprise-only, deterministic-random, and sequential-evidence heuristic. The deterministic-random baseline is repeated across 16 policy seeds on the same fixed episode set and reports its min/max loss; these are policy-randomization repeats, not independent environment episodes or a confidence interval. It includes examples where surprise is misleading, a different viewpoint resolves occlusion/novelty, a later sample beats compute escalation, and abstention is preferable when no useful evidence action is available.
 
 ## Information boundary
 
@@ -31,7 +31,7 @@ It does not receive the authored candidate losses, oracle choice, future frames 
 
 All resource quantities are explicitly synthetic: `synthetic_latency_unit` and `synthetic_sensor_action`. They are not milliseconds, FLOPs, watts, energy or claims about actual runtime. The budget guard applies the same shared run budgets to each baseline. Results are a diagnostic smoke test, not a powered experiment; 11 synthetic episodes are too few for significance, generalization or SOTA claims.
 
-The evaluator includes a bounded exact run-budget-constrained counterfactual oracle. If its resource-state count exceeds its fixed safety cap or no globally feasible plan exists, it fails closed rather than switching silently to an approximation.
+The combined test harness currently contains 24 authored tests (17 evaluator checks and 7 pilot checks); the focused GitHub Actions workflow compiles and runs them from an exact checkout. The evaluator includes a bounded exact run-budget-constrained counterfactual oracle. If its resource-state count exceeds its fixed safety cap or no globally feasible plan exists, it fails closed rather than switching silently to an approximation.
 
 ## Research issue and limitations
 
