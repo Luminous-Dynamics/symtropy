@@ -27,6 +27,7 @@ const STRATA_NAMES: [&str; STRATA_COUNT] = [
     "profile_high_distractor_rate",
 ];
 const HORIZON: usize = 48;
+const BUDGETS: [usize; 5] = [8, 16, 24, 32, 48];
 const REPLICATES: usize = 12;
 const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
@@ -583,10 +584,20 @@ struct RunResult {
 }
 
 fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult {
-    let mut policy = PolicyState::new(kind, seed);
-    let mut actions = Vec::with_capacity(HORIZON);
+    run_policy_with_budget(episode, kind, seed, HORIZON)
+}
 
-    for tick in 0..HORIZON {
+fn run_policy_with_budget(
+    episode: &ActiveEpisode,
+    kind: PolicyKind,
+    seed: u64,
+    budget: usize,
+) -> RunResult {
+    assert!(budget > 0 && budget <= HORIZON);
+    let mut policy = PolicyState::new(kind, seed);
+    let mut actions = Vec::with_capacity(budget);
+
+    for tick in 0..budget {
         let action = policy.choose_action(tick);
         actions.push(action);
         // Only the requested candidate observation is revealed to the policy.
@@ -612,7 +623,7 @@ fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult
             correct,
             requested_counts: policy.requested_counts,
             relevant_counts: policy.relevant_counts,
-            wasted_fraction: (HORIZON - relevant) as f64 / HORIZON as f64,
+            wasted_fraction: (budget - relevant) as f64 / budget as f64,
             allocation_imbalance: max_count - min_count,
             logical_state_bytes: policy.logical_state_bytes(),
             estimated_scoring_work_units: policy.estimated_scoring_work_units,
@@ -835,7 +846,72 @@ impl Family {
     const ALL: [Self; 2] = [Self::Development, Self::HeldOut];
 }
 
-fn main() { report(); }
+fn report_budget_frontier() {
+    println!("VIS-ACT-006 sensing-budget Pareto frontier; world horizon stays {HORIZON}, terminal target is evaluated at tick {}", HORIZON - 1);
+    println!("Budget prefixes reduce sensing opportunities only; the world still evolves through the full horizon and no terminal observation is supplied for free.");
+    println!("BUDGET\\tfamily\\tbudget\\tpolicy\\tepisodes\\tmean_loss\\tanswer_rate\\taccuracy_when_answered\\tmean_requested_per_claim\\tmean_relevant_per_claim\\twasted_observation_rate\\tlogical_state_bytes\\testimated_scoring_work_units_per_episode\\tdelta_loss_vs_round_robin\\tbootstrap95_lo\\tbootstrap95_hi");
+
+    let mut cells = vec![
+        Accumulator::default();
+        Family::ALL.len() * BUDGETS.len() * PolicyKind::ALL.len()
+    ];
+    for family in Family::ALL {
+        for replicate in 0..REPLICATES {
+            for pair in 0..PAIRS {
+                let seed = seed_for(replicate, pair, family);
+                let episode = ActiveEpisode::generate(seed, family);
+                for (budget_index, budget) in BUDGETS.iter().copied().enumerate() {
+                    let mut round_robin_loss = 0.0;
+                    for (policy_index, policy) in PolicyKind::ALL.iter().copied().enumerate() {
+                        let actor_seed = mix64(seed
+                            ^ (policy_index as u64 + 1).wrapping_mul(0xD1B5_4A32_D192_ED03));
+                        let run = run_policy_with_budget(&episode, policy, actor_seed, budget);
+                        let index = ((family as usize * BUDGETS.len() + budget_index)
+                            * PolicyKind::ALL.len()) + policy_index;
+                        if policy_index == 0 {
+                            round_robin_loss = run.outcome.loss;
+                            cells[index].record(run.outcome, None);
+                        } else {
+                            cells[index].record(run.outcome, Some(run.outcome.loss - round_robin_loss));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (family_index, family) in Family::ALL.iter().copied().enumerate() {
+        for (budget_index, budget) in BUDGETS.iter().copied().enumerate() {
+            for (policy_index, policy) in PolicyKind::ALL.iter().copied().enumerate() {
+                let cell = &cells[(family_index * BUDGETS.len() + budget_index)
+                    * PolicyKind::ALL.len() + policy_index];
+                let (delta, lo, hi) = if policy_index == 0 {
+                    (0.0, 0.0, 0.0)
+                } else {
+                    let delta = cell.paired_deltas_vs_rr.iter().sum::<f64>()
+                        / cell.paired_deltas_vs_rr.len().max(1) as f64;
+                    let seed = mix64(ROOT_SEED
+                        ^ 0x4255_4447_4554_4349
+                        ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
+                        ^ (budget_index as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9)
+                        ^ (policy_index as u64).wrapping_mul(0xD1B5_4A32_D192_ED03));
+                    let (lo, hi) = bootstrap_ci(&cell.paired_deltas_vs_rr, seed);
+                    (delta, lo, hi)
+                };
+                println!("BUDGET\\t{}\\t{}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{}\\t{:.3}\\t{:.3}\\t{:.4}\\t{:.1}\\t{:.1}\\t{:.4}\\t{:.4}\\t{:.4}",
+                    family.name(), budget, policy.name(), cell.episodes, cell.mean_loss(),
+                    cell.answer_rate(), cell.accuracy(), cell.mean_requested_per_claim(),
+                    cell.mean_relevant_per_claim(), cell.mean_wasted_fraction(),
+                    cell.mean_state_bytes(), cell.mean_scoring_work_units(), delta, lo, hi);
+            }
+        }
+    }
+}
+
+fn main() {
+    report();
+    report_budget_frontier();
+}
 
 #[cfg(test)]
 mod tests {
@@ -863,6 +939,19 @@ mod tests {
             assert_eq!(result.outcome.requested_counts.iter().sum::<usize>(), HORIZON);
             assert_eq!(result.outcome.relevant_counts.iter().sum::<usize>() + 
                 (result.outcome.wasted_fraction * HORIZON as f64).round() as usize, HORIZON);
+        }
+    }
+
+    #[test]
+    fn budget_frontier_caps_actions_but_keeps_terminal_world_horizon() {
+        let episode = ActiveEpisode::generate(0xB0D6_0016, Family::HeldOut);
+        for budget in BUDGETS {
+            let result = run_policy_with_budget(
+                &episode, PolicyKind::ValueOfInformation, 1234, budget
+            );
+            assert_eq!(result.actions.len(), budget);
+            assert_eq!(result.outcome.requested_counts.iter().sum::<usize>(), budget);
+            assert!(result.outcome.wasted_fraction >= 0.0 && result.outcome.wasted_fraction <= 1.0);
         }
     }
 
