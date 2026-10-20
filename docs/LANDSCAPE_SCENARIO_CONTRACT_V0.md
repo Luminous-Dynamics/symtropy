@@ -58,6 +58,15 @@ The Rust unit tests include:
 5. No ecological, hydraulic or construction outcome is emitted by this contract module.
 6. cargo fmt --all --check and cargo test -p symtropy-basin landscape_scenarios pass on the exact PR head before merge.
 
+## Evaluation-plan linkage
+
+A scenario may optionally carry an `evaluation_plan` reference. When present, its SHA-256 commits to the exact Sol-Atlas evaluation-plan bytes and it names the plan schema URI and evaluation ID. Validation requires those exact bytes; it verifies the digest, plan schema identity, evaluation ID, and that the plan's `project_snapshot_sha256` and `project_scope` match the scenario's exact design snapshot reference.
+
+- Sol-Atlas evaluation plan and strict validator: https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/210
+- Evaluation-plan JSON Schema: https://github.com/Luminous-Dynamics/sol-atlas-leptos/blob/feat/landscape-evaluation-protocol-v0/schemas/landscape-evaluation-plan-v0.schema.json
+
+The plan must first pass the authoritative Sol-Atlas validation path. This Symtropy check does not duplicate the full validator, prove consent, or establish scientific adequacy or causal identification. It merely prevents a scenario run from becoming detached from the study protocol or silently switching project versions. If no evaluation plan is pinned, legacy schema-qualification/synthetic scenarios remain valid without plan bytes.
+
 ## Next stages
 
 - **Schema qualification:** full input validation and export reproducibility.
