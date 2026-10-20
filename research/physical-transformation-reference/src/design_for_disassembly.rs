@@ -24,6 +24,16 @@ pub enum AccessState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RequiredToolClass {
+    ToolFree,
+    StandardHandTool,
+    PoweredHandTool,
+    ThermalCutting,
+    SpecializedRig,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DamageRisk {
     Low,
     Moderate,
@@ -45,6 +55,7 @@ pub struct ConnectorProfile {
     /// Declared labor estimate. It is not a measured work rate.
     pub disassembly_effort_person_minutes: Option<u64>,
     pub tool_access: AccessState,
+    pub required_tool_class: RequiredToolClass,
     pub inspection_access: AccessState,
     pub damage_risk: DamageRisk,
     pub connector_reuse: ConnectorReuse,
@@ -57,6 +68,7 @@ impl ConnectorProfile {
             kind: ConnectorKind::Unknown,
             disassembly_effort_person_minutes: None,
             tool_access: AccessState::Unknown,
+            required_tool_class: RequiredToolClass::Unknown,
             inspection_access: AccessState::Unknown,
             damage_risk: DamageRisk::Unknown,
             connector_reuse: ConnectorReuse::Unknown,
@@ -67,6 +79,7 @@ impl ConnectorProfile {
         self.kind != ConnectorKind::Unknown
             && self.disassembly_effort_person_minutes.is_some()
             && self.tool_access != AccessState::Unknown
+            && self.required_tool_class != RequiredToolClass::Unknown
             && self.inspection_access != AccessState::Unknown
             && self.damage_risk != DamageRisk::Unknown
             && self.connector_reuse != ConnectorReuse::Unknown
@@ -86,6 +99,16 @@ pub struct AccessCounts {
     pub accessible: usize,
     pub constrained: usize,
     pub blocked: usize,
+    pub unknown: usize,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RequiredToolCounts {
+    pub tool_free: usize,
+    pub standard_hand_tool: usize,
+    pub powered_hand_tool: usize,
+    pub thermal_cutting: usize,
+    pub specialized_rig: usize,
     pub unknown: usize,
 }
 
@@ -112,6 +135,7 @@ pub struct DfdVector {
     /// Present only when every connection has a declared effort estimate.
     pub declared_effort_total_person_minutes: Option<u64>,
     pub tool_access: AccessCounts,
+    pub required_tool_class: RequiredToolCounts,
     pub inspection_access: AccessCounts,
     pub damage_risk: DamageRiskCounts,
     pub connector_reuse: ConnectorReuseCounts,
@@ -192,6 +216,7 @@ pub fn assess(world: &World, profiles: Vec<ConnectorProfile>) -> Check<DfdAssess
         }
 
         count_access(profile.tool_access, &mut vector.tool_access);
+        count_required_tool(profile.required_tool_class, &mut vector.required_tool_class);
         count_access(profile.inspection_access, &mut vector.inspection_access);
         count_risk(profile.damage_risk, &mut vector.damage_risk);
         count_reuse(profile.connector_reuse, &mut vector.connector_reuse);
@@ -228,6 +253,17 @@ fn count_access(value: AccessState, counts: &mut AccessCounts) {
         AccessState::Constrained => counts.constrained += 1,
         AccessState::Blocked => counts.blocked += 1,
         AccessState::Unknown => counts.unknown += 1,
+    }
+}
+
+fn count_required_tool(value: RequiredToolClass, counts: &mut RequiredToolCounts) {
+    match value {
+        RequiredToolClass::ToolFree => counts.tool_free += 1,
+        RequiredToolClass::StandardHandTool => counts.standard_hand_tool += 1,
+        RequiredToolClass::PoweredHandTool => counts.powered_hand_tool += 1,
+        RequiredToolClass::ThermalCutting => counts.thermal_cutting += 1,
+        RequiredToolClass::SpecializedRig => counts.specialized_rig += 1,
+        RequiredToolClass::Unknown => counts.unknown += 1,
     }
 }
 
@@ -288,6 +324,7 @@ mod tests {
             kind,
             disassembly_effort_person_minutes: Some(effort),
             tool_access: AccessState::Accessible,
+            required_tool_class: RequiredToolClass::StandardHandTool,
             inspection_access: AccessState::Accessible,
             damage_risk: DamageRisk::Low,
             connector_reuse: ConnectorReuse::Reusable,
@@ -303,6 +340,7 @@ mod tests {
                 known_profile("AB", 5, ConnectorKind::ReversibleFastener),
                 ConnectorProfile {
                     tool_access: AccessState::Constrained,
+                    required_tool_class: RequiredToolClass::ThermalCutting,
                     inspection_access: AccessState::Blocked,
                     damage_risk: DamageRisk::High,
                     connector_reuse: ConnectorReuse::NotReusable,
@@ -317,6 +355,8 @@ mod tests {
         assert_eq!(result.vector.connector_kinds.cut_required, 1);
         assert_eq!(result.vector.declared_effort_total_person_minutes, Some(17));
         assert_eq!(result.vector.tool_access.constrained, 1);
+        assert_eq!(result.vector.required_tool_class.standard_hand_tool, 1);
+        assert_eq!(result.vector.required_tool_class.thermal_cutting, 1);
         assert_eq!(result.vector.inspection_access.blocked, 1);
         assert_eq!(result.vector.damage_risk.high, 1);
         assert_eq!(result.vector.connector_reuse.not_reusable, 1);
@@ -335,6 +375,7 @@ mod tests {
         assert_eq!(result.status, AssessmentStatus::Unresolved);
         assert_eq!(result.vector.connector_kinds.unknown, 1);
         assert_eq!(result.vector.tool_access.unknown, 1);
+        assert_eq!(result.vector.required_tool_class.unknown, 1);
         assert_eq!(result.vector.metadata_incomplete_count, 1);
         assert_eq!(result.unresolved_connection_ids, vec!["BC"]);
         assert_eq!(result.vector.declared_effort_total_person_minutes, None);
