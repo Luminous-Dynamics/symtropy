@@ -1,0 +1,459 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_FLOOD_FORAGE_EXECUTION_RULES_V0.schema.json",
+  "title": "Animal Flood Forage Executable Rules V0",
+  "description": "Explicit synthetic runtime rules. These describe a deterministic toy-world benchmark, not fitted ecology, a hydrodynamics solver, or biological validity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "tracking_issue",
+    "scenario_id",
+    "note",
+    "spatial",
+    "resources",
+    "agent",
+    "sensing",
+    "policies",
+    "accounting",
+    "metrics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ANIMAL-FLOOD-FORAGE-EXECUTION-RULES-V0"
+    },
+    "status": {
+      "const": "synthetic_runtime_rules_not_empirical"
+    },
+    "tracking_issue": {
+      "type": "string",
+      "const": "https://github.com/Luminous-Dynamics/symtropy/issues/2390",
+      "format": "uri"
+    },
+    "scenario_id": {
+      "const": "flood_forage_risk_corridor_v0"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Scope and limitations of the synthetic runtime."
+    },
+    "spatial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "connectivity",
+        "flooded_rectangle_inclusive",
+        "impassable_water_depth_cm",
+        "edge_closed_during_flood",
+        "static_grid_and_refuge_locations_are_public_prior",
+        "current_field_scope",
+        "predator_process"
+      ],
+      "properties": {
+        "connectivity": {
+          "const": "four_neighbor_grid"
+        },
+        "flooded_rectangle_inclusive": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x_min",
+            "x_max",
+            "y_min",
+            "y_max"
+          ],
+          "properties": {
+            "x_min": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Inclusive minimum x"
+            },
+            "x_max": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Inclusive maximum x"
+            },
+            "y_min": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Inclusive minimum y"
+            },
+            "y_max": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Inclusive maximum y"
+            }
+          }
+        },
+        "impassable_water_depth_cm": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Synthetic locomotion cutoff"
+        },
+        "edge_closed_during_flood": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from_xy",
+            "to_xy"
+          ],
+          "properties": {
+            "from_xy": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Grid coordinate"
+              }
+            },
+            "to_xy": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Grid coordinate"
+              }
+            }
+          }
+        },
+        "static_grid_and_refuge_locations_are_public_prior": {
+          "const": true
+        },
+        "current_field_scope": {
+          "const": "recorded_in_source_manifest_not_hydrodynamically_simulated_v0"
+        },
+        "predator_process": {
+          "const": "not_modeled_v0"
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initial_distribution",
+        "initial_stock_source",
+        "normal_replenishment_source",
+        "replenishment_placement",
+        "forage_units_consumed_per_success",
+        "forage_energy_gain_units",
+        "recovery_delay_source",
+        "recovery_delay_applies_after_shortage_end",
+        "no_stock_clamping"
+      ],
+      "properties": {
+        "initial_distribution": {
+          "const": "x_major_cell_order_quotient_remainder_first"
+        },
+        "initial_stock_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "normal_replenishment_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replenishment_placement": {
+          "const": "(seed + tick * 17) modulo cell_count"
+        },
+        "forage_units_consumed_per_success": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Resource consumption per forage success"
+        },
+        "forage_energy_gain_units": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Energy conversion from forage"
+        },
+        "recovery_delay_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recovery_delay_applies_after_shortage_end": {
+          "const": true
+        },
+        "no_stock_clamping": {
+          "const": true
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initial_energy_source",
+        "movement_energy_cost_units",
+        "active_sensing_energy_cost_units",
+        "failed_forage_energy_cost_units",
+        "idle_energy_cost_units",
+        "depleted_when_energy_at_or_below",
+        "start_cell_generator",
+        "exploration_direction_order",
+        "per_action_max_one_cell",
+        "max_policy_actions_source"
+      ],
+      "properties": {
+        "initial_energy_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "movement_energy_cost_units": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Movement cost"
+        },
+        "active_sensing_energy_cost_units": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Active sensing cost"
+        },
+        "failed_forage_energy_cost_units": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Failed forage attempt cost"
+        },
+        "idle_energy_cost_units": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Idle tick cost"
+        },
+        "depleted_when_energy_at_or_below": {
+          "type": "number",
+          "description": "Exhaustion threshold"
+        },
+        "start_cell_generator": {
+          "const": "splitmix64(seed) modulo cell_count"
+        },
+        "exploration_direction_order": {
+          "type": "array",
+          "const": [
+            "north",
+            "east",
+            "south",
+            "west"
+          ]
+        },
+        "per_action_max_one_cell": {
+          "const": true
+        },
+        "max_policy_actions_source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sensing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "latency_ticks_source",
+        "passive_water_offsets_cm",
+        "passive_resource_offsets_units",
+        "deterministic_noise_generator",
+        "clamp_observed_depth_minimum",
+        "clamp_observed_resource_minimum",
+        "active_sensing_returns_exact_local_depth_and_resource",
+        "active_sensing_does_not_peek_at_adjacent_or_global_cells",
+        "ambiguous_water_cue_band_cm",
+        "active_sensing_budget_source"
+      ],
+      "properties": {
+        "latency_ticks_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passive_water_offsets_cm": {
+          "type": "array",
+          "const": [
+            -35,
+            0,
+            35
+          ]
+        },
+        "passive_resource_offsets_units": {
+          "type": "array",
+          "const": [
+            -2,
+            0,
+            2
+          ]
+        },
+        "deterministic_noise_generator": {
+          "const": "splitmix64(seed,tick,cell_index,channel)_v0"
+        },
+        "clamp_observed_depth_minimum": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Observation floor"
+        },
+        "clamp_observed_resource_minimum": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Observation floor"
+        },
+        "active_sensing_returns_exact_local_depth_and_resource": {
+          "const": true
+        },
+        "active_sensing_does_not_peek_at_adjacent_or_global_cells": {
+          "const": true
+        },
+        "ambiguous_water_cue_band_cm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min_inclusive",
+            "max_inclusive"
+          ],
+          "properties": {
+            "min_inclusive": {
+              "type": "number",
+              "description": "Ambiguity band minimum"
+            },
+            "max_inclusive": {
+              "type": "number",
+              "description": "Ambiguity band maximum"
+            }
+          }
+        },
+        "active_sensing_budget_source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reactive_heuristic",
+        "adaptive_bounded_sensing",
+        "privileged_planner_upper_bound"
+      ],
+      "properties": {
+        "reactive_heuristic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy_id",
+            "rule"
+          ],
+          "properties": {
+            "policy_id": {
+              "const": "reactive_heuristic_v0"
+            },
+            "rule": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "adaptive_bounded_sensing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy_id",
+            "rule"
+          ],
+          "properties": {
+            "policy_id": {
+              "const": "adaptive_bounded_sensing_v0"
+            },
+            "rule": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "privileged_planner_upper_bound": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy_id",
+            "status",
+            "rule"
+          ],
+          "properties": {
+            "policy_id": {
+              "const": "privileged_planner_upper_bound_v0"
+            },
+            "status": {
+              "const": "diagnostic_nonqualifying_reference"
+            },
+            "rule": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_residual_definition",
+        "energy_residual_definition",
+        "required_absolute_resource_residual",
+        "required_absolute_energy_residual_tolerance",
+        "all_selected_rollouts_remain_in_denominator"
+      ],
+      "properties": {
+        "resource_residual_definition": {
+          "const": "initial_stock + total_regrowth - total_consumed - final_stock"
+        },
+        "energy_residual_definition": {
+          "const": "initial_energy + forage_energy_gains - movement_energy_cost - active_sensing_energy_cost - failed_forage_energy_cost - idle_energy_cost - final_energy"
+        },
+        "required_absolute_resource_residual": {
+          "const": 0
+        },
+        "required_absolute_energy_residual_tolerance": {
+          "const": 1e-8
+        },
+        "all_selected_rollouts_remain_in_denominator": {
+          "const": true
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_feasibility_definition",
+        "integrated_performance_deficit_definition",
+        "sensor_quality_definition",
+        "normalized_decision_regret_status",
+        "normalized_decision_regret_reason"
+      ],
+      "properties": {
+        "route_feasibility_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integrated_performance_deficit_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_quality_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "normalized_decision_regret_status": {
+          "const": "not_assessed_v0"
+        },
+        "normalized_decision_regret_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$comment": "The runtime must bind to the separate pilot manifest. A sealed model without disclosed permitted parameters remains not_assessed; do not infer missing parameters. Structural schema validation does not establish simulation validity."
+}
