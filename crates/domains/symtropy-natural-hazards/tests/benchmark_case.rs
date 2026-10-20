@@ -20,7 +20,7 @@ fn synthetic_case_manifest_deserializes_and_respects_claim_ceiling() {
     assert!(
         case.limitations
             .iter()
-            .any(|limitation| limitation.contains("synthetic")),
+            .any(|limitation| limitation.to_ascii_lowercase().contains("synthetic")),
         "the fixture must preserve its synthetic-only claim limit"
     );
     assert!(
