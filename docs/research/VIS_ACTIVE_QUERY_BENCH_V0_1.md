@@ -123,6 +123,16 @@ The next question is resource-sensitive: what is the full task-loss versus sensi
 
 A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The expected-risk candidate must additionally beat the approximate VOI policy on a direct paired contrast to justify its extra computation. Report all seven policies and their resource-quality trade-offs. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
 
+## Sensing-budget frontier — active candidate
+
+The standalone benchmark now runs a matched budget sweep at **8, 16, 24, 32 and 48 requests** for every acquisition policy. The latent world always evolves through tick 47, and the target is evaluated at tick 47 even when the sensing policy receives only a prefix of observations. No free terminal observation is supplied. This tests evidence aging after acquisition stops, not just the immediate value of allocating a fixed number of observations.
+
+The report emits a separate `BUDGET` table with mean task loss, answer rate, answered accuracy, requested/relevant observations per query claim, wasted-observation rate, logical state bytes, estimated scoring-work units and paired 95% episode-bootstrap loss delta vs round-robin. Rows use the same episode seed at every budget, and policy scoring priors remain unchanged. This exposes the loss-versus-budget frontier rather than collapsing sensing cost into an arbitrarily weighted scalar.
+
+Current frontier candidate uses prefix stopping only; it is **not yet an adaptive stop-action policy**. The next step is to add explicit stopping decisions with a declared cost per request and compare against these fixed-budget operating points. A stop policy must not see terminal truth, the latent final tick or unchosen potential observations.
+
+The current head is awaiting exact-head qualification. No budget-frontier numerical result should be cited until its 70 data rows (2 families × 5 budgets × 7 policies), 16-column schema, byte-for-byte replay and report SHA have passed.
+
 ## Reproduce
 
 ```sh
