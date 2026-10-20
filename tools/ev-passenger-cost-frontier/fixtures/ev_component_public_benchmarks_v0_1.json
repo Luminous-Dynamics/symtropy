@@ -1,0 +1,359 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-PUBLIC-COMPONENT-BENCHMARKS-001",
+  "observed_as_of": "2026-10-20",
+  "currency_context": {
+    "vehicle_currency": "ZAR",
+    "reference_exchange_rate": {
+      "pair": "USD/ZAR",
+      "value": 16.4417,
+      "observed_on": "2026-10-20",
+      "evidence_class": "published_market_observation",
+      "source_url": "https://wise.com/us/currency-converter/usd-to-zar-rate/history/20-10-2026",
+      "limitations": "Mid-market/historical reference only. Excludes bank spread, hedging, FX timing, freight, insurance, duties, VAT recovery treatment and supplier payment terms."
+    }
+  },
+  "sources": [
+    {
+      "id": "bnef-bev-pack-average-2025",
+      "category": "battery_pack",
+      "evidence_class": "industry_market_aggregate",
+      "published_on": "2025-12-09",
+      "metric": "volume_weighted_BEV_battery_pack_price",
+      "unit": "USD_per_kWh",
+      "value": 99,
+      "source_url": "https://about.bnef.com/insights/clean-transport/lithium-ion-battery-pack-prices-fall-to-108-per-kilowatt-hour-despite-rising-metal-prices-bloombergnef/",
+      "what_it_supports": "Global high-volume BEV pack-price reference for scale sanity checks.",
+      "must_not_infer": "Not a South African landed quote, a price for a specific cell/chemistry/voltage/design, an early-stage OEM price, or a guaranteed 2026 price."
+    },
+    {
+      "id": "bnef-lfp-pack-average-all-segments-2025",
+      "category": "battery_pack",
+      "evidence_class": "industry_market_aggregate",
+      "published_on": "2025-12-09",
+      "metric": "average_LFP_battery_pack_price_all_segments",
+      "unit": "USD_per_kWh",
+      "value": 81,
+      "source_url": "https://about.bnef.com/insights/clean-transport/lithium-ion-battery-pack-prices-fall-to-108-per-kilowatt-hour-despite-rising-metal-prices-bloombergnef/",
+      "what_it_supports": "Cross-segment LFP market context; BEV-specific $99/kWh is the primary anchor for this passenger-EV comparison.",
+      "must_not_infer": "Must not substitute the all-segment mean for an automotive pack quote; stationary storage requirements and purchase terms differ."
+    },
+    {
+      "id": "usd-zar-2026-10-20",
+      "category": "foreign_exchange",
+      "evidence_class": "published_market_observation",
+      "observed_on": "2026-10-20",
+      "metric": "USD_ZAR_mid_market",
+      "unit": "ZAR_per_USD",
+      "value": 16.4417,
+      "source_url": "https://za.investing.com/currencies/usd-zar-historical-data",
+      "what_it_supports": "Transparent arithmetic for translating global USD reference points into approximate ZAR values.",
+      "must_not_infer": "Not a supplier FX rate, hedge, transfer rate, landed component price or future exchange-rate forecast."
+    },
+    {
+      "id": "byd-dolphin-surf-retail",
+      "category": "complete_vehicle_retail",
+      "evidence_class": "public_retail_listing",
+      "observed_on": "2026-10-20",
+      "metric": "starting_retail_price",
+      "unit": "ZAR_per_vehicle",
+      "value": 341900,
+      "source_url": "https://www.byd.co.za/offers/dolphin-surf",
+      "what_it_supports": "Public South African entry-price reference; freeze variant, standard equipment, warranty, delivery charges, VAT boundary and date before any like-for-like comparison.",
+      "must_not_infer": "Not an OEM manufacturing cost, supplier quote or permanent price."
+    },
+    {
+      "id": "byd-dolphin-surf-spec",
+      "category": "complete_vehicle_specification",
+      "evidence_class": "manufacturer_published_spec",
+      "published_on": "manufacturer_spec_sheet_currently_published",
+      "source_url": "https://www.byd.com/material/byd-site/za/product/dolphin-surf/Dolphin%20Surf%20Spec.pdf",
+      "metrics": [
+        {
+          "variant": "Comfort",
+          "battery_kWh": 30.08,
+          "WLTP_range_km": 232,
+          "NEDC_range_km": 300,
+          "peak_motor_kW": 55,
+          "curb_mass_kg": 1225,
+          "gross_mass_kg": 1635,
+          "AC_charging_kW": 6.6,
+          "DC_charging_kW": 30,
+          "tyre_size": "185/55 R16"
+        },
+        {
+          "variant": "Dynamic",
+          "battery_kWh": 38.88,
+          "WLTP_range_km": 295,
+          "NEDC_range_km": 400,
+          "peak_motor_kW": 55,
+          "curb_mass_kg": 1280,
+          "gross_mass_kg": 1690,
+          "AC_charging_kW": 6.6,
+          "DC_charging_kW": 40,
+          "tyre_size": "185/55 R16"
+        }
+      ],
+      "what_it_supports": "Like-for-like performance, mass, charging and consumable comparison.",
+      "must_not_infer": "The two variants and two drive cycles are not interchangeable. These are manufacturer published values, not independent test results."
+    },
+    {
+      "id": "sa-tyre-185-55-r16-retail",
+      "category": "tyres",
+      "evidence_class": "public_retail_price_range",
+      "observed_on": "2026-10-13",
+      "metric": "listed_tyre_price",
+      "unit": "ZAR_per_tyre",
+      "low": 865,
+      "high": 3627,
+      "source_url": "https://tyrecompare.co.za/tyre-size/185-55-r16",
+      "what_it_supports": "South African consumer replacement-price range for the published 185/55 R16 size; current range spans budget through premium products.",
+      "must_not_infer": "Not an OEM wholesale price, tyre equivalence, rolling-resistance comparison, wet-braking result or fitment-included price."
+    },
+    {
+      "id": "sa-tyre-fitment-guide",
+      "category": "tyres",
+      "evidence_class": "public_retail_service_estimate",
+      "observed_on": "2026-10-13",
+      "metric": "fitment_and_balancing",
+      "unit": "ZAR_per_tyre",
+      "low": 180,
+      "high": 300,
+      "source_url": "https://tyrecompare.co.za/tyre-size/185-55-r16",
+      "what_it_supports": "Approximate consumer fitting/balancing envelope for installed-replacement sensitivity.",
+      "must_not_infer": "Not an OEM tyre assembly cost or a binding service quotation; wheel alignment is additional and varies."
+    },
+    {
+      "id": "evwest-tesla-sdu-conversion-kit",
+      "category": "traction_powertrain",
+      "evidence_class": "public_aftermarket_conversion_listing",
+      "observed_on": "2026-10-20",
+      "metric": "universal_Tesla_small_drive_unit_conversion_package",
+      "unit": "USD_per_kit",
+      "value": 26222.84,
+      "maximum_voltage_V": 400,
+      "maximum_power_kW": 200,
+      "source_url": "https://evwest.com/universal-tesla-small-drive-unit-ev-conversion-package-sdu-motor-controller-throttle-stub-axles",
+      "derived_zar_at_reference_fx": 431148.068428,
+      "what_it_supports": "An observable public price for a high-power aftermarket conversion kit, useful as an explicit exclusion/contrast.",
+      "must_not_infer": "Not an OEM unit cost, not sized for a 55 kW compact car, not a complete production-ready vehicle drive module and not an appropriate direct BOM benchmark. Custom mounts, axles and cooling are still application-specific."
+    },
+    {
+      "id": "emrax-188-motor-spec",
+      "category": "traction_motor",
+      "evidence_class": "manufacturer_published_technical_spec",
+      "source_url": "https://emrax.com/e-motors/emrax-188/",
+      "metrics": {
+        "peak_power_kW": 60,
+        "continuous_power_kW_up_to": 33,
+        "peak_torque_Nm": 100,
+        "continuous_torque_Nm_up_to": 48,
+        "dry_mass_kg": {
+          "air_cooled": 7.1,
+          "combined": 7.6,
+          "liquid_cooled": 7.9
+        },
+        "efficiency_up_to_fraction": 0.96,
+        "maximum_battery_voltage_V": {
+          "high_voltage": 660,
+          "medium_voltage": 390,
+          "low_voltage": 160
+        }
+      },
+      "public_price_available": false,
+      "what_it_supports": "An example of published compact axial-flux motor power-density/efficiency envelope for trade-space comparison.",
+      "must_not_infer": "Not a mass-market price, not proof that peak efficiency is achieved over a drive cycle, not an integrated motor-inverter price and not evidence it is cheaper than a volume-produced e-axle."
+    },
+    {
+      "id": "sa-customs-finished-battery-ev",
+      "category": "import_duty",
+      "evidence_class": "official_customs_tariff_schedule",
+      "source_url": "https://www.sars.gov.za/wp-content/uploads/Legal/SCEA1964/Legal-LPrim-CE-Sch1P1Chpt1-to-99-Schedule-No-1-Part-1-Chapters-1-to-99.pdf",
+      "tariff_code": "8703.80.90",
+      "description": "Other vehicles with only electric motor for propulsion",
+      "rates_percent": {
+        "general": 25,
+        "EU_UK": 25,
+        "EFTA": 25,
+        "SADC": 0,
+        "MERCOSUR": 25,
+        "AfCFTA": 10
+      },
+      "what_it_supports": "Import-vs-local-production scenario boundary for the relevant finished-vehicle tariff line.",
+      "must_not_infer": "Do not apply automatically without confirming classification, origin rules, preference eligibility, customs value, other charges and current amendments."
+    },
+    {
+      "id": "sa-customs-lithium-ion-accumulator",
+      "category": "import_duty",
+      "evidence_class": "official_customs_tariff_schedule",
+      "source_url": "https://www.sars.gov.za/wp-content/uploads/Legal/SCEA1964/Legal-LPrim-CE-Sch1P1Chpt1-to-99-Schedule-No-1-Part-1-Chapters-1-to-99.pdf",
+      "tariff_code": "8507.60",
+      "description": "Lithium-ion electric accumulators",
+      "rates_percent": {
+        "general": 0,
+        "EU_UK": 0,
+        "EFTA": 0,
+        "SADC": 0,
+        "MERCOSUR": 0,
+        "AfCFTA": 0
+      },
+      "what_it_supports": "A published customs-duty scenario for goods correctly classified under 8507.60.",
+      "must_not_infer": "Zero customs duty does not mean no VAT, freight, insurance, port costs, compliance requirements or classification risk."
+    },
+    {
+      "id": "south-africa-local-manufacturing-policy-announcement",
+      "category": "manufacturing_policy",
+      "evidence_class": "news_report_of_policy_announcement",
+      "published_on": "2026-10-15",
+      "source_url": "https://www.reuters.com/world/africa/south-africa-stop-subsidizing-imported-vehicle-kits-pushing-automakers-build-2026-10-15/",
+      "reported_points": {
+        "current_average_local_content_percent": 38,
+        "target_local_content_percent": 60,
+        "policy_signal": "phase out policy support for existing SKD operations and no support for new SKD facilities; tighten CKD definition",
+        "medium_and_heavy_commercial_vehicle_exception_reported": true
+      },
+      "what_it_supports": "Add deep-local-content and CKD-vs-SKD scenarios to the manufacturing strategy instead of assuming imported near-complete kits remain the cheapest policy-supported route.",
+      "must_not_infer": "A news report of an announcement is not a complete enacted rulebook; implementation, timing, definitions and incentive eligibility need the official final instruments."
+    },
+    {
+      "id": "battery-pack-disassembly-cost-study",
+      "category": "repairability_and_end_of_life",
+      "evidence_class": "peer_reviewed_open_access_research",
+      "published_on": "2023-02-01",
+      "source_url": "https://doi.org/10.1016/j.apenergy.2022.120437",
+      "metric": "reported_variation_in_pack_disassembly_cost_across_studied_designs_percent",
+      "value": 75,
+      "what_it_supports": "Pack architecture and disassembly design can materially change end-of-life labor/cost in the studied sample.",
+      "must_not_infer": "Not a universal 75% saving available to our vehicle; the paper compared six specific production packs and its results are design/context dependent."
+    }
+  ],
+  "derived_checks": {
+    "reference_fx_usd_zar": 16.4417,
+    "global_bev_pack_reference_42kwh_ZAR": 68364.5886,
+    "global_bev_pack_reference_45kwh_ZAR": 73247.77350000001,
+    "global_bev_pack_reference_ZAR_per_kWh": 1627.7283,
+    "current_synthetic_42kwh_cost_first_pack_low_ZAR": 60800,
+    "current_synthetic_42kwh_cost_first_pack_high_ZAR": 80300,
+    "current_synthetic_42kwh_cost_first_pack_low_USD_per_kWh": 88.04558212466154,
+    "current_synthetic_42kwh_cost_first_pack_high_USD_per_kWh": 116.28388560214344,
+    "four_tyres_current_retail_min_ZAR": 3460,
+    "four_tyres_current_retail_max_ZAR": 14508,
+    "four_tyres_illustrative_fitment_included_min_ZAR": 4180,
+    "four_tyres_illustrative_fitment_included_max_ZAR": 15708
+  },
+  "claim_ceiling": "This ledger preserves public, published observations and arithmetic derivatives. It is not a set of procurement quotations, supplier commitments, an audited bill of materials, confirmation of local manufacturing incentives or a vehicle safety/engineering qualification.",
+  "scenario_calculations_from_synthetic_cost_fixture": {
+    "label": "Synthetic scenario calculations; not source evidence or quotes",
+    "target_retail_ceiling_ZAR": 307710,
+    "oem_net_revenue_at_target_ZAR": 246168.00000000003,
+    "maximum_affordable_cogs_ZAR": 216627.84000000003,
+    "fixed_program_amortization_ZAR_per_vehicle": [
+      {
+        "units": 1000,
+        "designs": {
+          "cost_first": {
+            "low": 150000,
+            "high": 250000
+          },
+          "serviceable": {
+            "low": 175000,
+            "high": 300000
+          },
+          "structural_pack": {
+            "low": 200000,
+            "high": 350000
+          }
+        }
+      },
+      {
+        "units": 10000,
+        "designs": {
+          "cost_first": {
+            "low": 15000,
+            "high": 25000
+          },
+          "serviceable": {
+            "low": 17500,
+            "high": 30000
+          },
+          "structural_pack": {
+            "low": 20000,
+            "high": 35000
+          }
+        }
+      },
+      {
+        "units": 50000,
+        "designs": {
+          "cost_first": {
+            "low": 3000,
+            "high": 5000
+          },
+          "serviceable": {
+            "low": 3500,
+            "high": 6000
+          },
+          "structural_pack": {
+            "low": 4000,
+            "high": 7000
+          }
+        }
+      },
+      {
+        "units": 100000,
+        "designs": {
+          "cost_first": {
+            "low": 1500,
+            "high": 2500
+          },
+          "serviceable": {
+            "low": 1750,
+            "high": 3000
+          },
+          "structural_pack": {
+            "low": 2000,
+            "high": 3500
+          }
+        }
+      }
+    ],
+    "cost_frontier_at_current_fixture_amortization_50000_units": [
+      {
+        "candidate_id": "compact-42-lfp-cost-first",
+        "cogs_low_ZAR": 188463.9175257732,
+        "cogs_high_ZAR": 265773.1958762887,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 18.491464391000775,
+        "implied_retail_low_ZAR": 267704.42830365506,
+        "implied_retail_high_ZAR": 377518.7441424555
+      },
+      {
+        "candidate_id": "compact-42-lfp-serviceable",
+        "cogs_low_ZAR": 200581.6326530612,
+        "cogs_high_ZAR": 276897.9591836735,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 21.766183962264147,
+        "implied_retail_low_ZAR": 284917.0918367346,
+        "implied_retail_high_ZAR": 393320.9647495362
+      },
+      {
+        "candidate_id": "compact-42-lfp-structural-pack",
+        "cogs_low_ZAR": 196894.73684210528,
+        "cogs_high_ZAR": 285842.10526315786,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 24.214160191493264,
+        "implied_retail_low_ZAR": 279680.02392344497,
+        "implied_retail_high_ZAR": 406025.7177033492
+      },
+      {
+        "candidate_id": "compact-45-lfp-range-margin",
+        "cogs_low_ZAR": 193293.8144329897,
+        "cogs_high_ZAR": 271891.7525773196,
+        "maximum_affordable_cogs_ZAR": 216627.84000000003,
+        "high_case_reduction_required_percent": 20.325703907331224,
+        "implied_retail_low_ZAR": 274565.0773195876,
+        "implied_retail_high_ZAR": 386209.8758200562
+      }
+    ]
+  }
+}

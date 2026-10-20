@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json",
+  "title": "Evidence-gated EV passenger cost frontier v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "currency",
+    "market",
+    "target",
+    "candidates",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "EV-PASSENGER-COST-001"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "market": {
+      "$ref": "#/$defs/market"
+    },
+    "target": {
+      "$ref": "#/$defs/vehicle_target"
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    }
+  },
+  "$defs": {
+    "fraction": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMaximum": 1
+    },
+    "nonnegative": {
+      "type": "number",
+      "minimum": 0
+    },
+    "positive": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "evidence": {
+      "enum": [
+        "synthetic",
+        "estimate",
+        "literature",
+        "manufacturer_quote",
+        "manufacturer_spec",
+        "measured",
+        "independent_test",
+        "type_approval",
+        "audited_cost",
+        "unknown"
+      ]
+    },
+    "gate_status": {
+      "enum": [
+        "passed",
+        "failed",
+        "unknown"
+      ]
+    },
+    "market": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "country",
+        "baseline_vehicle",
+        "baseline_variant",
+        "observed_retail_price",
+        "observed_on",
+        "price_source_url",
+        "undercut_fraction",
+        "retail_price_includes_vat",
+        "vat_fraction",
+        "distributor_margin_fraction",
+        "target_oem_gross_margin_fraction"
+      ],
+      "properties": {
+        "country": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseline_vehicle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseline_variant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_retail_price": {
+          "$ref": "#/$defs/positive"
+        },
+        "observed_on": {
+          "type": "string",
+          "format": "date"
+        },
+        "price_source_url": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "undercut_fraction": {
+          "$ref": "#/$defs/fraction"
+        },
+        "retail_price_includes_vat": {
+          "type": "boolean"
+        },
+        "vat_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "distributor_margin_fraction": {
+          "$ref": "#/$defs/fraction"
+        },
+        "target_oem_gross_margin_fraction": {
+          "$ref": "#/$defs/fraction"
+        }
+      }
+    },
+    "vehicle_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_seats",
+        "minimum_payload_kg",
+        "minimum_declared_range_km",
+        "maximum_declared_consumption_kwh_per_100km",
+        "maximum_curb_mass_kg",
+        "comparison_note"
+      ],
+      "properties": {
+        "minimum_seats": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_payload_kg": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "minimum_declared_range_km": {
+          "$ref": "#/$defs/positive"
+        },
+        "maximum_declared_consumption_kwh_per_100km": {
+          "$ref": "#/$defs/positive"
+        },
+        "maximum_curb_mass_kg": {
+          "$ref": "#/$defs/positive"
+        },
+        "comparison_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "vehicle_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seats",
+        "nominal_pack_kwh",
+        "usable_pack_fraction",
+        "payload_capacity_kg",
+        "declared_range_km",
+        "declared_consumption_kwh_per_100km",
+        "curb_mass_kg"
+      ],
+      "properties": {
+        "seats": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "payload_capacity_kg": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "declared_range_km": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "declared_consumption_kwh_per_100km": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "curb_mass_kg": {
+          "$ref": "#/$defs/positive"
+        },
+        "nominal_pack_kwh": {
+          "$ref": "#/$defs/positive"
+        },
+        "usable_pack_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "evidence_class",
+        "source_reference",
+        "as_of",
+        "note"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/gate_status"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence"
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cost_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "low",
+        "high",
+        "evidence_class",
+        "source_reference",
+        "as_of",
+        "note"
+      ],
+      "properties": {
+        "low": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "high": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence"
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component_id",
+        "quantity_per_vehicle",
+        "quantity_unit",
+        "unit_cost_basis",
+        "unit_cost"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "quantity_per_vehicle": {
+          "$ref": "#/$defs/positive"
+        },
+        "unit_cost": {
+          "$ref": "#/$defs/cost_range"
+        },
+        "quantity_unit": {
+          "enum": [
+            "kWh_pack_nominal",
+            "vehicle_set",
+            "unit"
+          ]
+        },
+        "unit_cost_basis": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}_per_(kWh|vehicle_set|unit)$"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "label",
+        "architecture",
+        "envelope",
+        "manufacturing_yield_fraction",
+        "amortization_units",
+        "envelope_evidence_class",
+        "envelope_source_reference",
+        "envelope_as_of",
+        "technical_gate",
+        "safety_gate",
+        "components",
+        "factory_conversion_cost",
+        "warranty_service_reserve",
+        "fixed_program_investment",
+        "notes"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope": {
+          "$ref": "#/$defs/vehicle_envelope"
+        },
+        "manufacturing_yield_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "amortization_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "envelope_evidence_class": {
+          "$ref": "#/$defs/evidence"
+        },
+        "envelope_source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope_as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "technical_gate": {
+          "$ref": "#/$defs/gate"
+        },
+        "safety_gate": {
+          "$ref": "#/$defs/gate"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        },
+        "factory_conversion_cost": {
+          "$ref": "#/$defs/cost_range"
+        },
+        "warranty_service_reserve": {
+          "$ref": "#/$defs/cost_range"
+        },
+        "fixed_program_investment": {
+          "$ref": "#/$defs/cost_range"
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
