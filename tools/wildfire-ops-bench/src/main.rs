@@ -518,10 +518,6 @@ fn benchmark_summary(scenarios: &[Value]) -> Value {
         }
         if !b3["selected_plan_id"].is_null() {
             b3_selected += 1;
-            if b3["matches_oracle_expected_plan"].as_bool() != Some(true) {
-                // This counter records decision mismatch separately; hard feasibility is
-                // represented by the method's declared candidate-plan gate.
-            }
             let selected_id = b3["selected_plan_id"].as_str();
             let selected_plan = b3["candidate_plans"].as_array().into_iter().flatten()
                 .find(|plan| plan["plan_id"].as_str() == selected_id);
@@ -540,13 +536,15 @@ fn benchmark_summary(scenarios: &[Value]) -> Value {
             "selected_plan_count": b1_selected,
             "selected_infeasible_plan_count": b1_selected_infeasible,
             "actual_blocked_edge_violations_against_oracle": b1_actual_blocked_violations,
-            "expected_choice_match_count": b1_oracle_matches
+            "expected_choice_match_count": b1_oracle_matches,
+            "expected_choice_mismatch_count": scenarios.len().saturating_sub(b1_oracle_matches)
         },
         "B3_evidence_bounded_feasible_choice": {
             "selected_plan_count": b3_selected,
             "abstention_count": b3_abstentions,
             "selected_infeasible_plan_count": b3_selected_infeasible,
-            "expected_choice_match_count": b3_oracle_matches
+            "expected_choice_match_count": b3_oracle_matches,
+            "expected_choice_mismatch_count": scenarios.len().saturating_sub(b3_oracle_matches)
         },
         "claim_boundary": "synthetic fixture scorecard only; not a real-world safety or predictive-performance estimate"
     })
@@ -1060,6 +1058,7 @@ mod tests {
         assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["abstention_count"].as_u64(), Some(3));
         assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["selected_infeasible_plan_count"].as_u64(), Some(0));
         assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["expected_choice_match_count"].as_u64(), Some(6));
+        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["expected_choice_mismatch_count"].as_u64(), Some(0));
     }
 
     #[test]
