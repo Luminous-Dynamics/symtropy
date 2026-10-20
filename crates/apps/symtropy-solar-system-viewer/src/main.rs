@@ -195,16 +195,76 @@ fn make_catalog() -> Vec<SolarBody> {
     let neptune = world_position(-30.07 * AU_M, -0.15 * AU_M, 0.0);
 
     vec![
-        SolarBody { id: "sun", name: "Sun", position: sun, physical_radius_m: 695_700_000.0, color: Color::srgb(1.0, 0.72, 0.22) },
-        SolarBody { id: "mercury", name: "Mercury", position: mercury, physical_radius_m: 2_439_700.0, color: Color::srgb(0.52, 0.50, 0.48) },
-        SolarBody { id: "venus", name: "Venus", position: venus, physical_radius_m: 6_051_800.0, color: Color::srgb(0.88, 0.68, 0.36) },
-        SolarBody { id: "earth", name: "Earth", position: earth, physical_radius_m: EARTH_RADIUS_M, color: Color::srgb(0.18, 0.40, 0.92) },
-        SolarBody { id: "moon", name: "Moon", position: moon, physical_radius_m: 1_737_400.0, color: Color::srgb(0.66, 0.68, 0.70) },
-        SolarBody { id: "mars", name: "Mars", position: mars, physical_radius_m: 3_389_500.0, color: Color::srgb(0.82, 0.28, 0.16) },
-        SolarBody { id: "jupiter", name: "Jupiter", position: jupiter, physical_radius_m: 69_911_000.0, color: Color::srgb(0.76, 0.56, 0.38) },
-        SolarBody { id: "saturn", name: "Saturn", position: saturn, physical_radius_m: 58_232_000.0, color: Color::srgb(0.82, 0.72, 0.48) },
-        SolarBody { id: "uranus", name: "Uranus", position: uranus, physical_radius_m: 25_362_000.0, color: Color::srgb(0.40, 0.78, 0.82) },
-        SolarBody { id: "neptune", name: "Neptune", position: neptune, physical_radius_m: 24_622_000.0, color: Color::srgb(0.18, 0.30, 0.92) },
+        SolarBody {
+            id: "sun",
+            name: "Sun",
+            position: sun,
+            physical_radius_m: 695_700_000.0,
+            color: Color::srgb(1.0, 0.72, 0.22),
+        },
+        SolarBody {
+            id: "mercury",
+            name: "Mercury",
+            position: mercury,
+            physical_radius_m: 2_439_700.0,
+            color: Color::srgb(0.52, 0.50, 0.48),
+        },
+        SolarBody {
+            id: "venus",
+            name: "Venus",
+            position: venus,
+            physical_radius_m: 6_051_800.0,
+            color: Color::srgb(0.88, 0.68, 0.36),
+        },
+        SolarBody {
+            id: "earth",
+            name: "Earth",
+            position: earth,
+            physical_radius_m: EARTH_RADIUS_M,
+            color: Color::srgb(0.18, 0.40, 0.92),
+        },
+        SolarBody {
+            id: "moon",
+            name: "Moon",
+            position: moon,
+            physical_radius_m: 1_737_400.0,
+            color: Color::srgb(0.66, 0.68, 0.70),
+        },
+        SolarBody {
+            id: "mars",
+            name: "Mars",
+            position: mars,
+            physical_radius_m: 3_389_500.0,
+            color: Color::srgb(0.82, 0.28, 0.16),
+        },
+        SolarBody {
+            id: "jupiter",
+            name: "Jupiter",
+            position: jupiter,
+            physical_radius_m: 69_911_000.0,
+            color: Color::srgb(0.76, 0.56, 0.38),
+        },
+        SolarBody {
+            id: "saturn",
+            name: "Saturn",
+            position: saturn,
+            physical_radius_m: 58_232_000.0,
+            color: Color::srgb(0.82, 0.72, 0.48),
+        },
+        SolarBody {
+            id: "uranus",
+            name: "Uranus",
+            position: uranus,
+            physical_radius_m: 25_362_000.0,
+            color: Color::srgb(0.40, 0.78, 0.82),
+        },
+        SolarBody {
+            id: "neptune",
+            name: "Neptune",
+            position: neptune,
+            physical_radius_m: 24_622_000.0,
+            color: Color::srgb(0.18, 0.30, 0.92),
+        },
     ]
 }
 
@@ -266,8 +326,14 @@ fn focus_for_stage(
     surface_feature: LargeWorldPosition,
 ) -> LargeWorldPosition {
     match stage {
-        ViewStage::LocalInspection | ViewStage::PlanetSurface | ViewStage::ReturnToLocal => surface_feature,
-        ViewStage::LowOrbit => bodies.iter().find(|body| body.id == "earth").expect("Earth is catalogued").position,
+        ViewStage::LocalInspection | ViewStage::PlanetSurface | ViewStage::ReturnToLocal => {
+            surface_feature
+        }
+        ViewStage::LowOrbit => bodies
+            .iter()
+            .find(|body| body.id == "earth")
+            .expect("Earth is catalogued")
+            .position,
         ViewStage::EarthMoon => bodies
             .iter()
             .find(|body| body.id == "earth")
@@ -275,7 +341,11 @@ fn focus_for_stage(
             .position
             .offset_by_meters([MOON_MEAN_DISTANCE_M * 0.5, 0.0, 0.0])
             .expect("Earth-Moon midpoint is representable"),
-        ViewStage::InnerSystem | ViewStage::OuterSystem => bodies.iter().find(|body| body.id == "sun").expect("Sun is catalogued").position,
+        ViewStage::InnerSystem | ViewStage::OuterSystem => bodies
+            .iter()
+            .find(|body| body.id == "sun")
+            .expect("Sun is catalogued")
+            .position,
     }
 }
 
@@ -480,10 +550,7 @@ fn setup(
     ));
 }
 
-fn handle_controls(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut state: ResMut<ViewerState>,
-) {
+fn handle_controls(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<ViewerState>) {
     let requested = if keys.just_pressed(KeyCode::Digit1) {
         Some(ViewStage::LocalInspection)
     } else if keys.just_pressed(KeyCode::Digit2) {
@@ -504,10 +571,8 @@ fn handle_controls(
         None
     };
 
-    if let Some(stage) = requested {
-        if stage != state.stage {
-            start_transition(&mut state, stage);
-        }
+    if let Some(stage) = requested.filter(|stage| *stage != state.stage) {
+        start_transition(&mut state, stage);
     }
 }
 
@@ -521,13 +586,17 @@ fn advance_transition(time: Res<Time>, mut state: ResMut<ViewerState>) {
     let smooth = raw * raw * (3.0 - 2.0 * raw);
     let fraction = f64::from(smooth);
 
-    if let Some(camera) = interpolate_position(movement.start_camera, movement.goal_camera, fraction) {
+    if let Some(camera) =
+        interpolate_position(movement.start_camera, movement.goal_camera, fraction)
+    {
         state.camera_position = camera;
     } else {
         state.precision_rejections = state.precision_rejections.saturating_add(1);
     }
 
-    if let Some(focus) = interpolate_position(movement.start_focus, movement.goal_focus, fraction) {
+    if let Some(focus) =
+        interpolate_position(movement.start_focus, movement.goal_focus, fraction)
+    {
         state.focus_position = focus;
     } else {
         state.precision_rejections = state.precision_rejections.saturating_add(1);
@@ -609,7 +678,7 @@ fn update_scene(
         let relative = match body.position.relative_to_meters(&state.camera_position) {
             Ok(value) => value,
             Err(_) => {
-                state.precision_rejections += 1;
+                state.precision_rejections = state.precision_rejections.saturating_add(1);
                 *visibility = Visibility::Hidden;
                 continue;
             }
