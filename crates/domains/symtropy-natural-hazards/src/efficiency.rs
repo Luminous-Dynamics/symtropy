@@ -450,6 +450,23 @@ mod tests {
 
     #[test]
     fn invalid_measurements_and_tolerances_fail_closed() {
+        let invalid_config = SimulationRun {
+            configuration_digest_sha256: "not-a-digest".into(),
+            ..run("invalid-config", 1.0, 100, 0.1, 1.0)
+        };
+        assert_eq!(
+            invalid_config.validate(),
+            Err(EfficiencyError::InvalidConfigurationDigest)
+        );
+        let invalid_variant = SimulationRun {
+            solver_variant_id: " ".into(),
+            ..run("invalid-variant", 1.0, 100, 0.1, 1.0)
+        };
+        assert_eq!(
+            invalid_variant.validate(),
+            Err(EfficiencyError::EmptySolverVariantId)
+        );
+
         let invalid_time = run("invalid", f64::NAN, 100, 0.1, 1.0);
         assert_eq!(
             invalid_time.validate(),
