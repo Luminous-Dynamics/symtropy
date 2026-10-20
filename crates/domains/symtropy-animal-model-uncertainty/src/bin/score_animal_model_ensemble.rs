@@ -30,8 +30,9 @@ const SYNTHETIC_EXAMPLE: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_EXAMPLE_V1.json");
 const EMBEDDED_INPUT_SCHEMA: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json");
-const EMBEDDED_REPORT_SCHEMA: &str =
-    include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json");
+const EMBEDDED_REPORT_SCHEMA: &str = include_str!(
+    "../../../../../docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json"
+);
 
 fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
     if root.get("schema_version").and_then(Value::as_str)
@@ -247,7 +248,9 @@ mod tests {
         assert_eq!(report["model_ids"].as_array().map(Vec::len), Some(2));
         assert_eq!(
             report["scores"].as_array().map(Vec::len),
-            root["models"][0]["action_losses"].as_object().map(|actions| actions.len())
+            root["models"][0]["action_losses"]
+                .as_object()
+                .map(|actions| actions.len())
         );
     }
 
