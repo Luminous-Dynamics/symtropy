@@ -42,6 +42,7 @@
     "outputs": {"type": ["object", "null"]},
     "adapter_receipt": {
       "oneOf": [
+        {"type": "null"},
         {"$ref": "physical-analytical-receipt-v0.1.schema.json"},
         {"$ref": "physical-analytical-receipt-v0.2.schema.json"}
       ]
