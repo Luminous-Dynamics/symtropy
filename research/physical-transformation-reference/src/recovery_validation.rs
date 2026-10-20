@@ -139,21 +139,21 @@ pub fn compare(world: &World, observations: Vec<RecoveryObservation>) -> Check<R
                 observation.component_id
             ));
         }
-        if let Some(source_ref) = observation.source_ref.as_deref() {
-            if source_ref.trim().is_empty() {
-                return Err(format!(
-                    "observation {} has an empty source reference",
-                    observation.component_id
-                ));
-            }
+        if let Some(source_ref) = observation.source_ref.as_deref()
+            && source_ref.trim().is_empty()
+        {
+            return Err(format!(
+                "observation {} has an empty source reference",
+                observation.component_id
+            ));
         }
-        if let Some(calibration_ref) = observation.calibration_ref.as_deref() {
-            if calibration_ref.trim().is_empty() {
-                return Err(format!(
-                    "observation {} has an empty calibration reference",
-                    observation.component_id
-                ));
-            }
+        if let Some(calibration_ref) = observation.calibration_ref.as_deref()
+            && calibration_ref.trim().is_empty()
+        {
+            return Err(format!(
+                "observation {} has an empty calibration reference",
+                observation.component_id
+            ));
         }
         let id = observation.component_id.clone();
         if by_component.insert(id.clone(), observation).is_some() {
