@@ -1,0 +1,115 @@
+name: Wildfire SUMO Behavioral Benchmark
+
+on:
+  push:
+    branches: ["research/wildfire-sumo-behavior-metrics-v0-1"]
+    paths:
+      - "docs/tech/WILDFIRE_SUMO_BEHAVIOR_V0_1.md"
+      - "benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
+      - "tools/wildfire-ops-bench/**"
+      - ".github/workflows/wildfire-sumo-behavior.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/WILDFIRE_SUMO_BEHAVIOR_V0_1.md"
+      - "benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
+      - "tools/wildfire-ops-bench/**"
+      - ".github/workflows/wildfire-sumo-behavior.yml"
+permissions:
+  contents: read
+
+jobs:
+  behavior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Format and test Rust tools
+        run: |
+          cargo fmt --manifest-path tools/wildfire-ops-bench/Cargo.toml --check
+          cargo test --manifest-path tools/wildfire-ops-bench/Cargo.toml
+
+      - name: Export frozen fixtures and pin exact source head
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_sumo_export -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
+            wildfire-sumo-export "$source_commit" 60 13.9 > wildfire-sumo-export.stdout.json
+          test -s wildfire-sumo-export/index.json
+
+      - name: Build and simulate in pinned SUMO
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/eclipse-sumo/sumo@sha256:87623396d3501ca8d0ac25154e202bc38baa55a31c724e4dfd6ae60f297c6bf2"
+          docker pull "$image"
+          docker run --rm \
+            --mount "type=bind,src=$PWD/wildfire-sumo-export,dst=/data" \
+            "$image" bash -lc '
+              set -euo pipefail
+              sumo --version 2>&1 | tee /data/sumo-version.txt
+              netconvert --version 2>&1 | tee /data/netconvert-version.txt
+              grep -q "1.27.1" /data/sumo-version.txt
+              grep -q "1.27.1" /data/netconvert-version.txt
+              for case_dir in /data/*/; do
+                test -f "$case_dir/manifest.json" || continue
+                netconvert --node-files "$case_dir/nodes.nod.xml" --edge-files "$case_dir/edges.edg.xml" --output-file "$case_dir/network.net.xml"
+                sumo \
+                  --net-file "$case_dir/network.net.xml" \
+                  --route-files "$case_dir/demand.rou.xml" \
+                  --additional-files "$case_dir/closures.add.xml" \
+                  --end 3000 --time-to-teleport -1 \
+                  --no-step-log true --duration-log.disable true \
+                  --tripinfo-output "$case_dir/tripinfo.xml" \
+                  --tripinfo-output.write-unfinished true \
+                  --tripinfo-output.write-undeparted true \
+                  --summary-output "$case_dir/summary.xml" \
+                  > "$case_dir/sumo-behavior.stdout.log" 2> "$case_dir/sumo-behavior.stderr.log"
+                test -s "$case_dir/tripinfo.xml"
+                test -s "$case_dir/summary.xml"
+              done
+            '
+
+      - name: Independently verify structural outputs and vehicle behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_sumo_export -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json wildfire-sumo-export "$source_commit"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_sumo_behavior -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json wildfire-sumo-export "$source_commit"
+          jq -e '
+            .result == "pass" and .benchmark_id == "WILDFIRE-SUMO-BEHAVIOR-001"
+            and .case_count == 6 and (.cases | length == 6)
+            and (.cases | all(
+              .tripinfo_inventory_complete == true
+              and .tripinfo_record_count == .demand_vehicle_count
+              and .arrived_vehicle_count <= .departed_vehicle_count
+              and .departed_vehicle_count <= .demand_vehicle_count
+              and .not_arrived_at_end_count == (.demand_vehicle_count - .arrived_vehicle_count)
+              and .not_inserted_at_end_count == (.demand_vehicle_count - .departed_vehicle_count)
+              and .arrival_duration_seconds.sample_count == .arrived_vehicle_count
+              and .sumo_summary_final_step != null
+              and (.arrival_duration_seconds.p95 == null or .arrival_duration_seconds.p95 >= 0)
+            ))
+          ' wildfire-sumo-export/sumo-behavior-summary.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wildfire-sumo-behavior-001
+          path: wildfire-sumo-export/
+          if-no-files-found: error
+          retention-days: 90
