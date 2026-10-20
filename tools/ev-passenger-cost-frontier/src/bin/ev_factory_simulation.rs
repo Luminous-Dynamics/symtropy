@@ -22,6 +22,10 @@ struct Catalog {
     productive_seconds_per_year: u64,
     variant_count: usize,
     variant_batch_size: u64,
+    #[serde(default)]
+    dispatch_policy: DispatchPolicy,
+    #[serde(default = "default_maximum_consecutive_skips")]
+    maximum_consecutive_skips: u32,
     mean_supply_interarrival_seconds: f64,
     supply_interarrival_variability_fraction: f64,
     source_buffer_capacity: usize,
@@ -65,6 +69,18 @@ enum EvidenceClass {
     Unknown,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+enum DispatchPolicy {
+    #[default]
+    Fifo,
+    MinimizeChangeover,
+}
+
+fn default_maximum_consecutive_skips() -> u32 {
+    3
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum GateStatus {
@@ -81,9 +97,12 @@ struct Report {
     replication_count: usize,
     replication_seeds: Vec<u64>,
     random_stream_policy: String,
+    dispatch_policy: DispatchPolicy,
+    maximum_consecutive_skips: u32,
     scenario_count: usize,
     scenario_statistics: Vec<ScenarioStatistics>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
+    replication_scenario_records: Vec<ReplicationScenarioRecord>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
     input_evidence_class: EvidenceClass,
@@ -102,6 +121,8 @@ struct Report {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 struct ScenarioResult {
     scenario_id: String,
+    dispatch_policy: DispatchPolicy,
+    maximum_consecutive_skips: u32,
     intervention_station_id: Option<String>,
     added_servers: usize,
     released_jobs_total: u64,
@@ -116,12 +137,34 @@ struct ScenarioResult {
     source_buffer_peak_units: usize,
     source_buffer_average_units: f64,
     interstation_buffers: Vec<BufferResult>,
+    variant_wait_statistics: Vec<VariantWaitStatistics>,
     stations: Vec<StationResult>,
     output_never_exceeds_released_input: bool,
     all_buffers_respected_capacity: bool,
     station_time_accounting_within_horizon: bool,
     release_ready: bool,
     claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct ReplicationScenarioRecord {
+    seed: u64,
+    scenario_id: String,
+    measured_good_units_per_hour: f64,
+    good_units_total: u64,
+    released_jobs_total: u64,
+    scrapped_jobs_total: u64,
+    measured_rework_attempts: u64,
+    variant_wait_statistics: Vec<VariantWaitStatistics>,
+    stations: Vec<ReplicationStationRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct ReplicationStationRecord {
+    station_id: String,
+    changeovers_started: u64,
+    output_transfers: u64,
+    out_of_order_output_transfers: u64,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -147,6 +190,25 @@ struct ScenarioStatistics {
     paired_relative_output_delta_fraction_vs_baseline: Option<DistributionSummary>,
     scrapped_jobs_total: DistributionSummary,
     measured_rework_attempts: DistributionSummary,
+    variant_wait_statistics: Vec<VariantWaitScenarioStatistics>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct VariantWaitStatistics {
+    variant: usize,
+    sample_count: usize,
+    average_wait_seconds: Option<f64>,
+    p95_wait_seconds: Option<f64>,
+    maximum_wait_seconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct VariantWaitScenarioStatistics {
+    variant: usize,
+    sample_count: DistributionSummary,
+    average_wait_seconds: Option<DistributionSummary>,
+    p95_wait_seconds: Option<DistributionSummary>,
+    maximum_wait_seconds: Option<DistributionSummary>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -190,6 +252,8 @@ struct StationResult {
 struct Job {
     id: u64,
     variant: usize,
+    enqueued_at_seconds: u64,
+    consecutive_skips: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -257,6 +321,7 @@ struct SimState {
     measured_good_units: u64,
     scrapped_jobs_total: u64,
     measured_rework_attempts: u64,
+    variant_wait_samples_seconds: Vec<Vec<u64>>,
     buffer_capacity_violation: bool,
 }
 
@@ -442,6 +507,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     {
         return Err("variant_and_source_buffer_dimensions_must_be_positive".into());
     }
+    if catalog.maximum_consecutive_skips == 0 {
+        return Err("maximum_consecutive_skips_must_be_positive".into());
+    }
     validate_positive_finite(
         "mean_supply_interarrival_seconds",
         catalog.mean_supply_interarrival_seconds,
@@ -573,6 +641,67 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             },
             scrapped_jobs_total: summarize_distribution(&scrapped)?,
             measured_rework_attempts: summarize_distribution(&rework)?,
+            variant_wait_statistics: {
+                let variant_count = first_scenario.variant_wait_statistics.len();
+                let mut variant_statistics = Vec::with_capacity(variant_count);
+                for variant_index in 0..variant_count {
+                    let reference_wait = &first_scenario.variant_wait_statistics[variant_index];
+                    let mut sample_counts = Vec::with_capacity(runs.len());
+                    let mut averages = Vec::with_capacity(runs.len());
+                    let mut p95s = Vec::with_capacity(runs.len());
+                    let mut maxima = Vec::with_capacity(runs.len());
+                    let mut all_have_average = true;
+                    let mut all_have_p95 = true;
+                    let mut all_have_maximum = true;
+                    for run in &runs {
+                        let wait = run.scenarios[scenario_index]
+                            .variant_wait_statistics
+                            .get(variant_index)
+                            .ok_or_else(|| {
+                                "replications_returned_inconsistent_variant_wait_count".to_string()
+                            })?;
+                        if wait.variant != reference_wait.variant {
+                            return Err("replications_returned_inconsistent_variant_order".into());
+                        }
+                        sample_counts.push(wait.sample_count as f64);
+                        if let Some(value) = wait.average_wait_seconds {
+                            averages.push(value);
+                        } else {
+                            all_have_average = false;
+                        }
+                        if let Some(value) = wait.p95_wait_seconds {
+                            p95s.push(value);
+                        } else {
+                            all_have_p95 = false;
+                        }
+                        if let Some(value) = wait.maximum_wait_seconds {
+                            maxima.push(value as f64);
+                        } else {
+                            all_have_maximum = false;
+                        }
+                    }
+                    variant_statistics.push(VariantWaitScenarioStatistics {
+                        variant: reference_wait.variant,
+                        sample_count: summarize_distribution(&sample_counts)?,
+                        average_wait_seconds: if all_have_average {
+                            Some(summarize_distribution(&averages)?)
+                        } else {
+                            None
+                        },
+                        p95_wait_seconds: if all_have_p95 {
+                            Some(summarize_distribution(&p95s)?)
+                        } else {
+                            None
+                        },
+                        maximum_wait_seconds: if all_have_maximum {
+                            Some(summarize_distribution(&maxima)?)
+                        } else {
+                            None
+                        },
+                    });
+                }
+                variant_statistics
+            },
         });
     }
 
@@ -580,6 +709,34 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.replication_count = runs.len();
     report.replication_seeds = seeds;
     report.scenario_statistics = statistics;
+    report.replication_scenario_records = runs
+        .iter()
+        .flat_map(|run| {
+            run.scenarios
+                .iter()
+                .map(|scenario| ReplicationScenarioRecord {
+                    seed: run.seed,
+                    scenario_id: scenario.scenario_id.clone(),
+                    measured_good_units_per_hour: scenario.measured_good_units_per_hour,
+                    good_units_total: scenario.good_units_total,
+                    released_jobs_total: scenario.released_jobs_total,
+                    scrapped_jobs_total: scenario.scrapped_jobs_total,
+                    measured_rework_attempts: scenario.measured_rework_attempts,
+                    variant_wait_statistics: scenario.variant_wait_statistics.clone(),
+                    stations: scenario
+                        .stations
+                        .iter()
+                        .map(|station| ReplicationStationRecord {
+                            station_id: station.station_id.clone(),
+                            changeovers_started: station.changeovers_started_after_warmup,
+                            output_transfers: station.output_transfers_after_warmup,
+                            out_of_order_output_transfers: station
+                                .out_of_order_output_transfers_after_warmup,
+                        })
+                        .collect(),
+                })
+        })
+        .collect();
     let mut station_statistics = Vec::new();
     for scenario_index in 0..report.scenario_count {
         for station_index in 0..runs[0].scenarios[scenario_index].stations.len() {
@@ -743,9 +900,12 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         replication_seeds: vec![catalog.seed],
         random_stream_policy:
             "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
+        dispatch_policy: catalog.dispatch_policy,
+        maximum_consecutive_skips: catalog.maximum_consecutive_skips,
         scenario_count: scenarios.len(),
         scenario_statistics: Vec::new(),
         station_sequence_statistics: Vec::new(),
+        replication_scenario_records: Vec::new(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
         input_evidence_class: catalog.input_evidence_class,
@@ -811,6 +971,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         measured_good_units: 0,
         scrapped_jobs_total: 0,
         measured_rework_attempts: 0,
+        variant_wait_samples_seconds: vec![Vec::new(); catalog.variant_count],
         buffer_capacity_violation: false,
     };
     schedule_event(&mut state, 0, EventKind::SupplyArrival);
@@ -830,6 +991,8 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     id,
                     variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
                         as usize,
+                    enqueued_at_seconds: state.now,
+                    consecutive_skips: 0,
                 });
                 state.supplier_backlog_peak = state
                     .supplier_backlog_peak
@@ -907,6 +1070,32 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         });
     }
 
+    let variant_wait_statistics = state
+        .variant_wait_samples_seconds
+        .iter()
+        .enumerate()
+        .map(|(variant, samples)| {
+            if samples.is_empty() {
+                return VariantWaitStatistics {
+                    variant,
+                    sample_count: 0,
+                    average_wait_seconds: None,
+                    p95_wait_seconds: None,
+                    maximum_wait_seconds: None,
+                };
+            }
+            let mut sorted: Vec<f64> = samples.iter().map(|value| *value as f64).collect();
+            sorted.sort_by(f64::total_cmp);
+            VariantWaitStatistics {
+                variant,
+                sample_count: samples.len(),
+                average_wait_seconds: Some(sorted.iter().sum::<f64>() / sorted.len() as f64),
+                p95_wait_seconds: Some(quantile_sorted(&sorted, 0.95)),
+                maximum_wait_seconds: samples.iter().copied().max(),
+            }
+        })
+        .collect();
+
     let interstation_buffers: Vec<BufferResult> = catalog
         .buffer_capacities
         .iter()
@@ -933,6 +1122,8 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     };
     Ok(ScenarioResult {
         scenario_id: baseline_id,
+        dispatch_policy: catalog.dispatch_policy,
+        maximum_consecutive_skips: catalog.maximum_consecutive_skips,
         intervention_station_id: extra_server_at
             .map(|index| catalog.stations[index].station_id.clone()),
         added_servers: if extra_server_at.is_some() { 1 } else { 0 },
@@ -954,6 +1145,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             measured_seconds as f64,
         ),
         interstation_buffers,
+        variant_wait_statistics,
         stations: station_results,
         output_never_exceeds_released_input,
         all_buffers_respected_capacity,
@@ -1014,11 +1206,53 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
 fn refill_source_buffer(state: &mut SimState, catalog: &Catalog) {
     while state.source_buffer.len() < catalog.source_buffer_capacity {
         match state.supplier_backlog.pop_front() {
-            Some(job) => state.source_buffer.push_back(job),
+            Some(mut job) => {
+                job.enqueued_at_seconds = state.now;
+                job.consecutive_skips = 0;
+                state.source_buffer.push_back(job);
+            }
             None => break,
         }
     }
     state.source_buffer_peak = state.source_buffer_peak.max(state.source_buffer.len());
+}
+
+fn select_queued_job(
+    queue: &mut VecDeque<Job>,
+    last_variant: Option<usize>,
+    policy: DispatchPolicy,
+    maximum_consecutive_skips: u32,
+) -> Option<Job> {
+    if policy == DispatchPolicy::Fifo || last_variant.is_none() || queue.is_empty() {
+        return queue.pop_front();
+    }
+
+    // Aging forces the oldest job after it has been bypassed the configured
+    // maximum number of times. Otherwise, select the oldest job matching this
+    // server's last variant. Position-based removal preserves FIFO within each
+    // variant and makes all tie-breaking deterministic.
+    if queue
+        .front()
+        .is_some_and(|job| job.consecutive_skips >= maximum_consecutive_skips)
+    {
+        return queue.pop_front();
+    }
+
+    let preferred_variant = last_variant.expect("checked as present");
+    let Some(index) = queue
+        .iter()
+        .position(|job| job.variant == preferred_variant)
+    else {
+        return queue.pop_front();
+    };
+    if index == 0 {
+        return queue.pop_front();
+    }
+
+    for job in queue.iter_mut().take(index) {
+        job.consecutive_skips = job.consecutive_skips.saturating_add(1);
+    }
+    queue.remove(index)
 }
 
 fn sample_service_seconds(catalog: &Catalog, station: &Station, job_id: u64, attempt: u32) -> u64 {
@@ -1207,6 +1441,9 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                         state.measured_good_units += 1;
                     }
                 } else {
+                    let mut job = job;
+                    job.enqueued_at_seconds = state.now;
+                    job.consecutive_skips = 0;
                     state.buffers[station_index].push_back(job);
                     let length = state.buffers[station_index].len();
                     state.buffer_peak_occupancy[station_index] =
@@ -1236,18 +1473,33 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 ) {
                     continue;
                 }
+                let last_variant = state.stations[station_index].servers[server_index].last_variant;
                 let job = if station_index == 0 {
-                    let value = state.source_buffer.pop_front();
+                    let value = select_queued_job(
+                        &mut state.source_buffer,
+                        last_variant,
+                        catalog.dispatch_policy,
+                        catalog.maximum_consecutive_skips,
+                    );
                     if value.is_some() {
                         refill_source_buffer(state, catalog);
                     }
                     value
                 } else {
-                    state.buffers[station_index - 1].pop_front()
+                    select_queued_job(
+                        &mut state.buffers[station_index - 1],
+                        last_variant,
+                        catalog.dispatch_policy,
+                        catalog.maximum_consecutive_skips,
+                    )
                 };
                 let Some(job) = job else {
                     continue;
                 };
+                if state.now >= catalog.warmup_seconds {
+                    state.variant_wait_samples_seconds[job.variant]
+                        .push(state.now.saturating_sub(job.enqueued_at_seconds));
+                }
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
@@ -1328,6 +1580,206 @@ mod tests {
             "../../fixtures/ev_factory_simulation_v0_1.json"
         ))
         .expect("fixture parses")
+    }
+
+    fn test_job(id: u64, variant: usize, consecutive_skips: u32) -> Job {
+        Job {
+            id,
+            variant,
+            enqueued_at_seconds: 0,
+            consecutive_skips,
+        }
+    }
+
+    #[test]
+    fn dispatch_policy_defaults_to_fifo_for_legacy_catalogs() {
+        let original = include_str!("../../fixtures/ev_factory_simulation_v0_1.json");
+        let legacy = original
+            .replace("  \"dispatch_policy\": \"fifo\",\n", "")
+            .replace("  \"maximum_consecutive_skips\": 3,\n", "");
+        let catalog: Catalog = serde_json::from_str(&legacy).expect("legacy fixture parses");
+        assert_eq!(catalog.dispatch_policy, DispatchPolicy::Fifo);
+        assert_eq!(catalog.maximum_consecutive_skips, 3);
+    }
+
+    #[test]
+    fn changeover_policy_preserves_fifo_within_variant_and_bounds_skips() {
+        let mut queue =
+            VecDeque::from([test_job(10, 0, 0), test_job(11, 1, 0), test_job(12, 1, 0)]);
+        let first = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
+            .expect("oldest matching variant");
+        assert_eq!(
+            first.id, 11,
+            "FIFO is preserved within the matching variant"
+        );
+        assert_eq!(queue[0].id, 10);
+        assert_eq!(queue[0].consecutive_skips, 1);
+
+        let second = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
+            .expect("next matching-variant job");
+        assert_eq!(
+            second.id, 12,
+            "later same-variant job cannot overtake an earlier one of its variant"
+        );
+        assert_eq!(queue[0].consecutive_skips, 2);
+
+        let forced_oldest =
+            select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
+                .expect("max-skip aging forces the oldest job");
+        assert_eq!(forced_oldest.id, 10);
+    }
+
+    #[test]
+    fn fifo_policy_and_no_match_fall_back_to_oldest_queue_entry() {
+        let mut fifo = VecDeque::from([test_job(2, 1, 0), test_job(1, 0, 0)]);
+        assert_eq!(
+            select_queued_job(&mut fifo, Some(0), DispatchPolicy::Fifo, 3)
+                .expect("FIFO")
+                .id,
+            2
+        );
+
+        let mut no_match = VecDeque::from([test_job(7, 2, 0), test_job(8, 3, 0)]);
+        assert_eq!(
+            select_queued_job(
+                &mut no_match,
+                Some(1),
+                DispatchPolicy::MinimizeChangeover,
+                3
+            )
+            .expect("fallback")
+            .id,
+            7
+        );
+    }
+
+    #[test]
+    fn report_preserves_seed_scenario_records_for_valid_paired_comparison() {
+        let report = evaluate_catalog(&fixture()).expect("20-seed report");
+        assert_eq!(
+            report.replication_scenario_records.len(),
+            report.replication_count * report.scenario_count
+        );
+        let mut tuples = BTreeSet::new();
+        for record in &report.replication_scenario_records {
+            assert!(report.replication_seeds.contains(&record.seed));
+            assert!(
+                report
+                    .scenarios
+                    .iter()
+                    .any(|scenario| scenario.scenario_id == record.scenario_id)
+            );
+            assert!(tuples.insert((record.seed, record.scenario_id.as_str())));
+            assert_eq!(record.variant_wait_statistics.len(), 3);
+            assert_eq!(record.stations.len(), 5);
+            assert!(record.good_units_total <= record.released_jobs_total);
+        }
+        assert_eq!(tuples.len(), 20 * report.scenario_count);
+    }
+
+    #[test]
+    fn dispatch_policies_share_seed_streams_and_keep_flow_guardrails() {
+        let mut fifo = fixture();
+        fifo.dispatch_policy = DispatchPolicy::Fifo;
+        let mut aware = fixture();
+        aware.dispatch_policy = DispatchPolicy::MinimizeChangeover;
+
+        let fifo_report = evaluate_catalog(&fifo).expect("FIFO report");
+        let aware_report = evaluate_catalog(&aware).expect("variant-aware report");
+        assert_eq!(
+            fifo_report.replication_seeds,
+            aware_report.replication_seeds
+        );
+        assert_eq!(fifo_report.scenario_count, aware_report.scenario_count);
+        assert_eq!(fifo_report.replication_count, 20);
+        assert_eq!(aware_report.replication_count, 20);
+        assert_eq!(fifo_report.dispatch_policy, DispatchPolicy::Fifo);
+        assert_eq!(
+            aware_report.dispatch_policy,
+            DispatchPolicy::MinimizeChangeover
+        );
+        assert!(fifo_report.output_never_exceeds_released_input);
+        assert!(aware_report.output_never_exceeds_released_input);
+        assert!(fifo_report.all_buffers_respected_capacity);
+        assert!(aware_report.all_buffers_respected_capacity);
+        assert!(fifo_report.station_time_accounting_within_horizon);
+        assert!(aware_report.station_time_accounting_within_horizon);
+        assert!(!fifo_report.release_ready);
+        assert!(!aware_report.release_ready);
+
+        for (fifo_scenario, aware_scenario) in
+            fifo_report.scenarios.iter().zip(&aware_report.scenarios)
+        {
+            assert_eq!(fifo_scenario.scenario_id, aware_scenario.scenario_id);
+            assert_eq!(
+                fifo_scenario.released_jobs_total,
+                aware_scenario.released_jobs_total
+            );
+            assert!(fifo_scenario.good_units_total <= fifo_scenario.released_jobs_total);
+            assert!(aware_scenario.good_units_total <= aware_scenario.released_jobs_total);
+            assert_eq!(fifo_scenario.maximum_consecutive_skips, 3);
+            assert_eq!(aware_scenario.maximum_consecutive_skips, 3);
+            assert_eq!(fifo_scenario.variant_wait_statistics.len(), 3);
+            assert_eq!(aware_scenario.variant_wait_statistics.len(), 3);
+        }
+        assert!(aware_report.scenario_statistics.iter().all(|scenario| {
+            scenario.variant_wait_statistics.len() == 3
+                && scenario
+                    .variant_wait_statistics
+                    .iter()
+                    .all(|variant| variant.sample_count.sample_count == 20)
+        }));
+    }
+
+    #[test]
+    fn homogeneous_zero_setup_control_is_policy_invariant() {
+        let mut fifo = fixture();
+        fifo.variant_count = 1;
+        fifo.replication_seeds.clear();
+        fifo.dispatch_policy = DispatchPolicy::Fifo;
+        for station in &mut fifo.stations {
+            station.changeover_seconds = 0.0;
+        }
+        let mut aware = fifo.clone();
+        aware.dispatch_policy = DispatchPolicy::MinimizeChangeover;
+
+        let fifo_report = evaluate_catalog(&fifo).expect("homogeneous FIFO control");
+        let aware_report = evaluate_catalog(&aware).expect("homogeneous variant-aware control");
+        assert_eq!(
+            fifo_report.replication_seeds,
+            aware_report.replication_seeds
+        );
+        assert_eq!(fifo_report.scenario_count, aware_report.scenario_count);
+        assert_eq!(fifo_report.scenarios.len(), aware_report.scenarios.len());
+        for (fifo_scenario, aware_scenario) in
+            fifo_report.scenarios.iter().zip(&aware_report.scenarios)
+        {
+            assert_eq!(fifo_scenario.scenario_id, aware_scenario.scenario_id);
+            assert_eq!(
+                fifo_scenario.released_jobs_total,
+                aware_scenario.released_jobs_total
+            );
+            assert_eq!(
+                fifo_scenario.good_units_total,
+                aware_scenario.good_units_total
+            );
+            assert_eq!(
+                fifo_scenario.measured_good_units_per_hour,
+                aware_scenario.measured_good_units_per_hour
+            );
+        }
+        assert!(
+            fifo_report
+                .station_sequence_statistics
+                .iter()
+                .all(|stat| { stat.changeovers_started.mean == 0.0 })
+        );
+        assert!(
+            aware_report
+                .station_sequence_statistics
+                .iter()
+                .all(|stat| { stat.changeovers_started.mean == 0.0 })
+        );
     }
 
     #[test]
@@ -1509,6 +1961,10 @@ mod tests {
 
         let mut catalog = fixture();
         catalog.buffer_capacities[0] = 0;
+        assert!(validate_catalog(&catalog).is_err());
+
+        let mut catalog = fixture();
+        catalog.maximum_consecutive_skips = 0;
         assert!(validate_catalog(&catalog).is_err());
     }
 
