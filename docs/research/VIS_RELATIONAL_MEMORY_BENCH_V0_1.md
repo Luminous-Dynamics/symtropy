@@ -121,6 +121,26 @@ The hard subgroup remains important: when at least one queried claim changed aft
 
 Several other factor slices are still inconclusive. In particular the high claim-flip-rate stratum's hazard-aware delta is -0.0223 with 95% CI [-0.0516, +0.0121], which includes zero. These subgroup analyses are exploratory, overlapping, and involve multiple comparisons; they must not be presented as independent confirmatory discoveries.
 
+## Frozen-seed confirmation — passed on an independent seed root
+
+The algorithm and factorized generator were frozen, then the report seed root was changed to `0xA54F_F53A_5F1D_36F1`. The resulting exact source head was `649acdd38e0fe49c13c9a0575f4cea079564ec1f`; [focused workflow #39487343659](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487343659) passed all 14 tests, report determinism, schema/strata checks and the SHA receipt. The report artifact is [vis-relational-memory-report #12293388387](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487343659/artifacts/12293388387). Documentation-only commit `55583e5945006da9b0bd6dc2e136bd107526168c` subsequently passed its exact-head focused PR workflow [#39487456373](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487456373). The ordinary cross-platform CI for that documentation head was still in progress when this note was written.
+
+Independent-seed held-out results at capacity 3:
+
+| Policy | Mean loss ↓ | Answer rate ↑ | Answered accuracy ↑ | Logical state bytes | Delta vs FIFO (paired 95% CI) |
+| --- | ---: | ---: | ---: | ---: | --- |
+| FIFO | 0.2480 | 3.91% | 80.00% | 18 | baseline |
+| Uniform reservoir | 0.2500 | 0.00% | NA | 18 | +0.0020 [-0.0065, +0.0091] |
+| Query-keyed latest | 0.2572 | 29.43% | 72.57% | 18 | +0.0091 [-0.0124, +0.0339] |
+| Query-keyed selective | 0.2572 | 29.43% | 72.57% | 18 | +0.0091 [-0.0143, +0.0326] |
+| Query-keyed hazard-aware | **0.2064** | **49.74%** | **83.77%** | 48 | **-0.0417 [-0.0671, -0.0143]** |
+
+This independent run preserves the sign and approximate size of the earlier exploratory effect: hazard-aware loss is about **16.8% lower relative to FIFO** in this synthetic held-out family, with a paired 95% interval strictly below zero. It uses 48 rather than 18 reported logical state bytes at capacity 3. This payload estimate is not peak RAM, runtime, latency or energy, and this result is not evidence of industry or robotic SOTA.
+
+The hardest subgroup remains unresolved. In the 244 held-out episodes where at least one queried claim changed after its latest retained source-time evidence, hazard-aware policy's loss difference versus FIFO was **+0.0123**, 95% CI **[-0.0256, +0.0492]**. It is not a proven regression, but it does not demonstrate improvement in the surprise-change subgroup either. By contrast, on the 140 episodes with no queried-claim change after latest source evidence, its delta was **-0.1357**, 95% CI **[-0.1571, -0.1143]**. Out-of-order observations are another positive slice: on 239 episodes, its delta was **-0.0544**, 95% CI **[-0.0879, -0.0209]**. The high claim-flip-rate slice remains inconclusive: **-0.0266**, 95% CI **[-0.0591, +0.0079]**.
+
+Interpretation: the independent-seed result supports a real synthetic benefit from estimating information lifetime, but the benefit is not yet robustly shown on the particular episodes where the world changes after observation. Next priorities are a third untouched seed root or a preregistered stress suite, confidence-interval-aware subgroup reporting, and external evaluation with benchmark-native task-success metrics. Do not tune against the current confirmation seeds.
+
 ## Frozen-seed confirmation required
 
 Before using the hazard result as an engineering acceptance claim, freeze the algorithm and scoring contract, choose a distinct fixed seed root not used in earlier reports, re-run the factorized suite unchanged, and publish the new exact-head report. Then reproduce the same memory-policy delta on a native external task subset (ActiveArena) while holding model/backbone, action decoder, task seeds and environment fixed. No SOTA claim is warranted until that reproduction is completed with the benchmark-native metrics.
