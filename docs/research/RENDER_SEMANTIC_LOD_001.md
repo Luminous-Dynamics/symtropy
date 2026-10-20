@@ -38,7 +38,7 @@ A credible advantage means preserving task-relevant detail at lower measured cos
 ## Next tranche
 
 1. Complete formatting, strict Clippy, focused render-bridge tests, and the exact-head workload workflow; fix failures without weakening invariants.
-2. Use policy-only run receipts to quantify scaling, then compare the heap allocator with an independent simple greedy reference on a smaller frozen corpus to detect implementation drift and measure algorithmic overhead.
+2. Inspect the heap-versus-scan parity and timing report. The scan path is an algorithmic reference for the same greedy decision rule, not an engine-level or renderer-performance comparator.
 3. Calibrate candidate cost units from measured backend workloads.
 4. Add geometric-error projection fixtures and camera-motion hysteresis.
 5. Integrate one opt-in Bevy LOD path and compare against the #2009 baseline.
