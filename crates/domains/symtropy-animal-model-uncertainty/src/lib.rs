@@ -215,7 +215,7 @@ fn require_string_array_members(
         return;
     };
     for required_value in required {
-        if !values.iter().any(|value| value.as_str() == Some(required_value)) {
+        if !values.iter().any(|value| value.as_str() == Some(*required_value)) {
             errors.push(format!("{field} is missing required member '{required_value}'"));
         }
     }
@@ -239,7 +239,8 @@ mod tests {
     fn declared_count_must_match_actual_cases() {
         let mut fixture = parsed_fixture();
         fixture["case_count"] = Value::from(999);
-        let error = validate_oracle_json(&fixture.to_string()).expect_err("count mismatch must fail");
+        let error = validate_oracle_json(&fixture.to_string())
+            .expect_err("count mismatch must fail");
         assert!(error.iter().any(|message| message.contains("case_count declares")));
     }
 
@@ -248,7 +249,8 @@ mod tests {
         let mut fixture = parsed_fixture();
         let duplicate = fixture["cases"][0]["id"].clone();
         fixture["cases"][1]["id"] = duplicate;
-        let error = validate_oracle_json(&fixture.to_string()).expect_err("duplicate IDs must fail");
+        let error = validate_oracle_json(&fixture.to_string())
+            .expect_err("duplicate IDs must fail");
         assert!(error.iter().any(|message| message.contains("duplicates")));
     }
 
@@ -256,7 +258,8 @@ mod tests {
     fn empty_expected_properties_fail_closed() {
         let mut fixture = parsed_fixture();
         fixture["cases"][0]["expected"]["required_properties"] = Value::Array(Vec::new());
-        let error = validate_oracle_json(&fixture.to_string()).expect_err("empty expectation must fail");
+        let error = validate_oracle_json(&fixture.to_string())
+            .expect_err("empty expectation must fail");
         assert!(error.iter().any(|message| message.contains("required_properties")));
     }
 
@@ -264,7 +267,8 @@ mod tests {
     fn missing_run_identity_fails_closed() {
         let mut fixture = parsed_fixture();
         fixture["required_run_identity"] = Value::Array(Vec::new());
-        let error = validate_oracle_json(&fixture.to_string()).expect_err("missing identity must fail");
+        let error = validate_oracle_json(&fixture.to_string())
+            .expect_err("missing identity must fail");
         assert!(error.iter().any(|message| message.contains("required_run_identity")));
     }
 
@@ -272,24 +276,36 @@ mod tests {
     fn unknown_schema_version_is_rejected() {
         let mut fixture = parsed_fixture();
         fixture["schema_version"] = Value::String("ANIMAL-MODEL-UNCERTAINTY-ORACLE-V0".to_owned());
-        let error = validate_oracle_json(&fixture.to_string()).expect_err("unknown schema must fail");
+        let error = validate_oracle_json(&fixture.to_string())
+            .expect_err("unknown schema must fail");
         assert!(error.iter().any(|message| message.contains("schema_version")));
     }
 
     #[test]
     fn malformed_json_is_rejected() {
-        let error = validate_oracle_json("{not-json").expect_err("malformed JSON must fail");
+        let error = validate_oracle_json("{not-json")
+            .expect_err("malformed JSON must fail");
         assert!(error[0].starts_with("invalid JSON"));
     }
 
     #[test]
     fn schema_freezes_the_same_case_count_as_the_oracle() {
         let oracle = parsed_fixture();
-        let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA)
+            .expect("schema should parse");
         let expected_count = oracle["cases"].as_array().expect("cases array").len();
         assert_eq!(oracle["case_count"].as_u64(), Some(expected_count as u64));
-        assert_eq!(schema["properties"]["case_count"]["const"].as_u64(), Some(expected_count as u64));
-        assert_eq!(schema["properties"]["cases"]["minItems"].as_u64(), Some(expected_count as u64));
-        assert_eq!(schema["properties"]["cases"]["maxItems"].as_u64(), Some(expected_count as u64));
+        assert_eq!(
+            schema["properties"]["case_count"]["const"].as_u64(),
+            Some(expected_count as u64)
+        );
+        assert_eq!(
+            schema["properties"]["cases"]["minItems"].as_u64(),
+            Some(expected_count as u64)
+        );
+        assert_eq!(
+            schema["properties"]["cases"]["maxItems"].as_u64(),
+            Some(expected_count as u64)
+        );
     }
 }
