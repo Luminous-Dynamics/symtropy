@@ -2,7 +2,7 @@
 
 **Tracking:** [PHYS-UQ-001 #2292](https://github.com/Luminous-Dynamics/symtropy/issues/2292)  
 **Implementation:** [draft PR #2295](https://github.com/Luminous-Dynamics/symtropy/pull/2295)  
-**Status:** bounded arithmetic API and synthetic tests; request/receipt schema integration is not yet implemented.
+**Status:** interval API and v0.2 request/receipt integration are implemented in stacked draft PRs; exact-head CI qualification required.
 
 ## Definition
 
@@ -29,3 +29,10 @@ These are software soundness checks over the named analytic formulas, not valida
 ## Next step
 
 Add a versioned request field for input bounds with unit/provenance fields and extend the result receipt with lower/nominal/upper output values. Keep the existing point-only contract valid and do not invent input uncertainty when none was supplied. Use calibrated measurements where available to choose bounds; otherwise the result remains conditional on user-declared ranges.
+
+
+## JSON contract integration
+
+The adapter now preserves the legacy point-only `physical-analytical-request-v0.1` / `physical-analytical-receipt-v0.1` behavior. V0.2 requests may include `input_bounds` for every selected-case input. Each bound records finite lower/upper values, units, an evidence class, and a source reference. If bounds are supplied, v0.2 receipts expose output enclosures as `lower`, `nominal`, and `upper`, together with the unit and a statement that ranges are not probabilistic confidence intervals. A v0.2 request without bounds returns null bound fields; no interval is inferred from a point estimate.
+
+The executable validator rejects incomplete/extra bound keys, wrong units, non-finite/reversed intervals, nominal values outside ranges, and a measured bound without a source reference. Invalid propagation (including interval overflow or a denominator range crossing zero) returns an `UNRESOLVED` receipt with no partial numerical outputs. The receipt echoes bound metadata so synthetic or estimated ranges cannot be mistaken for measured inputs.
