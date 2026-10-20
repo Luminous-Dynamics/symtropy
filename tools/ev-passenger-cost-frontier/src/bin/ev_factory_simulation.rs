@@ -1524,6 +1524,30 @@ mod tests {
     }
 
     #[test]
+    fn homogeneous_no_setup_control_makes_policies_equivalent() {
+        let mut fifo = fixture();
+        fifo.replication_seeds.clear();
+        fifo.variant_count = 1;
+        fifo.variant_batch_size = 1;
+        for station in &mut fifo.stations {
+            station.changeover_seconds = 0.0;
+        }
+        fifo.dispatch_policy = DispatchPolicy::Fifo;
+        let mut variant_aware = fifo.clone();
+        variant_aware.dispatch_policy = DispatchPolicy::MinimizeChangeover;
+
+        let fifo_report = evaluate_catalog(&fifo).expect("FIFO no-setup control");
+        let aware_report =
+            evaluate_catalog(&variant_aware).expect("variant-aware no-setup control");
+        assert_eq!(fifo_report.scenarios, aware_report.scenarios);
+        assert_eq!(fifo_report.scenario_statistics, aware_report.scenario_statistics);
+        assert_eq!(
+            fifo_report.station_sequence_statistics,
+            aware_report.station_sequence_statistics
+        );
+    }
+
+    #[test]
     fn zero_skip_age_limit_fails_closed() {
         let mut catalog = fixture();
         catalog.max_variant_skip_seconds = 0;
