@@ -1030,13 +1030,27 @@ mod tests {
     }
 
     fn make_bundle(force_n: Vec3, moment_nm: Vec3) -> Bundle {
+        make_bundle_with_load(
+            [0.0, -1000.0, 0.0],
+            [2.0, 0.0, 0.0],
+            force_n,
+            moment_nm,
+        )
+    }
+
+    fn make_bundle_with_load(
+        applied_force_n: Vec3,
+        applied_position_m: Vec3,
+        reaction_force_n: Vec3,
+        reaction_moment_nm: Vec3,
+    ) -> Bundle {
         let request_value: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
         ))
         .unwrap();
         let mut request_value = request_value;
         request_value["loads"][0]["target_id"] = json!("cantilever-tip");
-        request_value["loads"][0]["vector_xyz"] = json!([0.0, -1000.0, 0.0]);
+        request_value["loads"][0]["vector_xyz"] = json!(applied_force_n);
         request_value["required_outputs"] = json!(["reaction_force", "reaction_moment"]);
         let request = serde_json::to_vec(&request_value).unwrap();
         let request_sha = sha256_hex(&request);
@@ -1057,7 +1071,7 @@ mod tests {
             "units": {"length":"m","force":"N"},
             "reaction_forces": [{
                 "reaction_id":"fixed-support",
-                "force_n":force_n,
+                "force_n":reaction_force_n,
                 "position_m":[0.0,0.0,0.0]
             }]
         });
@@ -1072,7 +1086,7 @@ mod tests {
             "units": {"length":"m","moment":"N*m"},
             "reaction_moments": [{
                 "reaction_id":"fixed-support",
-                "moment_nm":moment_nm
+                "moment_nm":reaction_moment_nm
             }]
         });
 
@@ -1160,8 +1174,8 @@ mod tests {
             "applied_loads":[{
                 "load_id":"tension-001",
                 "target_id":"cantilever-tip",
-                "force_n":[0.0,-1000.0,0.0],
-                "position_m":[2.0,0.0,0.0],
+                "force_n":applied_force_n,
+                "position_m":applied_position_m,
                 "couple_nm":[0.0,0.0,0.0]
             }],
             "required_reaction_force_ids":["fixed-support"],
@@ -1262,7 +1276,7 @@ mod tests {
     }
 
     #[test]
-    fn translating_origin_and_all_points_preserves_force_and_moment_balance() {
+    fn translating_moment_origin_preserves_force_and_moment_balance() {
         let bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 2000.0]);
         let base = assess(&bundle);
         let shift = [4.0, -3.0, 2.0];
@@ -1291,6 +1305,36 @@ mod tests {
             .abs()
                 < 1e-12
         );
+    }
+
+    #[test]
+    fn consistent_quarter_turn_rotation_preserves_equilibrium() {
+        // Rz(+90°): (x, y, z) -> (-y, x, z). Moments are axial vectors.
+        let rotated = make_bundle_with_load(
+            [1000.0, 0.0, 0.0],
+            [0.0, 2.0, 0.0],
+            [-1000.0, 0.0, 0.0],
+            [0.0, 0.0, 2000.0],
+        );
+        let report = assess(&rotated);
+        assert_eq!(report["audit_status"], "PASS");
+        assert_eq!(report["force_balance"]["residual_norm"], 0.0);
+        assert_eq!(report["moment_balance"]["residual_norm"], 0.0);
+    }
+
+    #[test]
+    fn rotating_force_without_its_application_point_fails_moment_balance() {
+        // The force and reaction are rotated, but the loaded point is intentionally
+        // left at (2, 0, 0). This is a semantic frame mismatch, not a valid transform.
+        let malformed = make_bundle_with_load(
+            [1000.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            [-1000.0, 0.0, 0.0],
+            [0.0, 0.0, 2000.0],
+        );
+        let report = assess(&malformed);
+        assert_eq!(report["audit_status"], "FAIL");
+        assert_eq!(report["moment_balance"]["residual_norm"], 2000.0);
     }
 
     #[test]
