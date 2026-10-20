@@ -594,6 +594,9 @@ struct Outcome {
     fresh_claims: usize,
     entries: usize,
     logical_state_bytes: usize,
+    // Evaluator-only errors; never visible through Memory or a policy callback.
+    hazard_error_mae: Option<f64>,
+    hazard_error_mse: Option<f64>,
 }
 
 fn evaluate(ep: &Episode, kind: Kind, cap: usize, actor_seed: u64) -> Outcome {
@@ -628,6 +631,22 @@ fn evaluate_with_threshold(
             Kind::QueryKeyedGapAware => std::mem::size_of::<[GapAwareStats; QUERY_WIDTH]>(),
             _ => 0,
         };
+
+    // This is evaluator-only: the hidden profile rate is read only after the
+    // policy has decided. It never enters Memory, evidence, or decision code.
+    let hazard_errors = match kind {
+        Kind::QueryKeyedHazardAware => Some(memory.hazard_stats.map(|stats| stats.estimated_flip_hazard())),
+        Kind::QueryKeyedGapAware => Some(memory.gap_aware_stats.map(|stats| stats.estimated_flip_hazard())),
+        _ => None,
+    }.map(|estimates| {
+        let true_rate = f64::from(ep.profile.flip_rate) / 1_000.0;
+        let absolute_sum = estimates.iter().map(|estimate| (estimate - true_rate).abs()).sum::<f64>();
+        let squared_sum = estimates.iter().map(|estimate| (estimate - true_rate).powi(2)).sum::<f64>();
+        (
+            absolute_sum / QUERY_WIDTH as f64,
+            squared_sum / QUERY_WIDTH as f64,
+        )
+    });
     Outcome {
         loss: match decision { None => 0.25, Some(_) if correct => 0.0, Some(_) => 1.0 },
         answered: decision.is_some(),
@@ -635,6 +654,8 @@ fn evaluate_with_threshold(
         fresh_claims: memory.fresh_claims(HORIZON),
         entries: memory.entries.len(),
         logical_state_bytes,
+        hazard_error_mae: hazard_errors.map(|errors| errors.0),
+        hazard_error_mse: hazard_errors.map(|errors| errors.1),
     }
 }
 
@@ -647,6 +668,9 @@ struct Acc {
     fresh_claims: u64,
     entries: u64,
     logical_state_bytes_sum: u64,
+    hazard_error_episodes: u64,
+    hazard_abs_error_sum: f64,
+    hazard_squared_error_sum: f64,
     delta_vs_fifo: Vec<f64>,
 }
 
@@ -659,6 +683,11 @@ impl Acc {
         self.fresh_claims += o.fresh_claims as u64;
         self.entries += o.entries as u64;
         self.logical_state_bytes_sum += o.logical_state_bytes as u64;
+        if let (Some(mae), Some(mse)) = (o.hazard_error_mae, o.hazard_error_mse) {
+            self.hazard_error_episodes += 1;
+            self.hazard_abs_error_sum += mae;
+            self.hazard_squared_error_sum += mse;
+        }
         if let Some(d) = delta { self.delta_vs_fifo.push(d); }
     }
     fn mean_loss(&self) -> f64 { self.loss_sum / self.n.max(1) as f64 }
@@ -669,6 +698,14 @@ impl Acc {
     }
     fn mean_logical_state_bytes(&self) -> f64 {
         self.logical_state_bytes_sum as f64 / self.n.max(1) as f64
+    }
+    fn hazard_mae(&self) -> String {
+        if self.hazard_error_episodes == 0 { "NA".to_string() }
+        else { format!("{:.4}", self.hazard_abs_error_sum / self.hazard_error_episodes as f64) }
+    }
+    fn hazard_rmse(&self) -> String {
+        if self.hazard_error_episodes == 0 { "NA".to_string() }
+        else { format!("{:.4}", (self.hazard_squared_error_sum / self.hazard_error_episodes as f64).sqrt()) }
     }
 }
 
@@ -754,7 +791,7 @@ fn report() {
     println!("conditional corruption p per tier = base_rate * (20,160,320)/63 per thousand; aggregate rate approximately preserved");
     println!("gap-aware policy: candidate per-tick hazards={HAZARD_RATES:?}; Bayesian fixed-point log-likelihood grid, irregular source-time gaps");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
-    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
+    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tmean_hazard_mae\troot_mean_hazard_mse\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
     for family in [Family::Development, Family::HeldOut] {
         let mut cells = vec![Acc::default(); Kind::ALL.len() * CAPS.len()];
@@ -813,9 +850,10 @@ fn report() {
                 };
                 let coverage = cell.fresh_claims as f64 / (cell.n.max(1) * QUERY_WIDTH as u64) as f64;
                 let mean_entries = cell.entries as f64 / cell.n.max(1) as f64;
-                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.1}\t{:.4}\t{:.4}\t{:.4}",
+                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.1}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(), kind.name(), cap, cell.n, cell.mean_loss(), cell.answer_rate(),
-                    cell.accuracy(), coverage, mean_entries, cell.mean_logical_state_bytes(), delta, lo, hi);
+                    cell.accuracy(), coverage, mean_entries, cell.mean_logical_state_bytes(),
+                    cell.hazard_mae(), cell.hazard_rmse(), delta, lo, hi);
             }
         }
 
@@ -1068,6 +1106,22 @@ mod tests {
         stats.observe(Evidence { key: 1, value: false, source_tick: 6, arrival_tick: 10, confidence: 950 });
         assert_eq!(stats.log_scores, scores_before);
         assert_eq!(stats.last_reliable.unwrap().source_tick, 8);
+    }
+
+    #[test]
+    fn evaluator_hazard_metrics_are_post_decision_and_policy_scoped() {
+        let episode = Episode::generate(0xA11C_E001, Family::HeldOut);
+        let fifo = evaluate(&episode, Kind::Fifo, 3, 7);
+        let naive = evaluate(&episode, Kind::QueryKeyedHazardAware, 3, 7);
+        let gap = evaluate(&episode, Kind::QueryKeyedGapAware, 3, 7);
+        assert_eq!(fifo.hazard_error_mae, None);
+        assert_eq!(fifo.hazard_error_mse, None);
+        assert!(naive.hazard_error_mae.is_some_and(f64::is_finite));
+        assert!(naive.hazard_error_mse.is_some_and(f64::is_finite));
+        assert!(gap.hazard_error_mae.is_some_and(f64::is_finite));
+        assert!(gap.hazard_error_mse.is_some_and(f64::is_finite));
+        assert!(naive.hazard_error_mse.unwrap() >= 0.0);
+        assert!(gap.hazard_error_mse.unwrap() >= 0.0);
     }
 
     #[test]
