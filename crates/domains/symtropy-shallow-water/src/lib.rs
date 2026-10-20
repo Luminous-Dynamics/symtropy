@@ -12,6 +12,10 @@
 
 #![forbid(unsafe_code)]
 
+mod metrics;
+pub use metrics::{FieldErrorMetrics, MetricError, field_error_metrics};
+mod double_rarefaction;
+pub use double_rarefaction::{DoubleRarefactionState, double_rarefaction};
 mod stoker;
 pub use stoker::{StokerState, stoker_dam_break};
 
