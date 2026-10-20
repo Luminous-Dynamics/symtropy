@@ -82,16 +82,16 @@ impl PublicObservation {
     }
 
     fn public_hash(self, policy_seed: u64) -> u64 {
-        let mut bits = u64::from(self.initial_guess);
+        let mut bits = (self.initial_guess as u64);
         bits |= u64::from(self.confidence_milli) << 1;
         bits |= u64::from(self.surprise_milli) << 12;
         bits |= u64::from(self.occlusion_milli) << 23;
         bits |= u64::from(self.blur_milli) << 34;
         bits |= u64::from(self.novelty_milli) << 45;
-        bits ^= u64::from(self.compute_available) << 56;
-        bits ^= u64::from(self.next_sample_available) << 57;
-        bits ^= u64::from(self.alternate_view_available) << 58;
-        bits ^= u64::from(self.timed_event_available) << 59;
+        bits ^= (self.compute_available as u64) << 56;
+        bits ^= (self.next_sample_available as u64) << 57;
+        bits ^= (self.alternate_view_available as u64) << 58;
+        bits ^= (self.timed_event_available as u64) << 59;
         mix64(bits ^ policy_seed.rotate_left(19))
     }
 }
@@ -629,7 +629,7 @@ mod tests {
             target_identity,
             occlusion_milli: 900,
             blur_milli: 300,
-            distractor_salience_milli: 800,
+            distractor_salience_milli: 0,
             novelty_milli: 400,
             sensor_noise_milli: 0,
             compute_available: true,
@@ -656,7 +656,7 @@ mod tests {
             target_identity: true,
             occlusion_milli: 900,
             blur_milli: 0,
-            distractor_salience_milli: 50,
+            distractor_salience_milli: 0,
             novelty_milli: 50,
             sensor_noise_milli: 0,
             compute_available: true,
@@ -722,7 +722,7 @@ mod tests {
             target_identity: false,
             occlusion_milli: 900,
             blur_milli: 100,
-            distractor_salience_milli: 300,
+            distractor_salience_milli: 0,
             novelty_milli: 200,
             sensor_noise_milli: 0,
             compute_available: true,
