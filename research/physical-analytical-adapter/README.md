@@ -46,7 +46,7 @@ These formulas do not prove that a real member has the declared geometry, materi
 
 1. Complete exact-head formatting, tests, strict Clippy and receipt checks.
 2. Add request-schema conformance checks in CI, beyond JSON syntax.
-3. Add a solver dispatcher with an explicit allowlisted capability manifest.
+3. The allowlisted capability-dispatch slice is implemented in draft PR #2321; its exact-head tests and receipt schema are the qualification gate.
 4. Qualify one specialist solver using the same receipt contract and an independently reproduced known-answer case.
 5. Validate against a rights-cleared measured dataset before claiming physical accuracy or state-of-the-art improvement.
 
@@ -71,3 +71,21 @@ The interval module now adds two supplementary checks beyond exact endpoints:
 - A load-scaling metamorphic test doubles the entire positive load interval for each model and checks that every lower and upper output endpoint doubles within a small floating-point tolerance.
 
 These tests are deliberately deterministic, dependency-free and reproducible. They are **not** a proof that the interval implementation encloses all mathematical values; the exact formula structure, outward rounding, known-answer tests and endpoint/zero-crossing controls remain necessary. Sampled coverage must never be described as a physical validation rate or confidence level.
+
+
+## Allowlisted multi-fidelity dispatch v0.1
+
+The capability registry lives at `schemas/physical-transformation/physical-solver-capabilities-v0.1.json`; its schema is `physical-solver-capabilities-v0.1.schema.json`. The deterministic registry currently contains exactly one backend: `symtropy-analytical-reference`, limited to the three closed-form cases above and `static_linear_elastic`. Its qualification tier is `closed_form_equation_contract`; `real_world_validation_status` remains `UNRESOLVED`.
+
+Before calling the analytical formula adapter, dispatch validates the request envelope and resolves its case, assumption profile, SI units, and every requested physics class against the manifest. A selected backend must be uniquely compatible and have the required case output set. Unsupported physics, unknown case IDs, unit mismatches, ambiguous backend matches or unqualified backend kinds abstain with `selection_status=UNRESOLVED`, `evaluation_status=NOT_EVALUATED`, `outputs=null`, and no nested adapter receipt. That means no formula was evaluated for an unsupported request. If a compatible backend is selected but its formula cannot be evaluated, dispatch retains that selection and reports `evaluation_status=UNRESOLVED` with the nested adapter diagnostics and no output values.
+
+Dispatch receipts use `physical-solver-dispatch-receipt-v0.1`; they bind exact request bytes, dispatcher/adapter revisions and the SHA-256 of the pinned capability-manifest bytes. The CLI is `physical-solver-dispatch`:
+
+```sh
+cargo run --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --bin physical-solver-dispatch -- \
+  --request schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json \
+  --dispatcher-revision "$(git rev-parse HEAD)" \
+  --adapter-revision "$(git rev-parse HEAD)"
+```
+
+This first dispatcher does **not** launch external processes or remote services. Those implementation kinds are not eligible for automatic selection in v0.1. Registering an external solver later requires a separate execution adapter plus a frozen, independent benchmark/solver-version/convergence contract; merely adding a name to JSON must not enable execution.
