@@ -5,6 +5,7 @@
 //! this crate does not invoke a qualified mechanics solver.
 
 pub mod reference_compare;
+pub mod mesh_study;
 
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
