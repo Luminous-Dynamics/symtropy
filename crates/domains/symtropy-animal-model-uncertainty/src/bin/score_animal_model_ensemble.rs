@@ -23,12 +23,14 @@ use std::process;
 
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use symtropy_animal_model_uncertainty::decision::{ModelOutcome, score_model_ensemble};
+use symtropy_animal_model_uncertainty::decision::{ActionRisk, ModelOutcome, score_model_ensemble};
 
 const SYNTHETIC_EXAMPLE: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_EXAMPLE_V1.json");
 const EMBEDDED_INPUT_SCHEMA: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json");
+const EMBEDDED_REPORT_SCHEMA: &str =
+    include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json");
 
 fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
     if root.get("schema_version").and_then(Value::as_str)
@@ -97,6 +99,33 @@ fn sha256_hex(bytes: &[u8]) -> String {
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
+fn build_report(
+    raw_input: &str,
+    root: &Value,
+    models: &[ModelOutcome],
+    cvar_alpha: f64,
+    scores: &[ActionRisk],
+) -> Value {
+    json!({
+        "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
+        "status": "computed_risk_summary_not_model_validation",
+        "cvar_alpha": cvar_alpha,
+        "input_sha256": sha256_hex(raw_input.as_bytes()),
+        "scenario": root.get("scenario").and_then(Value::as_str).unwrap_or("unspecified"),
+        "model_ids": models.iter().map(|model| model.model_id.as_str()).collect::<Vec<_>>(),
+        "model_count": models.len(),
+        "scores": scores.iter().map(|score| json!({
+            "action": score.action,
+            "expected_loss": score.expected_loss,
+            "worst_case_loss": score.worst_case_loss,
+            "cvar_loss": score.cvar_loss,
+            "per_model_regret": score.per_model_regret,
+            "max_regret": score.max_regret,
+            "admissible_across_all_models": score.admissible_across_all_models
+        })).collect::<Vec<Value>>()
+    })
+}
+
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
     let Some(path) = arguments.next() else {
@@ -142,24 +171,7 @@ fn main() {
         }
     };
 
-    let output = json!({
-        "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
-        "status": "computed_risk_summary_not_model_validation",
-        "cvar_alpha": cvar_alpha,
-        "input_sha256": sha256_hex(raw.as_bytes()),
-        "scenario": root.get("scenario").and_then(Value::as_str).unwrap_or("unspecified"),
-        "model_ids": models.iter().map(|model| model.model_id.as_str()).collect::<Vec<_>>(),
-        "model_count": models.len(),
-        "scores": scores.iter().map(|score| json!({
-            "action": score.action,
-            "expected_loss": score.expected_loss,
-            "worst_case_loss": score.worst_case_loss,
-            "cvar_loss": score.cvar_loss,
-            "per_model_regret": score.per_model_regret,
-            "max_regret": score.max_regret,
-            "admissible_across_all_models": score.admissible_across_all_models
-        })).collect::<Vec<Value>>()
-    });
+    let output = build_report(&raw, &root, &models, cvar_alpha, &scores);
     println!(
         "{}",
         serde_json::to_string_pretty(&output).expect("JSON risk report should serialize")
@@ -204,6 +216,31 @@ mod tests {
             example["models"]
                 .as_array()
                 .is_some_and(|models| !models.is_empty())
+        );
+    }
+
+    #[test]
+    fn risk_report_is_bound_to_input_and_matches_report_contract() {
+        let root: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        let (models, alpha) = parse_input(&root).expect("input should parse");
+        let scores = score_model_ensemble(&models, alpha).expect("scores should be valid");
+        let report = build_report(SYNTHETIC_EXAMPLE, &root, &models, alpha, &scores);
+        let schema: Value =
+            serde_json::from_str(EMBEDDED_REPORT_SCHEMA).expect("report schema should parse");
+        assert_eq!(
+            report["schema_version"].as_str(),
+            schema["properties"]["schema_version"]["const"].as_str()
+        );
+        assert_eq!(
+            report["input_sha256"].as_str(),
+            Some(sha256_hex(SYNTHETIC_EXAMPLE.as_bytes()).as_str())
+        );
+        assert_eq!(report["model_count"].as_u64(), Some(2));
+        assert_eq!(report["model_ids"].as_array().map(Vec::len), Some(2));
+        assert_eq!(
+            report["scores"].as_array().map(Vec::len),
+            Some(root["models"][0]["action_losses"].as_object().unwrap().len())
         );
     }
 
