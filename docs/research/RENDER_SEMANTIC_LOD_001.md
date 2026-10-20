@@ -29,6 +29,18 @@ Reuse the existing #2009 timing profiles: candidate balanced 1080p p95 at or bel
 
 Hard gates: zero protected-entity downgrades; zero selected candidates over the error ceiling; deterministic results under entity-order permutation; no accepted invalid candidate sets; exact budget satisfaction when feasible; and explicit rejection when infeasible.
 
+## Current engine baseline verified 2026-10-20
+
+The public Symtropy workspace currently pins Bevy 0.19 in the root manifest and render bridge. Bevy 0.20 was announced on October 8, 2026; it includes the Solari renderer path improvements and significant retained scene / renderer work. The existing migration gate is tracked separately in Symtropy issue #1989 with the isolated graphics probe in PR #2012. Do not make this LOD policy silently depend on a renderer-version change.
+
+Bevy's official 0.19 release notes report that the `many_cubes` example on a laptop RTX 4090 moved from 49.47 ms to 18.77 ms with culling enabled between 0.18 and 0.19, and from 93.1 ms to 41.2 ms with culling disabled. The same release notes report 11.8 ms static / 16.2 ms moving for a 55,000-rendered-entity `bevy_city` example. These are vendor-published results on a different GPU and a different workload; they are **context, not direct comparisons** against Symtropy or its RTX 2070 Mobile target.
+
+The architectural implication is important: do not recreate Bevy's GPU-driven draw/batching or occlusion systems inside this project. Treat semantic LOD as a task-aware, explicit quality policy that feeds a Bevy-native presentation path. First compare the current pinned 0.19 backend; once the separate 0.20 migration gate passes, run the same frozen fixtures on 0.20. Keep source, renderer version, adapter, driver, camera, and settings in each receipt. This isolates whether a gain comes from the LOD policy or the engine upgrade.
+
+Nanite already couples fine-grained LOD with occlusion culling and screen-scale detail; Epic also documents cases where highly fragmented aggregate geometry and overdraw weaken those scaling properties. Those cases suggest useful stress fixtures—foliage/porous geometry, nested close surfaces, and dense engineering assemblies—but do not establish that Symtropy will outperform Nanite. The research target remains a matched quality–cost frontier with semantic and state-integrity constraints.
+
+Sources: [Bevy 0.20 release, October 8, 2026](https://bevy.org/news/bevy-0-20/); [Bevy 0.19 renderer performance notes](https://bevy.org/news/bevy-0-19/); [Epic's Nanite scalability and limitations](https://dev.epicgames.com/documentation/en-us/unreal-engine/working-with-naniteenabled-content).
+
 ## Comparison with industry
 
 Use Bevy's deferred-rendering and mixed-lighting examples as implementation baselines. Use Unreal Engine's Nanite/Lumen capabilities and Unity HDRP as high-end visual comparison references, not as claims of feature parity. Compare matched assets, fixed camera paths, resolution, lighting intent, hardware, warmed runs, frame-time distributions, and reference captures. 3DMark Steel Nomad can contextualize device stability and thermal behavior, but its score is not directly comparable to Symtropy's own scene.
