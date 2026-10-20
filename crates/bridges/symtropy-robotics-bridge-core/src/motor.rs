@@ -39,7 +39,8 @@
 ///
 /// These categories are intentionally platform-neutral; adapters may retain a
 /// more specific diagnostic alongside this interoperable status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MotorPlannerFault {
     InvalidConfiguration,
     InvalidGain,
@@ -53,7 +54,8 @@ pub enum MotorPlannerFault {
 }
 
 /// Status of the most recent motor-planning request.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MotorPlannerStatus {
     /// The most recent request completed without an adapter/planner fault.
     #[default]
@@ -64,7 +66,7 @@ pub enum MotorPlannerStatus {
 
 /// Commands and their status returned together to avoid dropping rejection
 /// metadata at generic agent boundaries.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MotorPlanResult {
     pub commands: Vec<f64>,
     pub status: MotorPlannerStatus,
