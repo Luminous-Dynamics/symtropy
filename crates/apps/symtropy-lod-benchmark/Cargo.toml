@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-lod-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Deterministic benchmark harness for Symtropy semantic LOD allocation"
+
+[dependencies]
+symtropy-render-bridge = { path = "../../bridges/symtropy-render-bridge" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
