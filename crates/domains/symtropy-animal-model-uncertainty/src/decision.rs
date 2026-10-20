@@ -47,7 +47,7 @@ pub fn score_model_ensemble(
     if models.is_empty() {
         return Err(vec!["model set must not be empty".to_owned()]);
     }
-    if !cvar_alpha.is_finite() || !(0.0..1.0).contains(&cvar_alpha) {
+    if !cvar_alpha.is_finite() || cvar_alpha == 0.0 || !(0.0..1.0).contains(&cvar_alpha) {
         errors.push("cvar_alpha must be finite and strictly between zero and one".to_owned());
     }
 
@@ -295,6 +295,13 @@ mod tests {
     #[test]
     fn cvar_alpha_must_be_strictly_between_zero_and_one() {
         let errors = score_model_ensemble(&example_models(), 1.0).expect_err("alpha 1 must fail");
+        assert!(errors.iter().any(|error| error.contains("cvar_alpha")));
+    }
+
+    #[test]
+    fn cvar_alpha_zero_is_rejected() {
+        let errors = score_model_ensemble(&example_models(), 0.0)
+            .expect_err("alpha zero must fail");
         assert!(errors.iter().any(|error| error.contains("cvar_alpha")));
     }
 
