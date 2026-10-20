@@ -318,7 +318,7 @@ fn nearest_rank_percentile(values: &[u64], numerator: u64, denominator: u64) -> 
     values.get((rank - 1) as usize).copied()
 }
 
-fn simulate_case(case: &Value) -> Check<Value> {
+pub(crate) fn simulate_case(case: &Value) -> Result<Value, String> {
     let case_id = text(case, "case_id", "case")?;
     let horizon = uint(case, "horizon_steps", case_id)?;
     if horizon == 0 || horizon > MAX_HORIZON {

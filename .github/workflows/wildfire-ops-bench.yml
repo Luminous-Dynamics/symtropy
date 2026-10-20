@@ -150,6 +150,32 @@ jobs:
             wildfire-network-flow-reference-receipt.json \
             "$source_commit"
 
+      - name: Evaluate joint route assignment vs independent shortest paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          export SOURCE_COMMIT="$source_commit"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire_route_assignment -- \
+            benchmarks/fixtures/WILDFIRE_ROUTE_ASSIGNMENT_V0_1.json \
+            --source-commit "$source_commit" > wildfire-route-assignment-receipt.json
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-ROUTE-ASSIGNMENT-001"
+            and .scenario_count == 4
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.cases | length == 4)
+            and (.cases | all(.status == "pass"))
+            and (.scorecard.case_count == 4)
+            and (.scorecard.all_baselines_and_oracles_preserve_mass_balance == true)
+            and (.scorecard.all_baselines_and_oracles_respect_capacity_checks == true)
+            and (.cases[1].baseline_strictly_worse_unserved == true)
+            and (.cases[2].baseline_strictly_worse_unserved == true)
+            and (.cases[3].objectives_identical == true)
+          ' wildfire-route-assignment-receipt.json
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
@@ -158,5 +184,6 @@ jobs:
             wildfire-ops-reference-receipt.json
             wildfire-traffic-ctm-receipt.json
             wildfire-network-flow-reference-receipt.json
+            wildfire-route-assignment-receipt.json
           if-no-files-found: error
           retention-days: 90
