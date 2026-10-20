@@ -202,16 +202,12 @@ fn parse_study(value: &Value) -> Check<StudySpec> {
         .ok_or_else(|| "study.dimension must be 1, 2, or 3".to_owned())?;
     let trend_expectation = string(value, "trend_expectation", "study")?;
     if !["monotone_expected", "not_assumed"].contains(&trend_expectation.as_str()) {
-        return Err(
-            "study.trend_expectation must be monotone_expected or not_assumed".to_owned(),
-        );
+        return Err("study.trend_expectation must be monotone_expected or not_assumed".to_owned());
     }
     let refinement_ratio_relative_tolerance =
         positive_number(value, "refinement_ratio_relative_tolerance", "study")?;
     if refinement_ratio_relative_tolerance > 0.5 {
-        return Err(
-            "study.refinement_ratio_relative_tolerance must not exceed 0.5".to_owned(),
-        );
+        return Err("study.refinement_ratio_relative_tolerance must not exceed 0.5".to_owned());
     }
     let expected_order_min = match value.get("expected_order_min") {
         Some(Value::Null) => None,
@@ -272,7 +268,9 @@ fn parse_study(value: &Value) -> Check<StudySpec> {
         .and_then(Value::as_array)
         .ok_or_else(|| "study.levels must be an array".to_owned())?;
     if !(3..=MAX_LEVELS).contains(&levels.len()) {
-        return Err(format!("study.levels must contain between 3 and {MAX_LEVELS} levels"));
+        return Err(format!(
+            "study.levels must contain between 3 and {MAX_LEVELS} levels"
+        ));
     }
     let mut parsed_levels = Vec::with_capacity(levels.len());
     let mut level_ids = BTreeSet::new();
@@ -323,11 +321,17 @@ fn parse_study(value: &Value) -> Check<StudySpec> {
         let previous = &parsed_levels[index - 1];
         let current = &parsed_levels[index];
         if current.h_m >= previous.h_m {
-            return Err("study.levels must be ordered coarse-to-fine with strictly decreasing h_m".to_owned());
-        }
-        if current.element_count <= previous.element_count || current.dof_count <= previous.dof_count {
             return Err(
-                "study.levels must increase both element_count and dof_count at every refinement".to_owned(),
+                "study.levels must be ordered coarse-to-fine with strictly decreasing h_m"
+                    .to_owned(),
+            );
+        }
+        if current.element_count <= previous.element_count
+            || current.dof_count <= previous.dof_count
+        {
+            return Err(
+                "study.levels must increase both element_count and dof_count at every refinement"
+                    .to_owned(),
             );
         }
     }
@@ -361,16 +365,17 @@ fn read_rooted_bytes(root: &Path, reference: &str, max_bytes: u64) -> Check<(Pat
     if !path.starts_with(root) {
         return Err(format!("'{reference}' resolves outside the study root"));
     }
-    let metadata = fs::metadata(&path)
-        .map_err(|error| format!("cannot stat '{reference}': {error}"))?;
+    let metadata =
+        fs::metadata(&path).map_err(|error| format!("cannot stat '{reference}': {error}"))?;
     if !metadata.is_file() {
         return Err(format!("'{reference}' is not a regular file"));
     }
     if metadata.len() > max_bytes {
-        return Err(format!("'{reference}' exceeds the {max_bytes}-byte input budget"));
+        return Err(format!(
+            "'{reference}' exceeds the {max_bytes}-byte input budget"
+        ));
     }
-    let bytes =
-        fs::read(&path).map_err(|error| format!("cannot read '{reference}': {error}"))?;
+    let bytes = fs::read(&path).map_err(|error| format!("cannot read '{reference}': {error}"))?;
     Ok((path, bytes))
 }
 
@@ -459,7 +464,12 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
     let mesh_input = input_artifacts
         .iter()
         .find(|input| input.get("input_id").and_then(Value::as_str) == Some("mesh"))
-        .ok_or_else(|| format!("level '{}': receipt does not declare input_id 'mesh'", level.level_id))?;
+        .ok_or_else(|| {
+            format!(
+                "level '{}': receipt does not declare input_id 'mesh'",
+                level.level_id
+            )
+        })?;
     if mesh_input.get("kind").and_then(Value::as_str) != Some("finite_element_mesh")
         || mesh_input.get("sha256").and_then(Value::as_str) != Some(level.mesh_sha256.as_str())
         || mesh_input.get("artifact_ref").and_then(Value::as_str) != Some(level.mesh_ref.as_str())
@@ -472,11 +482,16 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
     let verified_mesh = artifact_report["input_artifact_results"]
         .as_array()
         .and_then(|results| {
-            results.iter().find(|result| {
-                result.get("input_id").and_then(Value::as_str) == Some("mesh")
-            })
+            results
+                .iter()
+                .find(|result| result.get("input_id").and_then(Value::as_str) == Some("mesh"))
         })
-        .ok_or_else(|| format!("level '{}': mesh input has no byte-verification record", level.level_id))?;
+        .ok_or_else(|| {
+            format!(
+                "level '{}': mesh input has no byte-verification record",
+                level.level_id
+            )
+        })?;
     if verified_mesh["status"] != "PASS"
         || verified_mesh["observed_sha256"].as_str() != Some(level.mesh_sha256.as_str())
     {
@@ -495,8 +510,15 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
         .ok_or_else(|| "receipt.outputs must be an array".to_owned())?;
     let selected = outputs
         .iter()
-        .find(|output| output.get("output_id").and_then(Value::as_str) == Some(level.output_id.as_str()))
-        .ok_or_else(|| format!("level '{}': output_id '{}' missing from receipt", level.level_id, level.output_id))?;
+        .find(|output| {
+            output.get("output_id").and_then(Value::as_str) == Some(level.output_id.as_str())
+        })
+        .ok_or_else(|| {
+            format!(
+                "level '{}': output_id '{}' missing from receipt",
+                level.level_id, level.output_id
+            )
+        })?;
     if selected.get("media_type").and_then(Value::as_str) != Some("application/json") {
         return Err(format!("level '{}': normalized observation output must be application/json", level.level_id));
     }
@@ -511,8 +533,12 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
             level.level_id, MAX_NORMALIZED_BYTES
         ));
     }
-    let normalized_bytes = fs::read(&artifact_path)
-        .map_err(|error| format!("level '{}': cannot read normalized output: {error}", level.level_id))?;
+    let normalized_bytes = fs::read(&artifact_path).map_err(|error| {
+        format!(
+            "level '{}': cannot read normalized output: {error}",
+            level.level_id
+        )
+    })?;
     let observation_sha256 = sha256_hex(&normalized_bytes);
     if observation_sha256 != declared_output_sha {
         return Err(format!(
@@ -527,7 +553,12 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
                 result.get("output_id").and_then(Value::as_str) == Some(level.output_id.as_str())
             })
         })
-        .ok_or_else(|| format!("level '{}': output has no byte-verification receipt entry", level.level_id))?;
+        .ok_or_else(|| {
+            format!(
+                "level '{}': output has no byte-verification receipt entry",
+                level.level_id
+            )
+        })?;
     if result_entry["status"] != "PASS"
         || result_entry["observed_sha256"].as_str() != Some(observation_sha256.as_str())
     {
@@ -537,8 +568,12 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
         ));
     }
 
-    let normalized: Value = serde_json::from_slice(&normalized_bytes)
-        .map_err(|error| format!("level '{}': invalid normalized observation: {error}", level.level_id))?;
+    let normalized: Value = serde_json::from_slice(&normalized_bytes).map_err(|error| {
+        format!(
+            "level '{}': invalid normalized observation: {error}",
+            level.level_id
+        )
+    })?;
     let observations = parse_observation(
         &normalized,
         &request_sha256,
@@ -547,9 +582,12 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
         scene_revision,
         &study.case_id,
     )?;
-    let observation = observations
-        .get(&study.observable_id)
-        .ok_or_else(|| format!("level '{}': observable '{}' is missing", level.level_id, study.observable_id))?;
+    let observation = observations.get(&study.observable_id).ok_or_else(|| {
+        format!(
+            "level '{}': observable '{}' is missing",
+            level.level_id, study.observable_id
+        )
+    })?;
     if observation.unit != study.unit {
         return Err(format!(
             "level '{}': observable unit '{}' does not match study unit '{}'",
@@ -599,10 +637,7 @@ fn error_value(observed: f64, reference: f64) -> Check<(f64, Option<f64>, &'stat
 /// receipt-referenced output artifacts. Files are resolved below the canonical
 /// root; the mesh is streamed through SHA-256, while structured inputs/observations
 /// are size bounded. Each observation's output bytes are checked against the receipt.
-pub fn assess_mesh_refinement_study_bytes(
-    study_bytes: &[u8],
-    study_root: &Path,
-) -> Check<Value> {
+pub fn assess_mesh_refinement_study_bytes(study_bytes: &[u8], study_root: &Path) -> Check<Value> {
     let study_value: Value = serde_json::from_slice(study_bytes)
         .map_err(|error| format!("invalid mesh-study manifest JSON: {error}"))?;
     let study = parse_study(&study_value)?;
@@ -624,7 +659,9 @@ pub fn assess_mesh_refinement_study_bytes(
         }
     }
 
-    let first = levels.first().expect("at least three levels were validated");
+    let first = levels
+        .first()
+        .expect("at least three levels were validated");
     for level in &levels[1..] {
         if level.source_revision != first.source_revision {
             return Ok(unresolved_report(
@@ -745,8 +782,8 @@ pub fn assess_mesh_refinement_study_bytes(
             convergence_status = "FAIL";
         }
     } else {
-        let local_ratio = (coarse.spec.h_m / medium.spec.h_m) / 2.0
-            + (medium.spec.h_m / fine.spec.h_m) / 2.0;
+        let local_ratio =
+            (coarse.spec.h_m / medium.spec.h_m) / 2.0 + (medium.spec.h_m / fine.spec.h_m) / 2.0;
         let order = (coarse_to_medium.abs() / medium_to_fine.abs()).ln() / local_ratio.ln();
         if !order.is_finite() || order <= 0.0 {
             diagnostics.push("observed convergence order is not finite and positive".to_owned());
@@ -764,7 +801,9 @@ pub fn assess_mesh_refinement_study_bytes(
                 let extrapolated = fine.value + (fine.value - medium.value) / denominator;
                 let gci_abs = GCI_SAFETY_FACTOR * (fine.value - medium.value).abs() / denominator;
                 if !extrapolated.is_finite() || !gci_abs.is_finite() {
-                    diagnostics.push("Richardson extrapolation or GCI-like estimate overflowed".to_owned());
+                    diagnostics.push(
+                        "Richardson extrapolation or GCI-like estimate overflowed".to_owned(),
+                    );
                     convergence_status = "UNRESOLVED";
                     observed_order = None;
                 } else {
@@ -793,7 +832,9 @@ pub fn assess_mesh_refinement_study_bytes(
 
     let fine_error = *errors.last().expect("at least three levels");
     let fine_relative_error = *relative_errors.last().expect("at least three levels");
-    let fine_relative_error_status = *relative_error_statuses.last().expect("at least three levels");
+    let fine_relative_error_status = *relative_error_statuses
+        .last()
+        .expect("at least three levels");
     let accuracy_status = match (study.max_fine_absolute_error, study.max_fine_relative_error) {
         (None, None) => "NOT_SPECIFIED",
         (Some(max_abs), Some(max_rel)) => {
@@ -808,7 +849,11 @@ pub fn assess_mesh_refinement_study_bytes(
             }
         }
         (Some(max_abs), None) => {
-            if fine_error <= max_abs { "PASS" } else { "FAIL" }
+            if fine_error <= max_abs {
+                "PASS"
+            } else {
+                "FAIL"
+            }
         }
         (None, Some(max_rel)) => {
             if fine_relative_error.is_none() {
@@ -821,7 +866,8 @@ pub fn assess_mesh_refinement_study_bytes(
         }
     };
     if accuracy_status == "FAIL" {
-        diagnostics.push("finest-mesh error exceeds the preregistered accuracy acceptance".to_owned());
+        diagnostics
+            .push("finest-mesh error exceeds the preregistered accuracy acceptance".to_owned());
     }
     if accuracy_status == "UNRESOLVED" {
         diagnostics.push(
@@ -964,10 +1010,9 @@ mod tests {
         let directory = root.join("levels").join(level_id);
         fs::create_dir_all(&directory).unwrap();
         let mut request: Value = serde_json::from_slice(
-            &fs::read(
-                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .join("../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"),
-            )
+            &fs::read(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+                "../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json",
+            ))
             .unwrap(),
         )
         .unwrap();
@@ -1038,7 +1083,11 @@ mod tests {
             "diagnostics":[]
         });
         fs::write(directory.join("request.json"), &request_bytes).unwrap();
-        fs::write(directory.join("receipt.json"), serde_json::to_vec(&receipt).unwrap()).unwrap();
+        fs::write(
+            directory.join("receipt.json"),
+            serde_json::to_vec(&receipt).unwrap(),
+        )
+        .unwrap();
 
         json!({
             "level_id":level_id,
@@ -1081,7 +1130,8 @@ mod tests {
                 "max_fine_relative_error":0.2
             },
             "levels":levels
-        })).unwrap()
+        }))
+        .unwrap()
     }
 
     #[test]
@@ -1144,11 +1194,9 @@ mod tests {
         let bytes = study(&root, [1.5, 0.75, 0.5625]);
         let mut manifest: Value = serde_json::from_slice(&bytes).unwrap();
         manifest["levels"][1]["h_m"] = json!(0.4);
-        let report = assess_mesh_refinement_study_bytes(
-            &serde_json::to_vec(&manifest).unwrap(),
-            &root,
-        )
-        .unwrap();
+        let report =
+            assess_mesh_refinement_study_bytes(&serde_json::to_vec(&manifest).unwrap(), &root)
+                .unwrap();
         assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
         assert_eq!(report["observed_order_finest_three"], Value::Null);
         assert_eq!(report["gci_fine_absolute"], Value::Null);
@@ -1161,11 +1209,9 @@ mod tests {
         let bytes = study(&root, [1.5, 0.45, 0.7]);
         let mut manifest: Value = serde_json::from_slice(&bytes).unwrap();
         manifest["trend_expectation"] = json!("not_assumed");
-        let report = assess_mesh_refinement_study_bytes(
-            &serde_json::to_vec(&manifest).unwrap(),
-            &root,
-        )
-        .unwrap();
+        let report =
+            assess_mesh_refinement_study_bytes(&serde_json::to_vec(&manifest).unwrap(), &root)
+                .unwrap();
         assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
         assert_eq!(report["observed_order_finest_three"], Value::Null);
         fs::remove_dir_all(root).unwrap();
@@ -1217,7 +1263,12 @@ mod tests {
         fs::write(&path, b"not the receipt-declared bytes").unwrap();
         let report = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
         assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
-        assert!(report["diagnostics"][0].as_str().unwrap().contains("artifact verification"));
+        assert!(
+            report["diagnostics"][0]
+                .as_str()
+                .unwrap()
+                .contains("artifact verification")
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -1240,7 +1291,8 @@ mod tests {
         value["acceptance"]["max_fine_absolute_error"] = json!(0.1);
         value["acceptance"]["max_fine_relative_error"] = Value::Null;
         let report =
-            assess_mesh_refinement_study_bytes(&serde_json::to_vec(&value).unwrap(), &root).unwrap();
+            assess_mesh_refinement_study_bytes(&serde_json::to_vec(&value).unwrap(), &root)
+                .unwrap();
         assert_eq!(report["mesh_convergence_status"], "PASS");
         assert_eq!(report["fine_mesh_relative_error_defined"], false);
         assert_eq!(report["fine_mesh_relative_error"], Value::Null);
