@@ -22,12 +22,16 @@ const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
 const ROOT_SEED: u64 = 0x6A09_E667_F3BC_C909;
 const CAPS: [usize; 5] = [1, 2, 3, 4, 8];
-const STRATA_COUNT: usize = 4;
+const STRATA_COUNT: usize = 8;
 const STRATA_NAMES: [&str; STRATA_COUNT] = [
     "claim_changed_after_latest_source",
     "query_evidence_arrived_out_of_order",
     "latest_query_evidence_low_confidence",
     "query_observation_delay_gt_2",
+    "profile_high_distractor_rate",
+    "profile_high_claim_flip_rate",
+    "profile_high_max_delay",
+    "profile_high_corruption_rate",
 ];
 
 fn mix64(mut x: u64) -> u64 {
@@ -59,18 +63,70 @@ impl Family {
     fn name(self) -> &'static str {
         match self { Self::Development => "development", Self::HeldOut => "held_out" }
     }
-    fn distractor_rate(self) -> u64 {
-        match self { Self::Development => 350, Self::HeldOut => 600 }
+
+    fn sample_profile(self, rng: &mut Rng) -> NuisanceProfile {
+        let (distractor_values, flip_values, delay_values, corruption_values) = match self {
+            // The development domain spans milder conditions, but each nuisance
+            // axis is sampled independently per episode.
+            Self::Development => (
+                [150_u64, 250, 350].as_slice(),
+                [10_u64, 20, 30].as_slice(),
+                [0_usize, 1, 2].as_slice(),
+                [0_u64, 10, 20].as_slice(),
+            ),
+            // Held-out ranges shift upward but retain within-family variation
+            // so the evaluator can compare low/high stress episodes in-domain.
+            Self::HeldOut => (
+                [350_u64, 500, 650].as_slice(),
+                [30_u64, 50, 70].as_slice(),
+                [2_usize, 3, 4, 5].as_slice(),
+                [40_u64, 55, 70].as_slice(),
+            ),
+        };
+        let distractor_rate = distractor_values[rng.range(distractor_values.len())];
+        let flip_rate = flip_values[rng.range(flip_values.len())];
+        let max_delay = delay_values[rng.range(delay_values.len())];
+        let corruption_rate = corruption_values[rng.range(corruption_values.len())];
+
+        let (high_distractor_rate, high_flip_rate, high_max_delay, high_corruption_rate) =
+            match self {
+                Self::Development => (
+                    distractor_rate >= 250,
+                    flip_rate >= 20,
+                    max_delay >= 1,
+                    corruption_rate >= 10,
+                ),
+                Self::HeldOut => (
+                    distractor_rate >= 500,
+                    flip_rate >= 50,
+                    max_delay >= 4,
+                    corruption_rate >= 55,
+                ),
+            };
+
+        NuisanceProfile {
+            distractor_rate,
+            flip_rate,
+            max_delay,
+            corruption_rate,
+            high_distractor_rate,
+            high_flip_rate,
+            high_max_delay,
+            high_corruption_rate,
+        }
     }
-    fn flip_rate(self) -> u64 {
-        match self { Self::Development => 25, Self::HeldOut => 65 }
-    }
-    fn max_delay(self) -> usize {
-        match self { Self::Development => 2, Self::HeldOut => 5 }
-    }
-    fn corruption_rate(self) -> u64 {
-        match self { Self::Development => 20, Self::HeldOut => 70 }
-    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct NuisanceProfile {
+    distractor_rate: u64,
+    flip_rate: u64,
+    max_delay: usize,
+    corruption_rate: u64,
+    high_distractor_rate: bool,
+    high_flip_rate: bool,
+    high_max_delay: bool,
+    high_corruption_rate: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -103,6 +159,8 @@ impl Evidence {
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Episode {
     query: Query,
+    // Evaluator-only domain profile; never passed to a memory policy.
+    profile: NuisanceProfile,
     // Evaluator-only state: never passed to a memory policy.
     truth: Vec<[bool; CLAIMS]>,
     // Only these events are revealed to the policy, in arrival order.
@@ -119,13 +177,14 @@ impl Episode {
         }
         let query = Query { keys: [order[0], order[1], order[2]] };
         let hot_distractor = order[3];
+        let profile = family.sample_profile(&mut rng);
 
         let mut truth = vec![[false; CLAIMS]; HORIZON + 1];
         for k in 0..CLAIMS { truth[0][k] = rng.chance(500); }
         for tick in 1..=HORIZON {
             truth[tick] = truth[tick - 1];
             for k in 0..CLAIMS {
-                if rng.chance(family.flip_rate()) { truth[tick][k] = !truth[tick][k]; }
+                if rng.chance(profile.flip_rate) { truth[tick][k] = !truth[tick][k]; }
             }
         }
 
@@ -134,15 +193,15 @@ impl Episode {
             let (key, source) = if arrival < QUERY_WIDTH {
                 (query.keys[arrival], 0)
             } else {
-                let key = if rng.chance(family.distractor_rate()) {
+                let key = if rng.chance(profile.distractor_rate) {
                     hot_distractor
                 } else {
                     query.keys[rng.range(QUERY_WIDTH)]
                 };
-                let delay = rng.range(family.max_delay() + 1);
+                let delay = rng.range(profile.max_delay + 1);
                 (key, arrival.saturating_sub(delay))
             };
-            let corrupted = rng.chance(family.corruption_rate());
+            let corrupted = rng.chance(profile.corruption_rate);
             let mut value = truth[source][key];
             if corrupted { value = !value; }
             stream.push(Evidence {
@@ -153,7 +212,7 @@ impl Episode {
                 confidence: if corrupted { 350 } else { 950 },
             });
         }
-        Self { query, truth, stream }
+        Self { query, profile, truth, stream }
     }
 
     fn target_answer(&self) -> bool {
@@ -211,6 +270,10 @@ impl Episode {
             out_of_order,
             low_confidence_latest,
             long_delay,
+            self.profile.high_distractor_rate,
+            self.profile.high_flip_rate,
+            self.profile.high_max_delay,
+            self.profile.high_corruption_rate,
         ]
     }
 }
@@ -655,7 +718,17 @@ mod tests {
             Evidence { key: 2, value: false, source_tick: 3, arrival_tick: 6, confidence: 350 },
             Evidence { key: 3, value: false, source_tick: 40, arrival_tick: 47, confidence: 950 },
         ];
-        let episode = Episode { query, truth, stream };
+        let profile = NuisanceProfile {
+            distractor_rate: 350,
+            flip_rate: 25,
+            max_delay: 2,
+            corruption_rate: 20,
+            high_distractor_rate: false,
+            high_flip_rate: false,
+            high_max_delay: false,
+            high_corruption_rate: false,
+        };
+        let episode = Episode { query, profile, truth, stream };
         assert_eq!(episode.evaluator_strata(), [true, true, true, true]);
     }
 
@@ -673,11 +746,27 @@ mod tests {
     }
 
     #[test]
-    fn held_out_profile_changes_every_declared_nuisance() {
-        assert!(Family::HeldOut.distractor_rate() > Family::Development.distractor_rate());
-        assert!(Family::HeldOut.flip_rate() > Family::Development.flip_rate());
-        assert!(Family::HeldOut.max_delay() > Family::Development.max_delay());
-        assert!(Family::HeldOut.corruption_rate() > Family::Development.corruption_rate());
+    fn per_episode_nuisances_vary_independently_within_each_family() {
+        for family in [Family::Development, Family::HeldOut] {
+            let profiles: Vec<NuisanceProfile> = (0..256)
+                .map(|seed| {
+                    let mut rng = Rng::new(seed);
+                    family.sample_profile(&mut rng)
+                })
+                .collect();
+            assert!(profiles.iter().map(|p| p.distractor_rate).collect::<std::collections::BTreeSet<_>>().len() > 1);
+            assert!(profiles.iter().map(|p| p.flip_rate).collect::<std::collections::BTreeSet<_>>().len() > 1);
+            assert!(profiles.iter().map(|p| p.max_delay).collect::<std::collections::BTreeSet<_>>().len() > 1);
+            assert!(profiles.iter().map(|p| p.corruption_rate).collect::<std::collections::BTreeSet<_>>().len() > 1);
+        }
+        let mut dev_rng = Rng::new(123);
+        let dev = Family::Development.sample_profile(&mut dev_rng);
+        let mut held_rng = Rng::new(123);
+        let held = Family::HeldOut.sample_profile(&mut held_rng);
+        assert!(held.distractor_rate >= dev.distractor_rate);
+        assert!(held.flip_rate >= dev.flip_rate);
+        assert!(held.max_delay >= dev.max_delay);
+        assert!(held.corruption_rate >= dev.corruption_rate);
     }
 
     #[test]
