@@ -5,14 +5,18 @@ on:
     branches: ["research/vis-relational-memory-v0-1"]
     paths:
       - "tools/vision-relational-memory-bench.rs"
+      - "tools/vision-active-query-bench.rs"
       - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
+      - "docs/research/VIS_ACTIVE_QUERY_BENCH_V0_1.md"
       - ".github/workflows/vision-relational-memory-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: ["main"]
     paths:
       - "tools/vision-relational-memory-bench.rs"
+      - "tools/vision-active-query-bench.rs"
       - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
+      - "docs/research/VIS_ACTIVE_QUERY_BENCH_V0_1.md"
       - ".github/workflows/vision-relational-memory-bench.yml"
   workflow_dispatch:
 
@@ -97,6 +101,28 @@ jobs:
           sha256sum -c vis-relational-memory.sha256
           cat vis-relational-memory.tsv
 
+      - name: Compile, run, and validate active query benchmark
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-query-bench.rs -o /tmp/vis-active-query-tests
+          /tmp/vis-active-query-tests
+          rustc --edition=2024 -O tools/vision-active-query-bench.rs -o /tmp/vis-active-query-bench
+          /tmp/vis-active-query-bench > vis-active-query.tsv
+          /tmp/vis-active-query-bench > vis-active-query-repeat.tsv
+          cmp vis-active-query.tsv vis-active-query-repeat.tsv
+
+          grep -Fq "value_of_information" vis-active-query.tsv
+          grep -Fq "round_robin" vis-active-query.tsv
+          grep -Fq "uniform_random" vis-active-query.tsv
+          grep -Fq "held_out" vis-active-query.tsv
+          test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
+          test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
+          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 6
+          awk -F '\t' '$1 == "family" { if (NF != 14) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 14) exit 1; rows++ } END { if (header != 1 || rows != 12) exit 1 }' vis-active-query.tsv
+          sha256sum vis-active-query.tsv > vis-active-query.sha256
+          sha256sum -c vis-active-query.sha256
+          cat vis-active-query.tsv
+
       - name: Upload reproducible report
         uses: actions/upload-artifact@v4
         with:
@@ -104,5 +130,7 @@ jobs:
           path: |
             vis-relational-memory.tsv
             vis-relational-memory.sha256
+            vis-active-query.tsv
+            vis-active-query.sha256
           if-no-files-found: error
           retention-days: 14
