@@ -26,11 +26,13 @@ Do not add view 2 to view 3. A time record costed at an hourly rate and the invo
 
 ## Fail-closed conditions
 
+- An empty ledger is invalid; empty evidence is not interpreted as a zero-cost build.
 - Duplicate event IDs are invalid.
 - Duplicate line-level financial transaction allocation keys within a build are invalid. Use a source invoice/transaction identifier plus line allocation, not only the invoice header, for the stable key.
 - Financial actuals must be Observed; they cannot be entered as plans or simulations.
 - Empty source references, unresolved rights/access disposition, malformed configuration digests, missing rate-card basis/revision, negative or non-finite quantities, invalid rates and arithmetic overflow are rejected.
-- Missing plans/observations, mismatched configuration revisions, and unresolved related-event references are not auto-filled.
+- Missing plans/observations, mismatched configuration revisions, unresolved references, and cyclic lineage are not auto-filled.
+- Financial actual totals remain partitioned by vessel configuration revision. Aggregation uses stable event-ID order because floating-point addition is not associative; this makes results repeatable under input permutation, but does not make floating-point amounts exact decimal accounting.
 - The implementation checks that source references are present; it does not fetch/authenticate sources, validate license terms, prove payroll was allocated to a task, or establish that a rate is commercially correct.
 
 ## Test contract
