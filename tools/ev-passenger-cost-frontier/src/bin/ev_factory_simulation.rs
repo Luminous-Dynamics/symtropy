@@ -485,7 +485,8 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         schema_version: catalog.schema_version.clone(),
         benchmark_id: catalog.benchmark_id.clone(),
         seed: catalog.seed,
-        random_stream_policy: "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
+        random_stream_policy:
+            "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
         scenario_count: scenarios.len(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
@@ -756,12 +757,7 @@ fn refill_source_buffer(state: &mut SimState, catalog: &Catalog) {
     state.source_buffer_peak = state.source_buffer_peak.max(state.source_buffer.len());
 }
 
-fn sample_service_seconds(
-    catalog: &Catalog,
-    station: &Station,
-    job_id: u64,
-    attempt: u32,
-) -> u64 {
+fn sample_service_seconds(catalog: &Catalog, station: &Station, job_id: u64, attempt: u32) -> u64 {
     DeterministicRng::for_key(
         catalog.seed,
         "service-time",
@@ -1041,45 +1037,21 @@ mod tests {
 
     #[test]
     fn keyed_random_streams_are_reproducible_and_independent_of_unrelated_draws() {
-        let expected_job_b = DeterministicRng::for_key(
-            20261020,
-            "service-time",
-            "battery-module",
-            42,
-            1,
-        )
-        .next_u64();
-        let mut unrelated_job = DeterministicRng::for_key(
-            20261020,
-            "service-time",
-            "battery-module",
-            41,
-            1,
-        );
+        let expected_job_b =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1).next_u64();
+        let mut unrelated_job =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 41, 1);
         for _ in 0..100 {
             let _ = unrelated_job.next_u64();
         }
-        let actual_job_b = DeterministicRng::for_key(
-            20261020,
-            "service-time",
-            "battery-module",
-            42,
-            1,
-        )
-        .next_u64();
+        let actual_job_b =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1).next_u64();
         assert_eq!(expected_job_b, actual_job_b);
-        let job_a = DeterministicRng::for_key(
-            20261020,
-            "service-time",
-            "battery-module",
-            41,
-            1,
-        )
-        .next_u64();
+        let job_a =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 41, 1).next_u64();
         assert_ne!(job_a, expected_job_b);
         assert_ne!(
-            DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1)
-                .next_u64(),
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1).next_u64(),
             DeterministicRng::for_key(20261020, "quality-outcome", "battery-module", 42, 1)
                 .next_u64()
         );
