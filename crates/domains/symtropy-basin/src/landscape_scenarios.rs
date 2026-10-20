@@ -682,6 +682,15 @@ mod tests {
             schema["properties"]["design_snapshot"]["properties"]["coordinate_frame_kind"]["const"],
             LOCAL_DRAWING_FRAME
         );
+        assert_eq!(
+            schema["$defs"]["evaluationPlanRef"]["properties"]["schema"]["const"],
+            EVALUATION_PLAN_SCHEMA
+        );
+        assert_eq!(
+            schema["$defs"]["evaluationPlanRef"]["properties"]["schema_uri"]["const"],
+            EVALUATION_PLAN_SCHEMA_URI
+        );
+        assert!(schema["properties"]["evaluation_plan"]["oneOf"].as_array().unwrap().len() == 2);
         for purpose in ["schema-qualification", "synthetic-benchmark"] {
             assert!(
                 schema["properties"]["purpose"]["enum"]
