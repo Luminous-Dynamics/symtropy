@@ -55,7 +55,7 @@ fn run() -> Result<(), String> {
             "\"source_commit\":\"{}\",",
             "\"evidence_class\":\"synthetic\",",
             "\"result\":\"pass\",",
-            "\"scope\":\"topology_mass_accounting_and_analytical_mechanics\",",
+            "\"scope\":\"topology_mass_accounting_analytical_mechanics_deconstruction_and_dfd\",",
             "\"fixtures\":{{",
             "\"topology_replay\":\"pass\",",
             "\"transactional_rejection\":\"{}\",",
@@ -88,7 +88,7 @@ fn run() -> Result<(), String> {
             "\"dfd_declared_effort_total_person_minutes\":{},",
             "\"dfd_metadata_incomplete_count\":{}",
             "}},",
-            "\"claim_ceiling\":\"software_invariants_and_closed_form_analytical_cases_only_not_structural_or_collapse_prediction\"",
+            "\"claim_ceiling\":\"software_invariants_closed_form_mechanics_and_declared_dfd_metadata_only_not_structural_or_collapse_prediction\"",
             "}}"
         ),
         source_commit.to_ascii_lowercase(),
