@@ -90,6 +90,7 @@ jobs:
           grep -Fq "high_novelty_loss" causal-world-pilot.tsv
           grep -Fq "always_cheap" causal-world-pilot.tsv
           grep -Fq "sequential_evidence" causal-world-pilot.tsv
+          grep -Fq "nuisance_matched" causal-world-pilot.tsv
 
       - name: Upload causal-world diagnostic report
         uses: actions/upload-artifact@v4
