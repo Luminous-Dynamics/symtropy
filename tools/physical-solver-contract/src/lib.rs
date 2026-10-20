@@ -81,9 +81,7 @@ fn validate_provenance(value: &Value, path: &str, issues: &mut Vec<ValidationIss
             "required",
             "source_ref must be present; use null when unavailable",
         );
-    } else if !provenance["source_ref"].is_null()
-        && !provenance["source_ref"].is_string()
-    {
+    } else if !provenance["source_ref"].is_null() && !provenance["source_ref"].is_string() {
         issue(
             issues,
             format!("{path}.source_ref"),
@@ -93,7 +91,9 @@ fn validate_provenance(value: &Value, path: &str, issues: &mut Vec<ValidationIss
     }
     if let Some(uncertainty) = provenance.get("uncertainty_relative") {
         if !uncertainty.is_null()
-            && uncertainty.as_f64().is_none_or(|n| !n.is_finite() || n < 0.0)
+            && uncertainty
+                .as_f64()
+                .is_none_or(|n| !n.is_finite() || n < 0.0)
         {
             issue(
                 issues,
@@ -183,7 +183,12 @@ fn validate_nonnegative_number(
 pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
     let mut issues = Vec::new();
     if !value.is_object() {
-        issue(&mut issues, "$", "type.object", "request must be a JSON object");
+        issue(
+            &mut issues,
+            "$",
+            "type.object",
+            "request must be a JSON object",
+        );
         return issues;
     }
 
@@ -321,7 +326,12 @@ pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
     }
 
     let Some(units) = value.get("units").and_then(Value::as_object) else {
-        issue(&mut issues, "$.units", "type.object", "units must be an object");
+        issue(
+            &mut issues,
+            "$.units",
+            "type.object",
+            "units must be an object",
+        );
         return issues;
     };
     for (key, expected) in [
@@ -396,7 +406,12 @@ pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
         for (index, material) in materials.iter().enumerate() {
             let path = format!("$.materials[{index}]");
             let Some(material) = material.as_object() else {
-                issue(&mut issues, &path, "type.object", "material must be an object");
+                issue(
+                    &mut issues,
+                    &path,
+                    "type.object",
+                    "material must be an object",
+                );
                 continue;
             };
             match material.get("material_id").and_then(Value::as_str) {
@@ -559,7 +574,12 @@ pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
         for (index, condition) in conditions.iter().enumerate() {
             let path = format!("$.boundary_conditions[{index}]");
             let Some(condition) = condition.as_object() else {
-                issue(&mut issues, &path, "type.object", "boundary condition must be an object");
+                issue(
+                    &mut issues,
+                    &path,
+                    "type.object",
+                    "boundary condition must be an object",
+                );
                 continue;
             };
             match condition.get("condition_id").and_then(Value::as_str) {
@@ -722,7 +742,10 @@ pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
                 &mut issues,
                 false,
             );
-            if !acceptance.get("require_convergence").is_some_and(Value::is_boolean) {
+            if !acceptance
+                .get("require_convergence")
+                .is_some_and(Value::is_boolean)
+            {
                 issue(
                     &mut issues,
                     "$.acceptance.require_convergence",
@@ -781,7 +804,10 @@ fn compatible_physics(fidelity: &str, physics: &str) -> bool {
 }
 
 fn has_text(value: &Value, key: &str) -> bool {
-    value.get(key).and_then(Value::as_str).is_some_and(|s| !s.trim().is_empty())
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .is_some_and(|s| !s.trim().is_empty())
 }
 
 /// Validates the receipt structure and, when supplied, its exact request-byte binding.
@@ -795,7 +821,12 @@ pub fn validate_receipt_json(
 ) -> Vec<ValidationIssue> {
     let mut issues = Vec::new();
     if !receipt.is_object() {
-        issue(&mut issues, "$", "type.object", "receipt must be a JSON object");
+        issue(
+            &mut issues,
+            "$",
+            "type.object",
+            "receipt must be a JSON object",
+        );
         return issues;
     }
 
@@ -899,7 +930,9 @@ pub fn validate_receipt_json(
     }
     if !matches!(
         receipt.get("evidence_class").and_then(Value::as_str),
-        Some("synthetic" | "analytical_reference" | "simulated" | "measured_comparison" | "unknown")
+        Some(
+            "synthetic" | "analytical_reference" | "simulated" | "measured_comparison" | "unknown"
+        )
     ) {
         issue(
             &mut issues,
@@ -910,11 +943,20 @@ pub fn validate_receipt_json(
     }
 
     let Some(adapter) = receipt.get("adapter").and_then(Value::as_object) else {
-        issue(&mut issues, "$.adapter", "type.object", "adapter must be an object");
+        issue(
+            &mut issues,
+            "$.adapter",
+            "type.object",
+            "adapter must be an object",
+        );
         return issues;
     };
     for key in ["adapter_id", "version"] {
-        if !adapter.get(key).and_then(Value::as_str).is_some_and(|s| !s.trim().is_empty()) {
+        if !adapter
+            .get(key)
+            .and_then(Value::as_str)
+            .is_some_and(|s| !s.trim().is_empty())
+        {
             issue(
                 &mut issues,
                 format!("$.adapter.{key}"),
@@ -970,9 +1012,7 @@ pub fn validate_receipt_json(
         }
     }
     if let Some(residual) = convergence.get("residual") {
-        if !residual.is_null()
-            && residual.as_f64().is_none_or(|n| !n.is_finite() || n < 0.0)
-        {
+        if !residual.is_null() && residual.as_f64().is_none_or(|n| !n.is_finite() || n < 0.0) {
             issue(
                 &mut issues,
                 "$.convergence.residual",
@@ -1002,18 +1042,32 @@ pub fn validate_receipt_json(
     }
 
     let Some(outputs) = receipt.get("outputs").and_then(Value::as_array) else {
-        issue(&mut issues, "$.outputs", "type.array", "outputs must be an array");
+        issue(
+            &mut issues,
+            "$.outputs",
+            "type.array",
+            "outputs must be an array",
+        );
         return issues;
     };
     let mut output_ids = BTreeSet::new();
     for (index, output) in outputs.iter().enumerate() {
         let path = format!("$.outputs[{index}]");
         let Some(output) = output.as_object() else {
-            issue(&mut issues, &path, "type.object", "output must be an object");
+            issue(
+                &mut issues,
+                &path,
+                "type.object",
+                "output must be an object",
+            );
             continue;
         };
         for key in ["output_id", "kind", "media_type", "artifact_ref"] {
-            if !output.get(key).and_then(Value::as_str).is_some_and(|s| !s.trim().is_empty()) {
+            if !output
+                .get(key)
+                .and_then(Value::as_str)
+                .is_some_and(|s| !s.trim().is_empty())
+            {
                 issue(
                     &mut issues,
                     format!("{path}.{key}"),
@@ -1052,7 +1106,10 @@ pub fn validate_receipt_json(
                 "output sha256 must be 64 lowercase hexadecimal characters",
             );
         }
-        if output.get("unit").is_some_and(|v| !v.is_null() && !v.is_string()) {
+        if output
+            .get("unit")
+            .is_some_and(|v| !v.is_null() && !v.is_string())
+        {
             issue(
                 &mut issues,
                 format!("{path}.unit"),
@@ -1106,7 +1163,11 @@ pub fn validate_receipt_json(
             );
         }
         for key in ["solver_name", "solver_version", "solver_build_ref"] {
-            if !adapter.get(key).and_then(Value::as_str).is_some_and(|s| !s.trim().is_empty()) {
+            if !adapter
+                .get(key)
+                .and_then(Value::as_str)
+                .is_some_and(|s| !s.trim().is_empty())
+            {
                 issue(
                     &mut issues,
                     format!("$.adapter.{key}"),
@@ -1147,7 +1208,10 @@ pub fn validate_receipt_json(
         }
 
         if status == Some("PASS") {
-            let fidelity = request.get("model_fidelity").and_then(Value::as_str).unwrap_or("");
+            let fidelity = request
+                .get("model_fidelity")
+                .and_then(Value::as_str)
+                .unwrap_or("");
             if let Some(physics) = request.get("requested_physics").and_then(Value::as_array) {
                 for (index, item) in physics.iter().enumerate() {
                     let requested = item.as_str().unwrap_or("");
@@ -1213,12 +1277,15 @@ pub fn validate_receipt_json(
 mod tests {
     use super::*;
 
-    const BAR_REQUEST: &str =
-        include_str!("../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json");
-    const UNSUPPORTED_REQUEST: &str =
-        include_str!("../../../schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json");
-    const UNRESOLVED_RECEIPT: &str =
-        include_str!("../../../schemas/physical-transformation/fixtures/unresolved-receipt-v0.1.json");
+    const BAR_REQUEST: &str = include_str!(
+        "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+    );
+    const UNSUPPORTED_REQUEST: &str = include_str!(
+        "../../../schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json"
+    );
+    const UNRESOLVED_RECEIPT: &str = include_str!(
+        "../../../schemas/physical-transformation/fixtures/unresolved-receipt-v0.1.json"
+    );
 
     #[test]
     fn analytical_bar_request_is_contract_valid_but_not_a_solver_result() {
@@ -1230,7 +1297,10 @@ mod tests {
     fn unsupported_physics_request_is_validly_described_not_auto_promoted() {
         let request: Value = serde_json::from_str(UNSUPPORTED_REQUEST).unwrap();
         assert!(validate_request_json(&request).is_empty());
-        assert!(!compatible_physics("analytical_linear_elastic", "dynamic_response"));
+        assert!(!compatible_physics(
+            "analytical_linear_elastic",
+            "dynamic_response"
+        ));
         assert!(!compatible_physics("analytical_linear_elastic", "fracture"));
     }
 
@@ -1248,9 +1318,11 @@ mod tests {
     fn duplicate_load_ids_and_dofs_are_rejected() {
         let mut request: Value = serde_json::from_str(BAR_REQUEST).unwrap();
         let duplicate_load = request["loads"][0].clone();
-        request["loads"].as_array_mut().unwrap().push(duplicate_load);
-        request["boundary_conditions"][0]["dofs"] =
-            serde_json::json!(["ux", "ux"]);
+        request["loads"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate_load);
+        request["boundary_conditions"][0]["dofs"] = serde_json::json!(["ux", "ux"]);
         let issues = validate_request_json(&request);
         assert!(issues.iter().any(|i| i.code == "duplicate"));
     }
@@ -1269,9 +1341,8 @@ mod tests {
         receipt["request_sha256"] = Value::String(sha256_hex(&request_bytes));
         receipt["request_id"] = request["request_id"].clone();
         receipt["source_revision"] = request["source_revision"].clone();
-        receipt["claim_ceiling"] = Value::String(
-            "UNRESOLVED: unsupported dynamic fracture is not evaluated.".to_owned(),
-        );
+        receipt["claim_ceiling"] =
+            Value::String("UNRESOLVED: unsupported dynamic fracture is not evaluated.".to_owned());
         assert!(validate_receipt_json(&receipt, Some(&request), Some(&request_bytes)).is_empty());
 
         request["scene_revision"] = Value::from(2);

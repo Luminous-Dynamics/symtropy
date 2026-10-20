@@ -4,7 +4,8 @@ use std::{env, fs, process::ExitCode};
 
 fn read_json(path: &str) -> Result<(Vec<u8>, Value), String> {
     let bytes = fs::read(path).map_err(|err| format!("cannot read {path}: {err}"))?;
-    let value = serde_json::from_slice(&bytes).map_err(|err| format!("invalid JSON in {path}: {err}"))?;
+    let value =
+        serde_json::from_slice(&bytes).map_err(|err| format!("invalid JSON in {path}: {err}"))?;
     Ok((bytes, value))
 }
 
