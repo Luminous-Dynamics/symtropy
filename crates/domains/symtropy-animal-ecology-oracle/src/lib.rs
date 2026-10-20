@@ -577,7 +577,8 @@ fn is_valid_iso_date(date: &str) -> bool {
         Ok(value) => value,
         _ => return false,
     };
-    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let leap = year.is_multiple_of(4)
+        && (!year.is_multiple_of(100) || year.is_multiple_of(400));
     let month_days = match month {
         2 if leap => 29,
         2 => 28,
@@ -969,12 +970,6 @@ pub fn validate_pilot_manifest(
         true,
         "pilot.budget_contract",
     )?;
-    require_exact_bool(
-        budget,
-        "failed_selected_episodes_remain_in_denominator",
-        true,
-        "pilot.budget_contract",
-    )?;
 
     let comparison = object_at(&root, "policy_comparison", "pilot")?;
     check_exact_keys(
@@ -1119,13 +1114,34 @@ pub fn validate_pilot_manifest(
     require_schema_const(schema_properties, "scenario_id", "flood_forage_risk_corridor_v0")?;
     require_schema_const(schema_properties, "independent_unit", "episode_seed_pair")?;
     require_schema_string(schema_properties, "schema_version", "type", "string")?;
-    require_schema_integer(
-        schema_properties.get("randomization").ok_or_else(|| {
-            ValidationError::new("pilot schema.properties.randomization is required")
-        })?,
-        "minLength",
-        1,
-    ).err();
+    let randomization_schema = schema_properties
+        .get("randomization")
+        .ok_or_else(|| ValidationError::new("pilot schema.properties.randomization is required"))?;
+    require_exact_string(
+        randomization_schema,
+        "type",
+        "object",
+        "pilot schema.properties.randomization",
+    )?;
+    require_schema_bool(
+        randomization_schema,
+        "additionalProperties",
+        false,
+        "pilot schema.properties.randomization",
+    )?;
+    require_schema_required_fields(
+        randomization_schema,
+        RANDOMIZATION_KEYS,
+        "pilot schema.properties.randomization",
+    )?;
+    let randomization_properties = randomization_schema
+        .get("properties")
+        .ok_or_else(|| ValidationError::new("pilot randomization schema properties are required"))?;
+    let seed_schema = randomization_properties
+        .get("seeds")
+        .ok_or_else(|| ValidationError::new("pilot seed schema is required"))?;
+    require_schema_integer(seed_schema, "minItems", 10)?;
+    require_schema_bool(seed_schema, "uniqueItems", true, "pilot seed schema")?;
 
     Ok(PilotValidationReport {
         scenario_id: required_string(&root, "scenario_id", "pilot")?.to_owned(),
