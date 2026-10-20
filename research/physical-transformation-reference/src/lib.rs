@@ -572,9 +572,7 @@ mod tests {
         world
             .apply(Event {
                 id: "remove-A".to_owned(),
-                operation: Operation::RemoveComponent {
-                    id: "A".to_owned(),
-                },
+                operation: Operation::RemoveComponent { id: "A".to_owned() },
             })
             .expect("component can be removed after support release");
         assert_eq!(world.component_count(), 0);
