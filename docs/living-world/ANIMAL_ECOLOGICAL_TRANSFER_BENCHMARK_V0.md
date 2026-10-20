@@ -76,6 +76,10 @@ Group by independent episode, animal/individual where identity persists, and eco
 
 All split membership and scenario hashes are frozen before candidate comparison. A claimed species-level transfer result must use an actually held-out species/taxon and appropriate rights; synthetic archetype coverage is not real-species evidence.
 
+### Aquatic and hydrological regime slice
+
+Where the world model includes water, include explicit tests for current-vector changes, flood timing, water depth, habitat/corridor connectivity, and delayed trophic/resource effects. Keep the fluid/hydrological field, what a given sensor can observe locally, and the rendered image as separate layers. Flooding can change traversability even if a surface looks similar; a rendered current is not a substitute for the simulated flow field. Enforce declared habitat/movement capabilities by evidence class (measured, modeled, or synthetic); do not infer aquatic competence from generic movement or claim real-species validity from synthetic profiles. For open water/resource boundaries, account for declared fluxes rather than imposing a closed-box conservation rule.
+
 ### Baselines
 
 Use a ladder, with the exact method selected per task:
