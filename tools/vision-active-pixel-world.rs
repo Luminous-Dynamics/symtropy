@@ -474,7 +474,7 @@ impl Memory {
                 }
             }
             Self::UniformReservoir { entries, seen, actor_seed } => {
-                *seen = seen.saturating_add(1);
+                *seen = (*seen).saturating_add(1);
                 if entries.len() < 2 {
                     entries.push_back(evidence);
                 } else {
@@ -483,7 +483,7 @@ impl Memory {
                     // outcome label is available to this update.
                     let draw = mix64(
                         *actor_seed
-                            ^ seen.wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                            ^ (*seen).wrapping_mul(0x9E37_79B9_7F4A_7C15)
                             ^ 0x554E_4946_4F52_4D52,
                     ) % *seen;
                     if draw < 2 {
