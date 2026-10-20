@@ -45,9 +45,27 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
-      - name: Format check
+      - name: Format Rust sources (temporary artifact collection)
         shell: bash
-        run: cargo fmt --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml -- --check
+        run: cargo fmt --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml
+
+      - name: Archive formatted Rust audit source for review
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf tavis-audit-formatted.tar.gz \
+            tools/vision-active-benchmarks/tavis-result-audit
+
+      - name: Upload formatted source archive
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tavis-audit-formatted-source
+          path: tavis-audit-formatted.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Compile and test result audit
         shell: bash
         run: cargo test --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml
