@@ -71,7 +71,36 @@
           }
         }
       }
+    },
+    "model_weight_intervals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model_id",
+          "lower",
+          "upper"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lower": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "upper": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
     }
   },
-  "$comment": "Schema does not check sums of model weights, equal action sets across models, valid admissible-action references, finite model values in all language bindings, or scientific adequacy. The Rust decision kernel enforces the applicable numeric/action-set invariants."
+  "$comment": "Schema does not check sums of model weights, equal action sets across models, valid admissible-action references, finite model values in all language bindings, or scientific adequacy. The Rust decision kernel enforces the applicable numeric/action-set invariants. If model_weight_intervals is supplied, it must name exactly the declared model set, contain each nominal model weight, and admit a simplex with total weight one; the Rust semantic kernel checks these conditions and returns worst/best expected-loss witnesses."
 }
