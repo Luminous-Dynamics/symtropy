@@ -28,6 +28,9 @@ The Rust `score_weight_sensitivity` kernel therefore accepts a closed model set 
 
 This is a **weight-sensitivity envelope**, not a posterior credible interval. It does not establish that the intervals are justified, that model structures are exhaustive, or that losses are biologically calibrated. Report it alongside—not instead of—point-weight expected loss, worst-case model loss, CVaR, per-model regret, and the model-specific outcomes. If a candidate action's risk ranking flips within defensible weight bounds, disclose that reversal; do not present one nominal ensemble ranking as robust. If no defensible model weights exist, use unweighted worst-case/regret analysis or mark weighted metrics not assessed rather than inventing probability semantics.
 
+Per-action minima and maxima must not be compared as though their extrema occur under the same model weights. The paired API `compare_actions_under_weight_uncertainty` instead bounds `loss(first) - loss(second)` using **one shared weight vector** at a time. It distinguishes a ranking that can genuinely flip from one action being strictly better or merely never worse over the admissible weight set. For example, a synthetic two-model fixture can have a graze/retreat ranking flip while retreat strictly dominates waiting; that result exposes which additional evidence could matter to the decision instead of collapsing model disagreement into one ensemble mean. The CLI reports every action pair's difference range and stability class whenever intervals are supplied.
+
+
 Semantic tests should include exact extrema with analytically solvable two-model fixtures, infeasible simplex bounds, duplicated/missing model intervals, nominal weights outside their intervals, missing action losses, and non-finite inputs.
 
 
