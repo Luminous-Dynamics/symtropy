@@ -401,6 +401,12 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         return Err("candidate_list_must_not_be_empty".to_string());
     }
     let mut candidate_ids = BTreeSet::new();
+    if catalog.currency.len() != 3
+        || !catalog.currency.chars().all(|character| character.is_ascii_uppercase())
+    {
+        return Err("currency_must_be_three_letter_uppercase_code".to_string());
+    }
+
     for candidate in &catalog.candidates {
         if !candidate_ids.insert(candidate.candidate_id.clone()) {
             return Err(format!(
@@ -408,13 +414,13 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 candidate.candidate_id
             ));
         }
-        validate_candidate(candidate)
+        validate_candidate(candidate, &catalog.currency)
             .map_err(|error| format!("{}: {error}", candidate.candidate_id))?;
     }
     Ok(())
 }
 
-fn validate_candidate(candidate: &Candidate) -> Result<(), String> {
+fn validate_candidate(candidate: &Candidate, currency: &str) -> Result<(), String> {
     for (name, value) in [
         ("candidate_id", candidate.candidate_id.as_str()),
         ("label", candidate.label.as_str()),
@@ -482,6 +488,23 @@ fn validate_candidate(candidate: &Candidate) -> Result<(), String> {
         nonblank("component_id", &component.component_id)?;
         nonblank("quantity_unit", &component.quantity_unit)?;
         nonblank("unit_cost_basis", &component.unit_cost_basis)?;
+        let denominator = match component.quantity_unit.as_str() {
+            "kWh_pack_nominal" => "kWh",
+            "vehicle_set" => "vehicle_set",
+            "unit" => "unit",
+            _ => {
+                return Err(format!(
+                    "unsupported_quantity_unit: {}",
+                    component.quantity_unit
+                ));
+            }
+        };
+        let expected_unit_cost_basis = format!("{currency}_per_{denominator}");
+        if component.unit_cost_basis != expected_unit_cost_basis {
+            return Err(format!(
+                "unit_cost_basis_mismatch: expected {expected_unit_cost_basis}"
+            ));
+        }
         if !component_ids.insert(component.component_id.clone()) {
             return Err(format!(
                 "duplicate_component_id: {}",
@@ -980,6 +1003,28 @@ mod tests {
             validate_catalog(&catalog)
                 .unwrap_err()
                 .contains("manufacturing_yield_fraction_must_be_positive")
+        );
+    }
+
+    #[test]
+    fn currency_and_unit_cost_basis_mismatches_are_rejected() {
+        let mut catalog = minimal_catalog();
+        catalog.candidates[0].components[0].unit_cost_basis = "USD_per_unit".to_string();
+        assert!(
+            validate_catalog(&catalog)
+                .unwrap_err()
+                .contains("unit_cost_basis_mismatch")
+        );
+    }
+
+    #[test]
+    fn unsupported_component_quantity_units_are_rejected() {
+        let mut catalog = minimal_catalog();
+        catalog.candidates[0].components[0].quantity_unit = "battery_module".to_string();
+        assert!(
+            validate_catalog(&catalog)
+                .unwrap_err()
+                .contains("unsupported_quantity_unit")
         );
     }
 

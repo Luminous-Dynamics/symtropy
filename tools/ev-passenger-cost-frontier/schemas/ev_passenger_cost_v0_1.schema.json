@@ -22,7 +22,7 @@
     },
     "currency": {
       "type": "string",
-      "minLength": 1
+      "pattern": "^[A-Z]{3}$"
     },
     "claim_ceiling": {
       "type": "string",
@@ -297,12 +297,15 @@
           "$ref": "#/$defs/cost_range"
         },
         "quantity_unit": {
-          "type": "string",
-          "minLength": 1
+          "enum": [
+            "kWh_pack_nominal",
+            "vehicle_set",
+            "unit"
+          ]
         },
         "unit_cost_basis": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[A-Z]{3}_per_(kWh|vehicle_set|unit)$"
         }
       }
     },
