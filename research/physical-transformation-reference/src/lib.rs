@@ -33,6 +33,26 @@ pub enum Operation {
     CreateConnection(Connection),
     RemoveConnection { id: String },
     SetSupport { component_id: String, active: bool },
+    RecoverComponent {
+        component_id: String,
+        reused_mg: u64,
+        recycled_mg: u64,
+        contaminated_mg: u64,
+        waste_mg: u64,
+        unaccounted_mg: u64,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MaterialRecoveryRecord {
+    pub component_id: String,
+    pub material: String,
+    pub input_mass_mg: u64,
+    pub reused_mg: u64,
+    pub recycled_mg: u64,
+    pub contaminated_mg: u64,
+    pub waste_mg: u64,
+    pub unaccounted_mg: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -46,6 +66,7 @@ pub struct World {
     components: BTreeMap<String, Component>,
     connections: BTreeMap<String, Connection>,
     active_supports: BTreeSet<String>,
+    recovered_components: BTreeMap<String, MaterialRecoveryRecord>,
     applied_event_ids: BTreeSet<String>,
     revision: u64,
 }
@@ -65,6 +86,17 @@ impl World {
 
     pub fn active_support_count(&self) -> usize {
         self.active_supports.len()
+    }
+
+    pub fn recovered_component_count(&self) -> usize {
+        self.recovered_components.len()
+    }
+
+    pub fn recovered_mass_mg(&self) -> Check<u64> {
+        self.recovered_components.values().try_fold(0_u64, |sum, record| {
+            sum.checked_add(record.input_mass_mg)
+                .ok_or_else(|| "recovered mass total overflow".to_owned())
+        })
     }
 
     /// Apply one event transactionally: any rejected operation leaves every
@@ -156,6 +188,60 @@ impl World {
                     return Err(format!("support is not active: {component_id}"));
                 }
             }
+            Operation::RecoverComponent {
+                component_id,
+                reused_mg,
+                recycled_mg,
+                contaminated_mg,
+                waste_mg,
+                unaccounted_mg,
+            } => {
+                validate_token(&component_id, "component ID")?;
+                let component = self
+                    .components
+                    .get(&component_id)
+                    .cloned()
+                    .ok_or_else(|| format!("unknown component to recover: {component_id}"))?;
+
+                if self.recovered_components.contains_key(&component_id) {
+                    return Err(format!("component already has recovery record: {component_id}"));
+                }
+                if self.active_supports.contains(&component_id) {
+                    return Err(format!("cannot recover supported component: {component_id}"));
+                }
+                if self
+                    .connections
+                    .values()
+                    .any(|connection| connection.a == component_id || connection.b == component_id)
+                {
+                    return Err(format!("cannot recover connected component: {component_id}"));
+                }
+
+                MassLedger {
+                    input_mg: component.mass_mg,
+                    reused_mg,
+                    recycled_mg,
+                    contaminated_mg,
+                    waste_mg,
+                    unaccounted_mg,
+                }
+                .validate()?;
+
+                self.components.remove(&component_id);
+                self.recovered_components.insert(
+                    component_id.clone(),
+                    MaterialRecoveryRecord {
+                        component_id,
+                        material: component.material,
+                        input_mass_mg: component.mass_mg,
+                        reused_mg,
+                        recycled_mg,
+                        contaminated_mg,
+                        waste_mg,
+                        unaccounted_mg,
+                    },
+                );
+            }
         }
         Ok(())
     }
@@ -227,6 +313,19 @@ impl World {
         for support in &self.active_supports {
             out.push_str(&format!("support|{support}\n"));
         }
+        for record in self.recovered_components.values() {
+            out.push_str(&format!(
+                "recovered|{}|{}|{}|{}|{}|{}|{}|{}\n",
+                record.component_id,
+                record.material,
+                record.input_mass_mg,
+                record.reused_mg,
+                record.recycled_mg,
+                record.contaminated_mg,
+                record.waste_mg,
+                record.unaccounted_mg
+            ));
+        }
         out
     }
 }
@@ -285,6 +384,8 @@ pub struct FixtureOutcome {
     pub accepted_balanced_mass_ledger: bool,
     pub rejected_imbalanced_mass_ledger: bool,
     pub rejected_mutation_was_atomic: bool,
+    pub recovered_component_count: usize,
+    pub recovered_mass_mg: u64,
 }
 
 pub fn run_reference_fixture() -> Check<FixtureOutcome> {
@@ -379,6 +480,29 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
     };
     let rejected_imbalanced_mass_ledger = imbalanced.validate().is_err();
 
+    let mut recovery_world = World::default();
+    recovery_world.apply(Event {
+        id: "install-recovery-component".to_owned(),
+        operation: Operation::InstallComponent(Component {
+            id: "RECOVER-001".to_owned(),
+            material: "steel".to_owned(),
+            mass_mg: 1_000,
+        }),
+    })?;
+    recovery_world.apply(Event {
+        id: "recover-component".to_owned(),
+        operation: Operation::RecoverComponent {
+            component_id: "RECOVER-001".to_owned(),
+            reused_mg: 500,
+            recycled_mg: 300,
+            contaminated_mg: 50,
+            waste_mg: 100,
+            unaccounted_mg: 50,
+        },
+    })?;
+    let recovered_component_count = recovery_world.recovered_component_count();
+    let recovered_mass_mg = recovery_world.recovered_mass_mg()?;
+
     let outcome = FixtureOutcome {
         initial_connected_components,
         after_cut_connected_components,
@@ -388,6 +512,8 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
         accepted_balanced_mass_ledger,
         rejected_imbalanced_mass_ledger,
         rejected_mutation_was_atomic,
+        recovered_component_count,
+        recovered_mass_mg,
     };
 
     if outcome.initial_connected_components != 1
@@ -398,6 +524,8 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
         || !outcome.accepted_balanced_mass_ledger
         || !outcome.rejected_imbalanced_mass_ledger
         || !outcome.rejected_mutation_was_atomic
+        || outcome.recovered_component_count != 1
+        || outcome.recovered_mass_mg != 1_000
     {
         return Err(format!(
             "frozen fixture did not meet expected contract: {outcome:?}"
@@ -446,6 +574,8 @@ mod tests {
         assert!(result.accepted_balanced_mass_ledger);
         assert!(result.rejected_imbalanced_mass_ledger);
         assert!(result.rejected_mutation_was_atomic);
+        assert_eq!(result.recovered_component_count, 1);
+        assert_eq!(result.recovered_mass_mg, 1_000);
     }
 
     #[test]
@@ -578,6 +708,91 @@ mod tests {
             })
             .expect("component can be removed after support release");
         assert_eq!(world.component_count(), 0);
+    }
+
+
+    #[test]
+    fn component_recovery_is_atomic_and_binds_ledger_to_declared_component_mass() {
+        let mut world = World::default();
+        install(&mut world, "install-A", "A");
+        install(&mut world, "install-B", "B");
+        world
+            .apply(Event {
+                id: "connect-AB".to_owned(),
+                operation: Operation::CreateConnection(Connection {
+                    id: "AB".to_owned(),
+                    a: "A".to_owned(),
+                    b: "B".to_owned(),
+                }),
+            })
+            .expect("valid connection");
+
+        let before_connected_recovery = world.canonical_snapshot();
+        let revision_before_connected_recovery = world.revision();
+        assert!(
+            world
+                .apply(Event {
+                    id: "recover-A".to_owned(),
+                    operation: Operation::RecoverComponent {
+                        component_id: "A".to_owned(),
+                        reused_mg: 500,
+                        recycled_mg: 300,
+                        contaminated_mg: 50,
+                        waste_mg: 100,
+                        unaccounted_mg: 50,
+                    },
+                })
+                .is_err()
+        );
+        assert_eq!(world.canonical_snapshot(), before_connected_recovery);
+        assert_eq!(world.revision(), revision_before_connected_recovery);
+
+        world
+            .apply(Event {
+                id: "disconnect-AB".to_owned(),
+                operation: Operation::RemoveConnection {
+                    id: "AB".to_owned(),
+                },
+            })
+            .expect("connection can be removed");
+
+        let before_imbalanced_recovery = world.canonical_snapshot();
+        let revision_before_imbalanced_recovery = world.revision();
+        assert!(
+            world
+                .apply(Event {
+                    id: "recover-A".to_owned(),
+                    operation: Operation::RecoverComponent {
+                        component_id: "A".to_owned(),
+                        reused_mg: 500,
+                        recycled_mg: 300,
+                        contaminated_mg: 50,
+                        waste_mg: 100,
+                        unaccounted_mg: 49,
+                    },
+                })
+                .is_err()
+        );
+        assert_eq!(world.canonical_snapshot(), before_imbalanced_recovery);
+        assert_eq!(world.revision(), revision_before_imbalanced_recovery);
+
+        world
+            .apply(Event {
+                id: "recover-A".to_owned(),
+                operation: Operation::RecoverComponent {
+                    component_id: "A".to_owned(),
+                    reused_mg: 500,
+                    recycled_mg: 300,
+                    contaminated_mg: 50,
+                    waste_mg: 100,
+                    unaccounted_mg: 50,
+                },
+            })
+            .expect("balanced recovery succeeds after preconditions are satisfied");
+        assert_eq!(world.component_count(), 1);
+        assert_eq!(world.recovered_component_count(), 1);
+        assert_eq!(world.recovered_mass_mg().expect("valid recovered mass"), 1_000);
+        assert!(world.canonical_snapshot().contains("recovered|A|steel|1000|500|300|50|100|50"));
     }
 
     #[test]
