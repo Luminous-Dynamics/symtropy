@@ -1,0 +1,445 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "WILDFIRE-ROUTE-ASSIGNMENT-001",
+  "classification": "synthetic_only",
+  "max_units": 16,
+  "max_joint_assignments": 100000,
+  "objective_order": [
+    "unserved_or_stranded_vehicles",
+    "p95_arrival_step",
+    "queue_vehicle_steps",
+    "free_flow_travel_steps",
+    "lexical_route_id_vector"
+  ],
+  "cases": [
+    {
+      "case_id": "SHARED_SHORT_BOTTLENECK_001",
+      "horizon_steps": 24,
+      "edges": [
+        {
+          "id": "A_J",
+          "from": "A",
+          "to": "J",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "B_J",
+          "from": "B",
+          "to": "J",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "J_S",
+          "from": "J",
+          "to": "S",
+          "capacity_per_step": 1,
+          "storage": 3,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "A_K",
+          "from": "A",
+          "to": "K",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "K_M",
+          "from": "K",
+          "to": "M",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "M_S",
+          "from": "M",
+          "to": "S",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "B_L",
+          "from": "B",
+          "to": "L",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "L_N",
+          "from": "L",
+          "to": "N",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "N_S",
+          "from": "N",
+          "to": "S",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SINK",
+          "node_id": "S",
+          "ingress_capacity_per_step": 3,
+          "total_capacity": 6,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_A",
+          "origin_node": "A",
+          "vehicles": 3,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "candidate_routes": [
+            {
+              "id": "A_SHORT",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "A_J",
+                "J_S"
+              ]
+            },
+            {
+              "id": "A_DETOUR",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "A_K",
+                "K_M",
+                "M_S"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DEMAND_B",
+          "origin_node": "B",
+          "vehicles": 3,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "candidate_routes": [
+            {
+              "id": "B_SHORT",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "B_J",
+                "J_S"
+              ]
+            },
+            {
+              "id": "B_DETOUR",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "B_L",
+                "L_N",
+                "N_S"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CLOSURE_MAKES_FASTEST_PATH_UNUSABLE_002",
+      "horizon_steps": 24,
+      "edges": [
+        {
+          "id": "O_A",
+          "from": "O",
+          "to": "A",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "A_BRIDGE",
+          "from": "A",
+          "to": "B",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": 4
+        },
+        {
+          "id": "BRIDGE_S",
+          "from": "B",
+          "to": "S",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "O_C",
+          "from": "O",
+          "to": "C",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "C_D",
+          "from": "C",
+          "to": "D",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "D_E",
+          "from": "D",
+          "to": "E",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "E_S",
+          "from": "E",
+          "to": "S",
+          "capacity_per_step": 2,
+          "storage": 4,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SINK",
+          "node_id": "S",
+          "ingress_capacity_per_step": 3,
+          "total_capacity": 4,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_EARLY",
+          "origin_node": "O",
+          "vehicles": 2,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "candidate_routes": [
+            {
+              "id": "A_BRIDGE_FAST",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "O_A",
+                "A_BRIDGE",
+                "BRIDGE_S"
+              ]
+            },
+            {
+              "id": "Z_DETOUR",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "O_C",
+                "C_D",
+                "D_E",
+                "E_S"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DEMAND_LATE",
+          "origin_node": "O",
+          "vehicles": 2,
+          "accessible_vehicles": 1,
+          "departure_step": 3,
+          "candidate_routes": [
+            {
+              "id": "A_BRIDGE_FAST",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "O_A",
+                "A_BRIDGE",
+                "BRIDGE_S"
+              ]
+            },
+            {
+              "id": "Z_DETOUR",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "O_C",
+                "C_D",
+                "D_E",
+                "E_S"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "SHELTER_TOTAL_AND_ACCESSIBILITY_CAPACITY_003",
+      "horizon_steps": 20,
+      "edges": [
+        {
+          "id": "O_S1",
+          "from": "O",
+          "to": "S1",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "O_A",
+          "from": "O",
+          "to": "A",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "A_S2",
+          "from": "A",
+          "to": "S2",
+          "capacity_per_step": 3,
+          "storage": 6,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SHELTER_FAST",
+          "node_id": "S1",
+          "ingress_capacity_per_step": 2,
+          "total_capacity": 2,
+          "accessible_capacity": 1
+        },
+        {
+          "id": "SHELTER_ALTERNATE",
+          "node_id": "S2",
+          "ingress_capacity_per_step": 2,
+          "total_capacity": 6,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_HOME",
+          "origin_node": "O",
+          "vehicles": 4,
+          "accessible_vehicles": 2,
+          "departure_step": 1,
+          "candidate_routes": [
+            {
+              "id": "FAST_LIMITED_SHELTER",
+              "destination_sink_id": "SHELTER_FAST",
+              "route_edge_ids": [
+                "O_S1"
+              ]
+            },
+            {
+              "id": "SLOW_CAPABLE_SHELTER",
+              "destination_sink_id": "SHELTER_ALTERNATE",
+              "route_edge_ids": [
+                "O_A",
+                "A_S2"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "SHORT_ROUTE_ALREADY_OPTIMAL_004",
+      "horizon_steps": 16,
+      "edges": [
+        {
+          "id": "O_FAST",
+          "from": "O",
+          "to": "S",
+          "capacity_per_step": 4,
+          "storage": 8,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "O_ALT",
+          "from": "O",
+          "to": "A",
+          "capacity_per_step": 4,
+          "storage": 8,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        },
+        {
+          "id": "A_ALT",
+          "from": "A",
+          "to": "S",
+          "capacity_per_step": 4,
+          "storage": 8,
+          "travel_time_steps": 1,
+          "closed_from_step": null
+        }
+      ],
+      "sinks": [
+        {
+          "id": "SINK",
+          "node_id": "S",
+          "ingress_capacity_per_step": 4,
+          "total_capacity": 4,
+          "accessible_capacity": 2
+        }
+      ],
+      "demands": [
+        {
+          "id": "DEMAND_DIRECT",
+          "origin_node": "O",
+          "vehicles": 2,
+          "accessible_vehicles": 1,
+          "departure_step": 1,
+          "candidate_routes": [
+            {
+              "id": "A_DIRECT_FAST",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "O_FAST"
+              ]
+            },
+            {
+              "id": "Z_LONGER_ALT",
+              "destination_sink_id": "SINK",
+              "route_edge_ids": [
+                "O_ALT",
+                "A_ALT"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
