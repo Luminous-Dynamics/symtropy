@@ -917,4 +917,23 @@ mod tests {
             Err(ScheduleError::NoScheduleFoundByHeuristic { .. })
         ));
     }
+
+    #[test]
+    fn parallel_scheduler_is_compared_with_serial_baseline() {
+        let source = plan(vec![
+            task("long-prep", 10, &["counter"], vec![]),
+            task("short-sauce", 5, &["burner"], vec![]),
+        ]);
+        let parallel = build_schedule(&source).unwrap();
+        let serial = build_serial_baseline(&source).unwrap();
+
+        assert_eq!(parallel.makespan_ms, 10);
+        assert_eq!(serial.makespan_ms, 15);
+        assert_eq!(
+            serial.scheduler_id,
+            "stable_serial_topological_baseline_v1"
+        );
+        assert!(validate_schedule(&source, &serial).is_valid());
+    }
+
 }
