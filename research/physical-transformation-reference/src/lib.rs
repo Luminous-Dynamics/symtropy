@@ -340,9 +340,7 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
     let rejected_mutation_was_atomic = world
         .apply(Event {
             id: "invalid-remove-B".to_owned(),
-            operation: Operation::RemoveComponent {
-                id: "B".to_owned(),
-            },
+            operation: Operation::RemoveComponent { id: "B".to_owned() },
         })
         .is_err()
         && world.canonical_snapshot() == snapshot_before_rejection
@@ -399,7 +397,9 @@ pub fn run_reference_fixture() -> Check<FixtureOutcome> {
         || !outcome.rejected_imbalanced_mass_ledger
         || !outcome.rejected_mutation_was_atomic
     {
-        return Err(format!("frozen fixture did not meet expected contract: {outcome:?}"));
+        return Err(format!(
+            "frozen fixture did not meet expected contract: {outcome:?}"
+        ));
     }
     Ok(outcome)
 }
@@ -486,9 +486,7 @@ mod tests {
             world
                 .apply(Event {
                     id: "remove-B".to_owned(),
-                    operation: Operation::RemoveComponent {
-                        id: "B".to_owned(),
-                    },
+                    operation: Operation::RemoveComponent { id: "B".to_owned() },
                 })
                 .is_err()
         );
@@ -503,9 +501,7 @@ mod tests {
         world
             .apply(Event {
                 id: "remove-B".to_owned(),
-                operation: Operation::RemoveComponent {
-                    id: "B".to_owned(),
-                },
+                operation: Operation::RemoveComponent { id: "B".to_owned() },
             })
             .expect("failed event ID was not consumed");
         assert_eq!(world.component_count(), 1);
@@ -560,9 +556,7 @@ mod tests {
             world
                 .apply(Event {
                     id: "remove-A-while-supported".to_owned(),
-                    operation: Operation::RemoveComponent {
-                        id: "A".to_owned(),
-                    },
+                    operation: Operation::RemoveComponent { id: "A".to_owned() },
                 })
                 .is_err()
         );
