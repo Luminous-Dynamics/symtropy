@@ -435,6 +435,65 @@ mod tests {
     }
 
     #[test]
+    fn bounded_integer_flux_sweep_preserves_both_inventories() {
+        // Deterministic property-style corpus: all values are generated from
+        // the loop index, so failures are reproducible without a random seed.
+        for case in 0_u64..2_048 {
+            let initial_water_l = (case % 101) as f64;
+            let rain_l = (case % 13) as f64;
+            let supplemental_l = (case % 7) as f64;
+            let available_water_l = initial_water_l + rain_l + supplemental_l;
+            let total_water_out_l =
+                (case % (available_water_l as u64 + 1)) as f64;
+            let crop_water_uptake_l = total_water_out_l / 2.0;
+            let evaporation_l = total_water_out_l / 4.0;
+            let leakage_or_overflow_l =
+                total_water_out_l - crop_water_uptake_l - evaporation_l;
+
+            let initial_nutrients_g = (case % 31) as f64;
+            let nutrient_input_g = (case % 11) as f64;
+            let available_nutrients_g = initial_nutrients_g + nutrient_input_g;
+            let total_nutrient_out_g =
+                (case % (available_nutrients_g as u64 + 1)) as f64;
+            let crop_nutrient_uptake_g = total_nutrient_out_g / 2.0;
+            let nutrient_discharge_g =
+                total_nutrient_out_g - crop_nutrient_uptake_g;
+
+            let result = step(
+                ReservoirState {
+                    water_l: initial_water_l,
+                    dissolved_nutrients_g: initial_nutrients_g,
+                },
+                DailyFlux {
+                    rainwater_input_l: rain_l,
+                    supplemental_water_input_l: supplemental_l,
+                    crop_water_uptake_l,
+                    evaporation_l,
+                    leakage_or_overflow_l,
+                    nutrient_input_g,
+                    crop_nutrient_uptake_g,
+                    nutrient_discharge_g,
+                },
+            )
+            .expect("bounded generated fluxes cannot overdraw inventory");
+
+            assert!(result.after.water_l >= 0.0, "case {case}");
+            assert!(
+                result.after.dissolved_nutrients_g >= 0.0,
+                "case {case}"
+            );
+            assert!(
+                result.water_balance_residual_l.abs() < EPSILON,
+                "water balance case {case}"
+            );
+            assert!(
+                result.nutrient_balance_residual_g.abs() < EPSILON,
+                "nutrient balance case {case}"
+            );
+        }
+    }
+
+    #[test]
     fn empty_federation_is_valid_and_deterministic() {
         assert_eq!(step_federation(&[]), Ok(Vec::new()));
     }
