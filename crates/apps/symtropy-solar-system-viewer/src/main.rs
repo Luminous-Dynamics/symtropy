@@ -150,7 +150,7 @@ struct BodyVisual {
     body_index: usize,
 }
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy, Debug, PartialEq)]
 struct SkyStar {
     direction: Vec3,
     size_factor: f32,
@@ -266,6 +266,28 @@ fn make_catalog() -> Vec<SolarBody> {
             color: Color::srgb(0.18, 0.30, 0.92),
         },
     ]
+}
+
+fn make_sky_stars() -> Vec<SkyStar> {
+    const STAR_COUNT: usize = 512;
+    let golden_angle = PI * (3.0 - 5.0_f64.sqrt());
+    (0..STAR_COUNT)
+        .map(|index| {
+            let z = 1.0 - 2.0 * (index as f64 + 0.5) / STAR_COUNT as f64;
+            let radial = (1.0 - z * z).sqrt();
+            let angle = golden_angle * index as f64;
+            let direction = Vec3::new(
+                (radial * angle.cos()) as f32,
+                (radial * angle.sin()) as f32,
+                z as f32,
+            );
+            let size_factor = 0.65 + ((index * 37 % 101) as f32 / 100.0) * 0.7;
+            SkyStar {
+                direction,
+                size_factor,
+            }
+        })
+        .collect()
 }
 
 fn make_orbit_segments(bodies: &[SolarBody]) -> Vec<OrbitSegment> {
@@ -485,27 +507,13 @@ fn setup(
             })
         })
         .collect();
-    const STAR_COUNT: usize = 512;
-    let golden_angle = PI * (3.0 - 5.0_f64.sqrt());
-    for index in 0..STAR_COUNT {
-        let z = 1.0 - 2.0 * (index as f64 + 0.5) / STAR_COUNT as f64;
-        let radial = (1.0 - z * z).sqrt();
-        let angle = golden_angle * index as f64;
-        let direction = Vec3::new(
-            (radial * angle.cos()) as f32,
-            (radial * angle.sin()) as f32,
-            z as f32,
-        );
-        let size_factor = 0.65 + ((index * 37 % 101) as f32 / 100.0) * 0.7;
+    for (index, star) in make_sky_stars().into_iter().enumerate() {
         commands.spawn((
             Mesh3d(star_mesh.clone()),
             MeshMaterial3d(star_materials[index % star_materials.len()].clone()),
             Transform::default(),
             Visibility::Visible,
-            SkyStar {
-                direction,
-                size_factor,
-            },
+            star,
         ));
     }
 
@@ -1034,6 +1042,20 @@ mod tests {
         let radius = delta[0].hypot(delta[1]).hypot(delta[2]);
         assert!(radius > 4.4e12);
         assert!(radius < 4.7e12);
+    }
+
+    #[test]
+    fn synthetic_skyfield_is_deterministic_and_directions_are_normalized() {
+        let first = make_sky_stars();
+        let second = make_sky_stars();
+        assert_eq!(first.len(), 512);
+        assert_eq!(first, second);
+        assert!(first.iter().all(|star| {
+            let norm = star.direction.length();
+            (norm - 1.0).abs() < 1e-5
+                && star.size_factor.is_finite()
+                && star.size_factor > 0.0
+        }));
     }
 
     #[test]
