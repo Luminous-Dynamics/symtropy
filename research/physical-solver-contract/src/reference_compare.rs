@@ -182,8 +182,8 @@ pub fn compare_reference_observables(
             ));
         }
         let absolute_error = (actual.value - expected.expected_value).abs();
-        let allowed_error =
-            expected.absolute_tolerance + expected.relative_tolerance * expected.expected_value.abs();
+        let allowed_error = expected.absolute_tolerance
+            + expected.relative_tolerance * expected.expected_value.abs();
         if !absolute_error.is_finite() || !allowed_error.is_finite() {
             return Ok(unresolved_report(
                 &artifact_report,
@@ -555,9 +555,9 @@ fn non_empty(value: &str, at: &str, max_bytes: usize) -> CompareResult<String> {
 fn token(value: &str, label: &str) -> CompareResult<String> {
     if value.is_empty()
         || value.len() > 128
-        || !value
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':'))
+        || !value.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':')
+        })
     {
         return Err(format!("invalid {label}"));
     }
@@ -653,7 +653,9 @@ mod tests {
         let observed = observation(&request, 0.125);
         let (root, receipt, _) = setup(&request, &observed);
         let reference = reference(&request, 0.125, 1e-12, 1e-10);
-        let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
+        let report =
+            compare_reference_observables(&request, &receipt, &root, "normalized", &reference)
+                .unwrap();
         assert_eq!(report["comparison_status"], "PASS");
         assert_eq!(report["numerical_observable_comparison"], "PASS");
         assert_eq!(report["artifact_verification_status"], "PASS");
@@ -682,8 +684,14 @@ mod tests {
         let reference = reference(&request, 0.0, 5e-10, 0.5);
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
         assert_eq!(report["comparison_status"], "PASS");
-        assert_eq!(report["observable_results"][0]["relative_error_defined"], false);
-        assert_eq!(report["observable_results"][0]["relative_error"], Value::Null);
+        assert_eq!(
+            report["observable_results"][0]["relative_error_defined"],
+            false
+        );
+        assert_eq!(
+            report["observable_results"][0]["relative_error"],
+            Value::Null
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -695,8 +703,14 @@ mod tests {
         let reference = reference(&request, 1e-320, 2.0, 0.0);
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
         assert_eq!(report["comparison_status"], "PASS");
-        assert_eq!(report["observable_results"][0]["relative_error_defined"], true);
-        assert_eq!(report["observable_results"][0]["relative_error_status"], "overflow");
+        assert_eq!(
+            report["observable_results"][0]["relative_error_defined"],
+            true
+        );
+        assert_eq!(
+            report["observable_results"][0]["relative_error_status"],
+            "overflow"
+        );
         assert_eq!(report["observable_results"][0]["relative_error"], Value::Null);
         fs::remove_dir_all(root).unwrap();
     }
@@ -726,7 +740,12 @@ mod tests {
         let reference = reference(&request, 0.125, 1e-12, 1e-10);
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
         assert_eq!(report["comparison_status"], "UNRESOLVED");
-        assert!(report["diagnostics"][0].as_str().unwrap().contains("unit mismatch"));
+        assert!(
+            report["diagnostics"][0]
+                .as_str()
+                .unwrap()
+                .contains("unit mismatch")
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -735,10 +754,20 @@ mod tests {
         let request = request_bytes();
         let observed = observation(&request, 0.125);
         let (root, receipt, _) = setup(&request, &observed);
-        let mut reference_value: Value = serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
+        let mut reference_value: Value =
+            serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
         reference_value["request_sha256"] = json!("a".repeat(64));
         let reference_bytes = serde_json::to_vec(&reference_value).unwrap();
-        assert!(compare_reference_observables(&request, &receipt, &root, "normalized", &reference_bytes).is_err());
+        assert!(
+            compare_reference_observables(
+                &request,
+                &receipt,
+                &root,
+                "normalized",
+                &reference_bytes
+            )
+            .is_err()
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -748,7 +777,8 @@ mod tests {
         let observed = observation(&request, 0.125);
         let (root, _, _) = setup(&request, &observed);
         let output_sha = sha256_hex(&observed);
-        let receipt = serde_json::to_vec(&build_receipt(&request, &output_sha, "UNRESOLVED")).unwrap();
+        let receipt =
+            serde_json::to_vec(&build_receipt(&request, &output_sha, "UNRESOLVED")).unwrap();
         let reference = reference(&request, 0.125, 1e-12, 1e-10);
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
         assert_eq!(report["comparison_status"], "UNRESOLVED");
@@ -769,7 +799,12 @@ mod tests {
         let reference = reference(&request, 0.125, 1e-12, 1e-10);
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
         assert_eq!(report["comparison_status"], "UNRESOLVED");
-        assert!(report["diagnostics"][0].as_str().unwrap().contains("inventory mismatch"));
+        assert!(
+            report["diagnostics"][0]
+                .as_str()
+                .unwrap()
+                .contains("inventory mismatch")
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -780,7 +815,8 @@ mod tests {
         let root = temporary_root();
         fs::write(root.join("observed.json"), &observed).unwrap();
         fs::write(root.join("stress.json"), br#"{"synthetic_auxiliary":true}"#).unwrap();
-        let receipt = serde_json::to_vec(&build_receipt(&request, &"f".repeat(64), "PASS")).unwrap();
+        let receipt =
+            serde_json::to_vec(&build_receipt(&request, &"f".repeat(64), "PASS")).unwrap();
         let reference = reference(&request, 0.125, 1e-12, 1e-10);
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
         assert_eq!(report["comparison_status"], "UNRESOLVED");
@@ -791,11 +827,13 @@ mod tests {
     #[test]
     fn malformed_tolerance_and_duplicate_metric_ids_fail_closed() {
         let request = request_bytes();
-        let mut reference_value: Value = serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
+        let mut reference_value: Value =
+            serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
         reference_value["observables"][0]["relative_tolerance"] = json!(-1.0);
         assert!(parse_reference(&reference_value, &sha256_hex(&request)).is_err());
 
-        let mut reference_value: Value = serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
+        let mut reference_value: Value =
+            serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
         let second = reference_value["observables"][0].clone();
         reference_value["observables"].as_array_mut().unwrap().push(second);
         assert!(parse_reference(&reference_value, &sha256_hex(&request)).is_err());
