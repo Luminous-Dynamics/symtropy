@@ -205,6 +205,236 @@ pub fn score_model_ensemble(
     }
 }
 
+
+/// A defensible interval for the probability/weight assigned to one model structure.
+///
+/// The interval bounds represent uncertainty about model weights, not parameter
+/// uncertainty or within-model stochastic noise. The intervals are coupled by
+/// the requirement that all selected weights sum to one.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelWeightInterval {
+    pub model_id: String,
+    pub lower: f64,
+    pub upper: f64,
+}
+
+/// Extremal expected-loss values over a box-constrained model-weight simplex.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeightSensitivity {
+    pub action: String,
+    pub minimum_expected_loss: f64,
+    pub maximum_expected_loss: f64,
+    /// Feasible weights attaining the minimum within floating-point tolerance.
+    pub minimizing_weights: BTreeMap<String, f64>,
+    /// Feasible weights attaining the maximum within floating-point tolerance.
+    pub maximizing_weights: BTreeMap<String, f64>,
+}
+
+/// Bound an action's expected loss when model-structure weights are uncertain.
+///
+/// This solves the linear optimization problem over all weights satisfying the
+/// declared per-model intervals and summing to one. It does not assume that
+/// the point weights are scientifically calibrated, nor infer model weights
+/// from fit. The point weights in `models` must be normalized and lie inside
+/// their respective intervals. Missing models, losses or infeasible bounds fail
+/// closed. Results are epistemic sensitivity bounds, not probabilistic
+/// confidence intervals.
+pub fn score_weight_sensitivity(
+    models: &[ModelOutcome],
+    action: &str,
+    intervals: &[ModelWeightInterval],
+) -> Result<WeightSensitivity, Vec<String>> {
+    let mut errors = Vec::new();
+    if models.is_empty() {
+        errors.push("model set must not be empty".to_owned());
+    }
+    if action.trim().is_empty() {
+        errors.push("action must not be empty".to_owned());
+    }
+    if intervals.is_empty() {
+        errors.push("weight intervals must not be empty".to_owned());
+    }
+
+    let mut model_ids = BTreeSet::new();
+    let mut nominal_weight_sum = 0.0;
+    let mut losses = BTreeMap::new();
+    for (index, model) in models.iter().enumerate() {
+        if model.model_id.trim().is_empty() {
+            errors.push(format!("models[{index}].model_id must not be empty"));
+        } else if !model_ids.insert(model.model_id.clone()) {
+            errors.push(format!("duplicate model id '{}'", model.model_id));
+        }
+        if !model.weight.is_finite() || model.weight <= 0.0 {
+            errors.push(format!(
+                "model '{}' weight must be finite and positive",
+                model.model_id
+            ));
+        } else {
+            nominal_weight_sum += model.weight;
+        }
+        match model.action_losses.get(action) {
+            Some(loss) if loss.is_finite() && *loss >= 0.0 => {
+                losses.insert(model.model_id.clone(), *loss);
+            }
+            Some(_) => errors.push(format!(
+                "model '{}' action '{action}' loss must be finite and non-negative",
+                model.model_id
+            )),
+            None => errors.push(format!(
+                "model '{}' is missing loss for action '{action}'",
+                model.model_id
+            )),
+        }
+    }
+    if !nominal_weight_sum.is_finite()
+        || (nominal_weight_sum - 1.0).abs() > WEIGHT_SUM_TOLERANCE
+    {
+        errors.push(format!(
+            "nominal model weights must sum to one within {WEIGHT_SUM_TOLERANCE}; got {nominal_weight_sum}"
+        ));
+    }
+
+    let mut bounds = BTreeMap::new();
+    let mut lower_sum = 0.0;
+    let mut upper_sum = 0.0;
+    for (index, interval) in intervals.iter().enumerate() {
+        if interval.model_id.trim().is_empty() {
+            errors.push(format!("intervals[{index}].model_id must not be empty"));
+        } else if bounds
+            .insert(
+                interval.model_id.clone(),
+                (interval.lower, interval.upper),
+            )
+            .is_some()
+        {
+            errors.push(format!(
+                "duplicate weight interval for model '{}'",
+                interval.model_id
+            ));
+        }
+        if !interval.lower.is_finite()
+            || !interval.upper.is_finite()
+            || interval.lower < 0.0
+            || interval.upper > 1.0
+            || interval.lower > interval.upper
+        {
+            errors.push(format!(
+                "weight interval for '{}' must satisfy 0 <= lower <= upper <= 1",
+                interval.model_id
+            ));
+        } else {
+            lower_sum += interval.lower;
+            upper_sum += interval.upper;
+        }
+    }
+    let interval_ids: BTreeSet<String> = bounds.keys().cloned().collect();
+    if interval_ids != model_ids {
+        errors.push("weight interval model IDs must exactly match the declared model set".to_owned());
+    }
+    if lower_sum > 1.0 + WEIGHT_SUM_TOLERANCE {
+        errors.push(format!(
+            "weight interval lower bounds sum to {lower_sum}, exceeding one"
+        ));
+    }
+    if upper_sum < 1.0 - WEIGHT_SUM_TOLERANCE {
+        errors.push(format!(
+            "weight interval upper bounds sum to {upper_sum}, below one"
+        ));
+    }
+    for model in models {
+        if let Some((lower, upper)) = bounds.get(&model.model_id)
+            && model.weight.is_finite()
+            && (model.weight < *lower - WEIGHT_SUM_TOLERANCE
+                || model.weight > *upper + WEIGHT_SUM_TOLERANCE)
+        {
+            errors.push(format!(
+                "nominal weight for '{}' falls outside its declared interval",
+                model.model_id
+            ));
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let minimizing_weights = extremal_weight_assignment(models, action, &bounds, false)?;
+    let maximizing_weights = extremal_weight_assignment(models, action, &bounds, true)?;
+    let minimum_expected_loss = weighted_loss(&losses, &minimizing_weights)?;
+    let maximum_expected_loss = weighted_loss(&losses, &maximizing_weights)?;
+    if minimum_expected_loss > maximum_expected_loss + WEIGHT_SUM_TOLERANCE {
+        return Err(vec![
+            "computed minimum expected loss exceeds maximum expected loss".to_owned(),
+        ]);
+    }
+
+    Ok(WeightSensitivity {
+        action: action.to_owned(),
+        minimum_expected_loss,
+        maximum_expected_loss,
+        minimizing_weights,
+        maximizing_weights,
+    })
+}
+
+fn extremal_weight_assignment(
+    models: &[ModelOutcome],
+    action: &str,
+    bounds: &BTreeMap<String, (f64, f64)>,
+    maximize: bool,
+) -> Result<BTreeMap<String, f64>, Vec<String>> {
+    let mut weights: BTreeMap<String, f64> = bounds
+        .iter()
+        .map(|(model_id, (lower, _))| (model_id.clone(), *lower))
+        .collect();
+    let mut remaining = (1.0 - weights.values().sum::<f64>()).max(0.0);
+    let mut order: Vec<&ModelOutcome> = models.iter().collect();
+    order.sort_by(|left, right| {
+        let left_loss = left.action_losses[action];
+        let right_loss = right.action_losses[action];
+        let ordering = if maximize {
+            right_loss.total_cmp(&left_loss)
+        } else {
+            left_loss.total_cmp(&right_loss)
+        };
+        ordering.then_with(|| left.model_id.cmp(&right.model_id))
+    });
+    for model in order {
+        if remaining <= WEIGHT_SUM_TOLERANCE {
+            break;
+        }
+        let (_, upper) = bounds[&model.model_id];
+        let current = weights[&model.model_id];
+        let addition = (upper - current).min(remaining);
+        *weights
+            .get_mut(&model.model_id)
+            .expect("weight map was initialized from every interval") += addition;
+        remaining = (remaining - addition).max(0.0);
+    }
+    if remaining > WEIGHT_SUM_TOLERANCE {
+        return Err(vec![
+            "weight intervals could not allocate a normalized weight vector".to_owned(),
+        ]);
+    }
+    Ok(weights)
+}
+
+fn weighted_loss(
+    losses: &BTreeMap<String, f64>,
+    weights: &BTreeMap<String, f64>,
+) -> Result<f64, Vec<String>> {
+    let total: f64 = weights
+        .iter()
+        .map(|(model_id, weight)| losses[model_id] * weight)
+        .sum();
+    if total.is_finite() {
+        Ok(total)
+    } else {
+        Err(vec![
+            "weight-sensitivity calculation produced non-finite expected loss".to_owned(),
+        ])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -352,5 +582,97 @@ mod tests {
                 .iter()
                 .all(|score| !score.admissible_across_all_models)
         );
+    }
+
+    #[test]
+    fn weight_sensitivity_bounds_decision_loss_under_model_weight_ambiguity() {
+        let models = example_models();
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ];
+        let result =
+            score_weight_sensitivity(&models, "retreat", &intervals).expect("feasible intervals");
+        assert!((result.minimum_expected_loss - 4.4).abs() < 1e-9);
+        assert!((result.maximum_expected_loss - 4.8).abs() < 1e-9);
+        assert!((result.minimizing_weights["predator_coupled"] - 0.4).abs() < 1e-9);
+        assert!((result.minimizing_weights["predator_weak"] - 0.6).abs() < 1e-9);
+        assert!((result.maximizing_weights["predator_coupled"] - 0.8).abs() < 1e-9);
+        assert!((result.maximizing_weights["predator_weak"] - 0.2).abs() < 1e-9);
+    }
+
+    #[test]
+    fn weight_sensitivity_rejects_infeasible_simplex() {
+        let models = example_models();
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.7,
+                upper: 0.9,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+        ];
+        let errors = score_weight_sensitivity(&models, "retreat", &intervals)
+            .expect_err("lower bounds sum to more than one");
+        assert!(errors.iter().any(|error| error.contains("lower bounds sum")));
+    }
+
+    #[test]
+    fn weight_sensitivity_rejects_nominal_weight_outside_interval() {
+        let models = example_models();
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.1,
+                upper: 0.5,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.5,
+                upper: 0.9,
+            },
+        ];
+        let errors = score_weight_sensitivity(&models, "retreat", &intervals)
+            .expect_err("nominal values must belong to intervals");
+        assert!(errors.iter().any(|error| error.contains("falls outside")));
+    }
+
+    #[test]
+    fn weight_sensitivity_requires_exact_model_set_and_action_losses() {
+        let models = example_models();
+        let intervals = vec![ModelWeightInterval {
+            model_id: "predator_coupled".to_owned(),
+            lower: 0.4,
+            upper: 0.8,
+        }];
+        let errors = score_weight_sensitivity(&models, "retreat", &intervals)
+            .expect_err("missing model interval must fail closed");
+        assert!(errors.iter().any(|error| error.contains("exactly match")));
+        let errors = score_weight_sensitivity(&models, "fly_away", &[
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ])
+        .expect_err("missing action loss must fail closed");
+        assert!(errors.iter().any(|error| error.contains("missing loss")));
     }
 }
