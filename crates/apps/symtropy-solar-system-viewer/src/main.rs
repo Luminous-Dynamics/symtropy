@@ -650,11 +650,50 @@ fn render_radius_for_band(
 
 fn update_scene(
     mut state: ResMut<ViewerState>,
-    mut body_query: Query<(&BodyVisual, &mut Transform, &mut Visibility), (With<BodyVisual>, Without<SolarCamera>)>,
-    mut tile_query: Query<(&mut Transform, &mut Visibility), (With<SurfaceTile>, Without<BodyVisual>, Without<LocalFeature>, Without<SolarCamera>)>,
-    mut feature_query: Query<(&mut Transform, &mut Visibility), (With<LocalFeature>, Without<BodyVisual>, Without<SurfaceTile>, Without<SolarCamera>)>,
-    mut orbit_query: Query<(&OrbitSegment, &mut Transform, &mut Visibility), (With<OrbitSegment>, Without<BodyVisual>, Without<SurfaceTile>, Without<LocalFeature>, Without<SolarCamera>, Without<SkyStar>)>,
-    mut star_query: Query<(&SkyStar, &mut Transform, &mut Visibility), (With<SkyStar>, Without<BodyVisual>, Without<SurfaceTile>, Without<LocalFeature>, Without<OrbitSegment>, Without<SolarCamera>)>,
+    mut body_query: Query<
+        (&BodyVisual, &mut Transform, &mut Visibility),
+        (With<BodyVisual>, Without<SolarCamera>),
+    >,
+    mut tile_query: Query<
+        (&mut Transform, &mut Visibility),
+        (
+            With<SurfaceTile>,
+            Without<BodyVisual>,
+            Without<LocalFeature>,
+            Without<SolarCamera>,
+        ),
+    >,
+    mut feature_query: Query<
+        (&mut Transform, &mut Visibility),
+        (
+            With<LocalFeature>,
+            Without<BodyVisual>,
+            Without<SurfaceTile>,
+            Without<SolarCamera>,
+        ),
+    >,
+    mut orbit_query: Query<
+        (&OrbitSegment, &mut Transform, &mut Visibility),
+        (
+            With<OrbitSegment>,
+            Without<BodyVisual>,
+            Without<SurfaceTile>,
+            Without<LocalFeature>,
+            Without<SolarCamera>,
+            Without<SkyStar>,
+        ),
+    >,
+    mut star_query: Query<
+        (&SkyStar, &mut Transform, &mut Visibility),
+        (
+            With<SkyStar>,
+            Without<BodyVisual>,
+            Without<SurfaceTile>,
+            Without<LocalFeature>,
+            Without<OrbitSegment>,
+            Without<SolarCamera>,
+        ),
+    >,
     mut camera_query: Query<(&mut Transform, &mut Projection), With<SolarCamera>>,
 ) {
     state.bands = [0; 6];
@@ -701,7 +740,7 @@ fn update_scene(
         {
             Ok(value) => value,
             Err(_) => {
-                state.precision_rejections += 1;
+                state.precision_rejections = state.precision_rejections.saturating_add(1);
                 *visibility = Visibility::Hidden;
                 continue;
             }
@@ -901,6 +940,11 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
     } else {
         "camera settled"
     };
+    let visible_body_names = if state.visible_body_names.is_empty() {
+        "none".to_owned()
+    } else {
+        state.visible_body_names.join(", ")
+    };
     let message = format!(
         "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS + SYNTHETIC STARS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nBodies: {}\nSynthetic sky markers are angular background only; orbit-line widths are exaggerated.\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
         state.stage.label(),
@@ -908,7 +952,7 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
         state.visible_bodies,
         state.visible_orbit_segments,
         state.precision_rejections,
-        if state.visible_body_names.is_empty() { "none".to_owned() } else { state.visible_body_names.join(", ") },
+        visible_body_names,
         state.bands[0],
         state.bands[1],
         state.bands[2],
@@ -925,7 +969,10 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
 
 fn build_initial_state() -> ViewerState {
     let bodies = make_catalog();
-    let earth = bodies.iter().find(|body| body.id == "earth").expect("Earth is catalogued");
+    let earth = bodies
+        .iter()
+        .find(|body| body.id == "earth")
+        .expect("Earth is catalogued");
     let surface_feature = earth
         .position
         .offset_by_meters([0.0, EARTH_RADIUS_M, 0.0])
@@ -980,7 +1027,10 @@ mod tests {
         let bodies = make_catalog();
         let sun = bodies.iter().find(|body| body.id == "sun").expect("Sun");
         let neptune = bodies.iter().find(|body| body.id == "neptune").expect("Neptune");
-        let delta = neptune.position.relative_to_meters(&sun.position).expect("common illustrative frame");
+        let delta = neptune
+            .position
+            .relative_to_meters(&sun.position)
+            .expect("common illustrative frame");
         let radius = delta[0].hypot(delta[1]).hypot(delta[2]);
         assert!(radius > 4.4e12);
         assert!(radius < 4.7e12);
@@ -993,9 +1043,16 @@ mod tests {
         let segments = make_orbit_segments(&bodies);
         assert_eq!(segments.len(), 9 * 96);
         assert_eq!(bodies, before);
-        assert!(segments.iter().all(|segment| segment.thickness_m.is_finite() && segment.thickness_m > 0.0));
+        assert!(
+            segments
+                .iter()
+                .all(|segment| segment.thickness_m.is_finite() && segment.thickness_m > 0.0)
+        );
         for segment in segments {
-            let delta = segment.end.relative_to_meters(&segment.start).expect("segment frame");
+            let delta = segment
+                .end
+                .relative_to_meters(&segment.start)
+                .expect("segment frame");
             let length = delta[0].hypot(delta[1]).hypot(delta[2]);
             assert!(length.is_finite() && length > 0.0);
         }
