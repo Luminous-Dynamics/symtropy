@@ -2,6 +2,8 @@
 
 **Status:** benchmark implementation and hypotheses. Performance claims must come from an exact-head report; no SOTA or robotic-performance claim is made here.
 
+**Validity warning (latest candidate):** an audit found that earlier generator revisions set confidence to 950 for every clean observation and 350 for every corrupted observation, leaking the corruption flag into a policy-visible field. The hazard-aware/selective metrics previously reported are not valid evidence that the policy can handle noisy sensor confidence. The current candidate removes this leakage with a probabilistic confidence channel and uses a new seed root. All earlier tables are historical results for the easier, leakage-contaminated generator and must not be used as proof for the corrected candidate.
+
 ## Why this experiment exists
 
 The qualified VIS-ACT rendered/timing pilot found held-out mean loss of 0.0794 for bounded FIFO, 0.1927 for uniform reservoir capacity 2, and 0.0859 for fixed sweep. The reservoir-versus-fixed-sweep paired bootstrap interval for its loss increase was [0.0885, 0.1237]. The subsequent recency-protected reservoir matched FIFO at 0.0794 on that same single-target generator. That is a valuable non-win: protecting a recent direct observation did not improve the measured task.
@@ -145,7 +147,17 @@ Interpretation: the independent-seed result supports a real synthetic benefit fr
 
 Before using the hazard result as an engineering acceptance claim, preregister the algorithm and scoring contract **before** accessing the next held-out results, choose a new seed root and factor distributions not used in earlier reports, re-run the factorized suite unchanged, and publish the new exact-head report. Then reproduce the same memory-policy delta on a native external task subset (ActiveArena) while holding model/backbone, action decoder, task seeds and environment fixed. No SOTA claim is warranted until that reproduction is completed with the benchmark-native metrics.
 
-## Limits
+## Confidence-channel leakage audit and correction
+
+**Bug found:** prior generator versions set `confidence=350` iff the synthetic value was corrupted and `confidence=950` otherwise. Since memory policies received confidence, it was a direct corruption label rather than a noisy sensor-confidence estimate. The hazard-aware policy's high-confidence transition history and the selective policy's confidence threshold could exploit this shortcut. This invalidates their earlier performance interpretation for realistic noisy confidence—even though those runs were source-head-reproducible.
+
+**Correction in the current candidate:** use three confidence tiers with overlapping support:
+- Clean observation: (P(950,650,350)=(0.75,0.20,0.05)).
+- Corrupted observation: (P(950,650,350)=(0.15,0.40,0.45)).
+
+Confidence remains informative but is no longer a deterministic reveal: corrupted evidence can receive high confidence, and clean evidence can receive low confidence. The report prints this model. A 20,000-draw-per-class negative control verifies each tier appears in both classes and high confidence is more frequent for clean observations. The report seed root has also changed to `0x3C6E_F372_FE94_F82B`.
+
+**Interpretation rule:** rerun the full report on the current exact head. If the hazard-aware advantage shrinks or disappears, report that directly; do not restore the leakage to preserve an earlier result. The candidate should only be considered for external comparison if the noisy-confidence results support it, and then it must still pass benchmark-native external evaluation.
 
 This is a symbolic evidence-stream benchmark. It isolates memory selection, source-time/provenance and decision behavior. It does not test visual perception, natural language understanding, 3D geometry, manipulation, physical safety, actual wall time, hardware memory, GPU use, or energy. Passing it is a diagnostic step—not proof of external benchmark superiority or deployment readiness.
 
