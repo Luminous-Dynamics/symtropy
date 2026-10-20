@@ -17,6 +17,7 @@ pub mod inspector;
 pub mod lod;
 pub mod material;
 pub mod projection;
+pub mod screen_error;
 pub mod sync;
 pub mod telemetry_ssbo;
 
@@ -28,5 +29,6 @@ pub use material::{
     TelemetryMaterialPlugin, TelemetrySettings,
 };
 pub use projection::{Projector, Projector2D, Projector3D, Projector4D};
+pub use screen_error::{ProjectionError, ProjectionModel, projected_error_bound_px};
 pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
 pub use telemetry_ssbo::{LinkTelemetryGpu, NodeTelemetryGpu, TelemetryBufferResource};
