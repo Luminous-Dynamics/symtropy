@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/solver-request-v0.1.schema.json",
+  "title": "Physical Solver Request v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "source_revision",
+    "scene_revision",
+    "scene_sha256",
+    "model_fidelity",
+    "requested_physics",
+    "coordinate_frame_id",
+    "units",
+    "materials",
+    "loads",
+    "boundary_conditions",
+    "required_outputs",
+    "acceptance"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-solver-request-v0.1" },
+    "request_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "model_fidelity": {
+      "enum": [
+        "graph_topology",
+        "analytical_linear_elastic",
+        "continuum_linear_elastic",
+        "continuum_nonlinear",
+        "phase_field_fracture",
+        "rigid_contact",
+        "granular_dem"
+      ]
+    },
+    "requested_physics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "topology",
+          "static_linear_elastic",
+          "dynamic_response",
+          "nonlinear_material",
+          "fracture",
+          "rigid_contact",
+          "granular_contact",
+          "thermal_coupling"
+        ]
+      }
+    },
+    "coordinate_frame_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["length", "mass", "time", "force", "stress"],
+      "properties": {
+        "length": { "const": "m" },
+        "mass": { "const": "kg" },
+        "time": { "const": "s" },
+        "force": { "const": "N" },
+        "stress": { "const": "Pa" }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/material" }
+    },
+    "loads": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/load" }
+    },
+    "boundary_conditions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/boundaryCondition" }
+    },
+    "required_outputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "topology",
+          "displacement",
+          "stress",
+          "reaction_force",
+          "crack_path",
+          "fragment_state",
+          "energy_balance"
+        ]
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_tolerance", "absolute_tolerance", "require_convergence"],
+      "properties": {
+        "relative_tolerance": { "type": "number", "minimum": 0 },
+        "absolute_tolerance": { "type": "number", "minimum": 0 },
+        "require_convergence": { "type": "boolean" },
+        "max_iterations": { "type": "integer", "minimum": 1 },
+        "max_time_step_s": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_class", "source_ref"],
+      "properties": {
+        "evidence_class": {
+          "enum": ["synthetic", "analytical_reference", "measured", "derived", "unknown"]
+        },
+        "source_ref": { "type": ["string", "null"], "maxLength": 2048 },
+        "uncertainty_relative": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["material_id", "component_ids", "youngs_modulus_pa", "poisson_ratio", "density_kg_m3", "provenance"],
+      "properties": {
+        "material_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+        "component_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" }
+        },
+        "youngs_modulus_pa": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "poisson_ratio": { "type": ["number", "null"], "minimum": -1, "exclusiveMaximum": 0.5 },
+        "density_kg_m3": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "load": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["load_id", "kind", "target_id", "vector_xyz", "coordinate_frame_id", "provenance"],
+      "properties": {
+        "load_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+        "kind": { "enum": ["point_force", "distributed_force", "pressure", "body_acceleration"] },
+        "target_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+        "vector_xyz": {
+          "type": "array",
+          "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "coordinate_frame_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "boundaryCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_id", "target_id", "kind", "dofs", "provenance"],
+      "properties": {
+        "condition_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+        "target_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+        "kind": { "enum": ["fixed", "pinned", "roller", "prescribed_displacement", "support_link"] },
+        "dofs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["ux", "uy", "uz", "rx", "ry", "rz"] }
+        },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    }
+  }
+}
