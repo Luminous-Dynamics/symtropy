@@ -167,8 +167,14 @@ mod tests {
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("committed example should parse");
         let (models, alpha) = parse_input(&input).expect("valid synthetic model set");
         let scores = score_model_ensemble(&models, alpha).expect("valid synthetic losses");
-        let graze = scores.iter().find(|score| score.action == "graze").expect("graze");
-        let wait = scores.iter().find(|score| score.action == "wait").expect("wait");
+        let graze = scores
+            .iter()
+            .find(|score| score.action == "graze")
+            .expect("graze");
+        let wait = scores
+            .iter()
+            .find(|score| score.action == "wait")
+            .expect("wait");
         assert!((graze.expected_loss - 4.8).abs() < 1e-9);
         assert!(!graze.admissible_across_all_models);
         assert_eq!(wait.worst_case_loss, 3.0);
@@ -184,11 +190,12 @@ mod tests {
             example["schema_version"].as_str(),
             schema["properties"]["schema_version"]["const"].as_str()
         );
-        assert_eq!(
-            schema["properties"]["models"]["minItems"].as_u64(),
-            Some(1)
+        assert_eq!(schema["properties"]["models"]["minItems"].as_u64(), Some(1));
+        assert!(
+            example["models"]
+                .as_array()
+                .is_some_and(|models| !models.is_empty())
         );
-        assert!(example["models"].as_array().is_some_and(|models| !models.is_empty()));
     }
 
     #[test]
@@ -198,6 +205,10 @@ mod tests {
             "cvar_alpha": 0.9,
             "models": []
         });
-        assert!(parse_input(&input).expect_err("wrong schema must fail").contains("schema_version"));
+        assert!(
+            parse_input(&input)
+                .expect_err("wrong schema must fail")
+                .contains("schema_version")
+        );
     }
 }
