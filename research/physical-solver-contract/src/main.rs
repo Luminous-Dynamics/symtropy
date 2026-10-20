@@ -146,9 +146,12 @@ fn run() -> Result<(), String> {
         }
     }
 
-    if let Some(study_path) = mesh_study_path {
+    if let Some(study_path) = mesh_study_path.as_deref() {
         if request_path.is_some()
             || receipt_path.is_some()
+            || equilibrium_manifest_path.is_some()
+            || reaction_force_output_id.is_some()
+            || reaction_moment_output_id.is_some()
             || reference_path.is_some()
             || observation_output_id.is_some()
             || validator_revision.is_some()
