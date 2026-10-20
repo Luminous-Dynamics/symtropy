@@ -1,0 +1,625 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Offline evaluator arithmetic for active visual-action selection.
+//!
+//! This is an evaluator-side reference, NOT an online policy or sensor API.
+//! Counterfactual losses and candidate costs must remain evaluator-private until
+//! the policy action has been committed. Realized task loss and actual resource
+//! charges are post-execution outcomes.
+//!
+//! Standalone qualification command (no workspace membership or dependencies):
+//! rustc --edition=2024 --test tools/vision-active-action-reference.rs -o /tmp/vis-act-tests
+//! /tmp/vis-act-tests
+
+#![deny(unsafe_code)]
+
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum VisionAction {
+    KeepCheap,
+    EscalateCurrent,
+    AcquireNext,
+    ChangeView,
+    WaitForEvent,
+    AbstainOrHandoff,
+}
+
+impl VisionAction {
+    /// These choices can acquire a new sensor observation only after execution.
+    pub fn can_acquire_observation(self) -> bool {
+        matches!(self, Self::AcquireNext | Self::ChangeView | Self::WaitForEvent)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResourceAxisProfileV1 {
+    /// Stable identifier for the unit, e.g. latency_us, gpu_work_unit,
+    /// sensor_sample, or energy_uj. Never mix unlike units.
+    pub unit_id: String,
+    /// Optional per-trial hard ceiling, expressed in unit_id.
+    pub trial_budget: Option<u64>,
+    /// Optional run-wide hard ceiling, expressed in unit_id.
+    pub run_budget: Option<u128>,
+}
+
+pub type ResourceProfileV1 = BTreeMap<String, ResourceAxisProfileV1>;
+
+/// Evaluator-private outcome of a candidate action in a paired synthetic trial.
+/// Its task loss and resource quote are not producer-visible before commitment.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CandidateOutcomeV1 {
+    pub action: VisionAction,
+    /// False for physically impossible, disallowed, or otherwise illegal actions.
+    pub feasible: bool,
+    pub counterfactual_task_loss: f64,
+    /// Declared/estimated candidate resource use in each axis' canonical unit.
+    /// This vector is for budget eligibility; it is not a measured energy claim.
+    pub declared_resource_units: BTreeMap<String, u64>,
+}
+
+/// One evaluator-owned trial. chosen_action is the policy's committed action;
+/// realized_task_loss and actual resource charges are post-action observations.
+/// Candidate outcomes are evaluator-only counterfactuals.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrialV1 {
+    pub trial_id: u64,
+    pub loss_profile_id: String,
+    pub resource_profile: ResourceProfileV1,
+    pub candidates: Vec<CandidateOutcomeV1>,
+    pub chosen_action: VisionAction,
+    /// True only when the selected action really executed.
+    pub action_executed: bool,
+    /// True only when execution returned a fresh observation via the declared
+    /// sensor channel (not a render, prediction, or unexecuted alternate view).
+    pub fresh_observation_received: bool,
+    /// Measured loss for what actually happened, including fallback after a
+    /// failed action. It is not copied from a counterfactual outcome.
+    pub realized_task_loss: f64,
+    /// None means unknown/not measured, never zero. Units come from profile.
+    pub actual_resource_units: BTreeMap<String, Option<u64>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BudgetStatus {
+    WithinBudget,
+    Exceeded,
+    Unknown,
+    NotDeclared,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrialScoreV1 {
+    pub trial_id: u64,
+    pub loss_profile_id: String,
+    pub chosen_action: VisionAction,
+    pub action_executed: bool,
+    pub realized_task_loss: f64,
+    pub best_budget_feasible_counterfactual_loss: f64,
+    /// Can be negative when the realized outcome differs stochastically from
+    /// the evaluator's paired counterfactuals. Do not clamp or discard negatives.
+    pub regret_vs_oracle: f64,
+    /// Positive means the chosen action's evaluator-side counterfactual loss is
+    /// lower than KeepCheap; this is not producer-visible or a causal claim by itself.
+    pub counterfactual_action_value_vs_cheap: f64,
+    pub actual_resource_units: BTreeMap<String, Option<u64>>,
+    pub trial_budget_status: BTreeMap<String, BudgetStatus>,
+    /// Retained for run-level validation; never send candidate outcomes to policy.
+    pub resource_profile: ResourceProfileV1,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RunSummaryV1 {
+    pub scores: Vec<TrialScoreV1>,
+    pub mean_realized_loss: f64,
+    pub mean_oracle_loss: f64,
+    pub mean_regret: f64,
+    pub total_actual_resource_units: BTreeMap<String, Option<u128>>,
+    pub run_budget_status: BTreeMap<String, BudgetStatus>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EvaluationError {
+    EmptyRun,
+    EmptyLossProfile,
+    InvalidResourceAxis,
+    InvalidResourceUnit,
+    EmptyResourceProfile,
+    ResourceAxesMismatch,
+    DuplicateCandidateAction,
+    MissingCheapBaseline,
+    MissingChosenAction,
+    ChosenActionInfeasible,
+    ChosenActionOverTrialBudget,
+    NoBudgetFeasibleCandidate,
+    NonFiniteCandidateLoss,
+    NonFiniteRealizedLoss,
+    FreshObservationWithoutExecutedAcquisition,
+    DuplicateTrialId,
+    MixedLossProfiles,
+    MixedResourceAxes,
+    InconsistentRunBudget(String),
+    ResourceArithmeticOverflow(String),
+    NonFiniteAggregate,
+}
+
+fn same_keys<T, U>(left: &BTreeMap<String, T>, right: &BTreeMap<String, U>) -> bool {
+    left.len() == right.len() && left.keys().eq(right.keys())
+}
+
+fn validate_profile(profile: &ResourceProfileV1) -> Result<(), EvaluationError> {
+    if profile.is_empty() {
+        return Err(EvaluationError::EmptyResourceProfile);
+    }
+    for (axis_id, axis) in profile {
+        if axis_id.trim().is_empty() {
+            return Err(EvaluationError::InvalidResourceAxis);
+        }
+        if axis.unit_id.trim().is_empty() {
+            return Err(EvaluationError::InvalidResourceUnit);
+        }
+    }
+    Ok(())
+}
+
+fn under_trial_budgets(
+    cost: &BTreeMap<String, u64>,
+    profile: &ResourceProfileV1,
+) -> bool {
+    profile.iter().all(|(axis_id, axis)| {
+        axis.trial_budget
+            .map(|limit| cost.get(axis_id).is_some_and(|used| *used <= limit))
+            .unwrap_or(true)
+    })
+}
+
+fn status_for_amount(amount: Option<u64>, budget: Option<u64>) -> BudgetStatus {
+    match (amount, budget) {
+        (_, None) => BudgetStatus::NotDeclared,
+        (None, Some(_)) => BudgetStatus::Unknown,
+        (Some(used), Some(limit)) if used > limit => BudgetStatus::Exceeded,
+        (Some(_), Some(_)) => BudgetStatus::WithinBudget,
+    }
+}
+
+/// Score one trial after the policy choice and execution result are committed.
+/// Only feasible actions that satisfy declared per-trial budgets enter the oracle
+/// comparison. Run-wide budget feasibility must be assessed over a whole run.
+pub fn evaluate_trial_v1(trial: &TrialV1) -> Result<TrialScoreV1, EvaluationError> {
+    if trial.loss_profile_id.trim().is_empty() {
+        return Err(EvaluationError::EmptyLossProfile);
+    }
+    if !trial.realized_task_loss.is_finite() {
+        return Err(EvaluationError::NonFiniteRealizedLoss);
+    }
+    validate_profile(&trial.resource_profile)?;
+
+    if !same_keys(&trial.actual_resource_units, &trial.resource_profile) {
+        return Err(EvaluationError::ResourceAxesMismatch);
+    }
+
+    if trial.fresh_observation_received
+        && (!trial.action_executed || !trial.chosen_action.can_acquire_observation())
+    {
+        return Err(EvaluationError::FreshObservationWithoutExecutedAcquisition);
+    }
+
+    let mut by_action = BTreeMap::new();
+    for candidate in &trial.candidates {
+        if !candidate.counterfactual_task_loss.is_finite() {
+            return Err(EvaluationError::NonFiniteCandidateLoss);
+        }
+        if !same_keys(&candidate.declared_resource_units, &trial.resource_profile) {
+            return Err(EvaluationError::ResourceAxesMismatch);
+        }
+        if by_action.insert(candidate.action, candidate).is_some() {
+            return Err(EvaluationError::DuplicateCandidateAction);
+        }
+    }
+
+    let cheap = by_action
+        .get(&VisionAction::KeepCheap)
+        .ok_or(EvaluationError::MissingCheapBaseline)?;
+    let chosen = by_action
+        .get(&trial.chosen_action)
+        .ok_or(EvaluationError::MissingChosenAction)?;
+
+    if !chosen.feasible {
+        return Err(EvaluationError::ChosenActionInfeasible);
+    }
+    if !under_trial_budgets(&chosen.declared_resource_units, &trial.resource_profile) {
+        return Err(EvaluationError::ChosenActionOverTrialBudget);
+    }
+
+    let oracle_loss = by_action
+        .values()
+        .filter(|candidate| {
+            candidate.feasible
+                && under_trial_budgets(
+                    &candidate.declared_resource_units,
+                    &trial.resource_profile,
+                )
+        })
+        .map(|candidate| candidate.counterfactual_task_loss)
+        .min_by(f64::total_cmp)
+        .ok_or(EvaluationError::NoBudgetFeasibleCandidate)?;
+
+    let regret = trial.realized_task_loss - oracle_loss;
+    let action_value = cheap.counterfactual_task_loss - chosen.counterfactual_task_loss;
+    if !regret.is_finite() || !action_value.is_finite() {
+        return Err(EvaluationError::NonFiniteAggregate);
+    }
+
+    let trial_budget_status = trial
+        .resource_profile
+        .iter()
+        .map(|(axis_id, axis)| {
+            (
+                axis_id.clone(),
+                status_for_amount(
+                    trial.actual_resource_units.get(axis_id).copied().flatten(),
+                    axis.trial_budget,
+                ),
+            )
+        })
+        .collect();
+
+    Ok(TrialScoreV1 {
+        trial_id: trial.trial_id,
+        loss_profile_id: trial.loss_profile_id.clone(),
+        chosen_action: trial.chosen_action,
+        action_executed: trial.action_executed,
+        realized_task_loss: trial.realized_task_loss,
+        best_budget_feasible_counterfactual_loss: oracle_loss,
+        regret_vs_oracle: regret,
+        counterfactual_action_value_vs_cheap: action_value,
+        actual_resource_units: trial.actual_resource_units.clone(),
+        trial_budget_status,
+        resource_profile: trial.resource_profile.clone(),
+    })
+}
+
+/// Aggregate same-profile trials and enforce declared run-wide budgets.
+/// If any actual charge is missing on an axis, that axis' total remains unknown.
+/// Per-trial losses and costs are never silently imputed as zero.
+pub fn summarize_run_v1(trials: &[TrialV1]) -> Result<RunSummaryV1, EvaluationError> {
+    if trials.is_empty() {
+        return Err(EvaluationError::EmptyRun);
+    }
+
+    let mut scores = Vec::with_capacity(trials.len());
+    for trial in trials {
+        scores.push(evaluate_trial_v1(trial)?);
+    }
+
+    let ids: BTreeSet<u64> = scores.iter().map(|score| score.trial_id).collect();
+    if ids.len() != scores.len() {
+        return Err(EvaluationError::DuplicateTrialId);
+    }
+
+    let first = scores.first().ok_or(EvaluationError::EmptyRun)?;
+    if scores
+        .iter()
+        .any(|score| score.loss_profile_id != first.loss_profile_id)
+    {
+        return Err(EvaluationError::MixedLossProfiles);
+    }
+
+    for score in &scores[1..] {
+        if !same_keys(&score.resource_profile, &first.resource_profile) {
+            return Err(EvaluationError::MixedResourceAxes);
+        }
+        for (axis_id, axis) in &first.resource_profile {
+            let other = score
+                .resource_profile
+                .get(axis_id)
+                .ok_or(EvaluationError::MixedResourceAxes)?;
+            if axis.unit_id != other.unit_id {
+                return Err(EvaluationError::MixedResourceAxes);
+            }
+            if axis.run_budget != other.run_budget {
+                return Err(EvaluationError::InconsistentRunBudget(axis_id.clone()));
+            }
+        }
+    }
+
+    let mut total_actual_resource_units = BTreeMap::new();
+    let mut run_budget_status = BTreeMap::new();
+    for (axis_id, axis) in &first.resource_profile {
+        let mut sum = 0_u128;
+        let mut complete = true;
+        for score in &scores {
+            match score.actual_resource_units.get(axis_id).copied().flatten() {
+                Some(value) => {
+                    sum = sum
+                        .checked_add(u128::from(value))
+                        .ok_or_else(|| EvaluationError::ResourceArithmeticOverflow(axis_id.clone()))?;
+                }
+                None => complete = false,
+            }
+        }
+
+        let total = if complete { Some(sum) } else { None };
+        let status = match (total, axis.run_budget) {
+            (_, None) => BudgetStatus::NotDeclared,
+            (None, Some(_)) => BudgetStatus::Unknown,
+            (Some(used), Some(limit)) if used > limit => BudgetStatus::Exceeded,
+            (Some(_), Some(_)) => BudgetStatus::WithinBudget,
+        };
+        total_actual_resource_units.insert(axis_id.clone(), total);
+        run_budget_status.insert(axis_id.clone(), status);
+    }
+
+    let n = scores.len() as f64;
+    let mean_realized_loss = scores.iter().map(|s| s.realized_task_loss).sum::<f64>() / n;
+    let mean_oracle_loss = scores
+        .iter()
+        .map(|s| s.best_budget_feasible_counterfactual_loss)
+        .sum::<f64>()
+        / n;
+    let mean_regret = scores.iter().map(|s| s.regret_vs_oracle).sum::<f64>() / n;
+    if !mean_realized_loss.is_finite()
+        || !mean_oracle_loss.is_finite()
+        || !mean_regret.is_finite()
+    {
+        return Err(EvaluationError::NonFiniteAggregate);
+    }
+
+    Ok(RunSummaryV1 {
+        scores,
+        mean_realized_loss,
+        mean_oracle_loss,
+        mean_regret,
+        total_actual_resource_units,
+        run_budget_status,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn profile(trial_budget: u64, run_budget: u128) -> ResourceProfileV1 {
+        BTreeMap::from([
+            (
+                "latency".to_string(),
+                ResourceAxisProfileV1 {
+                    unit_id: "millisecond".to_string(),
+                    trial_budget: Some(trial_budget),
+                    run_budget: Some(run_budget),
+                },
+            ),
+            (
+                "sensor".to_string(),
+                ResourceAxisProfileV1 {
+                    unit_id: "sample".to_string(),
+                    trial_budget: Some(2),
+                    run_budget: Some(8),
+                },
+            ),
+        ])
+    }
+
+    fn units(latency: u64, sensor: u64) -> BTreeMap<String, u64> {
+        BTreeMap::from([
+            ("latency".to_string(), latency),
+            ("sensor".to_string(), sensor),
+        ])
+    }
+
+    fn actual(latency: Option<u64>, sensor: Option<u64>) -> BTreeMap<String, Option<u64>> {
+        BTreeMap::from([
+            ("latency".to_string(), latency),
+            ("sensor".to_string(), sensor),
+        ])
+    }
+
+    fn candidate(
+        action: VisionAction,
+        feasible: bool,
+        loss: f64,
+        latency: u64,
+        sensor: u64,
+    ) -> CandidateOutcomeV1 {
+        CandidateOutcomeV1 {
+            action,
+            feasible,
+            counterfactual_task_loss: loss,
+            declared_resource_units: units(latency, sensor),
+        }
+    }
+
+    fn trial(id: u64, chosen: VisionAction, chosen_loss: f64) -> TrialV1 {
+        TrialV1 {
+            trial_id: id,
+            loss_profile_id: "navigation-risk-v1".to_string(),
+            resource_profile: profile(20, 100),
+            candidates: vec![
+                candidate(VisionAction::KeepCheap, true, 10.0, 2, 0),
+                candidate(VisionAction::EscalateCurrent, true, chosen_loss, 8, 0),
+                candidate(VisionAction::ChangeView, true, 4.0, 5, 1),
+                candidate(VisionAction::AbstainOrHandoff, true, 6.0, 1, 0),
+                candidate(VisionAction::AcquireNext, false, 1.0, 7, 1),
+            ],
+            chosen_action: chosen,
+            action_executed: true,
+            fresh_observation_received: chosen.can_acquire_observation(),
+            realized_task_loss: chosen_loss,
+            actual_resource_units: actual(Some(8), Some(u64::from(chosen.can_acquire_observation()))),
+        }
+    }
+
+    #[test]
+    fn positive_negative_and_neutral_action_value_are_distinguished() {
+        let mut helpful = trial(1, VisionAction::EscalateCurrent, 3.0);
+        helpful.candidates[1].counterfactual_task_loss = 3.0;
+        let helpful_score = evaluate_trial_v1(&helpful).unwrap();
+        assert_eq!(helpful_score.counterfactual_action_value_vs_cheap, 7.0);
+
+        let mut harmful = trial(2, VisionAction::EscalateCurrent, 12.0);
+        harmful.candidates[1].counterfactual_task_loss = 12.0;
+        let harmful_score = evaluate_trial_v1(&harmful).unwrap();
+        assert_eq!(harmful_score.counterfactual_action_value_vs_cheap, -2.0);
+
+        let mut neutral = trial(3, VisionAction::EscalateCurrent, 10.0);
+        neutral.candidates[1].counterfactual_task_loss = 10.0;
+        let neutral_score = evaluate_trial_v1(&neutral).unwrap();
+        assert_eq!(neutral_score.counterfactual_action_value_vs_cheap, 0.0);
+    }
+
+    #[test]
+    fn oracle_respects_each_declared_trial_budget_axis() {
+        let mut t = trial(1, VisionAction::ChangeView, 4.0);
+        t.candidates.push(candidate(VisionAction::WaitForEvent, true, 0.0, 21, 1));
+        let score = evaluate_trial_v1(&t).unwrap();
+        assert_eq!(score.best_budget_feasible_counterfactual_loss, 4.0);
+    }
+
+    #[test]
+    fn infeasible_chosen_action_fails_closed() {
+        let mut t = trial(1, VisionAction::AcquireNext, 1.0);
+        t.action_executed = false;
+        t.fresh_observation_received = false;
+        assert_eq!(
+            evaluate_trial_v1(&t),
+            Err(EvaluationError::ChosenActionInfeasible)
+        );
+    }
+
+    #[test]
+    fn chosen_action_over_budget_fails_closed() {
+        let mut t = trial(1, VisionAction::ChangeView, 4.0);
+        t.candidates[2].declared_resource_units = units(21, 1);
+        assert_eq!(
+            evaluate_trial_v1(&t),
+            Err(EvaluationError::ChosenActionOverTrialBudget)
+        );
+    }
+
+    #[test]
+    fn unexecuted_action_cannot_claim_a_fresh_observation() {
+        let mut t = trial(1, VisionAction::ChangeView, 4.0);
+        t.action_executed = false;
+        t.fresh_observation_received = true;
+        assert_eq!(
+            evaluate_trial_v1(&t),
+            Err(EvaluationError::FreshObservationWithoutExecutedAcquisition)
+        );
+    }
+
+    #[test]
+    fn current_frame_escalation_cannot_claim_a_new_sensor_observation() {
+        let mut t = trial(1, VisionAction::EscalateCurrent, 3.0);
+        t.fresh_observation_received = true;
+        assert_eq!(
+            evaluate_trial_v1(&t),
+            Err(EvaluationError::FreshObservationWithoutExecutedAcquisition)
+        );
+    }
+
+    #[test]
+    fn missing_actual_cost_is_unknown_not_zero() {
+        let mut t = trial(1, VisionAction::EscalateCurrent, 3.0);
+        t.actual_resource_units = actual(None, Some(0));
+        let score = evaluate_trial_v1(&t).unwrap();
+        assert_eq!(score.actual_resource_units["latency"], None);
+        assert_eq!(score.trial_budget_status["latency"], BudgetStatus::Unknown);
+    }
+
+    #[test]
+    fn duplicate_actions_and_missing_cheap_baseline_are_rejected() {
+        let mut duplicate = trial(1, VisionAction::KeepCheap, 10.0);
+        duplicate.candidates.push(candidate(VisionAction::KeepCheap, true, 9.0, 1, 0));
+        assert_eq!(
+            evaluate_trial_v1(&duplicate),
+            Err(EvaluationError::DuplicateCandidateAction)
+        );
+
+        let mut no_cheap = trial(2, VisionAction::EscalateCurrent, 3.0);
+        no_cheap.candidates.retain(|c| c.action != VisionAction::KeepCheap);
+        assert_eq!(
+            evaluate_trial_v1(&no_cheap),
+            Err(EvaluationError::MissingCheapBaseline)
+        );
+    }
+
+    #[test]
+    fn candidate_resource_axes_must_match_declared_profile() {
+        let mut t = trial(1, VisionAction::EscalateCurrent, 3.0);
+        t.candidates[1].declared_resource_units.remove("sensor");
+        assert_eq!(
+            evaluate_trial_v1(&t),
+            Err(EvaluationError::ResourceAxesMismatch)
+        );
+    }
+
+    #[test]
+    fn run_budget_overrun_is_reported_separately_per_axis() {
+        let mut first = trial(1, VisionAction::EscalateCurrent, 3.0);
+        let mut second = trial(2, VisionAction::ChangeView, 4.0);
+        first.actual_resource_units = actual(Some(70), Some(3));
+        second.actual_resource_units = actual(Some(40), Some(3));
+        let summary = summarize_run_v1(&[first, second]).unwrap();
+        assert_eq!(summary.run_budget_status["latency"], BudgetStatus::Exceeded);
+        assert_eq!(summary.run_budget_status["sensor"], BudgetStatus::WithinBudget);
+        assert_eq!(summary.total_actual_resource_units["latency"], Some(110));
+    }
+
+    #[test]
+    fn missing_any_run_charge_makes_axis_total_unknown() {
+        let mut first = trial(1, VisionAction::EscalateCurrent, 3.0);
+        let second = trial(2, VisionAction::ChangeView, 4.0);
+        first.actual_resource_units = actual(None, Some(1));
+        let summary = summarize_run_v1(&[first, second]).unwrap();
+        assert_eq!(summary.total_actual_resource_units["latency"], None);
+        assert_eq!(summary.run_budget_status["latency"], BudgetStatus::Unknown);
+    }
+
+    #[test]
+    fn run_must_not_mix_loss_profiles_or_duplicate_trial_ids() {
+        let first = trial(1, VisionAction::EscalateCurrent, 3.0);
+        let mut mixed = trial(2, VisionAction::ChangeView, 4.0);
+        mixed.loss_profile_id = "unrelated-loss-v9".to_string();
+        assert_eq!(
+            summarize_run_v1(&[first.clone(), mixed]),
+            Err(EvaluationError::MixedLossProfiles)
+        );
+        assert_eq!(
+            summarize_run_v1(&[first.clone(), first]),
+            Err(EvaluationError::DuplicateTrialId)
+        );
+    }
+
+    #[test]
+    fn counterfactual_costs_and_actual_costs_are_not_conflated() {
+        let mut t = trial(1, VisionAction::ChangeView, 4.0);
+        t.candidates[2].declared_resource_units = units(5, 1);
+        t.actual_resource_units = actual(Some(17), Some(2));
+        let score = evaluate_trial_v1(&t).unwrap();
+        assert_eq!(score.best_budget_feasible_counterfactual_loss, 4.0);
+        assert_eq!(score.actual_resource_units["latency"], Some(17));
+        assert_eq!(score.trial_budget_status["latency"], BudgetStatus::WithinBudget);
+    }
+
+    #[test]
+    fn candidate_input_order_does_not_change_score() {
+        let a = trial(1, VisionAction::ChangeView, 4.0);
+        let mut b = a.clone();
+        b.candidates.reverse();
+        assert_eq!(evaluate_trial_v1(&a), evaluate_trial_v1(&b));
+    }
+
+    #[test]
+    fn empty_run_and_inconsistent_run_budgets_fail_closed() {
+        assert_eq!(summarize_run_v1(&[]), Err(EvaluationError::EmptyRun));
+
+        let first = trial(1, VisionAction::EscalateCurrent, 3.0);
+        let mut second = trial(2, VisionAction::ChangeView, 4.0);
+        second.resource_profile.get_mut("latency").unwrap().run_budget = Some(99);
+        assert_eq!(
+            summarize_run_v1(&[first, second]),
+            Err(EvaluationError::InconsistentRunBudget("latency".to_string()))
+        );
+    }
+}
