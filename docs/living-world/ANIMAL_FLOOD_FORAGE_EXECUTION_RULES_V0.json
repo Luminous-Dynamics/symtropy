@@ -77,7 +77,10 @@
       "min_inclusive": 10,
       "max_inclusive": 35
     },
-    "active_sensing_budget_source": "pilot_manifest_agent_active_sensing_actions_per_episode"
+    "active_sensing_budget_source": "pilot_manifest_agent_active_sensing_actions_per_episode",
+    "water_memory_max_age_ticks": 10,
+    "resource_memory_max_age_ticks": 25,
+    "blocked_edge_memory_max_age_ticks": 10
   },
   "policies": {
     "reactive_heuristic": {
