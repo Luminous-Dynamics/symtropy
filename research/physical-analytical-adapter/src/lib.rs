@@ -358,7 +358,7 @@ fn parse_request(value: &Value) -> Check<ParsedRequest> {
         case,
         requested_physics,
         physics_omitted,
-        inputs: inputs.clone(),
+        inputs: inputs.to_owned(),
     })
 }
 
