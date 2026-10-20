@@ -4,6 +4,8 @@ Programme: [EV-PASSENGER-COST-001 #2310](https://github.com/Luminous-Dynamics/sy
 Implementation: `tools/ev-passenger-cost-frontier/`  
 Related programs: [EV platform #2112](https://github.com/Luminous-Dynamics/symtropy/issues/2112), [vehicle/mission screens PR #2084](https://github.com/Luminous-Dynamics/symtropy/pull/2084), [EV benchmark protocol PR #2166](https://github.com/Luminous-Dynamics/symtropy/pull/2166), and [battery circularity PR #2156](https://github.com/Luminous-Dynamics/symtropy/pull/2156).
 
+Public online component evidence: [EV component benchmarks and improvement plan](EV_COMPONENT_PUBLIC_BENCHMARKS_AND_IMPROVEMENT_OPPORTUNITIES_V0_1.md) and machine-readable [public benchmark ledger](../../tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json). This research used public sources only; no suppliers were contacted. Public retail listings and global market averages are not production procurement quotes.
+
 ## Paradigm shift: invert the price target
 
 Do not start with a battery pack guess and then hope the vehicle becomes affordable. Start with a market-specific, dated, like-for-like retail ceiling. Work backward through tax, the dealer/distributor share, the target OEM gross margin and cost of good production units. Then evaluate how battery capacity, drive-unit topology, body construction, serviceability, manufacturing yield, tooling and volume move the cost envelope.

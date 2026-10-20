@@ -25,6 +25,13 @@ All monetary values are in the catalog currency. Every BOM line carries a quanti
 
 The model uses cost *ranges*. A low-case result cannot conceal a high-case shortfall.
 
+## Public component research
+
+- Research dossier: [EV Component Public Benchmarks and Improvement Opportunities](../../docs/research/EV_COMPONENT_PUBLIC_BENCHMARKS_AND_IMPROVEMENT_OPPORTUNITIES_V0_1.md)
+- Machine-readable source ledger: `fixtures/ev_component_public_benchmarks_v0_1.json`
+
+This evidence is gathered from public market surveys, online retail listings, manufacturer specifications and official tariff/policy sources. It does not contact vendors or imply firm quotes. The ledger labels the exact evidence class and claim limitations for each source.
+
 ## Evidence and claim limit
 
 Evidence classes such as `synthetic`, `estimate`, and `literature` are scenario-building inputs, not production quotes. Only manufacturer quotes, measured costs or audited cost records count as cost-release-grade in v0.1. A candidate is never production-feasible unless its price envelope, engineering gate, safety gate and vehicle-envelope evidence all qualify. Passing this CLI is arithmetic qualification only; it does not demonstrate manufacturability, safety, homologation or achievable MSRP.

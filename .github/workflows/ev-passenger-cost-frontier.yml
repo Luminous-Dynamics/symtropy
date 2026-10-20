@@ -28,6 +28,17 @@ jobs:
         run: |
           jq empty tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
+            and .observed_as_of == "2026-10-20"
+            and (.sources | length) == 13
+            and .derived_checks.global_bev_pack_reference_42kwh_ZAR > 68000
+            and .derived_checks.global_bev_pack_reference_42kwh_ZAR < 69000
+            and .derived_checks.current_synthetic_42kwh_cost_first_pack_low_ZAR == 60800
+            and .derived_checks.current_synthetic_42kwh_cost_first_pack_high_ZAR == 80300
+            and (.sources | any(.id == "south-africa-local-manufacturing-policy-announcement"))
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json
       - name: Format check
         run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
       - name: Rust tests
@@ -50,6 +61,7 @@ jobs:
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json \
             tools/ev-passenger-cost-frontier/src/main.rs \
             ev-passenger-cost-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
