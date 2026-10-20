@@ -4,6 +4,9 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
+      - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
@@ -11,6 +14,9 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
+      - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   workflow_dispatch:
@@ -41,6 +47,31 @@ jobs:
             and .line_safety_gate == "unknown"
             and .product_quality_release_gate == "unknown"
           ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Parse PCB cell fixtures
+        run: |
+          for fixture in \
+            tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json; do
+            jq empty "$fixture"
+            jq -e '
+              .schema_version == "0.1.0"
+              and (.benchmark_id | startswith("PCB-CELL-"))
+              and .seed > 0
+              and .horizon_seconds > .warmup_seconds
+              and .productive_seconds_per_year > 0
+              and .variant_count > 0
+              and .variant_batch_size > 0
+              and (.stations | length) >= 2
+              and (.buffer_capacities | length) == ((.stations | length) - 1)
+              and (.stations | all(.[]; .servers > 0 and .good_yield_fraction > 0 and .good_yield_fraction <= 1))
+              and (.input_evidence_class == "synthetic")
+              and .calibration_gate == "unknown"
+              and .local_compliance_gate == "unknown"
+              and .line_safety_gate == "unknown"
+              and .product_quality_release_gate == "unknown"
+              and (.claim_ceiling | contains("Synthetic"))
+            ' "$fixture"
+          done
       - name: Format check
         run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
       - name: Full Rust package tests
@@ -68,6 +99,35 @@ jobs:
             and all(.scenarios[]; all(.stations[]; .accounted_fraction >= 0 and .accounted_fraction <= 1.000001))
             and all(.scenarios[1:][]; .added_servers == 1 and .intervention_station_id != null)
           ' ev-factory-simulation-report.json
+      - name: Run PCB cell routes and assert fail-closed invariants
+        run: |
+          for fixture in \
+            tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json; do
+            benchmark_id=$(jq -r '.benchmark_id' "$fixture")
+            station_count=$(jq '.stations | length' "$fixture")
+            report="$benchmark_id-report.json"
+            repeat="$benchmark_id-repeat.json"
+            cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$fixture" > "$report"
+            jq -e --arg id "$benchmark_id" --argjson n "$station_count" '
+              .benchmark_id == $id
+              and .scenario_count == ($n + 1)
+              and .input_evidence_class == "synthetic"
+              and .release_ready == false
+              and .output_never_exceeds_released_input
+              and .all_buffers_respected_capacity
+              and .station_time_accounting_within_horizon
+              and (.scenarios | length) == ($n + 1)
+              and (.scenarios[0].stations | length) == $n
+              and ((.scenarios[0].interstation_buffers | length) == ($n - 1))
+              and all(.scenarios[]; .good_units_total <= .released_jobs_total)
+              and all(.scenarios[]; .release_ready == false and .all_buffers_respected_capacity and .station_time_accounting_within_horizon)
+              and all(.scenarios[]; all(.stations[]; .accounted_fraction >= 0 and .accounted_fraction <= 1.000001))
+              and all(.scenarios[1:][]; .added_servers == 1 and .intervention_station_id != null)
+            ' "$report"
+            cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$fixture" > "$repeat"
+            cmp "$report" "$repeat"
+          done
       - name: Verify deterministic output for the declared seed
         run: |
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
@@ -87,12 +147,19 @@ jobs:
           sha256sum \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json \
             docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
-            ev-factory-simulation-report.json > ev-factory-simulation-report.sha256
+            docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
+            ev-factory-simulation-report.json \
+            PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
+            PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-factory-discrete-event-simulation-report
           path: |
             ev-factory-simulation-report.json
+            PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
+            PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json
             ev-factory-simulation-report.sha256
           if-no-files-found: error
