@@ -20,6 +20,11 @@ const ACI_LEARNING_RATE: f64 = 0.10;
 const COP_LEARNING_RATE: f64 = 0.10;
 const COP_INTEGRATOR_SCALE: f64 = 0.5;
 const COP_WINDOW_SIZE: usize = 64;
+const TARGET_COVERAGE: f64 = NOMINAL_COVERAGE_PERCENT as f64 / 100.0;
+const COVERAGE_BAND_LOWER: f64 = 0.85;
+const COVERAGE_BAND_UPPER: f64 = 0.95;
+const COVERAGE_WINDOW_TICKS: usize = 8;
+const MIN_LABELS_PER_COVERAGE_WINDOW: usize = 6;
 const MAX_TELEMETRY_AGE: u8 = 1;
 const TRUST_RESIDUAL_LIMIT: f64 = 3.0;
 const HEALTHY_TICKS_TO_REENTER: usize = 3;
@@ -196,6 +201,7 @@ struct StepOutcome {
     radius: f64,
     decision: Decision,
     coverage: Option<bool>,
+    label_matures_at: Option<usize>,
     interval_width: f64,
     hard_control: bool,
 }
@@ -210,6 +216,18 @@ struct Summary {
     coverage_count: usize,
     coverage_denominator: usize,
     empirical_coverage: Option<f64>,
+    signed_coverage_error: Option<f64>,
+    absolute_coverage_error: Option<f64>,
+    stream_coverage_count: usize,
+    mean_stream_coverage: Option<f64>,
+    p05_stream_coverage: Option<f64>,
+    p95_stream_coverage: Option<f64>,
+    coverage_recovery_attempts: usize,
+    coverage_recovery_successes: usize,
+    coverage_recovery_rate: Option<f64>,
+    coverage_recovery_delay_mean_ticks: Option<f64>,
+    coverage_recovery_delay_p95_ticks: Option<f64>,
+    coverage_recovery_delay_max_ticks: Option<usize>,
     mean_interval_width: f64,
     p95_interval_width: f64,
     max_interval_width: f64,
@@ -246,6 +264,10 @@ struct Receipt {
     policy_count: usize,
     summary_count: usize,
     nominal_coverage_percent: usize,
+    coverage_band_lower: f64,
+    coverage_band_upper: f64,
+    coverage_window_ticks: usize,
+    min_labels_per_coverage_window: usize,
     trust_residual_limit: f64,
     max_telemetry_age_periods: u8,
     healthy_ticks_required_for_reentry: usize,
@@ -475,6 +497,40 @@ fn guarded_decision(
     Decision::UseModel
 }
 
+fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Option<usize> {
+    if COVERAGE_WINDOW_TICKS == 0
+        || onset >= outcomes.len()
+        || onset + COVERAGE_WINDOW_TICKS > outcomes.len()
+    {
+        return None;
+    }
+
+    let first_end = onset + COVERAGE_WINDOW_TICKS - 1;
+    for end in first_end..outcomes.len() {
+        let start = end + 1 - COVERAGE_WINDOW_TICKS;
+        let matured = outcomes[start..=end]
+            .iter()
+            .filter_map(|outcome| {
+                let matures_at = outcome.label_matures_at?;
+                if matures_at <= end {
+                    outcome.coverage
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        if matured.len() < MIN_LABELS_PER_COVERAGE_WINDOW {
+            continue;
+        }
+        let covered = matured.iter().filter(|covered| **covered).count();
+        let empirical = covered as f64 / matured.len() as f64;
+        if (COVERAGE_BAND_LOWER..=COVERAGE_BAND_UPPER).contains(&empirical) {
+            return Some(end - onset + 1);
+        }
+    }
+    None
+}
+
 fn independently_replay_gate(stream: &Stream, radii: &[f64], actual: &[Decision]) -> usize {
     if radii.len() != stream.ticks.len() || actual.len() != stream.ticks.len() {
         return 1;
@@ -694,6 +750,15 @@ fn evaluate_stream(
         } else {
             None
         };
+        let label_matures_at = if tick.target_label_available {
+            Some(
+                tick.tick
+                    .checked_add(tick.target_label_delay_ticks)
+                    .ok_or_else(|| "target-label maturity tick overflow".to_owned())?,
+            )
+        } else {
+            None
+        };
 
         let decision = if policy.is_diagnostic_only() {
             Decision::DiagnoseOnly
@@ -712,16 +777,14 @@ fn evaluate_stream(
             radius,
             decision,
             coverage,
+            label_matures_at,
             interval_width: width,
             hard_control: is_hard_control(tick, radius),
         });
 
         if uses_online_labels && tick.target_label_available {
             let residual = (tick.target - tick.prediction).abs();
-            let ready_at = tick
-                .tick
-                .checked_add(tick.target_label_delay_ticks)
-                .ok_or_else(|| "target-label maturity tick overflow".to_owned())?;
+            let ready_at = label_matures_at.expect("available target label has a maturity tick");
             pending_labels.push_back((ready_at, residual, coverage.unwrap_or(false)));
         }
     }
@@ -738,6 +801,9 @@ fn evaluate_stream(
 struct Accumulator {
     coverage_count: usize,
     coverage_denominator: usize,
+    stream_coverages: Vec<f64>,
+    coverage_recovery_attempts: usize,
+    coverage_recovery_delays: Vec<usize>,
     widths: Vec<f64>,
     model_use_steps: usize,
     diagnostic_only_steps: usize,
@@ -765,6 +831,17 @@ impl Accumulator {
         self.label_updates_applied += label_updates_applied;
         self.independent_gate_audit_mismatches += audit_mismatches;
         self.target_labels_missing += outcomes.iter().filter(|o| o.coverage.is_none()).count();
+        let stream_coverage = outcomes.iter().filter_map(|outcome| outcome.coverage).collect::<Vec<_>>();
+        if !stream_coverage.is_empty() {
+            let covered = stream_coverage.iter().filter(|value| **value).count();
+            self.stream_coverages.push(covered as f64 / stream_coverage.len() as f64);
+        }
+        if let Some(onset) = stream.kind.incident_start() {
+            self.coverage_recovery_attempts += 1;
+            if let Some(delay) = coverage_band_recovery_delay(outcomes, onset) {
+                self.coverage_recovery_delays.push(delay);
+            }
+        }
 
         for outcome in outcomes {
             self.widths.push(outcome.interval_width);
@@ -821,6 +898,37 @@ impl Accumulator {
         } else {
             Some(self.coverage_count as f64 / self.coverage_denominator as f64)
         };
+        let signed_coverage_error =
+            empirical_coverage.map(|coverage| coverage - TARGET_COVERAGE);
+        let absolute_coverage_error = signed_coverage_error.map(f64::abs);
+        let mean_stream_coverage = if self.stream_coverages.is_empty() {
+            None
+        } else {
+            Some(self.stream_coverages.iter().sum::<f64>() / self.stream_coverages.len() as f64)
+        };
+        let p05_stream_coverage = quantile(&self.stream_coverages, 5);
+        let p95_stream_coverage = quantile(&self.stream_coverages, 95);
+        let coverage_recovery_successes = self.coverage_recovery_delays.len();
+        let coverage_recovery_rate = if self.coverage_recovery_attempts == 0 {
+            None
+        } else {
+            Some(coverage_recovery_successes as f64 / self.coverage_recovery_attempts as f64)
+        };
+        let coverage_recovery_delay_mean_ticks = if self.coverage_recovery_delays.is_empty() {
+            None
+        } else {
+            Some(
+                self.coverage_recovery_delays.iter().sum::<usize>() as f64
+                    / self.coverage_recovery_delays.len() as f64,
+            )
+        };
+        let recovery_delays_f64 = self
+            .coverage_recovery_delays
+            .iter()
+            .map(|delay| *delay as f64)
+            .collect::<Vec<_>>();
+        let coverage_recovery_delay_p95_ticks = quantile(&recovery_delays_f64, 95);
+        let coverage_recovery_delay_max_ticks = self.coverage_recovery_delays.iter().copied().max();
         let detection_delay_mean_ticks = if self.detection_delays.is_empty() {
             None
         } else {
@@ -840,6 +948,18 @@ impl Accumulator {
             coverage_count: self.coverage_count,
             coverage_denominator: self.coverage_denominator,
             empirical_coverage,
+            signed_coverage_error,
+            absolute_coverage_error,
+            stream_coverage_count: self.stream_coverages.len(),
+            mean_stream_coverage,
+            p05_stream_coverage,
+            p95_stream_coverage,
+            coverage_recovery_attempts: self.coverage_recovery_attempts,
+            coverage_recovery_successes,
+            coverage_recovery_rate,
+            coverage_recovery_delay_mean_ticks,
+            coverage_recovery_delay_p95_ticks,
+            coverage_recovery_delay_max_ticks,
             mean_interval_width,
             p95_interval_width,
             max_interval_width,
@@ -985,6 +1105,10 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         policy_count: Policy::all().len(),
         summary_count: summaries.len(),
         nominal_coverage_percent: NOMINAL_COVERAGE_PERCENT,
+        coverage_band_lower: COVERAGE_BAND_LOWER,
+        coverage_band_upper: COVERAGE_BAND_UPPER,
+        coverage_window_ticks: COVERAGE_WINDOW_TICKS,
+        min_labels_per_coverage_window: MIN_LABELS_PER_COVERAGE_WINDOW,
         trust_residual_limit: TRUST_RESIDUAL_LIMIT,
         max_telemetry_age_periods: MAX_TELEMETRY_AGE,
         healthy_ticks_required_for_reentry: HEALTHY_TICKS_TO_REENTER,
@@ -992,6 +1116,10 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         unguarded_negative_control_hard_control_acceptances,
         independent_gate_audit_mismatches,
         summaries,
+        coverage_band_lower: COVERAGE_BAND_LOWER,
+        coverage_band_upper: COVERAGE_BAND_UPPER,
+        coverage_window_ticks: COVERAGE_WINDOW_TICKS,
+        min_labels_per_coverage_window: MIN_LABELS_PER_COVERAGE_WINDOW,
         claim_ceiling: "deterministic synthetic interval-adaptation and independent trust-gate benchmark; proxy policies are not faithful reproductions of COP, PACE, SAOCP, or another published method; no distribution-free coverage, mine-site calibration, field performance, or safety case is claimed".to_owned(),
     })
 }
