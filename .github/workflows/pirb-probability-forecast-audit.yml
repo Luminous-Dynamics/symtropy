@@ -15,6 +15,9 @@ on:
       - "docs/fixtures/views-api-response-synthetic-*.json"
       - "docs/schemas/pirb-views-offline-import-v0.1.schema.json"
       - "docs/tech/PIRB_PROBABILITY_FORECAST_EVALUATION_V0_1.md"
+      - "docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json"
+      - "docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json"
+      - "docs/tech/PIRB_JOINT_PREDICTIVE_SAMPLE_COHERENCE_V0_1.md"
       - "tools/pirb-probability-forecast-eval/**"
       - ".github/workflows/pirb-probability-forecast-audit.yml"
   workflow_dispatch:
@@ -50,6 +53,9 @@ jobs:
 
       - name: Assert public CI fixture is synthetic and aggregate-only
         run: jq -e '.evidence_class == "synthetic" and .privacy.aggregate_only == true' docs/fixtures/pirb-probability-forecast-v0.1.json > /dev/null
+
+      - name: Assert joint sample fixture is synthetic and aggregate-only
+        run: jq -e '.evidence_scope == "synthetic" and .privacy.aggregate_only == true and .sample_policy.representation == "joint_predictive_samples"' docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json > /dev/null
 
       - name: Run schema, metric, maturity, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
@@ -218,6 +224,66 @@ jobs:
             '.result == "pass" and .source_commit == $source_commit and .input_sha256 == $input_sha and .evidence_class == "synthetic" and .forecast_record_count == 28 and .metrics.training.forecast_count == 12 and .metrics.calibration.forecast_count == 8 and .metrics.test.forecast_count == 8 and .metrics.test.unknown_outcome_count == 1 and .test_uncertainty.status == "not_estimable" and .causal_effect_estimated == false and .live_decision_authority == false' \
             pirb-views-score-receipt.json
 
+      - name: Audit exact-head joint predictive sample coherence
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          input="docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json"
+          schema="docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+          expected_sample_rows_sha="$(jq -cS '.sample_rows' "$input" | sha256sum | awk '{print $1}')"
+
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-joint-sample-coherence-audit -- \
+            --input "$input" --source-commit "$source_commit" > pirb-joint-sample-coherence-receipt.json
+
+          jq -e \
+            --arg source_commit "$source_commit" \
+            --arg input_sha "$expected_input_sha" \
+            --arg schema_sha "$expected_schema_sha" \
+            --arg sample_rows_sha "$expected_sample_rows_sha" \
+            '
+              .receipt_version == "0.1"
+              and .receipt_type == "joint_predictive_sample_coherence_audit"
+              and .registration_id == "pirb-joint-samples-synthetic-hierarchy-v0-1"
+              and .evidence_scope == "synthetic"
+              and .source_commit_pinned == true
+              and .source_commit == $source_commit
+              and .input_sha256 == $input_sha
+              and .schema_sha256 == $schema_sha
+              and .sample_rows_sha256 == $sample_rows_sha
+              and .draw_count == 4
+              and .forecast_node_count == 8
+              and .sample_row_count == 32
+              and .summary.constraint_count == 3
+              and .summary.assessable_constraint_count == 2
+              and .summary.not_assessable_constraint_count == 1
+              and .summary.assessed_constraint_draw_pair_count == 8
+              and .summary.raw_coherent_constraint_draw_pair_count == 6
+              and .summary.reconciled_coherent_constraint_draw_pair_count == 8
+              and (.summary.raw_constraint_draw_coherence_rate - 0.75 | fabs < 0.0000000001)
+              and .summary.reconciled_constraint_draw_coherence_rate == 1.0
+              and .summary.draws_coherent_across_all_complete_constraints_raw_count == 2
+              and .summary.draws_coherent_across_all_complete_constraints_reconciled_count == 4
+              and .summary.raw_joint_draw_coherence_rate == 0.5
+              and .summary.reconciled_joint_draw_coherence_rate == 1.0
+              and (.summary.mean_absolute_raw_constraint_residual - 0.25 | fabs < 0.0000000001)
+              and .summary.mean_absolute_reconciled_constraint_residual == 0
+              and .summary.total_absolute_sample_adjustment == 10
+              and .summary.maximum_absolute_sample_adjustment == 1
+              and .claims.sample_matrix_validated == true
+              and .claims.joint_sample_coherence_measured == true
+              and .claims.marginal_calibration_established == false
+              and .claims.forecast_accuracy_established == false
+              and .claims.causal_impact_established == false
+              and .claims.live_decision_authority == false
+              and .forecast_artifact_sha256 == "0000000000000000000000000000000000000000000000000000000000000000"
+              and .hierarchy_sha256 == "1111111111111111111111111111111111111111111111111111111111111111"
+              and .reconciliation_method_sha256 == "2222222222222222222222222222222222222222222222222222222222222222"
+            ' pirb-joint-sample-coherence-receipt.json
+
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
         uses: actions/upload-artifact@v4
@@ -228,6 +294,9 @@ jobs:
             pirb-views-import-receipt.json
             pirb-views-normalized.json
             pirb-views-score-receipt.json
+            pirb-joint-sample-coherence-receipt.json
+            docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json
+            docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json
             docs/fixtures/views-import-manifest-synthetic-v0.1.json
             docs/fixtures/views-outcomes-synthetic-v0.1.json
             docs/fixtures/views-spatial-block-map-synthetic-v0.1.json
