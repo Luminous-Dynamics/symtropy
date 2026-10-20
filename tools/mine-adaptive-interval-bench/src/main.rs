@@ -582,6 +582,14 @@ fn radius_for(
     }
 }
 
+fn update_aci_alpha(alpha: f64, covered: bool) -> f64 {
+    if covered {
+        alpha + ACI_LEARNING_RATE * ACI_TARGET_ALPHA
+    } else {
+        alpha - ACI_LEARNING_RATE * (1.0 - ACI_TARGET_ALPHA)
+    }
+}
+
 fn update_cop_state(
     history: &[f64],
     cop_threshold: &mut f64,
@@ -651,11 +659,7 @@ fn evaluate_stream(
             if policy == Policy::AciClippedReferenceIntervalOnly {
                 // ACI's feedback is updated from the coverage outcome observed at
                 // prediction time, not recomputed using the current interval.
-                if covered_at_origin {
-                    aci_alpha += ACI_LEARNING_RATE * ACI_TARGET_ALPHA;
-                } else {
-                    aci_alpha -= ACI_LEARNING_RATE * (1.0 - ACI_TARGET_ALPHA);
-                }
+                aci_alpha = update_aci_alpha(aci_alpha, covered_at_origin);
             }
             if policy == Policy::CopReferenceIntervalOnly {
                 update_cop_state(
@@ -1155,6 +1159,53 @@ mod tests {
                 .all(|step| step.radius.is_finite() && step.radius >= 0.0));
             assert!(outcomes[1].radius > 0.0);
         }
+    }
+
+    #[test]
+    fn reference_adapters_match_hand_calculated_update_steps() {
+        let covered_alpha = update_aci_alpha(0.1, true);
+        let missed_alpha = update_aci_alpha(0.1, false);
+        assert!((covered_alpha - 0.11).abs() < 1e-12);
+        assert!((missed_alpha - 0.01).abs() < 1e-12);
+
+        let small_history = [1.0, 2.0, 3.0, 4.0, 5.0];
+        let fixed_radius = 3.0;
+        assert_eq!(
+            5.0,
+            radius_for(
+                Policy::AciClippedReferenceIntervalOnly,
+                fixed_radius,
+                fixed_radius,
+                0.1,
+                0.0,
+                0.0,
+                &small_history,
+            )
+        );
+        assert_eq!(
+            4.0,
+            radius_for(
+                Policy::AciClippedReferenceIntervalOnly,
+                fixed_radius,
+                fixed_radius,
+                0.2,
+                0.0,
+                0.0,
+                &small_history,
+            )
+        );
+
+        let calibration = calibration_residuals();
+        let mut cop_threshold = 0.0;
+        let mut cop_integrator = 0.0;
+        update_cop_state(
+            &calibration,
+            &mut cop_threshold,
+            &mut cop_integrator,
+            false,
+        );
+        assert!((cop_threshold - 0.27).abs() < 1e-12);
+        assert!((cop_integrator - 0.0975).abs() < 1e-12);
     }
 
     #[test]
