@@ -42,6 +42,27 @@ Frames/observation requests within the same episode are not independent statisti
 - Stale evidence cannot rewind a claim's retained source timestamp.
 - Deterministic rerun must reproduce the report byte-for-byte; SHA-256 receipts are retained.
 
+## First exact-head results — exploratory synthetic win
+
+The active-query implementation passed exact-head qualification at source head `a2a9d7b400fc2d05bc8f8970adee3611ee6499f5`; [focused run #39500610452](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39500610452) passed the existing memory suite (**24 tests**) and active-query suite (**8 tests**), deterministic replays, TSV checks and both report SHA checks. Combined artifact: [#12300016250](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39500610452/artifacts/12300016250), archive SHA-256 `7fd22ad7ad823b1b2fa13b768a6e246daea2ec4873bd3527940eac2a42e03f59`.
+
+Held-out family, 384 paired episodes per policy, fixed 48-request budget:
+
+| Policy | Mean loss ↓ | Answer rate ↑ | Accuracy when answered ↑ | Relevant observations per query claim | Wasted observation rate | Allocation imbalance | Logical state bytes | Loss delta vs round-robin (paired 95% CI) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Round-robin | 0.2227 | 58.85% | 79.65% | 8.109 | 49.32% | 0.000 | 96 | baseline |
+| Uniform random | 0.2292 | 48.96% | 79.26% | 8.023 | 49.86% | 6.680 | 96 | +0.0065 [-0.0228, +0.0358] |
+| Least observed | 0.2227 | 58.85% | 79.65% | 8.109 | 49.32% | 0.000 | 96 | +0.0000 [0.0000, 0.0000] |
+| Stalest first | 0.2077 | 62.76% | 81.74% | 8.083 | 49.48% | 6.169 | 96 | -0.0150 [-0.0469, +0.0176] |
+| Maximum uncertainty | 0.1953 | 65.62% | 83.33% | 8.043 | 49.73% | 10.682 | 96 | -0.0273 [-0.0612, +0.0046] |
+| **Approx. value of information** | **0.1868** | **67.97%** | **84.29%** | **8.109** | **49.32%** | **13.807** | **96** | **-0.0358 [-0.0677, -0.0046]** |
+
+The approximate value-of-information selector reduces the primary mean loss by **0.0358 absolute**, about **16.1% relative** to round-robin, with a paired episode-bootstrap interval strictly below zero. It answers more often and has better accuracy among answers, while requesting exactly the same 48 observations and returning the same average number of relevant observations (8.109 per query claim). The gain therefore comes from *allocation* of useful evidence, not extra sensing. The selector also has more uneven allocation (imbalance 13.807 versus 0), which is consistent with focusing on claims with higher decision impact.
+
+Development result: round-robin loss 0.0977; value-of-information loss 0.0540; paired delta -0.0436, 95% CI [-0.0684, -0.0195].
+
+This is an encouraging result for this controlled generator, not SOTA evidence. The candidate arose from the sample-complexity finding and the six-policy comparison was not preregistered before the broader line of memory research. Freeze the selector, action budget, confidence model and seed protocol, then run a new untouched seed root before claiming confirmatory evidence. Also evaluate slices by recent hidden claim change, delay and high corruption, because average loss may conceal weak handling of surprise changes. Then reproduce a native ActiveArena baseline before testing the memory/acquisition controller swap. Synthetic loss must not be compared to ActiveArena task-success percentage.
+
 ## Acceptance gate
 
 A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The value-of-information policy is the main hypothesis, but the benchmark must report all six policies. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
