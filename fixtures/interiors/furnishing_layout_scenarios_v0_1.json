@@ -288,7 +288,7 @@
           "alternative_id": "compact_storage_nominal_only",
           "placements": [
             { "item_id": "bed", "x_m": 1.0, "y_m": 1.8, "rotation_degrees": 0 },
-            { "item_id": "wardrobe", "x_m": 2.5, "y_m": 3.0, "rotation_degrees": 0 },
+            { "item_id": "wardrobe", "x_m": 2.8, "y_m": 3.0, "rotation_degrees": 90 },
             { "item_id": "desk", "x_m": 2.0, "y_m": 0.4, "rotation_degrees": 0 }
           ],
           "expected_checks": [
@@ -304,7 +304,7 @@
           "alternative_id": "open_circulation_nominal_only",
           "placements": [
             { "item_id": "bed", "x_m": 1.0, "y_m": 1.8, "rotation_degrees": 0 },
-            { "item_id": "wardrobe", "x_m": 2.5, "y_m": 3.0, "rotation_degrees": 0 }
+            { "item_id": "wardrobe", "x_m": 2.8, "y_m": 3.0, "rotation_degrees": 90 }
           ],
           "expected_checks": [
             {
