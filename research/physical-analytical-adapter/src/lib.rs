@@ -558,7 +558,7 @@ fn parse_input_bounds(
         if evidence == "measured" && source_ref.as_str().is_none() {
             return Err(format!("{at}: measured bounds require a source_ref"));
         }
-        result.insert(key.to_owned(), interval);
+        result.insert((*key).to_owned(), interval);
     }
     Ok(result)
 }
