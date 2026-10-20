@@ -5,6 +5,7 @@
 //! It is not a finding about the safety of a real structure.
 
 pub mod uncertainty;
+pub mod solver_benchmark;
 
 use physical_transformation_reference::mechanics::{
     axial_bar, cantilever_tip_load, simply_supported_uniform_load,
