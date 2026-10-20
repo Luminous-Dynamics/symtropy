@@ -5,10 +5,10 @@
   "manifest_path": "docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json",
   "evaluator_path": "tools/civ-res-ind-oracle/src/main.rs",
   "cargo_lock_path": "Cargo.lock",
-  "fixture_sha256": "aff7dd117db4851ca2ec088f36a63e0a7226ddb4f7034d7b33a3344092cc614e",
+  "fixture_sha256": "3a31d498874a173398c048a7f424faa89fba9499dad8697cd2948274a1c5c8b4",
   "evaluator_version": "civ-res-ind-oracle/0.1.0",
-  "evaluator_source_sha256": "8ccfb129713684d5d1e283c3ff72fbb7a493151b6332ec40a877574849aa364a",
-  "cargo_lock_sha256": "62f9caa99ec151b1cf7ae10484e1255c1bd6c69d3efff686795112709cad7425",
+  "evaluator_source_sha256": "d331e91e8e037ac4c7579f6263b535470a2e636af235f3cfa0a7e58f3d9646fc",
+  "cargo_lock_sha256": "40c7c1da301e410937c5605e0c81e78a69cf4785ee02a952ce7d77e97791445a",
   "policy_id": "civ-res-reference-accounting-v0.1",
   "claim_ceiling": "The report verifies only the declared synthetic accounting rules and expected dispositions. It establishes no physical performance, safety, site suitability, savings, or real-world resilience."
 }
