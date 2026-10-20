@@ -28,8 +28,7 @@ fn run() -> Result<(), String> {
         return Err("source commit must be a 40-character hexadecimal SHA".into());
     }
     let fixture_path = Path::new(&args[1]);
-    let fixture_bytes =
-        fs::read(fixture_path).map_err(|e| format!("read fixture: {e}"))?;
+    let fixture_bytes = fs::read(fixture_path).map_err(|e| format!("read fixture: {e}"))?;
     let fixture: Value =
         serde_json::from_slice(&fixture_bytes).map_err(|e| format!("parse fixture: {e}"))?;
     if fixture.get("benchmark_id").and_then(Value::as_str) != Some("WILDFIRE-NETWORK-001")
