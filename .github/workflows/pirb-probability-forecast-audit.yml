@@ -229,7 +229,7 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           input="docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json"
           schema="docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json"
           expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
