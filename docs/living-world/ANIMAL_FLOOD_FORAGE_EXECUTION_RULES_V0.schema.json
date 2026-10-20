@@ -18,7 +18,8 @@
     "sensing",
     "policies",
     "accounting",
-    "metrics"
+    "metrics",
+    "compute"
   ],
   "properties": {
     "schema_version": {
@@ -484,6 +485,33 @@
         "emit_local_observation_with_declared_latency",
         "record_evaluator_only_metrics"
       ]
+    },
+    "compute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "budget_source",
+        "units_definition",
+        "hardware_performance_claims_allowed",
+        "paired_policy_budget_definition"
+      ],
+      "properties": {
+        "budget_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "units_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_performance_claims_allowed": {
+          "const": false
+        },
+        "paired_policy_budget_definition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   },
   "$comment": "The runtime must bind to the separate pilot manifest. A sealed model without disclosed permitted parameters remains not_assessed; do not infer missing parameters. Structural schema validation does not establish simulation validity."
