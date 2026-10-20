@@ -700,10 +700,10 @@ mod tests {
             receipt["deployed_policy"]["issued_case_scores"]["scored_count"],
             3
         );
-        assert_eq!(
-            receipt["deployed_policy"]["issued_case_scores"]["brier_score"],
-            0.03
-        );
+        let deployed_brier = receipt["deployed_policy"]["issued_case_scores"]["brier_score"]
+            .as_f64()
+            .expect("scored issued rows have a Brier score");
+        assert!((deployed_brier - 0.03).abs() < 1.0e-12);
         assert_eq!(
             receipt["pre_registered_risk_coverage_grid"]
                 .as_array()
@@ -719,11 +719,9 @@ mod tests {
         let mut value = fixture();
         value["rows"][3]["served_probability"] = json!(0.4);
         let errors = evaluate(&value).expect_err("abstained candidate cannot be served");
-        assert!(
-            errors
-                .iter()
-                .any(|error| error.contains("must not expose a served probability"))
-        );
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("/rows/3/served_probability")));
     }
 
     #[test]
@@ -743,7 +741,7 @@ mod tests {
         let mut value = fixture();
         value["rows"][7]["outcome"] = json!(0);
         let errors = evaluate(&value).expect_err("unknown outcome must stay null");
-        assert!(errors.iter().any(|error| error.contains("must be null")));
+        assert!(errors.iter().any(|error| error.contains("/rows/7/outcome")));
     }
 
     #[test]
@@ -814,7 +812,8 @@ mod tests {
                 && string_at(row, "case_id") == Some("case-001")
         }));
         assert_eq!(summary["scored_count"], 1);
-        assert_eq!(summary["brier_score"], 0.04);
+        let brier = summary["brier_score"].as_f64().unwrap();
+        assert!((brier - 0.04).abs() < 1.0e-12);
         let ll = summary["log_loss"].as_f64().unwrap();
         assert!((ll - 0.2231435513142097).abs() < 1.0e-12);
     }
