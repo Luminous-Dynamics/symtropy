@@ -18,6 +18,7 @@
 //! the empirical basis for model weights, or the normative choice of an action.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 use std::fs;
 use std::process;
 
@@ -96,7 +97,11 @@ fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
 
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    encoded
 }
 
 fn build_report(
