@@ -12,6 +12,8 @@
 
 #![forbid(unsafe_code)]
 
+mod double_rarefaction;
+pub use double_rarefaction::{DoubleRarefactionState, double_rarefaction};
 mod stoker;
 pub use stoker::{StokerState, stoker_dam_break};
 
