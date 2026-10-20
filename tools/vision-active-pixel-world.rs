@@ -1417,6 +1417,11 @@ mod randomized_timing {
             let mut totals = vec![Aggregate::default(); policies.len()];
             let mut early_onset = vec![Aggregate::default(); policies.len()];
             let mut late_onset = vec![Aggregate::default(); policies.len()];
+            let mut available_success = vec![Aggregate::default(); policies.len()];
+            let mut available_failure = vec![Aggregate::default(); policies.len()];
+            let mut unavailable = vec![Aggregate::default(); policies.len()];
+            let mut short_delay = vec![Aggregate::default(); policies.len()];
+            let mut long_delay = vec![Aggregate::default(); policies.len()];
             let pair_count = WORLD_REPLICATES * PAIRS_PER_REPLICATE;
             let mut paired_losses = vec![Vec::with_capacity(pair_count); policies.len()];
 
@@ -1445,6 +1450,28 @@ mod randomized_timing {
                             late_onset[index].record(present_result);
                             late_onset[index].record(removed_result);
                         }
+
+                        // Evaluator-only acquisition strata. These conditions
+                        // are never passed to the policy. The paired branches
+                        // share availability, success, and delay by construction.
+                        if persistent.view_available && persistent.view_successful {
+                            available_success[index].record(present_result);
+                            available_success[index].record(removed_result);
+                        } else if persistent.view_available {
+                            available_failure[index].record(present_result);
+                            available_failure[index].record(removed_result);
+                        } else {
+                            unavailable[index].record(present_result);
+                            unavailable[index].record(removed_result);
+                        }
+                        if persistent.view_delay <= 2 {
+                            short_delay[index].record(present_result);
+                            short_delay[index].record(removed_result);
+                        } else {
+                            long_delay[index].record(present_result);
+                            long_delay[index].record(removed_result);
+                        }
+
                         // Treat the paired persistent/removal branches as one
                         // independent exogenous unit for uncertainty analysis.
                         paired_losses[index].push(
@@ -1560,6 +1587,46 @@ mod randomized_timing {
                         recovery,
                         Aggregate::rate(aggregate.view_recovery_observations, aggregate.episodes),
                         view_recovery,
+                    );
+                }
+            }
+
+            println!(
+                "VIS-ACT-005 acquisition-stratum diagnostics for {}",
+                family.name()
+            );
+            println!("family\tacquisition_stratum\tpolicy\tepisodes\tmean_loss\tabstention_rate\tfalse_persistence_rate\tview_attempts_per_episode\tfresh_evidence_rate_per_executed_view\tview_attributable_recovery_rate\tmean_view_recovery_steps_when_attributed");
+            for (stratum_name, strata) in [
+                ("view_available_and_successful", &available_success),
+                ("view_available_but_failed", &available_failure),
+                ("view_unavailable", &unavailable),
+                ("short_view_delay_le_2", &short_delay),
+                ("long_view_delay_gt_2", &long_delay),
+            ] {
+                for (index, policy) in policies.iter().copied().enumerate() {
+                    let aggregate = strata[index];
+                    let mean_view_recovery = if aggregate.view_recovery_observations == 0 {
+                        "NA".to_string()
+                    } else {
+                        format!(
+                            "{:.3}",
+                            aggregate.view_recovery_steps_sum as f64
+                                / aggregate.view_recovery_observations as f64
+                        )
+                    };
+                    println!(
+                        "{}\t{}\t{}\t{}\t{:.4}\t{}\t{}\t{:.3}\t{}\t{}\t{}",
+                        family.name(),
+                        stratum_name,
+                        policy.name(),
+                        aggregate.episodes,
+                        aggregate.mean_loss(),
+                        Aggregate::rate(aggregate.abstentions, aggregate.episodes),
+                        Aggregate::rate(aggregate.false_persistence, aggregate.removed_episodes),
+                        aggregate.view_attempts as f64 / aggregate.episodes.max(1) as f64,
+                        Aggregate::rate(aggregate.fresh_views, aggregate.executed_views),
+                        Aggregate::rate(aggregate.view_recovery_observations, aggregate.episodes),
+                        mean_view_recovery,
                     );
                 }
             }
