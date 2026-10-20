@@ -26,7 +26,7 @@ BloombergNEF's 9 December 2025 survey reports:
 
 Source: https://about.bnef.com/insights/clean-transport/lithium-ion-battery-pack-prices-fall-to-108-per-kilowatt-hour-despite-rising-metal-prices-bloombergnef/
 
-At the 20 October 2026 USD/ZAR mid-market reference of R16.4417 per USD (https://wise.com/us/currency-converter/usd-to-zar-rate/history/20-10-2026), the $99/kWh global BEV pack reference is about R1,628/kWh:
+At the 20 October 2026 USD/ZAR mid-market reference of R16.4417 per USD (https://za.investing.com/currencies/usd-zar-historical-data), the $99/kWh global BEV pack reference is about R1,628/kWh:
 - 42 kWh: about **R68,365**;
 - 45 kWh: about **R73,248**.
 

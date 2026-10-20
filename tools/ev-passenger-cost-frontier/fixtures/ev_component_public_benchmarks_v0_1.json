@@ -46,7 +46,7 @@
       "metric": "USD_ZAR_mid_market",
       "unit": "ZAR_per_USD",
       "value": 16.4417,
-      "source_url": "https://wise.com/us/currency-converter/usd-to-zar-rate/history/20-10-2026",
+      "source_url": "https://za.investing.com/currencies/usd-zar-historical-data",
       "what_it_supports": "Transparent arithmetic for translating global USD reference points into approximate ZAR values.",
       "must_not_infer": "Not a supplier FX rate, hedge, transfer rate, landed component price or future exchange-rate forecast."
     },
