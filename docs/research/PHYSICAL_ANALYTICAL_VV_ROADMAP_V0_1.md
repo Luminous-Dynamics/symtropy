@@ -100,3 +100,34 @@ The bounded input interval API has known-answer and endpoint-combination checks.
 | Experimental validation | Rights-cleared measurements with traceable geometry, material tests, loading, boundary conditions and calibration | Error within a stated specimen/test envelope | Unseen materials, geometries, environments, damage modes or structural forms |
 
 The practical competitive claim should be about evidence orchestration, honest abstention, reproducibility and uncertainty visibility—not that three closed-form equations outperform established FEA products. A superiority claim requires a pre-registered matched benchmark, equivalent inputs/model classes, fixed reference tolerances, recorded failures, and ideally independent reproduction.
+
+
+## Gate B0 — capability-first solver dispatch
+
+Draft implementation: PHYS-DISPATCH-001, issue #2319. The registry is a versioned, machine-validated allowlist with exact manifest-byte SHA-256 captured in the dispatch receipt. Resolution runs before formula evaluation. The current registry contains only the in-process analytical reference backend, whose claim ceiling is three named closed-form cases and whose real-world validation remains UNRESOLVED.
+
+The dispatch truth table must establish:
+
+- unique compatible case + assumption profile + units + all requested physics -> one selected backend;
+- unsupported fracture, dynamics, contact or thermal physics -> UNRESOLVED, no backend, no numerical outputs, no model evaluation;
+- unknown case ID, wrong unit contract or wrong assumption profile -> UNRESOLVED, no fallback;
+- ambiguous compatible entries -> UNRESOLVED rather than choosing by registry order;
+- selected backend whose numeric inputs cause formula-domain failure -> selection remains explicit but evaluation is UNRESOLVED, outputs null, and nested diagnostics are preserved;
+- returned output keys must match the selected manifest case's output set exactly.
+
+The first dispatcher never executes external or remote backends. Before allowing one, require a pinned executable digest/version, isolated invocation contract, units and serialization conformance, explicit convergence/termination mapping, resource/time limits, deterministic fixture receipts, and an independent benchmark qualification gate. A capability manifest alone must never be sufficient to run unreviewed code.
+
+## How to rank against current solver practice
+
+The comparison is deliberately tier-matched rather than a blanket claim that Symtropy is “better than FEA”:
+
+1. **Contract and dispatch correctness:** accuracy of allowlist selection, zero fallback on unsupported physics, zero ambiguous selections, complete provenance binding, deterministic receipts.
+2. **Equation verification:** error to named analytical references, unit/sign/metamorphic tests, domain/overflow abstention.
+3. **Numerical solver verification:** NAFEMS / selected SOFiSTiK public cases with mesh refinement, equilibrium/reaction balance, residuals, convergence and fixed reference tolerances.
+4. **Model validation:** independent calibrated experiments and held-out measured specimens. Synthetic datasets exercise robustness, not physical truth.
+5. **Decision utility:** interval width, rejection/abstention rates, sensitivity to input bounds, runtime/memory on pinned hardware, and downstream false-confidence/false-pass rate.
+
+Target: zero silent fallback, zero false PASS in frozen unsupported/invalid fixtures, 100% deterministic output for pinned request/manifest/revisions, and a published per-case error matrix. Set numerical superiority thresholds only after selecting matched references and preregistering the evaluation; do not compare unlike model classes or conceal unresolved cases.
+
+
+The dispatcher accepts both the point-only request/receipt pair v0.1 and bounded-input pair v0.2. For v0.2 it checks that any declared intervals cover the exact inputs, preserve nominal values, use the correct SI unit, and obey positive-domain bounds before resolving capabilities. It then either returns a pre-evaluation abstention or nests the v0.2 analytical receipt after a single qualified backend is selected. The nested result's interval is still conditional on the declared equation and bounds, not a probability or model-validation claim.

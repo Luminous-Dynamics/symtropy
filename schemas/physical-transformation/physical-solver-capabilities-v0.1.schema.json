@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-solver-capabilities-v0.1.schema.json",
+  "title": "Physical Solver Capability Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_id", "manifest_version", "backends"],
+  "properties": {
+    "schema_version": {"const": "physical-solver-capabilities-v0.1"},
+    "manifest_id": {"type": "string", "minLength": 1},
+    "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "backends": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["backend_id", "backend_version", "implementation_kind", "dispatch_eligible", "qualification_tier", "supported_physics", "supported_units", "cases", "validation_evidence", "real_world_validation_status", "external_solver_invoked", "claim_ceiling"],
+        "properties": {
+          "backend_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$"},
+          "backend_version": {"type": "string", "minLength": 1},
+          "implementation_kind": {"enum": ["in_process_reference", "external_process", "remote_service"]},
+          "dispatch_eligible": {"type": "boolean"},
+          "qualification_tier": {"enum": ["unqualified", "closed_form_equation_contract", "numerical_solver_verified", "experimentally_validated"]},
+          "supported_physics": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "supported_units": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["length", "force", "area", "stress", "second_moment", "distributed_load"],
+            "properties": {"length": {"const": "m"}, "force": {"const": "N"}, "area": {"const": "m^2"}, "stress": {"const": "Pa"}, "second_moment": {"const": "m^4"}, "distributed_load": {"const": "N/m"}}
+          },
+          "cases": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "assumption_profile", "outputs", "known_answer_fixtures"],
+              "properties": {
+                "case_id": {"type": "string", "minLength": 1},
+                "assumption_profile": {"type": "string", "minLength": 1},
+                "outputs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+                "known_answer_fixtures": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+              }
+            }
+          },
+          "validation_evidence": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "real_world_validation_status": {"enum": ["UNRESOLVED", "PARTIALLY_VALIDATED", "VALIDATED_WITHIN_DECLARED_ENVELOPE"]},
+          "external_solver_invoked": {"type": "boolean"},
+          "claim_ceiling": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

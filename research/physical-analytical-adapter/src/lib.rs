@@ -4,6 +4,8 @@
 //! PASS means that the named formula evaluated under its declared assumptions.
 //! It is not a finding about the safety of a real structure.
 
+pub mod capabilities;
+pub mod dispatch;
 pub mod uncertainty;
 
 use physical_transformation_reference::mechanics::{
