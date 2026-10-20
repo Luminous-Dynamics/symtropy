@@ -432,9 +432,7 @@ fn evaluate_with_runtime(
         canonical_json_sha256(&forecast_inventory).map_err(|error| vec![error])?;
     let outcome_snapshot_sha256 = canonical_json_sha256(&registration["outcome_snapshot"])
         .map_err(|error| vec![error])?;
-    let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
-        .map_err(|error| vec![format!("embedded schema JSON is invalid: {error}")])?;
-    let schema_sha256 = canonical_json_sha256(&schema).map_err(|error| vec![error])?;
+    let schema_sha256 = sha256_hex(SCHEMA_BYTES);
     let input_sha256 = sha256_hex(input);
     let registration_id =
         string_at(&registration, "registration_id").expect("schema validated registration_id");
