@@ -11,6 +11,7 @@ on:
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
+      - "docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
     branches: [main]
@@ -24,6 +25,7 @@ on:
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
+      - "docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   workflow_dispatch:
 
@@ -47,6 +49,8 @@ jobs:
             and (.stations | length) == 5
             and (.buffer_capacities | length) == 4
             and (.stations | all(.[]; .servers > 0 and .good_yield_fraction > 0 and .good_yield_fraction <= 1))
+            and .dispatch_policy == "fifo"
+            and .maximum_consecutive_skips == 3
             and .input_evidence_class == "synthetic"
             and .calibration_gate == "unknown"
             and .local_compliance_gate == "unknown"
@@ -90,6 +94,10 @@ jobs:
           jq -e '
             .benchmark_id == "EV-FACTORY-SIM-001"
             and .random_stream_policy == "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream"
+            and .dispatch_policy == "fifo"
+            and .maximum_consecutive_skips == 3
+            and all(.scenarios[]; .dispatch_policy == "fifo" and .maximum_consecutive_skips == 3 and (.variant_wait_statistics | length) == 3)
+            and all(.scenario_statistics[]; ((.variant_wait_statistics | length) == 3) and all(.variant_wait_statistics[]; .sample_count.sample_count == 20))
             and .replication_count == 20
             and (.replication_seeds | length) == 20
             and (.scenario_statistics | length) == 6
@@ -113,6 +121,78 @@ jobs:
             and all(.scenarios[]; all(.stations[]; .accounted_fraction >= 0 and .accounted_fraction <= 1.000001))
             and all(.scenarios[1:][]; .added_servers == 1 and .intervention_station_id != null)
           ' ev-factory-simulation-report.json
+      - name: Compare FIFO and bounded changeover-aware dispatch on paired seeds
+        run: |
+          jq '.dispatch_policy = "minimize_changeover"' \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > ev-factory-variant-aware.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            ev-factory-variant-aware.json > ev-factory-variant-aware-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .dispatch_policy == "minimize_changeover"
+            and .maximum_consecutive_skips == 3
+            and .replication_count == 20
+            and (.replication_seeds | length) == 20
+            and (.scenario_statistics | length) == 6
+            and (.station_sequence_statistics | length) == 30
+            and .release_ready == false
+            and .output_never_exceeds_released_input
+            and .all_buffers_respected_capacity
+            and .station_time_accounting_within_horizon
+            and all(.scenarios[]; .dispatch_policy == "minimize_changeover" and .good_units_total <= .released_jobs_total and .release_ready == false and .all_buffers_respected_capacity and .station_time_accounting_within_horizon)
+            and all(.scenario_statistics[]; ((.variant_wait_statistics | length) == 3) and all(.variant_wait_statistics[]; .sample_count.sample_count == 20))
+          ' ev-factory-variant-aware-report.json
+
+          jq -n --slurpfile fifo ev-factory-simulation-report.json --slurpfile aware ev-factory-variant-aware-report.json '
+            {
+              schema_version: "ev-factory-dispatch-policy-comparison/0.1",
+              benchmark_id: $fifo[0].benchmark_id,
+              fifo_dispatch_policy: $fifo[0].dispatch_policy,
+              variant_aware_dispatch_policy: $aware[0].dispatch_policy,
+              replication_seeds_equal: ($fifo[0].replication_seeds == $aware[0].replication_seeds),
+              replication_count: $fifo[0].replication_count,
+              scenario_pairs: [
+                $fifo[0].scenario_statistics[] as $f |
+                ($aware[0].scenario_statistics[] | select(.scenario_id == $f.scenario_id)) as $a |
+                {
+                  scenario_id: $f.scenario_id,
+                  fifo_good_units_per_hour_mean: $f.good_units_per_hour.mean,
+                  variant_aware_good_units_per_hour_mean: $a.good_units_per_hour.mean,
+                  mean_good_units_per_hour_delta: ($a.good_units_per_hour.mean - $f.good_units_per_hour.mean),
+                  fifo_variant_wait_statistics: $f.variant_wait_statistics,
+                  variant_aware_variant_wait_statistics: $a.variant_wait_statistics
+                }
+              ],
+              station_pairs: [
+                $fifo[0].station_sequence_statistics[] as $f |
+                ($aware[0].station_sequence_statistics[] | select(.scenario_id == $f.scenario_id and .station_id == $f.station_id)) as $a |
+                {
+                  scenario_id: $f.scenario_id,
+                  station_id: $f.station_id,
+                  fifo_mean_changeovers: $f.changeovers_started.mean,
+                  variant_aware_mean_changeovers: $a.changeovers_started.mean,
+                  mean_changeover_delta: ($a.changeovers_started.mean - $f.changeovers_started.mean),
+                  fifo_mean_out_of_order_transfers: $f.out_of_order_output_transfers.mean,
+                  variant_aware_mean_out_of_order_transfers: $a.out_of_order_output_transfers.mean
+                }
+              ],
+              claim_ceiling: "Paired synthetic simulation comparison only; no plant performance or release claim."
+            }
+          ' > ev-factory-dispatch-policy-comparison.json
+
+          jq -e '
+            .schema_version == "ev-factory-dispatch-policy-comparison/0.1"
+            and .benchmark_id == "EV-FACTORY-SIM-001"
+            and .fifo_dispatch_policy == "fifo"
+            and .variant_aware_dispatch_policy == "minimize_changeover"
+            and .replication_seeds_equal
+            and .replication_count == 20
+            and (.scenario_pairs | length) == 6
+            and (.station_pairs | length) == 30
+            and all(.scenario_pairs[]; (.fifo_good_units_per_hour_mean | type) == "number" and (.variant_aware_good_units_per_hour_mean | type) == "number")
+            and all(.station_pairs[]; (.fifo_mean_changeovers | type) == "number" and (.variant_aware_mean_changeovers | type) == "number")
+          ' ev-factory-dispatch-policy-comparison.json
+
       - name: Run PCB cell routes and assert fail-closed invariants
         run: |
           for fixture in \
@@ -167,8 +247,12 @@ jobs:
             docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
             docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
+            docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
+            ev-factory-variant-aware.json \
+            ev-factory-variant-aware-report.json \
+            ev-factory-dispatch-policy-comparison.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
       - uses: actions/upload-artifact@v4
@@ -176,6 +260,9 @@ jobs:
           name: ev-factory-discrete-event-simulation-report
           path: |
             ev-factory-simulation-report.json
+            ev-factory-variant-aware.json
+            ev-factory-variant-aware-report.json
+            ev-factory-dispatch-policy-comparison.json
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json
             ev-factory-simulation-report.sha256
