@@ -25,8 +25,8 @@ A well-formed request that includes unsupported physics (fracture, dynamic respo
 
 ```sh
 cargo fmt --manifest-path research/physical-analytical-adapter/Cargo.toml --all -- --check
-cargo test --locked --manifest-path research/physical-analytical-adapter/Cargo.toml
-cargo clippy --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --all-targets -- -D warnings
+RUSTFLAGS="-Ctarget-cpu=haswell" cargo test --locked --manifest-path research/physical-analytical-adapter/Cargo.toml
+RUSTFLAGS="-Ctarget-cpu=haswell" cargo clippy --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --all-targets -- -D warnings
 cargo run --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
   --request schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json \
   --adapter-revision "$(git rev-parse HEAD)"
@@ -63,6 +63,6 @@ The [interval enclosure method](../../docs/research/PHYSICAL_ANALYTICAL_INTERVAL
 
 ## Independent interval arithmetic oracle
 
-The uncertainty module has a test-only dependency on **Inari 2.0.0** with default features disabled. This is pinned in `Cargo.toml` and `Cargo.lock`; it is not a production/runtime dependency. See [PHYSICAL_INTERVAL_ORACLE_V0_1.md](../../docs/research/PHYSICAL_INTERVAL_ORACLE_V0_1.md) for its license/version, the pinned [ITF1788 framework revision](https://github.com/unageek/ITF1788/tree/d8c2a64478ebdc9cbde6ccef33eaad3bed60ed81), differential test scope, and limits.
+The uncertainty module has a test-only dependency on **Inari 2.0.0** with default features disabled. Inari's documented x86-64 backend requires a Haswell-or-later target profile; the focused Ubuntu CI pins `RUSTFLAGS="-Ctarget-cpu=haswell"`. That CI configuration does not imply binaries built for older CPUs or other architectures are qualified. This is pinned in `Cargo.toml` and `Cargo.lock`; it is not a production/runtime dependency. See [PHYSICAL_INTERVAL_ORACLE_V0_1.md](../../docs/research/PHYSICAL_INTERVAL_ORACLE_V0_1.md) for its license/version, the pinned [ITF1788 framework revision](https://github.com/unageek/ITF1788/tree/d8c2a64478ebdc9cbde6ccef33eaad3bed60ed81), differential test scope, and limits.
 
 For finite matching domains, Symtropy results must contain Inari's independent multiplication/division endpoints. The tests also compare positive powers built from interval products. Symtropy intentionally rejects operations that overflow or whose divisor contains zero; those are fail-closed API semantics and are not treated as a like-for-like IEEE interval result. This is a limited differential oracle, not an IEEE 1788 conformance claim.
