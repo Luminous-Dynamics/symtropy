@@ -108,7 +108,7 @@ pub fn validate_oracle(input: &str) -> Result<ValidationReport, ValidationError>
         .ok_or_else(|| ValidationError::new("oracle root must be an object"))?;
     check_exact_keys(root_object, TOP_LEVEL_KEYS, "oracle")?;
 
-    let schema_version = required_string(&root, "schema_version", "oracle")?;
+    let schema_version = required_string(&root, "schema_version", "oracle")?.to_owned();
     if schema_version != ORACLE_SCHEMA_VERSION {
         return Err(ValidationError::new(format!(
             "schema_version must be {ORACLE_SCHEMA_VERSION}, got {schema_version}"
