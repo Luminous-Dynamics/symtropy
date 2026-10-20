@@ -145,11 +145,40 @@ mod tests {
         assert!((left.depth_m - h_left).abs() < 1.0e-12);
         assert_eq!(left.velocity_m_s, 0.0);
 
-        // x=0 falls within the constant star state for this depth ratio.
+        let fan = stoker_dam_break(-0.5 * c_left * time, time, h_left, h_right, gravity)
+            .unwrap();
+        assert!((fan.depth_m - (25.0 / 36.0) * h_left).abs() < 1.0e-12);
+        assert!((fan.velocity_m_s - c_left / 3.0).abs() < 1.0e-12);
+
+        // This coordinate lies between the rarefaction head and right shock.
         let star = stoker_dam_break(0.5 * time, time, h_left, h_right, gravity).unwrap();
         assert!(star.depth_m > h_right && star.depth_m < h_left);
         assert!(star.velocity_m_s > 0.0);
         assert!((star.discharge_m2_s - star.depth_m * star.velocity_m_s).abs() < 1.0e-12);
+
+        // The shock speed follows the mass Rankine-Hugoniot jump condition.
+        let shock_speed = star.discharge_m2_s / (star.depth_m - h_right);
+        assert!(
+            (shock_speed * (star.depth_m - h_right) - star.discharge_m2_s).abs() < 1.0e-12
+        );
+        let before_shock = stoker_dam_break(
+            (shock_speed - 1.0e-6) * time,
+            time,
+            h_left,
+            h_right,
+            gravity,
+        )
+        .unwrap();
+        let after_shock = stoker_dam_break(
+            (shock_speed + 1.0e-6) * time,
+            time,
+            h_left,
+            h_right,
+            gravity,
+        )
+        .unwrap();
+        assert!((before_shock.depth_m - star.depth_m).abs() < 1.0e-12);
+        assert!((after_shock.depth_m - h_right).abs() < 1.0e-12);
 
         let right = stoker_dam_break(10.0 * time, time, h_left, h_right, gravity).unwrap();
         assert!((right.depth_m - h_right).abs() < 1.0e-12);
