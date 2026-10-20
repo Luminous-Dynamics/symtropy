@@ -61,6 +61,27 @@ struct Scenario {
     site_power_budget_kw: f64,
     jobs: Vec<Job>,
     capacity_events: Vec<CapacityEvent>,
+    #[serde(default)]
+    port_release_policy: PortReleasePolicy,
+}
+
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum PortReleasePolicy {
+    /// Optimistic comparison: connector becomes available as soon as requested energy is delivered.
+    #[default]
+    ReleaseOnChargeCompletion,
+    /// Physically conservative baseline: the vehicle continues occupying its connector until departure.
+    HoldUntilDeparture,
+}
+
+impl PortReleasePolicy {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ReleaseOnChargeCompletion => "release_on_charge_completion",
+            Self::HoldUntilDeparture => "hold_until_departure",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -151,6 +172,7 @@ struct ScenarioResult {
     evidence_reference: String,
     evidence_note: String,
     policy: String,
+    port_release_policy: String,
     job_count: usize,
     completed_by_deadline_count: usize,
     missed_deadline_count: usize,
@@ -194,6 +216,7 @@ struct CapacityFrontier {
     label: String,
     evidence_class: String,
     policy: String,
+    port_release_policy: String,
     base_site_power_budget_kw: f64,
     minimum_deadline_completion_target: f64,
     minimum_energy_service_target: f64,
@@ -289,7 +312,7 @@ fn main() {
     let report = Report {
         schema_version: corpus.schema_version,
         suite_id: corpus.suite_id,
-        method: "event-driven, non-voluntary-preemptive priority scheduling with SOC-band events; max-min site-power sharing and declared capacity contingencies",
+        method: "event-driven priority scheduling with SOC-band events, max-min site-power sharing, declared capacity contingencies, and an explicit post-charge connector-occupancy policy",
         results,
         capacity_frontiers,
         claim_ceiling: CLAIM_CEILING,
@@ -581,6 +604,13 @@ fn simulate_scenario(
         for index in expired_indices {
             active.remove(&index);
         }
+        active.retain(|index| {
+            let state = &states[*index];
+            !state.expired
+                && (state.completion_minute.is_none()
+                    || (scenario.port_release_policy == PortReleasePolicy::HoldUntilDeparture
+                        && state.job.departure_minute > now + EPSILON))
+        });
 
         if states
             .iter()
@@ -620,6 +650,11 @@ fn simulate_scenario(
         let mut caps = Vec::<(usize, f64)>::new();
         for index in active.iter().copied() {
             let state = &states[index];
+            // Completed-but-held vehicles occupy connectors under HoldUntilDeparture,
+            // but they receive no allocation and must contribute no electrical load.
+            if state.completion_minute.is_some() || state.expired {
+                continue;
+            }
             let template = templates
                 .get(&state.job.template_id)
                 .ok_or_else(|| format!("unknown_template_id: {}", state.job.template_id))?;
@@ -738,8 +773,13 @@ fn simulate_scenario(
                 state.completion_minute = Some(now);
             }
         }
-        active
-            .retain(|index| states[*index].completion_minute.is_none() && !states[*index].expired);
+        active.retain(|index| {
+            let state = &states[*index];
+            !state.expired
+                && (state.completion_minute.is_none()
+                    || (scenario.port_release_policy == PortReleasePolicy::HoldUntilDeparture
+                        && state.job.departure_minute > now + EPSILON))
+        });
     }
 
     if states
@@ -834,6 +874,7 @@ fn simulate_scenario(
         evidence_reference: scenario.evidence_reference.clone(),
         evidence_note: scenario.evidence_note.clone(),
         policy: policy.as_str().to_string(),
+        port_release_policy: scenario.port_release_policy.as_str().to_string(),
         job_count,
         completed_by_deadline_count,
         missed_deadline_count,
@@ -931,6 +972,7 @@ fn build_capacity_frontier(
         label: scenario.label.clone(),
         evidence_class: scenario.evidence_class.clone(),
         policy: policy.as_str().to_string(),
+        port_release_policy: scenario.port_release_policy.as_str().to_string(),
         base_site_power_budget_kw: scenario.site_power_budget_kw,
         minimum_deadline_completion_target: MIN_DEADLINE_COMPLETION_FRACTION,
         minimum_energy_service_target: MIN_ENERGY_SERVICE_FRACTION,
@@ -985,6 +1027,11 @@ fn next_external_event(scenario: &Scenario, states: &[JobState], now: f64) -> Op
     for state in states {
         if state.completion_minute.is_none() && !state.expired {
             consider(state.job.arrival_minute);
+            consider(state.job.departure_minute);
+        } else if state.completion_minute.is_some()
+            && scenario.port_release_policy == PortReleasePolicy::HoldUntilDeparture
+        {
+            // A completed vehicle's departure is also an external connector-release event.
             consider(state.job.departure_minute);
         }
     }
