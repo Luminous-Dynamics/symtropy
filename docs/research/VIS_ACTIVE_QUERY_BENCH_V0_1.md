@@ -63,6 +63,39 @@ Development result: round-robin loss 0.0977; value-of-information loss 0.0540; p
 
 This is an encouraging result for this controlled generator, not SOTA evidence. The candidate arose from the sample-complexity finding and the six-policy comparison was not preregistered before the broader line of memory research. Freeze the selector, action budget, confidence model and seed protocol, then run a new untouched seed root before claiming confirmatory evidence. Also evaluate slices by recent hidden claim change, delay and high corruption, because average loss may conceal weak handling of surprise changes. Then reproduce a native ActiveArena baseline before testing the memory/acquisition controller swap. Synthetic loss must not be compared to ActiveArena task-success percentage.
 
+## Policy-independent failure-strata result — exact-head qualification
+
+The current active-acquisition implementation was qualified on exact source head `f4b3f78bcf94449b34d8794ef00f171aae24635b`. [Focused run #39501614409](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39501614409) passed **24 memory tests + 9 active-query tests**, report replay, main/report-stratum schema checks and both SHA receipts. Combined artifact: [#12299762990](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39501614409/artifacts/12299762990), archive SHA-256 `47da11887831b9a2cbb514c788f126caf59b5a67eeb01682d64a7488fe7a263a`. Cross-platform CI for this same head was still pending at the recorded check.
+
+The subgroup logic was corrected before this run: all labels are computed from policy-independent hidden world state, the episode profile and the full **pre-generated potential observation tensor**, after each policy has completed. No subgroup label or unchosen potential observation enters the policy API. The paired comparisons now use the same episodes for every policy within a given stratum.
+
+Held-out subgroup diagnostics for the primary approximate value-of-information selector versus round-robin (all intervals are paired episode-bootstrap 95% CIs):
+
+| Episode stratum | Episodes | VOI mean loss | Delta vs round-robin (95% CI) |
+| --- | ---: | ---: | --- |
+| World query claim changed in final 8 ticks | 264 | 0.2320 | -0.0398 [-0.0814, +0.0019] |
+| No query claim changed in final 8 ticks | 120 | 0.0875 | -0.0271 [-0.0729, +0.0167] |
+| Potential query evidence arrived out of order | 375 | 0.1847 | -0.0393 [-0.0727, -0.0073] |
+| No potential query evidence arrived out of order | 9 | 0.2778 | +0.1111 [-0.0833, +0.3056] |
+| Latest potential query evidence low confidence | 231 | 0.1861 | -0.0119 [-0.0509, +0.0271] |
+| Latest potential query evidence not low confidence | 153 | 0.1879 | -0.0719 [-0.1242, -0.0212] |
+| Any potential query observation delay >2 | 276 | 0.2038 | -0.0317 [-0.0716, +0.0091] |
+| No potential query observation delay >2 | 108 | 0.1435 | -0.0463 [-0.0949, +0.0046] |
+| High claim-flip profile | 247 | 0.2014 | -0.0304 [-0.0698, +0.0071] |
+| Lower claim-flip profile | 137 | 0.1606 | -0.0456 [-0.1022, +0.0146] |
+| High corruption profile | 246 | 0.1717 | -0.0691 [-0.1108, -0.0305] |
+| Lower corruption profile | 138 | 0.2138 | +0.0236 [-0.0290, +0.0779] |
+| High distractor profile | 251 | 0.2042 | -0.0229 [-0.0618, +0.0179] |
+| Lower distractor profile | 133 | 0.1541 | -0.0602 [-0.1184, -0.0075] |
+
+Interpretation:
+- The active-acquisition policy's aggregate held-out advantage survives policy-independent stratification, but evidence for improvement in the **world-change-in-final-8-ticks** subgroup remains inconclusive: its interval slightly crosses zero.
+- It does not demonstrate a benefit on all high-stress dimensions: claim-flip and high-distractor subgroup intervals include zero, as do delay strata. High-corruption and low-distractor strata show stronger effects in this run, but all subgroup results are overlapping and multiple comparisons are exploratory.
+- Only nine held-out episodes are in the “no out-of-order potential observation” slice; do not interpret its noisy estimate.
+- The strata describe potential observation support independent of selected actions, not exactly which evidence a policy consumed. Per-policy realized sensing efficiency is reported separately in the main table.
+
+The candidate policy was developed from the preceding sample-complexity diagnosis, so this is still exploratory rather than a preregistered confirmatory study. Freeze the code/scoring/loss and replicate on a new seed root before promoting the finding; native ActiveArena evaluation remains a separate gate.
+
 ## Acceptance gate
 
 A policy advances only if its held-out paired mean-loss interval against round-robin is strictly below zero, the declared action budget is unchanged, and no meaningful coverage/accuracy or subgroup regression is concealed by averaging. The value-of-information policy is the main hypothesis, but the benchmark must report all six policies. A synthetic win is only a reason to proceed to native ActiveArena controller ablation—not evidence of SOTA or physical-robot readiness.
