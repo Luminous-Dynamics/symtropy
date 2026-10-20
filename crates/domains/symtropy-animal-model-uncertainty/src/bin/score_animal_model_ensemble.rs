@@ -24,7 +24,10 @@ use std::process;
 
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use symtropy_animal_model_uncertainty::decision::{ActionRisk, ModelOutcome, score_model_ensemble};
+use symtropy_animal_model_uncertainty::decision::{
+    ActionRisk, ModelOutcome, ModelWeightInterval, WeightSensitivity, score_model_ensemble,
+    score_weight_sensitivity,
+};
 
 const SYNTHETIC_EXAMPLE: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_EXAMPLE_V1.json");
@@ -47,7 +50,9 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
     Ok(())
 }
 
-fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
+fn parse_input(
+    root: &Value,
+) -> Result<(Vec<ModelOutcome>, f64, Option<Vec<ModelWeightInterval>>), String> {
     ensure_only_fields(
         root,
         &[
@@ -56,6 +61,7 @@ fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
             "cvar_alpha",
             "scenario",
             "models",
+            "model_weight_intervals",
         ],
         "input",
     )?;
@@ -137,7 +143,38 @@ fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
             admissible_actions,
         });
     }
-    Ok((models, cvar_alpha))
+    let model_weight_intervals = match root.get("model_weight_intervals") {
+        None => None,
+        Some(Value::Array(values)) => {
+            let mut intervals = Vec::with_capacity(values.len());
+            for (index, value) in values.iter().enumerate() {
+                let prefix = format!("model_weight_intervals[{index}]");
+                ensure_only_fields(value, &["model_id", "lower", "upper"], &prefix)?;
+                let model_id = value
+                    .get("model_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| format!("{prefix}.model_id must be a string"))?
+                    .to_owned();
+                let lower = value
+                    .get("lower")
+                    .and_then(Value::as_f64)
+                    .ok_or_else(|| format!("{prefix}.lower must be a number"))?;
+                let upper = value
+                    .get("upper")
+                    .and_then(Value::as_f64)
+                    .ok_or_else(|| format!("{prefix}.upper must be a number"))?;
+                intervals.push(ModelWeightInterval {
+                    model_id,
+                    lower,
+                    upper,
+                });
+            }
+            Some(intervals)
+        }
+        Some(_) => return Err("model_weight_intervals must be an array when present".to_owned()),
+    };
+
+    Ok((models, cvar_alpha, model_weight_intervals))
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -155,6 +192,7 @@ fn build_report(
     models: &[ModelOutcome],
     cvar_alpha: f64,
     scores: &[ActionRisk],
+    weight_sensitivity: &[WeightSensitivity],
 ) -> Value {
     json!({
         "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
@@ -173,6 +211,13 @@ fn build_report(
             "per_model_regret": score.per_model_regret,
             "max_regret": score.max_regret,
             "admissible_across_all_models": score.admissible_across_all_models
+        })).collect::<Vec<Value>>(),
+        "weight_sensitivity": weight_sensitivity.iter().map(|result| json!({
+            "action": result.action,
+            "minimum_expected_loss": result.minimum_expected_loss,
+            "maximum_expected_loss": result.maximum_expected_loss,
+            "minimizing_weights": result.minimizing_weights,
+            "maximizing_weights": result.maximizing_weights
         })).collect::<Vec<Value>>()
     })
 }
@@ -205,7 +250,7 @@ fn main() {
             process::exit(2);
         }
     };
-    let (models, cvar_alpha) = match parse_input(&root) {
+    let (models, cvar_alpha, model_weight_intervals) = match parse_input(&root) {
         Ok(parsed) => parsed,
         Err(error) => {
             eprintln!("invalid model outcome input: {error}");
@@ -222,7 +267,29 @@ fn main() {
         }
     };
 
-    let output = build_report(&raw, &root, &models, cvar_alpha, &scores);
+    let mut weight_sensitivity = Vec::new();
+    if let Some(intervals) = &model_weight_intervals {
+        for score in &scores {
+            match score_weight_sensitivity(&models, &score.action, intervals) {
+                Ok(result) => weight_sensitivity.push(result),
+                Err(errors) => {
+                    for error in errors {
+                        eprintln!("weight-sensitivity analysis rejected input: {error}");
+                    }
+                    process::exit(1);
+                }
+            }
+        }
+    }
+
+    let output = build_report(
+        &raw,
+        &root,
+        &models,
+        cvar_alpha,
+        &scores,
+        &weight_sensitivity,
+    );
     println!(
         "{}",
         serde_json::to_string_pretty(&output).expect("JSON risk report should serialize")
@@ -237,7 +304,7 @@ mod tests {
     fn scores_committed_two_model_synthetic_example() {
         let input: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("committed example should parse");
-        let (models, alpha) = parse_input(&input).expect("valid synthetic model set");
+        let (models, alpha, _) = parse_input(&input).expect("valid synthetic model set");
         let scores = score_model_ensemble(&models, alpha).expect("valid synthetic losses");
         let graze = scores
             .iter()
@@ -274,9 +341,27 @@ mod tests {
     fn risk_report_is_bound_to_input_and_matches_report_contract() {
         let root: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
-        let (models, alpha) = parse_input(&root).expect("input should parse");
+        let (models, alpha, intervals) = parse_input(&root).expect("input should parse");
         let scores = score_model_ensemble(&models, alpha).expect("scores should be valid");
-        let report = build_report(SYNTHETIC_EXAMPLE, &root, &models, alpha, &scores);
+        let mut weight_sensitivity = Vec::new();
+        for score in &scores {
+            weight_sensitivity.push(
+                score_weight_sensitivity(
+                    &models,
+                    &score.action,
+                    intervals.as_deref().expect("example declares weight intervals"),
+                )
+                .expect("valid model-weight intervals"),
+            );
+        }
+        let report = build_report(
+            SYNTHETIC_EXAMPLE,
+            &root,
+            &models,
+            alpha,
+            &scores,
+            &weight_sensitivity,
+        );
         let schema: Value =
             serde_json::from_str(EMBEDDED_REPORT_SCHEMA).expect("report schema should parse");
         assert_eq!(
