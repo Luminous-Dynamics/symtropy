@@ -1,0 +1,391 @@
+{
+  "schema_version": 1,
+  "catalogue_id": "kitchen-preservation-scenarios-v1",
+  "status": "proposed_protocol_not_executed",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2313",
+  "workstreams": [
+    "https://github.com/Luminous-Dynamics/symtropy/issues/2314",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/2315"
+  ],
+  "shared_rules": {
+    "freeze_candidate_identity_and_revision_before_testing": true,
+    "preregister_primary_outcomes_and_decision_margins": true,
+    "preserve_raw_observations_and_failed_runs": true,
+    "repeated_runs_are_not_independent_physical_units": true,
+    "missing_data_policy": [
+      "observed",
+      "not_tested",
+      "not_applicable",
+      "unsupported",
+      "failed",
+      "missing_with_reason"
+    ],
+    "safety_gate_compensable": false,
+    "synthetic_or_simulated_evidence_can_replace_empirical_measurement": false,
+    "result_claim_ceiling": "scenario coverage and structural readiness do not establish product superiority, food safety, service life, or regulatory conformity",
+    "cross_project_reuse": [
+      "Symtropy thermal storage and dynamic integration: https://github.com/Luminous-Dynamics/symtropy/issues/1916",
+      "Symtropy multi-fidelity thermal design search: https://github.com/Luminous-Dynamics/symtropy/issues/1954",
+      "Symtropy appliance lifecycle and repairability: https://github.com/Luminous-Dynamics/symtropy/issues/1805",
+      "Symtropy large-appliance portfolio: https://github.com/Luminous-Dynamics/symtropy/issues/1825"
+    ]
+  },
+  "scenarios": [
+    {
+      "scenario_id": "COLD-ENERGY-BASELINE-001",
+      "domain": "refrigerator_freezer",
+      "purpose": "Reproduce a declared standard or label-style energy profile and provide a matched commercial reference.",
+      "conditions_to_freeze": [
+        "applicable test procedure and version",
+        "cabinet and usable volume",
+        "ambient condition",
+        "setpoints",
+        "load state",
+        "meter boundary",
+        "defrost state",
+        "sensor layout"
+      ],
+      "primary_metrics": [
+        "energy_use",
+        "usable_storage_volume",
+        "temperature_distribution",
+        "noise_if_in_scope"
+      ],
+      "hard_gates": [
+        "procedure identity and deviations are declared",
+        "temperature control requirements are met",
+        "instrument and calibration provenance are available"
+      ],
+      "adversarial_controls": [
+        "compare candidates tested under different procedures",
+        "report gross volume as usable volume",
+        "omit defrost or auxiliary loads"
+      ],
+      "claim_limit": "Does not establish field energy use, food safety, or superiority outside this declared procedure."
+    },
+    {
+      "scenario_id": "COLD-HOT-AMBIENT-002",
+      "domain": "refrigerator_freezer",
+      "purpose": "Assess whether temperature control and energy behavior remain acceptable across a market-relevant hot-ambient range.",
+      "conditions_to_freeze": [
+        "ambient setpoints selected before unblinding",
+        "cabinet loading",
+        "setpoints",
+        "airflow clearances",
+        "meter boundary",
+        "stabilization rules"
+      ],
+      "primary_metrics": [
+        "energy_use_by_ambient_profile",
+        "warmest_point_temperature",
+        "temperature_excursion_duration",
+        "compressor_and_fan_runtime"
+      ],
+      "hard_gates": [
+        "temperature acceptance boundary is predefined for the intended use",
+        "all ambient levels are reported separately"
+      ],
+      "adversarial_controls": [
+        "extrapolate one ambient point to the entire climate class",
+        "omit a failed hot-ambient run",
+        "pool ambient profiles to hide a failure"
+      ],
+      "claim_limit": "Only supports the ambient conditions actually tested."
+    },
+    {
+      "scenario_id": "COLD-DOOR-DISTURBANCE-003",
+      "domain": "refrigerator_freezer",
+      "purpose": "Measure temperature disturbance and recovery under repeated, repeatable door-opening events.",
+      "conditions_to_freeze": [
+        "opening duration/frequency/angle",
+        "starting cabinet and load temperatures",
+        "load fraction",
+        "ambient",
+        "recovery endpoint"
+      ],
+      "primary_metrics": [
+        "warmest_point_excursion",
+        "recovery_time",
+        "energy_over_declared_window",
+        "temperature_spatial_spread"
+      ],
+      "hard_gates": [
+        "event log and temperature samples are time-aligned",
+        "missing event/temperature data remain explicit"
+      ],
+      "adversarial_controls": [
+        "use average temperature to hide a local excursion",
+        "use different door schedules between candidates"
+      ],
+      "claim_limit": "Does not prove food safety or ordinary-household outcomes beyond the exact tested pattern."
+    },
+    {
+      "scenario_id": "COLD-WARM-LOAD-004",
+      "domain": "refrigerator_freezer",
+      "purpose": "Compare cooling response after an explicitly defined warm load enters the cabinet.",
+      "conditions_to_freeze": [
+        "load type/mass/start temperature",
+        "placement",
+        "cabinet initial state",
+        "ambient",
+        "temperature probes",
+        "endpoint"
+      ],
+      "primary_metrics": [
+        "load_pull_down_time",
+        "product_simulant_temperature_trajectory",
+        "energy_to_endpoint",
+        "adjacent_product_simulant_excursion"
+      ],
+      "hard_gates": [
+        "load properties and endpoint are matched",
+        "air and product-simulant temperatures are reported as different measurands"
+      ],
+      "adversarial_controls": [
+        "claim a cabinet-air measurement is food-core temperature",
+        "change load mass or starting temperature"
+      ],
+      "claim_limit": "A temperature trajectory alone is not microbiological or food-safety qualification."
+    },
+    {
+      "scenario_id": "COLD-POWER-INTERRUPTION-005",
+      "domain": "refrigerator_freezer",
+      "purpose": "Measure outage holdover and recovery under exact declared initial conditions.",
+      "conditions_to_freeze": [
+        "ambient",
+        "initial setpoint and stabilized condition",
+        "load mass/distribution",
+        "initial temperature state",
+        "door state/opening profile",
+        "power interruption and restoration profile",
+        "threshold definition"
+      ],
+      "primary_metrics": [
+        "time_to_declared_temperature_threshold",
+        "temperature_excursion_duration",
+        "recovery_time_after_restoration",
+        "post-restoration_energy"
+      ],
+      "hard_gates": [
+        "outage duration and all ambient/load assumptions are recorded",
+        "the pass threshold is selected by a competent, use-specific authority before testing"
+      ],
+      "adversarial_controls": [
+        "compare a fully loaded freezer with a minimally loaded reference",
+        "claim universal outage hours from a single run",
+        "allow temperature/door data gaps"
+      ],
+      "claim_limit": "Applies only to the measured initial state, ambient and outage profile; not a universal holdover promise."
+    },
+    {
+      "scenario_id": "COLD-THERMAL-BUFFER-006",
+      "domain": "refrigerator_freezer",
+      "purpose": "Compare a declared PCM/thermal-buffer variant with its matched no-buffer baseline.",
+      "conditions_to_freeze": [
+        "base refrigeration architecture",
+        "buffer material/profile and location",
+        "cabinet geometry and usable volume",
+        "charge/discharge profile",
+        "ambient",
+        "compressor control",
+        "meter boundary"
+      ],
+      "primary_metrics": [
+        "energy_use",
+        "temperature_excursion",
+        "holdover_duration",
+        "recharge_time",
+        "usable_volume",
+        "mass",
+        "maintenance_and_containment_observations"
+      ],
+      "hard_gates": [
+        "buffer identity and containment design are documented",
+        "energy and resilience results are separate",
+        "leakage/material hazards are separately reviewed"
+      ],
+      "adversarial_controls": [
+        "transfer a published saving percentage without matched reproduction",
+        "ignore usable-volume penalty",
+        "assume PCM benefits every compressor/control architecture"
+      ],
+      "claim_limit": "PCM is a candidate only; the catalogue asserts no efficiency or resilience gain."
+    },
+    {
+      "scenario_id": "COLD-REPAIR-POSTCHECK-007",
+      "domain": "refrigerator_freezer",
+      "purpose": "Verify common non-refrigerant component repair and post-repair capability restoration.",
+      "conditions_to_freeze": [
+        "fault profile",
+        "safe isolation procedure",
+        "exact model/unit/revision",
+        "replacement part identity",
+        "test instruments",
+        "post-repair acceptance criteria"
+      ],
+      "primary_metrics": [
+        "diagnosis_time",
+        "hands_on_repair_time",
+        "parts_wait_time",
+        "return_to_service_time",
+        "post_repair_temperature_performance",
+        "post_repair_energy_if_in_scope",
+        "recurrence"
+      ],
+      "hard_gates": [
+        "hazard boundary and required technician qualification are observed",
+        "repair outcome is determined by post-repair checks, not task status"
+      ],
+      "adversarial_controls": [
+        "count incomplete repair as successful",
+        "substitute a part without compatibility evidence",
+        "include sealed-loop or live-mains DIY procedures"
+      ],
+      "claim_limit": "Structural service evidence is not a refrigerant safety qualification or universal repairability claim."
+    },
+    {
+      "scenario_id": "DRY-STAPLE-HERMETIC-008",
+      "domain": "dry_food_storage",
+      "purpose": "Assess an appropriate sealed bulk container for a declared lot of correctly conditioned dry staples.",
+      "conditions_to_freeze": [
+        "food species/product/lot",
+        "initial moisture and condition evidence",
+        "container volume/fill",
+        "ambient temperature/humidity cycles",
+        "closure process",
+        "storage duration",
+        "inspection and test protocol"
+      ],
+      "primary_metrics": [
+        "seal_integrity",
+        "moisture_change",
+        "pest_entry_or_damage",
+        "mass_loss",
+        "product_quality_outcome"
+      ],
+      "hard_gates": [
+        "starting food condition is qualified for the intended storage protocol",
+        "pest/contamination testing is contained and safely managed",
+        "food-contact suitability evidence is separate"
+      ],
+      "adversarial_controls": [
+        "use a damp starting batch and credit container airtightness",
+        "treat absence of visible insects as mycotoxin evidence",
+        "omit failed seals or damaged units"
+      ],
+      "claim_limit": "Does not establish mold/mycotoxin safety, universal shelf life, or applicability to all foods."
+    },
+    {
+      "scenario_id": "DRY-FLOUR-OPEN-CLOSE-009",
+      "domain": "dry_food_storage",
+      "purpose": "Compare a powder/flour vessel under repeated dispensing and resealing.",
+      "conditions_to_freeze": [
+        "product type/lot/initial condition",
+        "fill fraction",
+        "opening/dispensing schedule",
+        "ambient humidity",
+        "dispensing mass",
+        "cleaning procedure"
+      ],
+      "primary_metrics": [
+        "moisture_change",
+        "spill_and_dose_loss",
+        "dispense_repeatability",
+        "residue_after_cleaning",
+        "closure_failure_rate",
+        "opening_force"
+      ],
+      "hard_gates": [
+        "every cleaning and closure event follows the frozen method",
+        "missing product or spill mass remains accounted for"
+      ],
+      "adversarial_controls": [
+        "ignore residue traps",
+        "report total container capacity as accessible usable capacity",
+        "substitute unmeasured moisture values"
+      ],
+      "claim_limit": "Does not support generalized claims for coffee, spices, produce, grains or other unrelated food classes."
+    },
+    {
+      "scenario_id": "DRY-PRODUCE-VENTED-010",
+      "domain": "dry_food_storage",
+      "purpose": "Compare a ventilated produce-storage module for one predeclared produce class; prevent inappropriate reuse of hermetic-staple logic.",
+      "conditions_to_freeze": [
+        "produce species/variety/lot",
+        "initial maturity and condition",
+        "mass/fill",
+        "temperature/humidity/airflow",
+        "opening schedule",
+        "storage duration"
+      ],
+      "primary_metrics": [
+        "mass_loss",
+        "visible_damage_or_spoilage_endpoint",
+        "humidity_and_temperature_profile",
+        "handling_damage",
+        "cleaning_time"
+      ],
+      "hard_gates": [
+        "test class and endpoint are produce-specific",
+        "ventilation is measured or declared with method",
+        "unobserved pathogen quality is not inferred"
+      ],
+      "adversarial_controls": [
+        "apply a staple-grain protocol to all produce",
+        "claim microbial safety from appearance",
+        "change produce maturity across candidates"
+      ],
+      "claim_limit": "Supports only the declared produce class and conditions; not a universal freshness or safety claim."
+    },
+    {
+      "scenario_id": "DRY-CLEAN-REPAIR-011",
+      "domain": "dry_food_storage",
+      "purpose": "Evaluate whether gaskets, lids and latches can be maintained or replaced without compromising cleanability and closure function.",
+      "conditions_to_freeze": [
+        "container revision/material",
+        "defined cleaning cycles",
+        "part and tool set",
+        "repair procedure",
+        "before/after seal method",
+        "representative users where ergonomics assessed"
+      ],
+      "primary_metrics": [
+        "disassembly_time",
+        "cleaning_time",
+        "residue_observation",
+        "replacement_part_availability",
+        "post_service_seal_integrity",
+        "closing_force"
+      ],
+      "hard_gates": [
+        "food-contact material and cleaning instructions remain applicable after repair",
+        "post-repair performance is measured"
+      ],
+      "adversarial_controls": [
+        "infer cleanliness from a smooth-looking surface",
+        "count part replacement without postcheck",
+        "ignore unavailable or destructive-to-replace seals"
+      ],
+      "claim_limit": "Does not by itself establish food-contact compliance, product safety or service-life duration."
+    }
+  ],
+  "acceptance_targets": {
+    "all_scenario_ids_unique": true,
+    "every_scenario_has_declared_conditions_metrics_and_claim_limit": true,
+    "every_expected_candidate_scenario_cell_must_be_observed_or_explicitly_statused": true,
+    "silent_imputation_allowed": false,
+    "blocked_or_unknown_safety_gate_can_be_compensated_by_performance": false,
+    "product_superiority_claim_allowed_before_physical_trials": false,
+    "targets_are_proposed_not_results": true
+  },
+  "references": [
+    "https://www.energystar.gov/products/refrigerators",
+    "https://www.energystar.gov/products/refrigerators/key_product_criteria",
+    "https://www.energy.gov/cmei/buildings/refrigeration-products",
+    "https://doi.org/10.1016/j.applthermaleng.2025.125421",
+    "https://doi.org/10.1016/j.ijrefrig.2025.02.007",
+    "https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely",
+    "https://doi.org/10.4324/9780429401701-16",
+    "https://doi.org/10.1002/jsfa.12934"
+  ]
+}
