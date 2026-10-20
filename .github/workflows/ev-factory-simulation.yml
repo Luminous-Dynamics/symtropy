@@ -315,6 +315,17 @@ jobs:
             echo "invalid yield was unexpectedly accepted"
             exit 1
           fi
+      - name: Negative control - zero skip budget must fail closed
+        run: |
+          jq '.maximum_consecutive_skips = 0' \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > ev-factory-invalid-skip-budget.json
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            ev-factory-invalid-skip-budget.json > /dev/null 2> ev-factory-invalid-skip-budget.stderr; then
+            echo "invalid zero skip budget was incorrectly accepted" >&2
+            exit 1
+          fi
+          grep -q "maximum_consecutive_skips_must_be_positive" ev-factory-invalid-skip-budget.stderr
+
       - name: Hash source, fixture and reports
         run: |
           sha256sum \
