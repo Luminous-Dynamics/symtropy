@@ -227,7 +227,7 @@ impl MemoryState {
             }
             Self::ConfidenceBest(best) => {
                 if observation.is_conclusive()
-                    && best.map_or(true, |previous| {
+                    && best.as_ref().map_or(true, |previous| {
                         observation.confidence_milli >= previous.confidence_milli
                     })
                 {
@@ -586,6 +586,7 @@ mod tests {
         memory.observe(HiddenWorld::with_view(1, true, true).observation(0, false));
         let absence = HiddenWorld::with_view(1, false, true).observation(2, true);
         assert_eq!(absence.cue, Cue::VisibleAbsent);
+        memory.observe(absence);
         assert_eq!(memory.decide(PolicyKind::ConfidenceGated, absence), Decision::Present);
     }
 
