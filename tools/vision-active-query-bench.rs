@@ -946,9 +946,59 @@ fn report_budget_frontier() {
     }
 }
 
+fn report_stop_cost_sensitivity() {
+    println!("STOP_SENSITIVITY\tfamily\tstop_cost_per_observation\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requests_used\twasted_observation_rate\tlogical_state_bytes\testimated_scoring_work_units_per_episode\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
+    let mut cells = vec![Accumulator::default(); Family::ALL.len() * STOP_COST_GRID.len()];
+
+    for family in Family::ALL {
+        for replicate in 0..REPLICATES {
+            for pair in 0..PAIRS {
+                let seed = seed_for(replicate, pair, family);
+                let episode = ActiveEpisode::generate(seed, family);
+                let round_robin = run_policy(&episode, PolicyKind::RoundRobin, mix64(
+                    seed ^ 0xD1B5_4A32_D192_ED03
+                ));
+                for (cost_index, cost) in STOP_COST_GRID.iter().copied().enumerate() {
+                    let stopped = run_policy_with_budget_and_stop_cost(
+                        &episode,
+                        PolicyKind::RiskThresholdStop,
+                        mix64(seed ^ 0x8F3F_73B5_CF1C_9ADE),
+                        HORIZON,
+                        cost,
+                    );
+                    let cell_index = family as usize * STOP_COST_GRID.len() + cost_index;
+                    cells[cell_index].record(
+                        stopped.outcome,
+                        Some(stopped.outcome.loss - round_robin.outcome.loss),
+                    );
+                }
+            }
+        }
+    }
+
+    for (family_index, family) in Family::ALL.iter().copied().enumerate() {
+        for (cost_index, cost) in STOP_COST_GRID.iter().copied().enumerate() {
+            let cell = &cells[family_index * STOP_COST_GRID.len() + cost_index];
+            let delta = cell.paired_deltas_vs_rr.iter().sum::<f64>()
+                / cell.paired_deltas_vs_rr.len().max(1) as f64;
+            let seed = mix64(ROOT_SEED
+                ^ 0x5354_4F50_5345_4E53
+                ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
+                ^ (cost_index as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9));
+            let (lo, hi) = bootstrap_ci(&cell.paired_deltas_vs_rr, seed);
+            println!("STOP_SENSITIVITY\t{}\t{:.3}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.4}\t{:.1}\t{:.1}\t{:.4}\t{:.4}\t{:.4}",
+                family.name(), cost, cell.episodes, cell.mean_loss(), cell.answer_rate(),
+                cell.accuracy(), cell.mean_requested_per_claim() * QUERY_COUNT as f64,
+                cell.mean_wasted_fraction(), cell.mean_state_bytes(), cell.mean_scoring_work_units(),
+                delta, lo, hi);
+        }
+    }
+}
+
 fn main() {
     report();
     report_budget_frontier();
+    report_stop_cost_sensitivity();
 }
 
 #[cfg(test)]
@@ -1003,6 +1053,18 @@ mod tests {
         }
         assert!(terminal_decision_risk(state.probabilities(HORIZON - 1)) <= STOP_COST_PER_OBSERVATION);
         assert_eq!(state.choose_action(HORIZON - 1), QUERY_COUNT);
+    }
+
+    #[test]
+    fn higher_stop_cost_never_uses_more_sensing_requests_on_same_episode() {
+        let episode = ActiveEpisode::generate(0xB0D6_00C0, Family::HeldOut);
+        let low = run_policy_with_budget_and_stop_cost(
+            &episode, PolicyKind::RiskThresholdStop, 1234, HORIZON, 0.01
+        );
+        let high = run_policy_with_budget_and_stop_cost(
+            &episode, PolicyKind::RiskThresholdStop, 1234, HORIZON, 0.12
+        );
+        assert!(high.actions.len() <= low.actions.len());
     }
 
     #[test]
