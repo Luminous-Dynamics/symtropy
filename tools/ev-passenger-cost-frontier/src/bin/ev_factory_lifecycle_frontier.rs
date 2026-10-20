@@ -770,7 +770,7 @@ mod tests {
         assert_eq!(first.strategy_count, 4);
         assert_eq!(first.family_strategy_results.len(), 20);
         assert_eq!(first.purchase_vs_lease_break_even.len(), 5);
-        assert_eq!(first.sensitivity_results.len(), 9);
+        assert_eq!(first.sensitivity_results.len(), 11);
         assert!(!first.economic_recommendation_authorized);
         assert!(!first.production_release_authorized);
         assert_eq!(first.source_catalog_sha256, digest);
