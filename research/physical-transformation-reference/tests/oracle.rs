@@ -96,8 +96,8 @@ fn analytical_bar_and_cantilever_match_frozen_known_answers() {
     assert!((bar.axial_strain - 5.0e-7).abs() <= 1.0e-18);
     assert!((bar.extension_m - 1.0e-6).abs() <= 1.0e-15);
 
-    let cantilever = cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1)
-        .expect("valid cantilever case");
+    let cantilever =
+        cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid cantilever case");
     assert!((cantilever.tip_deflection_m - (1.0 / 6_000.0)).abs() <= 1.0e-15);
     assert!((cantilever.maximum_bending_stress_pa - 2_500_000.0).abs() <= 1.0e-6);
 }
