@@ -564,7 +564,6 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
                 score,
                 &candidates,
                 &oracle_ranked,
-                intervals_separate,
                 robust_best_station_id.as_deref(),
             )
         })
@@ -596,12 +595,90 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
     })
 }
 
+fn summarize_distribution(values: &[f64]) -> Result<DistributionSummary, String> {
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err("paired_distribution_requires_nonempty_finite_samples".into());
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let count = sorted.len();
+    let mean = sorted.iter().sum::<f64>() / count as f64;
+    let sample_standard_deviation = if count > 1 {
+        let squared_error = sorted
+            .iter()
+            .map(|value| (value - mean).powi(2))
+            .sum::<f64>();
+        Some((squared_error / (count - 1) as f64).sqrt())
+    } else {
+        None
+    };
+    let confidence = sample_standard_deviation.map(|sd| {
+        let margin = student_t_critical_95((count - 1) as u32) * sd / (count as f64).sqrt();
+        (mean - margin, mean + margin)
+    });
+    Ok(DistributionSummary {
+        sample_count: count,
+        mean,
+        sample_standard_deviation,
+        minimum: sorted[0],
+        p05: quantile_sorted(&sorted, 0.05),
+        median: quantile_sorted(&sorted, 0.50),
+        p95: quantile_sorted(&sorted, 0.95),
+        maximum: sorted[count - 1],
+        mean_confidence_95_lower: confidence.map(|bounds| bounds.0),
+        mean_confidence_95_upper: confidence.map(|bounds| bounds.1),
+    })
+}
+
+fn quantile_sorted(sorted: &[f64], probability: f64) -> f64 {
+    let position = probability.clamp(0.0, 1.0) * (sorted.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    let fraction = position - lower_index as f64;
+    sorted[lower_index] * (1.0 - fraction) + sorted[upper_index] * fraction
+}
+
+fn student_t_critical_95(degrees_of_freedom: u32) -> f64 {
+    match degrees_of_freedom {
+        0 => f64::NAN,
+        1 => 12.706,
+        2 => 4.303,
+        3 => 3.182,
+        4 => 2.776,
+        5 => 2.571,
+        6 => 2.447,
+        7 => 2.365,
+        8 => 2.306,
+        9 => 2.262,
+        10 => 2.228,
+        11 => 2.201,
+        12 => 2.179,
+        13 => 2.160,
+        14 => 2.145,
+        15 => 2.131,
+        16 => 2.120,
+        17 => 2.110,
+        18 => 2.101,
+        19 => 2.093,
+        20 => 2.086,
+        21 => 2.080,
+        22 => 2.074,
+        23 => 2.069,
+        24 => 2.064,
+        25 => 2.060,
+        26 => 2.056,
+        27 => 2.052,
+        28 => 2.048,
+        29 => 2.045,
+        _ => 1.960,
+    }
+}
+
 fn score_method(
     method: DiagnosticMethod,
     score: fn(&StationCandidate) -> f64,
     candidates: &[StationCandidate],
     oracle_ranked: &[StationCandidate],
-    oracle_interval_separates_top_two: bool,
     robust_best_station_id: Option<&str>,
 ) -> MethodScore {
     let mut ranked = candidates.to_vec();
@@ -870,6 +947,40 @@ mod tests {
                 .unwrap()
                 .station_id
         );
+    }
+
+    #[test]
+    fn paired_effect_of_effects_detects_clear_advantage_and_equivalence() {
+        let a_gains = [1.0, 1.0, 1.0, 1.0, 1.0];
+        let b_gains = [0.2, 0.2, 0.2, 0.2, 0.2];
+        let differences: Vec<f64> = a_gains.iter().zip(b_gains.iter())
+            .map(|(a, b)| a - b)
+            .collect();
+        let summary = summarize_distribution(&differences).expect("paired summary");
+        assert!((summary.mean - 0.8).abs() < 1e-12);
+        assert_eq!(summary.mean_confidence_95_lower, Some(0.8));
+        assert_eq!(summary.mean_confidence_95_upper, Some(0.8));
+        let margin = 0.05;
+        assert!(summary.mean_confidence_95_lower.unwrap() > margin);
+
+        let equal_differences = [0.01, 0.02, 0.00, 0.01, 0.02];
+        let equal = summarize_distribution(&equal_differences).expect("equivalence summary");
+        assert!(equal.mean_confidence_95_lower.unwrap() >= -margin);
+        assert!(equal.mean_confidence_95_upper.unwrap() <= margin);
+    }
+
+    #[test]
+    fn paired_intervention_difference_is_seed_aligned_and_not_marginal_ci_overlap() {
+        let baseline = [10.0, 11.0, 9.0, 12.0, 10.5];
+        let a_output = [12.0, 13.0, 11.0, 14.0, 12.5];
+        let b_output = [11.0, 13.0, 10.0, 13.0, 11.5];
+        let paired_effects: Vec<f64> = baseline.iter().enumerate()
+            .map(|(i, base)| (a_output[i] - base) - (b_output[i] - base))
+            .collect();
+        assert_eq!(paired_effects, vec![1.0, 0.0, 1.0, 1.0, 1.0]);
+        let summary = summarize_distribution(&paired_effects).expect("paired effect of effects");
+        assert_eq!(summary.sample_count, 5);
+        assert!((summary.mean - 0.8).abs() < 1e-12);
     }
 
     #[test]
