@@ -11,6 +11,7 @@
 
 pub mod benchmark_case;
 pub mod cascade;
+pub mod field_metrics;
 pub mod scoring;
 
 use serde::{Deserialize, Serialize};
