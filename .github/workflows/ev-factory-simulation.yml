@@ -12,6 +12,7 @@ on:
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
       - "docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md"
+      - "docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
     branches: [main]
@@ -26,6 +27,7 @@ on:
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
       - "docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md"
+      - "docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   workflow_dispatch:
 
@@ -376,11 +378,13 @@ jobs:
             docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
             docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md \
+            docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
             ev-factory-variant-aware.json \
             ev-factory-variant-aware-report.json \
             ev-factory-dispatch-policy-comparison.json \
+            docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
       - uses: actions/upload-artifact@v4
