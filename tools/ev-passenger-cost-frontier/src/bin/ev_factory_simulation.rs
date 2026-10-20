@@ -1142,6 +1142,22 @@ fn complete_operation(
     Ok(())
 }
 
+fn record_output_transfer(
+    metrics: &mut StationMetrics,
+    last_output_job_id: &mut Option<u64>,
+    job_id: u64,
+    is_measured: bool,
+) {
+    if !is_measured {
+        return;
+    }
+    metrics.output_transfers_after_warmup += 1;
+    if last_output_job_id.is_some_and(|last| job_id < last) {
+        metrics.out_of_order_output_transfers_after_warmup += 1;
+    }
+    *last_output_job_id = Some(last_output_job_id.map_or(job_id, |last| last.max(job_id)));
+}
+
 fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
     loop {
         let mut changed = false;
@@ -1176,16 +1192,13 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 else {
                     return Err("blocked_transfer_state_changed_unexpectedly".into());
                 };
-                if state.now >= catalog.warmup_seconds {
+                {
                     let runtime = &mut state.stations[station_index];
-                    runtime.metrics.output_transfers_after_warmup += 1;
-                    if runtime.last_output_job_id.is_some_and(|last| job.id < last) {
-                        runtime.metrics.out_of_order_output_transfers_after_warmup += 1;
-                    }
-                    runtime.last_output_job_id = Some(
-                        runtime
-                            .last_output_job_id
-                            .map_or(job.id, |last| last.max(job.id)),
+                    record_output_transfer(
+                        &mut runtime.metrics,
+                        &mut runtime.last_output_job_id,
+                        job.id,
+                        state.now >= catalog.warmup_seconds,
                     );
                 }
                 if station_index + 1 == catalog.stations.len() {
@@ -1367,6 +1380,22 @@ mod tests {
         assert!(report.all_buffers_respected_capacity);
         assert!(report.station_time_accounting_within_horizon);
         assert!(!report.release_ready);
+    }
+
+    #[test]
+    fn sequence_inversions_are_counted_at_transfer_not_at_completion() {
+        let mut metrics = StationMetrics::default();
+        let mut high_water = None;
+        record_output_transfer(&mut metrics, &mut high_water, 99, false);
+        assert_eq!(metrics.output_transfers_after_warmup, 0);
+        assert_eq!(high_water, None);
+
+        for id in [10_u64, 12, 11, 15, 14] {
+            record_output_transfer(&mut metrics, &mut high_water, id, true);
+        }
+        assert_eq!(metrics.output_transfers_after_warmup, 5);
+        assert_eq!(metrics.out_of_order_output_transfers_after_warmup, 2);
+        assert_eq!(high_water, Some(15));
     }
 
     #[test]
