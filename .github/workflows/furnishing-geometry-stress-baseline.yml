@@ -56,4 +56,29 @@ jobs:
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
       - name: Benchmark same adversarial workloads on v0.2
-        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_stress
+        run: |
+          set -euo pipefail
+          echo "=== baseline-v0.2 source: $(git rev-parse HEAD) ==="
+          cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_stress
+      - name: Checkout exact v0.3 indexed candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: a6fadac278a7005c61ff92626ed41e600a3fdb40
+          path: optimized
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Assert optimized candidate source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_head="a6fadac278a7005c61ff92626ed41e600a3fdb40"
+          actual_head="$(git -C optimized rev-parse HEAD)"
+          test "$actual_head" = "$expected_head"
+          echo "indexed-v0.3 source: $actual_head"
+      - name: Benchmark the v0.3 indexed candidate on the same host
+        working-directory: optimized
+        run: |
+          set -euo pipefail
+          echo "=== indexed-v0.3 source: $(git rev-parse HEAD) ==="
+          cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_stress
