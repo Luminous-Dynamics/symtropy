@@ -1,0 +1,573 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_FLOOD_FORAGE_RISK_PILOT_REPORT_V0.schema.json",
+  "title": "Animal Flood Forage Risk Pilot Report V0",
+  "description": "Deterministic report shape for a synthetic grid pilot. This report is not empirical animal validation, calibrated ecology, or a hydrodynamics result.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "scenario_id",
+    "source_commit",
+    "exact_source_commit_bound",
+    "source_commit_provenance",
+    "pilot_manifest_sha256",
+    "pilot_manifest_schema_sha256",
+    "execution_rules_sha256",
+    "execution_rules_schema_sha256",
+    "seed_manifest_sha256",
+    "seed_count",
+    "public_model_count",
+    "expected_rollout_count",
+    "completed_rollout_count",
+    "receipt_complete",
+    "model_set_adequacy",
+    "empirical_validation",
+    "current_flow_physics_status",
+    "predator_dynamics_status",
+    "hardware_runtime_performance_claims",
+    "model_registry_dispositions",
+    "rollouts",
+    "aggregates",
+    "paired_comparisons",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ANIMAL-FLOOD-FORAGE-PILOT-REPORT-V0"
+    },
+    "status": {
+      "const": "synthetic_runtime_executed_not_empirical"
+    },
+    "scenario_id": {
+      "const": "flood_forage_risk_corridor_v0"
+    },
+    "source_commit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exact_source_commit_bound": {
+      "type": "boolean"
+    },
+    "source_commit_provenance": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pilot_manifest_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "pilot_manifest_schema_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "execution_rules_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "execution_rules_schema_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "seed_manifest_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "seed_count": {
+      "const": 10
+    },
+    "public_model_count": {
+      "const": 2
+    },
+    "expected_rollout_count": {
+      "const": 180
+    },
+    "completed_rollout_count": {
+      "const": 180
+    },
+    "receipt_complete": {
+      "const": true
+    },
+    "model_set_adequacy": {
+      "const": "not_assessed"
+    },
+    "empirical_validation": {
+      "const": "not_assessed"
+    },
+    "current_flow_physics_status": {
+      "const": "not_assessed_in_v0"
+    },
+    "predator_dynamics_status": {
+      "const": "not_modeled_v0"
+    },
+    "hardware_runtime_performance_claims": {
+      "const": false
+    },
+    "model_registry_dispositions": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model_id",
+          "role",
+          "disposition",
+          "reason"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "candidate_structure",
+              "blind_challenger"
+            ]
+          },
+          "disposition": {
+            "enum": [
+              "executed",
+              "not_assessed"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "rollouts": {
+      "type": "array",
+      "minItems": 180,
+      "maxItems": 180,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "seed",
+          "model_id",
+          "policy_id",
+          "policy_role",
+          "scenario_variant",
+          "ticks_scheduled",
+          "policy_actions_taken",
+          "selected_failure",
+          "failure_tick",
+          "productive_foraging_actions",
+          "productive_tick_rate",
+          "movement_attempts",
+          "movement_successes",
+          "blocked_moves",
+          "route_attempts",
+          "route_successes",
+          "route_feasibility",
+          "active_sensing_actions",
+          "active_sensing_budget",
+          "passive_water_sensor_confusion",
+          "sensor_alert_precision",
+          "sensor_alert_recall",
+          "flood_exposure_ticks",
+          "initial_resource_stock",
+          "total_resource_regrowth",
+          "total_resource_consumed",
+          "final_resource_stock",
+          "resource_accounting_residual",
+          "initial_energy",
+          "energy_gained_from_forage",
+          "movement_energy_cost",
+          "active_sensing_energy_cost",
+          "failed_forage_energy_cost",
+          "idle_energy_cost",
+          "final_energy",
+          "energy_accounting_residual",
+          "accounted_compute_units",
+          "compute_budget_limit",
+          "compute_budget_compliant",
+          "integrated_performance_deficit",
+          "normalized_decision_regret",
+          "normalized_decision_regret_disposition",
+          "receipt_disposition"
+        ],
+        "properties": {
+          "seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_role": {
+            "enum": [
+              "qualifying_baseline",
+              "candidate",
+              "diagnostic_nonqualifying_reference"
+            ]
+          },
+          "scenario_variant": {
+            "enum": [
+              "combined_shocks",
+              "reference_no_shocks",
+              "ablation_no_flood",
+              "ablation_no_shortage"
+            ]
+          },
+          "ticks_scheduled": {
+            "const": 1200
+          },
+          "policy_actions_taken": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1200
+          },
+          "selected_failure": {
+            "type": "boolean"
+          },
+          "failure_tick": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "productive_foraging_actions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "productive_tick_rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "movement_attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "movement_successes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "blocked_moves": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "route_attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "route_successes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "route_feasibility": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "active_sensing_actions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "active_sensing_budget": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "passive_water_sensor_confusion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sample_count",
+              "true_positive",
+              "false_positive",
+              "true_negative",
+              "false_negative"
+            ],
+            "properties": {
+              "sample_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "true_positive": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "false_positive": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "true_negative": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "false_negative": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "sensor_alert_precision": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "sensor_alert_recall": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "flood_exposure_ticks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "initial_resource_stock": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_resource_regrowth": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_resource_consumed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "final_resource_stock": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "resource_accounting_residual": {
+            "type": "integer"
+          },
+          "initial_energy": {
+            "type": "number",
+            "minimum": 0
+          },
+          "energy_gained_from_forage": {
+            "type": "number",
+            "minimum": 0
+          },
+          "movement_energy_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "active_sensing_energy_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "failed_forage_energy_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "idle_energy_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "final_energy": {
+            "type": "number"
+          },
+          "energy_accounting_residual": {
+            "type": "number"
+          },
+          "accounted_compute_units": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "compute_budget_limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "compute_budget_compliant": {
+            "type": "boolean"
+          },
+          "integrated_performance_deficit": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "normalized_decision_regret": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "normalized_decision_regret_disposition": {
+            "const": "not_assessed_v0"
+          },
+          "receipt_disposition": {
+            "enum": [
+              "complete",
+              "selected_failure_retained"
+            ]
+          }
+        }
+      }
+    },
+    "aggregates": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model_id",
+          "policy_id",
+          "policy_role",
+          "scenario_variant",
+          "rollout_count",
+          "selected_failure_count",
+          "mean_productive_tick_rate",
+          "mean_route_feasibility",
+          "resource_accounting_violation_count",
+          "energy_accounting_violation_count",
+          "mean_flood_exposure_ticks",
+          "mean_active_sensing_actions",
+          "mean_integrated_performance_deficit"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_role": {
+            "enum": [
+              "qualifying_baseline",
+              "candidate",
+              "diagnostic_nonqualifying_reference"
+            ]
+          },
+          "scenario_variant": {
+            "enum": [
+              "combined_shocks",
+              "reference_no_shocks",
+              "ablation_no_flood",
+              "ablation_no_shortage"
+            ]
+          },
+          "rollout_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "selected_failure_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "mean_productive_tick_rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "mean_route_feasibility": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "resource_accounting_violation_count": {
+            "const": 0
+          },
+          "energy_accounting_violation_count": {
+            "const": 0
+          },
+          "mean_flood_exposure_ticks": {
+            "type": "number",
+            "minimum": 0
+          },
+          "mean_active_sensing_actions": {
+            "type": "number",
+            "minimum": 0
+          },
+          "mean_integrated_performance_deficit": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "paired_comparisons": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "seed",
+          "model_id",
+          "scenario_variant",
+          "baseline_policy_id",
+          "candidate_policy_id",
+          "delta_productive_tick_rate",
+          "delta_flood_exposure_ticks",
+          "delta_route_feasibility",
+          "delta_active_sensing_actions"
+        ],
+        "properties": {
+          "seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_variant": {
+            "const": "combined_shocks"
+          },
+          "baseline_policy_id": {
+            "const": "reactive_heuristic_v0"
+          },
+          "candidate_policy_id": {
+            "const": "adaptive_bounded_sensing_v0"
+          },
+          "delta_productive_tick_rate": {
+            "type": "number"
+          },
+          "delta_flood_exposure_ticks": {
+            "type": "integer"
+          },
+          "delta_route_feasibility": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "delta_active_sensing_actions": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "receipt_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  },
+  "$comment": "The runtime also validates cross-record counts, paired unit identities, receipt SHA-256, per-episode conservation equations, sealed challenger non-execution, and no hidden-state access. JSON Schema alone does not establish those properties."
+}
