@@ -46,3 +46,9 @@ This is an export adapter plus network-build smoke test, not evidence of behavio
 Install/pin a SUMO release and run netconvert on each generated case. First compare fixed routes with identical graph, demand departures, travel-time scale and closures; document the mismatch where SUMO's lane/speed model cannot reproduce the source per-step capacities. Then run a separate Dynamic User Assignment comparison with its rerouting policy and seed/configuration pinned.
 
 Report p50/p90/p95 clearance time where individual arrivals exist, queue vehicle-time, throughput, unserved demand, bottleneck utilization and hard-constraint violations. Keep accessibility/shelter feasibility and model mismatch explicit. No SOTA win, field safety, real-world accuracy or operational readiness is claimed by exporting XML.
+
+## Quantitative outcome instrumentation
+
+The Rust verifier also emits `sumo-behavior-receipt.json`, which checks the exact planned vehicle-ID inventory against SUMO tripinfo and summarizes arrival fraction plus completed-trip duration, waiting, time loss, departure delay and route-length distributions. SUMO is run with unfinished and undeparted tripinfo output enabled. See [WILDFIRE_SUMO_BEHAVIOR_METRICS_V0_1.md](WILDFIRE_SUMO_BEHAVIOR_METRICS_V0_1.md).
+
+These measurements improve output accounting but are still SUMO-only. They do not bridge the unresolved capacity/storage, sink/accessibility, and closure-semantics gaps above, and are not a matched-model or SOTA result.

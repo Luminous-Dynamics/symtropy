@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -51,6 +51,235 @@ fn array<'a>(v: &'a Value, key: &str, at: &str) -> Check<&'a [Value]> {
 
 fn sha_format(s: &str) -> bool {
     s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+fn xml_start_tags<'a>(xml: &'a str, name: &str) -> Check<Vec<&'a str>> {
+    let needle = format!("<{name}");
+    let bytes = xml.as_bytes();
+    let mut cursor = 0usize;
+    let mut tags = Vec::new();
+    while let Some(relative) = xml[cursor..].find(&needle) {
+        let start = cursor + relative;
+        let after_name = start + needle.len();
+        let boundary = bytes.get(after_name).copied();
+        if !matches!(boundary, Some(b' ' | b'\t' | b'\r' | b'\n' | b'/' | b'>')) {
+            cursor = after_name;
+            continue;
+        }
+        let end = xml[after_name..]
+            .find('>')
+            .map(|offset| after_name + offset)
+            .ok_or_else(|| format!("unterminated <{name} ...> element"))?;
+        tags.push(&xml[start..=end]);
+        cursor = end + 1;
+    }
+    Ok(tags)
+}
+
+fn xml_attributes(tag: &str) -> Check<BTreeMap<String, String>> {
+    let bytes = tag.as_bytes();
+    if bytes.first() != Some(&b'<') {
+        return Err("XML element does not start with '<'".to_owned());
+    }
+    let mut cursor = 1usize;
+    while cursor < bytes.len()
+        && !matches!(bytes[cursor], b' ' | b'\t' | b'\r' | b'\n' | b'/' | b'>')
+    {
+        cursor += 1;
+    }
+    let mut attributes = BTreeMap::new();
+    loop {
+        while cursor < bytes.len() && matches!(bytes[cursor], b' ' | b'\t' | b'\r' | b'\n' | b'/') {
+            cursor += 1;
+        }
+        if cursor >= bytes.len() || bytes[cursor] == b'>' {
+            break;
+        }
+        let key_start = cursor;
+        while cursor < bytes.len()
+            && !matches!(
+                bytes[cursor],
+                b' ' | b'\t' | b'\r' | b'\n' | b'=' | b'/' | b'>'
+            )
+        {
+            cursor += 1;
+        }
+        if cursor == key_start {
+            return Err(format!("malformed XML attribute in {tag}"));
+        }
+        let key = std::str::from_utf8(&bytes[key_start..cursor])
+            .map_err(|_| "XML attribute name is not UTF-8".to_owned())?
+            .to_owned();
+        while cursor < bytes.len() && matches!(bytes[cursor], b' ' | b'\t' | b'\r' | b'\n') {
+            cursor += 1;
+        }
+        if bytes.get(cursor) != Some(&b'=') {
+            return Err(format!("XML attribute {key} lacks '='"));
+        }
+        cursor += 1;
+        while cursor < bytes.len() && matches!(bytes[cursor], b' ' | b'\t' | b'\r' | b'\n') {
+            cursor += 1;
+        }
+        let quote = *bytes
+            .get(cursor)
+            .ok_or_else(|| format!("XML attribute {key} has no value"))?;
+        if quote != b'"' && quote != b'\'' {
+            return Err(format!("XML attribute {key} is not quoted"));
+        }
+        cursor += 1;
+        let value_start = cursor;
+        while cursor < bytes.len() && bytes[cursor] != quote {
+            cursor += 1;
+        }
+        if cursor >= bytes.len() {
+            return Err(format!("XML attribute {key} has an unterminated value"));
+        }
+        let value = std::str::from_utf8(&bytes[value_start..cursor])
+            .map_err(|_| format!("XML attribute {key} value is not UTF-8"))?
+            .to_owned();
+        cursor += 1;
+        if attributes.insert(key.clone(), value).is_some() {
+            return Err(format!("duplicate XML attribute {key}"));
+        }
+    }
+    Ok(attributes)
+}
+
+fn required_finite_nonnegative(
+    attributes: &BTreeMap<String, String>,
+    key: &str,
+    vehicle_id: &str,
+) -> Check<f64> {
+    let raw = attributes
+        .get(key)
+        .ok_or_else(|| format!("tripinfo {vehicle_id} lacks {key}"))?;
+    let value = raw
+        .parse::<f64>()
+        .map_err(|_| format!("tripinfo {vehicle_id}.{key} is not numeric"))?;
+    if !value.is_finite() || value < 0.0 {
+        return Err(format!(
+            "tripinfo {vehicle_id}.{key} must be finite and non-negative"
+        ));
+    }
+    Ok(value)
+}
+
+fn metric_summary(values: &[f64]) -> Value {
+    let mut sorted = values.to_vec();
+    sorted.sort_by(|left, right| left.total_cmp(right));
+    let quantile = |p: f64| -> Value {
+        if sorted.is_empty() {
+            Value::Null
+        } else {
+            let rank = ((p * sorted.len() as f64).ceil() as usize)
+                .max(1)
+                .min(sorted.len());
+            json!(sorted[rank - 1])
+        }
+    };
+    let mean = if sorted.is_empty() {
+        Value::Null
+    } else {
+        json!(sorted.iter().sum::<f64>() / sorted.len() as f64)
+    };
+    json!({
+        "count": sorted.len(),
+        "mean": mean,
+        "p50_nearest_rank": quantile(0.50),
+        "p90_nearest_rank": quantile(0.90),
+        "p95_nearest_rank": quantile(0.95),
+        "max": sorted.last().copied()
+    })
+}
+
+fn expected_vehicle_ids(demands: &[Value], at: &str) -> Check<BTreeSet<String>> {
+    let mut ids = BTreeSet::new();
+    for demand in demands {
+        let demand_id = string(demand, "id", at)?;
+        let count = demand
+            .get("vehicles")
+            .and_then(Value::as_u64)
+            .ok_or_else(|| format!("{at}.{demand_id}.vehicles: expected non-negative integer"))?;
+        for number in 0..count {
+            ids.insert(format!("{demand_id}_{number:05}"));
+        }
+    }
+    Ok(ids)
+}
+
+fn parse_sumo_outcomes(xml: &str, expected_ids: &BTreeSet<String>) -> Check<Value> {
+    let tags = xml_start_tags(xml, "tripinfo")?;
+    let mut seen_ids = BTreeSet::new();
+    let mut duration = Vec::new();
+    let mut waiting = Vec::new();
+    let mut time_loss = Vec::new();
+    let mut depart_delay = Vec::new();
+    let mut route_length = Vec::new();
+    let mut arrived = 0usize;
+    let mut not_arrived = 0usize;
+
+    for tag in &tags {
+        let attrs = xml_attributes(tag)?;
+        let id = attrs
+            .get("id")
+            .ok_or_else(|| "tripinfo element lacks id".to_owned())?;
+        if !seen_ids.insert(id.clone()) {
+            return Err(format!("duplicate tripinfo vehicle ID {id}"));
+        }
+        if !expected_ids.contains(id) {
+            return Err(format!("tripinfo contains unplanned vehicle ID {id}"));
+        }
+        let arrival_raw = attrs
+            .get("arrival")
+            .ok_or_else(|| format!("tripinfo {id} lacks arrival"))?;
+        let arrival = arrival_raw
+            .parse::<f64>()
+            .map_err(|_| format!("tripinfo {id}.arrival is not numeric"))?;
+        if !arrival.is_finite() {
+            return Err(format!("tripinfo {id}.arrival is not finite"));
+        }
+        if arrival < 0.0 {
+            not_arrived += 1;
+            continue;
+        }
+        arrived += 1;
+        duration.push(required_finite_nonnegative(&attrs, "duration", id)?);
+        waiting.push(required_finite_nonnegative(&attrs, "waitingTime", id)?);
+        time_loss.push(required_finite_nonnegative(&attrs, "timeLoss", id)?);
+        depart_delay.push(required_finite_nonnegative(&attrs, "departDelay", id)?);
+        route_length.push(required_finite_nonnegative(&attrs, "routeLength", id)?);
+    }
+
+    let missing: Vec<&String> = expected_ids.difference(&seen_ids).collect();
+    if !missing.is_empty() {
+        return Err(format!(
+            "tripinfo coverage mismatch: {} planned vehicles lack records (first: {})",
+            missing.len(),
+            missing[0]
+        ));
+    }
+    if tags.len() != expected_ids.len() {
+        return Err(format!(
+            "tripinfo record count {} differs from planned vehicle count {}",
+            tags.len(),
+            expected_ids.len()
+        ));
+    }
+    let planned = expected_ids.len();
+    Ok(json!({
+        "planned_vehicle_count": planned,
+        "tripinfo_record_count": tags.len(),
+        "arrived_by_horizon_vehicle_count": arrived,
+        "not_arrived_by_horizon_vehicle_count": not_arrived,
+        "arrival_fraction": if planned == 0 { 0.0 } else { arrived as f64 / planned as f64 },
+        "quantile_method": "nearest-rank; computed over arrived trips only",
+        "trip_duration_seconds": metric_summary(&duration),
+        "trip_waiting_seconds": metric_summary(&waiting),
+        "trip_time_loss_seconds": metric_summary(&time_loss),
+        "trip_departure_delay_seconds": metric_summary(&depart_delay),
+        "trip_route_length_m": metric_summary(&route_length),
+        "claim_boundary": "SUMO-only outcomes under the pinned synthetic adapter; not equivalent to Symtropy model outcomes"
+    }))
 }
 
 fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
@@ -225,6 +454,13 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
         }
         let stdout_bytes = read(&dir.join("sumo-smoke.stdout.log"))?;
         let stderr_bytes = read(&dir.join("sumo-smoke.stderr.log"))?;
+        let expected_ids = expected_vehicle_ids(cfg_demands, &at)?;
+        if expected_ids.len() as u64 != exported_vehicles {
+            return Err(format!(
+                "{at}: expected vehicle-ID inventory differs from exported demand"
+            ));
+        }
+        let sumo_behavior = parse_sumo_outcomes(&tripinfo_xml, &expected_ids)?;
         receipts.push(json!({
             "case_id": case_id,
             "manifest_sha256": manifest_sha,
@@ -235,6 +471,7 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             "sumo_smoke_stderr_sha256": hash(&stderr_bytes),
             "sumo_smoke_completed": true,
             "tripinfo_records": tripinfo_xml.matches("<tripinfo ").count(),
+            "sumo_behavior": sumo_behavior,
             "source_edge_count": cfg_edges.len(),
             "source_node_count": expected_nodes.len(),
             "demand_stream_count": cfg_demands.len(),
@@ -243,9 +480,35 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             "netconvert_output_contains_all_source_edges": true
         }));
     }
+    let behavior_cases: Vec<Value> = receipts
+        .iter()
+        .map(|case| {
+            json!({
+                "case_id": case["case_id"],
+                "sumo_behavior": case["sumo_behavior"]
+            })
+        })
+        .collect();
+    let behavior_receipt = json!({
+        "result": "pass",
+        "benchmark_id": "WILDFIRE-SUMO-OUTCOMES-001",
+        "source_commit": source_sha,
+        "fixture_sha256": hash(fixture_bytes),
+        "sumo_version": SUMO_VERSION,
+        "case_count": CASE_IDS.len(),
+        "cases": behavior_cases,
+        "quantile_method": "nearest-rank",
+        "claim_boundary": "quantitative SUMO-only diagnostics; synthetic adapter semantics differ from Symtropy and this is not a matched-model comparison"
+    });
+    let behavior_path = root.join("sumo-behavior-receipt.json");
+    let behavior_bytes = serde_json::to_vec_pretty(&behavior_receipt)
+        .map_err(|e| format!("serialize SUMO behavior receipt: {e}"))?;
+    fs::write(&behavior_path, &behavior_bytes)
+        .map_err(|e| format!("write {}: {e}", behavior_path.display()))?;
+
     Ok(json!({
         "result": "pass",
-        "verifier_version": "0.1.0",
+        "verifier_version": "0.2.0",
         "benchmark_id": "WILDFIRE-SUMO-EXPORT-001",
         "source_commit": source_sha,
         "fixture_sha256": hash(fixture_bytes),
@@ -291,6 +554,65 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn ids(values: &[&str]) -> BTreeSet<String> {
+        values.iter().map(|value| (*value).to_owned()).collect()
+    }
+
+    #[test]
+    fn tripinfo_metrics_cover_arrived_and_unfinished_planned_vehicles() {
+        let expected = ids(&["A_00000", "A_00001", "B_00000"]);
+        let xml = r#"<?xml version="1.0"?><tripinfos>
+<tripinfo id="A_00000" arrival="20" duration="20" waitingTime="3" timeLoss="5" departDelay="1" routeLength="100"/>
+<tripinfo id="A_00001" arrival="30" duration="30" waitingTime="8" timeLoss="9" departDelay="0" routeLength="100"/>
+<tripinfo id="B_00000" arrival="-1" duration="-1" waitingTime="0" timeLoss="0" departDelay="0" routeLength="100"/>
+</tripinfos>"#;
+        let result = parse_sumo_outcomes(xml, &expected).expect("valid outcome report");
+        assert_eq!(result["planned_vehicle_count"], 3);
+        assert_eq!(result["tripinfo_record_count"], 3);
+        assert_eq!(result["arrived_by_horizon_vehicle_count"], 2);
+        assert_eq!(result["not_arrived_by_horizon_vehicle_count"], 1);
+        assert_eq!(result["arrival_fraction"], 2.0 / 3.0);
+        assert_eq!(result["trip_duration_seconds"]["p50_nearest_rank"], 20.0);
+        assert_eq!(result["trip_duration_seconds"]["p95_nearest_rank"], 30.0);
+        assert_eq!(result["trip_waiting_seconds"]["mean"], 5.5);
+    }
+
+    #[test]
+    fn tripinfo_verification_rejects_missing_duplicate_and_unplanned_vehicle_ids() {
+        let expected = ids(&["A_00000", "A_00001"]);
+        let one = r#"<tripinfos><tripinfo id="A_00000" arrival="-1"/></tripinfos>"#;
+        assert!(
+            parse_sumo_outcomes(one, &expected)
+                .unwrap_err()
+                .contains("coverage mismatch")
+        );
+
+        let duplicate = r#"<tripinfos><tripinfo id="A_00000" arrival="-1"/><tripinfo id="A_00000" arrival="-1"/></tripinfos>"#;
+        assert!(
+            parse_sumo_outcomes(duplicate, &expected)
+                .unwrap_err()
+                .contains("duplicate")
+        );
+
+        let extra = r#"<tripinfos><tripinfo id="A_00000" arrival="-1"/><tripinfo id="X_00000" arrival="-1"/></tripinfos>"#;
+        assert!(
+            parse_sumo_outcomes(extra, &expected)
+                .unwrap_err()
+                .contains("unplanned")
+        );
+    }
+
+    #[test]
+    fn tripinfo_verification_rejects_invalid_completed_trip_metrics() {
+        let expected = ids(&["A_00000"]);
+        let xml = r#"<tripinfos><tripinfo id="A_00000" arrival="10" duration="NaN" waitingTime="0" timeLoss="0" departDelay="0" routeLength="1"/></tripinfos>"#;
+        assert!(
+            parse_sumo_outcomes(xml, &expected)
+                .unwrap_err()
+                .contains("must be finite and non-negative")
+        );
+    }
 
     #[test]
     fn commit_sha_requires_exactly_forty_hexadecimal_characters() {
