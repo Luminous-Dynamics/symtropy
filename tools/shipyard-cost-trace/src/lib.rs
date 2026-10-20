@@ -400,7 +400,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         errors.extend(find_lineage_cycles(events, &events_by_id));
     }
 
-    let mut currency_scales: BTreeMap<&str, u8> = BTreeMap::new();
+    let mut currency_scales: BTreeMap<String, u8> = BTreeMap::new();
     for event in events {
         let basis_scale = match &event.kind {
             EventKind::Quantity(quantity) => quantity
@@ -421,7 +421,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                     ));
                 }
             } else {
-                currency_scales.insert(basis_id, exponent);
+                currency_scales.insert(basis_id.to_owned(), exponent);
             }
         }
     }
