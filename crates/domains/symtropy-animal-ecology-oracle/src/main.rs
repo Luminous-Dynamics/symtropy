@@ -36,8 +36,6 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "PASS: {} unique {} cases satisfy the versioned contract structure.",
         report.unique_case_ids, report.schema_version
     );
-    println!(
-        "Scope: contract consistency only; no simulation or biological validation was run."
-    );
+    println!("Scope: contract consistency only; no simulation or biological validation was run.");
     Ok(())
 }
