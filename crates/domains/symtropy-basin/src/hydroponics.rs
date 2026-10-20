@@ -137,7 +137,11 @@ pub fn step(
     let nutrient_balance_residual_g =
         after.dissolved_nutrients_g - (before.dissolved_nutrients_g + flux.nutrient_input_g - nutrients_out);
     let nutrient_concentration_g_per_l = if after.water_l > 0.0 {
-        Some(after.dissolved_nutrients_g / after.water_l)
+        let concentration = after.dissolved_nutrients_g / after.water_l;
+        if !concentration.is_finite() {
+            return Err(BalanceError::NonFinite { field: "nutrient_concentration_g_per_l" });
+        }
+        Some(concentration)
     } else {
         None
     };
@@ -226,6 +230,27 @@ mod tests {
             },
         ).unwrap_err();
         assert_eq!(error, BalanceError::NonFinite { field: "water_in_l" });
+    }
+
+    #[test]
+    fn rejects_unrepresentable_concentration() {
+        let error = step(
+            ReservoirState {
+                water_l: f64::MIN_POSITIVE,
+                dissolved_nutrients_g: f64::MAX,
+            },
+            DailyFlux::default(),
+        ).unwrap_err();
+        assert_eq!(error, BalanceError::NonFinite { field: "nutrient_concentration_g_per_l" });
+    }
+
+    #[test]
+    fn rejects_negative_flux() {
+        let error = step(
+            ReservoirState { water_l: 1.0, dissolved_nutrients_g: 1.0 },
+            DailyFlux { evaporation_l: -0.1, ..DailyFlux::default() },
+        ).unwrap_err();
+        assert_eq!(error, BalanceError::Negative { field: "evaporation_l" });
     }
 
     #[test]
