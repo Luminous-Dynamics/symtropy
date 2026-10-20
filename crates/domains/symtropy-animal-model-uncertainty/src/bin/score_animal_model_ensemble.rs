@@ -448,6 +448,30 @@ mod tests {
     }
 
     #[test]
+    fn point_weight_mode_remains_available_without_intervals() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input
+            .as_object_mut()
+            .expect("root object")
+            .remove("model_weight_intervals");
+        let (_, _, intervals) = parse_input(&input).expect("point-weight input remains valid");
+        assert!(intervals.is_none());
+    }
+
+    #[test]
+    fn rejects_unknown_model_weight_interval_fields() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input["model_weight_intervals"][0]["oracle_truth"] = Value::Bool(true);
+        assert!(
+            parse_input(&input)
+                .expect_err("unknown interval field must fail")
+                .contains("unknown field")
+        );
+    }
+
+    #[test]
     fn rejects_unknown_model_fields() {
         let mut input: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
