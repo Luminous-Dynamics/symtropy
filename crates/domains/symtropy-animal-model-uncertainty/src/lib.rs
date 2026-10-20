@@ -5,6 +5,8 @@
 //! This validates corpus integrity and fail-closed contract shape. It does not
 //! fit ecological models or qualify empirical biological claims.
 
+pub mod decision;
+
 use serde_json::Value;
 use std::collections::BTreeSet;
 
