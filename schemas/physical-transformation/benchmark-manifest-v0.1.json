@@ -1,0 +1,237 @@
+{
+  "schema_version": "physical-benchmark-manifest-v0.1",
+  "manifest_date": "2026-10-20",
+  "claim_policy": "A catalog record is not a pass. Status is assigned per individual case and exact evidence; topical similarity to a Symtropy analytical case is not benchmark equivalence. Verification, numerical verification, and experimental validation are separate claims.",
+  "catalogs": [
+    {
+      "catalog_id": "SOFISTIK-VERIFICATION",
+      "publisher": "SOFiSTiK",
+      "catalog_version": "VERiFiCATiON Benchmarks 2026",
+      "source_url": "https://docs.sofistik.com/2026/en/verification/index.html",
+      "catalog_scope": "Public catalog lists benchmark summaries and indicates corresponding reference PDFs and input ZIP artifacts; exact artifact contents and redistribution terms must be verified case by case."
+    },
+    {
+      "catalog_id": "NAFEMS-P18",
+      "publisher": "NAFEMS",
+      "catalog_version": "The Standard NAFEMS Benchmarks (P18; original publication 1986)",
+      "source_url": "https://www.nafems.org/publications/resource_center/p18/",
+      "catalog_scope": "Independent benchmark family historically intended to challenge finite-element systems beyond vendor-selected demonstration cases; access rights and exact distributable artifacts must be verified per benchmark."
+    },
+    {
+      "catalog_id": "NAFEMS-VENDOR-VERIFICATION",
+      "publisher": "NAFEMS",
+      "catalog_version": "Public vendor code-verification catalog",
+      "source_url": "https://www.nafems.org/publications/code-verification/",
+      "catalog_scope": "Lists vendor-published verification manuals and included NAFEMS case families; vendor verification is not equivalent to an independent Symtropy reproduction."
+    }
+  ],
+  "benchmarks": [
+    {
+      "benchmark_id": "SOFISTIK-2026-BE1",
+      "catalog_id": "SOFISTIK-VERIFICATION",
+      "external_id": "BE1",
+      "title": "Joint Deflection of Plane Truss",
+      "source_url": "https://docs.sofistik.com/2026/en/verification/index.html",
+      "analysis_class": "static linear truss",
+      "physics": [
+        "static_linear_elastic",
+        "truss_load_path"
+      ],
+      "source_access": "catalog_and_input_files_listed_redistribution_terms_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "retrieve and permission-check benchmark PDF/input ZIP",
+        "transcribe exact nodes, connectivity, restraints, loads and output target",
+        "derive an independent oracle and pin tolerances"
+      ],
+      "notes": "Candidate for the first new truss oracle. Not yet reproduced."
+    },
+    {
+      "benchmark_id": "SOFISTIK-2026-BE3",
+      "catalog_id": "SOFISTIK-VERIFICATION",
+      "external_id": "BE3",
+      "title": "Beam Stresses and Deflections",
+      "source_url": "https://docs.sofistik.com/2026/en/verification/index.html",
+      "analysis_class": "static beam finite element",
+      "physics": [
+        "static_linear_elastic",
+        "beam_stress",
+        "beam_deflection"
+      ],
+      "source_access": "catalog_and_input_files_listed_redistribution_terms_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [
+        "axial_bar",
+        "cantilever_tip_load",
+        "simply_supported_uniform_load"
+      ],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "match exact section and boundary/load definitions before comparisons",
+        "pin source digest and independent reference outputs"
+      ],
+      "notes": "Only topic-level overlap with current closed-form functions; must not be called equivalent without input-level reproduction."
+    },
+    {
+      "benchmark_id": "SOFISTIK-2026-BE13",
+      "catalog_id": "SOFISTIK-VERIFICATION",
+      "external_id": "BE13",
+      "title": "Buckling of a Bar with Hinged Ends I",
+      "source_url": "https://docs.sofistik.com/2026/en/verification/index.html",
+      "analysis_class": "geometric nonlinear / buckling",
+      "physics": [
+        "buckling",
+        "geometric_nonlinearity"
+      ],
+      "source_access": "catalog_and_input_files_listed_redistribution_terms_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "qualified instability formulation",
+        "load-step/eigenvalue oracle and tolerance",
+        "benchmark input rights and pinned fixture"
+      ],
+      "notes": "Explicit unsupported capability in the current three-case adapter; candidate for a separate model and test tier."
+    },
+    {
+      "benchmark_id": "SOFISTIK-2026-BE23",
+      "catalog_id": "SOFISTIK-VERIFICATION",
+      "external_id": "BE23",
+      "title": "Undamped Free Vibration of a Single-Degree-of-Freedom System",
+      "source_url": "https://docs.sofistik.com/2026/en/verification/index.html",
+      "analysis_class": "dynamic single-degree-of-freedom",
+      "physics": [
+        "dynamic_response",
+        "natural_frequency"
+      ],
+      "source_access": "catalog_and_input_files_listed_redistribution_terms_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "dynamic state/eigenvalue model",
+        "initial-condition and units contract",
+        "closed-form frequency oracle and time-step convergence tests"
+      ],
+      "notes": "Candidate expansion after the static truss layer; unsupported by the current adapter."
+    },
+    {
+      "benchmark_id": "SOFISTIK-2026-BE31",
+      "catalog_id": "SOFISTIK-VERIFICATION",
+      "external_id": "BE31",
+      "title": "Snap-Through Behaviour of a Truss",
+      "source_url": "https://docs.sofistik.com/2026/en/verification/index.html",
+      "analysis_class": "geometric nonlinear truss",
+      "physics": [
+        "nonlinear_equilibrium",
+        "snap_through",
+        "load_stepping"
+      ],
+      "source_access": "catalog_and_input_files_listed_redistribution_terms_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "nonlinear equilibrium continuation or qualified alternative",
+        "branch/limit-point reference solution",
+        "solver convergence and stability interpretation"
+      ],
+      "notes": "Candidate nonlinear benchmark, not a currently supported or safe-for-design capability."
+    },
+    {
+      "benchmark_id": "NAFEMS-P18-LE1",
+      "catalog_id": "NAFEMS-P18",
+      "external_id": "P18.LE1",
+      "title": "Elliptic Membrane",
+      "source_url": "https://www.nafems.org/publications/resource_center/p18/",
+      "analysis_class": "plane stress continuum",
+      "physics": [
+        "linear_elasticity",
+        "plane_stress",
+        "pressure_load"
+      ],
+      "source_access": "catalog_public_input_or_license_status_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "confirm benchmark manual/input access and redistribution rights",
+        "mesh/discretization contract",
+        "reference stress/strain output, locations and tolerances"
+      ],
+      "notes": "Candidate for a 2D continuum verification tier after an FE backend exists."
+    },
+    {
+      "benchmark_id": "NAFEMS-P18-LE5",
+      "catalog_id": "NAFEMS-P18",
+      "external_id": "P18.LE5",
+      "title": "Z-Section Cantilever",
+      "source_url": "https://www.nafems.org/publications/resource_center/p18/",
+      "analysis_class": "beam/plate with torsional response",
+      "physics": [
+        "torsion",
+        "section_coupling",
+        "plate_elements"
+      ],
+      "source_access": "catalog_public_input_or_license_status_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [
+        "cantilever_tip_load"
+      ],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "torsion/warping-capable model",
+        "benchmark geometry and exact load definition",
+        "independent displacement/stress oracle"
+      ],
+      "notes": "Only shares the word cantilever with a current case; torsion and section coupling are not represented by the current tip-load function."
+    },
+    {
+      "benchmark_id": "NAFEMS-P18-LE6",
+      "catalog_id": "NAFEMS-P18",
+      "external_id": "P18.LE6",
+      "title": "Skew Plate Normal Pressure",
+      "source_url": "https://www.nafems.org/publications/resource_center/p18/",
+      "analysis_class": "plate bending",
+      "physics": [
+        "plate_bending",
+        "pressure_load"
+      ],
+      "source_access": "catalog_public_input_or_license_status_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "plate/shell element model",
+        "boundary conditions and pressure definition",
+        "reference deflection/stress targets"
+      ],
+      "notes": "Candidate for the continuum/plate capability gap."
+    },
+    {
+      "benchmark_id": "NAFEMS-P18-LE11",
+      "catalog_id": "NAFEMS-P18",
+      "external_id": "P18.LE11",
+      "title": "Solid Cylinder / Taper / Sphere - Temperature",
+      "source_url": "https://www.nafems.org/publications/resource_center/p18/",
+      "analysis_class": "thermal solid/continuum",
+      "physics": [
+        "thermal_coupling",
+        "continuum_solid"
+      ],
+      "source_access": "catalog_public_input_or_license_status_to_verify",
+      "status": "catalogued",
+      "related_local_cases": [],
+      "equivalence_claim": "none_unverified",
+      "missing_prerequisites": [
+        "thermal constitutive and boundary model",
+        "exact temperature gradient/loads",
+        "source and redistribution review"
+      ],
+      "notes": "Candidate thermal/structural coupling gap; must remain unsupported until explicitly implemented."
+    }
+  ]
+}
