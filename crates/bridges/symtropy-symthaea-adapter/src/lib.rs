@@ -535,7 +535,10 @@ mod tests {
             let mut planner = make_planner_with_actuators(4);
             let commands = planner.plan(&[0.5, invalid], 0.5, 4);
             assert_eq!(commands, vec![0.0; 4]);
-            assert_eq!(planner.last_fault(), Some(PlannerFault::NonFiniteObservation));
+            assert_eq!(
+                planner.last_fault(),
+                Some(PlannerFault::NonFiniteObservation)
+            );
             assert_eq!(planner.bridge().total_steps(), 0);
         }
     }
@@ -554,8 +557,7 @@ mod tests {
     #[test]
     fn invalid_timestep_fails_closed() {
         for dt in [f32::NAN, 0.0, -0.01] {
-            let mut planner =
-                EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(dt);
+            let mut planner = EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(dt);
             let commands = planner.plan(&[0.5], 0.5, 4);
             assert_eq!(commands, vec![0.0; 4]);
             assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidTimestep));
@@ -565,8 +567,7 @@ mod tests {
 
     #[test]
     fn zero_hypervector_dimension_fails_closed() {
-        let mut planner =
-            EmbodimentPlanner::new(Box::new(MockBridge::new())).with_hv_dim(0);
+        let mut planner = EmbodimentPlanner::new(Box::new(MockBridge::new())).with_hv_dim(0);
         assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
         assert_eq!(
             planner.last_fault(),
@@ -582,7 +583,10 @@ mod tests {
         bridge.result_success = false;
         let mut planner = EmbodimentPlanner::new(Box::new(bridge));
         assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
-        assert_eq!(planner.last_fault(), Some(PlannerFault::BridgeReportedFailure));
+        assert_eq!(
+            planner.last_fault(),
+            Some(PlannerFault::BridgeReportedFailure)
+        );
     }
 
     #[test]
@@ -592,7 +596,10 @@ mod tests {
         bridge.result_effort = f32::NAN;
         let mut planner = EmbodimentPlanner::new(Box::new(bridge));
         assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
-        assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidBridgeOutput));
+        assert_eq!(
+            planner.last_fault(),
+            Some(PlannerFault::InvalidBridgeOutput)
+        );
     }
 
     #[test]
@@ -628,7 +635,10 @@ mod tests {
             bridge.result_confidence = confidence;
             let mut planner = EmbodimentPlanner::new(Box::new(bridge));
             assert_eq!(planner.plan(&[0.5], 0.5, 4), vec![0.0; 4]);
-            assert_eq!(planner.last_fault(), Some(PlannerFault::InvalidBridgeOutput));
+            assert_eq!(
+                planner.last_fault(),
+                Some(PlannerFault::InvalidBridgeOutput)
+            );
         }
     }
 
