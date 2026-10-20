@@ -488,7 +488,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         .iter()
         .enumerate()
         .map(|(index, station)| {
-            let count = station.servers + usize::from(extra_server_at == Some(index));
+            let count = station.servers + if extra_server_at == Some(index) { 1 } else { 0 };
             StationRuntime {
                 servers: (0..count)
                     .map(|_| Server {
@@ -640,7 +640,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     Ok(ScenarioResult {
         scenario_id: baseline_id,
         intervention_station_id: extra_server_at.map(|index| catalog.stations[index].station_id.clone()),
-        added_servers: usize::from(extra_server_at.is_some()),
+        added_servers: if extra_server_at.is_some() { 1 } else { 0 },
         released_jobs_total: state.released_jobs_total,
         good_units_total: state.good_units_total,
         measured_good_units: state.measured_good_units,
