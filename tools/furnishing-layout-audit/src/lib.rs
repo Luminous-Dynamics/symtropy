@@ -635,9 +635,7 @@ fn expected_functional_envelope_outcome(
         return Some("fail");
     }
     for placement in placements {
-        let Some(item_id) = text(placement, "item_id") else {
-            return None;
-        };
+        let item_id = text(placement, "item_id")?;
         if item_id == owner_id {
             continue;
         }
