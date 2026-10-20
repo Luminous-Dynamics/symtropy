@@ -27,12 +27,14 @@ The schema is `docs/schemas/pirb-selective-forecast-v0.1.schema.json`; the check
 
 Each registration pins a forecast artifact, outcome snapshot, target ID, forecast/target temporal indices, selection-model digest, pre-outcome feature cutoff, deployed score threshold, preregistered threshold grid and small-group reporting minimum. The deployed threshold must be in a strictly increasing grid; tuning thresholds on held-out labels is outside the contract. Selection features must be cut off strictly before forecast origin; the target period must be later than origin.
 
+For `authorized_historical` registrations, the schema additionally requires data-authority status `authorized`, disclosure review `approved`, independently verified source capture and references to both reviews. The Rust validator rejects placeholder artifact, outcome-snapshot or selector-model digests for historical evaluation. The checked-in fixture uses `not_applicable` governance status because it is wholly synthetic.
+
 The audit derives the expected policy disposition in a deterministic order:
-1. Target differs from the registered estimand → `target_mismatch`.
-2. Input is stale → `stale_inputs`; input freshness unknown → `unknown_inputs`.
-3. Regime is shifted → `out_of_support`; regime unknown → `unknown_regime`.
-4. Evidence is insufficient or unknown → `insufficient_evidence`.
-5. Selection score is below threshold → `low_selection_score`.
+1. Target differs from the registered estimand → `abstain_target_mismatch`.
+2. Input is stale → `abstain_stale_inputs`; input freshness unknown → `abstain_unknown_inputs`.
+3. Regime is shifted → `abstain_out_of_support`; regime unknown → `abstain_unknown_regime`.
+4. Evidence is insufficient or unknown → `abstain_insufficient_evidence`.
+5. Selection score is below threshold → `abstain_low_selection_score`.
 6. Otherwise the forecast may be issued.
 
 The recorded disposition/reason must agree with the registered policy. Issued rows must serve exactly the candidate probability; abstained rows must have a null `served_probability`. The `offline_candidate_probability` is retained only to evaluate the counterfactual full-coverage candidate model, never as a serving value for an abstained row.
