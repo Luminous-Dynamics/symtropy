@@ -44,9 +44,15 @@ fn run() -> Result<(), String> {
     let mechanics = run_reference_fixtures()?;
     let recovery_validation = run_recovery_validation_fixture()?;
     let recovery_status = match recovery_validation.status {
-        physical_transformation_reference::recovery_validation::ComparisonStatus::Measured => "measured",
-        physical_transformation_reference::recovery_validation::ComparisonStatus::Synthetic => "synthetic",
-        physical_transformation_reference::recovery_validation::ComparisonStatus::Unresolved => "unresolved",
+        physical_transformation_reference::recovery_validation::ComparisonStatus::Measured => {
+            "measured"
+        }
+        physical_transformation_reference::recovery_validation::ComparisonStatus::Synthetic => {
+            "synthetic"
+        }
+        physical_transformation_reference::recovery_validation::ComparisonStatus::Unresolved => {
+            "unresolved"
+        }
     };
     let recovery_residual = recovery_validation
         .observed_mass_residual_mg
