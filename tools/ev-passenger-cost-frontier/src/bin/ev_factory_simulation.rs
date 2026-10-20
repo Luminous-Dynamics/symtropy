@@ -635,7 +635,9 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                         let wait = run.scenarios[scenario_index]
                             .variant_wait_statistics
                             .get(variant_index)
-                            .ok_or_else(|| "replications_returned_inconsistent_variant_wait_count".to_string())?;
+                            .ok_or_else(|| {
+                                "replications_returned_inconsistent_variant_wait_count".to_string()
+                            })?;
                         if wait.variant != reference_wait.variant {
                             return Err("replications_returned_inconsistent_variant_order".into());
                         }
@@ -1186,7 +1188,10 @@ fn select_queued_job(
     }
 
     let preferred_variant = last_variant.expect("checked as present");
-    let Some(index) = queue.iter().position(|job| job.variant == preferred_variant) else {
+    let Some(index) = queue
+        .iter()
+        .position(|job| job.variant == preferred_variant)
+    else {
         return queue.pop_front();
     };
     if index == 0 {
@@ -1417,8 +1422,7 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 ) {
                     continue;
                 }
-                let last_variant =
-                    state.stations[station_index].servers[server_index].last_variant;
+                let last_variant = state.stations[station_index].servers[server_index].last_variant;
                 let job = if station_index == 0 {
                     let value = select_queued_job(
                         &mut state.source_buffer,
@@ -1549,39 +1553,28 @@ mod tests {
 
     #[test]
     fn changeover_policy_preserves_fifo_within_variant_and_bounds_skips() {
-        let mut queue = VecDeque::from([
-            test_job(10, 0, 0),
-            test_job(11, 1, 0),
-            test_job(12, 1, 0),
-        ]);
-        let first = select_queued_job(
-            &mut queue,
-            Some(1),
-            DispatchPolicy::MinimizeChangeover,
-            2,
-        )
-        .expect("oldest matching variant");
-        assert_eq!(first.id, 11, "FIFO is preserved within the matching variant");
+        let mut queue =
+            VecDeque::from([test_job(10, 0, 0), test_job(11, 1, 0), test_job(12, 1, 0)]);
+        let first = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
+            .expect("oldest matching variant");
+        assert_eq!(
+            first.id, 11,
+            "FIFO is preserved within the matching variant"
+        );
         assert_eq!(queue[0].id, 10);
         assert_eq!(queue[0].consecutive_skips, 1);
 
-        let second = select_queued_job(
-            &mut queue,
-            Some(1),
-            DispatchPolicy::MinimizeChangeover,
-            2,
-        )
-        .expect("next matching-variant job");
-        assert_eq!(second.id, 12, "later same-variant job cannot overtake an earlier one of its variant");
+        let second = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
+            .expect("next matching-variant job");
+        assert_eq!(
+            second.id, 12,
+            "later same-variant job cannot overtake an earlier one of its variant"
+        );
         assert_eq!(queue[0].consecutive_skips, 2);
 
-        let forced_oldest = select_queued_job(
-            &mut queue,
-            Some(1),
-            DispatchPolicy::MinimizeChangeover,
-            2,
-        )
-        .expect("max-skip aging forces the oldest job");
+        let forced_oldest =
+            select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
+                .expect("max-skip aging forces the oldest job");
         assert_eq!(forced_oldest.id, 10);
     }
 
@@ -1597,9 +1590,14 @@ mod tests {
 
         let mut no_match = VecDeque::from([test_job(7, 2, 0), test_job(8, 3, 0)]);
         assert_eq!(
-            select_queued_job(&mut no_match, Some(1), DispatchPolicy::MinimizeChangeover, 3)
-                .expect("fallback")
-                .id,
+            select_queued_job(
+                &mut no_match,
+                Some(1),
+                DispatchPolicy::MinimizeChangeover,
+                3
+            )
+            .expect("fallback")
+            .id,
             7
         );
     }
@@ -1613,12 +1611,18 @@ mod tests {
 
         let fifo_report = evaluate_catalog(&fifo).expect("FIFO report");
         let aware_report = evaluate_catalog(&aware).expect("variant-aware report");
-        assert_eq!(fifo_report.replication_seeds, aware_report.replication_seeds);
+        assert_eq!(
+            fifo_report.replication_seeds,
+            aware_report.replication_seeds
+        );
         assert_eq!(fifo_report.scenario_count, aware_report.scenario_count);
         assert_eq!(fifo_report.replication_count, 20);
         assert_eq!(aware_report.replication_count, 20);
         assert_eq!(fifo_report.dispatch_policy, DispatchPolicy::Fifo);
-        assert_eq!(aware_report.dispatch_policy, DispatchPolicy::MinimizeChangeover);
+        assert_eq!(
+            aware_report.dispatch_policy,
+            DispatchPolicy::MinimizeChangeover
+        );
         assert!(fifo_report.output_never_exceeds_released_input);
         assert!(aware_report.output_never_exceeds_released_input);
         assert!(fifo_report.all_buffers_respected_capacity);
@@ -1628,9 +1632,14 @@ mod tests {
         assert!(!fifo_report.release_ready);
         assert!(!aware_report.release_ready);
 
-        for (fifo_scenario, aware_scenario) in fifo_report.scenarios.iter().zip(&aware_report.scenarios) {
+        for (fifo_scenario, aware_scenario) in
+            fifo_report.scenarios.iter().zip(&aware_report.scenarios)
+        {
             assert_eq!(fifo_scenario.scenario_id, aware_scenario.scenario_id);
-            assert_eq!(fifo_scenario.released_jobs_total, aware_scenario.released_jobs_total);
+            assert_eq!(
+                fifo_scenario.released_jobs_total,
+                aware_scenario.released_jobs_total
+            );
             assert!(fifo_scenario.good_units_total <= fifo_scenario.released_jobs_total);
             assert!(aware_scenario.good_units_total <= aware_scenario.released_jobs_total);
             assert_eq!(fifo_scenario.maximum_consecutive_skips, 3);
@@ -1640,9 +1649,10 @@ mod tests {
         }
         assert!(aware_report.scenario_statistics.iter().all(|scenario| {
             scenario.variant_wait_statistics.len() == 3
-                && scenario.variant_wait_statistics.iter().all(|variant| {
-                    variant.sample_count.sample_count == 20
-                })
+                && scenario
+                    .variant_wait_statistics
+                    .iter()
+                    .all(|variant| variant.sample_count.sample_count == 20)
         }));
     }
 
@@ -1668,18 +1678,27 @@ mod tests {
         {
             assert_eq!(fifo_scenario.scenario_id, aware_scenario.scenario_id);
             assert_eq!(fifo_scenario.released_jobs_total, aware_scenario.released_jobs_total);
-            assert_eq!(fifo_scenario.good_units_total, aware_scenario.good_units_total);
+            assert_eq!(
+                fifo_scenario.good_units_total,
+                aware_scenario.good_units_total
+            );
             assert_eq!(
                 fifo_scenario.measured_good_units_per_hour,
                 aware_scenario.measured_good_units_per_hour
             );
         }
-        assert!(fifo_report.station_sequence_statistics.iter().all(|stat| {
-            stat.changeovers_started.mean == 0.0
-        }));
-        assert!(aware_report.station_sequence_statistics.iter().all(|stat| {
-            stat.changeovers_started.mean == 0.0
-        }));
+        assert!(
+            fifo_report
+                .station_sequence_statistics
+                .iter()
+                .all(|stat| { stat.changeovers_started.mean == 0.0 })
+        );
+        assert!(
+            aware_report
+                .station_sequence_statistics
+                .iter()
+                .all(|stat| { stat.changeovers_started.mean == 0.0 })
+        );
     }
 
     #[test]
