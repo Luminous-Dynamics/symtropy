@@ -1046,17 +1046,69 @@ mod tests {
     }
 
     #[test]
-    fn wrong_unit_and_output_tampering_are_rejected_before_assessment() {
+    fn unit_mismatch_is_rejected_after_byte_verification() {
         let root = temporary_root();
         let bytes = study(&root, [1.5, 0.75, 0.5625]);
-        let path = root.join("levels/medium/normalized.json");
-        let normalized: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        let output_path = root.join("levels/medium/normalized.json");
+        let normalized: Value = serde_json::from_slice(&fs::read(&output_path).unwrap()).unwrap();
         let mut tampered = normalized;
         tampered["observables"][0]["unit"] = json!("mm");
-        fs::write(&path, serde_json::to_vec(&tampered).unwrap()).unwrap();
+        let normalized_bytes = serde_json::to_vec(&tampered).unwrap();
+        fs::write(&output_path, &normalized_bytes).unwrap();
+
+        let receipt_path = root.join("levels/medium/receipt.json");
+        let mut receipt: Value = serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
+        receipt["outputs"][0]["sha256"] = json!(sha256_hex(&normalized_bytes));
+        fs::write(&receipt_path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+
         let report = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
         assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
-        assert!(report["diagnostics"][0].as_str().unwrap().contains("output artifact"));
+        assert!(report["diagnostics"][0].as_str().unwrap().contains("unit"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn non_uniform_refinement_ratios_withhold_order_and_gci() {
+        let root = temporary_root();
+        let bytes = study(&root, [1.5, 0.75, 0.5625]);
+        let mut manifest: Value = serde_json::from_slice(&bytes).unwrap();
+        manifest["levels"][1]["h_m"] = json!(0.4);
+        let report = assess_mesh_refinement_study_bytes(
+            &serde_json::to_vec(&manifest).unwrap(),
+            &root,
+        )
+        .unwrap();
+        assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
+        assert_eq!(report["observed_order_finest_three"], Value::Null);
+        assert_eq!(report["gci_fine_absolute"], Value::Null);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn oscillatory_series_is_unresolved_when_monotonicity_was_not_assumed() {
+        let root = temporary_root();
+        let bytes = study(&root, [1.5, 0.45, 0.7]);
+        let mut manifest: Value = serde_json::from_slice(&bytes).unwrap();
+        manifest["trend_expectation"] = json!("not_assumed");
+        let report = assess_mesh_refinement_study_bytes(
+            &serde_json::to_vec(&manifest).unwrap(),
+            &root,
+        )
+        .unwrap();
+        assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
+        assert_eq!(report["observed_order_finest_three"], Value::Null);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn tampered_normalized_bytes_are_rejected_even_if_manifest_is_unchanged() {
+        let root = temporary_root();
+        let bytes = study(&root, [1.5, 0.75, 0.5625]);
+        let path = root.join("levels/fine/normalized.json");
+        fs::write(&path, b"not the receipt-declared bytes").unwrap();
+        let report = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
+        assert_eq!(report["mesh_convergence_status"], "UNRESOLVED");
+        assert!(report["diagnostics"][0].as_str().unwrap().contains("artifact verification"));
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -1083,6 +1135,12 @@ mod tests {
         assert_eq!(report["mesh_convergence_status"], "PASS");
         assert_eq!(report["fine_mesh_relative_error_defined"], false);
         assert_eq!(report["fine_mesh_relative_error"], Value::Null);
+        assert_eq!(report["fine_mesh_accuracy_status"], "PASS");
+
+        value["acceptance"]["max_fine_relative_error"] = json!(0.2);
+        let report =
+            assess_mesh_refinement_study_bytes(&serde_json::to_vec(&value).unwrap(), &root).unwrap();
+        assert_eq!(report["fine_mesh_accuracy_status"], "UNRESOLVED");
         fs::remove_dir_all(root).unwrap();
     }
 }
