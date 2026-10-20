@@ -131,9 +131,7 @@ fn validate_oracle_value(oracle: &Value, schema: &Value) -> Result<usize, Vec<St
         .and_then(Value::as_str)
         .is_some_and(valid_tracking_issue_url)
     {
-        errors.push(
-            "tracking_issue must be a canonical Symtropy GitHub issue URL".to_owned(),
-        );
+        errors.push("tracking_issue must be a canonical Symtropy GitHub issue URL".to_owned());
     }
 
     let cases = match root.get("cases").and_then(Value::as_array) {
@@ -355,7 +353,13 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
         errors,
     );
 
-    require_schema_string(schema, "/properties/cases/type", "array", "schema cases type", errors);
+    require_schema_string(
+        schema,
+        "/properties/cases/type",
+        "array",
+        "schema cases type",
+        errors,
+    );
     require_schema_unsigned(
         schema,
         "/properties/cases/minItems",
@@ -401,11 +405,26 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
     );
 
     for (pointer, label) in [
-        ("/properties/cases/items/properties/id/type", "schema case ID type"),
-        ("/properties/cases/items/properties/kind/type", "schema case kind type"),
-        ("/properties/cases/items/properties/setup/type", "schema case setup type"),
-        ("/properties/cases/items/properties/challenge/type", "schema case challenge type"),
-        ("/properties/cases/items/properties/reason/type", "schema case reason type"),
+        (
+            "/properties/cases/items/properties/id/type",
+            "schema case ID type",
+        ),
+        (
+            "/properties/cases/items/properties/kind/type",
+            "schema case kind type",
+        ),
+        (
+            "/properties/cases/items/properties/setup/type",
+            "schema case setup type",
+        ),
+        (
+            "/properties/cases/items/properties/challenge/type",
+            "schema case challenge type",
+        ),
+        (
+            "/properties/cases/items/properties/reason/type",
+            "schema case reason type",
+        ),
         (
             "/properties/cases/items/properties/expected/properties/required_properties/items/type",
             "schema expectation item type",
@@ -426,17 +445,26 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
         require_schema_string(schema, pointer, "string", label, errors);
     }
     for (pointer, label) in [
-        ("/properties/cases/items/properties/kind/minLength", "schema case kind minLength"),
-        ("/properties/cases/items/properties/setup/minLength", "schema case setup minLength"),
+        (
+            "/properties/cases/items/properties/kind/minLength",
+            "schema case kind minLength",
+        ),
+        (
+            "/properties/cases/items/properties/setup/minLength",
+            "schema case setup minLength",
+        ),
         (
             "/properties/cases/items/properties/challenge/minLength",
             "schema case challenge minLength",
         ),
-        ("/properties/cases/items/properties/reason/minLength", "schema case reason minLength"),
-            (
-                "/properties/cases/items/properties/expected/properties/required_properties/items/minLength",
-                "schema expectation item minLength",
-            ),
+        (
+            "/properties/cases/items/properties/reason/minLength",
+            "schema case reason minLength",
+        ),
+        (
+            "/properties/cases/items/properties/expected/properties/required_properties/items/minLength",
+            "schema expectation item minLength",
+        ),
         (
             "/properties/cases/items/properties/fail_if/items/minLength",
             "schema fail_if item minLength",
@@ -646,10 +674,7 @@ fn require_schema_string_array_exact(
     let actual: Vec<&str> = values.iter().filter_map(Value::as_str).collect();
     let actual_set: BTreeSet<&str> = actual.iter().copied().collect();
     let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
-    if actual.len() != values.len()
-        || actual.len() != expected.len()
-        || actual_set != expected_set
-    {
+    if actual.len() != values.len() || actual.len() != expected.len() || actual_set != expected_set {
         errors.push(format!("{label} do not match the frozen contract"));
     }
 }
@@ -853,7 +878,7 @@ mod tests {
         fixture["required_run_identity"]
             .as_array_mut()
             .expect("identity list")
-            .retain(|value| value.as_str() != Some("cases"));
+            .retain(|value| value.as_str() != Some("pre_reveal_prediction_digest"));
         let errors =
             validate_oracle_json(&fixture.to_string()).expect_err("missing identity must fail");
         assert!(
@@ -917,8 +942,7 @@ mod tests {
             .expect("cases array")
             .push(additional);
         fixture["case_count"] = Value::from(53);
-        let mut schema: Value =
-            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        let mut schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
         schema["properties"]["case_count"]["const"] = Value::from(53);
         schema["properties"]["cases"]["minItems"] = Value::from(53);
         schema["properties"]["cases"]["maxItems"] = Value::from(53);
@@ -931,33 +955,38 @@ mod tests {
     #[test]
     fn schema_permissive_root_is_rejected() {
         let oracle = parsed_fixture();
-        let mut schema: Value =
-            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        let mut schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
         schema["additionalProperties"] = Value::Bool(true);
         let errors = validate_oracle_value(&oracle, &schema)
             .expect_err("permissive root schema must fail closed");
-        assert!(errors.iter().any(|e| e.contains("root additionalProperties")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("root additionalProperties"))
+        );
     }
 
     #[test]
     fn schema_missing_required_field_is_rejected() {
         let oracle = parsed_fixture();
-        let mut schema: Value =
-            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        let mut schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
         schema["required"]
             .as_array_mut()
             .expect("root required list")
-            .retain(|value| value.as_str() != Some("pre_reveal_prediction_digest"));
+            .retain(|value| value.as_str() != Some("cases"));
         let errors = validate_oracle_value(&oracle, &schema)
             .expect_err("schema root required mutation must fail");
-        assert!(errors.iter().any(|e| e.contains("schema root required fields")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("schema root required fields"))
+        );
     }
 
     #[test]
     fn schema_missing_fail_conditions_is_rejected() {
         let oracle = parsed_fixture();
-        let mut schema: Value =
-            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        let mut schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
         schema["properties"]["cases"]["items"]["properties"]["fail_if"]["minItems"] =
             Value::from(0);
         let errors = validate_oracle_value(&oracle, &schema)
@@ -968,19 +997,26 @@ mod tests {
     #[test]
     fn schema_must_remain_closed_at_case_and_expectation_levels() {
         let oracle = parsed_fixture();
-        let mut schema: Value =
-            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        let mut schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
         schema["properties"]["cases"]["items"]["additionalProperties"] = Value::Bool(true);
         let errors = validate_oracle_value(&oracle, &schema)
             .expect_err("case schema must reject unreviewed properties");
-        assert!(errors.iter().any(|e| e.contains("case item additionalProperties")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("case item additionalProperties"))
+        );
 
         schema["properties"]["cases"]["items"]["additionalProperties"] = Value::Bool(false);
         schema["properties"]["cases"]["items"]["properties"]["expected"]["additionalProperties"] =
             Value::Bool(true);
         let errors = validate_oracle_value(&oracle, &schema)
             .expect_err("expected schema must reject unreviewed properties");
-        assert!(errors.iter().any(|e| e.contains("expected additionalProperties")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("expected additionalProperties"))
+        );
     }
 
     #[test]
@@ -992,7 +1028,11 @@ mod tests {
             .retain(|value| value.as_str() != Some("challenge_generator_is_blinded"));
         let errors = validate_oracle_json(&fixture.to_string())
             .expect_err("removing blinding policy must fail closed");
-        assert!(errors.iter().any(|e| e.contains("challenge_generator_is_blinded")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("challenge_generator_is_blinded"))
+        );
     }
 
     #[test]
@@ -1008,9 +1048,13 @@ mod tests {
     fn noncanonical_tracking_issue_url_is_rejected() {
         let mut fixture = parsed_fixture();
         fixture["tracking_issue"] = Value::String("https://example.com/issue/2334".to_owned());
-        let errors = validate_oracle_json(&fixture.to_string())
-            .expect_err("foreign URL must fail closed");
-        assert!(errors.iter().any(|e| e.contains("canonical Symtropy GitHub issue URL")));
+        let errors =
+            validate_oracle_json(&fixture.to_string()).expect_err("foreign URL must fail closed");
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("canonical Symtropy GitHub issue URL"))
+        );
     }
 
     #[test]
