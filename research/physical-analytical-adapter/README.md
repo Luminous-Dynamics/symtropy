@@ -61,3 +61,13 @@ See [PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md](../../docs/research/PHYSICAL_ANALYT
 The bounded-input contract is introduced in `physical-analytical-request-v0.2` and `physical-analytical-receipt-v0.2`, tracked by [PHYS-UQ-001 #2292](https://github.com/Luminous-Dynamics/symtropy/issues/2292). Point-only v0.1 requests keep their existing receipt shape. V0.2 callers may supply `input_bounds` with a lower/upper value, unit, evidence class and source reference for every model input. When bounds are supplied, the receipt carries per-output lower/nominal/upper values; when absent, interval fields are null and no bounds are invented.
 
 The underlying [interval enclosure method](../../docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md) uses outward-rounded arithmetic and rejects malformed ranges, nominal inputs outside bounds, invalid denominator ranges and non-finite calculations. These are deterministic enclosures conditional on declared inputs, not statistical confidence intervals or claims about omitted measurement/model-form uncertainty.
+
+
+## Bounded-enclosure stress tests v0.1
+
+The interval module now adds two supplementary checks beyond exact endpoints:
+
+- A deterministic xorshift64* stream samples 4,096 interior input points for each of the three supported case families (12,288 total point evaluations) and asserts every output stays inside the computed interval.
+- A load-scaling metamorphic test doubles the entire positive load interval for each model and checks that every lower and upper output endpoint doubles within a small floating-point tolerance.
+
+These tests are deliberately deterministic, dependency-free and reproducible. They are **not** a proof that the interval implementation encloses all mathematical values; the exact formula structure, outward rounding, known-answer tests and endpoint/zero-crossing controls remain necessary. Sampled coverage must never be described as a physical validation rate or confidence level.
