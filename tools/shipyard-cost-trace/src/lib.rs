@@ -250,35 +250,59 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
     }
 }
 
-fn visit_lineage<'a>(
-    event_id: &'a str,
-    events_by_id: &BTreeMap<&'a str, &'a LedgerEvent>,
-    visiting: &mut HashSet<&'a str>,
-    visited: &mut HashSet<&'a str>,
-    errors: &mut Vec<String>,
-) {
-    if visited.contains(event_id) {
-        return;
-    }
-    if !visiting.insert(event_id) {
-        errors.push(format!("{event_id}: cyclic related-event lineage"));
-        return;
-    }
-    if let Some(event) = events_by_id.get(event_id) {
-        for related_id in &event.related_event_ids {
-            if events_by_id.contains_key(related_id.as_str()) {
-                visit_lineage(
-                    related_id.as_str(),
-                    events_by_id,
-                    visiting,
-                    visited,
-                    errors,
-                );
+fn find_lineage_cycles(events: &[LedgerEvent]) -> Vec<String> {
+    // Iterative DFS avoids call-stack growth for large ledgers.
+    // State values: 0 = unseen, 1 = active, 2 = complete.
+    let events_by_id: BTreeMap<&str, &LedgerEvent> = events
+        .iter()
+        .map(|event| (event.event_id.as_str(), event))
+        .collect();
+    let mut states: BTreeMap<&str, u8> = BTreeMap::new();
+    let mut errors = Vec::new();
+
+    for event in events {
+        let root = event.event_id.as_str();
+        if states.get(root) == Some(&2) {
+            continue;
+        }
+
+        let mut stack: Vec<(&str, bool)> = vec![(root, false)];
+        while let Some((event_id, exiting)) = stack.pop() {
+            if exiting {
+                states.insert(event_id, 2);
+                continue;
+            }
+
+            match states.get(event_id).copied().unwrap_or(0) {
+                2 => continue,
+                1 => {
+                    errors.push(format!("{event_id}: cyclic related-event lineage"));
+                    continue;
+                }
+                _ => {}
+            }
+
+            states.insert(event_id, 1);
+            stack.push((event_id, true));
+            if let Some(current) = events_by_id.get(event_id) {
+                for related_id in current.related_event_ids.iter().rev() {
+                    let parent = related_id.as_str();
+                    if !events_by_id.contains_key(parent) {
+                        continue;
+                    }
+                    match states.get(parent).copied().unwrap_or(0) {
+                        1 => errors.push(format!("{parent}: cyclic related-event lineage")),
+                        2 => {}
+                        _ => stack.push((parent, false)),
+                    }
+                }
             }
         }
     }
-    visiting.remove(event_id);
-    visited.insert(event_id);
+
+    errors.sort();
+    errors.dedup();
+    errors
 }
 
 /// Reconcile a ledger without converting absent evidence to zero.
@@ -346,21 +370,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
     }
 
     if errors.is_empty() {
-        let events_by_id: BTreeMap<&str, &LedgerEvent> = events
-            .iter()
-            .map(|event| (event.event_id.as_str(), event))
-            .collect();
-        let mut visiting: HashSet<&str> = HashSet::new();
-        let mut visited: HashSet<&str> = HashSet::new();
-        for event in events {
-            visit_lineage(
-                event.event_id.as_str(),
-                &events_by_id,
-                &mut visiting,
-                &mut visited,
-                &mut errors,
-            );
-        }
+        errors.extend(find_lineage_cycles(events));
     }
 
     if !errors.is_empty() {
