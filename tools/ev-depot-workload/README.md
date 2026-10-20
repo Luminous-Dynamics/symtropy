@@ -73,6 +73,18 @@ Compare FCFS/greedy, deadline-aware charging and a constrained optimization refe
 
 **Improvement threshold:** do not choose a universal headline percentage in advance. Reproduce the reference first, measure variance, define a materially useful improvement for each metric, and then preregister the comparison. The 2025 paper's 64% case-specific grid-capacity reduction is a useful external validation target only after its assumptions can be matched; it is not evidence that the current six-vehicle run has achieved 64%.
 
+## Food-delivery sensitivity: vehicle energy use versus ports
+
+The workflow `.github/workflows/ev-depot-food-sensitivity.yml` now adds a paired factorial sensitivity across three declared battery-energy intensities (1.2, 1.5 and 1.8 kWh/mile), fleet sizes 10/50/100, 30 identical seed numbers per stratum, and two physical port-count assumptions (one port per vehicle versus two vehicles per port). That is 540 scenario replications; every replication emits an FCFS/earliest-departure-first capacity frontier and empirical service rates up to 120 kW/vehicle.
+
+The (kWh/mile) values are scenario assumptions, **not** estimates extracted from NLR's reported diesel vehicle miles. In a real EV fleet the conversion depends on vehicle mass, route, speed, weather, grade, auxiliary load and energy-recovery; the source CSVs do not provide those EV consumption observations. The 1.2/1.5/1.8 sweep asks whether the apparent food-vocation infeasibility is robust to this single assumption and whether port count changes the frontier with duty windows held fixed. It does not model a charger queue reservation system or depot repositioning/valet.
+
+Use the output to answer two diagnostic questions:
+- If lower (kWh/mile) removes missed departures and improves energy service while port mode barely changes the frontier, the current infeasibility is demand/window/vehicle-acceptance-limited for the modelled assumptions.
+- If one port per vehicle materially improves deadline service or the feasible-capacity tail, port contention is a relevant bottleneck. If neither mode meets 29/30 scenarios, the correct conclusion is “no tested capacity meets this target within this design space”; do not extrapolate beyond the 120 kW/vehicle search or assert a physical limit.
+
+The benchmark's 29/30 threshold is an **empirical pass-rate screen across 30 deterministic resamples**, not a calibrated 95% real-world service guarantee or a statistical confidence interval. Results should be compared by matched seed, consumption assumption and port mode.
+
 ## Robust capacity benchmark across three vocations
 
 The companion workflow `.github/workflows/ev-depot-robustness.yml` now runs 30 deterministic resamples for each of the three NLR source vocations—beverage delivery, warehouse delivery and food delivery—at hypothetical fleet sizes 10, 50 and 100: 270 scenarios total, with FCFS and earliest-departure-first capacity frontiers for every case. Each source schedule table is audited independently at the same pinned upstream commit; raw CSVs are downloaded during the run but not committed into this repository.
