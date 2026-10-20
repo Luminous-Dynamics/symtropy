@@ -259,6 +259,8 @@ fn visit_node(
             result.render_nodes.push(selected(node));
         } else if node.detail_pinned {
             return Err(HierarchySelectionError::ProtectedDetailUnavailable);
+        } else if !node.children_cover_parent {
+            return Err(HierarchySelectionError::NoRenderableRepresentation);
         }
     }
     for child_id in &node.children {
@@ -447,6 +449,19 @@ mod tests {
         let child = node(2, Some(1), vec![], 0.1);
         let result = select_hierarchy(&[parent, child], POLICY).expect("forced refinement");
         assert_eq!(rendered(&result), vec![2]);
+    }
+
+    #[test]
+    fn unavailable_additive_parent_requires_certified_child_coverage() {
+        let mut parent = node(1, None, vec![2], 10.0);
+        parent.refinement = HierarchyRefinement::Additive;
+        parent.children_cover_parent = false;
+        parent.content = ContentAvailability::Unavailable;
+        let child = node(2, Some(1), vec![], 0.5);
+        assert_eq!(
+            select_hierarchy(&[parent, child], POLICY),
+            Err(HierarchySelectionError::NoRenderableRepresentation)
+        );
     }
 
     #[test]
