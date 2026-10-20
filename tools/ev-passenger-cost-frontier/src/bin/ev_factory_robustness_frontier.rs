@@ -264,8 +264,10 @@ fn read_family(family_id: &str, path: &str) -> Result<FamilyInput, String> {
         return Err("per_seed_outcome_count_must_equal_seed_count_times_scenarios".into());
     }
     let mut seen = HashSet::<(u64, String)>::new();
-    let mut gains_by_station: BTreeMap<String, BTreeMap<u64, f64>> = station_ids.iter()
-        .map(|station| (station.clone(), BTreeMap::new())).collect();
+    let mut gains_by_station: BTreeMap<String, BTreeMap<u64, f64>> = station_ids
+        .iter()
+        .map(|station| (station.clone(), BTreeMap::new()))
+        .collect();
     let mut baseline_rates = BTreeMap::<u64, f64>::new();
     for outcome in outcomes {
         let seed = field_u64(outcome, "seed")?;
@@ -541,13 +543,21 @@ fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
             station_id: station.clone(),
             mean_gain_across_families_units_per_hour: family_means.iter().sum::<f64>()
                 / family_means.len() as f64,
-            worst_family_mean_gain_units_per_hour: family_means.iter().copied().fold(f64::INFINITY, f64::min),
-            worst_family_gain_ci_lower_units_per_hour: worst_family_result.paired_gain.mean_confidence_95_lower,
+            worst_family_mean_gain_units_per_hour: family_means
+                .iter()
+                .copied()
+                .fold(f64::INFINITY, f64::min),
+            worst_family_gain_ci_lower_units_per_hour: worst_family_result
+                .paired_gain
+                .mean_confidence_95_lower,
             families_with_gain_ci_lower_above_margin: positive_count,
             family_count: families.len(),
             mean_regret_vs_family_oracle_units_per_hour: regrets.iter().sum::<f64>()
                 / regrets.len() as f64,
-            maximum_regret_vs_family_oracle_units_per_hour: regrets.iter().copied().fold(0.0, f64::max),
+            maximum_regret_vs_family_oracle_units_per_hour: regrets
+                .iter()
+                .copied()
+                .fold(0.0, f64::max),
             pareto_nondominated: false,
         });
     }
@@ -591,9 +601,11 @@ fn evaluate(mut families: Vec<FamilyInput>) -> Result<Report, String> {
                     } else {
                         (other, station)
                     };
-                    let Some(decision) = per_family_pair_decision
-                        .get(&(family.family_id.clone(), a.clone(), b.clone()))
-                    else {
+                    let Some(decision) = per_family_pair_decision.get(&(
+                        family.family_id.clone(),
+                        a.clone(),
+                        b.clone(),
+                    )) else {
                         return false;
                     };
                     if station == a {
