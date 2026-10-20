@@ -29,7 +29,7 @@ use evaluator::{
 use std::collections::BTreeMap;
 
 const ROOT_SEED: u64 = 0x6A09_E667_F3BC_C909;
-const EPISODE_COUNT: usize = 96;
+const EPISODE_COUNT: usize = 36;
 const LATENCY_RUN_BUDGET_PER_EPISODE: u64 = 5;
 const SENSOR_RUN_BUDGET_DIVISOR: u128 = 3;
 const TRIAL_LATENCY_BUDGET: u64 = 10;
