@@ -572,10 +572,7 @@ mod tests {
             model.qualification_decision(&scope(), EvidenceClass::PublishedBenchmark),
             QualificationDecision::FailedEvidence(EvidenceClass::PublishedBenchmark)
         );
-        assert!(matches!(
-            model.validate(),
-            Ok(())
-        ));
+        assert_eq!(model.validate(), Ok(()));
     }
 
     #[test]
