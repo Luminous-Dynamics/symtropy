@@ -164,6 +164,7 @@ jobs:
           grep -Fq "mean_view_recovery_steps_when_attributed" rendered-pixel-world.tsv
           grep -Fq "bootstrap95_lo_vs_passive" rendered-pixel-world.tsv
           grep -Fq "random_legal_view" rendered-pixel-world.tsv
+          grep -Fq "uniform_reservoir_2" rendered-pixel-world.tsv
           grep -Fq "timing-stratum diagnostics" rendered-pixel-world.tsv
           grep -Fq "early_onset" rendered-pixel-world.tsv
           grep -Fq "late_onset" rendered-pixel-world.tsv
