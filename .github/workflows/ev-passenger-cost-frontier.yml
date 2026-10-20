@@ -41,7 +41,7 @@ jobs:
             .benchmark_id == "EV-PASSENGER-COST-001"
             and .baseline_observed_retail_price == 341900
             and .retail_price_ceiling == 307710
-            and (.results | length) == 3
+            and (.results | length) == 4
             and all(.results[]; .declared_mission_fit == true)
             and all(.results[]; .cost_inputs_release_grade == false)
             and all(.results[]; .release_disposition == "needs_evidence")

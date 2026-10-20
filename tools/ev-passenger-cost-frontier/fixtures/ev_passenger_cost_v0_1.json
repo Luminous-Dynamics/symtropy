@@ -590,6 +590,196 @@
         "This candidate tests the integration-versus-repairability trade-off, not an assumed winner.",
         "A structural battery may lower part count while increasing repair, inspection and end-of-life complexity; those functions must be separately verified."
       ]
+    },
+    {
+      "candidate_id": "compact-45-lfp-range-margin",
+      "label": "45 kWh LFP single-motor range-margin derivative",
+      "architecture": "Shared cost-first platform; 45 kWh nominal LFP pack; replaceable enclosure; front-wheel drive; standard-size wheels; home/depot AC charging",
+      "envelope": {
+        "seats": 5,
+        "payload_capacity_kg": 350,
+        "declared_range_km": 300,
+        "declared_consumption_kwh_per_100km": 12,
+        "curb_mass_kg": 1345,
+        "nominal_pack_kwh": 45,
+        "usable_pack_fraction": 0.88
+      },
+      "manufacturing_yield_fraction": 0.97,
+      "amortization_units": 50000,
+      "envelope_evidence_class": "synthetic",
+      "envelope_source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+      "envelope_as_of": "2026-10-20",
+      "technical_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No physical prototype or road-load validation is supplied."
+      },
+      "safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No crash, post-crash, electrical safety or type-approval evidence is supplied."
+      },
+      "components": [
+        {
+          "component_id": "battery-cells",
+          "quantity_per_vehicle": 45,
+          "quantity_unit": "kWh_pack_nominal",
+          "unit_cost_basis": "ZAR_per_kWh",
+          "unit_cost": {
+            "low": 900,
+            "high": 1150,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic per-kWh cell allowance, multiplied by 42 kWh nominal pack capacity; not a quote."
+          }
+        },
+        {
+          "component_id": "bms-hv-protection",
+          "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
+          "unit_cost": {
+            "low": 8000,
+            "high": 12000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic BMS, contactors, HV isolation, fuse and protection allowance per vehicle."
+          }
+        },
+        {
+          "component_id": "body-crash-structure",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 28000,
+            "high": 38000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative structure, closures and crash components; tooling treatment is separate."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "cabin-hvac-thermal",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative cabin, HVAC and thermal-system allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "drive-unit-inverter-reduction",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "electrical-electronics-wiring",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 8000,
+            "high": 13000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "pack-enclosure-thermal",
+          "quantity_per_vehicle": 1,
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set",
+          "unit_cost": {
+            "low": 16500,
+            "high": 22000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic allowance with incremental enclosure/thermal capacity for 45 kWh derivative; not a quote."
+          }
+        },
+        {
+          "component_id": "suspension-steering-brakes",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 12000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative chassis component allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        },
+        {
+          "component_id": "wheels-seats-glazing-lights-trim",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 16000,
+            "high": 22000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative remaining parts allowance."
+          },
+          "quantity_unit": "vehicle_set",
+          "unit_cost_basis": "ZAR_per_vehicle_set"
+        }
+      ],
+      "factory_conversion_cost": {
+        "low": 25500,
+        "high": 36500,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Per good vehicle, illustrative assembly/QA cost for 45 kWh range-margin derivative; no supplier or contract-manufacturer evidence."
+      },
+      "warranty_service_reserve": {
+        "low": 5000,
+        "high": 9000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative per-vehicle warranty, service and field-support reserve."
+      },
+      "fixed_program_investment": {
+        "low": 150000000,
+        "high": 250000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative tooling, validation, engineering and homologation investment; amortization denominator is explicit."
+      },
+      "notes": [
+        "Sensitivity derivative on the cost-first architecture, not a separate fully engineered platform.",
+        "The 45 kWh pack at an 88% declared usable fraction gives 39.6 kWh; this exceeds the 36.0 kWh first-order energy demand at 300 km and 12 kWh/100 km, but does not validate WLTP range or end-of-life/temperature performance.",
+        "Incremental pack enclosure and factory-conversion costs are synthetic assumptions."
+      ]
     }
   ],
   "claim_ceiling": "Illustrative architecture-cost scenarios only. All vehicle-envelope and cost values are synthetic and must not be interpreted as a supplier quote, feasible production price, measured efficiency, validated range or safety claim."

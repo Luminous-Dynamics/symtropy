@@ -52,7 +52,7 @@ The component cost ranges must be landed at the assembly gate, in the catalogue 
 - `blocked_by_evidence_backed_cost_envelope`: release-grade ranges show that even the low cost case exceeds the allowable cost.
 - `evidence_backed_candidate`: all relevant evidence/gates qualify and the high cost bound fits the declared target. This is a cost-screen disposition, not vehicle homologation.
 
-The market and margin assumptions, engineering gate states, and safety gate states must be independently refreshed for any real decision. The fixture includes three candidate 42 kWh LFP architectures—cost-first, serviceability-first and more integrated structural-pack—to make the cost/repairability/yield/tooling trade-off explicit. **All costs and performance values in this fixture are synthetic. Every candidate must remain unqualified.**
+The market and margin assumptions, engineering gate states, and safety gate states must be independently refreshed for any real decision. The fixture includes three 42 kWh LFP architectures—cost-first, serviceability-first and more integrated structural-pack—plus a 45 kWh range-margin derivative to make the range-margin/cost/repairability/yield/tooling trade-off explicit. **All costs and performance values in this fixture are synthetic. Every candidate must remain unqualified.**
 
 ## Benchmark philosophy
 
