@@ -424,9 +424,15 @@ pub fn compare_actions_under_weight_uncertainty(
     first_action: &str,
     second_action: &str,
     intervals: &[ModelWeightInterval],
+    practical_loss_difference_margin: f64,
 ) -> Result<ActionPreferenceRange, Vec<String>> {
     if first_action == second_action {
         return Err(vec!["actions to compare must be distinct".to_owned()]);
+    }
+    if !practical_loss_difference_margin.is_finite() || practical_loss_difference_margin < 0.0 {
+        return Err(vec![
+            "practical loss-difference margin must be finite and non-negative".to_owned(),
+        ]);
     }
     score_weight_sensitivity(models, first_action, intervals)?;
     score_weight_sensitivity(models, second_action, intervals)?;
@@ -453,15 +459,17 @@ pub fn compare_actions_under_weight_uncertainty(
     let maximizing_weights = extremal_weight_assignment(models, &differences, &bounds, true)?;
     let minimum_loss_difference = weighted_loss(&differences, &minimizing_weights)?;
     let maximum_loss_difference = weighted_loss(&differences, &maximizing_weights)?;
-    let stability = if maximum_loss_difference < 0.0 {
+    let stability = if maximum_loss_difference < -practical_loss_difference_margin {
         PreferenceStability::FirstStrictlyBetter
-    } else if minimum_loss_difference > 0.0 {
+    } else if minimum_loss_difference > practical_loss_difference_margin {
         PreferenceStability::SecondStrictlyBetter
-    } else if minimum_loss_difference == 0.0 && maximum_loss_difference == 0.0 {
+    } else if minimum_loss_difference >= -practical_loss_difference_margin
+        && maximum_loss_difference <= practical_loss_difference_margin
+    {
         PreferenceStability::Equivalent
-    } else if maximum_loss_difference <= 0.0 {
+    } else if maximum_loss_difference <= practical_loss_difference_margin {
         PreferenceStability::FirstNeverWorse
-    } else if minimum_loss_difference >= 0.0 {
+    } else if minimum_loss_difference >= -practical_loss_difference_margin {
         PreferenceStability::SecondNeverWorse
     } else {
         PreferenceStability::CanFlip
@@ -863,7 +871,7 @@ mod tests {
             },
         ];
         let result =
-            compare_actions_under_weight_uncertainty(&models, "graze", "retreat", &intervals)
+            compare_actions_under_weight_uncertainty(&models, "graze", "retreat", &intervals, 0.0)
                 .expect("feasible pairwise comparison");
         assert!((result.minimum_loss_difference + 1.4).abs() < 1e-9);
         assert!((result.maximum_loss_difference - 1.8).abs() < 1e-9);
@@ -888,13 +896,71 @@ mod tests {
             },
         ];
         let result =
-            compare_actions_under_weight_uncertainty(&models, "retreat", "wait", &intervals)
+            compare_actions_under_weight_uncertainty(&models, "retreat", "wait", &intervals, 0.0)
                 .expect("feasible pairwise comparison");
         assert!((result.minimum_loss_difference - 1.4).abs() < 1e-9);
         assert!((result.maximum_loss_difference - 1.8).abs() < 1e-9);
         assert!((result.minimizing_weights["predator_coupled"] - 0.4).abs() < 1e-9);
         assert!((result.maximizing_weights["predator_coupled"] - 0.8).abs() < 1e-9);
         assert_eq!(result.stability, PreferenceStability::SecondStrictlyBetter);
+    }
+
+    #[test]
+    fn small_differences_are_equivalent_inside_preregistered_margin() {
+        let mut models = example_models();
+        models[0].action_losses.insert("wait".to_owned(), 3.0001);
+        models[1].action_losses.insert("wait".to_owned(), 3.0002);
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ];
+        let result = compare_actions_under_weight_uncertainty(
+            &models,
+            "wait",
+            "retreat",
+            &intervals,
+            2.1,
+        )
+        .expect("valid margin and model set");
+        assert_eq!(result.stability, PreferenceStability::Equivalent);
+    }
+
+    #[test]
+    fn negative_or_nonfinite_practical_margin_is_rejected() {
+        let models = example_models();
+        let intervals = vec![
+            ModelWeightInterval {
+                model_id: "predator_coupled".to_owned(),
+                lower: 0.4,
+                upper: 0.8,
+            },
+            ModelWeightInterval {
+                model_id: "predator_weak".to_owned(),
+                lower: 0.2,
+                upper: 0.6,
+            },
+        ];
+        let errors = compare_actions_under_weight_uncertainty(
+            &models,
+            "graze",
+            "retreat",
+            &intervals,
+            f64::NAN,
+        )
+        .expect_err("non-finite margin must be rejected");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("margin must be finite and non-negative"))
+        );
     }
 
     #[test]
@@ -912,7 +978,7 @@ mod tests {
                 upper: 0.6,
             },
         ];
-        let errors = compare_actions_under_weight_uncertainty(&models, "wait", "wait", &intervals)
+        let errors = compare_actions_under_weight_uncertainty(&models, "wait", "wait", &intervals, 0.0)
             .expect_err("an action cannot be compared with itself");
         assert!(errors.iter().any(|error| error.contains("distinct")));
     }
