@@ -52,7 +52,9 @@ fn run() -> Result<(), String> {
                 }
                 load_scaling_manifest_path = Some(
                     args.get(i + 1)
-                        .ok_or_else(|| "--load-scaling-manifest requires a manifest path".to_owned())?
+                        .ok_or_else(|| {
+                            "--load-scaling-manifest requires a manifest path".to_owned()
+                        })?
                         .clone(),
                 );
                 i += 2;
@@ -199,16 +201,31 @@ fn run() -> Result<(), String> {
         {
             return Err("--load-scaling-manifest cannot be combined with mesh-study, equilibrium, reference-comparison, or request-validator options".to_owned());
         }
-        let request_path = request_path.ok_or_else(|| "--load-scaling-manifest requires --request for the baseline".to_owned())?;
-        let receipt_path = receipt_path.ok_or_else(|| "--load-scaling-manifest requires --receipt for the baseline".to_owned())?;
-        let scaled_request_path = scaled_request_path.ok_or_else(|| "--load-scaling-manifest requires --scaled-request".to_owned())?;
-        let scaled_receipt_path = scaled_receipt_path.ok_or_else(|| "--load-scaling-manifest requires --scaled-receipt".to_owned())?;
-        let root = artifact_root.ok_or_else(|| "--load-scaling-manifest requires --artifact-root".to_owned())?;
-        let baseline_request_bytes = fs::read(&request_path).map_err(|error| format!("could not read baseline request {request_path}: {error}"))?;
-        let baseline_receipt_bytes = fs::read(&receipt_path).map_err(|error| format!("could not read baseline receipt {receipt_path}: {error}"))?;
-        let scaled_request_bytes = fs::read(&scaled_request_path).map_err(|error| format!("could not read scaled request {scaled_request_path}: {error}"))?;
-        let scaled_receipt_bytes = fs::read(&scaled_receipt_path).map_err(|error| format!("could not read scaled receipt {scaled_receipt_path}: {error}"))?;
-        let manifest_bytes = fs::read(&manifest_path).map_err(|error| format!("could not read load-scaling manifest {manifest_path}: {error}"))?;
+        let request_path = request_path.ok_or_else(|| {
+            "--load-scaling-manifest requires --request for the baseline".to_owned()
+        })?;
+        let receipt_path = receipt_path.ok_or_else(|| {
+            "--load-scaling-manifest requires --receipt for the baseline".to_owned()
+        })?;
+        let scaled_request_path = scaled_request_path
+            .ok_or_else(|| "--load-scaling-manifest requires --scaled-request".to_owned())?;
+        let scaled_receipt_path = scaled_receipt_path
+            .ok_or_else(|| "--load-scaling-manifest requires --scaled-receipt".to_owned())?;
+        let root = artifact_root
+            .ok_or_else(|| "--load-scaling-manifest requires --artifact-root".to_owned())?;
+        let baseline_request_bytes = fs::read(&request_path)
+            .map_err(|error| format!("could not read baseline request {request_path}: {error}"))?;
+        let baseline_receipt_bytes = fs::read(&receipt_path)
+            .map_err(|error| format!("could not read baseline receipt {receipt_path}: {error}"))?;
+        let scaled_request_bytes = fs::read(&scaled_request_path).map_err(|error| {
+            format!("could not read scaled request {scaled_request_path}: {error}")
+        })?;
+        let scaled_receipt_bytes = fs::read(&scaled_receipt_path).map_err(|error| {
+            format!("could not read scaled receipt {scaled_receipt_path}: {error}")
+        })?;
+        let manifest_bytes = fs::read(&manifest_path).map_err(|error| {
+            format!("could not read load-scaling manifest {manifest_path}: {error}")
+        })?;
         let report = assess_load_scaling_relation_bytes(
             &baseline_request_bytes,
             &baseline_receipt_bytes,
@@ -219,12 +236,15 @@ fn run() -> Result<(), String> {
         )?;
         println!(
             "{}",
-            serde_json::to_string(&report).map_err(|error| format!("report serialization failed: {error}"))?
+            serde_json::to_string(&report)
+                .map_err(|error| format!("report serialization failed: {error}"))?
         );
         return Ok(());
     }
     if scaled_request_path.is_some() || scaled_receipt_path.is_some() {
-        return Err("--scaled-request and --scaled-receipt require --load-scaling-manifest".to_owned());
+        return Err(
+            "--scaled-request and --scaled-receipt require --load-scaling-manifest".to_owned(),
+        );
     }
 
     if let Some(study_path) = mesh_study_path.as_deref() {
