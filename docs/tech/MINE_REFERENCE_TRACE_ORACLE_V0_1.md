@@ -16,13 +16,15 @@ The Rust crate implements the trace equations for ACI, clipped ACI, COP, OGD, sc
 
 ## Frozen test inputs
 
-The versioned fixture `fixtures/reference-trace-inputs-v0.1.json` contains six small, deterministic cases:
+The versioned input fixture `fixtures/reference-trace-inputs-v0.1.json` and independently generated expected-output fixture `fixtures/reference-trace-expected-v0.1.json` bind ten deterministic cases. The output includes an SHA-256 digest of the exact input bytes, and CI fails if the expected-output fixture digest diverges from the live run:
 
 - ACI and clipped ACI around the `alpha_t <= 1/(t+1)` infinite-quantile condition and the finite higher-quantile update.
-- COP's score-range-proportional learning rate and empirical-CDF correction.
+- Ties under NumPy's `method="higher"` quantile semantics.
+- COP's score-range-proportional learning rate, empirical-CDF correction, and all-equal scores (zero proportional step).
 - OGD, scale-free OGD and decaying-step OGD on a trace containing both hits and misses.
+- OGD with `ahead=2` to exercise delayed horizon indexing.
 
-The fixture commits the input scores and algorithm parameters, not an asserted hand-written copy of the reference output. The independent Python reference generates the expected output each CI run; both expected and Rust traces are retained with the input fixture for 30 days. This avoids treating Rust-generated output as its own oracle. A reviewed static expected-output fixture can be committed after the first successful, independently inspected run.
+The fixture commits the input scores and algorithm parameters, not an asserted hand-written copy of the reference output. The independent Python reference generates a live expected output each CI run, which is compared both to the committed static golden and to the Rust trace. All three outputs plus the inputs are retained as a 30-day artifact. This avoids treating Rust-generated output as its own oracle while also guarding against an unreviewed change in upstream behavior or dependency semantics.
 
 ## Equality contract
 
@@ -35,7 +37,7 @@ The fixture commits the input scores and algorithm parameters, not an asserted h
 
 ## Important boundary
 
-This verifies trace compatibility only for the six frozen parameterized cases. It does not prove equivalence for every parameter, numerical corner case, delayed-label policy, or ahead horizon. Subsequent cases must cover quantile ties, all-equal scores, `alpha_t) boundary behavior, additional window sizes, ahead greater than one, and edge conditions. A reference-compatible interval algorithm still does not confer model credibility or operational authority; the independent admission gate remains separate.
+This verifies trace compatibility only for the ten frozen parameterized cases. It does not prove equivalence for every parameter, numerical corner case, delayed-label policy, or ahead horizon. Subsequent cases must cover quantile ties, all-equal scores, `alpha_t` boundary behavior, additional window sizes, ahead greater than one, and edge conditions. A reference-compatible interval algorithm still does not confer model credibility or operational authority; the independent admission gate remains separate.
 
 ## Research rationale
 
