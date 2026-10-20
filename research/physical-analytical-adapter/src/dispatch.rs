@@ -249,11 +249,7 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
     })
 }
 
-fn validate_input_bounds(
-    case_id: &str,
-    inputs: &Map<String, Value>,
-    bounds: &Value,
-) -> Check<()> {
+fn validate_input_bounds(case_id: &str, inputs: &Map<String, Value>, bounds: &Value) -> Check<()> {
     let bound_map = bounds
         .as_object()
         .ok_or_else(|| "request.input_bounds must be an object".to_owned())?;
@@ -276,13 +272,7 @@ fn validate_input_bounds(
         _ => return Ok(()),
     };
     exact_map_keys(bound_map, expected, "request.input_bounds")?;
-    const BOUND_KEYS: &[&str] = &[
-        "lower",
-        "upper",
-        "unit",
-        "evidence_class",
-        "source_ref",
-    ];
+    const BOUND_KEYS: &[&str] = &["lower", "upper", "unit", "evidence_class", "source_ref"];
     for key in expected {
         let at = format!("request.input_bounds.{key}");
         let bound = bound_map
@@ -335,15 +325,17 @@ fn validate_input_bounds(
             .get("evidence_class")
             .and_then(Value::as_str)
             .ok_or_else(|| format!("{at}.evidence_class must be a string"))?;
-        if !["specified", "measured", "estimated", "synthetic", "unknown"]
-            .contains(&evidence)
-        {
+        if !["specified", "measured", "estimated", "synthetic", "unknown"].contains(&evidence) {
             return Err(format!("{at}.evidence_class is unsupported"));
         }
         match bound.get("source_ref") {
             Some(Value::Null) => {}
             Some(Value::String(source_ref)) if !source_ref.trim().is_empty() => {}
-            _ => return Err(format!("{at}.source_ref must be a non-empty string or null")),
+            _ => {
+                return Err(format!(
+                    "{at}.source_ref must be a non-empty string or null"
+                ));
+            }
         }
     }
     Ok(())
@@ -615,16 +607,14 @@ mod tests {
         assert!(!output_keys_match(&Value::Null, &expected));
     }
 
-
     #[test]
     fn bounded_v02_request_dispatches_with_the_v02_receipt() {
-        let receipt = dispatch_request_bytes(
-            &fixture("analytical-bar-bounds-v0.2.json"),
-            REV,
-            REV,
-        )
-        .expect("bounded v0.2 request should dispatch");
-        assert_eq!(receipt["request_schema_version"], "physical-analytical-request-v0.2");
+        let receipt = dispatch_request_bytes(&fixture("analytical-bar-bounds-v0.2.json"), REV, REV)
+            .expect("bounded v0.2 request should dispatch");
+        assert_eq!(
+            receipt["request_schema_version"],
+            "physical-analytical-request-v0.2"
+        );
         assert_eq!(receipt["selection_status"], "SELECTED");
         assert_eq!(receipt["evaluation_status"], "PASS");
         assert_eq!(
@@ -642,8 +632,7 @@ mod tests {
         let mut request: Value =
             serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
         request["input_bounds"]["force_n"]["lower"] = json!(1_001.0);
-        let error = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV)
-            .unwrap_err();
+        let error = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV).unwrap_err();
         assert!(error.contains("must contain its nominal input"));
     }
 
@@ -654,7 +643,10 @@ mod tests {
         request["requested_physics"] = json!(["static_linear_elastic", "fracture"]);
         let receipt = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV)
             .expect("unsupported v0.2 physics is an abstention");
-        assert_eq!(receipt["request_schema_version"], "physical-analytical-request-v0.2");
+        assert_eq!(
+            receipt["request_schema_version"],
+            "physical-analytical-request-v0.2"
+        );
         assert_eq!(receipt["selection_status"], "UNRESOLVED");
         assert_eq!(receipt["evaluation_status"], "NOT_EVALUATED");
         assert_eq!(receipt["adapter_receipt"], Value::Null);
