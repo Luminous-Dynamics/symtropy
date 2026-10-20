@@ -194,6 +194,7 @@ impl fmt::Display for AuditInputError {
 impl Error for AuditInputError {}
 
 
+/// One conservatively selected trajectory pair, expressed as indices into the input fleet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TrajectoryPairCandidate {
     /// Index of one trajectory in the input slice; always less than `second_index`.
