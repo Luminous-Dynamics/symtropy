@@ -127,7 +127,7 @@ struct PolicyScore {
     maximum_regret_npv_cost: f64,
     mean_decision_overhead_npv_cost: f64,
     strategy_selection_counts: BTreeMap<String, usize>,
-    families_where_policy_is_family_cost_best: usize,
+    families_where_policy_selects_family_cost_best_strategy_before_overhead: usize,
     family_count: usize,
     pareto_nondominated: bool,
     selection_rule_set: Vec<String>,
@@ -163,9 +163,10 @@ struct Report {
     family_policy_results: Vec<FamilyPolicyResult>,
     policy_scores: Vec<PolicyScore>,
     pareto_frontier_policy_ids: Vec<String>,
-    base_cost_best_policy_id: String,
+    lowest_mean_npv_entry_including_oracle: String,
     best_deployable_policy_by_mean_npv: String,
     best_fixed_policy_by_mean_npv: String,
+    best_adaptive_policy_by_mean_npv: String,
     value_of_adaptivity_vs_best_fixed_npv_cost_reduction: f64,
     value_of_adaptivity_percent_vs_best_fixed: Option<f64>,
     perfect_information_lower_bound_mean_npv_cost: f64,
@@ -457,7 +458,7 @@ fn parse_inputs(
     })
 }
 
-fn strategy_id_by_kind(catalog: &CatalogData, kind: &str) -> Result<&str, String> {
+fn strategy_id_by_kind<'a>(catalog: &'a CatalogData, kind: &str) -> Result<&'a str, String> {
     catalog.strategies.iter().find(|strategy| strategy.kind == kind)
         .map(|strategy| strategy.strategy_id.as_str())
         .ok_or_else(|| format!("strategy_kind_{kind}_missing"))
@@ -586,7 +587,7 @@ fn score_policy(policy: PolicyKind, choices: &[FamilyPolicyResult], family_count
         maximum_regret_npv_cost: regrets.iter().copied().fold(0.0, f64::max),
         mean_decision_overhead_npv_cost: choices.iter().map(|row| row.decision_and_measurement_overhead).sum::<f64>() / costs.len() as f64,
         strategy_selection_counts: counts,
-        families_where_policy_is_family_cost_best: best_count,
+        families_where_policy_selects_family_cost_best_strategy_before_overhead: best_count,
         family_count,
         pareto_nondominated: false,
         selection_rule_set: vec![policy_rule_description(policy)],
@@ -671,8 +672,12 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
     let fixed_scores: Vec<&PolicyScore> = deployable_scores.iter().copied().filter(|score| score.policy_id.starts_with("fixed_")).collect();
     let best_fixed = fixed_scores.iter().min_by(|a,b| a.mean_npv_cost_across_families.total_cmp(&b.mean_npv_cost_across_families))
         .ok_or_else(|| "no_fixed_policy_scores".to_string())?;
-    let base_cost_best = policy_scores.iter().min_by(|a,b| a.mean_npv_cost_across_families.total_cmp(&b.mean_npv_cost_across_families))
+    let lowest_mean_entry = policy_scores.iter().min_by(|a,b| a.mean_npv_cost_across_families.total_cmp(&b.mean_npv_cost_across_families))
         .ok_or_else(|| "no_policy_scores".to_string())?;
+    let best_adaptive = policy_scores.iter()
+        .filter(|score| score.policy_id.starts_with("adaptive_"))
+        .min_by(|a,b| a.mean_npv_cost_across_families.total_cmp(&b.mean_npv_cost_across_families))
+        .ok_or_else(|| "no_adaptive_policy_scores".to_string())?;
     let oracle = policy_scores.iter().find(|score| score.policy_id == PolicyKind::PerfectInformationOracle.id()).expect("oracle score exists");
 
     let mut sensitivity_cases = Vec::new();
@@ -728,12 +733,13 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
         family_policy_results,
         policy_scores,
         pareto_frontier_policy_ids: frontier_ids,
-        base_cost_best_policy_id: base_cost_best.policy_id.clone(),
+        lowest_mean_npv_entry_including_oracle: lowest_mean_entry.policy_id.clone(),
         best_deployable_policy_by_mean_npv: best_deployable.policy_id.clone(),
         best_fixed_policy_by_mean_npv: best_fixed.policy_id.clone(),
-        value_of_adaptivity_vs_best_fixed_npv_cost_reduction: (best_fixed.mean_npv_cost_across_families - best_deployable.mean_npv_cost_across_families).max(0.0),
+        best_adaptive_policy_by_mean_npv: best_adaptive.policy_id.clone(),
+        value_of_adaptivity_vs_best_fixed_npv_cost_reduction: best_fixed.mean_npv_cost_across_families - best_adaptive.mean_npv_cost_across_families,
         value_of_adaptivity_percent_vs_best_fixed: if best_fixed.mean_npv_cost_across_families.abs() > 1e-9 {
-            Some((best_fixed.mean_npv_cost_across_families - best_deployable.mean_npv_cost_across_families) / best_fixed.mean_npv_cost_across_families.abs() * 100.0)
+            Some((best_fixed.mean_npv_cost_across_families - best_adaptive.mean_npv_cost_across_families) / best_fixed.mean_npv_cost_across_families.abs() * 100.0)
         } else { None },
         perfect_information_lower_bound_mean_npv_cost: oracle.mean_npv_cost_across_families,
         mean_perfect_information_gap_vs_best_adaptive_policy: (best_deployable.mean_npv_cost_across_families - oracle.mean_npv_cost_across_families).max(0.0),
@@ -850,6 +856,7 @@ mod tests {
             .sum::<f64>() / 5.0;
         assert!((adapt.mean_npv_cost_across_families - (raw_mean + 1500.0)).abs() < 1e-9);
         assert_eq!(fixed.mean_decision_overhead_npv_cost, 0.0);
+        assert_eq!(report.best_adaptive_policy_by_mean_npv, adapt.policy_id);
     }
 
     #[test]
