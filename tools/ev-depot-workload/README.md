@@ -96,3 +96,20 @@ The 45 kW/vehicle upper connection and two trucks per port are directionally com
 For each vocation × fleet size × policy, the workflow reports the median and P95 of per-scenario minimum sampled grid connection in kW/vehicle, counts of cases infeasible even at 45 kW/vehicle, P95 missed-departure fraction at the declared base connection, minimum energy-service fraction, and monotonicity diagnostics. It also computes the minimum sampled capacity where at least 95% of the 30 generated scenarios meet both the deadline and battery-energy service targets (at least 29/30 passes), separately for each vocation, fleet size and policy. Capacity steps are 5% of the base 45 kW/vehicle, so reported values are sampled estimates—not continuous minima. Thirty duty-profile resamples provide exploratory empirical pass rates, not a calibrated reliability guarantee or a confidence interval.
 
 Why this matters: the six-vehicle and single-vocation smoke tests can hide scheduling differences and the diversity of real duty patterns. This multi-vocation, multi-scale, multi-seed suite now tests whether those results survive work-profile heterogeneity and fleet scaling. The next benchmark expansion should compare our outputs directly to the 81 modeled aggregate NLR 15-minute charging profiles and their immediate/delayed/minimum-power strategies: https://data.nlr.gov/submissions/162. The 2025 vehicle-valet paper reports an average 64% grid-capacity reduction for its particular 30-vehicle cases; that is an external replication target only after exact assumptions are matched, not a performance claim for this simulator: https://doi.org/10.1016/j.apenergy.2025.126563.
+
+## Matched fleet scaling benchmark
+
+The focused end-to-end workflow runs one six-job seed as a pipeline check. The separate `.github/workflows/ev-depot-scaling-benchmark.yml` adds a broader controlled experiment:
+
+- all three published NLR duty vocations (beverage, warehouse, food delivery) at a pinned source revision;
+- fleet sizes 10, 50 and 100;
+- seeds 101, 202 and 303 for every vocation/size combination (27 matched workloads);
+- identical seed prefixes across fleet sizes within a vocation, so scaling comparisons keep already-sampled earlier jobs;
+- FCFS and earliest-departure-first on exactly the same generated jobs;
+- a 20-point, 5%-increment site-capacity frontier for every policy, using the 95% deadline + 95% battery-energy service target;
+- median, minimum and maximum seed variation of minimum sampled kW per vehicle and service fractions, with failed/infeasible cases retained;
+- full input/report/manifests and SHA-256 evidence as CI artifacts, without committing the raw CSV data.
+
+For this controlled frontier suite, the shared truck archetype is **1,100 kWh nominal**, 10% initial SOC, 0.90 SOH and 0.98 temperature capacity factor. That upper-envelope pack assumption is chosen to accommodate the longest source duty day at the declared 1.8 kWh/mile assumption without omitting high-energy jobs; it is not claimed as the typical capacity for all three vocations. The upstream food-duty table includes a maximum of about 437.31 miles (about 787.16 kWh at 1.8 kWh/mile), so smaller packs can correctly fail the generator's SOC-headroom gate. Separate sensitivity/robustness workflows explore vocation-specific pack sizes and port ratios.
+
+The 27-case suite's minimum grid capacities remain sampled estimates, not continuous optimality or real-site recommendations. Cross-vocation comparisons are conditioned on the common high-capacity pack assumption and published U.S. operating patterns. A later controller claim should additionally compare 15-minute load traces to NLR's 81 published modeled aggregate reference profiles and replicate the reference study's exact service/cost boundaries before claiming an industry improvement.
