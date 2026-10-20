@@ -555,7 +555,6 @@ fn evaluate_stream(
     let mut healthy_streak = 0_usize;
     let mut outcomes = Vec::with_capacity(stream.ticks.len());
     let mut label_updates_applied = 0_usize;
-    let mut target_labels_missing = 0_usize;
     let mut gate_decisions = Vec::with_capacity(stream.ticks.len());
     let mut gate_radii = Vec::with_capacity(stream.ticks.len());
 
@@ -580,7 +579,6 @@ fn evaluate_stream(
         let coverage = if tick.target_label_available {
             Some((tick.target - tick.prediction).abs() <= radius)
         } else {
-            target_labels_missing += 1;
             None
         };
 
@@ -620,7 +618,7 @@ fn evaluate_stream(
     } else {
         0
     };
-    Ok((outcomes, label_updates_applied, audit_mismatches + target_labels_missing * 0))
+    Ok((outcomes, label_updates_applied, audit_mismatches))
 }
 
 #[derive(Default)]
