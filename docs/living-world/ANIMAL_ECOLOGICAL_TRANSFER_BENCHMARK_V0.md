@@ -10,7 +10,7 @@ Test whether animal agents remain competent, calibrated, and ecologically cohere
 
 This benchmark complements—not duplicates—the animal replay/evaluation contract, active-sensing benchmark, and causal-identifiability benchmark. Those focus respectively on claim-specific replay metrics, sensing under finite budgets, and what controlled interventions identify. This contract adds **ecological regime transfer and response over time**, including the effects of individual policies on populations and resource systems.
 
-It defines a test contract and synthetic oracle. It does not introduce a simulator implementation or claim that Symtropy currently passes.
+It defines a test contract, a synthetic oracle, and a frozen JSON Schema for its structure. The schema fixes V1 at 51 cases and documents that unique-ID and receipt/manifest invariants still require semantic checks outside ordinary JSON Schema validation. It does not introduce a simulator implementation or claim that Symtropy currently passes.
 
 ## Paradigm shifts
 
