@@ -746,6 +746,9 @@ struct Outcome {
     // Evaluator-only corruption-rate errors for the joint-noise policy.
     sensor_error_mae: Option<f64>,
     sensor_error_mse: Option<f64>,
+    // Uniform-grid prior baseline evaluated only by the evaluator.
+    sensor_prior_error_mae: f64,
+    sensor_prior_error_mse: f64,
 }
 
 fn evaluate(ep: &Episode, kind: Kind, cap: usize, actor_seed: u64) -> Outcome {
@@ -801,11 +804,15 @@ fn evaluate_with_threshold(
     });
     // The true episode corruption rate is evaluator-only and read strictly
     // after the policy action. It never enters JointNoiseStats or its inputs.
+    let true_sensor_rate = ep.profile.corruption_rate as f64 / 1_000.0;
+    let prior_sensor_rate = SENSOR_BASE_RATES.iter().map(|rate| *rate as f64).sum::<f64>()
+        / SENSOR_BASE_RATES.len() as f64 / 1_000.0;
+    let sensor_prior_error_mae = (prior_sensor_rate - true_sensor_rate).abs();
+    let sensor_prior_error_mse = (prior_sensor_rate - true_sensor_rate).powi(2);
     let sensor_errors = if kind == Kind::QueryKeyedJointNoise {
         let estimates = memory.joint_noise_stats.map(|stats| stats.estimated_sensor_base_rate());
-        let true_rate = ep.profile.corruption_rate as f64 / 1_000.0;
-        let absolute_sum = estimates.iter().map(|estimate| (estimate - true_rate).abs()).sum::<f64>();
-        let squared_sum = estimates.iter().map(|estimate| (estimate - true_rate).powi(2)).sum::<f64>();
+        let absolute_sum = estimates.iter().map(|estimate| (estimate - true_sensor_rate).abs()).sum::<f64>();
+        let squared_sum = estimates.iter().map(|estimate| (estimate - true_sensor_rate).powi(2)).sum::<f64>();
         Some((absolute_sum / QUERY_WIDTH as f64, squared_sum / QUERY_WIDTH as f64))
     } else {
         None
@@ -821,6 +828,8 @@ fn evaluate_with_threshold(
         hazard_error_mse: hazard_errors.map(|errors| errors.1),
         sensor_error_mae: sensor_errors.map(|errors| errors.0),
         sensor_error_mse: sensor_errors.map(|errors| errors.1),
+        sensor_prior_error_mae,
+        sensor_prior_error_mse,
     }
 }
 
@@ -839,6 +848,10 @@ struct Acc {
     sensor_error_episodes: u64,
     sensor_abs_error_sum: f64,
     sensor_squared_error_sum: f64,
+    sensor_prior_error_episodes: u64,
+    sensor_prior_abs_error_sum: f64,
+    sensor_prior_squared_error_sum: f64,
+    sensor_mae_delta_vs_prior: Vec<f64>,
     delta_vs_fifo: Vec<f64>,
 }
 
@@ -856,10 +869,14 @@ impl Acc {
             self.hazard_abs_error_sum += mae;
             self.hazard_squared_error_sum += mse;
         }
+        self.sensor_prior_error_episodes += 1;
+        self.sensor_prior_abs_error_sum += o.sensor_prior_error_mae;
+        self.sensor_prior_squared_error_sum += o.sensor_prior_error_mse;
         if let (Some(mae), Some(mse)) = (o.sensor_error_mae, o.sensor_error_mse) {
             self.sensor_error_episodes += 1;
             self.sensor_abs_error_sum += mae;
             self.sensor_squared_error_sum += mse;
+            self.sensor_mae_delta_vs_prior.push(mae - o.sensor_prior_error_mae);
         }
         if let Some(d) = delta { self.delta_vs_fifo.push(d); }
     }
@@ -887,6 +904,14 @@ impl Acc {
     fn sensor_rmse(&self) -> String {
         if self.sensor_error_episodes == 0 { "NA".to_string() }
         else { format!("{:.4}", (self.sensor_squared_error_sum / self.sensor_error_episodes as f64).sqrt()) }
+    }
+    fn sensor_prior_mae(&self) -> String {
+        if self.sensor_prior_error_episodes == 0 { "NA".to_string() }
+        else { format!("{:.4}", self.sensor_prior_abs_error_sum / self.sensor_prior_error_episodes as f64) }
+    }
+    fn sensor_prior_rmse(&self) -> String {
+        if self.sensor_prior_error_episodes == 0 { "NA".to_string() }
+        else { format!("{:.4}", (self.sensor_prior_squared_error_sum / self.sensor_prior_error_episodes as f64).sqrt()) }
     }
 }
 
@@ -974,7 +999,7 @@ fn report() {
     println!("joint-noise policy: joint transition-hazard x sensor-base-rate grid; online binary-state filter, confidence-conditioned emissions");
     println!("joint-noise grid hazards={HAZARD_RATES:?}; sensor base corruption rates per thousand={SENSOR_BASE_RATES:?}; posterior state entries are fixed-size");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
-    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tmean_hazard_mae\troot_mean_hazard_mse\tmean_sensor_base_mae\troot_mean_sensor_base_mse\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
+    println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tmean_hazard_mae\troot_mean_hazard_mse\tmean_sensor_base_mae\troot_mean_sensor_base_mse\tprior_sensor_base_mae\troot_mean_prior_sensor_base_mse\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
     for family in [Family::Development, Family::HeldOut] {
         let mut cells = vec![Acc::default(); Kind::ALL.len() * CAPS.len()];
@@ -1033,10 +1058,11 @@ fn report() {
                 };
                 let coverage = cell.fresh_claims as f64 / (cell.n.max(1) * QUERY_WIDTH as u64) as f64;
                 let mean_entries = cell.entries as f64 / cell.n.max(1) as f64;
-                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.1}\t{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}",
+                println!("{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.3}\t{:.1}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(), kind.name(), cap, cell.n, cell.mean_loss(), cell.answer_rate(),
                     cell.accuracy(), coverage, mean_entries, cell.mean_logical_state_bytes(),
-                    cell.hazard_mae(), cell.hazard_rmse(), cell.sensor_mae(), cell.sensor_rmse(), delta, lo, hi);
+                    cell.hazard_mae(), cell.hazard_rmse(), cell.sensor_mae(), cell.sensor_rmse(),
+                    cell.sensor_prior_mae(), cell.sensor_prior_rmse(), delta, lo, hi);
             }
         }
 
@@ -1070,6 +1096,17 @@ fn report() {
             println!("PAIRWISE\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}",
                 family.name(), name, paired_deltas.len(), paired_delta, paired_lo, paired_hi);
         }
+
+        let joint_index = Kind::ALL.iter().position(|kind| *kind == Kind::QueryKeyedJointNoise).expect("joint-noise policy is declared");
+        let joint_cell = &cells[joint_index * CAPS.len() + primary_capacity_index];
+        let q_mae_delta = &joint_cell.sensor_mae_delta_vs_prior;
+        let q_mae_delta_mean = q_mae_delta.iter().sum::<f64>() / q_mae_delta.len().max(1) as f64;
+        let q_mae_seed = mix64(ROOT_SEED ^ 0x515F_4D41_455F_4349
+            ^ match family { Family::Development => 0x4445_56, Family::HeldOut => 0x4845_4C44 });
+        let (q_mae_delta_lo, q_mae_delta_hi) = bootstrap_ci(q_mae_delta, q_mae_seed);
+        println!("PAIRSENSOR\tfamily\tcontrast\tepisodes\tdelta_mae_joint_minus_prior\tbootstrap95_lo\tbootstrap95_hi");
+        println!("PAIRSENSOR\t{}\tjoint_minus_uniform_grid_prior\t{}\t{:.4}\t{:.4}\t{:.4}",
+            family.name(), q_mae_delta.len(), q_mae_delta_mean, q_mae_delta_lo, q_mae_delta_hi);
 
         println!("VIS-MEM-002 evaluator-only failure-mode strata (capacity=3; groups may overlap)");
         println!("STRATUM\tfamily\tmode\tlevel\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
