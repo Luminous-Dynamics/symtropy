@@ -238,6 +238,16 @@ On development episodes, the joint model scored 0.1081 and beat the gap-aware mo
 
 **Decision:** do not promote `query_keyed_joint_noise`. Before revising its state grid, add evaluator-only calibration for the inferred corruption base rate and a synthetic identifiability test separating transition changes from emission flips. If the model cannot infer sensor noise reliably under known synthetic rates, retire the joint grid and keep the smaller hazard estimator as a comparison baseline only. The next issue is [VIS-MEM-006](https://github.com/Luminous-Dynamics/symtropy/issues/2424); this result motivates adding a q-rate diagnostic to [VIS-MEM-005](https://github.com/Luminous-Dynamics/symtropy/issues/2423).
 
+## Sensor-base-rate identifiability diagnostic — current candidate
+
+The joint model now reports both transition-hazard calibration and sensor-base-rate calibration. For each held-out episode, the evaluator compares the joint posterior's expected base corruption rate for each queried claim against the hidden episode profile rate **after** the decision, then averages MAE/RMSE across the three query claims. The estimate and error are not exposed to the policy.
+
+The report also compares that inferred q rate with an evidence-free fixed prior baseline: the arithmetic mean of the six declared candidate base rates. A paired bootstrap of per-episode absolute-error differences reports whether conditioning on the observations improves q-rate estimation over the fixed prior. The baseline is shared across policies and is not selected using held-out observations or outcomes.
+
+A dedicated negative control changes only the hidden corruption-rate label on an already-generated episode and asserts that the joint policy's decision and task loss remain identical while its evaluator-only sensor-rate error changes. Focused CI requires the sensor-MAE/RMSE columns, the prior-baseline columns, and the paired sensor-MAE comparison row.
+
+Interpret the result carefully: q-estimation error is a model diagnostic, not task performance. If the joint posterior improves q estimation but worsens task loss, memory use and task outcomes still decide whether the candidate advances. Conversely, lower q MAE alone is not enough to justify deploying a 42-hypothesis posterior per queried claim.
+
 ## Reproduce
 
 ```sh
