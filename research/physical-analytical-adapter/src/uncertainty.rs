@@ -56,9 +56,9 @@ impl Interval {
         let upper = outward_up(maximum)?;
         // Preserve known non-negative products (e.g. absolute stress) instead
         // of allowing outward rounding to create a negative subnormal bound.
-        let lower = if self.lower >= 0.0 && rhs.lower >= 0.0 {
-            lower.max(0.0)
-        } else if self.upper <= 0.0 && rhs.upper <= 0.0 {
+        let known_nonnegative = (self.lower >= 0.0 && rhs.lower >= 0.0)
+            || (self.upper <= 0.0 && rhs.upper <= 0.0);
+        let lower = if known_nonnegative {
             lower.max(0.0)
         } else {
             lower
@@ -420,7 +420,6 @@ mod tests {
             },
         );
         assert!(propagate("axial_bar", &nominal_for_invalid, &invalid_bounds).is_err());
-        let mut invalid_bounds = invalid_bounds;
         invalid_bounds.insert(
             "area_m2".to_owned(),
             Interval {
@@ -477,8 +476,12 @@ mod tests {
     }
 
     #[test]
+    type FixtureEntry = (&'static str, f64, f64, f64);
+    type CaseFixture = (&'static str, Vec<FixtureEntry>);
+
+    #[test]
     fn endpoint_combinations_for_all_cases_are_enclosed() {
-        let cases: Vec<(&str, Vec<(&str, f64, f64, f64)>)> = vec![
+        let cases: Vec<CaseFixture> = vec![
             (
                 "axial_bar",
                 vec![
