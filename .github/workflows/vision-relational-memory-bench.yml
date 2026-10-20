@@ -119,7 +119,8 @@ jobs:
           grep -Fq "query_evidence_arrived_out_of_order" vis-active-query.tsv
           grep -Fq "profile_high_claim_flip_rate" vis-active-query.tsv
           grep -Fq "profile_high_corruption_rate" vis-active-query.tsv
-          grep -Fq 
+          grep -Fq "profile_high_distractor_rate" vis-active-query.tsv
+          grep -Fq "query_observation_delay_gt_2" vis-active-query.tsv
           grep -Fq "held_out" vis-active-query.tsv
           test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
           test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
@@ -146,6 +147,7 @@ STRATUM\tfamily\tstratum\tlevel' vis-active-query.tsv
           test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
           test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 6
           awk -F '\t' '$1 == "family" { if (NF != 14) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 14) exit 1; rows++ } END { if (header != 1 || rows != 12) exit 1 }' vis-active-query.tsv
+          awk -F '\t' '$1 == "STRATUM" { if (NF != 12) exit 1; n++ } END { if (n < 12) exit 1 }' vis-active-query.tsv
           sha256sum vis-active-query.tsv > vis-active-query.sha256
           sha256sum -c vis-active-query.sha256
           cat vis-active-query.tsv
