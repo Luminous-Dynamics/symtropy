@@ -180,3 +180,16 @@ This proposal is ready to implement only after reviewers agree to:
 ## Claim limits
 
 This document proposes an architecture and benchmark plan. It does not claim that Symtropy currently implements an atomic process twin, that the existing embodiment adapter can safely operate laboratory hardware, that atomistic accuracy has been measured by AtomFab, or that any physical manufacturing improvement has occurred.
+
+
+## Frozen workcell fault corpus v1
+
+The repository now carries a machine-readable synthetic fault corpus and its JSON Schema:
+
+- [Fault corpus](research/ATOMFAB_WORKCELL_FAULT_CORPUS_V1.json)
+- [JSON Schema](research/ATOMFAB_WORKCELL_FAULT_CORPUS_V1.schema.json)
+- [Corpus overview and claim ceiling](research/ATOMFAB_WORKCELL_FAULT_CORPUS_V1.md)
+
+The frozen v1 suite has 14 uniquely identified cases: stale and non-finite observations, sensor drift outside calibration, actuator saturation, collision-margin breach, actuator interface mismatch, bridge timeout, malformed planner output, model out-of-domain, replay divergence, simulation-to-measurement provenance confusion, unqualified physical-actuation requests, and two valid controls. Expected outcomes include stable reason codes, action-authorization disposition, feasibility status, and hard-constraint disposition.
+
+The AtomFab side now has a Rust regression test over its mirrored fixture to enforce unique IDs, fail-closed outcomes, visible rejection reasons, hard-constraint consistency, and accepted controls. This is not yet proof of Symtropy runtime parity: the Symtropy adapter/process-twin runtime still needs to consume the same cases in executable tests. Neither the corpus nor a passing software test qualifies a physical safety function, validates atomistic physics, or establishes physical manufacturability.
