@@ -139,6 +139,7 @@ struct ViewerState {
     far_m: f64,
     bands: [usize; 6],
     visible_bodies: usize,
+    visible_body_names: Vec<String>,
     visible_orbit_segments: usize,
     precision_rejections: usize,
     max_radius_exaggeration: f64,
@@ -589,6 +590,7 @@ fn update_scene(
 ) {
     state.bands = [0; 6];
     state.visible_bodies = 0;
+    state.visible_body_names.clear();
     state.visible_orbit_segments = 0;
     state.precision_rejections = 0;
     state.max_radius_exaggeration = 1.0;
@@ -659,6 +661,7 @@ fn update_scene(
         };
         state.bands[band_index(band)] += 1;
         state.visible_bodies += 1;
+        state.visible_body_names.push(body.name.to_owned());
 
         let visual_radius = render_radius_for_band(body.physical_radius_m, distance_m, band);
         state.max_radius_exaggeration =
@@ -734,20 +737,27 @@ fn update_scene(
         state.visible_orbit_segments += 1;
     }
 
-    let surface_relative = state
-        .surface_feature
-        .relative_to_meters(&state.camera_position)
-        .unwrap_or([0.0; 3]);
+    let surface_relative = match state.surface_feature.relative_to_meters(&state.camera_position) {
+        Ok(relative) => Some(relative),
+        Err(_) => {
+            state.precision_rejections = state.precision_rejections.saturating_add(1);
+            None
+        }
+    };
     let tile_size = state.stage.tile_size_m();
     for (mut transform, mut visibility) in &mut tile_query {
         if tile_size > 0.0 {
-            transform.translation = Vec3::new(
-                surface_relative[0] as f32,
-                surface_relative[1] as f32,
-                surface_relative[2] as f32,
-            );
-            transform.scale = Vec3::new(tile_size, 1.0, tile_size);
-            *visibility = Visibility::Visible;
+            if let Some(relative) = surface_relative {
+                transform.translation = Vec3::new(
+                    relative[0] as f32,
+                    relative[1] as f32,
+                    relative[2] as f32,
+                );
+                transform.scale = Vec3::new(tile_size, 1.0, tile_size);
+                *visibility = Visibility::Visible;
+            } else {
+                *visibility = Visibility::Hidden;
+            }
         } else {
             *visibility = Visibility::Hidden;
         }
@@ -782,22 +792,31 @@ fn update_scene(
         *visibility = Visibility::Visible;
     }
 
-    let focus_relative = state
-        .focus_position
-        .relative_to_meters(&state.camera_position)
-        .unwrap_or([0.0, 0.0, -1.0]);
+    let focus_relative = match state.focus_position.relative_to_meters(&state.camera_position) {
+        Ok(relative) => Some(relative),
+        Err(_) => {
+            state.precision_rejections = state.precision_rejections.saturating_add(1);
+            None
+        }
+    };
     for (mut transform, mut projection) in &mut camera_query {
         transform.translation = Vec3::ZERO;
-        transform.rotation = Transform::from_translation(Vec3::ZERO)
-            .looking_at(
-                Vec3::new(
-                    focus_relative[0] as f32,
-                    focus_relative[1] as f32,
-                    focus_relative[2] as f32,
-                ),
-                Vec3::Y,
-            )
-            .rotation;
+        if let Some(focus_relative) = focus_relative {
+            transform.rotation = Transform::from_translation(Vec3::ZERO)
+                .looking_at(
+                    Vec3::new(
+                        focus_relative[0] as f32,
+                        focus_relative[1] as f32,
+                        focus_relative[2] as f32,
+                    ),
+                    Vec3::Y,
+                )
+                .rotation;
+        } else {
+            // Fail closed: point the camera along a neutral axis instead of
+            // fabricating a plausible coordinate from an unavailable transform.
+            transform.rotation = Quat::IDENTITY;
+        }
 
         if let Projection::Perspective(perspective) = &mut *projection {
             perspective.fov = FOV_RADIANS as f32;
@@ -814,12 +833,13 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
         "camera settled"
     };
     let message = format!(
-        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS + SYNTHETIC STARS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nSynthetic sky markers are angular background only; orbit-line widths are exaggerated.\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
+        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS + SYNTHETIC STARS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nBodies: {}\nSynthetic sky markers are angular background only; orbit-line widths are exaggerated.\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
         state.stage.label(),
         movement,
         state.visible_bodies,
         state.visible_orbit_segments,
         state.precision_rejections,
+        if state.visible_body_names.is_empty() { "none".to_owned() } else { state.visible_body_names.join(", ") },
         state.bands[0],
         state.bands[1],
         state.bands[2],
@@ -856,6 +876,7 @@ fn build_initial_state() -> ViewerState {
         far_m,
         bands: [0; 6],
         visible_bodies: 0,
+        visible_body_names: Vec::new(),
         visible_orbit_segments: 0,
         precision_rejections: 0,
         max_radius_exaggeration: 1.0,
