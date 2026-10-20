@@ -2,6 +2,7 @@
   "schema_version": "ANIMAL-MODEL-DECISION-OUTCOMES-V1",
   "status": "synthetic_fixture_not_ecological_validation",
   "cvar_alpha": 0.9,
+  "practical_loss_difference_margin": 0,
   "scenario": "A deliberately artificial prey-agent decision with alternative predator-response structures; loss units are synthetic and carry no biological calibration.",
   "models": [
     {
