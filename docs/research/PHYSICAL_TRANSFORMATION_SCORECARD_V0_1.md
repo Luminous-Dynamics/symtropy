@@ -45,6 +45,12 @@ Sources:
 
 This is a capability comparison from public documentation, not a head-to-head performance study. Marketing scale claims, solver features and illustrative demos must not be compared as if they shared one workload or error tolerance.
 
+**Additional fracture challenge candidate — experimental damage-mechanics challenge (2025).** A May 2025 *Engineering Fracture Mechanics* paper describes a controlled simulation challenge using repeatable 3D-printed specimens, independently characterized by seismic/UCS/Brazilian testing, with calibration and challenge groups. The paper reports that the blind-data gap is a key limitation in damage-mechanics simulation. Track the official supplementary/data locator and reuse terms before adopting this as a benchmark; do not infer an open license from the publication page: https://doi.org/10.1016/j.engfracmech.2025.111065
+
+**Design-for-disassembly baseline — Disassembly Ease Index (DEI).** A 2025 *Resources, Conservation & Recycling* study introduces a holistic deconstructability indicator and reports sensitivity to connection types. This motivates extending the component graph with reversible-fastener/cut-required/bonded/unknown connector semantics, disassembly effort, inspection access, and component-value retention. Use the published metric as a baseline only after acquiring the full method and a permitted test case: https://doi.org/10.1016/j.resconrec.2025.108215
+
+**Lifecycle / reverse-supply-chain baseline.** Recent 2025–2026 work examines BIM-driven demolition waste planning, IFC/knowledge-graph deconstruction sequence generation, and digital-twin-enabled reverse supply chains for trading recovered materials. That suggests a useful Symtropy distinction: plan recovery before dismantling, preserve identities/provenance during physical-state transitions, then reconcile actual recovered lots and quantities against the plan. Sources include https://www.nature.com/articles/s41598-025-13938-9, https://doi.org/10.1016/j.jobe.2025.112564, and https://doi.org/10.1016/j.cie.2025.111605. These are comparison targets and research context, not proof of Symtropy superiority.
+
 ## 3. Paradigm shifts worth pursuing
 
 ### A. Model choice based on an error budget
@@ -127,7 +133,7 @@ No single weighted “realism score” can compensate for failed conservation, i
 3. Select one open, rights-cleared measured mechanical benchmark with sufficient boundary-condition and uncertainty metadata.
 4. Choose one solver adapter and qualify a minimal known-answer case before adding dynamic fracture.
 5. Prototype a state-to-solver handoff receipt, including an explicit unresolved status if model fidelity or inputs are insufficient.
-6. Add construction-sequence feasibility and material-lot recovery after mechanics contracts are stable.
+6. Add construction-sequence feasibility, typed connection disassembly profiles and a vector-valued design-for-disassembly benchmark under [PHYS-REVERSIBILITY-001 #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268), then reconcile planned and measured material-lot recovery.
 
 ## Claim ceiling
 
