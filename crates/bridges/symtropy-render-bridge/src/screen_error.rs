@@ -168,7 +168,10 @@ pub fn projected_error_bound_px(
         }
     };
 
-    if !projected_error.is_finite() || projected_error < 0.0 {
+    if !projected_error.is_finite()
+        || projected_error < 0.0
+        || (world_error_bound_units > 0.0 && projected_error == 0.0)
+    {
         return Err(ProjectionError::UnrepresentableResult);
     }
 
@@ -321,6 +324,20 @@ mod tests {
         assert_eq!(
             projected_error_bound_px(10.0, perspective),
             Err(ProjectionError::ErrorReachesCameraPlane)
+        );
+    }
+
+    #[test]
+    fn rejects_unrepresentable_projected_error() {
+        assert_eq!(
+            projected_error_bound_px(
+                f64::MAX,
+                ProjectionModel::Orthographic {
+                    viewport_height_px: u32::MAX,
+                    vertical_span_units: f64::MIN_POSITIVE,
+                }
+            ),
+            Err(ProjectionError::UnrepresentableResult)
         );
     }
 
