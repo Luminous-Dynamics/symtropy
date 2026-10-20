@@ -59,7 +59,6 @@ const EXPECTED_UNITS: &[(&str, &str)] = &[
 const KNOWN_PHYSICS: &[&str] = &[
     "static_linear_elastic",
     "dynamic_response",
-    "nonlinear_material",
     "fracture",
     "rigid_contact",
     "granular_contact",
