@@ -51,12 +51,55 @@ pub trait RoboticAgent {
         danger_level: f64,
         planner: &mut P,
     ) -> MotorPlanResult {
-        let gain = self.tick(observation, danger_level);
-        let commands = planner.plan(observation, gain, self.platform().num_actuators());
-        MotorPlanResult {
-            commands,
-            status: planner.status(),
+        let num_actuators = self.platform().num_actuators();
+
+        // Reject bad sensor/command context before allowing the agent to mutate
+        // state in tick() or letting any planner observe the request.
+        if observation.iter().any(|value| !value.is_finite()) {
+            return MotorPlanResult {
+                commands: vec![0.0; num_actuators],
+                status: MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation),
+            };
         }
+        if !danger_level.is_finite() {
+            return MotorPlanResult {
+                commands: vec![0.0; num_actuators],
+                status: MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidDangerLevel),
+            };
+        }
+
+        let gain = self.tick(observation, danger_level);
+        if !self.can_act() {
+            return MotorPlanResult {
+                commands: vec![0.0; num_actuators],
+                status: MotorPlannerStatus::Rejected(MotorPlannerFault::AgentNotAuthorized),
+            };
+        }
+        if !gain.is_finite() || !(0.0..=1.0).contains(&gain) {
+            return MotorPlanResult {
+                commands: vec![0.0; num_actuators],
+                status: MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidGain),
+            };
+        }
+
+        let commands = planner.plan(observation, gain, num_actuators);
+        let status = planner.status();
+        if status != MotorPlannerStatus::Ready {
+            // Do not surface candidate commands as accepted when a planner
+            // explicitly reports rejection.
+            return MotorPlanResult {
+                commands: vec![0.0; num_actuators],
+                status,
+            };
+        }
+        if commands.len() != num_actuators || commands.iter().any(|value| !value.is_finite()) {
+            return MotorPlanResult {
+                commands: vec![0.0; num_actuators],
+                status: MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidOutput),
+            };
+        }
+
+        MotorPlanResult { commands, status }
     }
 
     /// Legacy vector-only planning helper.
@@ -95,8 +138,23 @@ pub fn spawn_robot_body<const D: usize>(
 mod tests {
     use super::*;
     use crate::motor::{MotorPlannerFault, MotorPlannerStatus};
+    use std::cell::Cell;
 
-    struct TestAgent;
+    struct TestAgent {
+        tick_calls: Cell<usize>,
+        act_authorized: bool,
+        gain: f64,
+    }
+
+    impl TestAgent {
+        fn new() -> Self {
+            Self {
+                tick_calls: Cell::new(0),
+                act_authorized: true,
+                gain: 0.5,
+            }
+        }
+    }
 
     impl RoboticAgent for TestAgent {
         fn body(&self) -> BodyHandle {
@@ -108,32 +166,157 @@ mod tests {
         }
 
         fn tick(&mut self, _observation: &[f64], _danger_level: f64) -> f64 {
-            0.5
+            self.tick_calls.set(self.tick_calls.get() + 1);
+            self.gain
+        }
+
+        fn can_act(&self) -> bool {
+            self.act_authorized
         }
     }
 
-    struct RejectingPlanner;
+    struct TestPlanner {
+        calls: usize,
+        commands: Option<Vec<f64>>,
+        result_status: MotorPlannerStatus,
+    }
 
-    impl MotorPlanner for RejectingPlanner {
+    impl TestPlanner {
+        fn ready() -> Self {
+            Self {
+                calls: 0,
+                commands: None,
+                result_status: MotorPlannerStatus::Ready,
+            }
+        }
+    }
+
+    impl MotorPlanner for TestPlanner {
         fn plan(&mut self, _observation: &[f64], _gain: f64, num_actuators: usize) -> Vec<f64> {
-            vec![0.0; num_actuators]
+            self.calls += 1;
+            self.commands.clone().unwrap_or_else(|| vec![0.25; num_actuators])
         }
 
-        fn status(&self) -> crate::motor::MotorPlannerStatus {
-            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
+        fn status(&self) -> MotorPlannerStatus {
+            self.result_status
         }
     }
 
     #[test]
-    fn typed_motor_plan_preserves_rejection_status_and_vector_shape() {
-        let mut agent = TestAgent;
-        let mut planner = RejectingPlanner;
-        let result = agent.tick_motor_plan_with(&[f64::NAN], 0.0, &mut planner);
+    fn non_finite_observation_rejects_before_agent_tick_and_planner() {
+        let mut agent = TestAgent::new();
+        let mut planner = TestPlanner::ready();
+        let result = agent.tick_motor_plan_with(&[0.5, f64::NAN], 0.0, &mut planner);
 
         assert_eq!(result.commands, vec![0.0; 4]);
         assert_eq!(
             result.status,
             MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
         );
+        assert_eq!(agent.tick_calls.get(), 0);
+        assert_eq!(planner.calls, 0);
+    }
+
+    #[test]
+    fn invalid_danger_level_rejects_before_agent_tick_and_planner() {
+        let mut agent = TestAgent::new();
+        let mut planner = TestPlanner::ready();
+        let result = agent.tick_motor_plan_with(&[0.5], f64::INFINITY, &mut planner);
+
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidDangerLevel)
+        );
+        assert_eq!(agent.tick_calls.get(), 0);
+        assert_eq!(planner.calls, 0);
+    }
+
+    #[test]
+    fn agent_authorization_gate_prevents_planning() {
+        let mut agent = TestAgent::new();
+        agent.act_authorized = false;
+        let mut planner = TestPlanner::ready();
+        let result = agent.tick_motor_plan_with(&[0.5], 0.1, &mut planner);
+
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::AgentNotAuthorized)
+        );
+        assert_eq!(agent.tick_calls.get(), 1);
+        assert_eq!(planner.calls, 0);
+    }
+
+    #[test]
+    fn invalid_agent_gain_prevents_planning() {
+        let mut agent = TestAgent::new();
+        agent.gain = f64::NAN;
+        let mut planner = TestPlanner::ready();
+        let result = agent.tick_motor_plan_with(&[0.5], 0.1, &mut planner);
+
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidGain)
+        );
+        assert_eq!(planner.calls, 0);
+    }
+
+    #[test]
+    fn invalid_planner_output_is_rejected_and_normalized_to_expected_shape() {
+        let mut agent = TestAgent::new();
+        let mut planner = TestPlanner::ready();
+        planner.commands = Some(vec![0.1, f64::INFINITY]);
+
+        let result = agent.tick_motor_plan_with(&[0.5], 0.1, &mut planner);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidOutput)
+        );
+    }
+
+    #[test]
+    fn explicit_planner_rejection_does_not_leak_candidate_commands() {
+        let mut agent = TestAgent::new();
+        let mut planner = TestPlanner::ready();
+        planner.commands = Some(vec![0.9; 4]);
+        planner.result_status =
+            MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure);
+
+        let result = agent.tick_motor_plan_with(&[0.5], 0.1, &mut planner);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure)
+        );
+    }
+
+    #[test]
+    fn typed_motor_plan_preserves_rejection_status_and_vector_shape() {
+        let mut agent = TestAgent::new();
+        let mut planner = TestPlanner::ready();
+        planner.result_status =
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation);
+
+        let result = agent.tick_motor_plan_with(&[0.5], 0.0, &mut planner);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
+        );
+    }
+
+    #[test]
+    fn valid_request_preserves_planned_commands() {
+        let mut agent = TestAgent::new();
+        let mut planner = TestPlanner::ready();
+        let result = agent.tick_motor_plan_with(&[0.5], 0.0, &mut planner);
+
+        assert_eq!(result.commands, vec![0.25; 4]);
+        assert_eq!(result.status, MotorPlannerStatus::Ready);
+        assert_eq!(agent.tick_calls.get(), 1);
+        assert_eq!(planner.calls, 1);
     }
 }
