@@ -110,5 +110,13 @@
     "sensor_quality_definition": "confusion counts for passive local water-alert classification versus the true unsafe-water condition at the same cell/time; this is sensor diagnostic performance, not policy calibration",
     "normalized_decision_regret_status": "not_assessed_v0",
     "normalized_decision_regret_reason": "No proven optimal policy or empirically grounded utility mapping is defined. The privileged greedy reference is not an optimality proof; do not silently substitute it for an oracle."
-  }
+  },
+  "tick_order": [
+    "apply_resource_regrowth_at_tick_start",
+    "deliver_due_local_observations",
+    "choose_action_using_only_authorized_information",
+    "apply_action_and_account_costs",
+    "emit_local_observation_with_declared_latency",
+    "record_evaluator_only_metrics"
+  ]
 }
