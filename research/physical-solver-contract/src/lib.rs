@@ -8,6 +8,7 @@ pub mod equilibrium;
 pub mod load_scaling;
 pub mod mesh_convergence;
 pub mod reference_compare;
+pub mod superposition;
 
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
