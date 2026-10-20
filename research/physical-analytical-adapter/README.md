@@ -59,3 +59,10 @@ See [PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md](../../docs/research/PHYSICAL_ANALYT
 ## Bounded analytical input uncertainty (API preview)
 
 The [interval enclosure method](../../docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md), tracked by [PHYS-UQ-001 #2292](https://github.com/Luminous-Dynamics/symtropy/issues/2292), is integrated into the public JSON request and receipt contract on the UQ branch. Each bound includes finite endpoints, an explicit SI unit, a provenance class, and a source locator. The receipt reports lower/nominal/upper and finite width, or leaves enclosures null when bounds were not supplied or propagation remains unresolved. Bounds are deterministic ranges, not statistical confidence intervals, and their declared provenance is not independently certified.
+
+
+## Independent interval arithmetic oracle
+
+The uncertainty module has a test-only dependency on **Inari 2.0.0** with default features disabled. This is pinned in `Cargo.toml` and `Cargo.lock`; it is not a production/runtime dependency. See [PHYSICAL_INTERVAL_ORACLE_V0_1.md](../../docs/research/PHYSICAL_INTERVAL_ORACLE_V0_1.md) for its license/version, the pinned [ITF1788 framework revision](https://github.com/unageek/ITF1788/tree/d8c2a64478ebdc9cbde6ccef33eaad3bed60ed81), differential test scope, and limits.
+
+For finite matching domains, Symtropy results must contain Inari's independent multiplication/division endpoints. The tests also compare positive powers built from interval products. Symtropy intentionally rejects operations that overflow or whose divisor contains zero; those are fail-closed API semantics and are not treated as a like-for-like IEEE interval result. This is a limited differential oracle, not an IEEE 1788 conformance claim.
