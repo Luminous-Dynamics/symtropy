@@ -118,5 +118,11 @@
     "apply_action_and_account_costs",
     "emit_local_observation_with_declared_latency",
     "record_evaluator_only_metrics"
-  ]
+  ],
+  "compute": {
+    "budget_source": "pilot_manifest_budget_contract_compute_budget_units",
+    "units_definition": "one accounted compute unit per scheduled simulation tick; this is a contract workload counter, not measured wall-clock or hardware cost",
+    "hardware_performance_claims_allowed": false,
+    "paired_policy_budget_definition": "same tick horizon, action-slot limit, sensing opportunity cap, and declared compute-unit limit; sensing consumes an action slot and agent energy"
+  }
 }
