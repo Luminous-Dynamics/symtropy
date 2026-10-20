@@ -1161,6 +1161,7 @@ mod tests {
             site_power_budget_kw: site_kw,
             jobs,
             capacity_events: events,
+            port_release_policy: PortReleasePolicy::ReleaseOnChargeCompletion,
         }
     }
 
@@ -1539,4 +1540,66 @@ mod tests {
             && reference.energy_service_fraction >= MIN_ENERGY_SERVICE_FRACTION;
         assert_eq!(base.meets_service_target, reference_meets);
     }
+    #[test]
+    fn post_charge_port_hold_blocks_queued_job_without_draw_or_extra_energy() {
+        let templates = templates(template(100.0, 1.0, 10.0, constant_curve(10.0)));
+        let jobs = vec![
+            job("a-long-dwell", 0.0, 120.0, 0.0, 0.10),
+            job("b-queued", 10.0, 100.0, 0.0, 0.05),
+        ];
+        let mut release = scenario(jobs.clone(), 1, 10.0, vec![]);
+        release.port_release_policy = PortReleasePolicy::ReleaseOnChargeCompletion;
+        let release_result =
+            simulate_scenario(&templates, &release, Policy::FirstComeFirstServed).unwrap();
+
+        let mut hold = scenario(jobs, 1, 10.0, vec![]);
+        hold.port_release_policy = PortReleasePolicy::HoldUntilDeparture;
+        let hold_result = simulate_scenario(&templates, &hold, Policy::FirstComeFirstServed).unwrap();
+
+        assert_eq!(release_result.completed_by_deadline_count, 2);
+        assert!((release_result.site_input_energy_kwh - 15.0).abs() < EPSILON);
+        assert_eq!(release_result.port_release_policy, "release_on_charge_completion");
+
+        assert_eq!(hold_result.completed_by_deadline_count, 1);
+        assert_eq!(hold_result.missed_deadline_count, 1);
+        assert!((hold_result.site_input_energy_kwh - 10.0).abs() < EPSILON);
+        assert!((hold_result.delivered_battery_energy_kwh - 10.0).abs() < EPSILON);
+        assert!((hold_result.unserved_battery_energy_kwh - 5.0).abs() < EPSILON);
+        assert!(hold_result.energy_balance_residual_kwh.abs() < EPSILON);
+        assert!(hold_result.site_power_limit_respected);
+        assert!(hold_result.individual_power_limits_respected);
+        assert_eq!(hold_result.port_release_policy, "hold_until_departure");
+        let queued = hold_result.jobs.iter().find(|job| job.job_id == "b-queued").unwrap();
+        assert_eq!(queued.site_input_energy_kwh, 0.0);
+        assert_eq!(queued.delivered_battery_energy_kwh, 0.0);
+        assert_eq!(queued.unserved_battery_energy_kwh, 5.0);
+    }
+
+    #[test]
+    fn held_connector_releases_exactly_at_departure_boundary() {
+        let templates = templates(template(100.0, 1.0, 10.0, constant_curve(10.0)));
+        let jobs = vec![
+            job("a-boundary", 0.0, 60.0, 0.0, 0.10),
+            job("b-after-release", 30.0, 90.0, 0.0, 0.05),
+        ];
+        let mut hold = scenario(jobs, 1, 10.0, vec![]);
+        hold.port_release_policy = PortReleasePolicy::HoldUntilDeparture;
+        let result =
+            simulate_scenario(&templates, &hold, Policy::FirstComeFirstServed).unwrap();
+        assert_eq!(result.completed_by_deadline_count, 2);
+        assert_eq!(result.missed_deadline_count, 0);
+        assert_eq!(
+            result.jobs.iter().find(|job| job.job_id == "a-boundary").unwrap().completion_minute,
+            Some(60.0)
+        );
+        assert_eq!(
+            result.jobs.iter().find(|job| job.job_id == "b-after-release").unwrap().first_start_minute,
+            Some(60.0)
+        );
+        assert_eq!(
+            result.jobs.iter().find(|job| job.job_id == "b-after-release").unwrap().completion_minute,
+            Some(90.0)
+        );
+    }
+
 }
