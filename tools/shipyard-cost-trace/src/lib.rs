@@ -820,6 +820,17 @@ mod tests {
     }
 
     #[test]
+    fn financial_actuals_sum_exact_minor_units_including_credit_notes() {
+        let events = vec![
+            financial_event("invoice", "inv-1:line-1", 35_000),
+            financial_event("credit", "credit-1:line-1", -5_001),
+        ];
+        let report = audit(&events).unwrap();
+        assert_eq!(report.financial_actuals.len(), 1);
+        assert_eq!(report.financial_actuals[0].amount_minor_units, 29_999);
+    }
+
+    #[test]
     fn financial_minor_unit_overflow_is_rejected() {
         let events = vec![
             financial_event("event-1", "inv-42:line-3", i64::MAX),
