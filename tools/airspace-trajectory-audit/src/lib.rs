@@ -619,20 +619,16 @@ fn evaluate_segment_pair(
 
     let vx = checked_sub(dx_end, dx_start)?;
     let vy = checked_sub(dy_end, dy_start)?;
-    let denominator = checked_add(checked_mul(vx, vx)?, checked_mul(vy, vy)?)?;
-    let dot = checked_add(checked_mul(dx_start, vx)?, checked_mul(dy_start, vy)?)?;
+    let denominator = compensated_sum_products(vx, vx, vy, vy)?;
+    let dot = compensated_sum_products(dx_start, vx, dy_start, vy)?;
 
-    if denominator == 0.0 && (vx != 0.0 || vy != 0.0) {
+    if denominator.0 == 0.0 && (denominator.1 != 0.0 || vx != 0.0 || vy != 0.0) {
         return Err(AuditInputError::NumericPrecisionLoss);
     }
-    let unconstrained_u = if denominator == 0.0 {
+    let unconstrained_u = if denominator.0 == 0.0 {
         vertical_u_start
     } else {
-        let value = -dot / denominator;
-        if !value.is_finite() {
-            return Err(AuditInputError::NumericOverflow);
-        }
-        value
+        compensated_divide((-dot.0, -dot.1), denominator)?
     };
     let u = unconstrained_u.clamp(vertical_u_start, vertical_u_end);
 
@@ -894,6 +890,87 @@ fn checked_sub(left: f64, right: f64) -> Result<f64, AuditInputError> {
     } else {
         Err(AuditInputError::NumericOverflow)
     }
+}
+
+/// Sum two products with a retained floating-point residual for the minimizer's dot products.
+///
+/// Product residuals use fused multiply-add, and the summation uses error-free two-sum
+/// transformations under ordinary IEEE-754 round-to-nearest semantics. Very small subnormal
+/// products fail closed because the residual itself may not be representable.
+fn compensated_sum_products(
+    a: f64,
+    b: f64,
+    c: f64,
+    d: f64,
+) -> Result<(f64, f64), AuditInputError> {
+    let (p, p_error) = product_with_residual(a, b)?;
+    let (q, q_error) = product_with_residual(c, d)?;
+    let (sum, sum_error) = two_sum(p, q)?;
+    let (products_error, products_roundoff) = two_sum(p_error, q_error)?;
+    let (low, low_roundoff) = two_sum(products_error, sum_error)?;
+    let (high, renormalize_error) = two_sum(sum, low)?;
+    let (low, renormalize_roundoff) = two_sum(renormalize_error, products_roundoff)?;
+    let final_low = checked_add(
+        checked_add(low, low_roundoff)?,
+        renormalize_roundoff,
+    )?;
+    Ok((high, final_low))
+}
+
+fn product_with_residual(a: f64, b: f64) -> Result<(f64, f64), AuditInputError> {
+    let product = checked_mul(a, b)?;
+    if product != 0.0 && product.abs() < f64::MIN_POSITIVE {
+        return Err(AuditInputError::NumericPrecisionLoss);
+    }
+    let residual = a.mul_add(b, -product);
+    if !residual.is_finite() {
+        return Err(AuditInputError::NumericOverflow);
+    }
+    Ok((product, residual))
+}
+
+fn two_sum(a: f64, b: f64) -> Result<(f64, f64), AuditInputError> {
+    let sum = checked_add(a, b)?;
+    let b_virtual = sum - a;
+    let a_virtual = sum - b_virtual;
+    let b_roundoff = b - b_virtual;
+    let a_roundoff = a - a_virtual;
+    let residual = a_roundoff + b_roundoff;
+    if !residual.is_finite() {
+        return Err(AuditInputError::NumericOverflow);
+    }
+    Ok((sum, residual))
+}
+
+fn compensated_divide(
+    numerator: (f64, f64),
+    denominator: (f64, f64),
+) -> Result<f64, AuditInputError> {
+    let (numerator_high, numerator_low) = numerator;
+    let (denominator_high, denominator_low) = denominator;
+    if denominator_high == 0.0 {
+        return Err(AuditInputError::NumericPrecisionLoss);
+    }
+    let quotient = numerator_high / denominator_high;
+    if !quotient.is_finite() {
+        return Err(AuditInputError::NumericOverflow);
+    }
+    if quotient == 0.0 && (numerator_high != 0.0 || numerator_low != 0.0) {
+        return Err(AuditInputError::NumericPrecisionLoss);
+    }
+
+    // Residual of n - q*d, retaining the product of q and d_high with one fused rounding.
+    let residual_high = (-quotient).mul_add(denominator_high, numerator_high);
+    let denominator_correction = checked_mul(quotient, denominator_low)?;
+    let residual = checked_add(
+        checked_add(residual_high, numerator_low)?,
+        -denominator_correction,
+    )?;
+    let correction = residual / denominator_high;
+    if !correction.is_finite() {
+        return Err(AuditInputError::NumericOverflow);
+    }
+    checked_add(quotient, correction)
 }
 
 fn checked_mul(left: f64, right: f64) -> Result<f64, AuditInputError> {
