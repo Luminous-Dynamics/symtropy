@@ -660,8 +660,9 @@ fn base_report(manifest: &Manifest, manifest_sha256: &str, request_sha256: &str)
 }
 
 fn mark_unresolved(mut report: Value, reason: impl Into<String>) -> Value {
+    let reason = reason.into();
     report["audit_status"] = json!("UNRESOLVED");
-    report["diagnostics"] = json!([reason.into()]);
+    report["diagnostics"] = json!([reason]);
     report["physical_result_qualified"] = json!(false);
     report["real_world_validation_status"] = json!("UNRESOLVED");
     report
