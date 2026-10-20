@@ -126,9 +126,11 @@ Run it with:
 
 ```sh
 cargo fmt --manifest-path tools/furnishing-layout-audit/Cargo.toml -- --check
-cargo test --manifest-path tools/furnishing-layout-audit/Cargo.toml
-cargo clippy --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+cargo test --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml
+cargo clippy --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
 cargo run --manifest-path tools/furnishing-layout-audit/Cargo.toml
 ```
 
 The checker is an independent **synthetic 2D rectangle oracle**, not an architectural solver. Its tests prove only that these fixture inputs, cross-references and expected outcomes are internally consistent. The fixture coordinates and clearances are not building rules; successful validation does not establish accessibility, egress/code compliance, physical performance, manufacturability, or suitability of a real dwelling. The dedicated exact-head workflow checks formatting, mutation tests and Clippy before this helper is treated as a maintained benchmark gate.
+
+The independent audit crate includes a committed `Cargo.lock`; the dedicated workflow uses `--locked` for test and Clippy runs.
