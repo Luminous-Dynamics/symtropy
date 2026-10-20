@@ -806,7 +806,8 @@ mod tests {
     fn duplicate_scenario_ids_reject() {
         let (mut fixture, manifest) = fixture_and_manifest();
         let scenarios = fixture["scenarios"].as_array_mut().expect("scenarios");
-        scenarios[1]["id"] = scenarios[0]["id"].clone();
+        let duplicate_id = scenarios[0]["id"].clone();
+        scenarios[1]["id"] = duplicate_id;
         let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
             .expect_err("duplicate ID must fail");
         assert!(error.contains("duplicate scenario ID"), "{error}");
