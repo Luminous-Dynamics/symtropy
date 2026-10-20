@@ -453,12 +453,12 @@
         "predefined clean-surface splash receivers"
       ],
       "primary_metrics": [
-        "water_l_during_protocol",
+        "water_consumption_during_test",
         "spray_force_n",
         "spray_coverage_area_cm2",
         "soil_removal_fraction",
         "task_duration",
-        "user_effort_scale",
+        "user_effort",
         "cleaning_endpoint"
       ],
       "hard_gates": [
