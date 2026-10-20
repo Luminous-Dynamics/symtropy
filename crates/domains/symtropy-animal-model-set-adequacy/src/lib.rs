@@ -309,7 +309,13 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
         errors,
     );
 
-    require_schema_string(schema, "/properties/cases/items/type", "object", "schema case item type", errors);
+    require_schema_string(
+        schema,
+        "/properties/cases/items/type",
+        "object",
+        "schema case item type",
+        errors,
+    );
     require_schema_boolean(
         schema,
         "/properties/cases/items/additionalProperties",
