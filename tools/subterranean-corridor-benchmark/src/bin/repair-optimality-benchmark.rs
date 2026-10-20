@@ -50,7 +50,6 @@ impl Default for SearchState {
     }
 }
 
-#[derive(Debug, Clone)]
 #[derive(Debug, Clone, Copy)]
 enum PriorityRule {
     LongestProcessingTime,
@@ -134,8 +133,8 @@ fn priority_order(
         }
 
         ready.sort_by(|left, right| {
-            let left_task = by_id[left];
-            let right_task = by_id[right];
+            let left_task = *by_id.get(left).expect("ready task has a task record");
+            let right_task = *by_id.get(right).expect("ready task has a task record");
             let priority = match rule {
                 PriorityRule::LongestProcessingTime => {
                     right_task.duration_hours.total_cmp(&left_task.duration_hours)
