@@ -4,12 +4,14 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/**"
       - "docs/research/EV_PASSENGER_COST_FEASIBILITY_V0_1.md"
+      - "docs/research/EV_LOCALIZATION_AND_LIFETIME_BENCHMARKS_V0_1.md"
       - ".github/workflows/ev-passenger-cost-frontier.yml"
   push:
     branches: [main]
     paths:
       - "tools/ev-passenger-cost-frontier/**"
       - "docs/research/EV_PASSENGER_COST_FEASIBILITY_V0_1.md"
+      - "docs/research/EV_LOCALIZATION_AND_LIFETIME_BENCHMARKS_V0_1.md"
       - ".github/workflows/ev-passenger-cost-frontier.yml"
   workflow_dispatch:
 
@@ -29,6 +31,7 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -61,16 +64,34 @@ jobs:
             and all(.results[]; .release_disposition == "needs_evidence")
             and all(.results[]; .economics_result == "range_crosses_target_ceiling")
           ' ev-passenger-cost-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev-localization-frontier -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json \
+            > ev-localization-cost-report.json
+          jq -e '
+            .benchmark_id == "EV-LOCALIZATION-001"
+            and .baseline_observed_retail_price == 341900
+            and .target_retail_price_ceiling == 307710
+            and .result_count == 16
+            and all(.results[]; .cost_inputs_release_grade == false)
+            and all(.results[]; .tariff_treatments_qualified == false)
+            and all(.results[]; .economics_evidence_status == "needs_evidence")
+            and all(.results[]; .frontier_given_declared_vat_status == null)
+            and all(.results[]; .cost_of_goods_if_vat_unrecoverable_low >= .cost_of_goods_if_vat_recovered_low)
+            and all(.results[]; .cost_of_goods_if_vat_unrecoverable_high >= .cost_of_goods_if_vat_recovered_high)
+          ' ev-localization-cost-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json \
             tools/ev-passenger-cost-frontier/src/main.rs \
-            ev-passenger-cost-report.json > ev-passenger-cost-report.sha256
+            tools/ev-passenger-cost-frontier/src/bin/ev_localization_frontier.rs \
+            ev-passenger-cost-report.json ev-localization-cost-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-passenger-cost-frontier-report
           path: |
             ev-passenger-cost-report.json
+            ev-localization-cost-report.json
             ev-passenger-cost-report.sha256
           if-no-files-found: error
