@@ -353,3 +353,111 @@ mod tests {
         assert_eq!(allowed.len(), faults.len());
     }
 }
+
+
+#[cfg(test)]
+mod atomfab_workcell_fault_corpus_tests {
+    use super::MotorPlannerFault;
+    use std::collections::BTreeSet;
+
+    #[derive(serde::Deserialize)]
+    struct Corpus {
+        schema_version: u16,
+        corpus_id: String,
+        cases: Vec<Case>,
+    }
+
+    #[derive(serde::Deserialize)]
+    struct Case {
+        case_id: String,
+        #[serde(default)]
+        adapter_fault: Option<MotorPlannerFault>,
+        control: bool,
+        expected: Expected,
+    }
+
+    #[derive(serde::Deserialize)]
+    struct Expected {
+        decision: String,
+        reason_codes: Vec<String>,
+        simulation_action_authorized: bool,
+        feasibility_status: String,
+        hard_constraint_violation: bool,
+    }
+
+    #[test]
+    fn shared_atomfab_fault_corpus_maps_adapter_failures_to_typed_faults() {
+        let corpus: Corpus = serde_json::from_str(include_str!(
+            "../../../../docs/research/ATOMFAB_WORKCELL_FAULT_CORPUS_V1.json"
+        ))
+        .expect("shared AtomFab workcell fault corpus must parse");
+
+        assert_eq!(corpus.schema_version, 1);
+        assert_eq!(corpus.corpus_id, "atomfab-workcell-fault-corpus-v1");
+        assert!(corpus.cases.len() >= 15);
+
+        let mut ids = BTreeSet::new();
+        for case in &corpus.cases {
+            assert!(ids.insert(case.case_id.as_str()), "duplicate corpus id: {}", case.case_id);
+            if case.expected.decision != "accept" {
+                assert!(
+                    !case.expected.simulation_action_authorized,
+                    "non-accepting case {} authorizes simulated action",
+                    case.case_id
+                );
+                assert!(
+                    !case.expected.reason_codes.is_empty(),
+                    "rejected/abstained case {} lacks a reason code",
+                    case.case_id
+                );
+            }
+            if case.expected.feasibility_status == "feasible" {
+                assert_eq!(
+                    case.expected.decision, "accept",
+                    "case {} is feasible without an accepted decision",
+                    case.case_id
+                );
+            }
+            if case.expected.hard_constraint_violation {
+                assert_ne!(case.expected.decision, "accept");
+                assert_eq!(case.expected.feasibility_status, "infeasible");
+            }
+        }
+
+        let required_adapter_faults = [
+            ("stale-observation", MotorPlannerFault::InvalidObservation),
+            ("non-finite-observation", MotorPlannerFault::InvalidObservation),
+            ("invalid-planner-gain", MotorPlannerFault::InvalidGain),
+            ("actuator-count-mismatch", MotorPlannerFault::ActuatorInterfaceMismatch),
+            ("bridge-timeout", MotorPlannerFault::BridgeFailure),
+            ("malformed-planner-output", MotorPlannerFault::InvalidOutput),
+        ];
+        for (case_id, expected_fault) in required_adapter_faults {
+            let case = corpus
+                .cases
+                .iter()
+                .find(|case| case.case_id == case_id)
+                .unwrap_or_else(|| panic!("missing adapter fault case {case_id}"));
+            assert_eq!(
+                case.adapter_fault,
+                Some(expected_fault),
+                "typed fault mismatch for {case_id}"
+            );
+            assert_eq!(case.expected.decision, "reject", "{case_id} must reject");
+            assert!(
+                !case.expected.simulation_action_authorized,
+                "{case_id} must not authorize simulated action"
+            );
+            assert!(!case.control, "fault case {case_id} must not be marked as control");
+        }
+
+        let mapped_count = corpus.cases.iter().filter(|case| case.adapter_fault.is_some()).count();
+        assert_eq!(mapped_count, required_adapter_faults.len());
+
+        assert!(corpus.cases.iter().any(|case| {
+            case.control
+                && case.expected.decision == "accept"
+                && case.expected.simulation_action_authorized
+        }), "the corpus must include an accepted control; reject-all is not valid");
+    }
+}
