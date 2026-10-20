@@ -83,7 +83,12 @@ pub fn assess_equilibrium_bytes(
 
     let request: Value = match serde_json::from_slice(request_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(mark_unresolved(report, format!("invalid request JSON: {error}"))),
+        Err(error) => {
+           return Ok(mark_unresolved(
+               report,
+               format!("invalid request JSON: {error}"),
+           ));
+       }
     };
     if let Err(reason) = validate_manifest_request_binding(&manifest, &request, &request_sha256) {
         return Ok(mark_unresolved(report, reason));
@@ -91,7 +96,12 @@ pub fn assess_equilibrium_bytes(
 
     let required_outputs = match request.get("required_outputs").and_then(Value::as_array) {
         Some(values) => values,
-        None => return Ok(mark_unresolved(report, "request.required_outputs is missing or invalid")),
+        None => {
+           return Ok(mark_unresolved(
+               report,
+               "request.required_outputs is missing or invalid",
+           ));
+       }
     };
     if !required_outputs.iter().any(|item| item.as_str() == Some("reaction_force"))
         || !required_outputs.iter().any(|item| item.as_str() == Some("reaction_moment"))
@@ -138,11 +148,21 @@ pub fn assess_equilibrium_bytes(
 
     let receipt: Value = match serde_json::from_slice(receipt_bytes) {
         Ok(value) => value,
-        Err(error) => return Ok(mark_unresolved(report, format!("invalid receipt JSON: {error}"))),
+        Err(error) => {
+           return Ok(mark_unresolved(
+               report,
+               format!("invalid receipt JSON: {error}"),
+           ));
+       }
     };
     let outputs = match receipt.get("outputs").and_then(Value::as_array) {
         Some(values) => values,
-        None => return Ok(mark_unresolved(report, "receipt.outputs is missing or invalid")),
+        None => {
+           return Ok(mark_unresolved(
+               report,
+               "receipt.outputs is missing or invalid",
+           ));
+       }
     };
     let force_output = match find_output(outputs, reaction_force_output_id, "reaction_force") {
         Ok(value) => value,
@@ -218,7 +238,10 @@ pub fn assess_equilibrium_bytes(
         "N*m",
     );
     if force["status"] == "UNRESOLVED" || moment["status"] == "UNRESOLVED" {
-        return Ok(mark_unresolved(report, "force or moment residual calculation was non-finite"));
+        return Ok(mark_unresolved(
+           report,
+           "force or moment residual calculation was non-finite",
+       ));
     }
 
     let force_status = force["status"].as_str().unwrap_or("UNRESOLVED");
@@ -331,7 +354,11 @@ fn balance_dimension(
         Value::Null
     } else {
         let ratio = residual_norm / scale;
-        if ratio.is_finite() { json!(ratio) } else { Value::Null }
+        if ratio.is_finite() {
+           json!(ratio)
+       } else {
+           Value::Null
+       }
     };
     let normalized_status = if scale == 0.0 {
         "undefined_zero_scale"
@@ -375,7 +402,9 @@ fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
         "manifest",
     )?;
     if string_field(&value, "schema_version", "manifest")? != MANIFEST_SCHEMA {
-        return Err(format!("manifest.schema_version must equal {MANIFEST_SCHEMA}"));
+        return Err(format!(
+           "manifest.schema_version must equal {MANIFEST_SCHEMA}"
+       ));
     }
     let audit_id = id_field(&value, "audit_id", "manifest")?;
     let case_id = id_field(&value, "case_id", "manifest")?;
@@ -384,12 +413,16 @@ fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
     validate_sha(&request_sha256, "manifest.request_sha256")?;
     let scene_sha256 = string_field(&value, "scene_sha256", "manifest")?.to_owned();
     validate_sha(&scene_sha256, "manifest.scene_sha256")?;
-    let scene_revision = value.get("scene_revision").and_then(Value::as_u64)
+    let scene_revision = value
+       .get("scene_revision")
+       .and_then(Value::as_u64)
         .ok_or_else(|| "manifest.scene_revision must be a non-negative integer".to_owned())?;
     let coordinate_frame_id = id_field(&value, "coordinate_frame_id", "manifest")?;
     let origin_m = vec3_field(&value, "origin_m", "manifest")?;
 
-    let units = value.get("units").ok_or_else(|| "manifest.units is required".to_owned())?;
+    let units = value
+       .get("units")
+       .ok_or_else(|| "manifest.units is required".to_owned())?;
     exact_keys(units, &["length", "force", "moment"], "manifest.units")?;
     for (key, expected) in [("length", "m"), ("force", "N"), ("moment", "N*m")] {
         if string_field(units, key, "manifest.units")? != expected {
@@ -402,16 +435,26 @@ fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
     let reference_identity = nonempty_field(reference, "identity", "manifest.reference")?;
     let reference_source_ref = nonempty_field(reference, "source_ref", "manifest.reference")?;
 
-    let loads = value.get("applied_loads").and_then(Value::as_array)
+    let loads = value
+       .get("applied_loads")
+       .and_then(Value::as_array)
         .ok_or_else(|| "manifest.applied_loads must be an array".to_owned())?;
-    if loads.is_empty() { return Err("manifest.applied_loads must not be empty".to_owned()); }
+    if loads.is_empty() {
+       return Err("manifest.applied_loads must not be empty".to_owned());
+   }
     let mut applied_loads = Vec::with_capacity(loads.len());
     let mut load_ids = BTreeSet::new();
     for (index, load) in loads.iter().enumerate() {
         let at = format!("manifest.applied_loads[{index}]");
-        exact_keys(load, &["load_id", "target_id", "force_n", "position_m", "couple_nm"], &at)?;
+        exact_keys(
+           load,
+           &["load_id", "target_id", "force_n", "position_m", "couple_nm"],
+           &at,
+       )?;
         let id = id_field(load, "load_id", &at)?;
-        if !load_ids.insert(id.clone()) { return Err(format!("{at}.load_id is duplicated")); }
+        if !load_ids.insert(id.clone()) {
+           return Err(format!("{at}.load_id is duplicated"));
+       }
         applied_loads.push(AppliedLoad {
             id,
             target_id: id_field(load, "target_id", &at)?,
@@ -423,17 +466,27 @@ fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
     let required_force_ids = id_set(&value, "required_reaction_force_ids", "manifest")?;
     let required_moment_ids = id_set(&value, "required_reaction_moment_ids", "manifest")?;
     if required_force_ids.is_empty() || required_moment_ids.is_empty() {
-        return Err("manifest must require at least one reaction-force and reaction-moment ID".to_owned());
+        return Err(
+           "manifest must require at least one reaction-force and reaction-moment ID".to_owned(),
+       );
     }
-    let tolerances = value.get("tolerances").ok_or_else(|| "manifest.tolerances is required".to_owned())?;
+    let tolerances = value
+       .get("tolerances")
+       .ok_or_else(|| "manifest.tolerances is required".to_owned())?;
     exact_keys(
         tolerances,
-        &["force_absolute_n", "force_relative", "moment_absolute_nm", "moment_relative"],
+        &[
+           "force_absolute_n",
+           "force_relative",
+           "moment_absolute_nm",
+           "moment_relative",
+       ],
         "manifest.tolerances",
     )?;
     let force_abs_tol_n = nonnegative_field(tolerances, "force_absolute_n", "manifest.tolerances")?;
     let force_rel_tol = nonnegative_field(tolerances, "force_relative", "manifest.tolerances")?;
-    let moment_abs_tol_nm = nonnegative_field(tolerances, "moment_absolute_nm", "manifest.tolerances")?;
+    let moment_abs_tol_nm =
+       nonnegative_field(tolerances, "moment_absolute_nm", "manifest.tolerances")?;
     let moment_rel_tol = nonnegative_field(tolerances, "moment_relative", "manifest.tolerances")?;
 
     Ok(Manifest {
@@ -447,7 +500,9 @@ fn parse_manifest(bytes: &[u8]) -> Check<Manifest> {
 fn validate_manifest_request_binding(manifest: &Manifest, request: &Value, request_sha256: &str) -> Check<()> {
     let request_id = string_field(request, "request_id", "request")?;
     let scene_sha256 = string_field(request, "scene_sha256", "request")?;
-    let scene_revision = request.get("scene_revision").and_then(Value::as_u64)
+    let scene_revision = request
+       .get("scene_revision")
+       .and_then(Value::as_u64)
         .ok_or_else(|| "request.scene_revision must be a non-negative integer".to_owned())?;
     let frame = string_field(request, "coordinate_frame_id", "request")?;
     if manifest.request_sha256 != request_sha256
@@ -456,38 +511,60 @@ fn validate_manifest_request_binding(manifest: &Manifest, request: &Value, reque
         || manifest.scene_revision != scene_revision
         || manifest.coordinate_frame_id != frame
     {
-        return Err("manifest does not bind the exact request, scene revision, digest and coordinate frame".to_owned());
+        return Err(
+           "manifest does not bind the exact request, scene revision, digest and coordinate frame"
+               .to_owned(),
+       );
     }
-    let units = request.get("units").ok_or_else(|| "request.units missing".to_owned())?;
+    let units = request
+       .get("units")
+       .ok_or_else(|| "request.units missing".to_owned())?;
     if string_field(units, "length", "request.units")? != "m"
         || string_field(units, "force", "request.units")? != "N"
     {
         return Err("equilibrium auditor v0.1 supports only SI request units (m, N)".to_owned());
     }
-    let request_loads = request.get("loads").and_then(Value::as_array)
+    let request_loads = request
+       .get("loads")
+       .and_then(Value::as_array)
         .ok_or_else(|| "request.loads must be an array".to_owned())?;
     if request_loads.len() != manifest.applied_loads.len() {
-        return Err("manifest load inventory differs from the exact request load inventory".to_owned());
+        return Err(
+           "manifest load inventory differs from the exact request load inventory".to_owned(),
+       );
     }
     for applied in &manifest.applied_loads {
         let matching: Vec<&Value> = request_loads.iter().filter(|load| {
             load.get("load_id").and_then(Value::as_str) == Some(applied.id.as_str())
         }).collect();
         if matching.len() != 1 {
-            return Err(format!("manifest load '{}' does not map to exactly one request load", applied.id));
+            return Err(format!(
+               "manifest load '{}' does not map to exactly one request load",
+               applied.id
+           ));
         }
         let request_load = matching[0];
         if string_field(request_load, "kind", "request load")? != "point_force" {
-            return Err(format!("request load '{}' is outside the point-force-only equilibrium envelope", applied.id));
+            return Err(format!(
+               "request load '{}' is outside the point-force-only equilibrium envelope",
+               applied.id
+           ));
         }
         if string_field(request_load, "target_id", "request load")? != applied.target_id
-            || string_field(request_load, "coordinate_frame_id", "request load")? != manifest.coordinate_frame_id
+            || string_field(request_load, "coordinate_frame_id", "request load")?
+               != manifest.coordinate_frame_id
         {
-            return Err(format!("manifest load '{}' target/frame differs from the request", applied.id));
+            return Err(format!(
+               "manifest load '{}' target/frame differs from the request",
+               applied.id
+           ));
         }
         let vector = vec3_field(request_load, "vector_xyz", "request load")?;
         if vector != applied.force_n {
-            return Err(format!("manifest force for load '{}' differs from the exact request vector", applied.id));
+            return Err(format!(
+               "manifest force for load '{}' differs from the exact request vector",
+               applied.id
+           ));
         }
     }
     Ok(())
@@ -498,11 +575,15 @@ fn find_output<'a>(outputs: &'a [Value], output_id: &str, expected_kind: &str) -
         output.get("output_id").and_then(Value::as_str) == Some(output_id)
     }).collect();
     if selected.len() != 1 {
-        return Err(format!("receipt must contain exactly one output ID '{output_id}'"));
+        return Err(format!(
+           "receipt must contain exactly one output ID '{output_id}'"
+       ));
     }
     let output = selected[0];
     if string_field(output, "kind", "receipt output")? != expected_kind {
-        return Err(format!("receipt output '{output_id}' must have kind '{expected_kind}'"));
+        return Err(format!(
+           "receipt output '{output_id}' must have kind '{expected_kind}'"
+       ));
     }
     Ok(output)
 }
@@ -513,42 +594,61 @@ fn read_verified_output(
     verification_report: &Value,
     output_id: &str,
 ) -> Result<Vec<u8>, String> {
-    let results = verification_report.get("artifact_results").and_then(Value::as_array)
+    let results = verification_report
+       .get("artifact_results")
+       .and_then(Value::as_array)
         .ok_or_else(|| "artifact verifier omitted artifact_results".to_owned())?;
     let verified = results.iter().find(|item| {
         item.get("output_id").and_then(Value::as_str) == Some(output_id)
     }).ok_or_else(|| format!("output '{output_id}' is absent from the byte-verification report"))?;
     if verified.get("status").and_then(Value::as_str) != Some("PASS") {
-        return Err(format!("output '{output_id}' did not pass its initial byte verification"));
+        return Err(format!(
+           "output '{output_id}' did not pass its initial byte verification"
+       ));
     }
     let expected_sha = string_field(output, "sha256", "receipt output")?;
     if string_field(verified, "observed_sha256", "artifact verification entry")? != expected_sha {
-        return Err(format!("output '{output_id}' verifier digest disagrees with receipt digest"));
+        return Err(format!(
+           "output '{output_id}' verifier digest disagrees with receipt digest"
+       ));
     }
 
-    let root = fs::canonicalize(artifact_root).map_err(|error| format!("cannot canonicalize artifact root: {error}"))?;
+    let root = fs::canonicalize(artifact_root)
+       .map_err(|error| format!("cannot canonicalize artifact root: {error}"))?;
     let reference = string_field(output, "artifact_ref", "receipt output")?;
     let relative = safe_relative_path(reference)?;
     let candidate = root.join(relative);
-    let canonical = fs::canonicalize(&candidate).map_err(|error| format!("cannot resolve output '{output_id}': {error}"))?;
+    let canonical = fs::canonicalize(&candidate)
+       .map_err(|error| format!("cannot resolve output '{output_id}': {error}"))?;
     if !canonical.starts_with(&root) {
-        return Err(format!("output '{output_id}' resolves outside artifact root"));
+        return Err(format!(
+           "output '{output_id}' resolves outside artifact root"
+       ));
     }
-    let metadata = fs::metadata(&canonical).map_err(|error| format!("cannot inspect output '{output_id}': {error}"))?;
+    let metadata = fs::metadata(&canonical)
+       .map_err(|error| format!("cannot inspect output '{output_id}': {error}"))?;
     if !metadata.is_file() || metadata.len() > MAX_REACTION_BYTES {
-        return Err(format!("output '{output_id}' is not a regular file within the 8 MiB budget"));
+        return Err(format!(
+           "output '{output_id}' is not a regular file within the 8 MiB budget"
+       ));
     }
-    let bytes = fs::read(&canonical).map_err(|error| format!("cannot read output '{output_id}': {error}"))?;
+    let bytes = fs::read(&canonical)
+       .map_err(|error| format!("cannot read output '{output_id}': {error}"))?;
     if sha256_hex(&bytes) != expected_sha {
-        return Err(format!("output '{output_id}' changed after initial verification"));
+        return Err(format!(
+           "output '{output_id}' changed after initial verification"
+       ));
     }
     Ok(bytes)
 }
 
 fn parse_force_output(bytes: &[u8], manifest: &Manifest) -> Check<Vec<ReactionForce>> {
-    let value: Value = serde_json::from_slice(bytes).map_err(|error| format!("reaction-force output is invalid JSON: {error}"))?;
+    let value: Value = serde_json::from_slice(bytes)
+       .map_err(|error| format!("reaction-force output is invalid JSON: {error}"))?;
     validate_output_identity(&value, FORCE_SCHEMA, manifest, "reaction-force output")?;
-    let records = value.get("reaction_forces").and_then(Value::as_array)
+    let records = value
+       .get("reaction_forces")
+       .and_then(Value::as_array)
         .ok_or_else(|| "reaction_forces must be an array".to_owned())?;
     let mut ids = BTreeSet::new();
     let mut result = Vec::with_capacity(records.len());
@@ -556,7 +656,9 @@ fn parse_force_output(bytes: &[u8], manifest: &Manifest) -> Check<Vec<ReactionFo
         let at = format!("reaction_forces[{index}]");
         exact_keys(record, &["reaction_id", "force_n", "position_m"], &at)?;
         let id = id_field(record, "reaction_id", &at)?;
-        if !ids.insert(id.clone()) { return Err(format!("{at}.reaction_id is duplicated")); }
+        if !ids.insert(id.clone()) {
+           return Err(format!("{at}.reaction_id is duplicated"));
+       }
         result.push(ReactionForce {
             id,
             force_n: vec3_field(record, "force_n", &at)?,
@@ -567,9 +669,12 @@ fn parse_force_output(bytes: &[u8], manifest: &Manifest) -> Check<Vec<ReactionFo
 }
 
 fn parse_moment_output(bytes: &[u8], manifest: &Manifest) -> Check<Vec<ReactionMoment>> {
-    let value: Value = serde_json::from_slice(bytes).map_err(|error| format!("reaction-moment output is invalid JSON: {error}"))?;
+    let value: Value = serde_json::from_slice(bytes)
+       .map_err(|error| format!("reaction-moment output is invalid JSON: {error}"))?;
     validate_output_identity(&value, MOMENT_SCHEMA, manifest, "reaction-moment output")?;
-    let records = value.get("reaction_moments").and_then(Value::as_array)
+    let records = value
+       .get("reaction_moments")
+       .and_then(Value::as_array)
         .ok_or_else(|| "reaction_moments must be an array".to_owned())?;
     let mut ids = BTreeSet::new();
     let mut result = Vec::with_capacity(records.len());
@@ -577,7 +682,9 @@ fn parse_moment_output(bytes: &[u8], manifest: &Manifest) -> Check<Vec<ReactionM
         let at = format!("reaction_moments[{index}]");
         exact_keys(record, &["reaction_id", "moment_nm"], &at)?;
         let id = id_field(record, "reaction_id", &at)?;
-        if !ids.insert(id.clone()) { return Err(format!("{at}.reaction_id is duplicated")); }
+        if !ids.insert(id.clone()) {
+           return Err(format!("{at}.reaction_id is duplicated"));
+       }
         result.push(ReactionMoment {
             id,
             moment_nm: vec3_field(record, "moment_nm", &at)?,
@@ -591,7 +698,11 @@ fn validate_output_identity(value: &Value, schema: &str, manifest: &Manifest, at
         "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
         "scene_revision", "coordinate_frame_id", "units"
     ];
-    required.push(if schema == FORCE_SCHEMA { "reaction_forces" } else { "reaction_moments" });
+    required.push(if schema == FORCE_SCHEMA {
+       "reaction_forces"
+   } else {
+       "reaction_moments"
+   });
     exact_keys(value, &required, at)?;
     if string_field(value, "schema_version", at)? != schema
         || string_field(value, "case_id", at)? != manifest.case_id
@@ -601,13 +712,23 @@ fn validate_output_identity(value: &Value, schema: &str, manifest: &Manifest, at
         || value.get("scene_revision").and_then(Value::as_u64) != Some(manifest.scene_revision)
         || string_field(value, "coordinate_frame_id", at)? != manifest.coordinate_frame_id
     {
-        return Err(format!("{at} identity/frame does not match the frozen manifest"));
+        return Err(format!(
+           "{at} identity/frame does not match the frozen manifest"
+       ));
     }
-    let units = value.get("units").ok_or_else(|| format!("{at}.units missing"))?;
+    let units = value
+       .get("units")
+       .ok_or_else(|| format!("{at}.units missing"))?;
     let (required, force_or_moment) = if schema == FORCE_SCHEMA {
-        (vec!["length", "force"], vec![("length", "m"), ("force", "N")])
+        (
+           vec!["length", "force"],
+           vec![("length", "m"), ("force", "N")],
+       )
     } else {
-        (vec!["length", "moment"], vec![("length", "m"), ("moment", "N*m")])
+        (
+           vec!["length", "moment"],
+           vec![("length", "m"), ("moment", "N*m")],
+       )
     };
     exact_keys(units, &required, &format!("{at}.units"))?;
     for (key, expected) in force_or_moment {
@@ -628,7 +749,9 @@ fn validate_observed_ids<'a>(
     if values != required_borrowed {
         let missing: Vec<&str> = required_borrowed.difference(&values).copied().collect();
         let extra: Vec<&str> = values.difference(&required_borrowed).copied().collect();
-        return Err(format!("{label} inventory mismatch; missing={missing:?}, extra={extra:?}"));
+        return Err(format!(
+           "{label} inventory mismatch; missing={missing:?}, extra={extra:?}"
+       ));
     }
     Ok(())
 }
@@ -669,7 +792,9 @@ fn mark_unresolved(mut report: Value, reason: impl Into<String>) -> Value {
 }
 
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
-    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    let object = value
+       .as_object()
+       .ok_or_else(|| format!("{at} must be an object"))?;
     for key in expected {
         if !object.contains_key(*key) {
             return Err(format!("{at}.{key} is required"));
@@ -682,13 +807,17 @@ fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
 }
 
 fn string_field<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
-    value.get(key).and_then(Value::as_str)
+    value
+       .get(key)
+       .and_then(Value::as_str)
         .ok_or_else(|| format!("{at}.{key} must be a string"))
 }
 
 fn nonempty_field(value: &Value, key: &str, at: &str) -> Check<String> {
     let text = string_field(value, key, at)?;
-    if text.trim().is_empty() { return Err(format!("{at}.{key} must not be empty")); }
+    if text.trim().is_empty() {
+       return Err(format!("{at}.{key} must not be empty"));
+   }
     Ok(text.to_owned())
 }
 
@@ -703,7 +832,9 @@ fn id_field(value: &Value, key: &str, at: &str) -> Check<String> {
 }
 
 fn id_set(value: &Value, key: &str, at: &str) -> Check<BTreeSet<String>> {
-    let values = value.get(key).and_then(Value::as_array)
+    let values = value
+       .get(key)
+       .and_then(Value::as_array)
         .ok_or_else(|| format!("{at}.{key} must be an array"))?;
     let mut result = BTreeSet::new();
     for (index, value) in values.iter().enumerate() {
@@ -728,7 +859,9 @@ fn validate_sha(value: &str, label: &str) -> Check<()> {
 }
 
 fn nonnegative_field(value: &Value, key: &str, at: &str) -> Check<f64> {
-    let number = value.get(key).and_then(Value::as_f64)
+    let number = value
+       .get(key)
+       .and_then(Value::as_f64)
         .ok_or_else(|| format!("{at}.{key} must be numeric"))?;
     if !number.is_finite() || number < 0.0 {
         return Err(format!("{at}.{key} must be finite and non-negative"));
@@ -737,14 +870,18 @@ fn nonnegative_field(value: &Value, key: &str, at: &str) -> Check<f64> {
 }
 
 fn vec3_field(value: &Value, key: &str, at: &str) -> Check<Vec3> {
-    let values = value.get(key).and_then(Value::as_array)
+    let values = value
+       .get(key)
+       .and_then(Value::as_array)
         .ok_or_else(|| format!("{at}.{key} must be a three-component vector"))?;
     if values.len() != 3 {
         return Err(format!("{at}.{key} must contain exactly three components"));
     }
     let mut vector = [0.0; 3];
     for (index, item) in values.iter().enumerate() {
-        let number = item.as_f64().ok_or_else(|| format!("{at}.{key}[{index}] must be numeric"))?;
+        let number = item
+           .as_f64()
+           .ok_or_else(|| format!("{at}.{key}[{index}] must be numeric"))?;
         if !number.is_finite() {
             return Err(format!("{at}.{key}[{index}] must be finite"));
         }
@@ -754,21 +891,30 @@ fn vec3_field(value: &Value, key: &str, at: &str) -> Check<Vec3> {
 }
 
 fn safe_relative_path(reference: &str) -> Check<PathBuf> {
-    if reference.is_empty() || reference.trim() != reference
+    if reference.is_empty()
+       || reference.trim() != reference
         || reference.chars().any(|ch| matches!(ch, '\\' | ':' | '\0'))
-        || reference.split('/').any(|part| part.is_empty() || part == "." || part == "..")
+        || reference
+           .split('/')
+           .any(|part| part.is_empty() || part == "." || part == "..")
     {
         return Err("artifact_ref must be a normalized relative POSIX path".to_owned());
     }
     let path = Path::new(reference);
-    if path.is_absolute() || path.components().any(|part| !matches!(part, Component::Normal(_))) {
+    if path.is_absolute()
+       || path
+           .components()
+           .any(|part| !matches!(part, Component::Normal(_)))
+   {
         return Err("artifact_ref must stay below the artifact root".to_owned());
     }
     Ok(path.to_path_buf())
 }
 
 fn add_in_place(target: &mut Vec3, value: Vec3) {
-    for index in 0..3 { target[index] += value[index]; }
+    for index in 0..3 {
+       target[index] += value[index];
+   }
 }
 
 fn subtract(left: Vec3, right: Vec3) -> Vec3 {
@@ -813,7 +959,10 @@ mod tests {
     }
 
     fn make_bundle(force_n: Vec3, moment_nm: Vec3) -> Bundle {
-        let request_value: Value = serde_json::from_str(include_str!("../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json")).unwrap();
+        let request_value: Value = serde_json::from_str(include_str!(
+           "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+       ))
+       .unwrap();
         let mut request_value = request_value;
         request_value["loads"][0]["target_id"] = json!("cantilever-tip");
         request_value["loads"][0]["vector_xyz"] = json!([0.0, -1000.0, 0.0]);
@@ -857,7 +1006,10 @@ mod tests {
         });
 
         let unique = NEXT.fetch_add(1, Ordering::Relaxed);
-        let root = std::env::temp_dir().join(format!("symtropy-equilibrium-{}-{unique}", std::process::id()));
+        let root = std::env::temp_dir().join(format!(
+           "symtropy-equilibrium-{}-{unique}",
+           std::process::id()
+       ));
         fs::create_dir_all(&root).unwrap();
         let force_bytes = serde_json::to_vec(&forces).unwrap();
         let moment_bytes = serde_json::to_vec(&moments).unwrap();
@@ -951,7 +1103,12 @@ mod tests {
             }
         });
         let manifest = serde_json::to_vec(&manifest_value).unwrap();
-        Bundle { root, request, receipt, manifest }
+        Bundle {
+           root,
+           request,
+           receipt,
+           manifest,
+       }
     }
 
     fn assess(bundle: &Bundle) -> Value {
@@ -963,7 +1120,7 @@ mod tests {
 
     #[test]
     fn balanced_synthetic_free_body_passes_without_qualifying_physics() {
-        let bundle = make_bundle([0.0,1000.0,0.0], [0.0,0.0,2000.0]);
+        let bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 2000.0]);
         let report = assess(&bundle);
         assert_eq!(report["audit_status"], "PASS");
         assert_eq!(report["force_balance"]["residual_norm"], 0.0);
@@ -974,7 +1131,7 @@ mod tests {
 
     #[test]
     fn inverted_reaction_force_fails_with_expected_residual() {
-        let bundle = make_bundle([0.0,-1000.0,0.0], [0.0,0.0,2000.0]);
+        let bundle = make_bundle([0.0, -1000.0, 0.0], [0.0, 0.0, 2000.0]);
         let report = assess(&bundle);
         assert_eq!(report["audit_status"], "FAIL");
         assert_eq!(report["force_balance"]["residual_norm"], 2000.0);
@@ -982,7 +1139,7 @@ mod tests {
 
     #[test]
     fn omitted_support_couple_fails_with_expected_moment_residual() {
-        let bundle = make_bundle([0.0,1000.0,0.0], [0.0,0.0,0.0]);
+        let bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 0.0]);
         let report = assess(&bundle);
         assert_eq!(report["audit_status"], "FAIL");
         assert_eq!(report["moment_balance"]["residual_norm"], 2000.0);
@@ -990,7 +1147,7 @@ mod tests {
 
     #[test]
     fn missing_reaction_record_is_unresolved_not_zero() {
-        let mut bundle = make_bundle([0.0,1000.0,0.0], [0.0,0.0,2000.0]);
+        let mut bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 2000.0]);
         let force_path = bundle.root.join("reaction-forces.json");
         let mut value: Value = serde_json::from_slice(&fs::read(&force_path).unwrap()).unwrap();
         value["reaction_forces"] = json!([]);
@@ -1006,7 +1163,7 @@ mod tests {
 
     #[test]
     fn tampered_reaction_bytes_cannot_pass() {
-        let bundle = make_bundle([0.0,1000.0,0.0], [0.0,0.0,2000.0]);
+        let bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 2000.0]);
         fs::write(bundle.root.join("reaction-forces.json"), b"tampered").unwrap();
         let report = assess(&bundle);
         assert_eq!(report["audit_status"], "UNRESOLVED");
@@ -1015,7 +1172,7 @@ mod tests {
 
     #[test]
     fn wrong_frame_or_unit_is_unresolved() {
-        let mut bundle = make_bundle([0.0,1000.0,0.0], [0.0,0.0,2000.0]);
+        let mut bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 2000.0]);
         let path = bundle.root.join("reaction-forces.json");
         let mut value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
         value["units"]["force"] = json!("kN");
@@ -1030,9 +1187,9 @@ mod tests {
 
     #[test]
     fn translating_origin_and_all_points_preserves_force_and_moment_balance() {
-        let bundle = make_bundle([0.0,1000.0,0.0], [0.0,0.0,2000.0]);
+        let bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 2000.0]);
         let base = assess(&bundle);
-        let shift = [4.0,-3.0,2.0];
+        let shift = [4.0, -3.0, 2.0];
         let mut manifest: Value = serde_json::from_slice(&bundle.manifest).unwrap();
         manifest["origin_m"] = json!(shift);
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
@@ -1048,7 +1205,7 @@ mod tests {
 
     #[test]
     fn mismatched_request_manifest_binding_is_unresolved() {
-        let bundle = make_bundle([0.0,1000.0,0.0], [0.0,0.0,2000.0]);
+        let bundle = make_bundle([0.0, 1000.0, 0.0], [0.0, 0.0, 2000.0]);
         let mut manifest: Value = serde_json::from_slice(&bundle.manifest).unwrap();
         manifest["request_sha256"] = json!("d".repeat(64));
         let bytes = serde_json::to_vec(&manifest).unwrap();
