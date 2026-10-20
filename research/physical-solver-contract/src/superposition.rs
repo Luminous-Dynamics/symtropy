@@ -270,6 +270,12 @@ pub fn assess_superposition_relation_bytes(
             "output_a_sha256": output_a.sha256,
             "output_b_sha256": output_b.sha256,
             "output_combined_sha256": output_combined.sha256,
+            "a_artifact_verification_status": output_a.verification_report["artifact_verification_status"],
+            "b_artifact_verification_status": output_b.verification_report["artifact_verification_status"],
+            "combined_artifact_verification_status": output_combined.verification_report["artifact_verification_status"],
+            "a_producer_status": output_a.producer_status,
+            "b_producer_status": output_b.producer_status,
+            "combined_producer_status": output_combined.producer_status,
             "observable_count": count,
             "observable_results": results
         }));
