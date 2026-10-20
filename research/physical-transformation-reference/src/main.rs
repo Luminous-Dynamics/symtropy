@@ -74,7 +74,7 @@ fn run() -> Result<(), String> {
             "\"recovered_component_count\":{},",
             "\"recovered_mass_mg\":{}",
             "}},",
-            "\"claim_ceiling\":\"software_invariants_only_not_structural_or_collapse_prediction\"",
+            "\"claim_ceiling\":\"software_invariants_and_closed_form_analytical_cases_only_not_structural_or_collapse_prediction\"",
             "}}"
         ),
         source_commit.to_ascii_lowercase(),
