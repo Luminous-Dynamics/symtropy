@@ -16,7 +16,30 @@ use std::collections::BTreeSet;
 pub type Check<T> = Result<T, String>;
 
 const REQUEST_SCHEMA: &str = "physical-analytical-request-v0.1";
+const REQUEST_SCHEMA_V2: &str = "physical-analytical-request-v0.2";
 const RECEIPT_SCHEMA: &str = "physical-analytical-receipt-v0.1";
+const RECEIPT_SCHEMA_V2: &str = "physical-analytical-receipt-v0.2";
+const REQUEST_KEYS: &[&str] = &[
+    "schema_version",
+    "request_id",
+    "source_revision",
+    "case_id",
+    "assumption_profile",
+    "requested_physics",
+    "units",
+    "inputs",
+];
+const REQUEST_KEYS_V2: &[&str] = &[
+    "schema_version",
+    "request_id",
+    "source_revision",
+    "case_id",
+    "assumption_profile",
+    "requested_physics",
+    "units",
+    "inputs",
+    "input_bounds",
+];
 const KNOWN_PHYSICS: &[&str] = &[
     "static_linear_elastic",
     "dynamic_response",
@@ -116,12 +139,15 @@ impl CaseKind {
 
 #[derive(Clone, Debug)]
 struct ParsedRequest {
+    schema_version: String,
     request_id: String,
     source_revision: String,
     case: CaseKind,
     requested_physics: Vec<String>,
     physics_omitted: Vec<String>,
     inputs: Map<String, Value>,
+    input_bounds: Option<BTreeMap<String, uncertainty::Interval>>,
+    input_bounds_raw: Option<Value>,
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
