@@ -6,7 +6,12 @@
 
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::{
+    collections::BTreeSet,
+    fs::{self, File},
+    io::Read,
+    path::{Component, Path, PathBuf},
+};
 
 pub type Check<T> = Result<T, String>;
 const REQUEST_SCHEMA: &str = "physical-solver-request-v0.1";
@@ -49,6 +54,33 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         let _ = write!(&mut out, "{byte:02x}");
     }
     out
+}
+
+/// Hash a file incrementally so mesh and field outputs need not fit in RAM.
+fn sha256_file(path: &Path) -> Check<(String, u64)> {
+    let mut file = File::open(path).map_err(|error| format!("open failed: {error}"))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    let mut byte_length = 0_u64;
+    loop {
+        let count = file
+            .read(&mut buffer)
+            .map_err(|error| format!("read failed: {error}"))?;
+        if count == 0 {
+            break;
+        }
+        byte_length = byte_length
+            .checked_add(count as u64)
+            .ok_or_else(|| "artifact byte length overflow".to_owned())?;
+        hasher.update(&buffer[..count]);
+    }
+    let digest = hasher.finalize();
+    let mut out = String::with_capacity(64);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(out, "{byte:02x}");
+    }
+    Ok((out, byte_length))
 }
 
 pub fn validate_request_bytes(bytes: &[u8], validator_revision: &str) -> Check<Value> {
@@ -1036,6 +1068,164 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
     }))
 }
 
+/// Verify each receipt-declared output artifact against its exact local file bytes.
+///
+/// This verifies byte identity only. It deliberately does not authenticate the
+/// process that produced the bytes, validate their numerical meaning, or qualify
+/// a physical claim. All artifacts must live under an immutable local artifact
+/// root for the duration of verification; network references are never fetched.
+pub fn verify_solver_output_artifact_bytes(
+    request_bytes: &[u8],
+    receipt_bytes: &[u8],
+    artifact_root: &Path,
+) -> Check<Value> {
+    let mut report = validate_solver_receipt_bytes(request_bytes, receipt_bytes)?;
+    let receipt: Value = serde_json::from_slice(receipt_bytes)
+        .map_err(|error| format!("invalid solver receipt JSON: {error}"))?;
+    let outputs = array(&receipt, "outputs", "receipt")?;
+
+    let (canonical_root, root_diagnostic) = match fs::canonicalize(artifact_root) {
+        Ok(root) if root.is_dir() => (Some(root), None),
+        Ok(_) => (None, Some("artifact root is not a directory".to_owned())),
+        Err(error) => (
+            None,
+            Some(format!("could not canonicalize artifact root: {error}")),
+        ),
+    };
+
+    let mut artifact_results = Vec::<Value>::new();
+    let mut diagnostics = Vec::<String>::new();
+    let mut has_digest_mismatch = false;
+    let mut has_unresolved_artifact = false;
+
+    for (index, output) in outputs.iter().enumerate() {
+        let at = format!("receipt.outputs[{index}]");
+        let output_id = string(output, "output_id", &at)?;
+        let artifact_ref = string(output, "artifact_ref", &at)?;
+        let expected_sha256 = string(output, "sha256", &at)?;
+        let mut status = "UNRESOLVED";
+        let mut observed_sha256 = Value::Null;
+        let mut byte_length = Value::Null;
+        let diagnostic = if let Some(reason) = root_diagnostic.as_ref() {
+            Some(reason.clone())
+        } else {
+            match safe_artifact_relative_path(&artifact_ref) {
+                Err(reason) => Some(reason),
+                Ok(relative_path) => {
+                    let root = canonical_root
+                        .as_ref()
+                        .expect("canonical root exists when no root diagnostic exists");
+                    let candidate = root.join(relative_path);
+                    match fs::canonicalize(&candidate) {
+                        Err(error) => Some(format!("artifact cannot be resolved: {error}")),
+                        Ok(canonical_path) if !canonical_path.starts_with(root) => {
+                            Some("artifact resolves outside the declared artifact root".to_owned())
+                        }
+                        Ok(canonical_path) => match fs::metadata(&canonical_path) {
+                            Err(error) => {
+                                Some(format!("artifact metadata cannot be read: {error}"))
+                            }
+                            Ok(metadata) if !metadata.is_file() => {
+                                Some("artifact is not a regular file".to_owned())
+                            }
+                            Ok(_) => match sha256_file(&canonical_path) {
+                                Err(error) => {
+                                    Some(format!("artifact bytes cannot be read: {error}"))
+                                }
+                                Ok((observed, length)) => {
+                                    observed_sha256 = json!(observed);
+                                    byte_length = json!(length);
+                                    if observed == expected_sha256 {
+                                        status = "PASS";
+                                        None
+                                    } else {
+                                        status = "FAIL";
+                                        has_digest_mismatch = true;
+                                        Some(format!(
+                                            "SHA-256 mismatch: expected {expected_sha256}, observed {observed}"
+                                        ))
+                                    }
+                                }
+                            },
+                        },
+                    }
+                }
+            }
+        };
+
+        if diagnostic.is_some() && status != "FAIL" {
+            has_unresolved_artifact = true;
+        }
+        if let Some(reason) = diagnostic.as_ref() {
+            diagnostics.push(format!("{output_id}: {reason}"));
+        }
+        artifact_results.push(json!({
+            "output_id": output_id,
+            "artifact_ref": artifact_ref,
+            "status": status,
+            "expected_sha256": expected_sha256,
+            "observed_sha256": observed_sha256,
+            "byte_length": byte_length,
+            "diagnostic": diagnostic
+        }));
+    }
+
+    if outputs.is_empty() {
+        diagnostics.push("receipt contains no output artifacts to verify".to_owned());
+        has_unresolved_artifact = true;
+    }
+
+    let artifact_status = if has_digest_mismatch {
+        "FAIL"
+    } else if has_unresolved_artifact {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+    let verified_output_count = artifact_results
+        .iter()
+        .filter(|item| item.get("status").and_then(Value::as_str) == Some("PASS"))
+        .count();
+
+    report["artifact_verification_status"] = json!(artifact_status);
+    report["artifact_verification_method"] = json!("local_file_sha256_under_canonical_root");
+    report["artifact_results"] = Value::Array(artifact_results);
+    report["artifact_diagnostics"] = json!(diagnostics);
+    report["verified_output_count"] = json!(verified_output_count);
+    report["output_artifact_bytes_verified"] = json!(artifact_status == "PASS");
+    // Byte identity is not execution identity or physical qualification.
+    report["solver_execution_authenticated"] = json!(false);
+    report["physical_result_qualified"] = json!(false);
+    report["claim_ceiling"] = json!(
+        "output byte identity only; does not authenticate solver execution, numerical correctness, measurement truth, or physical validity"
+    );
+    Ok(report)
+}
+
+fn safe_artifact_relative_path(reference: &str) -> Result<PathBuf, String> {
+    if reference.is_empty()
+        || reference.trim() != reference
+        || reference
+            .chars()
+            .any(|character| matches!(character, '\\' | ':' | '\0'))
+        || reference
+            .split('/')
+            .any(|component| component.is_empty() || component == "." || component == "..")
+    {
+        return Err("artifact_ref must be a normalized relative POSIX path".to_owned());
+    }
+
+    let path = Path::new(reference);
+    if path.is_absolute()
+        || path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err("artifact_ref must stay below the declared artifact root".to_owned());
+    }
+    Ok(path.to_path_buf())
+}
+
 fn validate_pass_request_preconditions(request: &Value) -> Check<()> {
     let fidelity = string(request, "model_fidelity", "request")?;
     let request_frame = string(request, "coordinate_frame_id", "request")?;
@@ -1419,6 +1609,206 @@ mod tests {
                 .unwrap_err()
                 .contains("unresolved material property")
         );
+    }
+
+    fn temporary_artifact_root() -> PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock is after UNIX epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "physical-solver-artifact-test-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir(&root).expect("temporary artifact root is created");
+        root
+    }
+
+    fn bind_test_artifacts(receipt: &mut Value, root: &Path) {
+        for output in receipt["outputs"]
+            .as_array_mut()
+            .expect("test receipt has output array")
+        {
+            let output_id = output["output_id"]
+                .as_str()
+                .expect("output id is string")
+                .to_owned();
+            let artifact_ref = format!("{output_id}.json");
+            let contents =
+                format!("{{\"synthetic_fixture_only\":true,\"output_id\":\"{output_id}\"}}\n");
+            fs::write(root.join(&artifact_ref), contents.as_bytes())
+                .expect("test artifact is written");
+            output["artifact_ref"] = json!(artifact_ref);
+            output["sha256"] = json!(sha256_hex(contents.as_bytes()));
+        }
+    }
+
+    #[test]
+    fn output_artifact_bytes_verify_without_authenticating_execution_or_physics() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("well-formed receipt and local bundle return a verification report");
+        assert_eq!(report["receipt_contract_validation"], "PASS");
+        assert_eq!(report["producer_status"], "PASS");
+        assert_eq!(report["artifact_verification_status"], "PASS");
+        assert_eq!(report["output_artifact_bytes_verified"], true);
+        assert_eq!(report["solver_execution_authenticated"], false);
+        assert_eq!(report["physical_result_qualified"], false);
+        assert_eq!(
+            report["verified_output_count"],
+            receipt["outputs"].as_array().unwrap().len()
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[test]
+    fn streamed_hash_matches_reference_across_multiple_chunks() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+
+        // Cross multiple 64 KiB reads and include a non-aligned final chunk.
+        let contents: Vec<u8> = (0..(3 * 64 * 1024 + 17))
+            .map(|index| ((index * 31 + 7) % 256) as u8)
+            .collect();
+        let first_ref = receipt["outputs"][0]["artifact_ref"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        fs::write(root.join(first_ref), &contents).expect("large test artifact is written");
+        receipt["outputs"][0]["sha256"] = json!(sha256_hex(&contents));
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("streamed verifier accepts matching multi-chunk artifact bytes");
+        assert_eq!(report["artifact_verification_status"], "PASS");
+        assert_eq!(report["artifact_results"][0]["status"], "PASS");
+        assert_eq!(
+            report["artifact_results"][0]["observed_sha256"],
+            sha256_hex(&contents)
+        );
+        assert_eq!(
+            report["artifact_results"][0]["byte_length"],
+            contents.len() as u64
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[test]
+    fn changed_output_bytes_report_failure_not_a_verified_bundle() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        let first_ref = receipt["outputs"][0]["artifact_ref"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        fs::write(root.join(first_ref), b"tampered output bytes\n")
+            .expect("tampered artifact is written");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("digest mismatches are returned as an explicit FAIL report");
+        assert_eq!(report["artifact_verification_status"], "FAIL");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+        assert_eq!(report["solver_execution_authenticated"], false);
+        assert_eq!(report["physical_result_qualified"], false);
+        assert!(
+            report["artifact_diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|diagnostic| diagnostic.as_str().unwrap().contains("SHA-256 mismatch"))
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[test]
+    fn traversal_references_remain_unresolved() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        receipt["outputs"][0]["artifact_ref"] = json!("../outside.json");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("unsafe reference is a verification disposition, not a panic");
+        assert_eq!(report["artifact_verification_status"], "UNRESOLVED");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+        assert!(
+            report["artifact_diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|diagnostic| diagnostic.as_str().unwrap().contains("normalized relative"))
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_artifact_cannot_escape_declared_root() {
+        let root = temporary_artifact_root();
+        let outside = root.with_extension("outside.json");
+        let outside_bytes = b"external bytes stay outside the bundle\n";
+        fs::write(&outside, outside_bytes).expect("outside test artifact is written");
+        std::os::unix::fs::symlink(&outside, root.join("external.json"))
+            .expect("symlink test setup succeeds");
+
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        bind_test_artifacts(&mut receipt, &root);
+        receipt["outputs"][0]["artifact_ref"] = json!("external.json");
+        receipt["outputs"][0]["sha256"] = json!(sha256_hex(outside_bytes));
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("symlink escape is rejected as unresolved");
+        assert_eq!(report["artifact_verification_status"], "UNRESOLVED");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+        assert!(
+            report["artifact_diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|diagnostic| diagnostic
+                    .as_str()
+                    .unwrap()
+                    .contains("outside the declared artifact root"))
+        );
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
+        fs::remove_file(outside).expect("outside test artifact is removed");
+    }
+
+    #[test]
+    fn receipt_without_output_artifacts_cannot_pass_byte_verification() {
+        let root = temporary_artifact_root();
+        let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
+        let receipt = solver_receipt(&request_bytes, "UNRESOLVED");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = verify_solver_output_artifact_bytes(&request_bytes, &receipt_bytes, &root)
+            .expect("a valid unresolved receipt yields an artifact disposition");
+        assert_eq!(report["producer_status"], "UNRESOLVED");
+        assert_eq!(report["artifact_verification_status"], "UNRESOLVED");
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+
+        fs::remove_dir_all(root).expect("temporary artifact root is removed");
     }
 
     #[test]
