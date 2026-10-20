@@ -15,6 +15,11 @@ const TICKS_PER_STREAM: usize = 64;
 const STREAM_KIND_COUNT: usize = 12;
 const NOMINAL_COVERAGE_PERCENT: usize = 90;
 const FIXED_CALIBRATION_SIZE: usize = 64;
+const ACI_TARGET_ALPHA: f64 = 0.10;
+const ACI_LEARNING_RATE: f64 = 0.10;
+const COP_LEARNING_RATE: f64 = 0.10;
+const COP_INTEGRATOR_SCALE: f64 = 0.5;
+const COP_WINDOW_SIZE: usize = 64;
 const MAX_TELEMETRY_AGE: u8 = 1;
 const TRUST_RESIDUAL_LIMIT: f64 = 3.0;
 const HEALTHY_TICKS_TO_REENTER: usize = 3;
@@ -111,10 +116,12 @@ enum Policy {
     FixedSplitTrustGated,
     MultiHorizonTrustGated,
     MultiHorizonUnguardedNegativeControl,
+    AciClippedReferenceIntervalOnly,
+    CopReferenceIntervalOnly,
 }
 
 impl Policy {
-    fn all() -> [Self; 7] {
+    fn all() -> [Self; 9] {
         [
             Self::FixedSplitIntervalOnly,
             Self::OnlineResidualFeedbackIntervalOnly,
@@ -123,6 +130,8 @@ impl Policy {
             Self::FixedSplitTrustGated,
             Self::MultiHorizonTrustGated,
             Self::MultiHorizonUnguardedNegativeControl,
+            Self::AciClippedReferenceIntervalOnly,
+            Self::CopReferenceIntervalOnly,
         ]
     }
 
@@ -140,6 +149,8 @@ impl Policy {
                 | Self::OnlineResidualFeedbackIntervalOnly
                 | Self::RollingQuantileIntervalOnly
                 | Self::MultiHorizonIntervalOnly
+                | Self::AciClippedReferenceIntervalOnly
+                | Self::CopReferenceIntervalOnly
         )
     }
 }
@@ -533,11 +544,26 @@ fn rolling_radius(history: &[f64], window: usize, fallback: f64) -> f64 {
     }
 }
 
-fn radius_for(policy: Policy, fixed_radius: f64, online_radius: f64, history: &[f64]) -> f64 {
+fn radius_for(
+    policy: Policy,
+    fixed_radius: f64,
+    online_radius: f64,
+    aci_alpha: f64,
+    cop_threshold: f64,
+    cop_integrator: f64,
+    history: &[f64],
+) -> f64 {
     match policy {
         Policy::FixedSplitIntervalOnly | Policy::FixedSplitTrustGated => fixed_radius,
         Policy::OnlineResidualFeedbackIntervalOnly => online_radius,
         Policy::RollingQuantileIntervalOnly => rolling_radius(history, 20, fixed_radius),
+        Policy::AciClippedReferenceIntervalOnly => {
+            let percentile = ((1.0 - aci_alpha.clamp(0.01, 0.99)) * 100.0)
+                .ceil()
+                .clamp(1.0, 99.0) as usize;
+            quantile(history, percentile).unwrap_or(fixed_radius)
+        }
+        Policy::CopReferenceIntervalOnly => (cop_threshold + cop_integrator).max(0.0),
         Policy::MultiHorizonIntervalOnly
         | Policy::MultiHorizonTrustGated
         | Policy::MultiHorizonUnguardedNegativeControl => {
@@ -546,6 +572,44 @@ fn radius_for(policy: Policy, fixed_radius: f64, online_radius: f64, history: &[
             short.max(long)
         }
     }
+}
+
+fn update_cop_state(
+    history: &[f64],
+    cop_threshold: &mut f64,
+    cop_integrator: &mut f64,
+    covered: bool,
+) {
+    if history.is_empty() {
+        return;
+    }
+    let start = history.len().saturating_sub(COP_WINDOW_SIZE);
+    let window = &history[start..];
+    let score_range = window.iter().copied().reduce(f64::max).unwrap_or(0.0)
+        - window.iter().copied().reduce(f64::min).unwrap_or(0.0);
+    let learning_rate = COP_LEARNING_RATE * score_range;
+    if learning_rate <= 0.0 {
+        return;
+    }
+
+    // Reference-derived COP update (Hu, Wu, Xia & Zou, ICLR 2026). This harness
+    // applies the update when the corresponding label matures, preserving causal
+    // delayed-feedback timing. That event-time adaptation is not asserted to
+    // reproduce the paper's exact finite-horizon guarantees.
+    let gradient = if covered {
+        ACI_TARGET_ALPHA
+    } else {
+        -(1.0 - ACI_TARGET_ALPHA)
+    };
+    let candidate = *cop_threshold - learning_rate * gradient;
+    let empirical_cdf = window
+        .iter()
+        .filter(|score| **score <= candidate)
+        .count() as f64
+        / window.len() as f64;
+    let distribution_gradient = empirical_cdf - (1.0 - ACI_TARGET_ALPHA);
+    *cop_threshold = candidate;
+    *cop_integrator = -COP_INTEGRATOR_SCALE * learning_rate * distribution_gradient;
 }
 
 fn evaluate_stream(
@@ -559,8 +623,11 @@ fn evaluate_stream(
         Policy::FixedSplitIntervalOnly | Policy::FixedSplitTrustGated
     );
     let mut online_radius = INITIAL_RADIUS;
+    let mut aci_alpha = ACI_TARGET_ALPHA;
+    let mut cop_threshold = 0.0_f64;
+    let mut cop_integrator = 0.0_f64;
     let mut history = calibration.to_vec();
-    let mut pending_labels: VecDeque<(usize, f64)> = VecDeque::new();
+    let mut pending_labels: VecDeque<(usize, f64, bool)> = VecDeque::new();
     let mut latched = false;
     let mut healthy_streak = 0_usize;
     let mut outcomes = Vec::with_capacity(stream.ticks.len());
@@ -572,9 +639,29 @@ fn evaluate_stream(
         while uses_online_labels
             && pending_labels
                 .front()
-                .is_some_and(|(ready_at, _)| *ready_at <= tick.tick)
+                .is_some_and(|(ready_at, _, _)| *ready_at <= tick.tick)
         {
-            let (_, residual) = pending_labels.pop_front().expect("front item was checked");
+            let (_, residual, covered_at_origin) =
+                pending_labels.pop_front().expect("front item was checked");
+            if policy == Policy::AciClippedReferenceIntervalOnly {
+                // ACI's feedback is updated from the coverage outcome observed at
+                // prediction time, not recomputed using the current interval.
+                if covered_at_origin {
+                    aci_alpha = (aci_alpha + ACI_LEARNING_RATE * ACI_TARGET_ALPHA)
+                        .clamp(0.01, 0.99);
+                } else {
+                    aci_alpha = (aci_alpha - ACI_LEARNING_RATE * (1.0 - ACI_TARGET_ALPHA))
+                        .clamp(0.01, 0.99);
+                }
+            }
+            if policy == Policy::CopReferenceIntervalOnly {
+                update_cop_state(
+                    &history,
+                    &mut cop_threshold,
+                    &mut cop_integrator,
+                    covered_at_origin,
+                );
+            }
             history.push(residual);
             if policy == Policy::OnlineResidualFeedbackIntervalOnly {
                 online_radius = online_radius_update(online_radius, residual);
@@ -582,8 +669,16 @@ fn evaluate_stream(
             label_updates_applied += 1;
         }
 
-        let radius = radius_for(policy, fixed_radius, online_radius, &history);
-        if !radius.is_finite() || radius <= 0.0 {
+        let radius = radius_for(
+            policy,
+            fixed_radius,
+            online_radius,
+            aci_alpha,
+            cop_threshold,
+            cop_integrator,
+            &history,
+        );
+        if !radius.is_finite() || radius < 0.0 {
             return Err("interval radius became non-finite or nonpositive".to_owned());
         }
         let width = 2.0 * radius;
@@ -620,7 +715,7 @@ fn evaluate_stream(
                 .tick
                 .checked_add(tick.target_label_delay_ticks)
                 .ok_or_else(|| "target-label maturity tick overflow".to_owned())?;
-            pending_labels.push_back((ready_at, residual));
+            pending_labels.push_back((ready_at, residual, coverage.unwrap_or(false)));
         }
     }
 
@@ -1040,8 +1135,8 @@ mod tests {
         assert_eq!("validated", receipt.result);
         assert_eq!(768, receipt.stream_count);
         assert_eq!(49_152, receipt.tick_count);
-        assert_eq!(7, receipt.policy_count);
-        assert_eq!(168, receipt.summary_count);
+        assert_eq!(9, receipt.policy_count);
+        assert_eq!(216, receipt.summary_count);
         assert_eq!(0, receipt.guarded_hard_control_acceptances);
         assert_eq!(0, receipt.independent_gate_audit_mismatches);
         assert!(receipt.unguarded_negative_control_hard_control_acceptances > 0);
