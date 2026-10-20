@@ -313,19 +313,16 @@ fn main() {
         }
     }
 
-    let action_preferences = match score_action_preferences(
-        &models,
-        &scores,
-        model_weight_intervals.as_deref(),
-    ) {
-        Ok(comparisons) => comparisons,
-        Err(errors) => {
-            for error in errors {
-                eprintln!("action-preference analysis rejected input: {error}");
+    let action_preferences =
+        match score_action_preferences(&models, &scores, model_weight_intervals.as_deref()) {
+            Ok(comparisons) => comparisons,
+            Err(errors) => {
+                for error in errors {
+                    eprintln!("action-preference analysis rejected input: {error}");
+                }
+                process::exit(1);
             }
-            process::exit(1);
-        }
-    };
+        };
 
     let output = build_report(
         &raw,
@@ -455,9 +452,7 @@ mod tests {
             .as_array()
             .expect("action preference array")
             .iter()
-            .find(|item| {
-                item["first_action"] == "graze" && item["second_action"] == "retreat"
-            })
+            .find(|item| item["first_action"] == "graze" && item["second_action"] == "retreat")
             .expect("graze/retreat comparison");
         assert_eq!(
             graze_retreat["stability"].as_str(),
@@ -467,9 +462,7 @@ mod tests {
             .as_array()
             .expect("action preference array")
             .iter()
-            .find(|item| {
-                item["first_action"] == "retreat" && item["second_action"] == "wait"
-            })
+            .find(|item| item["first_action"] == "retreat" && item["second_action"] == "wait")
             .expect("retreat/wait comparison");
         assert_eq!(
             retreat_wait["stability"].as_str(),
