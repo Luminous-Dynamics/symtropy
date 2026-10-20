@@ -475,7 +475,6 @@ mod tests {
         assert!(propagate("phase_field_fracture", &BTreeMap::new(), &BTreeMap::new()).is_err());
     }
 
-    #[test]
     type FixtureEntry = (&'static str, f64, f64, f64);
     type CaseFixture = (&'static str, Vec<FixtureEntry>);
 
