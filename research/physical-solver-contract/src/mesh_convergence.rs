@@ -1153,6 +1153,19 @@ mod tests {
     }
 
     #[test]
+    fn identical_study_inputs_produce_identical_report_bytes() {
+        let root = temporary_root();
+        let bytes = study(&root, [1.5, 0.75, 0.5625]);
+        let first = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
+        let second = assess_mesh_refinement_study_bytes(&bytes, &root).unwrap();
+        assert_eq!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&second).unwrap()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn tampered_mesh_bytes_cannot_enter_convergence_analysis() {
         let root = temporary_root();
         let bytes = study(&root, [1.5, 0.75, 0.5625]);
