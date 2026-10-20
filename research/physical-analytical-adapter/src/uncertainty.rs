@@ -789,7 +789,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod inari_differential_tests {
     use super::*;
@@ -825,8 +824,14 @@ mod inari_differential_tests {
             actual.upper,
             expected_upper
         );
-        assert!(actual.lower.is_finite(), "{context}: non-finite lower endpoint");
-        assert!(actual.upper.is_finite(), "{context}: non-finite upper endpoint");
+        assert!(
+            actual.lower.is_finite(),
+            "{context}: non-finite lower endpoint"
+        );
+        assert!(
+            actual.upper.is_finite(),
+            "{context}: non-finite upper endpoint"
+        );
     }
 
     #[test]
@@ -839,8 +844,8 @@ mod inari_differential_tests {
                 let actual = left
                     .multiply(right)
                     .expect("selected products remain in the finite interval domain");
-                let expected = reference(left_lower, left_upper)
-                    * reference(right_lower, right_upper);
+                let expected =
+                    reference(left_lower, left_upper) * reference(right_lower, right_upper);
                 assert_contains_reference(
                     actual,
                     expected,
@@ -864,8 +869,7 @@ mod inari_differential_tests {
                 denominators.iter().copied().enumerate()
             {
                 let left = Interval::new(left_lower, left_upper).expect("Symtropy numerator");
-                let right =
-                    Interval::new(right_lower, right_upper).expect("Symtropy denominator");
+                let right = Interval::new(right_lower, right_upper).expect("Symtropy denominator");
                 let actual = left.divide(right).expect("denominator excludes zero");
                 let expected =
                     reference(left_lower, left_upper) / reference(right_lower, right_upper);
