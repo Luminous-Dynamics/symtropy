@@ -48,7 +48,7 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
     Ok(())
 }
 
-type ParsedInput = (Vec<ModelOutcome>, f64, Option<Vec<ModelWeightInterval>>);
+type ParsedInput = (Vec<ModelOutcome>, f64, Option<Vec<ModelWeightInterval>>, f64);
 
 fn parse_input(root: &Value) -> Result<ParsedInput, String> {
     ensure_only_fields(
@@ -57,6 +57,7 @@ fn parse_input(root: &Value) -> Result<ParsedInput, String> {
             "schema_version",
             "status",
             "cvar_alpha",
+            "practical_loss_difference_margin",
             "scenario",
             "models",
             "model_weight_intervals",
@@ -87,6 +88,13 @@ fn parse_input(root: &Value) -> Result<ParsedInput, String> {
         .get("cvar_alpha")
         .and_then(Value::as_f64)
         .ok_or_else(|| "cvar_alpha must be a number".to_owned())?;
+    let practical_loss_difference_margin = root
+        .get("practical_loss_difference_margin")
+        .and_then(Value::as_f64)
+        .filter(|value| value.is_finite() && *value >= 0.0)
+        .ok_or_else(|| {
+            "practical_loss_difference_margin must be finite and non-negative".to_owned()
+        })?;
     let model_values = root
         .get("models")
         .and_then(Value::as_array)
@@ -172,7 +180,7 @@ fn parse_input(root: &Value) -> Result<ParsedInput, String> {
         Some(_) => return Err("model_weight_intervals must be an array when present".to_owned()),
     };
 
-    Ok((models, cvar_alpha, model_weight_intervals))
+    Ok((models, cvar_alpha, model_weight_intervals, practical_loss_difference_margin))
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -188,6 +196,7 @@ fn score_action_preferences(
     models: &[ModelOutcome],
     scores: &[ActionRisk],
     intervals: Option<&[ModelWeightInterval]>,
+    practical_loss_difference_margin: f64,
 ) -> Result<Vec<ActionPreferenceRange>, Vec<String>> {
     let Some(intervals) = intervals else {
         return Ok(Vec::new());
@@ -200,6 +209,7 @@ fn score_action_preferences(
                 &first.action,
                 &second.action,
                 intervals,
+                practical_loss_difference_margin,
             )?);
         }
     }
@@ -211,6 +221,7 @@ fn build_report(
     root: &Value,
     models: &[ModelOutcome],
     cvar_alpha: f64,
+    practical_loss_difference_margin: f64,
     scores: &[ActionRisk],
     weight_sensitivity: &[WeightSensitivity],
     action_preferences: &[ActionPreferenceRange],
@@ -219,6 +230,7 @@ fn build_report(
         "schema_version": "ANIMAL-MODEL-DECISION-RISK-REPORT-V1",
         "status": "computed_risk_summary_not_model_validation",
         "cvar_alpha": cvar_alpha,
+        "practical_loss_difference_margin": practical_loss_difference_margin,
         "input_sha256": sha256_hex(raw_input.as_bytes()),
         "scenario": root.get("scenario").and_then(Value::as_str).unwrap_or("unspecified"),
         "model_ids": models.iter().map(|model| model.model_id.as_str()).collect::<Vec<_>>(),
@@ -282,7 +294,8 @@ fn main() {
             process::exit(2);
         }
     };
-    let (models, cvar_alpha, model_weight_intervals) = match parse_input(&root) {
+    let (models, cvar_alpha, model_weight_intervals, practical_loss_difference_margin) =
+        match parse_input(&root) {
         Ok(parsed) => parsed,
         Err(error) => {
             eprintln!("invalid model outcome input: {error}");
@@ -314,8 +327,12 @@ fn main() {
         }
     }
 
-    let action_preferences =
-        match score_action_preferences(&models, &scores, model_weight_intervals.as_deref()) {
+    let action_preferences = match score_action_preferences(
+        &models,
+        &scores,
+        model_weight_intervals.as_deref(),
+        practical_loss_difference_margin,
+    ) {
             Ok(comparisons) => comparisons,
             Err(errors) => {
                 for error in errors {
@@ -330,6 +347,7 @@ fn main() {
         &root,
         &models,
         cvar_alpha,
+        practical_loss_difference_margin,
         &scores,
         &weight_sensitivity,
         &action_preferences,
@@ -348,7 +366,7 @@ mod tests {
     fn scores_committed_two_model_synthetic_example() {
         let input: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("committed example should parse");
-        let (models, alpha, _) = parse_input(&input).expect("valid synthetic model set");
+        let (models, alpha, _, practical_margin) = parse_input(&input).expect("valid synthetic model set");
         let scores = score_model_ensemble(&models, alpha).expect("valid synthetic losses");
         let graze = scores
             .iter()
@@ -389,7 +407,7 @@ mod tests {
     fn risk_report_is_bound_to_input_and_matches_report_contract() {
         let root: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
-        let (models, alpha, intervals) = parse_input(&root).expect("input should parse");
+        let (models, alpha, intervals, practical_margin) = parse_input(&root).expect("input should parse");
         let scores = score_model_ensemble(&models, alpha).expect("scores should be valid");
         let mut weight_sensitivity = Vec::new();
         for score in &scores {
@@ -409,9 +427,10 @@ mod tests {
             &root,
             &models,
             alpha,
+            practical_margin,
             &scores,
             &weight_sensitivity,
-            &score_action_preferences(&models, &scores, intervals.as_deref())
+            &score_action_preferences(&models, &scores, intervals.as_deref(), practical_margin)
                 .expect("valid pairwise model-weight comparisons"),
         );
         let schema: Value =
@@ -596,7 +615,7 @@ mod tests {
             .as_object_mut()
             .expect("root object")
             .remove("model_weight_intervals");
-        let (_, _, intervals) = parse_input(&input).expect("point-weight input remains valid");
+        let (_, _, intervals, _) = parse_input(&input).expect("point-weight input remains valid");
         assert!(intervals.is_none());
     }
 
