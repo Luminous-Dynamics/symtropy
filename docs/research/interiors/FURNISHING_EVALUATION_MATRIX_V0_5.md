@@ -96,7 +96,19 @@ Report feasibility rate, false-safe rate, requirement recall, time to first feas
 
 A responsible initial claim would be: “The BVH implementation preserved exact collision-pair truth on the declared synthetic suites and improved measured local runtime on the named workloads.” Do not claim “better than SOTA” until the matched baseline, realistic held-out corpus and task/user evaluation demonstrate it.
 
-## 5. Near-term execution order
+## 5. Measured kernel evidence (20 October 2026)
+
+The matched same-host run [#39481984586](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39481984586) ran the pre-BVH v0.2 oracle and the pinned v0.3 indexed oracle sequentially on the same Ubuntu 24.04 / Rust 1.96.0 / 4-vCPU AMD EPYC 9V45 runner, with identical benchmark source blob and generated inputs. It passed the baseline tests, formatting and strict Clippy; all 12 workload rows matched expected collision counts with zero unexpected findings.
+
+| Workload | 1,000-item p95 ratio | 10,000-item single-sample ratio | Correctness |
+|---|---:|---:|---|
+| Sparse grid | 67.12× | 701.20× | 0 expected / observed collisions |
+| Tight task clearance | 50.36× | 499.53× | 0 expected / observed collisions |
+| Dense footprint overlap | 41.93× | 457.18× | 3,811/3,811 at 1k; 39,402/39,402 at 10k |
+
+The full measurement record lives in [baseline PR #2392](https://github.com/Luminous-Dynamics/symtropy/pull/2392), file `FURNISHING_GEOMETRY_AB_RUN_39481984586.json`. The 10,000-item tiers use one sample per implementation and the listed ratios are *single-sample latency ratios*, not p95 estimates. The result is compelling evidence of a local kernel speedup for this specific synthetic distribution, not a production SLA or general SOTA victory. Peak memory, realistic/held-out rooms, 3D geometry and human/task outcomes are still unmeasured.
+
+## 6. Near-term execution order
 
 1. Finish v0.4 sparse/tight/dense stress matrix with independent pair-count assertions.
 2. Complete the matched v0.2 brute-force run using the identical stress generator; archive exact SHAs, runner info, output counts and timings.
