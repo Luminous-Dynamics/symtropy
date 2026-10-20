@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-mesh-refinement-study-v0.1.schema.json",
+  "title": "Physical Mesh Refinement Study v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "study_id", "case_id", "observable_id", "unit",
+    "dimension", "trend_expectation", "refinement_ratio_relative_tolerance",
+    "expected_order_min", "reference", "acceptance", "levels"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-mesh-refinement-study-v0.1" },
+    "study_id": { "$ref": "#/$defs/token" },
+    "case_id": { "$ref": "#/$defs/token" },
+    "observable_id": { "$ref": "#/$defs/token" },
+    "unit": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "dimension": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "trend_expectation": { "enum": ["monotone_expected", "not_assumed"] },
+    "refinement_ratio_relative_tolerance": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.5 },
+    "expected_order_min": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 16 },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit", "method", "identity", "source_ref"],
+      "properties": {
+        "value": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "method": { "enum": ["analytical_exact", "independent_numerical"] },
+        "identity": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "source_ref": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_fine_absolute_error", "max_fine_relative_error"],
+      "properties": {
+        "max_fine_absolute_error": { "type": ["number", "null"], "minimum": 0 },
+        "max_fine_relative_error": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "levels": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "level_id", "h_m", "element_count", "dof_count", "mesh_sha256",
+          "mesh_ref", "request_ref", "receipt_ref", "output_id"
+        ],
+        "properties": {
+          "level_id": { "$ref": "#/$defs/token" },
+          "h_m": { "type": "number", "exclusiveMinimum": 0 },
+          "element_count": { "type": "integer", "minimum": 1 },
+          "dof_count": { "type": "integer", "minimum": 1 },
+          "mesh_sha256": { "$ref": "#/$defs/sha256" },
+          "mesh_ref": { "type": "string", "minLength": 1, "maxLength": 2048 },
+          "request_ref": { "type": "string", "minLength": 1, "maxLength": 2048 },
+          "receipt_ref": { "type": "string", "minLength": 1, "maxLength": 2048 },
+          "output_id": { "$ref": "#/$defs/token" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

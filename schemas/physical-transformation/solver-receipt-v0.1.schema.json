@@ -26,6 +26,21 @@
     "request_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
     "request_sha256": { "$ref": "#/$defs/sha256" },
     "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "input_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["input_id", "kind", "sha256", "media_type", "artifact_ref"],
+        "properties": {
+          "input_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+          "kind": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "media_type": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "artifact_ref": { "type": "string", "minLength": 1, "maxLength": 2048 }
+        }
+      }
+    },
     "adapter": {
       "type": "object",
       "additionalProperties": false,

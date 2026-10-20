@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
+    mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables, validate_request_bytes,
     validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
@@ -19,6 +20,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     let mut request_path: Option<String> = None;
     let mut receipt_path: Option<String> = None;
+    let mut mesh_study_path: Option<String> = None;
     let mut artifact_root: Option<String> = None;
     let mut reference_path: Option<String> = None;
     let mut observation_output_id: Option<String> = None;
@@ -33,6 +35,17 @@ fn run() -> Result<(), String> {
                 request_path = Some(
                     args.get(i + 1)
                         .ok_or_else(|| "--request requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--mesh-study" => {
+                if mesh_study_path.is_some() {
+                    return Err("--mesh-study may be supplied only once".to_owned());
+                }
+                mesh_study_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--mesh-study requires a manifest path".to_owned())?
                         .clone(),
                 );
                 i += 2;
@@ -96,8 +109,33 @@ fn run() -> Result<(), String> {
         }
     }
 
+    if let Some(study_path) = mesh_study_path {
+        if request_path.is_some()
+            || receipt_path.is_some()
+            || reference_path.is_some()
+            || observation_output_id.is_some()
+            || validator_revision.is_some()
+        {
+            return Err(
+                "--mesh-study cannot be combined with request, receipt, reference, output-ID, or validator-revision options"
+                    .to_owned(),
+            );
+        }
+        let root =
+            artifact_root.ok_or_else(|| "--mesh-study requires --artifact-root".to_owned())?;
+        let study_bytes = fs::read(&study_path)
+            .map_err(|error| format!("could not read mesh-study manifest {study_path}: {error}"))?;
+        let report = assess_mesh_refinement_study_bytes(&study_bytes, Path::new(&root))?;
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|error| format!("report serialization failed: {error}"))?
+        );
+        return Ok(());
+    }
+
     let request_path = request_path.ok_or_else(|| {
-        "usage: physical-solver-contract --request <path> --validator-revision <git-sha> OR --request <path> --receipt <receipt-path> [--artifact-root <directory>] [--reference <manifest.json> --observation-output-id <output-id>]".to_owned()
+        "usage: physical-solver-contract --request <path> --validator-revision <git-sha> OR --request <path> --receipt <receipt-path> [--artifact-root <directory>] [--reference <manifest.json> --observation-output-id <output-id>] OR --mesh-study <manifest.json> --artifact-root <study-root>".to_owned()
     })?;
     let request_bytes = fs::read(&request_path)
         .map_err(|error| format!("could not read {request_path}: {error}"))?;

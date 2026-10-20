@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-mesh-refinement-report-v0.1.schema.json",
+  "title": "Physical Mesh Refinement Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "study_status", "mesh_convergence_status",
+    "fine_mesh_accuracy_status", "study_id", "case_id", "observable_id",
+    "unit", "dimension", "study_manifest_sha256", "reference",
+    "physical_result_qualified", "real_world_validation_status",
+    "diagnostics", "levels", "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-mesh-refinement-report-v0.1" },
+    "study_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "mesh_convergence_status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "fine_mesh_accuracy_status": { "enum": ["PASS", "FAIL", "UNRESOLVED", "NOT_SPECIFIED"] },
+    "study_id": { "$ref": "#/$defs/token" },
+    "case_id": { "$ref": "#/$defs/token" },
+    "observable_id": { "$ref": "#/$defs/token" },
+    "unit": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "dimension": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "study_manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit", "method", "identity", "source_ref"],
+      "properties": {
+        "value": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "method": { "enum": ["analytical_exact", "independent_numerical"] },
+        "identity": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "source_ref": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    },
+    "trend_expectation": { "enum": ["monotone_expected", "not_assumed"] },
+    "expected_order_min": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 16 },
+    "mesh_level_count": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "verified_level_count": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "mesh_refinement_ratios": { "type": "array", "items": { "type": ["number", "null"] } },
+    "refinement_ratio_relative_spread": { "type": ["number", "null"], "minimum": 0 },
+    "geometric_refinement_status": { "enum": ["PASS", "UNRESOLVED"] },
+    "observed_order_finest_three": { "type": ["number", "null"] },
+    "richardson_extrapolated_value": { "type": ["number", "null"] },
+    "gci_safety_factor": { "type": "number", "const": 1.25 },
+    "gci_fine_absolute": { "type": ["number", "null"], "minimum": 0 },
+    "gci_fine_percent": { "type": ["number", "null"], "minimum": 0 },
+    "gci_applicability_status": { "type": "string" },
+    "fine_mesh_absolute_error": { "type": "number", "minimum": 0 },
+    "fine_mesh_relative_error": { "type": ["number", "null"], "minimum": 0 },
+    "fine_mesh_relative_error_defined": { "type": "boolean" },
+    "fine_mesh_relative_error_status": { "enum": ["computed", "undefined_zero_reference", "overflow"] },
+    "maximum_fine_absolute_error": { "type": ["number", "null"], "minimum": 0 },
+    "maximum_fine_relative_error": { "type": ["number", "null"], "minimum": 0 },
+    "reference_error_decreases_monotonically": { "type": "boolean" },
+    "all_level_receipt_and_output_bytes_verified": { "type": "boolean" },
+    "solver_build_identity_constant_across_levels": { "type": "boolean" },
+    "physical_result_qualified": { "const": false },
+    "real_world_validation_status": { "const": "UNRESOLVED" },
+    "diagnostics": { "type": "array", "items": { "type": "string", "maxLength": 2048 } },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["level_id", "unit"],
+        "properties": {
+          "level_id": { "$ref": "#/$defs/token" },
+          "h_m": { "type": "number", "exclusiveMinimum": 0 },
+          "element_count": { "type": "integer", "minimum": 1 },
+          "dof_count": { "type": "integer", "minimum": 1 },
+          "mesh_sha256": { "$ref": "#/$defs/sha256" },
+          "request_sha256": { "$ref": "#/$defs/sha256" },
+          "scene_sha256": { "$ref": "#/$defs/sha256" },
+          "scene_revision": { "type": "integer", "minimum": 0 },
+          "receipt_sha256": { "$ref": "#/$defs/sha256" },
+          "observation_artifact_sha256": { "$ref": "#/$defs/sha256" },
+          "observed_value": { "type": "number" },
+          "unit": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "absolute_error_vs_reference": { "type": "number", "minimum": 0 },
+          "relative_error_vs_reference": { "type": ["number", "null"], "minimum": 0 },
+          "relative_error_defined": { "type": "boolean" },
+          "relative_error_status": { "enum": ["computed", "undefined_zero_reference", "overflow"] },
+          "artifact_verification_status": { "const": "PASS" },
+          "producer_status": { "const": "PASS" }
+        }
+      }
+    },
+    "claim_ceiling": { "type": "string", "minLength": 1, "maxLength": 2048 }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
