@@ -307,12 +307,11 @@ fn validate_materials(items: &[Value]) -> Check<()> {
         if let Some(value) = provenance
             .get("uncertainty_relative")
             .filter(|v| !v.is_null())
+            && value.as_f64().is_none_or(|n| !n.is_finite() || n < 0.0)
         {
-            if value.as_f64().is_none_or(|n| !n.is_finite() || n < 0.0) {
-                return Err(format!(
-                    "{at}.provenance.uncertainty_relative must be finite and non-negative"
-                ));
-            }
+            return Err(format!(
+                "{at}.provenance.uncertainty_relative must be finite and non-negative"
+            ));
         }
     }
     Ok(())
