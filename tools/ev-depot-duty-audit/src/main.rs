@@ -433,13 +433,15 @@ fn audit(
                 first_on_shift_start_second,
                 last_on_shift_end_second,
             });
-            reconciled_schedule_segments.extend(segments.iter().map(|segment| ReconciledScheduleSegment {
-                operation_day_id: segment.operation_day_id,
-                start_second: segment.start_second,
-                end_second: segment.end_second,
-                duration_seconds: segment.total_seconds,
-                on_shift: segment.on_shift,
-                vmt_miles: segment.vmt,
+            reconciled_schedule_segments.extend(segments.iter().map(|segment| {
+                ReconciledScheduleSegment {
+                    operation_day_id: segment.operation_day_id,
+                    start_second: segment.start_second,
+                    end_second: segment.end_second,
+                    duration_seconds: segment.total_seconds,
+                    on_shift: segment.on_shift,
+                    vmt_miles: segment.vmt,
+                }
             }));
             reconciled.push(day.clone());
             segments_for_reconciled += segments.len();
