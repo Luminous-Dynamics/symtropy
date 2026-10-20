@@ -10,6 +10,7 @@ on:
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
+      - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
     branches: [main]
@@ -89,6 +90,8 @@ jobs:
             and .replication_count == 20
             and (.replication_seeds | length) == 20
             and (.scenario_statistics | length) == 6
+            and (.station_sequence_statistics | length) == 30
+            and all(.station_sequence_statistics[]; .changeovers_started.sample_count == 20 and .output_transfers.sample_count == 20 and .out_of_order_output_transfers.sample_count == 20 and .out_of_order_output_transfers.mean <= .output_transfers.mean)
             and all(.scenario_statistics[]; .good_units_per_hour.sample_count == 20)
             and all(.scenario_statistics[] | select(.scenario_id != "baseline"); .paired_good_units_per_hour_delta_vs_baseline.sample_count == 20 and .paired_good_units_per_hour_delta_vs_baseline.mean_confidence_95_lower != null and .paired_good_units_per_hour_delta_vs_baseline.mean_confidence_95_upper != null)
             and .scenario_count == 6
@@ -160,6 +163,7 @@ jobs:
             docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
             docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
             docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
+            docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
