@@ -141,8 +141,11 @@ impl HiddenWorld {
         alternate_view_active: bool,
         action: Action,
     ) -> (Observation, bool) {
-        let next_view_active = alternate_view_active
-            || (action == Action::ChangeView && self.alternate_view_available);
+        // A viewpoint move produces one fresh observation, not a permanently
+        // clear stream. The scene is occluded again on the following step
+        // unless another legal sensing action is executed.
+        let next_view_active =
+            action == Action::ChangeView && self.alternate_view_available;
         (self.observation(next_tick, next_view_active), next_view_active)
     }
 }
@@ -566,6 +569,44 @@ mod tests {
         assert_ne!(p2, r2);
         assert_eq!(p2.cue, Cue::VisiblePresent);
         assert_eq!(r2.cue, Cue::VisibleAbsent);
+    }
+
+    #[test]
+    fn one_view_is_ephemeral_and_memory_must_preserve_its_evidence() {
+        let world = HiddenWorld::with_view(0xF00D, false, true);
+        let initial = world.observation(0, false);
+        let occluded = world.observation(1, false);
+        let (fresh_absence, view_active) =
+            world.transition(2, false, Action::ChangeView);
+        assert_eq!(fresh_absence.cue, Cue::VisibleAbsent);
+        assert!(view_active);
+
+        let (terminal_occlusion, _) =
+            world.transition(3, view_active, Action::Wait);
+        assert_eq!(terminal_occlusion.cue, Cue::Occluded);
+
+        let mut memory = MemoryState::new(PolicyKind::ActiveRevision);
+        for observation in [initial, occluded, fresh_absence, terminal_occlusion] {
+            memory.observe(observation);
+        }
+        assert_eq!(
+            memory.decide(PolicyKind::ActiveRevision, terminal_occlusion),
+            Decision::Absent
+        );
+        assert_eq!(
+            decision_from_observation(terminal_occlusion),
+            None,
+            "terminal pixels alone must not expose the hidden intervention"
+        );
+
+        let mut no_memory = MemoryState::new(PolicyKind::NoMemory);
+        for observation in [initial, occluded, fresh_absence, terminal_occlusion] {
+            no_memory.observe(observation);
+        }
+        assert_eq!(
+            no_memory.decide(PolicyKind::NoMemory, terminal_occlusion),
+            Decision::Abstain
+        );
     }
 
     #[test]
