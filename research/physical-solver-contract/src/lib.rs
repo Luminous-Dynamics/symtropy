@@ -5,6 +5,7 @@
 //! this crate does not invoke a qualified mechanics solver.
 
 pub mod equilibrium;
+pub mod load_scaling;
 pub mod mesh_convergence;
 pub mod reference_compare;
 
