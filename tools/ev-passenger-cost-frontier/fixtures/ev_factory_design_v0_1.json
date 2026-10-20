@@ -1,0 +1,449 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-DESIGN-001",
+  "demand_cases_good_units_per_year": [
+    1000,
+    10000,
+    50000,
+    100000
+  ],
+  "sites": [
+    {
+      "site_id": "south-africa-example",
+      "country_or_region": "South Africa (illustrative site)",
+      "local_currency": "ZAR",
+      "local_currency_per_usd": 16.4,
+      "fx_reference_date": "2026-10-20",
+      "fx_evidence_class": "synthetic",
+      "site_cost_evidence_class": "synthetic",
+      "process_evidence_class": "synthetic",
+      "yield_evidence_class": "synthetic",
+      "operating_days_per_year": 240,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "unpaid_break_hours_per_shift": 0.5,
+      "availability_fraction": 0.85,
+      "performance_fraction": 0.9,
+      "good_vehicle_yield_fraction": 0.93,
+      "fully_loaded_labor_cost_per_hour_local": 120,
+      "electricity_cost_per_kwh_local": 2.8,
+      "building_lease_cost_per_sqm_year_local": 950,
+      "building_fitout_cost_per_sqm_local": 8500,
+      "annual_site_overhead_local": 3000000,
+      "imported_kit_cost_per_attempt_local": 90000,
+      "local_parts_cost_per_attempt_local": 30000,
+      "bought_painted_body_cost_per_attempt_local": 45000,
+      "in_house_body_material_cost_per_attempt_local": 28000,
+      "consumables_cost_per_attempt_local": 2500,
+      "scrap_and_rework_cost_per_failed_attempt_local": 8000,
+      "warranty_reserve_per_good_vehicle_local": 7000,
+      "battery_quarantine_and_separation_area_sqm": 100,
+      "local_code_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Local building, fire, electrical, environmental and employment-code review not performed."
+      },
+      "battery_process_safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Battery receipt, damaged-pack quarantine, HV isolation and emergency response not independently reviewed."
+      },
+      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations.",
+      "useful_thermal_energy_cost_per_kwh_local": 1.5
+    },
+    {
+      "site_id": "india-example",
+      "country_or_region": "India (illustrative site)",
+      "local_currency": "INR",
+      "local_currency_per_usd": 85,
+      "fx_reference_date": "2026-10-20",
+      "fx_evidence_class": "synthetic",
+      "site_cost_evidence_class": "synthetic",
+      "process_evidence_class": "synthetic",
+      "yield_evidence_class": "synthetic",
+      "operating_days_per_year": 260,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "unpaid_break_hours_per_shift": 0.5,
+      "availability_fraction": 0.85,
+      "performance_fraction": 0.9,
+      "good_vehicle_yield_fraction": 0.92,
+      "fully_loaded_labor_cost_per_hour_local": 850,
+      "electricity_cost_per_kwh_local": 9,
+      "building_lease_cost_per_sqm_year_local": 800,
+      "building_fitout_cost_per_sqm_local": 6500,
+      "annual_site_overhead_local": 10000000,
+      "imported_kit_cost_per_attempt_local": 500000,
+      "local_parts_cost_per_attempt_local": 180000,
+      "bought_painted_body_cost_per_attempt_local": 250000,
+      "in_house_body_material_cost_per_attempt_local": 150000,
+      "consumables_cost_per_attempt_local": 20000,
+      "scrap_and_rework_cost_per_failed_attempt_local": 70000,
+      "warranty_reserve_per_good_vehicle_local": 35000,
+      "battery_quarantine_and_separation_area_sqm": 100,
+      "local_code_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Local building, fire, electrical, environmental and employment-code review not performed."
+      },
+      "battery_process_safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Battery receipt, damaged-pack quarantine, HV isolation and emergency response not independently reviewed."
+      },
+      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations.",
+      "useful_thermal_energy_cost_per_kwh_local": 4.5
+    },
+    {
+      "site_id": "brazil-example",
+      "country_or_region": "Brazil (illustrative site)",
+      "local_currency": "BRL",
+      "local_currency_per_usd": 5.5,
+      "fx_reference_date": "2026-10-20",
+      "fx_evidence_class": "synthetic",
+      "site_cost_evidence_class": "synthetic",
+      "process_evidence_class": "synthetic",
+      "yield_evidence_class": "synthetic",
+      "operating_days_per_year": 240,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "unpaid_break_hours_per_shift": 0.5,
+      "availability_fraction": 0.83,
+      "performance_fraction": 0.9,
+      "good_vehicle_yield_fraction": 0.91,
+      "fully_loaded_labor_cost_per_hour_local": 48,
+      "electricity_cost_per_kwh_local": 0.95,
+      "building_lease_cost_per_sqm_year_local": 550,
+      "building_fitout_cost_per_sqm_local": 2600,
+      "annual_site_overhead_local": 5000000,
+      "imported_kit_cost_per_attempt_local": 110000,
+      "local_parts_cost_per_attempt_local": 42000,
+      "bought_painted_body_cost_per_attempt_local": 60000,
+      "in_house_body_material_cost_per_attempt_local": 35000,
+      "consumables_cost_per_attempt_local": 4000,
+      "scrap_and_rework_cost_per_failed_attempt_local": 10000,
+      "warranty_reserve_per_good_vehicle_local": 10000,
+      "battery_quarantine_and_separation_area_sqm": 100,
+      "local_code_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Local building, fire, electrical, environmental and employment-code review not performed."
+      },
+      "battery_process_safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Battery receipt, damaged-pack quarantine, HV isolation and emergency response not independently reviewed."
+      },
+      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations.",
+      "useful_thermal_energy_cost_per_kwh_local": 0.35
+    }
+  ],
+  "templates": [
+    {
+      "template_id": "contract-assembly-flex",
+      "label": "Contract assembly / low fixed tooling",
+      "strategy": "contract_assembly",
+      "layout_area_multiplier": 1.7,
+      "annual_factory_overhead_usd": 180000,
+      "launch_validation_capex_usd": 250000,
+      "station_processes": [
+        {
+          "process_id": "receiving-kitting",
+          "process_label": "Inbound inspection, kit staging and traceability",
+          "cycle_minutes_per_attempt": 5,
+          "equipment_capex_usd_per_cell": 35000,
+          "footprint_sqm_per_cell": 32,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "chassis-suspension",
+          "process_label": "Chassis, suspension and brake build",
+          "cycle_minutes_per_attempt": 8,
+          "equipment_capex_usd_per_cell": 55000,
+          "footprint_sqm_per_cell": 45,
+          "operators_per_cell_per_shift": 3,
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "body-prep-marriage",
+          "process_label": "Receive and marry purchased painted body",
+          "cycle_minutes_per_attempt": 7,
+          "equipment_capex_usd_per_cell": 65000,
+          "footprint_sqm_per_cell": 50,
+          "operators_per_cell_per_shift": 3,
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "battery-drive-install",
+          "process_label": "Battery quarantine release, HV pack and e-drive installation",
+          "cycle_minutes_per_attempt": 8,
+          "equipment_capex_usd_per_cell": 90000,
+          "footprint_sqm_per_cell": 55,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 5,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "cabin-closeout",
+          "process_label": "Interior, closures, HVAC and trim",
+          "cycle_minutes_per_attempt": 10,
+          "equipment_capex_usd_per_cell": 50000,
+          "footprint_sqm_per_cell": 58,
+          "operators_per_cell_per_shift": 4,
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "fill-software-calibration",
+          "process_label": "Fluids, software flashing and calibration",
+          "cycle_minutes_per_attempt": 7,
+          "equipment_capex_usd_per_cell": 45000,
+          "footprint_sqm_per_cell": 38,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "end-of-line-safety",
+          "process_label": "HV isolation, leak, alignment, brake and functional tests",
+          "cycle_minutes_per_attempt": 10,
+          "equipment_capex_usd_per_cell": 115000,
+          "footprint_sqm_per_cell": 60,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 5,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "audit-rework-dispatch",
+          "process_label": "Final audit and controlled rework loop",
+          "cycle_minutes_per_attempt": 5,
+          "equipment_capex_usd_per_cell": 25000,
+          "footprint_sqm_per_cell": 35,
+          "operators_per_cell_per_shift": 1,
+          "energy_kwh_per_attempt": 1,
+          "thermal_energy_kwh_per_attempt": 0
+        }
+      ],
+      "note": "Buys a painted body and major assemblies; favors leased/repurposed space, manual fixtures and outsourced capital-intensive body/paint processes."
+    },
+    {
+      "template_id": "modular-ckd-line",
+      "label": "Modular CKD assembly with repeatable workcells",
+      "strategy": "modular_ckd",
+      "layout_area_multiplier": 1.65,
+      "annual_factory_overhead_usd": 450000,
+      "launch_validation_capex_usd": 1000000,
+      "station_processes": [
+        {
+          "process_id": "receiving-kitting",
+          "process_label": "Dock-to-line kitting and serialized component traceability",
+          "cycle_minutes_per_attempt": 4,
+          "equipment_capex_usd_per_cell": 65000,
+          "footprint_sqm_per_cell": 40,
+          "operators_per_cell_per_shift": 1,
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "subassembly-chassis",
+          "process_label": "Standardized chassis and suspension workcell",
+          "cycle_minutes_per_attempt": 6,
+          "equipment_capex_usd_per_cell": 120000,
+          "footprint_sqm_per_cell": 58,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "body-marriage",
+          "process_label": "Body-in-white receipt, sealing checks and marriage",
+          "cycle_minutes_per_attempt": 5,
+          "equipment_capex_usd_per_cell": 130000,
+          "footprint_sqm_per_cell": 62,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "battery-drive-install",
+          "process_label": "Interlocked battery and e-drive installation",
+          "cycle_minutes_per_attempt": 5,
+          "equipment_capex_usd_per_cell": 180000,
+          "footprint_sqm_per_cell": 65,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 6,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "cabin-closeout",
+          "process_label": "Modular interior and closure installation",
+          "cycle_minutes_per_attempt": 7,
+          "equipment_capex_usd_per_cell": 110000,
+          "footprint_sqm_per_cell": 65,
+          "operators_per_cell_per_shift": 3,
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "hv-fluid-calibration",
+          "process_label": "HV checks, cooling fill, software and calibration",
+          "cycle_minutes_per_attempt": 5,
+          "equipment_capex_usd_per_cell": 160000,
+          "footprint_sqm_per_cell": 48,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "end-of-line-test",
+          "process_label": "Automated electrical, brake, alignment and functional tests",
+          "cycle_minutes_per_attempt": 7,
+          "equipment_capex_usd_per_cell": 250000,
+          "footprint_sqm_per_cell": 70,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 7,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "audit-rework-dispatch",
+          "process_label": "Traceable audit, quarantine and rework island",
+          "cycle_minutes_per_attempt": 4,
+          "equipment_capex_usd_per_cell": 65000,
+          "footprint_sqm_per_cell": 42,
+          "operators_per_cell_per_shift": 1,
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
+        }
+      ],
+      "note": "Reusable bolt-together fixtures and modular conveyor/carts; receives painted body and imported key assemblies, with automation at verified bottlenecks."
+    },
+    {
+      "template_id": "integrated-flexible-plant",
+      "label": "Integrated body, paint and final assembly",
+      "strategy": "integrated_flexible",
+      "layout_area_multiplier": 1.85,
+      "annual_factory_overhead_usd": 1800000,
+      "launch_validation_capex_usd": 7500000,
+      "station_processes": [
+        {
+          "process_id": "receiving-kitting",
+          "process_label": "Serialized receiving and automated material presentation",
+          "cycle_minutes_per_attempt": 3,
+          "equipment_capex_usd_per_cell": 140000,
+          "footprint_sqm_per_cell": 90,
+          "operators_per_cell_per_shift": 1,
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "body-stamping",
+          "process_label": "Body panel stamping press cells",
+          "cycle_minutes_per_attempt": 2,
+          "equipment_capex_usd_per_cell": 2200000,
+          "footprint_sqm_per_cell": 420,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 25,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "body-weld",
+          "process_label": "Robotic body framing and weld cells",
+          "cycle_minutes_per_attempt": 4,
+          "equipment_capex_usd_per_cell": 1750000,
+          "footprint_sqm_per_cell": 440,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 22,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "paint-shop",
+          "process_label": "Pretreatment, e-coat, sealing and paint line",
+          "cycle_minutes_per_attempt": 8,
+          "equipment_capex_usd_per_cell": 4200000,
+          "footprint_sqm_per_cell": 760,
+          "operators_per_cell_per_shift": 3,
+          "energy_kwh_per_attempt": 75,
+          "thermal_energy_kwh_per_attempt": 550
+        },
+        {
+          "process_id": "body-marriage",
+          "process_label": "Body finish checks and body-to-chassis marriage",
+          "cycle_minutes_per_attempt": 4,
+          "equipment_capex_usd_per_cell": 250000,
+          "footprint_sqm_per_cell": 90,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 5,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "battery-drive-install",
+          "process_label": "Conditioned battery integration and HV interlock",
+          "cycle_minutes_per_attempt": 4,
+          "equipment_capex_usd_per_cell": 380000,
+          "footprint_sqm_per_cell": 105,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 8,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "cabin-closeout",
+          "process_label": "Interior and trim line",
+          "cycle_minutes_per_attempt": 6,
+          "equipment_capex_usd_per_cell": 250000,
+          "footprint_sqm_per_cell": 140,
+          "operators_per_cell_per_shift": 3,
+          "energy_kwh_per_attempt": 8,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "hv-fluid-calibration",
+          "process_label": "Automated fluid, software and calibration workcell",
+          "cycle_minutes_per_attempt": 4,
+          "equipment_capex_usd_per_cell": 300000,
+          "footprint_sqm_per_cell": 80,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 6,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "end-of-line-test",
+          "process_label": "Automated electrical, emissions-free functional, brake and alignment tests",
+          "cycle_minutes_per_attempt": 5,
+          "equipment_capex_usd_per_cell": 550000,
+          "footprint_sqm_per_cell": 130,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 12,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "audit-rework-dispatch",
+          "process_label": "Quality containment, rework and dispatch",
+          "cycle_minutes_per_attempt": 4,
+          "equipment_capex_usd_per_cell": 140000,
+          "footprint_sqm_per_cell": 80,
+          "operators_per_cell_per_shift": 1,
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
+        }
+      ],
+      "note": "Includes modeled body/paint process cells and higher launch/overhead costs; should only be considered when volume, local capability, permitting and utilization justify the capital."
+    }
+  ],
+  "claim_ceiling": "All currency conversions, local labor, energy, lease, fit-out, components, station cycle times, staffing, equipment costs, yield and overhead in this fixture are invented sensitivities, not quotes, market data or a production recommendation. Facility-specific safety/code approvals remain unknown. The integrated paint-shop energy sensitivity separates electrical from useful thermal energy; the 625 kWh-equivalent stress case is a scenario informed by a published truck/SUV paint-shop reference, not a transferable compact-EV process estimate."
+}
