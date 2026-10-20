@@ -119,8 +119,8 @@ pub fn projected_error_bound_px(
             ..
         } => {
             if !vertical_fov_radians.is_finite()
-                || vertical_fov_radians <= 0.0
-                || vertical_fov_radians >= PI
+                || vertical_fov_radians == 0.0
+                || !(0.0..PI).contains(&vertical_fov_radians)
             {
                 return Err(ProjectionError::InvalidVerticalFieldOfView);
             }
