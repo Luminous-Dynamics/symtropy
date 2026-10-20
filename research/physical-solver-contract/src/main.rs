@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
-    equilibrium::assess_equilibrium_bytes, load_scaling::assess_load_scaling_relation_bytes,
+    equilibrium::assess_equilibrium_bytes,
+    load_scaling::assess_load_scaling_relation_bytes,
     mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables,
-    superposition::{BoundSolverRun, assess_superposition_relation_bytes}, validate_request_bytes,
-    validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
+    superposition::{BoundSolverRun, assess_superposition_relation_bytes},
+    validate_request_bytes, validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
 use std::{env, fs, path::Path, process::ExitCode};
 
