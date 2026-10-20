@@ -89,6 +89,30 @@ The report now has eight overlapping evaluator-only dimensions: hidden truth cha
 
 **Qualification rule:** the previously recorded exact-head results refer to the earlier fixed-profile generator. The factorized generator plus hazard-aware policy are candidate changes and remain unqualified until the current exact-head tests, deterministic TSV comparison, row checks and artifact SHA succeed. Report per-factor sample counts and confidence intervals; an empty or single-level stratum is a benchmark-design failure, not evidence of robustness. The new policy must be compared on both task loss and logical state cost; its additional statistics cannot be treated as free memory.
 
+## First factorized-profile and hazard-aware results — exploratory
+
+The first factorized nuisance + hazard-policy report was qualified on exact source head `b4e9b1a256ab616159892820446600a4ca62c8f1` by [focused run #39487091189](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487091189). It passed **14 tests**, deterministic output replay, schema and strata checks, SHA-256 validation, and uploaded [`vis-relational-memory-report`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39487091189/artifacts/12294865236). These results are **exploratory**, because the policy was proposed after inspecting earlier benchmark failure strata; an independent frozen-seed confirmation is required.
+
+Held-out, capacity 3:
+
+| Policy | Mean loss ↓ | Answer rate ↑ | Answered accuracy ↑ | Logical state bytes | Delta vs FIFO (95% paired CI) |
+| --- | ---: | ---: | ---: | ---: | --- |
+| FIFO | 0.2539 | 3.65% | 64.29% | 18 | baseline |
+| Uniform reservoir | 0.2500 | 0.00% | NA | 18 | -0.0039 [-0.0130, +0.0046] |
+| Query-keyed latest | 0.2526 | 27.08% | 74.04% | 18 | -0.0013 [-0.0228, +0.0215] |
+| Query-keyed selective | 0.2428 | 22.66% | 78.16% | 18 | -0.0111 [-0.0306, +0.0098] |
+| Query-keyed hazard-aware | **0.2161** | **46.88%** | **82.22%** | 48 | **-0.0378 [-0.0625, -0.0098]** |
+
+On this factorized synthetic held-out set, the hazard-aware candidate reduces mean loss by about **14.9% relative to FIFO** and its paired 95% interval is below zero. It also has 2.67× the reported logical state bytes (48 vs 18) because it keeps per-query transition statistics. Those bytes are a serialized logical payload estimate—not peak RAM, latency, or energy. The development-family loss difference is -0.1204 with 95% CI [-0.1452, -0.0951]; this remains a synthetic benchmark result, not evidence of general robotic or SOTA superiority.
+
+The hard subgroup remains important: when at least one queried claim changed after its latest source-time observation (238 held-out episodes), hazard-aware mean loss was **0.2742**, vs FIFO **0.2532**; its paired delta was **+0.0210**, 95% CI **[-0.0147, +0.0620]**. That is inconclusive and not a subgroup win. In the unchanged-after-observation subgroup (146 episodes), hazard-aware loss was 0.1216 and its paired delta vs FIFO was -0.1336, 95% CI [-0.1627, -0.1079]. This supports the hypothesis that transition-aware aging helps exploit stable information, but it does not yet solve surprise changes reliably.
+
+Several other factor slices are still inconclusive. In particular the high claim-flip-rate stratum's hazard-aware delta is -0.0223 with 95% CI [-0.0516, +0.0121], which includes zero. These subgroup analyses are exploratory, overlapping, and involve multiple comparisons; they must not be presented as independent confirmatory discoveries.
+
+## Frozen-seed confirmation required
+
+Before using the hazard result as an engineering acceptance claim, freeze the algorithm and scoring contract, choose a distinct fixed seed root not used in earlier reports, re-run the factorized suite unchanged, and publish the new exact-head report. Then reproduce the same memory-policy delta on a native external task subset (ActiveArena) while holding model/backbone, action decoder, task seeds and environment fixed. No SOTA claim is warranted until that reproduction is completed with the benchmark-native metrics.
+
 ## Limits
 
 This is a symbolic evidence-stream benchmark. It isolates memory selection, source-time/provenance and decision behavior. It does not test visual perception, natural language understanding, 3D geometry, manipulation, physical safety, actual wall time, hardware memory, GPU use, or energy. Passing it is a diagnostic step—not proof of external benchmark superiority or deployment readiness.
