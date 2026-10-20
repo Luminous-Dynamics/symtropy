@@ -80,7 +80,13 @@ jobs:
                   status_reason: "synthetic smoke only; no physical measurement"
                 }
               ],
-              safety_gates: [],
+              safety_gates: [
+                $scenario.required_safety_gate_ids[] as $gate | {
+                  gate_id: $gate,
+                  status: "unknown",
+                  basis: "synthetic smoke only; gate not evaluated"
+                }
+              ],
               raw_artifacts: [],
               deviations: [],
               exclusion_reason: "Generated contract smoke fixture; no physical trial was run.",
