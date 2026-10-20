@@ -776,6 +776,30 @@ fn report() {
         }
     }
 
+    // Direct paired primary comparison: expected terminal risk-reduction policy
+    // minus the approximate uncertainty × pivotality VOI heuristic.
+    println!("PAIRWISE\tfamily\tcontrast\tepisodes\tdelta_loss_a_minus_b\tbootstrap95_lo\tbootstrap95_hi");
+    for (family_index, family) in Family::ALL.iter().copied().enumerate() {
+        let heuristic_index = PolicyKind::ALL.iter()
+            .position(|policy| *policy == PolicyKind::ValueOfInformation)
+            .expect("VOI policy is declared");
+        let expected_index = PolicyKind::ALL.iter()
+            .position(|policy| *policy == PolicyKind::ExpectedTaskLossReduction)
+            .expect("expected-risk policy is declared");
+        let heuristic = &cells[family_index * PolicyKind::ALL.len() + heuristic_index];
+        let expected = &cells[family_index * PolicyKind::ALL.len() + expected_index];
+        let deltas: Vec<f64> = expected.paired_deltas_vs_rr.iter()
+            .zip(heuristic.paired_deltas_vs_rr.iter())
+            .map(|(expected_delta, heuristic_delta)| expected_delta - heuristic_delta)
+            .collect();
+        let mean_delta = deltas.iter().sum::<f64>() / deltas.len().max(1) as f64;
+        let seed = mix64(ROOT_SEED ^ 0x4558_5056_4F49_4349
+            ^ (family_index as u64).wrapping_mul(0xD1B5_4A32_D192_ED03));
+        let (lo, hi) = bootstrap_ci(&deltas, seed);
+        println!("PAIRWISE\t{}\texpected_task_loss_reduction_minus_value_of_information\t{}\t{:.4}\t{:.4}\t{:.4}",
+            family.name(), deltas.len(), mean_delta, lo, hi);
+    }
+
     println!("STRATUM\tfamily\tstratum\tlevel\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
     for (family_index, family) in Family::ALL.iter().copied().enumerate() {
         for (stratum_index, stratum_name) in STRATA_NAMES.iter().copied().enumerate() {
