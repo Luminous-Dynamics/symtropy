@@ -76,6 +76,16 @@ jobs:
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_frontier -- \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json \
             > ev-factory-design-report.json
+          jq '{
+            scenario_count: .scenario_count,
+            thermal_min: ([.results[].annual_useful_thermal_energy_cost_usd] | min),
+            thermal_max: ([.results[].annual_useful_thermal_energy_cost_usd] | max),
+            integrated_count: ([.results[] | select(.template_id == "integrated-flexible")] | length),
+            integrated_thermal_positive_count: ([.results[] | select(.template_id == "integrated-flexible" and .annual_useful_thermal_energy_cost_usd > 0)] | length),
+            nonintegrated_thermal_nonzero_count: ([.results[] | select(.template_id != "integrated-flexible" and .annual_useful_thermal_energy_cost_usd != 0)] | length),
+            release_true_count: ([.results[] | select(.production_release_ready != false)] | length),
+            capacity_shortfall_count: ([.results[] | select(.bottleneck_good_capacity_per_year < .target_good_vehicles_per_year)] | length)
+          }' ev-factory-design-report.json
           jq -e '
             .benchmark_id == "EV-FACTORY-DESIGN-001"
             and .base_currency == "USD"
