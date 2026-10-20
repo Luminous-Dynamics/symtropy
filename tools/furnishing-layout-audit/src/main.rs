@@ -29,7 +29,9 @@ fn main() -> ExitCode {
     if errors.is_empty() {
         println!("PASS: synthetic furnishing-layout fixture audit");
         println!("Input: {}", path.display());
-        println!("Scope: 2D geometric oracle only; not a building-code or physical-performance model");
+        println!(
+            "Scope: 2D geometric oracle only; not a building-code or physical-performance model"
+        );
         ExitCode::SUCCESS
     } else {
         eprintln!("FAIL: {} furnishing-layout audit finding(s)", errors.len());
