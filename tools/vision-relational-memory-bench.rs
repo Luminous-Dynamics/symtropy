@@ -20,12 +20,15 @@ const FRESHNESS_LIMIT: usize = 7;
 const REPLICATES: usize = 12;
 const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
-// Fresh seed domain for the calibrated confidence-conditioned sensor model.
-// The algorithm is still an exploratory candidate, not preregistered evidence.
-const ROOT_SEED: u64 = 0x510E_527F_ADE6_82D1;
+// Fresh exploration seed domain for the joint transition/sensor-noise candidate.
+// Model development has inspected prior outputs; this is not a preregistered confirmation.
+const ROOT_SEED: u64 = 0x1F83_D9AB_FB41_BD6B;
 const CAPS: [usize; 5] = [1, 2, 3, 4, 8];
 const HAZARD_RATES: [f64; 7] = [0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.4];
 const HAZARD_LOG_PRIOR: [i32; 7] = [-1234, -1550, -1755, -2016, -2588, -3067, -3590];
+const SENSOR_BASE_RATES: [u64; 6] = [0, 10, 20, 40, 55, 70];
+const JOINT_HYPOTHESES: usize = HAZARD_RATES.len() * SENSOR_BASE_RATES.len();
+const SENSOR_LOG_PRIOR: i32 = -1835; // log(1/6) on the 1024 fixed-point scale
 const LOG_SCORE_SCALE: f64 = 1024.0;
 const STRATA_COUNT: usize = 8;
 const STRATA_NAMES: [&str; STRATA_COUNT] = [
@@ -303,16 +306,17 @@ impl Episode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Kind { Fifo, Reservoir, QueryKeyed, QueryKeyedSelective, QueryKeyedHazardAware, QueryKeyedGapAware }
+enum Kind { Fifo, Reservoir, QueryKeyed, QueryKeyedSelective, QueryKeyedHazardAware, QueryKeyedGapAware, QueryKeyedJointNoise }
 
 impl Kind {
-    const ALL: [Self; 6] = [
+    const ALL: [Self; 7] = [
         Self::Fifo,
         Self::Reservoir,
         Self::QueryKeyed,
         Self::QueryKeyedSelective,
         Self::QueryKeyedHazardAware,
         Self::QueryKeyedGapAware,
+        Self::QueryKeyedJointNoise,
     ];
     fn name(self) -> &'static str {
         match self {
@@ -322,6 +326,7 @@ impl Kind {
             Self::QueryKeyedSelective => "query_keyed_selective",
             Self::QueryKeyedHazardAware => "query_keyed_hazard_aware",
             Self::QueryKeyedGapAware => "query_keyed_gap_aware",
+            Self::QueryKeyedJointNoise => "query_keyed_joint_noise",
         }
     }
 }
