@@ -7,7 +7,7 @@
 
 use crate::sha256_hex;
 use serde_json::{Value, json};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub type MeshStudyResult<T> = Result<T, String>;
 
@@ -318,6 +318,15 @@ struct ReferenceForStudy {
     primary_absolute_tolerance: f64,
     primary_relative_tolerance: f64,
     observable_ids: BTreeSet<String>,
+    observables: BTreeMap<String, ReferenceObservableForStudy>,
+}
+
+#[derive(Clone, Debug)]
+struct ReferenceObservableForStudy {
+    expected_value: f64,
+    unit: String,
+    absolute_tolerance: f64,
+    relative_tolerance: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -542,6 +551,7 @@ fn parse_reference_for_study(
         return Err("reference manifest must include observables".to_owned());
     }
     let mut observable_ids = BTreeSet::new();
+    let mut observables = BTreeMap::new();
     let mut primary = None;
     for (index, item) in obs.iter().enumerate() {
         let at = format!("reference manifest.observables[{index}]");
@@ -571,6 +581,15 @@ fn parse_reference_for_study(
         if !allowed.is_finite() {
             return Err(format!("{at} allowed error overflows"));
         }
+        let record = ReferenceObservableForStudy {
+            expected_value,
+            unit: unit.clone(),
+            absolute_tolerance,
+            relative_tolerance,
+        };
+        if observables.insert(id.clone(), record).is_some() {
+            return Err(format!("{at}.observable_id '{id}' is duplicated"));
+        }
         if id == study.primary_observable_id {
             primary = Some((expected_value, unit, absolute_tolerance, relative_tolerance));
         }
@@ -599,6 +618,7 @@ fn parse_reference_for_study(
         primary_absolute_tolerance,
         primary_relative_tolerance,
         observable_ids,
+        observables,
     })
 }
 
@@ -609,6 +629,42 @@ fn parse_comparison_report(
     report_sha256: &str,
 ) -> MeshStudyResult<ComparisonReport> {
     let _ = report_sha256;
+    exact_keys(
+        value,
+        &[
+            "schema_version",
+            "comparison_status",
+            "comparison_method",
+            "comparison_protocol_id",
+            "reference_id",
+            "reference_sha256",
+            "oracle_method",
+            "oracle_identity",
+            "oracle_source_ref",
+            "request_sha256",
+            "case_id",
+            "request_id",
+            "scene_sha256",
+            "scene_revision",
+            "observation_output_id",
+            "observation_artifact_sha256",
+            "artifact_verification_status",
+            "producer_status",
+            "numerical_observable_comparison",
+            "physical_result_qualified",
+            "real_world_validation_status",
+            "diagnostics",
+            "observable_results",
+            "claim_ceiling",
+        ],
+        "comparison report",
+    )?;
+    expect_str(
+        value,
+        "comparison_method",
+        "per_observable_absolute_plus_relative_tolerance",
+        "comparison report",
+    )?;
     let status = get_str(value, "comparison_status", "comparison report")?;
     if !["PASS", "FAIL", "UNRESOLVED"].contains(&status) {
         return Err("comparison report has an unsupported comparison_status".to_owned());
@@ -642,6 +698,9 @@ fn parse_comparison_report(
     {
         return Err("comparison report exceeds the expected claim ceiling".to_owned());
     }
+    if get_str(value, "numerical_observable_comparison", "comparison report")? != status {
+        return Err("comparison report numerical status disagrees with comparison_status".to_owned());
+    }
     if status == "UNRESOLVED" {
         return Ok(ComparisonReport {
             comparison_status: status.to_owned(),
@@ -661,7 +720,22 @@ fn parse_comparison_report(
             return Err(format!("{at}.observable_id is duplicated"));
         }
         let unit = non_empty(get_str(item, "unit", &at)?, &format!("{at}.unit"), 64)?;
+        let manifest_reference = reference
+            .observables
+            .get(&id)
+            .ok_or_else(|| format!("{at}.observable_id is absent from the reference manifest"))?;
         let expected_value = get_finite_number(item, "reference_value", &at)?;
+        if unit != manifest_reference.unit
+            || expected_value != manifest_reference.expected_value
+            || get_finite_number(item, "absolute_tolerance", &at)?
+                != manifest_reference.absolute_tolerance
+            || get_finite_number(item, "relative_tolerance", &at)?
+                != manifest_reference.relative_tolerance
+        {
+            return Err(format!(
+                "{at} reference values, units or tolerances do not match the exact reference manifest"
+            ));
+        }
         let observed_value = get_finite_number(item, "observed_value", &at)?;
         let absolute_error = get_finite_number(item, "absolute_error", &at)?;
         let absolute_tolerance = get_finite_number(item, "absolute_tolerance", &at)?;
