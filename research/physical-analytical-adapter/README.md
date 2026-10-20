@@ -89,3 +89,8 @@ cargo run --locked --manifest-path research/physical-analytical-adapter/Cargo.to
 ```
 
 This first dispatcher does **not** launch external processes or remote services. Those implementation kinds are not eligible for automatic selection in v0.1. Registering an external solver later requires a separate execution adapter plus a frozen, independent benchmark/solver-version/convergence contract; merely adding a name to JSON must not enable execution.
+
+
+### Dispatching bounded v0.2 requests
+
+The dispatcher accepts both point-only `physical-analytical-request-v0.1` and bounded `physical-analytical-request-v0.2`. For v0.2, supplied bounds must name exactly the selected case's inputs; each interval must have finite ordered bounds, the nominal must be enclosed, the unit and evidence-class token must be recognized, and positive geometry/material parameters must have a strictly positive lower bound. Malformed bounds are rejected before selection. Valid but unsupported physics or unit incompatibility returns a no-evaluation abstention receipt with `request_schema_version` preserved. If a backend is selected, the nested receipt remains v0.2 and its declared output interval is preserved alongside nominal outputs.
