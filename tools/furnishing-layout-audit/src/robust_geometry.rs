@@ -89,12 +89,7 @@ impl IntervalRect {
         if derived_endpoints.iter().any(|value| !value.is_finite()) {
             return Err(RangeError::NonFiniteDerivedEndpoint);
         }
-        Ok(Self {
-            x,
-            y,
-            width,
-            depth,
-        })
+        Ok(Self { x, y, width, depth })
     }
 
     pub fn x(self) -> ClosedRange {
@@ -156,8 +151,7 @@ fn definitely_separated(
 ) -> bool {
     let a_max_end = a_start.max + a_extent.max;
     let b_max_end = b_start.max + b_extent.max;
-    a_max_end <= b_start.min + GEOMETRY_EPSILON_M
-        || b_max_end <= a_start.min + GEOMETRY_EPSILON_M
+    a_max_end <= b_start.min + GEOMETRY_EPSILON_M || b_max_end <= a_start.min + GEOMETRY_EPSILON_M
 }
 
 fn definitely_overlapping(
@@ -178,12 +172,7 @@ mod tests {
         ClosedRange::new(min, max).expect("test ranges are valid")
     }
 
-    fn rect(
-        x: (f64, f64),
-        y: (f64, f64),
-        width: (f64, f64),
-        depth: (f64, f64),
-    ) -> IntervalRect {
+    fn rect(x: (f64, f64), y: (f64, f64), width: (f64, f64), depth: (f64, f64)) -> IntervalRect {
         IntervalRect::new(
             range(x.0, x.1),
             range(y.0, y.1),
@@ -197,15 +186,24 @@ mod tests {
     fn fixed_rectangles_that_touch_at_an_edge_are_clear() {
         let a = rect((0.0, 0.0), (0.0, 0.0), (1.0, 1.0), (1.0, 1.0));
         let b = rect((1.0, 1.0), (0.0, 0.0), (0.5, 0.5), (1.0, 1.0));
-        assert_eq!(a.classify_overlap(b), OverlapClassification::DefinitelyClear);
-        assert_eq!(b.classify_overlap(a), OverlapClassification::DefinitelyClear);
+        assert_eq!(
+            a.classify_overlap(b),
+            OverlapClassification::DefinitelyClear
+        );
+        assert_eq!(
+            b.classify_overlap(a),
+            OverlapClassification::DefinitelyClear
+        );
     }
 
     #[test]
     fn fixed_rectangles_with_real_overlap_are_definitely_overlapping() {
         let a = rect((0.0, 0.0), (0.0, 0.0), (1.0, 1.0), (1.0, 1.0));
         let b = rect((0.25, 0.25), (0.25, 0.25), (1.0, 1.0), (1.0, 1.0));
-        assert_eq!(a.classify_overlap(b), OverlapClassification::DefinitelyOverlapping);
+        assert_eq!(
+            a.classify_overlap(b),
+            OverlapClassification::DefinitelyOverlapping
+        );
     }
 
     #[test]
@@ -226,7 +224,10 @@ mod tests {
     fn separation_on_one_axis_proves_clear_even_if_the_other_is_uncertain() {
         let a = rect((0.0, 0.5), (0.0, 0.0), (0.8, 1.2), (1.0, 1.0));
         let b = rect((0.6, 0.9), (2.0, 2.1), (0.2, 0.4), (0.2, 0.3));
-        assert_eq!(a.classify_overlap(b), OverlapClassification::DefinitelyClear);
+        assert_eq!(
+            a.classify_overlap(b),
+            OverlapClassification::DefinitelyClear
+        );
     }
 
     #[test]
@@ -250,10 +251,7 @@ mod tests {
             ClosedRange::new(f64::NAN, 1.0),
             Err(RangeError::NonFiniteBound)
         );
-        assert_eq!(
-            ClosedRange::new(2.0, 1.0),
-            Err(RangeError::InvertedBounds)
-        );
+        assert_eq!(ClosedRange::new(2.0, 1.0), Err(RangeError::InvertedBounds));
         let error = IntervalRect::new(
             range(0.0, 0.0),
             range(0.0, 0.0),
