@@ -127,7 +127,10 @@ impl Policy {
     }
 
     fn has_trust_gate(self) -> bool {
-        matches!(self, Self::FixedSplitTrustGated | Self::MultiHorizonTrustGated)
+        matches!(
+            self,
+            Self::FixedSplitTrustGated | Self::MultiHorizonTrustGated
+        )
     }
 
     fn is_diagnostic_only(self) -> bool {
@@ -264,7 +267,10 @@ fn fixed_split_radius(calibration: &[f64], miscoverage_percent: usize) -> Check<
         return Err("calibration must be non-empty and miscoverage must be in (0, 100)".to_owned());
     }
     let mut sorted = calibration.to_vec();
-    if sorted.iter().any(|value| !value.is_finite() || *value < 0.0) {
+    if sorted
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+    {
         return Err("calibration residuals must be finite and nonnegative".to_owned());
     }
     sorted.sort_by(f64::total_cmp);
@@ -278,7 +284,9 @@ fn fixed_split_radius(calibration: &[f64], miscoverage_percent: usize) -> Check<
         .ok_or_else(|| "finite-sample quantile rounding overflow".to_owned())?
         / 100;
     if rank > sorted.len() {
-        return Err("calibration set is too small for the requested finite-sample quantile".to_owned());
+        return Err(
+            "calibration set is too small for the requested finite-sample quantile".to_owned(),
+        );
     }
     Ok(sorted[rank.max(1) - 1])
 }
@@ -312,9 +320,7 @@ fn tick_error(seed: u64, kind: ScenarioKind, tick: usize) -> f64 {
         ScenarioKind::AbruptShift | ScenarioKind::DelayedLabels | ScenarioKind::MissingLabels => {
             base
         }
-        ScenarioKind::SlowDrift if tick >= 20 => {
-            base + ((tick - 19).min(6) as f64)
-        }
+        ScenarioKind::SlowDrift if tick >= 20 => base + ((tick - 19).min(6) as f64),
         ScenarioKind::SlowDrift => base,
         ScenarioKind::Reversion if (20..40).contains(&tick) => 6.0,
         ScenarioKind::Reversion => base,
@@ -340,14 +346,12 @@ fn generate_stream(seed: u64, split: Split, kind: ScenarioKind) -> Stream {
             let target_label_available = !(kind == ScenarioKind::MissingLabels
                 && tick >= 20
                 && (seed + tick as u64) % 3 == 0);
-            let target_label_delay_ticks =
-                if kind == ScenarioKind::DelayedLabels && tick >= 20 {
-                    5
-                } else {
-                    0
-                };
-            let telemetry_available =
-                !(kind == ScenarioKind::MissingTelemetry && tick >= 24);
+            let target_label_delay_ticks = if kind == ScenarioKind::DelayedLabels && tick >= 20 {
+                5
+            } else {
+                0
+            };
+            let telemetry_available = !(kind == ScenarioKind::MissingTelemetry && tick >= 24);
             let telemetry_age_periods = if kind == ScenarioKind::StaleTelemetry && tick >= 24 {
                 MAX_TELEMETRY_AGE + 1
             } else {
@@ -382,9 +386,7 @@ fn generate_stream(seed: u64, split: Split, kind: ScenarioKind) -> Stream {
 }
 
 fn generate_streams() -> Vec<Stream> {
-    let mut streams = Vec::with_capacity(
-        (VALIDATION_SEEDS + HELD_OUT_SEEDS) * STREAM_KIND_COUNT,
-    );
+    let mut streams = Vec::with_capacity((VALIDATION_SEEDS + HELD_OUT_SEEDS) * STREAM_KIND_COUNT);
     for (split, seeds) in [
         (Split::Validation, 1_u64..=VALIDATION_SEEDS as u64),
         (
@@ -563,9 +565,7 @@ fn evaluate_stream(
             .front()
             .is_some_and(|(ready_at, _)| *ready_at <= tick.tick)
         {
-            let (_, residual) = pending_labels
-                .pop_front()
-                .expect("front item was checked");
+            let (_, residual) = pending_labels.pop_front().expect("front item was checked");
             history.push(residual);
             online_radius = online_radius_update(online_radius, residual);
             label_updates_applied += 1;
@@ -681,9 +681,7 @@ impl Accumulator {
                 self.incident_onsets += 1;
                 let first_block = outcomes
                     .iter()
-                    .find(|outcome| {
-                        outcome.tick >= onset && outcome.decision != Decision::UseModel
-                    })
+                    .find(|outcome| outcome.tick >= onset && outcome.decision != Decision::UseModel)
                     .map(|outcome| outcome.tick);
                 if let Some(detected_at) = first_block {
                     self.onsets_detected += 1;
@@ -697,12 +695,7 @@ impl Accumulator {
         }
     }
 
-    fn finish(
-        self,
-        split: Split,
-        kind: ScenarioKind,
-        policy: Policy,
-    ) -> Summary {
+    fn finish(self, split: Split, kind: ScenarioKind, policy: Policy) -> Summary {
         let mean_interval_width = if self.widths.is_empty() {
             0.0
         } else {
@@ -772,13 +765,23 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
     let expected_tick_count = expected_stream_count * TICKS_PER_STREAM;
 
     if streams.len() != expected_stream_count
-        || streams.iter().any(|stream| stream.ticks.len() != TICKS_PER_STREAM)
-        || streams.iter().filter(|stream| stream.split == Split::Validation).count()
+        || streams
+            .iter()
+            .any(|stream| stream.ticks.len() != TICKS_PER_STREAM)
+        || streams
+            .iter()
+            .filter(|stream| stream.split == Split::Validation)
+            .count()
             != VALIDATION_SEEDS * STREAM_KIND_COUNT
-        || streams.iter().filter(|stream| stream.split == Split::HeldOut).count()
+        || streams
+            .iter()
+            .filter(|stream| stream.split == Split::HeldOut)
+            .count()
             != HELD_OUT_SEEDS * STREAM_KIND_COUNT
     {
-        return Err("generated stream corpus does not match the declared split contract".to_owned());
+        return Err(
+            "generated stream corpus does not match the declared split contract".to_owned(),
+        );
     }
 
     let mut accumulators: BTreeMap<(Split, ScenarioKind, Policy), Accumulator> = BTreeMap::new();
@@ -787,8 +790,16 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
     let mut independent_gate_audit_mismatches = 0_usize;
 
     for stream in &streams {
-        if stream.ticks.iter().enumerate().any(|(index, tick)| tick.tick != index) {
-            return Err(format!("{} {:?}: tick sequence is not contiguous", stream.seed, stream.kind));
+        if stream
+            .ticks
+            .iter()
+            .enumerate()
+            .any(|(index, tick)| tick.tick != index)
+        {
+            return Err(format!(
+                "{} {:?}: tick sequence is not contiguous",
+                stream.seed, stream.kind
+            ));
         }
         for policy in Policy::all() {
             let (outcomes, label_updates, audit_mismatches) =
@@ -918,10 +929,30 @@ mod tests {
     fn deterministic_corpus_has_disjoint_seed_splits_and_exact_dimensions() {
         let streams = generate_streams();
         assert_eq!(768, streams.len());
-        assert_eq!(49_152, streams.iter().map(|stream| stream.ticks.len()).sum::<usize>());
-        assert_eq!(384, streams.iter().filter(|stream| stream.split == Split::Validation).count());
-        assert_eq!(384, streams.iter().filter(|stream| stream.split == Split::HeldOut).count());
-        assert!(streams.iter().all(|stream| stream.ticks.len() == TICKS_PER_STREAM));
+        assert_eq!(
+            49_152,
+            streams
+                .iter()
+                .map(|stream| stream.ticks.len())
+                .sum::<usize>()
+        );
+        assert_eq!(
+            384,
+            streams
+                .iter()
+                .filter(|stream| stream.split == Split::Validation)
+                .count()
+        );
+        assert_eq!(
+            384,
+            streams
+                .iter()
+                .filter(|stream| stream.split == Split::HeldOut)
+                .count()
+        );
+        assert!(streams
+            .iter()
+            .all(|stream| stream.ticks.len() == TICKS_PER_STREAM));
         let first = serde_json::to_vec(&streams).expect("serialize first corpus");
         let second = serde_json::to_vec(&generate_streams()).expect("serialize second corpus");
         assert_eq!(sha256(&first), sha256(&second));
@@ -929,7 +960,8 @@ mod tests {
 
     #[test]
     fn trust_gate_is_independent_of_interval_widening_and_has_reentry_holdoff() {
-        let mut tick = generate_stream(1, Split::Validation, ScenarioKind::AbruptShift).ticks[20].clone();
+        let mut tick =
+            generate_stream(1, Split::Validation, ScenarioKind::AbruptShift).ticks[20].clone();
         let mut locked = false;
         let mut healthy = 0;
         assert_eq!(
@@ -963,9 +995,13 @@ mod tests {
             .expect("held-out abrupt-shift stream");
         let calibration = calibration_residuals();
         let fixed_radius = fixed_split_radius(&calibration, 5).expect("fixed radius");
-        let (fixed, _, _) =
-            evaluate_stream(stream, Policy::FixedSplitIntervalOnly, &calibration, fixed_radius)
-                .expect("evaluate fixed diagnostic");
+        let (fixed, _, _) = evaluate_stream(
+            stream,
+            Policy::FixedSplitIntervalOnly,
+            &calibration,
+            fixed_radius,
+        )
+        .expect("evaluate fixed diagnostic");
         let (adaptive, _, _) = evaluate_stream(
             stream,
             Policy::OnlineResidualFeedbackIntervalOnly,
@@ -973,8 +1009,12 @@ mod tests {
             fixed_radius,
         )
         .expect("evaluate adaptive diagnostic");
-        assert!(fixed.iter().all(|step| step.decision == Decision::DiagnoseOnly));
-        assert!(adaptive.iter().all(|step| step.decision == Decision::DiagnoseOnly));
+        assert!(fixed
+            .iter()
+            .all(|step| step.decision == Decision::DiagnoseOnly));
+        assert!(adaptive
+            .iter()
+            .all(|step| step.decision == Decision::DiagnoseOnly));
         assert!(adaptive[30].radius > fixed[30].radius);
     }
 
