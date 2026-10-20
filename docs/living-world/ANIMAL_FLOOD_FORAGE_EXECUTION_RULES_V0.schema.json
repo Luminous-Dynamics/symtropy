@@ -11,6 +11,7 @@
     "tracking_issue",
     "scenario_id",
     "note",
+    "tick_order",
     "spatial",
     "resources",
     "agent",
@@ -472,6 +473,17 @@
           "minLength": 1
         }
       }
+    },
+    "tick_order": {
+      "type": "array",
+      "const": [
+        "apply_resource_regrowth_at_tick_start",
+        "deliver_due_local_observations",
+        "choose_action_using_only_authorized_information",
+        "apply_action_and_account_costs",
+        "emit_local_observation_with_declared_latency",
+        "record_evaluator_only_metrics"
+      ]
     }
   },
   "$comment": "The runtime must bind to the separate pilot manifest. A sealed model without disclosed permitted parameters remains not_assessed; do not infer missing parameters. Structural schema validation does not establish simulation validity."
