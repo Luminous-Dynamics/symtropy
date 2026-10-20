@@ -33,7 +33,9 @@ Thresholds and overheads are declared benchmark assumptions, not measured sensor
 
 For every policy/family combination, the report records the selected strategy, selector rule, signal values, lifecycle NPV before decision overhead, overhead, total NPV and regret relative to the cheapest strategy in that same family.
 
-Across families it reports equal-weight mean cost, worst-family cost, maximum regret, average decision overhead, strategy selection counts and a three-objective Pareto frontier over mean cost, worst-case cost and maximum regret. The perfect-information oracle is kept visibly separate from deployable policies.
+Across families it reports equal-weight mean cost, worst-family cost, maximum regret, average decision overhead and strategy-selection counts. The actionable three-objective Pareto frontier compares only deployable policies over mean cost, worst-family cost and maximum regret; the perfect-information oracle is deliberately excluded so it cannot trivially dominate every practical option. Its lower-bound cost is reported separately.
+
+`value_of_adaptivity_vs_best_fixed_npv_cost_reduction` is signed: positive means the best threshold policy costs less on the declared family set; negative means flexibility and its decision overhead cost more than the best fixed strategy. The perfect-information gap is separate from this realistic adaptivity comparison.
 
 It also perturbs selector observations—not the underlying realised family cash flows—to measure policy fragility:
 - active-fraction signal lower by 0.05;
