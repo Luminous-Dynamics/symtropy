@@ -1294,7 +1294,14 @@ mod tests {
 
     #[test]
     fn pass_receipt_cannot_promote_physics_outside_declared_fidelity() {
-        let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
+        let mut request: Value = serde_json::from_slice(
+            &fixture("unsupported-dynamic-fracture-request-v0.1.json"),
+        )
+        .unwrap();
+        // Keep the request structurally valid for a nonlinear solver class while asking
+        // for dynamic/fracture physics outside that declared class.
+        request["model_fidelity"] = json!("continuum_nonlinear");
+        let request_bytes = serde_json::to_vec(&request).unwrap();
         let receipt = solver_receipt(&request_bytes, "PASS");
         let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
         let error = validate_solver_receipt_bytes(&request_bytes, &receipt_bytes).unwrap_err();
