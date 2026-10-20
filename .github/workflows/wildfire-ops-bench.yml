@@ -52,7 +52,7 @@ jobs:
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
-          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml -- \
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire-ops-bench -- \
             benchmarks/fixtures/WILDFIRE_OPS_V0_1.json \
             --source-commit "$source_commit" > wildfire-ops-reference-receipt.json
           export SOURCE_COMMIT="$source_commit"

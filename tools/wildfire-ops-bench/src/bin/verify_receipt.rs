@@ -150,7 +150,18 @@ fn plan_id(plan: Option<&Value>) -> Option<&str> {
 }
 
 fn matches_id(value: &Value, key: &str, expected: Option<&str>, at: &str) -> Check<()> {
-    let actual = value.get(key).and_then(Value::as_str);
+    let field = value
+        .get(key)
+        .ok_or_else(|| format!("{at}.{key}: missing field"))?;
+    let actual = if field.is_null() {
+        None
+    } else {
+        Some(
+            field
+                .as_str()
+                .ok_or_else(|| format!("{at}.{key}: expected string or null"))?,
+        )
+    };
     if actual == expected {
         Ok(())
     } else {
