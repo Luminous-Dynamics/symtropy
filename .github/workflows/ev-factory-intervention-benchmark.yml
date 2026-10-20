@@ -93,7 +93,8 @@ jobs:
           jq '.benchmark_id = "unreviewed-benchmark"' ev-factory-simulation-report.json > invalid-intervention-source.json
           jq '.replication_seeds[1] = .replication_seeds[0]' ev-factory-simulation-report.json > invalid-intervention-seeds.json
           jq '.replication_outcomes[1].seed = 999999' ev-factory-simulation-report.json > invalid-intervention-outcome-seed.json
-          for invalid in invalid-intervention-source.json invalid-intervention-seeds.json invalid-intervention-outcome-seed.json; do
+          jq '.replication_outcomes[1].paired_good_units_per_hour_delta_vs_baseline = 99' ev-factory-simulation-report.json > invalid-intervention-delta.json
+          for invalid in invalid-intervention-source.json invalid-intervention-seeds.json invalid-intervention-outcome-seed.json invalid-intervention-delta.json; do
             if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- "$invalid" >/dev/null 2>&1; then
               echo "invalid simulation report unexpectedly accepted: $invalid"
               exit 1
