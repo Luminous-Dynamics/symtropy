@@ -24,6 +24,7 @@ fn main() {
                 rate: Some(QuantityRate {
                     unit_rate: 50_000.0,
                     currency_basis_id: "ZAR-cent-2026-SA-demo".to_owned(),
+                minor_unit_exponent: 2,
                     rate_card_ref: "fixture:rate-card-v1".to_owned(),
                 }),
             }),
@@ -45,6 +46,7 @@ fn main() {
                 rate: Some(QuantityRate {
                     unit_rate: 50_000.0,
                     currency_basis_id: "ZAR-cent-2026-SA-demo".to_owned(),
+                minor_unit_exponent: 2,
                     rate_card_ref: "fixture:rate-card-v1".to_owned(),
                 }),
             }),
@@ -63,6 +65,7 @@ fn main() {
                 transaction_ref: "invoice-0001:line-1".to_owned(),
                 amount_minor_units: 680_000,
                 currency_basis_id: "ZAR-cent-2026-SA-demo".to_owned(),
+                minor_unit_exponent: 2,
             }),
         },
     ];
