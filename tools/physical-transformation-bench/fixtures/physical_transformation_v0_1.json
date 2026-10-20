@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "support-removal-splits-connectivity",
+      "scenario": {
+        "id": "support-removal-splits-connectivity",
+        "units": { "length": "mm", "mass": "g", "force": "mN" },
+        "nodes": [
+          { "id": "node_a", "position_mm": [0, 0, 0] },
+          { "id": "node_b", "position_mm": [1000, 0, 0] },
+          { "id": "node_c", "position_mm": [2000, 0, 0] }
+        ],
+        "materials": [
+          { "id": "steel", "allowed_recovery_routes": ["reuse", "recycle", "waste"] },
+          { "id": "concrete", "allowed_recovery_routes": ["recycle", "waste"] }
+        ],
+        "members": [
+          {
+            "id": "support_ab", "from_node": "node_a", "to_node": "node_b",
+            "material_id": "steel", "mass_g": 1200, "load_bearing": true,
+            "connected": true, "state": "installed"
+          },
+          {
+            "id": "beam_bc", "from_node": "node_b", "to_node": "node_c",
+            "material_id": "steel", "mass_g": 800, "load_bearing": true,
+            "connected": true, "state": "installed"
+          }
+        ],
+        "events": [
+          { "sequence": 1, "id": "remove-support-1", "type": "remove_support", "member_id": "support_ab" }
+        ]
+      },
+      "expected": {
+        "component_count": 2,
+        "connected_components": [["node_a"], ["node_b", "node_c"]],
+        "material_totals": {
+          "installed_mass_g": 800,
+          "rubble_mass_g": 1200,
+          "reused_mass_g": 0,
+          "recycled_mass_g": 0,
+          "waste_mass_g": 0
+        },
+        "applied_load_count": 0,
+        "mass_balance_residual_g": 0
+      }
+    },
+    {
+      "id": "construction-replay-restores-connectivity",
+      "scenario": {
+        "id": "construction-replay-restores-connectivity",
+        "units": { "length": "mm", "mass": "g", "force": "mN" },
+        "nodes": [
+          { "id": "node_a", "position_mm": [0, 0, 0] },
+          { "id": "node_b", "position_mm": [1000, 0, 0] },
+          { "id": "node_c", "position_mm": [2000, 0, 0] },
+          { "id": "node_d", "position_mm": [3000, 0, 0] }
+        ],
+        "materials": [
+          { "id": "steel", "allowed_recovery_routes": ["reuse", "recycle", "waste"] }
+        ],
+        "members": [
+          {
+            "id": "member_ab", "from_node": "node_a", "to_node": "node_b",
+            "material_id": "steel", "mass_g": 500, "load_bearing": true,
+            "connected": true, "state": "installed"
+          },
+          {
+            "id": "member_bc", "from_node": "node_b", "to_node": "node_c",
+            "material_id": "steel", "mass_g": 700, "load_bearing": true,
+            "connected": true, "state": "installed"
+          },
+          {
+            "id": "member_cd", "from_node": "node_c", "to_node": "node_d",
+            "material_id": "steel", "mass_g": 300, "load_bearing": true,
+            "connected": false, "state": "installed"
+          }
+        ],
+        "events": [
+          { "sequence": 1, "id": "connect-1", "type": "connect_member", "member_id": "member_cd" },
+          { "sequence": 2, "id": "disconnect-2", "type": "disconnect_member", "member_id": "member_cd" },
+          { "sequence": 3, "id": "connect-3", "type": "connect_member", "member_id": "member_cd" }
+        ]
+      },
+      "expected": {
+        "component_count": 1,
+        "connected_components": [["node_a", "node_b", "node_c", "node_d"]],
+        "material_totals": {
+          "installed_mass_g": 1500,
+          "rubble_mass_g": 0,
+          "reused_mass_g": 0,
+          "recycled_mass_g": 0,
+          "waste_mass_g": 0
+        },
+        "applied_load_count": 0,
+        "mass_balance_residual_g": 0
+      }
+    },
+    {
+      "id": "material-recovery-preserves-mass",
+      "scenario": {
+        "id": "material-recovery-preserves-mass",
+        "units": { "length": "mm", "mass": "g", "force": "mN" },
+        "nodes": [
+          { "id": "node_p", "position_mm": [0, 0, 0] },
+          { "id": "node_q", "position_mm": [1000, 0, 0] },
+          { "id": "node_r", "position_mm": [2000, 0, 0] }
+        ],
+        "materials": [
+          { "id": "steel", "allowed_recovery_routes": ["reuse", "recycle", "waste"] },
+          { "id": "concrete", "allowed_recovery_routes": ["recycle", "waste"] }
+        ],
+        "members": [
+          {
+            "id": "member_pq", "from_node": "node_p", "to_node": "node_q",
+            "material_id": "steel", "mass_g": 600, "load_bearing": true,
+            "connected": true, "state": "installed"
+          },
+          {
+            "id": "rubble_qr", "from_node": "node_q", "to_node": "node_r",
+            "material_id": "concrete", "mass_g": 400, "load_bearing": false,
+            "connected": false, "state": "rubble"
+          }
+        ],
+        "events": [
+          { "sequence": 1, "id": "recover-1", "type": "recover_material", "member_id": "rubble_qr", "route": "recycle" }
+        ]
+      },
+      "expected": {
+        "component_count": 2,
+        "connected_components": [["node_p", "node_q"], ["node_r"]],
+        "material_totals": {
+          "installed_mass_g": 600,
+          "rubble_mass_g": 0,
+          "reused_mass_g": 0,
+          "recycled_mass_g": 400,
+          "waste_mass_g": 0
+        },
+        "applied_load_count": 0,
+        "mass_balance_residual_g": 0
+      }
+    },
+    {
+      "id": "bounded-load-is-observed-not-solved",
+      "scenario": {
+        "id": "bounded-load-is-observed-not-solved",
+        "units": { "length": "mm", "mass": "g", "force": "mN" },
+        "nodes": [
+          { "id": "node_a", "position_mm": [0, 0, 0] },
+          { "id": "node_b", "position_mm": [1000, 0, 0] }
+        ],
+        "materials": [
+          { "id": "steel", "allowed_recovery_routes": ["reuse", "recycle", "waste"] }
+        ],
+        "members": [
+          {
+            "id": "member_ab", "from_node": "node_a", "to_node": "node_b",
+            "material_id": "steel", "mass_g": 900, "load_bearing": true,
+            "connected": true, "state": "installed"
+          }
+        ],
+        "events": [
+          {
+            "sequence": 1, "id": "load-1", "type": "apply_load",
+            "load": {
+              "id": "load_b", "node_id": "node_b",
+              "force_mn": [0, -5000, 0], "max_abs_component_mn": 5000
+            }
+          }
+        ]
+      },
+      "expected": {
+        "component_count": 1,
+        "connected_components": [["node_a", "node_b"]],
+        "material_totals": {
+          "installed_mass_g": 900,
+          "rubble_mass_g": 0,
+          "reused_mass_g": 0,
+          "recycled_mass_g": 0,
+          "waste_mass_g": 0
+        },
+        "applied_load_count": 1,
+        "mass_balance_residual_g": 0
+      }
+    }
+  ]
+}
