@@ -73,7 +73,8 @@ fn exact_minimum_makespan(scenario: &RepairScheduleScenario) -> Result<ExactResu
         .iter()
         .map(|task| (task.task_id.clone(), task))
         .collect();
-    if by_id.len() != scenario.tasks.len() || by_id.keys().any(|task_id| task_id.trim().is_empty()) {
+    if by_id.len() != scenario.tasks.len() || by_id.keys().any(|task_id| task_id.trim().is_empty())
+    {
         return Err("EXACT_ORACLE_EMPTY_OR_DUPLICATE_TASK_ID".to_owned());
     }
 
