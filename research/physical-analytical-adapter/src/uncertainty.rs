@@ -788,3 +788,143 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod inari_differential_tests {
+    use super::*;
+    use inari::Interval as ReferenceInterval;
+
+    const CASES: &[(f64, f64)] = &[
+        (-10.0, -4.0),
+        (-2.0, -0.5),
+        (-1.0e-200, 1.0e-200),
+        (-0.0, 0.0),
+        (0.0, 1.0e-200),
+        (0.5, 2.0),
+        (2.0, 8.0),
+        (1.0e-100, 1.0e100),
+    ];
+
+    fn reference(lower: f64, upper: f64) -> ReferenceInterval {
+        ReferenceInterval::try_from((lower, upper)).expect("finite common interval")
+    }
+
+    fn assert_contains_reference(actual: Interval, expected: ReferenceInterval, context: &str) {
+        let expected_lower = expected.inf();
+        let expected_upper = expected.sup();
+        assert!(
+            actual.lower <= expected_lower,
+            "{context}: Symtropy lower {:.17e} > Inari lower {:.17e}",
+            actual.lower,
+            expected_lower
+        );
+        assert!(
+            actual.upper >= expected_upper,
+            "{context}: Symtropy upper {:.17e} < Inari upper {:.17e}",
+            actual.upper,
+            expected_upper
+        );
+        assert!(
+            actual.lower.is_finite(),
+            "{context}: non-finite lower endpoint"
+        );
+        assert!(
+            actual.upper.is_finite(),
+            "{context}: non-finite upper endpoint"
+        );
+    }
+
+    #[test]
+    fn finite_multiplication_intervals_enclose_inari_2_0_0() {
+        for (left_index, (left_lower, left_upper)) in CASES.iter().copied().enumerate() {
+            for (right_index, (right_lower, right_upper)) in CASES.iter().copied().enumerate() {
+                let left = Interval::new(left_lower, left_upper).expect("Symtropy left interval");
+                let right =
+                    Interval::new(right_lower, right_upper).expect("Symtropy right interval");
+                let actual = left
+                    .multiply(right)
+                    .expect("selected products remain in the finite interval domain");
+                let expected =
+                    reference(left_lower, left_upper) * reference(right_lower, right_upper);
+                assert_contains_reference(
+                    actual,
+                    expected,
+                    &format!("multiply case {left_index} x {right_index}"),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn finite_nonzero_division_domains_enclose_inari_2_0_0() {
+        let denominators = [
+            (-10.0, -4.0),
+            (-2.0, -0.5),
+            (0.5, 2.0),
+            (2.0, 8.0),
+            (1.0e-100, 1.0e100),
+        ];
+        for (left_index, (left_lower, left_upper)) in CASES.iter().copied().enumerate() {
+            for (right_index, (right_lower, right_upper)) in
+                denominators.iter().copied().enumerate()
+            {
+                let left = Interval::new(left_lower, left_upper).expect("Symtropy numerator");
+                let right = Interval::new(right_lower, right_upper).expect("Symtropy denominator");
+                let actual = left.divide(right).expect("denominator excludes zero");
+                let expected =
+                    reference(left_lower, left_upper) / reference(right_lower, right_upper);
+                assert_contains_reference(
+                    actual,
+                    expected,
+                    &format!("divide case {left_index} / {right_index}"),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn positive_power_enclosures_cover_inari_repeated_products() {
+        for (case_index, (lower, upper)) in
+            [(1.0e-100, 3.0e-100), (0.25, 0.75), (1.0, 1.0), (2.0, 8.0)]
+                .into_iter()
+                .enumerate()
+        {
+            let actual_interval = Interval::new(lower, upper).expect("positive interval");
+            let expected_interval = reference(lower, upper);
+            for exponent in [2, 3, 4] {
+                let actual = actual_interval
+                    .positive_power(exponent, "test input")
+                    .expect("positive power");
+                let mut expected = reference(1.0, 1.0);
+                for _ in 0..exponent {
+                    expected *= expected_interval;
+                }
+                assert_contains_reference(
+                    actual,
+                    expected,
+                    &format!("power case {case_index}^{exponent}"),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn zero_divisor_is_a_declared_domain_rejection_not_a_reference_mismatch() {
+        for numerator in CASES {
+            let actual = Interval::new(numerator.0, numerator.1).expect("numerator");
+            for denominator in [(-1.0, 1.0), (-0.0, 0.0)] {
+                let divisor = Interval::new(denominator.0, denominator.1).expect("divisor");
+                assert!(actual.divide(divisor).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn overflow_is_a_fail_closed_contract_difference() {
+        let huge = Interval::new(1.0e200, 2.0e200).expect("huge finite interval");
+        assert!(huge.multiply(huge).is_err());
+        // Inari is used above only as a comparator over finite common intervals.
+        // Symtropy's mechanics-facing contract deliberately rejects this operation
+        // rather than issuing a finite-looking receipt when the enclosure overflows.
+    }
+}

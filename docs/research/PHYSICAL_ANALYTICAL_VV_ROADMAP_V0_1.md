@@ -100,6 +100,22 @@ Report:
 - reproducibility across operating systems/toolchain/build identity;
 - latency and memory only after measuring them at a pinned machine configuration.
 
+### Gate D1 — interval arithmetic reference comparison
+
+The input-bounds layer adds a new proof obligation below physical-model uncertainty: the arithmetic that constructs its enclosures must not underestimate results in its declared domain. A pinned differential comparator is now part of the research branch: Inari 2.0.0 (MIT, test-only dependency, default features disabled) and a pinned ITF1788 framework reference commit `d8c2a64478ebdc9cbde6ccef33eaad3bed60ed81` (Apache-2.0). The current Rust-native slice compares finite multiplication/division enclosures, positive integer powers and explicitly rejected denominator/overflow domains. It does **not** execute the entire ITF1788 corpus and does not claim IEEE conformance.
+
+Standards status must be stated carefully: IEEE currently lists [1788-2015](https://standards.ieee.org/ieee/1788/4431/) as inactive-reserved and [1788.1-2017](https://standards.ieee.org/ieee/1788.1/6074/) as active. Inari's own documentation claims 1788.1-2017 conformance and a subset of 1788-2015; Symtropy's own test results must not inherit those claims by association. The [ITF1788 methodology paper](https://doi.org/10.1002/cpe.7856) explains why empty/unbounded intervals, decorations and exceptions form additional test dimensions beyond ordinary arithmetic bounds.
+
+Acceptance gates for interval arithmetic:
+- zero known false enclosures in every frozen matched-domain test vector;
+- every mismatch reduced to a permanent test, not filtered;
+- measure width/overestimation as well as containment;
+- run the test matrix on each claimed toolchain/architecture; no portability claim from one Ubuntu/x86-64 run;
+- separately document semantics rejected by the physical-input API, including zero-containing denominator bounds and overflow to non-finite endpoints;
+- expand to more ITF1788 vectors only after each vector's interval model, exception and decoration semantics are mapped explicitly.
+
+Reference design note: [PHYSICAL_INTERVAL_ORACLE_V0_1.md](PHYSICAL_INTERVAL_ORACLE_V0_1.md).
+
 ## How to outperform the state of the art responsibly
 
 The defensible differentiator is not to claim a more accurate formula than a trusted solver for the same equation. It is an end-to-end evidence contract that makes unsupported requests, assumptions, provenance, exact inputs, solver/configuration identity, convergence, uncertainty and claim limits machine-checkable—and then demonstrates this behavior on broader public benchmarks and independent measurements.

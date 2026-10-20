@@ -2,12 +2,13 @@ name: Physical Analytical Adapter
 
 on:
   push:
-    branches: ["research/physical-analytical-adapter-v0-1"]
+    branches: ["research/physical-analytical-adapter-v0-1", "research/physical-analytical-uq-v0-1", "research/physical-interval-oracle-v0-1"]
     paths:
       - "research/physical-analytical-adapter/**"
       - "docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md"
       - "research/physical-transformation-reference/**"
       - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
+      - "docs/research/PHYSICAL_INTERVAL_ORACLE_V0_1.md"
       - "research/physical-analytical-adapter/README.md"
       - "schemas/physical-transformation/analytical-fixtures/**"
       - "schemas/physical-transformation/physical-analytical-*.schema.json"
@@ -38,6 +39,10 @@ jobs:
   analytical-adapter:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Inari's documented x86-64 backend requires Haswell-or-later target features.
+    # This job runs on an x86-64 hosted Ubuntu runner; it is not a portability claim.
+    env:
+      RUSTFLAGS: "-Ctarget-cpu=haswell"
     steps:
       - uses: actions/checkout@v4
         with:
