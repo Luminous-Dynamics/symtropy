@@ -1,9 +1,8 @@
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
-    env,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process,
 };
@@ -35,28 +34,22 @@ fn run_cli() -> Result<(), String> {
         .map_err(|error| format!("{}: cannot read fixture: {error}", args.fixture.display()))?;
     let manifest_bytes = fs::read(&args.manifest)
         .map_err(|error| format!("{}: cannot read manifest: {error}", args.manifest.display()))?;
-    let source_bytes = fs::read(&args.source)
-        .map_err(|error| format!("{}: cannot read evaluator source: {error}", args.source.display()))?;
+    let source_bytes = fs::read(&args.source).map_err(|error| {
+        format!(
+            "{}: cannot read evaluator source: {error}",
+            args.source.display()
+        )
+    })?;
     let lock_bytes = fs::read(&args.lock)
         .map_err(|error| format!("{}: cannot read Cargo.lock: {error}", args.lock.display()))?;
 
     let manifest: Value = serde_json::from_slice(&manifest_bytes)
         .map_err(|error| format!("manifest: invalid JSON: {error}"))?;
-    verify_manifest(
-        &manifest,
-        &args,
-        &fixture_bytes,
-        &source_bytes,
-        &lock_bytes,
-    )?;
+    verify_manifest(&manifest, &args, &fixture_bytes, &source_bytes, &lock_bytes)?;
 
     let fixture: Value = serde_json::from_slice(&fixture_bytes)
         .map_err(|error| format!("fixture: invalid JSON: {error}"))?;
-    let report = evaluate_fixture(
-        &fixture,
-        &sha256_hex(&fixture_bytes),
-        &manifest,
-    )?;
+    let report = evaluate_fixture(&fixture, &sha256_hex(&fixture_bytes), &manifest)?;
     let mut encoded = serde_json::to_string_pretty(&report)
         .map_err(|error| format!("report serialization failed: {error}"))?;
     encoded.push('\n');
@@ -210,14 +203,16 @@ fn evaluate_fixture(
         ));
     }
     let rules = field(fixture, "$fixture", "reference_rules")?;
-    let order_values = array_at(rules, "$fixture.reference_rules", "service_allocation_order")?;
+    let order_values = array_at(
+        rules,
+        "$fixture.reference_rules",
+        "service_allocation_order",
+    )?;
     let mut service_order = Vec::with_capacity(order_values.len());
     let mut unique_services = BTreeSet::new();
     for (index, item) in order_values.iter().enumerate() {
         let service = item.as_str().ok_or_else(|| {
-            format!(
-                "$fixture.reference_rules.service_allocation_order[{index}]: expected string"
-            )
+            format!("$fixture.reference_rules.service_allocation_order[{index}]: expected string")
         })?;
         if service.trim().is_empty() {
             return Err(format!(
@@ -232,7 +227,9 @@ fn evaluate_fixture(
         service_order.push(service.to_owned());
     }
     if service_order.is_empty() {
-        return Err("$fixture.reference_rules.service_allocation_order: must not be empty".to_owned());
+        return Err(
+            "$fixture.reference_rules.service_allocation_order: must not be empty".to_owned(),
+        );
     }
 
     let demands_value = field(
@@ -240,9 +237,9 @@ fn evaluate_fixture(
         "$fixture.reference_rules",
         "service_demands_per_step",
     )?;
-    let demands_obj = demands_value
-        .as_object()
-        .ok_or_else(|| "$fixture.reference_rules.service_demands_per_step: expected object".to_owned())?;
+    let demands_obj = demands_value.as_object().ok_or_else(|| {
+        "$fixture.reference_rules.service_demands_per_step: expected object".to_owned()
+    })?;
     if demands_obj.len() != service_order.len() {
         return Err(
             "$fixture.reference_rules.service_demands_per_step: keys must exactly match allocation order"
@@ -252,9 +249,7 @@ fn evaluate_fixture(
     let mut demands = Vec::with_capacity(service_order.len());
     for service in &service_order {
         let demand = demands_obj.get(service).ok_or_else(|| {
-            format!(
-                "$fixture.reference_rules.service_demands_per_step.{service}: missing demand"
-            )
+            format!("$fixture.reference_rules.service_demands_per_step.{service}: missing demand")
         })?;
         demands.push(positive_u64(
             demand,
@@ -385,15 +380,27 @@ fn evaluate_scenario(
 
     let pre = field(scenario, path, "preconditions")?;
     let machine = precondition(pre, &format!("{path}.preconditions"), "machine_operational")?;
-    let grade = precondition(pre, &format!("{path}.preconditions"), "material_grade_matches")?;
+    let grade = precondition(
+        pre,
+        &format!("{path}.preconditions"),
+        "material_grade_matches",
+    )?;
     let calibration = precondition(pre, &format!("{path}.preconditions"), "calibration_valid")?;
-    let inspection = precondition(pre, &format!("{path}.preconditions"), "inspection_route_valid")?;
+    let inspection = precondition(
+        pre,
+        &format!("{path}.preconditions"),
+        "inspection_route_valid",
+    )?;
     let authorization = precondition(
         pre,
         &format!("{path}.preconditions"),
         "human_authorization_present",
     )?;
-    let controller_step = u64_at(pre, &format!("{path}.preconditions"), "controller_available_from_step")?;
+    let controller_step = u64_at(
+        pre,
+        &format!("{path}.preconditions"),
+        "controller_available_from_step",
+    )?;
     let gate_states = [
         ("machine_operational", machine),
         ("material_grade_matches", grade),
@@ -412,7 +419,9 @@ fn evaluate_scenario(
         "blocked_production_steps",
     ] {
         if !expected_obj.contains_key(required) {
-            return Err(format!("{path}.expected.{required}: missing required expected field"));
+            return Err(format!(
+                "{path}.expected.{required}: missing required expected field"
+            ));
         }
     }
     if !expected_obj.contains_key("service_delivery_by_step")
@@ -490,12 +499,12 @@ fn evaluate_scenario(
             if produced == 0 {
                 blocked_reason = Some("insufficient_remaining_power".to_owned());
             } else {
-                let used = produced
-                    .checked_mul(production_energy)
-                    .ok_or_else(|| format!("{path}.step[{step_index}]: production energy overflow"))?;
-                remaining = remaining
-                    .checked_sub(used)
-                    .ok_or_else(|| format!("{path}.step[{step_index}]: production energy underflow"))?;
+                let used = produced.checked_mul(production_energy).ok_or_else(|| {
+                    format!("{path}.step[{step_index}]: production energy overflow")
+                })?;
+                remaining = remaining.checked_sub(used).ok_or_else(|| {
+                    format!("{path}.step[{step_index}]: production energy underflow")
+                })?;
             }
         }
         if produced > 0 && first_output.is_none() {
@@ -696,8 +705,9 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let fixture_path = root.join("docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json");
         let manifest_path = root.join("docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json");
-        let fixture: Value = serde_json::from_slice(&fs::read(fixture_path).expect("fixture bytes"))
-            .expect("fixture JSON");
+        let fixture: Value =
+            serde_json::from_slice(&fs::read(fixture_path).expect("fixture bytes"))
+                .expect("fixture JSON");
         let manifest: Value =
             serde_json::from_slice(&fs::read(manifest_path).expect("manifest bytes"))
                 .expect("manifest JSON");
@@ -707,20 +717,23 @@ mod tests {
     #[test]
     fn pinned_fixture_source_and_lock_hashes_match_manifest() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let fixture_bytes = fs::read(root.join("docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json"))
-            .expect("fixture bytes");
-        let source_bytes = fs::read(root.join("tools/civ-res-ind-oracle/src/main.rs"))
-            .expect("source bytes");
+        let fixture_bytes =
+            fs::read(root.join("docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json"))
+                .expect("fixture bytes");
+        let source_bytes =
+            fs::read(root.join("tools/civ-res-ind-oracle/src/main.rs")).expect("source bytes");
         let lock_bytes = fs::read(root.join("Cargo.lock")).expect("lock bytes");
         let manifest_path = root.join("docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json");
-        let manifest: Value = serde_json::from_slice(&fs::read(manifest_path).expect("manifest bytes"))
-            .expect("manifest JSON");
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(manifest_path).expect("manifest bytes"))
+                .expect("manifest JSON");
         for (key, bytes) in [
             ("fixture_sha256", fixture_bytes),
             ("evaluator_source_sha256", source_bytes),
             ("cargo_lock_sha256", lock_bytes),
         ] {
-            verify_sha_field(&manifest, key, &bytes).expect("manifest digest must match exact bytes");
+            verify_sha_field(&manifest, key, &bytes)
+                .expect("manifest digest must match exact bytes");
         }
     }
 
@@ -728,7 +741,11 @@ mod tests {
     fn hand_calculated_nominal_golden_uses_no_generic_evaluator() {
         // Independent arithmetic: 6 energy units satisfy 2 water + 1 sanitation
         // + 1 food-preservation unit, leaving 2 for one reference operation.
-        let demands = [("water", 2_u64), ("sanitation", 1_u64), ("food_preservation", 1_u64)];
+        let demands = [
+            ("water", 2_u64),
+            ("sanitation", 1_u64),
+            ("food_preservation", 1_u64),
+        ];
         let service_energy_per_unit = 1_u64;
         let operation_energy = 2_u64;
         let mut remaining = 6_u64;
@@ -834,7 +851,10 @@ mod tests {
     fn scenario_list_order_does_not_change_normalized_results() {
         let (mut fixture, manifest) = fixture_and_manifest();
         let original = evaluate_fixture(&fixture, "test-fixture", &manifest).expect("original");
-        fixture["scenarios"].as_array_mut().expect("scenarios").reverse();
+        fixture["scenarios"]
+            .as_array_mut()
+            .expect("scenarios")
+            .reverse();
         let reversed = evaluate_fixture(&fixture, "test-fixture", &manifest).expect("reversed");
         assert_eq!(original["scenario_results"], reversed["scenario_results"]);
     }
@@ -896,9 +916,11 @@ mod tests {
             report["future_blindness_contract"]["status"],
             "INPUT_CONTRACT_VALIDATION_ONLY"
         );
-        assert!(report["future_blindness_contract"]["non_claim"]
-            .as_str()
-            .expect("non-claim")
-            .contains("No policy action trace"));
+        assert!(
+            report["future_blindness_contract"]["non_claim"]
+                .as_str()
+                .expect("non-claim")
+                .contains("No policy action trace")
+        );
     }
 }
