@@ -619,3 +619,72 @@ fn deterministic_wide_integer_oracle_stresses_floating_point_rounding() {
     }
     assert!(checked >= 19_999);
 }
+
+#[test]
+fn exact_tangency_at_large_coordinate_scale_must_not_be_reported_clear() {
+    // Integer geometry has an exact 5 m minimum. A stationary A path and B path are constructed
+    // so the closest parameter is exactly 1/3, but the f64 dot/norm ratio can round to the next
+    // representable value and evaluate a separation above 5 m. This test guards that false-safe.
+    let m = 10_000_000_000_i64;
+    let rx = -3 * m - 4;
+    let ry = -4 * m + 3;
+    let dx = 9 * m;
+    let dy = 12 * m;
+    let end_x = rx + dx;
+    let end_y = ry + dy;
+    let criteria = SeparationCriteria {
+        criteria_id: "EXACT-LARGE-TANGENCY".to_owned(),
+        revision: "tangency-v1".to_owned(),
+        jurisdiction: "fictional-integer-tangency".to_owned(),
+        source_reference: "fixture://large-tangency/criteria".to_owned(),
+        source_sha256: "c".repeat(64),
+        valid_from_utc_ms: 1_000,
+        valid_until_utc_ms: 11_000,
+        minimum_horizontal_separation_m: 5.0,
+        minimum_vertical_separation_m: 5.0,
+    };
+    let a = Trajectory {
+        trajectory_id: "A-large-tangency".to_owned(),
+        revision: "tangency-v1".to_owned(),
+        reference_frame_id: "LARGE-TANGENCY-LOCAL-XYZ".to_owned(),
+        vertical_datum_id: "LARGE-TANGENCY-VERTICAL".to_owned(),
+        source_reference: "fixture://large-tangency/A".to_owned(),
+        source_sha256: "a".repeat(64),
+        horizontal_uncertainty_bound_m: 0.0,
+        vertical_uncertainty_bound_m: 0.0,
+        points: vec![
+            point(1_000, 0.0, 0.0, 100.0),
+            point(11_000, 0.0, 0.0, 100.0),
+        ],
+    };
+    let b = Trajectory {
+        trajectory_id: "B-large-tangency".to_owned(),
+        revision: "tangency-v1".to_owned(),
+        reference_frame_id: "LARGE-TANGENCY-LOCAL-XYZ".to_owned(),
+        vertical_datum_id: "LARGE-TANGENCY-VERTICAL".to_owned(),
+        source_reference: "fixture://large-tangency/B".to_owned(),
+        source_sha256: "b".repeat(64),
+        horizontal_uncertainty_bound_m: 0.0,
+        vertical_uncertainty_bound_m: 0.0,
+        points: vec![
+            point(1_000, rx as f64, ry as f64, 100.0),
+            point(11_000, end_x as f64, end_y as f64, 100.0),
+        ],
+    };
+
+    // Exact integer arithmetic proves cross(r0,d)^2 / |d|^2 = 25 m²:
+    // cross(r0,d) = 75*m and |d|² = 225*m².
+    let cross = i128::from(rx) * i128::from(dy) - i128::from(ry) * i128::from(dx);
+    let norm_d = i128::from(dx) * i128::from(dx) + i128::from(dy) * i128::from(dy);
+    assert_eq!(cross * cross, 25_i128 * norm_d);
+
+    let report = audit_trajectory_pair(&a, &b, &criteria)
+        .expect("exact integer tangency fixture must be structurally valid");
+    assert_eq!(
+        report.disposition,
+        ConflictDisposition::ConflictDetected,
+        "an exact inclusive 5 m tangency must never be reported clear"
+    );
+    assert!(!report.conflicts.is_empty());
+}
+
