@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Integration-level acceptance oracle with frozen, explicit expected values.
 
+use physical_transformation_reference::mechanics::{axial_bar, cantilever_tip_load};
 use physical_transformation_reference::{
+    Component, Connection, Event, Operation, World, run_reference_fixture,
+};
+
     Component, Connection, Event, Operation, World, run_reference_fixture,
 };
 
@@ -86,4 +90,17 @@ fn reversing_edge_insertion_order_preserves_final_topology() {
     let expected = vec![vec!["A".to_owned(), "B".to_owned(), "C".to_owned()]];
     assert_eq!(left_first.connected_components(), expected);
     assert_eq!(right_first.connected_components(), expected);
+}
+
+#[test]
+fn analytical_bar_and_cantilever_match_frozen_known_answers() {
+    let bar = axial_bar(1_000.0, 2.0, 0.01, 200.0e9).expect("valid bar case");
+    assert!((bar.axial_stress_pa - 100_000.0).abs() <= 1.0e-8);
+    assert!((bar.axial_strain - 5.0e-7).abs() <= 1.0e-18);
+    assert!((bar.extension_m - 1.0e-6).abs() <= 1.0e-15);
+
+    let cantilever = cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1)
+        .expect("valid cantilever case");
+    assert!((cantilever.tip_deflection_m - (1.0 / 6_000.0)).abs() <= 1.0e-15);
+    assert!((cantilever.maximum_bending_stress_pa - 2_500_000.0).abs() <= 1.0e-6);
 }
