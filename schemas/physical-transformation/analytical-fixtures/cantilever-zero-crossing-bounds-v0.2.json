@@ -1,0 +1,62 @@
+{
+  "schema_version": "physical-analytical-request-v0.2",
+  "request_id": "analytical:cantilever-zero-crossing-001",
+  "source_revision": "eb11bb72b28f3bf9853c235f64e6c400907cf2af",
+  "case_id": "cantilever_tip_load",
+  "assumption_profile": "small_deflection_euler_bernoulli_cantilever_tip_load",
+  "requested_physics": [
+    "static_linear_elastic"
+  ],
+  "units": {
+    "length": "m",
+    "force": "N",
+    "area": "m^2",
+    "stress": "Pa",
+    "second_moment": "m^4",
+    "distributed_load": "N/m"
+  },
+  "inputs": {
+    "force_n": 0,
+    "length_m": 2,
+    "youngs_modulus_pa": 200000000000,
+    "second_moment_area_m4": 0.000008,
+    "outer_fiber_distance_m": 0.1
+  },
+  "input_bounds": {
+    "force_n": {
+      "lower": -100,
+      "upper": 100,
+      "unit": "N",
+      "evidence_class": "synthetic",
+      "source_ref": "fixture-only:zero-crossing-force"
+    },
+    "length_m": {
+      "lower": 1.9,
+      "upper": 2.1,
+      "unit": "m",
+      "evidence_class": "synthetic",
+      "source_ref": "fixture-only:cantilever-length"
+    },
+    "youngs_modulus_pa": {
+      "lower": 195000000000,
+      "upper": 205000000000,
+      "unit": "Pa",
+      "evidence_class": "synthetic",
+      "source_ref": "fixture-only:cantilever-modulus"
+    },
+    "second_moment_area_m4": {
+      "lower": 0.000007,
+      "upper": 0.000009,
+      "unit": "m^4",
+      "evidence_class": "synthetic",
+      "source_ref": "fixture-only:cantilever-inertia"
+    },
+    "outer_fiber_distance_m": {
+      "lower": 0.09,
+      "upper": 0.11,
+      "unit": "m",
+      "evidence_class": "synthetic",
+      "source_ref": "fixture-only:cantilever-outer-fiber"
+    }
+  }
+}

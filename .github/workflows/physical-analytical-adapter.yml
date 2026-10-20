@@ -56,12 +56,19 @@ jobs:
           set -euo pipefail
           jq empty schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
           jq empty schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+          jq empty schemas/physical-transformation/physical-analytical-request-v0.2.schema.json
+          jq empty schemas/physical-transformation/physical-analytical-receipt-v0.2.schema.json
           jq empty schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/analytical-bar-bounds-v0.2.json
+          jq empty schemas/physical-transformation/analytical-fixtures/cantilever-zero-crossing-bounds-v0.2.json
+          jq empty schemas/physical-transformation/analytical-fixtures/simply-supported-bounds-v0.2.json
           jq -e '.properties.case_id.enum == ["axial_bar","cantilever_tip_load","simply_supported_uniform_load"]' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
           jq -e '.properties.result_status.enum == ["PASS","UNRESOLVED"] and .properties.evidence_class.const == "analytical_reference"' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+          jq -e '.properties.schema_version.const == "physical-analytical-request-v0.2" and .properties.input_bounds.type == "object"' schemas/physical-transformation/physical-analytical-request-v0.2.schema.json
+          jq -e '.properties.schema_version.const == "physical-analytical-receipt-v0.2" and (.required | index("output_intervals") != null)' schemas/physical-transformation/physical-analytical-receipt-v0.2.schema.json
 
       - name: Check formatting
         run: cargo fmt --manifest-path research/physical-analytical-adapter/Cargo.toml --all -- --check
@@ -125,6 +132,50 @@ jobs:
             and (.physics_omitted | index("fracture") != null)
             and (.diagnostics | length > 0)
           ' analytical-adapter-unsupported-receipt.json
+
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/analytical-bar-bounds-v0.2.json \
+            --adapter-revision "$source_commit" > analytical-adapter-bar-bounds-receipt.json
+          jq -e --arg revision "$source_commit" '
+            .schema_version == "physical-analytical-receipt-v0.2"
+            and .result_status == "PASS"
+            and .adapter_revision == $revision
+            and .case_id == "axial_bar"
+            and .input_bounds.force_n.evidence_class == "synthetic"
+            and .outputs.axial_stress_pa == .output_intervals.axial_stress_pa.nominal
+            and .output_intervals.axial_stress_pa.lower <= .outputs.axial_stress_pa
+            and .outputs.axial_stress_pa <= .output_intervals.axial_stress_pa.upper
+            and .output_intervals.axial_stress_pa.unit == "Pa"
+            and (.output_intervals.axial_stress_pa.lower < .output_intervals.axial_stress_pa.upper)
+            and (.interval_semantics | contains("not a probability distribution"))
+          ' analytical-adapter-bar-bounds-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/cantilever-zero-crossing-bounds-v0.2.json \
+            --adapter-revision "$source_commit" > analytical-adapter-cantilever-bounds-receipt.json
+          jq -e '
+            .schema_version == "physical-analytical-receipt-v0.2"
+            and .result_status == "PASS"
+            and .case_id == "cantilever_tip_load"
+            and .output_intervals.maximum_bending_stress_pa.lower == 0
+            and .output_intervals.maximum_bending_stress_pa.upper > 0
+          ' analytical-adapter-cantilever-bounds-receipt.json
+
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/simply-supported-bounds-v0.2.json \
+            --adapter-revision "$source_commit" > analytical-adapter-simply-supported-bounds-receipt.json
+          jq -e '
+            .schema_version == "physical-analytical-receipt-v0.2"
+            and .result_status == "PASS"
+            and .case_id == "simply_supported_uniform_load"
+            and .outputs.midspan_deflection_m == .output_intervals.midspan_deflection_m.nominal
+            and .output_intervals.midspan_deflection_m.lower <= .outputs.midspan_deflection_m
+            and .outputs.midspan_deflection_m <= .output_intervals.midspan_deflection_m.upper
+            and .output_intervals.maximum_bending_stress_pa.lower <= .outputs.maximum_bending_stress_pa
+            and .outputs.maximum_bending_stress_pa <= .output_intervals.maximum_bending_stress_pa.upper
+          ' analytical-adapter-simply-supported-bounds-receipt.json
 
       - name: Upload analytical reference receipts
         uses: actions/upload-artifact@v4

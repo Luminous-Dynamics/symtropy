@@ -1,0 +1,639 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-analytical-receipt-v0.2.schema.json",
+  "title": "Physical Analytical Reference Receipt v0.2 (bounded inputs)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "request_sha256",
+    "source_revision",
+    "adapter_revision",
+    "case_id",
+    "evidence_class",
+    "result_status",
+    "computation_method",
+    "requested_physics",
+    "physics_omitted",
+    "assumption_profile",
+    "assumptions",
+    "outputs",
+    "output_units",
+    "reference_oracle_tolerances",
+    "diagnostics",
+    "claim_ceiling",
+    "input_bounds",
+    "output_intervals",
+    "interval_semantics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "physical-analytical-receipt-v0.2"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "adapter_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "case_id": {
+      "enum": [
+        "axial_bar",
+        "cantilever_tip_load",
+        "simply_supported_uniform_load"
+      ]
+    },
+    "evidence_class": {
+      "const": "analytical_reference"
+    },
+    "result_status": {
+      "enum": [
+        "PASS",
+        "UNRESOLVED"
+      ]
+    },
+    "computation_method": {
+      "const": "closed_form_analytical_reference"
+    },
+    "requested_physics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "physics_omitted": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "assumption_profile": {
+      "type": "string"
+    },
+    "assumptions": {
+      "type": "string"
+    },
+    "outputs": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "output_units": {
+      "type": "object"
+    },
+    "reference_oracle_tolerances": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_tolerance",
+        "absolute_tolerance",
+        "scope"
+      ],
+      "properties": {
+        "relative_tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "absolute_tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "scope": {
+          "type": "string"
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_bounds": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "force_n": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit",
+            "evidence_class",
+            "source_ref"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "N"
+            },
+            "evidence_class": {
+              "enum": [
+                "specified",
+                "measured",
+                "estimated",
+                "synthetic",
+                "unknown"
+              ]
+            },
+            "source_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "load_n_per_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit",
+            "evidence_class",
+            "source_ref"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "N/m"
+            },
+            "evidence_class": {
+              "enum": [
+                "specified",
+                "measured",
+                "estimated",
+                "synthetic",
+                "unknown"
+              ]
+            },
+            "source_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "length_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit",
+            "evidence_class",
+            "source_ref"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "m"
+            },
+            "evidence_class": {
+              "enum": [
+                "specified",
+                "measured",
+                "estimated",
+                "synthetic",
+                "unknown"
+              ]
+            },
+            "source_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "area_m2": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit",
+            "evidence_class",
+            "source_ref"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "m^2"
+            },
+            "evidence_class": {
+              "enum": [
+                "specified",
+                "measured",
+                "estimated",
+                "synthetic",
+                "unknown"
+              ]
+            },
+            "source_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "youngs_modulus_pa": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit",
+            "evidence_class",
+            "source_ref"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "Pa"
+            },
+            "evidence_class": {
+              "enum": [
+                "specified",
+                "measured",
+                "estimated",
+                "synthetic",
+                "unknown"
+              ]
+            },
+            "source_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "second_moment_area_m4": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit",
+            "evidence_class",
+            "source_ref"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "m^4"
+            },
+            "evidence_class": {
+              "enum": [
+                "specified",
+                "measured",
+                "estimated",
+                "synthetic",
+                "unknown"
+              ]
+            },
+            "source_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "outer_fiber_distance_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "upper",
+            "unit",
+            "evidence_class",
+            "source_ref"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "m"
+            },
+            "evidence_class": {
+              "enum": [
+                "specified",
+                "measured",
+                "estimated",
+                "synthetic",
+                "unknown"
+              ]
+            },
+            "source_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "output_intervals": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "axial_stress_pa": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "nominal",
+            "upper",
+            "unit"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "nominal": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "Pa"
+            }
+          }
+        },
+        "axial_strain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "nominal",
+            "upper",
+            "unit"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "nominal": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "dimensionless"
+            }
+          }
+        },
+        "extension_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "nominal",
+            "upper",
+            "unit"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "nominal": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "m"
+            }
+          }
+        },
+        "tip_deflection_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "nominal",
+            "upper",
+            "unit"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "nominal": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "m"
+            }
+          }
+        },
+        "midspan_deflection_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "nominal",
+            "upper",
+            "unit"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "nominal": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "m"
+            }
+          }
+        },
+        "maximum_bending_stress_pa": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower",
+            "nominal",
+            "upper",
+            "unit"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "nominal": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "unit": {
+              "const": "Pa"
+            }
+          }
+        }
+      }
+    },
+    "interval_semantics": {
+      "const": "deterministic output enclosure conditional on declared input bounds; not a probability distribution or confidence interval"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result_status": {
+            "const": "PASS"
+          }
+        },
+        "required": [
+          "result_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outputs": {
+            "type": "object"
+          },
+          "physics_omitted": {
+            "maxItems": 0
+          },
+          "diagnostics": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_status": {
+            "const": "UNRESOLVED"
+          }
+        },
+        "required": [
+          "result_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outputs": {
+            "type": "null"
+          },
+          "diagnostics": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}
