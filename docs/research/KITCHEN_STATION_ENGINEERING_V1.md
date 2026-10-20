@@ -159,6 +159,14 @@ A concrete commercial reference is KOHLER's Prolific 23-inch workstation sink: i
 
 Benchmark at least one mainstream workstation sink and one conventional sink/rack setup. Capture product model/revision, installation geometry, accessory list, published materials and dimensions, parts/warranty information available to the buyer, measured water pressure and measured flow. Public marketing claims are hypotheses to test, not measured outcomes.
 
+## 6.3. Evidence record contract and metric registry
+
+The benchmark is now paired with two machine-readable contracts:
+- `KITCHEN_STATION_RECORD_SCHEMA_V1.json` describes the per-trial record, candidate/protocol digests, metric status, uncertainty, raw artifacts and non-compensatory safety gates.
+- `KITCHEN_STATION_METRIC_REGISTRY_V1.json` catalogs every primary metric ID in the scenario matrix, its canonical mapping, unit policy, value shape, direction and comparison limits.
+
+The record schema permits structured values for per-surface/per-item results. It does not itself certify that a record is true; raw artifacts and independent recalculation still matter. The metric registry deliberately preserves several unresolved method-specific units as blockers before physical trials, rather than inventing comparability. Any future runner must reject unknown metric IDs and never convert missing or failed observations into zero.
+
 ## 7. Implementation sequence
 
 1. Assemble an inexpensive, instrumented baseline: known-volume collection or calibrated flow meter, pressure and temperature observations, standardized plate/pot/cup set, safe tracer, scale, stopwatch and ambient thermometer/hygrometer.
