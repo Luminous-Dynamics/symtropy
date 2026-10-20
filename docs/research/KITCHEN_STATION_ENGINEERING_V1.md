@@ -39,6 +39,10 @@ Keep commercial pre-rinse valves on a separate benchmark track from household fa
 
 The valve test method and any applicable commercial certification/compliance process do not replace a matched, real-task soil-removal test.
 
+### Reproducible market reference file
+
+The machine-readable source ledger is `docs/research/KITCHEN_PRERINSE_MARKET_REFERENCE_V1.json`. It separates official U.S. flow/force classes and EPA operating-pressure guidance from the manufacturer's published T&S B-0107 specifications. The latter lists 1.15 US gpm and 7.5 ozf at 60 psi; this programme has not independently measured the product. The file also preserves the WaterSense sunset, target hypothesis, four proposed pressure test points (20/40/60/80 psi), and warnings against treating a datasheet as task performance. Three physical specimens per product is only a starting engineering target; statistical sufficiency must be established separately.
+
 ### Current commercial reference envelope
 
 EPA's current pre-rinse page says the WaterSense label for this product category ended on 1 January 2019 after DOE incorporated the efficiency threshold and performance test into federal requirements. Do not describe new products as currently WaterSense-labelled on the basis of that retired programme. EPA lists DOE's maximum flow rates by measured spray-force class: up to 1.00 gpm (3.79 L/min) for force at or below 5 ozf; 1.20 gpm (4.54 L/min) for force above 5 and up to 8 ozf; and 1.28 gpm (4.85 L/min) for force above 8 ozf. These are U.S. regulatory reference classes, not universal South African compliance criteria, and not evidence of completed-task performance.
