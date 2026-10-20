@@ -82,13 +82,52 @@ pub struct MotorPlanResult {
 /// Returned vector **must** have length `num_actuators` — callers will
 /// index it by joint id.
 pub trait MotorPlanner {
+    /// Legacy vector-only planner entrypoint.
+    ///
+    /// Safety- and integrity-sensitive callers should prefer [`plan_result`],
+    /// which validates inputs and outputs and carries typed rejection status.
     fn plan(&mut self, observation: &[f64], gain: f64, num_actuators: usize) -> Vec<f64>;
+
+    /// Run a validated request and preserve planner rejection metadata.
+    ///
+    /// This default implementation rejects malformed input before calling
+    /// `plan`, then checks result status, shape, and finiteness. Implementors
+    /// may override it only when they preserve these same invariants.
+    fn plan_result(
+        &mut self,
+        observation: &[f64],
+        gain: f64,
+        num_actuators: usize,
+    ) -> MotorPlanResult {
+        let rejected = |fault| MotorPlanResult {
+            commands: vec![0.0; num_actuators],
+            status: MotorPlannerStatus::Rejected(fault),
+        };
+        if observation.iter().any(|value| !value.is_finite()) {
+            return rejected(MotorPlannerFault::InvalidObservation);
+        }
+        if !gain.is_finite() || !(0.0..=1.0).contains(&gain) {
+            return rejected(MotorPlannerFault::InvalidGain);
+        }
+
+        let commands = self.plan(observation, gain, num_actuators);
+        let status = self.status();
+        if status != MotorPlannerStatus::Ready {
+            return MotorPlanResult {
+                commands: vec![0.0; num_actuators],
+                status,
+            };
+        }
+        if commands.len() != num_actuators || commands.iter().any(|value| !value.is_finite()) {
+            return rejected(MotorPlannerFault::InvalidOutput);
+        }
+        MotorPlanResult { commands, status }
+    }
 
     /// Status corresponding to the most recent call to [`plan`].
     ///
     /// Legacy planners default to `Ready`; fault-aware planners should
-    /// override this. Callers that require rejection diagnostics should use
-    /// `RoboticAgent::tick_motor_plan_with` and inspect the bundled status.
+    /// override this.
     fn status(&self) -> MotorPlannerStatus {
         MotorPlannerStatus::Ready
     }
