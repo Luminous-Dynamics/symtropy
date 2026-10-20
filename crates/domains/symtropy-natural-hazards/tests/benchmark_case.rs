@@ -4,7 +4,7 @@
 //! Integration checks for the versioned synthetic benchmark case fixture.
 //! Passing these tests validates the contract serialization, not hydrodynamic physics.
 
-use symtropy_natural_hazards::benchmark_case::{BenchmarkCase, ClaimTier, CASE_SCHEMA_V1};
+use symtropy_natural_hazards::benchmark_case::{BenchmarkCase, CASE_SCHEMA_V1, ClaimTier};
 
 const SYNTHETIC_CASE: &str =
     include_str!("../../../../docs/research/natural-hazards/cases/flood-lake-at-rest-v1.json");
