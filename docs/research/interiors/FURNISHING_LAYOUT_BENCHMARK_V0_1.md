@@ -1,6 +1,6 @@
 # Furnishing Layout Benchmark v0.1
 
-**Status:** research contract and synthetic fixtures; not executed or qualified.  
+**Status:** versioned synthetic benchmark contract; the v0.1 independent Rust oracle has a focused hosted pass, but no real-room/product or human-outcome qualification is claimed.  
 **Workstream:** [SPATIAL-DESIGN-001 #1766](https://github.com/Luminous-Dynamics/symtropy/issues/1766).  
 **Complementary prototype:** [occupant-led architectural review PR #1993](https://github.com/Luminous-Dynamics/symtropy/pull/1993).  
 **Scope:** Symtropy geometry/constraint substrate with a future Symthaea alternative-generation interface.
@@ -89,7 +89,17 @@ A fair initial comparison should separate these tasks instead of declaring one p
 4. **Human reference:** layouts created or reviewed by qualified designers and paid co-design participants, with review protocol and disagreement retained.
 5. **Industry workflow:** where legal access and export formats permit, use equivalent room geometry and task/constraint inputs in established CAD/BIM and interior-planning workflows. Record software/version, features available, operator time, manual edits and export loss. Do not equate a rendering-quality comparison with a feasibility comparison.
 
-The first result should answer: **does the system reliably catch known circulation and maintenance conflicts while preserving unknowns and household trade-offs?** Only after passing this gate should we make comparative claims about usability, design quality, speed, resource use or adaptation cost.
+### Academic reference: SceneEval (WACV 2026)
+
+[SceneEval](https://openaccess.thecvf.com/content/WACV2026/html/Tam_SceneEval_Evaluating_Semantic_Coherence_in_Text-Conditioned_3D_Indoor_Scene_Synthesis_WACV_2026_paper.html) provides a useful adjacent benchmark for text-conditioned 3D indoor scene synthesis. Its SceneEval-500 set has 500 annotated prompts and evaluates explicit requirements (object counts, attributes, spatial relations) plus implicit plausibility (support, collisions, navigability). It is especially relevant because realism-only metrics can overlook whether the scene meets a stated task.
+
+Do **not** compare our v0.1 2D synthetic oracle scores directly against SceneEval scores: the tasks, scene representations, annotations and metrics are different. Instead, use its evaluation dimensions to structure a later matched-prompt track: (1) requirement fidelity, (2) geometric plausibility, (3) task access/navigability, and (4) evidence/currentness. Preserve the task-matched, frozen-input and independent-oracle requirements above.
+
+### Interoperability reference: IFC + IDS
+
+[buildingSMART IDS v1.0](https://www.buildingsmart.org/information-delivery-specification-ids-v1-0-is-approved-as-a-final-standard/) became an approved final standard in June 2024. It describes machine-interpretable requirements for IFC object classification, properties, values and units. Treat it as a baseline for product/asset data exchange and lossless schema validation—not as a furniture-layout solver or a truth source for seller claims. Record which vendor exports can be obtained and how much information is lost.
+
+The first result should answer: **does the system reliably catch known circulation and maintenance conflicts while preserving unknowns and household trade-offs?** Only after passing that gate should we make comparative claims about usability, design quality, speed, resource use or adaptation cost.
 
 ## Execution sequence
 
@@ -102,7 +112,9 @@ The first result should answer: **does the system reliably catch known circulati
 
 ## Current validation boundary
 
-The JSON schema and fixture files were created on a research branch. JSON syntax and basic nominal room-bound checks were mirrored independently during authoring. No formal JSON Schema validator, Rust compiler, Rust test suite, physical-performance solver, usability study, or hosted CI pass is claimed. Geometry-reference validation, full overlap analysis, and all hostile controls remain future work. This is a benchmark specification—not a furniture optimizer or a qualified interior-design product.
+The v0.1 independent Rust oracle now checks fixture IDs/references, rotated room bounds, footprint and zone intersections, expected-outcome agreement, unknown-site abstention, and blocked promotion. Its focused pinned workflow passed at exact head `c39ae230044299ae25a383a2f1961eabd8bfb710` in [run #39395023546](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39395023546). The stacked v0.2 front-functional-envelope oracle later passed 18 tests at exact head `4841222c03a26ac90be4ab18aa86273e0bf0c264` in [run #39445299953](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39445299953).
+
+These are synthetic oracle qualification results only. No measured-room accuracy, live Marketplace fit, physical-performance model, accessibility/code compliance, or compensated usability study is established. This remains a benchmark and constraint substrate—not a production furniture optimizer or qualified interior-design product.
 
 
 ## Marketplace composition
