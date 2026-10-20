@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-scene-truss-v0.1.schema.json",
+  "title": "Physical Scene for a Narrow Truss Benchmark v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scene_id", "coordinate_frame_id", "nodes", "elements"],
+  "properties": {
+    "schema_version": { "const": "physical-scene-truss-v0.1" },
+    "scene_id": { "$ref": "#/$defs/id" },
+    "coordinate_frame_id": { "$ref": "#/$defs/id" },
+    "nodes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "coordinates_m"],
+        "properties": {
+          "node_id": { "$ref": "#/$defs/id" },
+          "coordinates_m": { "$ref": "#/$defs/vector3" }
+        }
+      }
+    },
+    "elements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["element_id", "element_type", "node_ids", "cross_section_area_m2"],
+        "properties": {
+          "element_id": { "$ref": "#/$defs/id" },
+          "element_type": { "const": "T3D2" },
+          "node_ids": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "$ref": "#/$defs/id" }
+          },
+          "cross_section_area_m2": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "vector3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}
