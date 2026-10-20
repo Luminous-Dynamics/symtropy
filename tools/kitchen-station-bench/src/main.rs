@@ -388,11 +388,20 @@ fn gate_qualified(v: &Value) -> bool {
         ))
     })
 }
-fn physically_eligible(v: &Value) -> bool {
+fn physically_eligible(v: &Value, contracts: &Contracts) -> bool {
+    let Some(scenario) = v.get("scenario_id").and_then(Value::as_str) else { return false; };
+    let Some(expected) = contracts.scenario_metrics.get(scenario) else { return false; };
+    let indexed = metrics_by_id(v);
+    let all_primary_metrics_observed = expected.iter().all(|id| {
+        indexed.get(id).is_some_and(|m| matches!(
+            m.get("metric_status").and_then(Value::as_str), Some("measured" | "derived")
+        ))
+    });
     v.get("run_status").and_then(Value::as_str) == Some("complete")
         && matches!(v.get("evidence_class").and_then(Value::as_str),
             Some("physical_observation" | "derived_from_physical"))
         && gate_qualified(v)
+        && all_primary_metrics_observed
 }
 fn read_records(dir: &Path) -> Check<LoadedRecords> {
     let mut paths = fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))?
@@ -466,7 +475,7 @@ fn compare_records(records: &[Value], scenario: &str, reference: &str, candidate
 
     let mut refs = BTreeMap::<String, &Value>::new();
     let mut cands = BTreeMap::<String, &Value>::new();
-    for record in records.iter().filter(|r| r.get("scenario_id").and_then(Value::as_str) == Some(scenario) && physically_eligible(r)) {
+    for record in records.iter().filter(|r| r.get("scenario_id").and_then(Value::as_str) == Some(scenario) && physically_eligible(r, contracts)) {
         let trial = record.get("trial_id").and_then(Value::as_str).unwrap_or("").to_owned();
         match record.get("candidate_id").and_then(Value::as_str) {
             Some(id) if id == reference => { refs.insert(trial, record); },
@@ -612,7 +621,7 @@ fn run() -> Check<bool> {
                 let mut eligible=0_u64;
                 for (_,r) in &loaded.records {
                     if let Some(s)=r.get("run_status").and_then(Value::as_str){*counts.entry(s.to_owned()).or_default()+=1;}
-                    if physically_eligible(r){eligible+=1;}
+                    if physically_eligible(r, &contracts){eligible+=1;}
                 }
                 json!({
                     "tool":"kitchen-station-bench","version":VERSION,"report_kind":"validation",
@@ -680,9 +689,9 @@ mod tests {
     #[test] fn accepts_well_formed_record_contract(){let e=validate_record(&record(),"fixture",Path::new("."),&contracts());assert!(e.is_empty(),"{e:#?}");}
     #[test] fn rejects_missing_primary_metric(){let mut r=record();r["metrics"]=json!([measured("water_l",json!(3.0),"L/task")]);let e=validate_record(&r,"fixture",Path::new("."),&contracts());assert!(e.iter().any(|x|x.contains("required metric cleaning_endpoint absent")));}
     #[test] fn rejects_unknown_candidate(){let mut r=record();r["candidate_id"]=json!("MYSTERY");let e=validate_record(&r,"fixture",Path::new("."),&contracts());assert!(e.iter().any(|x|x.contains("unknown candidate")));}
-    #[test] fn nonresult_metric_requires_reason_and_no_value(){let mut r=record();r["metrics"][0]=json!({"metric_id":"water_l","metric_status":"missing","unit":"L/task"});let e=validate_record(&r,"fixture",Path::new("."),&contracts());assert!(e.iter().any(|x|x.contains("status_reason")));assert!(e.iter().any(|x|x.contains("non-result status")));}
-    #[test] fn unknown_safety_gate_blocks_qualification(){let mut r=record();r["safety_gates"][0]["status"]=json!("unknown");assert!(!physically_eligible(&r));r["safety_gates"][0]["status"]=json!("pass");assert!(physically_eligible(&r));}
-    #[test] fn synthetic_evidence_is_not_physically_eligible(){let mut r=record();r["evidence_class"]=json!("synthetic_fixture");assert!(!physically_eligible(&r));}
+    #[test] fn nonresult_metric_requires_reason_and_no_value(){let mut r=record();r["metrics"][0]=json!({"metric_id":"water_l","metric_status":"missing","value":3.0,"unit":"L/task"});let e=validate_record(&r,"fixture",Path::new("."),&contracts());assert!(e.iter().any(|x|x.contains("status_reason")));assert!(e.iter().any(|x|x.contains("non-result status")));}
+    #[test] fn unknown_safety_gate_blocks_qualification(){let mut r=record();r["safety_gates"][0]["status"]=json!("unknown");assert!(!physically_eligible(&r, &contracts()));r["safety_gates"][0]["status"]=json!("pass");assert!(physically_eligible(&r, &contracts()));}
+    #[test] fn synthetic_evidence_is_not_physically_eligible(){let mut r=record();r["evidence_class"]=json!("synthetic_fixture");assert!(!physically_eligible(&r, &contracts()));}
     #[test] fn blocked_run_requires_explicit_reason_and_blocked_metric_statuses(){let mut r=record();r["run_status"]=json!("blocked");r["exclusion_reason"]=json!("meter unavailable");r["metrics"]=json!([
         {"metric_id":"water_l","metric_status":"blocked","unit":"L/task","status_reason":"meter unavailable"},
         {"metric_id":"cleaning_endpoint","metric_status":"blocked","unit":"1","status_reason":"trial could not start"}]);let e=validate_record(&r,"fixture",Path::new("."),&contracts());assert!(e.is_empty(),"{e:#?}");}
