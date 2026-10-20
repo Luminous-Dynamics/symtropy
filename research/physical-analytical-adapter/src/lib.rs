@@ -719,7 +719,10 @@ mod tests {
         assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA_V2);
         assert_eq!(receipt["result_status"], "PASS");
         assert_eq!(receipt["input_bounds"]["force_n"]["evidence_class"], "synthetic");
-        assert_eq!(receipt["interval_semantics"].as_str().unwrap().contains("not a probability distribution"), true);
+        assert!(receipt["interval_semantics"]
+            .as_str()
+            .unwrap()
+            .contains("not a probability distribution"));
         let nominal = receipt["outputs"]["axial_stress_pa"].as_f64().expect("nominal stress");
         let range = &receipt["output_intervals"]["axial_stress_pa"];
         assert!(range["lower"].as_f64().unwrap() < nominal);
@@ -780,6 +783,51 @@ mod tests {
             "lower":0.0,"upper":1.0,"unit":"m","evidence_class":"synthetic","source_ref":"fixture-only"
         });
         assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV).is_err());
+    }
+
+
+    #[test]
+    fn zero_crossing_load_yields_zero_lower_bound_for_absolute_stress() {
+        let receipt = evaluate_request_bytes(
+            &fixture("cantilever-zero-crossing-bounds-v0.2.json"),
+            REV,
+        )
+        .expect("zero-crossing bounded cantilever request");
+        assert_eq!(receipt["result_status"], "PASS");
+        assert_eq!(receipt["outputs"]["maximum_bending_stress_pa"], 0.0);
+        assert_eq!(
+            receipt["output_intervals"]["maximum_bending_stress_pa"]["lower"],
+            0.0
+        );
+        assert!(
+            receipt["output_intervals"]["maximum_bending_stress_pa"]["upper"]
+                .as_f64()
+                .unwrap()
+                > 0.0
+        );
+    }
+
+    #[test]
+    fn interval_overflow_returns_unresolved_v0_2_receipt_without_outputs() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
+        request["input_bounds"]["force_n"]["upper"] = json!(1.0e308);
+        request["input_bounds"]["length_m"]["upper"] = json!(1.0e308);
+        request["input_bounds"]["area_m2"]["lower"] = json!(0.009);
+        request["input_bounds"]["youngs_modulus_pa"]["lower"] = json!(1.0);
+        request["inputs"]["youngs_modulus_pa"] = json!(200.0e9);
+        let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
+            .expect("a well-formed request with overflowing bounds yields an unresolved receipt");
+        assert_eq!(receipt["result_status"], "UNRESOLVED");
+        assert_eq!(receipt["outputs"], Value::Null);
+        assert_eq!(receipt["output_intervals"], Value::Null);
+        assert!(
+            receipt["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v.as_str().unwrap().contains("bounded analytical evaluation"))
+        );
     }
 
     #[test]
