@@ -21,6 +21,9 @@ on:
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
+      - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
+      - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
+      - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   workflow_dispatch:
 
