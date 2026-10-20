@@ -57,6 +57,7 @@ struct Options {
     maximum_battery_acceptance_kw: f64,
     charger_port_count: usize,
     site_power_budget_kw: f64,
+    port_release_policy: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -103,6 +104,7 @@ struct Scenario {
     site_power_budget_kw: f64,
     jobs: Vec<Job>,
     capacity_events: Vec<CapacityEvent>,
+    port_release_policy: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -166,6 +168,7 @@ struct Manifest {
     maximum_battery_acceptance_kw: f64,
     charger_port_count: usize,
     site_power_budget_kw: f64,
+    port_release_policy: String,
     scenario_evidence_class: String,
     assumption_notes: Vec<String>,
     claim_ceiling: String,
@@ -218,9 +221,28 @@ fn parse_value<T: std::str::FromStr>(args: &[String], name: &str) -> Result<T, S
 
 fn parse_args(args: &[String]) -> Result<Options, String> {
     if args.len() < 2 {
-        return Err("usage: ev-depot-workload --input-report audit.json --output-corpus corpus.json --output-manifest manifest.json --fleet-size N --seed N --kwh-per-mile X --pack-capacity-kwh X --initial-soc-fraction X --state-of-health-fraction X --temperature-capacity-fraction X --temperature-acceptance-fraction X --charging-efficiency-fraction X --maximum-port-input-power-kw X --maximum-battery-acceptance-kw X --charger-ports N --site-power-budget-kw X".to_string());
+        return Err("usage: ev-depot-workload --input-report audit.json --output-corpus corpus.json --output-manifest manifest.json --fleet-size N --seed N --kwh-per-mile X --pack-capacity-kwh X --initial-soc-fraction X --state-of-health-fraction X --temperature-capacity-fraction X --temperature-acceptance-fraction X --charging-efficiency-fraction X --maximum-port-input-power-kw X --maximum-battery-acceptance-kw X --charger-ports N --site-power-budget-kw X [--port-release-policy release_on_charge_completion|hold_until_departure]".to_string());
     }
     let known = [
+        "--input-report",
+        "--output-corpus",
+        "--output-manifest",
+        "--fleet-size",
+        "--seed",
+        "--kwh-per-mile",
+        "--pack-capacity-kwh",
+        "--initial-soc-fraction",
+        "--state-of-health-fraction",
+        "--temperature-capacity-fraction",
+        "--temperature-acceptance-fraction",
+        "--charging-efficiency-fraction",
+        "--maximum-port-input-power-kw",
+        "--maximum-battery-acceptance-kw",
+        "--charger-ports",
+        "--site-power-budget-kw",
+        "--port-release-policy",
+    ];
+    let required = [
         "--input-report",
         "--output-corpus",
         "--output-manifest",
@@ -253,7 +275,7 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         }
         i += 2;
     }
-    for name in known {
+    for name in required {
         if !seen.contains(name) {
             return Err(format!("{name}_required"));
         }
@@ -276,7 +298,17 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         maximum_battery_acceptance_kw: parse_value(args, "--maximum-battery-acceptance-kw")?,
         charger_port_count: parse_value(args, "--charger-ports")?,
         site_power_budget_kw: parse_value(args, "--site-power-budget-kw")?,
+        port_release_policy: args
+            .iter()
+            .position(|arg| arg == "--port-release-policy")
+            .and_then(|index| args.get(index + 1).cloned())
+            .unwrap_or_else(|| "release_on_charge_completion".to_string()),
     };
+    if !["release_on_charge_completion", "hold_until_departure"]
+        .contains(&options.port_release_policy.as_str())
+    {
+        return Err("--port-release-policy_must_be_release_on_charge_completion_or_hold_until_departure".to_string());
+    }
     if options.fleet_size == 0 || options.charger_port_count == 0 {
         return Err("fleet_size_and_charger_ports_must_be_positive".to_string());
     }
@@ -455,6 +487,7 @@ fn generate(
         "The only charging window is last on-shift segment end until first on-shift segment start on the following cycle. Intermediate off-shift gaps are not treated as depot-connected charge time.".to_string(),
         "Initial charge-window SOC is a declared assumption, not a measured end-of-route state. The target SOC is calculated so its delta represents the daily recharge demand.".to_string(),
         "Pack capacity, SOH, temperature derates, charging efficiency, charge acceptance, port rating, site import capacity and port count are declared model assumptions.".to_string(),
+        format!("Post-charge connector occupancy policy is {}; release_on_charge_completion is an optimistic zero-turnover assumption, while hold_until_departure reserves the connector until the declared departure.", options.port_release_policy),
         "The repeating-daily-cycle assumption is a workload abstraction: the source records are individual operating-day samples and do not establish multi-day duty continuity or actual depot connection.".to_string(),
     ];
     let template_id = "nlr-duty-cycle-vehicle".to_string();
@@ -565,6 +598,7 @@ fn generate(
         site_power_budget_kw: options.site_power_budget_kw,
         jobs,
         capacity_events: Vec::new(),
+        port_release_policy: options.port_release_policy.clone(),
     };
     let corpus = Corpus {
         schema_version: "0.1.0".to_string(),
@@ -605,6 +639,7 @@ fn generate(
         maximum_battery_acceptance_kw: options.maximum_battery_acceptance_kw,
         charger_port_count: options.charger_port_count,
         site_power_budget_kw: options.site_power_budget_kw,
+        port_release_policy: options.port_release_policy.clone(),
         scenario_evidence_class: "estimate".to_string(),
         assumption_notes,
         claim_ceiling: CLAIM_CEILING.to_string(),
@@ -712,6 +747,7 @@ mod tests {
             maximum_battery_acceptance_kw: 140.0,
             charger_port_count: 2,
             site_power_budget_kw: 200.0,
+            port_release_policy: "release_on_charge_completion".into(),
         }
     }
 
@@ -734,6 +770,8 @@ mod tests {
             }
         }
         assert_eq!(scenario.evidence_class, "estimate");
+        assert_eq!(scenario.port_release_policy, "release_on_charge_completion");
+        assert_eq!(manifest.port_release_policy, "release_on_charge_completion");
         assert_eq!(manifest.scenario_evidence_class, "estimate");
         assert_eq!(scenario.jobs.len(), 2);
     }
@@ -813,4 +851,17 @@ mod tests {
         assert_eq!(manifest.source_profile_count, 3);
         assert_eq!(manifest.eligible_profile_count, 2);
     }
+    #[test]
+    fn hold_until_departure_policy_is_recorded_in_corpus_and_manifest() {
+        let r = report();
+        let eligible = validate_audit_report(&r).unwrap();
+        let mut opts = options();
+        opts.port_release_policy = "hold_until_departure".into();
+        let (corpus, manifest) =
+            generate(&r, b"same-audit-report-bytes", &eligible, &opts).unwrap();
+        assert_eq!(corpus.scenarios[0].port_release_policy, "hold_until_departure");
+        assert_eq!(manifest.port_release_policy, "hold_until_departure");
+        assert!(manifest.assumption_notes.iter().any(|note| note.contains("hold_until_departure")));
+    }
+
 }
