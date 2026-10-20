@@ -1,0 +1,113 @@
+name: Mine Adaptive Interval Benchmark
+
+on:
+  push:
+    branches: ["feat/mine-adaptive-interval-bench-v0-1"]
+    paths:
+      - "tools/mine-adaptive-interval-bench/**"
+      - "docs/tech/MINE_ADAPTIVE_INTERVAL_BENCHMARK_V0_1.md"
+      - ".github/workflows/mine-adaptive-interval-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/mine-adaptive-interval-bench/**"
+      - "docs/tech/MINE_ADAPTIVE_INTERVAL_BENCHMARK_V0_1.md"
+      - ".github/workflows/mine-adaptive-interval-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mine-adaptive-interval-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mine-adaptive-interval-bench/Cargo.toml -- --check
+
+      - name: Run adaptive interval benchmark tests
+        run: cargo test --manifest-path tools/mine-adaptive-interval-bench/Cargo.toml
+
+      - name: Validate exact-head benchmark receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-adaptive-interval-bench/Cargo.toml -- \\
+            --source-commit "$source_commit" > mine-adaptive-interval-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-ACP-001"
+            and .suite_version == "0.1.0"
+            and .validation_seed_count == 32
+            and .held_out_seed_count == 32
+            and .scenario_kind_count == 12
+            and .ticks_per_stream == 64
+            and .stream_count == 768
+            and .tick_count == 49152
+            and .policy_count == 7
+            and .summary_count == 168
+            and .nominal_coverage_percent == 90
+            and .max_telemetry_age_periods == 1
+            and .healthy_ticks_required_for_reentry == 3
+            and .guarded_hard_control_acceptances == 0
+            and .independent_gate_audit_mismatches == 0
+            and .unguarded_negative_control_hard_control_acceptances > 0
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.calibration_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.generated_stream_set_sha256 | test("^[0-9a-f]{64}$"))
+            and ([.summaries[] | select(
+              .stream_count != 32
+              or .tick_count != 2048
+              or .coverage_count > .coverage_denominator
+              or .independent_gate_audit_mismatches != 0
+            )] | length == 0)
+            and ([.summaries[] | select(
+              (.mean_interval_width | isnan)
+              or (.p95_interval_width | isnan)
+              or (.max_interval_width | isnan)
+              or .mean_interval_width <= 0
+              or .p95_interval_width <= 0
+              or .max_interval_width <= 0
+            )] | length == 0)
+          ' mine-adaptive-interval-receipt.json
+
+      - name: Emit per-split, per-regime metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id, suite_version, source_commit,
+            calibration_set_sha256, generated_stream_set_sha256,
+            stream_count, tick_count, policy_count, summary_count,
+            guarded_hard_control_acceptances,
+            unguarded_negative_control_hard_control_acceptances,
+            independent_gate_audit_mismatches,
+            summaries
+          }' mine-adaptive-interval-receipt.json
+
+      - name: Retain exact-head receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: mine-adaptive-interval-\${{ github.event.pull_request.head.sha || github.sha }}
+          path: mine-adaptive-interval-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
