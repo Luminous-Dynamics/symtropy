@@ -1,0 +1,851 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! VIS-ACT-004: dependency-free RGB active-vision environment.
+//!
+//! This is a rendered-pixel toy world, not a photorealistic simulator or robot
+//! result. The acting policy receives RGB bytes plus the legal-action flag;
+//! hidden world state and terminal truth stay evaluator-side. A side-view action
+//! returns one transient informative RGB frame, then the next frame is occluded.
+//!
+//! Run:
+//!   rustc --edition=2024 tools/vision-active-pixel-world.rs -o /tmp/vis-act-pixels
+//!   /tmp/vis-act-pixels
+//!   rustc --edition=2024 --test tools/vision-active-pixel-world.rs -o /tmp/vis-act-pixel-tests
+//!   /tmp/vis-act-pixel-tests
+
+use std::collections::VecDeque;
+
+const WIDTH: usize = 32;
+const HEIGHT: usize = 32;
+const CHANNELS: usize = 3;
+const ROOT_SEED: u64 = 0x3C6E_F372_FE94_F82B;
+const WORLD_REPLICATES: usize = 12;
+const PAIRS_PER_REPLICATE: usize = 16;
+const LATENCY_BUDGET: u64 = 12;
+const VIEW_ACTION_BUDGET: u64 = 1;
+
+fn mix64(mut x: u64) -> u64 {
+    x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    x = (x ^ (x >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    x ^ (x >> 31)
+}
+
+fn unit_milli(seed: u64, domain: u64) -> u16 {
+    (mix64(seed ^ domain) % 1000) as u16
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SceneFamily {
+    Development,
+    HeldOut,
+}
+
+impl SceneFamily {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Development => "development_scene_family",
+            Self::HeldOut => "held_out_scene_family",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Cue {
+    Present,
+    Absent,
+    Occluded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Decision {
+    Present,
+    Absent,
+    Abstain,
+}
+
+impl Cue {
+    fn decision(self) -> Option<Decision> {
+        match self {
+            Self::Present => Some(Decision::Present),
+            Self::Absent => Some(Decision::Absent),
+            Self::Occluded => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct RgbFrame {
+    tick: u8,
+    pixels: Vec<u8>,
+    // Legal action metadata is public. This flag is set by the environment,
+    // not inferred from hidden truth, and does not expose the world seed.
+    side_view_available: bool,
+}
+
+impl RgbFrame {
+    fn new(tick: u8, side_view_available: bool) -> Self {
+        Self {
+            tick,
+            pixels: vec![0; WIDTH * HEIGHT * CHANNELS],
+            side_view_available,
+        }
+    }
+
+    fn pixel(&self, x: usize, y: usize) -> [u8; 3] {
+        let index = (y * WIDTH + x) * CHANNELS;
+        [self.pixels[index], self.pixels[index + 1], self.pixels[index + 2]]
+    }
+
+    fn set_pixel(&mut self, x: usize, y: usize, rgb: [u8; 3]) {
+        if x >= WIDTH || y >= HEIGHT {
+            return;
+        }
+        let index = (y * WIDTH + x) * CHANNELS;
+        self.pixels[index..index + CHANNELS].copy_from_slice(&rgb);
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct HiddenWorld {
+    // Evaluator-owned. Never passed to policy proposal, perception, or memory.
+    exogenous_seed: u64,
+    terminal_present: bool,
+    family: SceneFamily,
+    target_x: usize,
+    target_y: usize,
+    exposure: i16,
+    decoy_x: usize,
+    decoy_y: usize,
+    decoy_count: u8,
+    side_view_available: bool,
+}
+
+impl HiddenWorld {
+    fn generated(exogenous_seed: u64, terminal_present: bool, family: SceneFamily) -> Self {
+        let target_x = match family {
+            SceneFamily::Development => 20,
+            SceneFamily::HeldOut => 16 + usize::from(unit_milli(exogenous_seed, 0x5441_5247_4554_5801) % 7),
+        };
+        let target_y = match family {
+            SceneFamily::Development => 16,
+            SceneFamily::HeldOut => 13 + usize::from(unit_milli(exogenous_seed, 0x5441_5247_4554_5901) % 7),
+        };
+        let exposure = match family {
+            SceneFamily::Development => i16::from(unit_milli(exogenous_seed, 0x4558_504F_5355_5245) % 9) - 4,
+            SceneFamily::HeldOut => i16::from(unit_milli(exogenous_seed, 0x4558_504F_5355_5245) % 41) - 20,
+        };
+        Self {
+            exogenous_seed,
+            terminal_present,
+            family,
+            target_x,
+            target_y,
+            exposure,
+            decoy_x: 5 + usize::from(unit_milli(exogenous_seed, 0x4445_434F_595F_5801) % 9),
+            decoy_y: 6 + usize::from(unit_milli(exogenous_seed, 0x4445_434F_595F_5901) % 19),
+            decoy_count: match family {
+                SceneFamily::Development => 1,
+                SceneFamily::HeldOut => 1 + (unit_milli(exogenous_seed, 0x4445_434F_595F_4E01) % 3) as u8,
+            },
+            side_view_available: unit_milli(exogenous_seed, 0x5349_4445_5F41_4354) >= 180,
+        }
+    }
+
+    fn pixel_noise(self, tick: u8, x: usize, y: usize) -> i16 {
+        let domain = (u64::from(tick) << 56)
+            ^ ((y * WIDTH + x) as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
+            ^ 0x5049_5845_4C4E_4F49;
+        (mix64(self.exogenous_seed ^ domain) % 7) as i16 - 3
+    }
+
+    fn shade(self, rgb: [u8; 3], noise: i16) -> [u8; 3] {
+        rgb.map(|channel| (i16::from(channel) + self.exposure + noise).clamp(0, 255) as u8)
+    }
+
+    fn draw_cross(&self, frame: &mut RgbFrame, cx: usize, cy: usize, side_view: bool, center: [u8; 3]) {
+        // A target is a red cross with a bright neutral center. Red-cross
+        // decoys have a blue center and are deliberately not the task target.
+        let red = if side_view { [190, 76, 76] } else { [232, 36, 36] };
+        let offsets: [(isize, isize); 8] = [
+            (0, -2), (0, -1), (0, 1), (0, 2),
+            (-2, 0), (-1, 0), (1, 0), (2, 0),
+        ];
+        for (dx, dy) in offsets {
+            let x = cx as isize + dx;
+            let y = cy as isize + dy;
+            if x >= 0 && y >= 0 {
+                let x = x as usize;
+                let y = y as usize;
+                frame.set_pixel(x, y, self.shade(red, self.pixel_noise(frame.tick, x, y)));
+            }
+        }
+        frame.set_pixel(cx, cy, self.shade(center, self.pixel_noise(frame.tick, cx, cy)));
+    }
+
+    fn draw_wall(&self, frame: &mut RgbFrame) {
+        let left = self.target_x.saturating_sub(5);
+        let right = (self.target_x + 5).min(WIDTH - 1);
+        let top = self.target_y.saturating_sub(5);
+        let bottom = (self.target_y + 5).min(HEIGHT - 1);
+        for y in top..=bottom {
+            for x in left..=right {
+                let base = if (x + y) % 2 == 0 { [70, 70, 70] } else { [98, 98, 98] };
+                frame.set_pixel(x, y, self.shade(base, self.pixel_noise(frame.tick, x, y)));
+            }
+        }
+    }
+
+    fn render(self, tick: u8, side_view: bool) -> RgbFrame {
+        let available = tick == 1 && self.side_view_available;
+        let mut frame = RgbFrame::new(tick, available);
+
+        // Backgrounds and pixel noise are deterministic and paired across
+        // persistent/removal counterfactuals. Held-out scenes change exposure,
+        // object position, and distractor count without changing task semantics.
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                let noise = self.pixel_noise(tick, x, y);
+                let base = match self.family {
+                    SceneFamily::Development => [
+                        20 + ((x + y) % 4) as u8,
+                        31 + ((x * 2 + y) % 5) as u8,
+                        47 + ((x + y * 2) % 6) as u8,
+                    ],
+                    SceneFamily::HeldOut => [
+                        27 + ((x * 3 + y) % 13) as u8,
+                        38 + ((x + y * 3) % 17) as u8,
+                        43 + ((x * 2 + y * 5) % 19) as u8,
+                    ],
+                };
+                frame.set_pixel(x, y, self.shade(base, noise));
+            }
+        }
+
+        // Distractors deliberately resemble part of the target's red shape,
+        // but fail the target's bright-center pattern. No hidden target label is
+        // encoded in this decoy; the policy must use the pixels themselves.
+        for index in 0..self.decoy_count {
+            let dx = (self.decoy_x + usize::from(index) * 4).min(WIDTH - 4);
+            let dy = (self.decoy_y + usize::from(index) * 5).min(HEIGHT - 4);
+            self.draw_cross(&mut frame, dx, dy, false, [28, 45, 220]);
+        }
+
+        match tick {
+            0 => {
+                // Initial pre-intervention frame: target is visible in both
+                // paired worlds, even though terminal truth will later differ.
+                self.draw_cross(&mut frame, self.target_x, self.target_y, false, [238, 238, 238]);
+            }
+            1 | 3 => {
+                // The object is drawn identically before a foreground wall
+                // hides it. Persistent and removed worlds therefore render
+                // byte-identical pixels through the reveal boundary.
+                self.draw_cross(&mut frame, self.target_x, self.target_y, false, [238, 238, 238]);
+                self.draw_wall(&mut frame);
+            }
+            2 if side_view => {
+                // Side parallax moves the target relative to the wall. The
+                // changed-view frame is informative for one step only.
+                if self.terminal_present {
+                    let shifted_x = (self.target_x + 6).min(WIDTH - 3);
+                    self.draw_cross(&mut frame, shifted_x, self.target_y, true, [184, 184, 184]);
+                }
+            }
+            2 => {
+                // Without an executed view, the stream remains occluded and
+                // has no branch-specific visual difference.
+                self.draw_cross(&mut frame, self.target_x, self.target_y, false, [238, 238, 238]);
+                self.draw_wall(&mut frame);
+            }
+            _ => {}
+        }
+        frame
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Evidence {
+    tick: u8,
+    cue: Cue,
+    confidence_milli: u16,
+}
+
+fn is_red(rgb: [u8; 3]) -> bool {
+    rgb[0] > 120 && u16::from(rgb[0]) > u16::from(rgb[1]) + 48
+        && u16::from(rgb[0]) > u16::from(rgb[2]) + 48
+}
+
+fn is_bright_center(rgb: [u8; 3]) -> bool {
+    rgb.iter().all(|channel| *channel > 135)
+        && (i16::from(*rgb.iter().max().unwrap_or(&0)) - i16::from(*rgb.iter().min().unwrap_or(&0))) < 55
+}
+
+/// Derive evidence strictly from RGB bytes. No view id, world metadata,
+/// intervention label, seed, target position, or evaluator outcome is accepted.
+fn perceive(frame: &RgbFrame) -> Evidence {
+    let mut best_confidence = 0_u16;
+
+    for cy in 2..HEIGHT - 2 {
+        for cx in 2..WIDTH - 2 {
+            if !is_bright_center(frame.pixel(cx, cy)) {
+                continue;
+            }
+            let offsets: [(isize, isize); 8] = [
+                (0, -2), (0, -1), (0, 1), (0, 2),
+                (-2, 0), (-1, 0), (1, 0), (2, 0),
+            ];
+            let mut red_count = 0_u16;
+            let mut contrast_sum = 0_u16;
+            for (dx, dy) in offsets {
+                let x = (cx as isize + dx) as usize;
+                let y = (cy as isize + dy) as usize;
+                let rgb = frame.pixel(x, y);
+                if is_red(rgb) {
+                    red_count += 1;
+                    contrast_sum += u16::from(rgb[0].saturating_sub(rgb[1].max(rgb[2])));
+                }
+            }
+            if red_count >= 7 {
+                let average_contrast = contrast_sum / red_count.max(1);
+                let confidence = (500 + average_contrast * 2).min(950);
+                best_confidence = best_confidence.max(confidence);
+            }
+        }
+    }
+
+    if best_confidence > 0 {
+        return Evidence {
+            tick: frame.tick,
+            cue: Cue::Present,
+            confidence_milli: best_confidence,
+        };
+    }
+
+    let neutral_wall_pixels = (0..HEIGHT)
+        .flat_map(|y| (0..WIDTH).map(move |x| (x, y)))
+        .filter(|(x, y)| {
+            let [r, g, b] = frame.pixel(*x, *y);
+            let spread = i16::from(r.max(g).max(b)) - i16::from(r.min(g).min(b));
+            spread <= 4 && (45..=135).contains(&r)
+        })
+        .count();
+
+    if neutral_wall_pixels >= 50 {
+        Evidence {
+            tick: frame.tick,
+            cue: Cue::Occluded,
+            confidence_milli: 0,
+        }
+    } else {
+        // An unobstructed view with no target pattern is explicit negative
+        // evidence, but its synthetic confidence is intentionally lower than
+        // the original close-up positive observation.
+        Evidence {
+            tick: frame.tick,
+            cue: Cue::Absent,
+            confidence_milli: 650,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Action {
+    Wait,
+    ChangeView,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Policy {
+    NoMemory,
+    LastObservation,
+    BoundedFifo,
+    ConfidenceGated,
+    ProvenancePassive,
+    ActiveRevision,
+}
+
+impl Policy {
+    fn name(self) -> &'static str {
+        match self {
+            Self::NoMemory => "no_memory",
+            Self::LastObservation => "last_observation",
+            Self::BoundedFifo => "bounded_fifo",
+            Self::ConfidenceGated => "confidence_gated",
+            Self::ProvenancePassive => "provenance_memory_passive",
+            Self::ActiveRevision => "active_revision",
+        }
+    }
+
+    fn memory_cap(self) -> usize {
+        match self {
+            Self::NoMemory => 0,
+            Self::LastObservation | Self::ConfidenceGated | Self::ProvenancePassive | Self::ActiveRevision => 1,
+            Self::BoundedFifo => 2,
+        }
+    }
+
+    fn propose(self, frame: &RgbFrame, view_used: bool) -> Action {
+        let evidence = perceive(frame);
+        if self != Self::ProvenancePassive
+            && evidence.cue == Cue::Occluded
+            && frame.side_view_available
+            && !view_used
+        {
+            Action::ChangeView
+        } else {
+            Action::Wait
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum Memory {
+    None,
+    Last(Option<Evidence>),
+    Fifo(VecDeque<Evidence>),
+    ConfidenceBest(Option<Evidence>),
+    ProvenanceLatest(Option<Evidence>),
+}
+
+impl Memory {
+    fn new(policy: Policy) -> Self {
+        match policy {
+            Policy::NoMemory => Self::None,
+            Policy::LastObservation => Self::Last(None),
+            Policy::BoundedFifo => Self::Fifo(VecDeque::with_capacity(2)),
+            Policy::ConfidenceGated => Self::ConfidenceBest(None),
+            Policy::ProvenancePassive | Policy::ActiveRevision => Self::ProvenanceLatest(None),
+        }
+    }
+
+    fn observe(&mut self, frame: &RgbFrame) {
+        let evidence = perceive(frame);
+        match self {
+            Self::None => {}
+            Self::Last(last) => *last = Some(evidence),
+            Self::Fifo(entries) => {
+                entries.push_back(evidence);
+                while entries.len() > 2 {
+                    entries.pop_front();
+                }
+            }
+            Self::ConfidenceBest(best) => {
+                if evidence.cue != Cue::Occluded
+                    && best.as_ref().map_or(true, |previous| evidence.confidence_milli >= previous.confidence_milli)
+                {
+                    *best = Some(evidence);
+                }
+            }
+            Self::ProvenanceLatest(latest) => {
+                if evidence.cue != Cue::Occluded {
+                    // A later direct cue supersedes earlier evidence even when
+                    // its confidence is lower. Timestamp is retained.
+                    *latest = Some(evidence);
+                }
+            }
+        }
+    }
+
+    fn decide(&self, policy: Policy, terminal: &RgbFrame) -> Decision {
+        match policy {
+            Policy::NoMemory => perceive(terminal).cue.decision().unwrap_or(Decision::Abstain),
+            Policy::LastObservation => match self {
+                Self::Last(last) => last.and_then(|e| e.cue.decision()).unwrap_or(Decision::Abstain),
+                _ => Decision::Abstain,
+            },
+            Policy::BoundedFifo => match self {
+                Self::Fifo(entries) => entries.iter().rev()
+                    .find(|e| e.cue != Cue::Occluded && terminal.tick.saturating_sub(e.tick) <= 1)
+                    .and_then(|e| e.cue.decision())
+                    .unwrap_or(Decision::Abstain),
+                _ => Decision::Abstain,
+            },
+            Policy::ConfidenceGated => match self {
+                Self::ConfidenceBest(best) => best.and_then(|e| e.cue.decision()).unwrap_or(Decision::Abstain),
+                _ => Decision::Abstain,
+            },
+            Policy::ProvenancePassive | Policy::ActiveRevision => match self {
+                Self::ProvenanceLatest(latest) => latest
+                    .filter(|e| terminal.tick.saturating_sub(e.tick) <= 1)
+                    .and_then(|e| e.cue.decision())
+                    .unwrap_or(Decision::Abstain),
+                _ => Decision::Abstain,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct EpisodeResult {
+    terminal_present: bool,
+    decision: Decision,
+    loss: f64,
+    view_used: bool,
+    latency_units: u64,
+    budget_violations: u64,
+    explicit_absence_seen: bool,
+}
+
+fn run_episode(world: HiddenWorld, policy: Policy) -> EpisodeResult {
+    let mut memory = Memory::new(policy);
+    let mut view_used = false;
+    let mut latency_units = 0_u64;
+    let mut budget_violations = 0_u64;
+    let mut explicit_absence_seen = false;
+    let mut terminal = world.render(0, false);
+
+    for tick in 0..=3_u8 {
+        // Only tick 2 may show the shifted viewpoint, and only after its action
+        // was validated and committed on tick 1.
+        let side_view = tick == 2 && view_used;
+        let frame = world.render(tick, side_view);
+        memory.observe(&frame);
+        explicit_absence_seen |= perceive(&frame).cue == Cue::Absent;
+
+        if tick == 1 {
+            let proposed = policy.propose(&frame, view_used);
+            let executed = match proposed {
+                Action::ChangeView
+                    if frame.side_view_available
+                        && !view_used
+                        && latency_units.saturating_add(3) <= LATENCY_BUDGET
+                        && u64::from(view_used) < VIEW_ACTION_BUDGET =>
+                {
+                    view_used = true;
+                    latency_units += 3;
+                    Action::ChangeView
+                }
+                Action::ChangeView => {
+                    budget_violations += 1;
+                    latency_units = latency_units.saturating_add(1);
+                    Action::Wait
+                }
+                Action::Wait => {
+                    latency_units = latency_units.saturating_add(1);
+                    Action::Wait
+                }
+            };
+            // The action is recorded before the next observation is rendered.
+            if executed == Action::Wait {
+                // view_used remains false; the next frame cannot reveal truth.
+            }
+        } else {
+            latency_units = latency_units.saturating_add(1);
+        }
+
+        terminal = frame;
+    }
+
+    if latency_units > LATENCY_BUDGET || u64::from(view_used) > VIEW_ACTION_BUDGET {
+        budget_violations += 1;
+    }
+
+    let decision = memory.decide(policy, &terminal);
+    let loss = match decision {
+        Decision::Present if world.terminal_present => 0.0,
+        Decision::Absent if !world.terminal_present => 0.0,
+        Decision::Abstain => 0.25,
+        _ => 1.0,
+    };
+
+    EpisodeResult {
+        terminal_present: world.terminal_present,
+        decision,
+        loss,
+        view_used,
+        latency_units,
+        budget_violations,
+        explicit_absence_seen,
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct Counts {
+    episodes: u64,
+    loss_sum: f64,
+    answered: u64,
+    correct_answered: u64,
+    abstentions: u64,
+    persistent_episodes: u64,
+    persistent_correct: u64,
+    removed_episodes: u64,
+    false_persistence: u64,
+    removed_with_absence: u64,
+    removed_revised_correctly: u64,
+    view_actions: u64,
+    latency_units: u64,
+    budget_violations: u64,
+}
+
+impl Counts {
+    fn record(&mut self, result: EpisodeResult) {
+        self.episodes += 1;
+        self.loss_sum += result.loss;
+        self.view_actions += u64::from(result.view_used);
+        self.latency_units += result.latency_units;
+        self.budget_violations += result.budget_violations;
+        match result.decision {
+            Decision::Abstain => self.abstentions += 1,
+            decision => {
+                self.answered += 1;
+                let correct = matches!(
+                    (decision, result.terminal_present),
+                    (Decision::Present, true) | (Decision::Absent, false)
+                );
+                if correct {
+                    self.correct_answered += 1;
+                }
+            }
+        }
+
+        if result.terminal_present {
+            self.persistent_episodes += 1;
+            if result.decision == Decision::Present {
+                self.persistent_correct += 1;
+            }
+        } else {
+            self.removed_episodes += 1;
+            if result.decision == Decision::Present {
+                self.false_persistence += 1;
+            }
+            if result.explicit_absence_seen {
+                self.removed_with_absence += 1;
+                if result.decision == Decision::Absent {
+                    self.removed_revised_correctly += 1;
+                }
+            }
+        }
+    }
+
+    fn mean_loss(self) -> f64 {
+        self.loss_sum / self.episodes.max(1) as f64
+    }
+
+    fn rate(numerator: u64, denominator: u64) -> String {
+        if denominator == 0 { "NA".to_string() }
+        else { format!("{:.4}", numerator as f64 / denominator as f64) }
+    }
+}
+
+fn seed_for(replicate: usize, pair: usize, family: SceneFamily) -> u64 {
+    let family_domain = match family {
+        SceneFamily::Development => 0x4445_565F_5343_454E,
+        SceneFamily::HeldOut => 0x4845_4C44_4F55_545F,
+    };
+    mix64(
+        ROOT_SEED ^ family_domain
+            ^ (replicate as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
+            ^ (pair as u64).wrapping_mul(0xD1B5_4A32_D192_ED03),
+    )
+}
+
+fn run_report() {
+    let policies = [
+        Policy::NoMemory,
+        Policy::LastObservation,
+        Policy::BoundedFifo,
+        Policy::ConfidenceGated,
+        Policy::ProvenancePassive,
+        Policy::ActiveRevision,
+    ];
+    let families = [SceneFamily::Development, SceneFamily::HeldOut];
+
+    println!("VIS-ACT-004 rendered RGB active-vision diagnostic");
+    println!("32x32 RGB procedural renderer; paired persistent/removal worlds; one transient side-view observation");
+    println!("synthetic resource units; no camera, GPU, robot, or physical-energy claims");
+    println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tpersistent_correct_rate\tremoved_false_persistence_rate\tremoved_revision_when_absence_seen\tremoved_absence_cases\tview_actions_per_episode\tlatency_units_per_episode\tmemory_cap\tbudget_violations");
+
+    for family in families {
+        for policy in policies {
+            let mut total = Counts::default();
+            for replicate in 0..WORLD_REPLICATES {
+                for pair in 0..PAIRS_PER_REPLICATE {
+                    let seed = seed_for(replicate, pair, family);
+                    let persistent = HiddenWorld::generated(seed, true, family);
+                    let removed = HiddenWorld::generated(seed, false, family);
+                    total.record(run_episode(persistent, policy));
+                    total.record(run_episode(removed, policy));
+                }
+            }
+
+            println!(
+                "{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{:.3}\t{}\t{}",
+                family.name(),
+                policy.name(),
+                total.episodes,
+                total.mean_loss(),
+                Counts::rate(total.correct_answered, total.answered),
+                Counts::rate(total.abstentions, total.episodes),
+                Counts::rate(total.persistent_correct, total.persistent_episodes),
+                Counts::rate(total.false_persistence, total.removed_episodes),
+                Counts::rate(total.removed_revised_correctly, total.removed_with_absence),
+                total.removed_with_absence,
+                total.view_actions as f64 / total.episodes.max(1) as f64,
+                total.latency_units as f64 / total.episodes.max(1) as f64,
+                policy.memory_cap(),
+                total.budget_violations,
+            );
+        }
+    }
+}
+
+fn main() {
+    run_report();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn paired(family: SceneFamily, seed: u64) -> (HiddenWorld, HiddenWorld) {
+        (
+            HiddenWorld::generated(seed, true, family),
+            HiddenWorld::generated(seed, false, family),
+        )
+    }
+
+    #[test]
+    fn rgb_rendering_is_correctly_sized_and_deterministic() {
+        let world = HiddenWorld::generated(77, true, SceneFamily::Development);
+        let first = world.render(0, false);
+        assert_eq!(first.pixels.len(), WIDTH * HEIGHT * CHANNELS);
+        assert_eq!(first, world.render(0, false));
+        assert_eq!(first.pixel(20, 16).iter().all(|c| *c > 130), true);
+    }
+
+    #[test]
+    fn paired_worlds_have_byte_identical_pixels_before_reveal() {
+        for family in [SceneFamily::Development, SceneFamily::HeldOut] {
+            let (present, removed) = paired(family, 0xCAFE_BABE);
+            for tick in [0, 1, 3] {
+                assert_eq!(present.render(tick, false), removed.render(tick, false));
+            }
+            assert_eq!(present.render(2, false), removed.render(2, false));
+        }
+    }
+
+    #[test]
+    fn legal_side_view_reveals_present_versus_absent_in_rgb() {
+        let (present, removed) = paired(SceneFamily::Development, 0x1020_3040);
+        let visible_present = present.render(2, true);
+        let visible_absent = removed.render(2, true);
+        assert_eq!(perceive(&visible_present).cue, Cue::Present);
+        assert_eq!(perceive(&visible_absent).cue, Cue::Absent);
+        assert_ne!(visible_present.pixels, visible_absent.pixels);
+    }
+
+    #[test]
+    fn occluded_pixels_do_not_disclose_hidden_intervention() {
+        let (present, removed) = paired(SceneFamily::Development, 0x1234_9876);
+        for tick in [1, 3] {
+            let a = present.render(tick, false);
+            let b = removed.render(tick, false);
+            assert_eq!(a.pixels, b.pixels);
+            assert_eq!(perceive(&a).cue, Cue::Occluded);
+            assert_eq!(perceive(&b).cue, Cue::Occluded);
+        }
+    }
+
+    #[test]
+    fn red_decoy_with_wrong_center_is_not_mistaken_for_target() {
+        let world = HiddenWorld::generated(0xABCDEF01, false, SceneFamily::Development);
+        let frame = world.render(2, true);
+        assert_eq!(perceive(&frame).cue, Cue::Absent);
+    }
+
+    #[test]
+    fn transient_view_requires_memory_after_the_next_occlusion() {
+        let (present, removed) = paired(SceneFamily::Development, 0xF00D);
+        let transient = removed.render(2, true);
+        let terminal = removed.render(3, false);
+        assert_eq!(perceive(&transient).cue, Cue::Absent);
+        assert_eq!(perceive(&terminal).cue, Cue::Occluded);
+        let mut memory = Memory::new(Policy::ActiveRevision);
+        memory.observe(&transient);
+        memory.observe(&terminal);
+        assert_eq!(memory.decide(Policy::ActiveRevision, &terminal), Decision::Absent);
+
+        let no_memory = Memory::new(Policy::NoMemory);
+        assert_eq!(no_memory.decide(Policy::NoMemory, &terminal), Decision::Abstain);
+        // Also ensure the paired persistent branch remains identifiable.
+        assert_eq!(perceive(&present.render(2, true)).cue, Cue::Present);
+    }
+
+    #[test]
+    fn confidence_gated_memory_fails_on_newer_lower_confidence_absence() {
+        let (present, removed) = paired(SceneFamily::Development, 0xCAFE);
+        let mut memory = Memory::new(Policy::ConfidenceGated);
+        let initial = present.render(0, false);
+        let absence = removed.render(2, true);
+        memory.observe(&initial);
+        memory.observe(&absence);
+        assert_eq!(perceive(&initial).cue, Cue::Present);
+        assert!(perceive(&initial).confidence_milli > perceive(&absence).confidence_milli);
+        let terminal = removed.render(3, false);
+        memory.observe(&terminal);
+        assert_eq!(memory.decide(Policy::ConfidenceGated, &terminal), Decision::Present);
+    }
+
+    #[test]
+    fn held_out_family_changes_scene_without_changing_pairing_contract() {
+        let dev = HiddenWorld::generated(89, true, SceneFamily::Development);
+        let held = HiddenWorld::generated(89, true, SceneFamily::HeldOut);
+        assert_ne!((dev.target_x, dev.target_y, dev.exposure), (held.target_x, held.target_y, held.exposure));
+        let dev_removed = HiddenWorld::generated(89, false, SceneFamily::Development);
+        let held_removed = HiddenWorld::generated(89, false, SceneFamily::HeldOut);
+        assert_eq!(dev.render(1, false), dev_removed.render(1, false));
+        assert_eq!(held.render(1, false), held_removed.render(1, false));
+    }
+
+    #[test]
+    fn active_view_actions_obey_budget_and_use_only_public_frame_fields() {
+        let (present, _) = paired(SceneFamily::HeldOut, 0x9911);
+        let frame = present.render(1, false);
+        let action = Policy::ActiveRevision.propose(&frame, false);
+        assert!(matches!(action, Action::Wait | Action::ChangeView));
+        if action == Action::ChangeView {
+            assert!(frame.side_view_available);
+        }
+        let result = run_episode(present, Policy::ActiveRevision);
+        assert!(result.latency_units <= LATENCY_BUDGET);
+        assert!(u64::from(result.view_used) <= VIEW_ACTION_BUDGET);
+        assert_eq!(result.budget_violations, 0);
+    }
+
+    #[test]
+    fn no_executed_or_unavailable_view_never_gets_information_credit() {
+        let seed = (0_u64..1000)
+            .find(|seed| !HiddenWorld::generated(*seed, true, SceneFamily::Development).side_view_available)
+            .unwrap();
+        let (present, removed) = paired(SceneFamily::Development, seed);
+        assert_eq!(present.render(1, false), removed.render(1, false));
+        assert!(!present.render(1, false).side_view_available);
+        assert_eq!(present.render(2, false), removed.render(2, false));
+        assert_eq!(perceive(&present.render(2, false)).cue, Cue::Occluded);
+    }
+
+    #[test]
+    fn undefined_rates_are_na_and_defined_rates_are_numeric() {
+        assert_eq!(Counts::rate(0, 0), "NA");
+        assert_eq!(Counts::rate(1, 4), "0.2500");
+    }
+
+    #[test]
+    fn generated_report_includes_development_and_heldout_slices() {
+        assert_ne!(SceneFamily::Development.name(), SceneFamily::HeldOut.name());
+        assert_eq!(WIDTH * HEIGHT * CHANNELS, 3072);
+    }
+
+    #[test]
+    fn deterministic_pairing_and_policy_rollouts_repeat_exactly() {
+        let seed = 0xDEAD_BEEF;
+        let (present, removed) = paired(SceneFamily::HeldOut, seed);
+        assert_eq!(present, HiddenWorld::generated(seed, true, SceneFamily::HeldOut));
+        assert_eq!(removed, HiddenWorld::generated(seed, false, SceneFamily::HeldOut));
+        assert_eq!(
+            run_episode(present, Policy::ActiveRevision).loss,
+            run_episode(present, Policy::ActiveRevision).loss
+        );
+    }
+}
