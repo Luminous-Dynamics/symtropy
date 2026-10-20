@@ -10,6 +10,16 @@ Test whether animal agents remain competent, calibrated, and ecologically cohere
 
 This benchmark complements—not duplicates—the animal replay/evaluation contract, active-sensing benchmark, and causal-identifiability benchmark. Those focus respectively on claim-specific replay metrics, sensing under finite budgets, and what controlled interventions identify. This contract adds **ecological regime transfer and response over time**, including the effects of individual policies on populations and resource systems.
 
+Related internal qualification lanes keep the guarantees composable:
+- [Causal identifiability #2186 / PR #2187](https://github.com/Luminous-Dynamics/symtropy/pull/2187): does a controlled intervention identify the predicted mechanism/effect?
+- [Ecological transfer #2214 / PR #2215](https://github.com/Luminous-Dynamics/symtropy/pull/2215): does competence and recovery transfer to new regimes?
+- [Model-structure uncertainty #2244 / PR #2247](https://github.com/Luminous-Dynamics/symtropy/pull/2247): how do plausible alternative mechanisms affect forecasts and choices?
+- [Model-set adequacy #2334 / PR #2335](https://github.com/Luminous-Dynamics/symtropy/pull/2335): can a blinded challenger expose a mechanism missing from the registered model set?
+- [Decision-scope qualification #2350 / PR #2352](https://github.com/Luminous-Dynamics/symtropy/pull/2352): are downstream risk calculations correctly marked conditional on the evidence about model-set adequacy?
+- [Aquatic process closure #2206 / PR #2207](https://github.com/Luminous-Dynamics/symtropy/pull/2207): do the underlying nutrient/biomass/oxygen transfers close before ecological predictions are layered on top?
+
+A green contract at one layer does not promote a downstream layer automatically. For example, valid process accounting is not biological calibration, and a model ensemble's internal agreement is not evidence that it contains the world-generating mechanism.
+
 It defines a test contract, a synthetic oracle, and a frozen JSON Schema for its structure. The schema fixes V1 at 51 cases and documents that unique-ID and receipt/manifest invariants still require semantic checks outside ordinary JSON Schema validation. It does not introduce a simulator implementation or claim that Symtropy currently passes.
 
 ## Paradigm shifts
