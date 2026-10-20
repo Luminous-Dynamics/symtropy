@@ -66,14 +66,71 @@
   ],
   "interpretation": {
     "proposed_100k_p95_target_ms": 1000,
-    "observed_100k_single_sample_below_target": true,
+    "below_proposed_1s_target_in_both_single_sample_observations": true,
     "p95_gate_demonstrated": false,
-    "reason": "100k is a single timed observation; repeat measurements are needed to assess p95.",
+    "reason": "The 100k tier is single-sample in each run. The runs also used different CPU models, so they establish two successful point observations, not an SLA.",
     "memory_gate_demonstrated": false
   },
   "limitations": [
     "Synthetic sparse 2D geometry only.",
     "The single 100k timing is a point observation, not p50/p95 or an SLA.",
     "The run does not establish production memory capacity, peak memory, dense geometry scaling, 3D transforms, task biomechanics, accessibility, code compliance, safety or resident outcomes."
-  ]
+  ],
+  "additional_observations": [
+    {
+      "workflow_run_id": 39483408682,
+      "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39483408682",
+      "exact_source_sha": "8b81f4016e00fe2c4b6a4c58a77e6e88da65f9e6",
+      "benchmark_source_blob_sha": "b3ece5729f34af45920d39712079cf7510fcfae1",
+      "runner_image": "ubuntu-24.04",
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "host_kernel": "Linux runnervmxehtw 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64",
+      "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+      "visible_vcpus": 4,
+      "reported_memory_gib": 15,
+      "test_results": {
+        "passed": 26,
+        "failed": 0,
+        "formatting": "passed",
+        "clippy_warnings_denied": "passed",
+        "exact_head": "passed"
+      },
+      "measurements": [
+        {
+          "items": 10000,
+          "iterations": 3,
+          "findings": 0,
+          "p50_ms": 43.635,
+          "p95_ms": 62.204,
+          "percentile_method": "nearest rank"
+        },
+        {
+          "items": 25000,
+          "iterations": 5,
+          "findings": 0,
+          "p50_ms": 134.153,
+          "p95_ms": 143.889,
+          "percentile_method": "nearest rank"
+        },
+        {
+          "items": 50000,
+          "iterations": 1,
+          "findings": 0,
+          "single_sample_ms": 274.389
+        },
+        {
+          "items": 100000,
+          "iterations": 1,
+          "findings": 0,
+          "single_sample_ms": 566.416
+        }
+      ],
+      "limitations": [
+        "100k is one sample and does not establish p95 or SLA.",
+        "Different CPU model from the earlier observation; timings are not a same-host trend.",
+        "Peak memory was not profiled."
+      ]
+    }
+  ],
+  "latest_follow_up_observation_id": 39483408682
 }
