@@ -263,7 +263,8 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                                 "spatial constraint {id} mixes event_type_id values"
                             ));
                         }
-                        if !seen_child_units.insert(string_at(child, "unit_id").unwrap_or_default()) {
+                        if !seen_child_units.insert(string_at(child, "unit_id").unwrap_or_default())
+                        {
                             errors.push(format!("spatial constraint {id} repeats a child unit"));
                         }
                     }
@@ -747,24 +748,42 @@ mod tests {
             4
         );
         assert_eq!(receipt["summary"]["raw_joint_draw_coherence_rate"], 0.5);
-        assert_eq!(receipt["summary"]["reconciled_joint_draw_coherence_rate"], 1.0);
-        assert_eq!(receipt["summary"]["mean_absolute_raw_constraint_residual"], 0.25);
-        assert_eq!(receipt["summary"]["mean_absolute_reconciled_constraint_residual"], 0.0);
+        assert_eq!(
+            receipt["summary"]["reconciled_joint_draw_coherence_rate"],
+            1.0
+        );
+        assert_eq!(
+            receipt["summary"]["mean_absolute_raw_constraint_residual"],
+            0.25
+        );
+        assert_eq!(
+            receipt["summary"]["mean_absolute_reconciled_constraint_residual"],
+            0.0
+        );
         assert_eq!(receipt["summary"]["total_absolute_sample_adjustment"], 10.0);
-        assert_eq!(receipt["summary"]["maximum_absolute_sample_adjustment"], 1.0);
+        assert_eq!(
+            receipt["summary"]["maximum_absolute_sample_adjustment"],
+            1.0
+        );
         assert_eq!(receipt["claims"]["marginal_calibration_established"], false);
-        assert_eq!(receipt["constraint_diagnostics"][2]["status"], "not_assessable");
-        assert_eq!(receipt["constraint_diagnostics"][2]["missing_child_forecast_ids"][0], "fc-admin1-d-organized");
-        assert_eq!(receipt["constraint_diagnostics"][2]["missing_expected_child_keys"][0], "unit-admin1-d");
+        assert_eq!(
+            receipt["constraint_diagnostics"][2]["status"],
+            "not_assessable"
+        );
+        assert_eq!(
+            receipt["constraint_diagnostics"][2]["missing_child_forecast_ids"][0],
+            "fc-admin1-d-organized"
+        );
+        assert_eq!(
+            receipt["constraint_diagnostics"][2]["missing_expected_child_keys"][0],
+            "unit-admin1-d"
+        );
     }
 
     #[test]
     fn coherent_reconciled_samples_do_not_hide_incoherent_base_samples() {
-        let receipt = validate_and_audit(
-            FIXTURE_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("synthetic sample registration is valid");
+        let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+            .expect("synthetic sample registration is valid");
         let draw_two = &receipt["constraint_diagnostics"][0]["draw_diagnostics"][1];
         assert_eq!(draw_two["raw_signed_residual"], 1.0);
         assert_eq!(draw_two["raw_status"], "incoherent");
