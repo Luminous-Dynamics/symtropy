@@ -13,9 +13,18 @@ Current synthetic edges derive length from target travel time and reference spee
 Proposed targets (not achieved):
 1. 100% vehicle-ID reconciliation and zero unknown/duplicate output records.
 2. Zero hard-constraint and mass-conservation violations within Symtropy's model.
-3. Only label a scenario comparable after preregistered fixed-route calibration passes: <=5% per-link flow error and <=10% queue/storage-onset error on at least 100 held-out configurations. Otherwise report not comparable with the mismatch.
-4. Compare static shortest-path, exact tiny-instance joint assignment, scalable planner and SUMO Dynamic User Assignment under paired scenarios and comparable compute budgets where semantics permit. Aim for >=10% improvement in p95 clearance or predeclared evacuation regret, with no increase in unserved demand and zero hard-constraint violations; require confidence intervals and held-out cases.
-5. Publish runtime/memory/quality curves by network size and demand before setting performance budgets.
+3. For paired simulator calibration, only label a scenario comparable after preregistered fixed-route checks pass: <=5% per-link entry/exit flow error and <=10% queue/storage-onset error on at least 100 held-out configurations. Otherwise report not comparable and publish the mismatch.
+4. For field-data validation, report both localized bottleneck dynamics and system/path travel times; pre-register metrics, field-day variation envelopes, tolerances and confidence levels. FHWA-style flow/travel-time measures may inform the protocol, but criteria must be justified for wildfire conditions and cannot be substituted for evacuation-specific validation.
+5. Compare static shortest-path, exact tiny-instance joint assignment, a scalable planner and SUMO Dynamic User Assignment under paired scenarios and comparable compute budgets where semantics permit. Aim for >=10% improvement in p95 clearance or predeclared evacuation regret, with no increase in unserved demand and zero hard-constraint violations; require confidence intervals and held-out cases.
+6. Publish runtime/memory/quality curves by network size and demand before setting performance budgets.
+
+## Industry and research baseline
+
+FHWA microsimulation guidance says calibration should include at least one localized bottleneck measure (for example, queue/throughput) and one system-level measure (for example, path travel time); dynamic conditions and a representative-day approach matter. An operational validation programme should use relevant field observations, variation envelopes and confidence/tolerance criteria rather than tune to one aggregate score. See https://ops.fhwa.dot.gov/publications/fhwahop18036/chapter5.htm and https://ops.fhwa.dot.gov/publications/fhwahop18036/chapter2.htm.
+
+For traffic-flow field calibration, compare the chosen local and system measures using a documented public protocol; one FHWA traffic-calibration reference describes link-flow GEH and journey-time tolerances. Treat it as context to tailor to wildfire evacuation, not as a claim that generic roadway criteria automatically validate evacuation safety: https://ops.fhwa.dot.gov/trafficanalysistools/tat_vol4/sec5.htm.
+
+A relevant current research comparator is Moreno et al. (Transportation Research Part E, September 2026): a multi-period Cell Transmission Model with Branch-and-Benders-Cut jointly considers evacuee flows, shelter locations and contraflow, and includes a case study grounded in the 2023 Chibougamau wildfire evacuation: https://www.sciencedirect.com/science/article/pii/S1366554526003042. Our current work is not comparable to that full optimization system; it presently has a small fixed-route flow simulator and exact joint-assignment oracle only for tiny instances. The credible path to competition is to extend the benchmark across coupled shelter/contraflow decisions, scalable assignment, uncertain closures/demand, and evidence-bounded online replanning, then publish held-out quality/runtime curves.
 
 SUMO references:
 - TripInfo output and unfinished/undeparted flags: https://eclipse.dev/sumo/docs/Simulation/Output/TripInfo.html
