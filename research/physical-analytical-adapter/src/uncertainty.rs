@@ -181,6 +181,8 @@ pub fn propagate(
         let interval = bounds
             .get(*key)
             .ok_or_else(|| format!("missing input bound {key}"))?;
+        Interval::new(interval.lower, interval.upper)
+            .map_err(|error| format!("input bound {key}: {error}"))?;
         if !interval.contains(value) {
             return Err(format!("nominal input {key} lies outside its bounds"));
         }
@@ -403,6 +405,17 @@ mod tests {
     fn invalid_bounds_nominal_mismatch_and_unknown_keys_fail_closed() {
         assert!(Interval::new(2.0, 1.0).is_err());
         assert!(Interval::new(f64::NAN, 1.0).is_err());
+        let (nominal_for_invalid, mut invalid_bounds) = fixture(&[
+            ("force_n", 1_000.0, 900.0, 1_100.0),
+            ("length_m", 2.0, 1.9, 2.1),
+            ("area_m2", 0.01, 0.009, 0.011),
+            ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+        ]);
+        invalid_bounds.insert("area_m2".to_owned(), Interval { lower: 0.02, upper: 0.01 });
+        assert!(propagate("axial_bar", &nominal_for_invalid, &invalid_bounds).is_err());
+        let mut invalid_bounds = invalid_bounds;
+        invalid_bounds.insert("area_m2".to_owned(), Interval { lower: 0.009, upper: f64::INFINITY });
+        assert!(propagate("axial_bar", &nominal_for_invalid, &invalid_bounds).is_err());
 
         let (mut nominal, bounds) = fixture(&[
             ("force_n", 1_000.0, 900.0, 1_100.0),
