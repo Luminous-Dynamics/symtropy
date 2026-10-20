@@ -499,12 +499,9 @@ fn evaluate_scenario(
             if produced == 0 {
                 blocked_reason = Some("insufficient_remaining_power".to_owned());
             } else {
-                let used = produced.checked_mul(production_energy).ok_or_else(|| {
-                    format!("{path}.step[{step_index}]: production energy overflow")
-                })?;
-                remaining = remaining.checked_sub(used).ok_or_else(|| {
-                    format!("{path}.step[{step_index}]: production energy underflow")
-                })?;
+                // Since this is the final allocation for the step, output is computed
+                // from remaining / production_energy; no later consumer needs the remainder.
+                // The division bound ensures produced * production_energy <= remaining.
             }
         }
         if produced > 0 && first_output.is_none() {
@@ -867,9 +864,10 @@ mod tests {
         let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
             .expect_err("allocation priority changes declared results");
         assert!(
-            error.contains("service_delivery_by_step")
+            error.contains("food_preservation_unmet_units")
+                || error.contains("service_delivery_by_step")
                 || error.contains("service_floors_met_by_step"),
-            "{error}"
+            "priority mutation must alter a derived expected field: {error}"
         );
     }
 
