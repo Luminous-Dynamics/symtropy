@@ -1,0 +1,878 @@
+{
+  "schema_version": "ANIMAL-MODEL-SET-ADEQUACY-ORACLE-V1",
+  "status": "synthetic_contract_fixture",
+  "research_snapshot": "2026-10-20",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2334",
+  "note": "Synthetic expected-contract cases only. Passing this finite suite is not proof of universal model-set completeness or ecological/biological validity.",
+  "case_count": 52,
+  "independent_unit": "episode_site_or_mechanism_family_as_declared",
+  "required_run_identity": [
+    "source_commit",
+    "candidate_model_set_digest",
+    "model_lineage_registry_digest",
+    "candidate_equation_registry_digest",
+    "challenge_family_manifest_sha256",
+    "calibration_split_sha256",
+    "development_split_sha256",
+    "blind_challenge_split_sha256",
+    "independent_unit_manifest_sha256",
+    "observation_catalog_sha256",
+    "experiment_budget",
+    "compute_budget",
+    "decision_loss_version",
+    "threshold_policy_digest",
+    "evaluator_version",
+    "preregistered_margins",
+    "pre_reveal_prediction_digest"
+  ],
+  "uncertainty_layers": [
+    "aleatoric",
+    "parameter",
+    "structural_registered",
+    "observation_or_state",
+    "omission_misspecification"
+  ],
+  "comparison_policy": [
+    "test_model_set_adequacy_separately_from_within_set_risk",
+    "challenge_generator_is_blinded",
+    "missing_metric_is_not_zero",
+    "failed_selected_experiments_remain_counted",
+    "budget_mismatch_is_cost_tradeoff",
+    "keep_model_revision_receipts_immutable",
+    "synthetic_success_is_not_empirical_validation"
+  ],
+  "cases": [
+    {
+      "id": "candidate_registry_is_frozen",
+      "kind": "registry_integrity",
+      "setup": "Candidate structures and equation registries are frozen before challenge.",
+      "challenge": "mutate_registry_after_preregistration",
+      "expected": {
+        "required_properties": [
+          "registry digest checked against manifest",
+          "mutated run not qualified"
+        ]
+      },
+      "fail_if": [
+        "changed model scored under old digest"
+      ],
+      "reason": "model_set_identity_is_preregistered"
+    },
+    {
+      "id": "same_history_different_future",
+      "kind": "shared_fit_divergence",
+      "setup": "Two structures fit calibration history but diverge under held-out generator.",
+      "challenge": "score_heldout_future",
+      "expected": {
+        "required_properties": [
+          "per-model forecasts retained",
+          "coverage scored on blinded future"
+        ]
+      },
+      "fail_if": [
+        "historical fit alone qualifies forecast"
+      ],
+      "reason": "fit_does_not_ensure_adequacy"
+    },
+    {
+      "id": "all_candidates_share_missing_edge",
+      "kind": "shared_bias_consensus",
+      "setup": "All registered structures omit a trophic edge included by generator.",
+      "challenge": "add_blinded_trophic_edge",
+      "expected": {
+        "required_properties": [
+          "low spread does not certify adequacy",
+          "held-out predictive check can fail"
+        ]
+      },
+      "fail_if": [
+        "unanimity treated as completeness"
+      ],
+      "reason": "consensus_can_be_wrong"
+    },
+    {
+      "id": "omitted_predator_feedback",
+      "kind": "omitted_mechanism",
+      "setup": "Candidates omit predator-prey feedback present in generator.",
+      "challenge": "enable_predator_feedback",
+      "expected": {
+        "required_properties": [
+          "decision-relevant discrepancy surfaced",
+          "risk stays model-set conditional"
+        ]
+      },
+      "fail_if": [
+        "omitted edge silently labelled parameter noise"
+      ],
+      "reason": "structure_is_not_parameter_variance"
+    },
+    {
+      "id": "omitted_trophic_delay",
+      "kind": "omitted_mechanism",
+      "setup": "Generator includes delayed trophic effects; candidates assume instantaneous response.",
+      "challenge": "insert_delayed_edge",
+      "expected": {
+        "required_properties": [
+          "lag/residual timing evaluated",
+          "design can target discriminating lag"
+        ]
+      },
+      "fail_if": [
+        "one-step fit masks delayed failure"
+      ],
+      "reason": "lag_structure_matters"
+    },
+    {
+      "id": "omitted_threshold",
+      "kind": "omitted_nonlinearity",
+      "setup": "Candidates assume smooth response; generator contains threshold beyond calibration support.",
+      "challenge": "insert_tipping_threshold",
+      "expected": {
+        "required_properties": [
+          "threshold region challenged",
+          "action regret scored separately"
+        ]
+      },
+      "fail_if": [
+        "interpolation beyond support called validated"
+      ],
+      "reason": "thresholds_break_local_fit_transfer"
+    },
+    {
+      "id": "omitted_saturation",
+      "kind": "omitted_nonlinearity",
+      "setup": "Candidates extrapolate linearly; generator saturates at high resource.",
+      "challenge": "insert_saturation",
+      "expected": {
+        "required_properties": [
+          "out-of-range forecasts challenged",
+          "response envelope explicit"
+        ]
+      },
+      "fail_if": [
+        "unbounded extrapolation called validated"
+      ],
+      "reason": "saturation_is_structural"
+    },
+    {
+      "id": "omitted_density_dependence",
+      "kind": "population_mechanism",
+      "setup": "Candidates assume density-independent reproduction; generator includes density dependence.",
+      "challenge": "insert_density_effect",
+      "expected": {
+        "required_properties": [
+          "population trajectory/process terms checked",
+          "stability and decision consequence reported"
+        ]
+      },
+      "fail_if": [
+        "mean-state fit masks population instability"
+      ],
+      "reason": "population_structure_changes_decisions"
+    },
+    {
+      "id": "omitted_migration_path",
+      "kind": "spatial_mechanism",
+      "setup": "Candidate models omit a migration corridor present in generator.",
+      "challenge": "add_migration_corridor",
+      "expected": {
+        "required_properties": [
+          "space-time observations can discriminate corridor use",
+          "splits/permissions enforced"
+        ]
+      },
+      "fail_if": [
+        "unanimity prevents challenger check"
+      ],
+      "reason": "connectivity_is_a_mechanism"
+    },
+    {
+      "id": "flood_removes_connectivity",
+      "kind": "spatial_mechanism",
+      "setup": "Generator removes traversable edge during flood; candidates assume connectivity persists.",
+      "challenge": "remove_habitat_edge",
+      "expected": {
+        "required_properties": [
+          "hydrological truth evaluator-only",
+          "regret scored under true connectivity"
+        ]
+      },
+      "fail_if": [
+        "rendering overrides simulated connectivity"
+      ],
+      "reason": "world_graph_is_not_rendering"
+    },
+    {
+      "id": "omitted_behavioral_plasticity",
+      "kind": "behavior_mechanism",
+      "setup": "Candidates have fixed policy; generator adapts behavior after repeated cues.",
+      "challenge": "enable_policy_adaptation",
+      "expected": {
+        "required_properties": [
+          "agent adaptation separate from world dynamics",
+          "generator ID hidden"
+        ]
+      },
+      "fail_if": [
+        "adaptation assumed from trajectory fit"
+      ],
+      "reason": "learning_rule_is_structure"
+    },
+    {
+      "id": "omitted_observation_bias",
+      "kind": "observation_model_misspecification",
+      "setup": "Candidate models share biased sensor operator; generator changes bias with lighting/tag conditions.",
+      "challenge": "shift_sensor_bias",
+      "expected": {
+        "required_properties": [
+          "observation/world mechanisms distinct",
+          "observation residuals tested"
+        ]
+      },
+      "fail_if": [
+        "sensor bias mislabelled world-state change"
+      ],
+      "reason": "observation_operator_can_be_wrong"
+    },
+    {
+      "id": "correlated_measurements_not_independent",
+      "kind": "evidence_dependence",
+      "setup": "Two candidate measurements are correlated duplicates of one underlying event.",
+      "challenge": "duplicate_correlated_measurement",
+      "expected": {
+        "required_properties": [
+          "dependence/covariance modelled",
+          "duplicate acquisition cannot double information value"
+        ]
+      },
+      "fail_if": [
+        "duplicate reading counted independent"
+      ],
+      "reason": "correlation_changes_information"
+    },
+    {
+      "id": "parameter_sweep_cannot_add_missing_edge",
+      "kind": "uncertainty_decomposition",
+      "setup": "Parameter ranges widen but no candidate contains the generating causal edge.",
+      "challenge": "widen_parameter_bounds",
+      "expected": {
+        "required_properties": [
+          "parameter and structural uncertainty remain distinct",
+          "unrepresentable discrepancy remains visible"
+        ]
+      },
+      "fail_if": [
+        "parameter sweep claimed to cover omitted structure"
+      ],
+      "reason": "absent_edge_has_no_parameter_value"
+    },
+    {
+      "id": "extra_seeds_do_not_fix_structure",
+      "kind": "uncertainty_decomposition",
+      "setup": "Many seeds run inside a single misspecified structure.",
+      "challenge": "increase_monte_carlo_replicates",
+      "expected": {
+        "required_properties": [
+          "sampling error distinct from structural discrepancy",
+          "held-out predictive checks remain"
+        ]
+      },
+      "fail_if": [
+        "seed count presented as structure coverage"
+      ],
+      "reason": "replicates_do_not_expand_model_family"
+    },
+    {
+      "id": "weight_interval_does_not_fix_omission",
+      "kind": "decision_weighting",
+      "setup": "Weights change while generating mechanism remains absent.",
+      "challenge": "vary_model_weights",
+      "expected": {
+        "required_properties": [
+          "result labelled within-set sensitivity",
+          "omitted generator remains separate challenge"
+        ]
+      },
+      "fail_if": [
+        "weight sensitivity called out-of-set guarantee"
+      ],
+      "reason": "weights_do_not_add_structures"
+    },
+    {
+      "id": "internal_disagreement_triggers_review",
+      "kind": "disagreement_diagnostic",
+      "setup": "Registered models disagree across proposed decision horizon.",
+      "challenge": "evaluate_disagreement_by_horizon",
+      "expected": {
+        "required_properties": [
+          "per-model differences/horizons visible",
+          "decision-sensitive disagreement triggers review"
+        ]
+      },
+      "fail_if": [
+        "ensemble mean hides multimodal separation"
+      ],
+      "reason": "disagreement_is_signal_not_full_test"
+    },
+    {
+      "id": "internal_agreement_does_not_clear",
+      "kind": "consensus_negative_control",
+      "setup": "Candidates agree but blinded generator yields decision-relevant discrepancy.",
+      "challenge": "challenge_unanimous_forecast",
+      "expected": {
+        "required_properties": [
+          "out-of-set challenge can fail adequacy despite low spread",
+          "unresolved status explicit"
+        ]
+      },
+      "fail_if": [
+        "zero spread treated as zero uncertainty"
+      ],
+      "reason": "agreement_is_conditional_on_registry"
+    },
+    {
+      "id": "sham_challenger_no_predictive_change",
+      "kind": "false_alarm_control",
+      "setup": "Challenger changes representation but forecasts equivalent over declared horizon.",
+      "challenge": "submit_equivalent_challenger",
+      "expected": {
+        "required_properties": [
+          "false-alarm rate measured",
+          "equivalence margin preregistered"
+        ]
+      },
+      "fail_if": [
+        "new model ID alone triggers rejection"
+      ],
+      "reason": "model_count_is_not_mismatch"
+    },
+    {
+      "id": "challenge_family_is_blinded",
+      "kind": "authority_boundary",
+      "setup": "Generator identity and future truth are evaluator-only.",
+      "challenge": "query_challenge_metadata",
+      "expected": {
+        "required_properties": [
+          "policy cannot inspect challenge ID or truth",
+          "query attempt logged as violation"
+        ]
+      },
+      "fail_if": [
+        "challenge label reaches selector"
+      ],
+      "reason": "blinding_prevents_shortcuts"
+    },
+    {
+      "id": "posthoc_threshold_is_rejected",
+      "kind": "preregistration_integrity",
+      "setup": "Detector threshold changed after viewing test outcomes.",
+      "challenge": "change_threshold_after_test",
+      "expected": {
+        "required_properties": [
+          "old result remains immutable",
+          "new threshold requires new preregistration/fresh holdout"
+        ]
+      },
+      "fail_if": [
+        "test outcomes tune their own threshold"
+      ],
+      "reason": "prevent_threshold_hacking"
+    },
+    {
+      "id": "train_test_mechanism_overlap",
+      "kind": "split_integrity",
+      "setup": "A structurally similar generator appears in development and challenge splits.",
+      "challenge": "insert_family_overlap",
+      "expected": {
+        "required_properties": [
+          "family overlap blocks/downgrades qualification",
+          "seed change does not imply new structure"
+        ]
+      },
+      "fail_if": [
+        "same mechanism relabelled unseen"
+      ],
+      "reason": "independence_is_structural"
+    },
+    {
+      "id": "heldout_predictive_check_flags_omission",
+      "kind": "predictive_check",
+      "setup": "Candidate fits calibration but fails held-out check under generator.",
+      "challenge": "evaluate_heldout_residuals",
+      "expected": {
+        "required_properties": [
+          "proper score/coverage/residual structure reported",
+          "adequacy fails or remains unresolved"
+        ]
+      },
+      "fail_if": [
+        "only calibration fit published"
+      ],
+      "reason": "heldout_prediction_tests_transfer"
+    },
+    {
+      "id": "decision_relevant_residual_triggers_challenge",
+      "kind": "decision_relevance",
+      "setup": "Aggregate residual modest, but critical stratum crosses an action boundary.",
+      "challenge": "stratify_residual_by_decision",
+      "expected": {
+        "required_properties": [
+          "critical stratum/action consequence reported",
+          "aggregate mean cannot erase consequence"
+        ]
+      },
+      "fail_if": [
+        "mean error hides action reversal"
+      ],
+      "reason": "rare_decision_errors_matter"
+    },
+    {
+      "id": "decision_irrelevant_omission_stays_scoped",
+      "kind": "decision_relevance",
+      "setup": "Omitted mechanism changes output outside current decision loss but not current action.",
+      "challenge": "challenge_noncritical_output",
+      "expected": {
+        "required_properties": [
+          "state discrepancy reported",
+          "decision claim scoped to declared losses/constraints"
+        ]
+      },
+      "fail_if": [
+        "unchanged action presented as universal adequacy"
+      ],
+      "reason": "adequacy_is_claim_specific"
+    },
+    {
+      "id": "choose_measurement_that_separates_models",
+      "kind": "active_discrimination",
+      "setup": "Affordable observations have distinct likelihoods under candidate mechanisms.",
+      "challenge": "select_discriminating_observation",
+      "expected": {
+        "required_properties": [
+          "utility compared with simple baseline",
+          "catalog and budget frozen"
+        ]
+      },
+      "fail_if": [
+        "future truth selects action"
+      ],
+      "reason": "choose_by_prediction_not_leakage"
+    },
+    {
+      "id": "entropy_gain_without_decision_value",
+      "kind": "utility_guardrail",
+      "setup": "High-information measure doesn't change action; lower-entropy measure changes consequential decision.",
+      "challenge": "compare_entropy_and_decision_value",
+      "expected": {
+        "required_properties": [
+          "information/decision value reported separately",
+          "objective and action consequence explicit"
+        ]
+      },
+      "fail_if": [
+        "entropy reduction automatically deemed best"
+      ],
+      "reason": "information_is_not_decision_value"
+    },
+    {
+      "id": "robust_discrimination_under_prior_shift",
+      "kind": "prior_robustness",
+      "setup": "Nominal prior favours one model, but plausible frozen weights include alternatives.",
+      "challenge": "shift_prior_weights",
+      "expected": {
+        "required_properties": [
+          "utility across prior family published",
+          "ranking instability reported"
+        ]
+      },
+      "fail_if": [
+        "one prior treated as objective certainty"
+      ],
+      "reason": "design_depends_on_weights"
+    },
+    {
+      "id": "discrimination_value_per_cost",
+      "kind": "budget_efficiency",
+      "setup": "Measurements vary in acquisition cost and discrimination utility.",
+      "challenge": "rank_utility_per_cost",
+      "expected": {
+        "required_properties": [
+          "cost and utility recorded",
+          "baselines use equal budgets"
+        ]
+      },
+      "fail_if": [
+        "unequal sensing hidden"
+      ],
+      "reason": "value_includes_cost"
+    },
+    {
+      "id": "no_safe_action_abstains",
+      "kind": "robust_action",
+      "setup": "Omitted generator violates protected constraint so no action is safe over challengers.",
+      "challenge": "evaluate_safe_action",
+      "expected": {
+        "required_properties": [
+          "policy abstains/requests evidence with reason",
+          "constraint violation reported"
+        ]
+      },
+      "fail_if": [
+        "unsafe action chosen from model-set mean"
+      ],
+      "reason": "robustness_includes_constraints"
+    },
+    {
+      "id": "false_alarm_rate_uses_independent_units",
+      "kind": "false_alarm_statistics",
+      "setup": "False-alarm rate uses independent sham/in-set units.",
+      "challenge": "measure_false_alarm_rate",
+      "expected": {
+        "required_properties": [
+          "unit and denominator reported",
+          "clustered replicates not counted independent"
+        ]
+      },
+      "fail_if": [
+        "frames/repeated seeds inflate sample size"
+      ],
+      "reason": "uncertainty_requires_correct_unit"
+    },
+    {
+      "id": "recall_is_family_stratified",
+      "kind": "detection_statistics",
+      "setup": "Detection varies across omission families.",
+      "challenge": "report_family_recall",
+      "expected": {
+        "required_properties": [
+          "per-family recall/interval published",
+          "aggregate cannot hide blind spots"
+        ]
+      },
+      "fail_if": [
+        "one overall rate implies uniform capability"
+      ],
+      "reason": "failure_is_family_specific"
+    },
+    {
+      "id": "nominal_coverage_under_omitted_truth",
+      "kind": "calibration",
+      "setup": "Predictive intervals evaluated under generators outside registered set.",
+      "challenge": "score_out_of_set_coverage",
+      "expected": {
+        "required_properties": [
+          "coverage/sharpness per family/horizon",
+          "undercoverage visible"
+        ]
+      },
+      "fail_if": [
+        "in-set coverage presented as out-of-set calibration"
+      ],
+      "reason": "calibration_faces_misspecification"
+    },
+    {
+      "id": "detector_cannot_read_generator_label",
+      "kind": "leakage_negative_control",
+      "setup": "Selector sees authorized observations; evaluator has hidden generator label.",
+      "challenge": "inject_hidden_generator_label",
+      "expected": {
+        "required_properties": [
+          "run invalidated and leak logged",
+          "not scored as qualified detection"
+        ]
+      },
+      "fail_if": [
+        "metadata leakage rewarded"
+      ],
+      "reason": "prevent_metadata_shortcuts"
+    },
+    {
+      "id": "failed_selected_experiment_remains_counted",
+      "kind": "selection_accounting",
+      "setup": "Selected experiment fails after preregistration due to timeout/dropout/invalid return.",
+      "challenge": "fail_selected_experiment",
+      "expected": {
+        "required_properties": [
+          "failure stays in denominator",
+          "reason and selection status recorded"
+        ]
+      },
+      "fail_if": [
+        "failed experiment silently replaced"
+      ],
+      "reason": "avoid_survivorship_bias"
+    },
+    {
+      "id": "budget_mismatch_is_cost_tradeoff",
+      "kind": "comparison_fairness",
+      "setup": "Candidate gets more experiments or compute than baseline.",
+      "challenge": "increase_candidate_budget",
+      "expected": {
+        "required_properties": [
+          "labelled cost-tradeoff",
+          "resource dimensions reported"
+        ]
+      },
+      "fail_if": [
+        "unequal budget called direct superiority"
+      ],
+      "reason": "fair_comparison_requires_matched_budgets"
+    },
+    {
+      "id": "challenge_receipt_tampering_detected",
+      "kind": "receipt_integrity",
+      "setup": "Outcome/model identity/pre-reveal digest changed after evaluation.",
+      "challenge": "mutate_receipt",
+      "expected": {
+        "required_properties": [
+          "digest mismatch invalidates receipt",
+          "tampered run cannot qualify"
+        ]
+      },
+      "fail_if": [
+        "receipt passes inconsistent identity"
+      ],
+      "reason": "pre_reveal_outputs_need_integrity"
+    },
+    {
+      "id": "candidate_model_lineage_correlation",
+      "kind": "ensemble_dependence",
+      "setup": "Models share code lineage and causal assumptions despite distinct IDs.",
+      "challenge": "duplicate_model_lineage",
+      "expected": {
+        "required_properties": [
+          "lineage/shared assumptions reported",
+          "effective diversity not inferred from count"
+        ]
+      },
+      "fail_if": [
+        "same model copy treated as independent evidence"
+      ],
+      "reason": "model_dependence_reduces_diversity"
+    },
+    {
+      "id": "model_set_expansion_preserves_old_receipt",
+      "kind": "model_revision_integrity",
+      "setup": "Challenger added to registered set.",
+      "challenge": "promote_challenger",
+      "expected": {
+        "required_properties": [
+          "new registry gets new digest and receipt",
+          "old report stays immutable"
+        ]
+      },
+      "fail_if": [
+        "old report overwritten as if expanded set was scored"
+      ],
+      "reason": "model_revision_is_versioned"
+    },
+    {
+      "id": "synthetic_detection_is_not_biology",
+      "kind": "claim_boundary",
+      "setup": "All synthetic omissions detected but no independent empirical dataset evaluated.",
+      "challenge": "pass_synthetic_suite",
+      "expected": {
+        "required_properties": [
+          "claim limited to tested synthetic families",
+          "empirical adequacy remains not_assessed"
+        ]
+      },
+      "fail_if": [
+        "synthetic success called biological validation"
+      ],
+      "reason": "contract_pass_is_not_ecological_truth"
+    },
+    {
+      "id": "non_detected_omission_is_not_absent",
+      "kind": "claim_boundary",
+      "setup": "No omission detected in finite challenge suite.",
+      "challenge": "complete_finite_suite",
+      "expected": {
+        "required_properties": [
+          "finite scope stated",
+          "universal completeness not claimed"
+        ]
+      },
+      "fail_if": [
+        "unknown mechanisms declared impossible"
+      ],
+      "reason": "finite_test_cannot_prove_completeness"
+    },
+    {
+      "id": "evaluator_truth_never_enters_selector",
+      "kind": "authority_boundary",
+      "setup": "Evaluator simulates hidden mechanism/future outcomes only for scoring.",
+      "challenge": "read_evaluator_truth",
+      "expected": {
+        "required_properties": [
+          "truth evaluator-only",
+          "access attempt fails closed"
+        ]
+      },
+      "fail_if": [
+        "future outcome enters policy state"
+      ],
+      "reason": "separate_evaluator_and_controller"
+    },
+    {
+      "id": "outcome_missing_not_zero",
+      "kind": "missingness_integrity",
+      "setup": "Required metric absent for one family or stratum.",
+      "challenge": "omit_required_metric",
+      "expected": {
+        "required_properties": [
+          "incomplete/not_assessed status",
+          "missing metric never zero"
+        ]
+      },
+      "fail_if": [
+        "missing means no error"
+      ],
+      "reason": "absence_is_not_success"
+    },
+    {
+      "id": "common_noise_only_when_shared",
+      "kind": "stochastic_coupling",
+      "setup": "Candidate/challenger share exogenous randomness only where a defensible coupling exists.",
+      "challenge": "declare_coupling_policy",
+      "expected": {
+        "required_properties": [
+          "coupling policy justified",
+          "different structures need not be pathwise identical"
+        ]
+      },
+      "fail_if": [
+        "unjustified common-noise assumption biases result"
+      ],
+      "reason": "pairing_must_respect_process"
+    },
+    {
+      "id": "simple_baseline_is_retained",
+      "kind": "baseline_integrity",
+      "setup": "Advanced design compared with random/fixed design and no-experiment baseline.",
+      "challenge": "compare_all_baselines",
+      "expected": {
+        "required_properties": [
+          "all declared baselines retained",
+          "strongest reproducible baseline used"
+        ]
+      },
+      "fail_if": [
+        "weak comparator chosen post hoc"
+      ],
+      "reason": "avoid_baseline_cherry_picking"
+    },
+    {
+      "id": "threshold_calibration_uses_development_only",
+      "kind": "threshold_integrity",
+      "setup": "Threshold calibrated on development data and frozen on unseen family.",
+      "challenge": "freeze_threshold",
+      "expected": {
+        "required_properties": [
+          "challenge test never tunes threshold",
+          "split is family-separated"
+        ]
+      },
+      "fail_if": [
+        "threshold optimized on challenge label"
+      ],
+      "reason": "independent_threshold_evaluation"
+    },
+    {
+      "id": "decision_risk_is_conditional_on_registry",
+      "kind": "risk_semantics",
+      "setup": "Action has low registered-set risk but high loss under blinded omitted generator.",
+      "challenge": "score_conditional_risk",
+      "expected": {
+        "required_properties": [
+          "model-set-conditional scope in report",
+          "out-of-set regret separately scored"
+        ]
+      },
+      "fail_if": [
+        "within-set risk advertised universal"
+      ],
+      "reason": "robustness_is_conditional_on_set"
+    },
+    {
+      "id": "recovery_after_model_revision_is_measured",
+      "kind": "closed_loop_revision",
+      "setup": "Revised model set tested on fresh held-out challenge split.",
+      "challenge": "revise_and_retest",
+      "expected": {
+        "required_properties": [
+          "new registry digest",
+          "fresh holdout measures revision"
+        ]
+      },
+      "fail_if": [
+        "same data tunes and certifies revision"
+      ],
+      "reason": "revision_requires_fresh_evidence"
+    },
+    {
+      "id": "observation_catalog_is_frozen",
+      "kind": "experiment_design_integrity",
+      "setup": "Candidate observations/cost/noise models frozen before challenge.",
+      "challenge": "mutate_observation_catalog",
+      "expected": {
+        "required_properties": [
+          "catalog digest verified",
+          "post-hoc catalog needs separate preregistration"
+        ]
+      },
+      "fail_if": [
+        "catalog changed after outcomes"
+      ],
+      "reason": "design_space_is_preregistered"
+    },
+    {
+      "id": "decision_loss_is_not_tuned_on_test",
+      "kind": "loss_integrity",
+      "setup": "Loss weights/protected constraints changed after test outcomes seen.",
+      "challenge": "change_loss_after_test",
+      "expected": {
+        "required_properties": [
+          "old result retained and scope invalidated for new claim",
+          "new loss needs fresh split"
+        ]
+      },
+      "fail_if": [
+        "loss tuned to favour candidate"
+      ],
+      "reason": "prevent_metric_hacking"
+    },
+    {
+      "id": "model_lineage_independence_is_not_assumed",
+      "kind": "ensemble_dependence",
+      "setup": "Nominal model IDs share substantial code or equation lineage.",
+      "challenge": "audit_lineage",
+      "expected": {
+        "required_properties": [
+          "correlated lineage reported",
+          "evidence dependence explicit"
+        ]
+      },
+      "fail_if": [
+        "model count treated as effective ensemble size"
+      ],
+      "reason": "count_is_not_diversity"
+    },
+    {
+      "id": "challenger_promotion_needs_evidence",
+      "kind": "model_revision_integrity",
+      "setup": "Model improves on one challenge family but not other held-out regimes.",
+      "challenge": "promote_partial_gain",
+      "expected": {
+        "required_properties": [
+          "promotion criteria preregistered",
+          "old failures/regressions retained"
+        ]
+      },
+      "fail_if": [
+        "single win erases regressions"
+      ],
+      "reason": "model_updates_are_multi_axis"
+    }
+  ]
+}
