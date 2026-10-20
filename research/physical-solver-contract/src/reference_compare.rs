@@ -16,7 +16,7 @@ use std::{
 pub type CompareResult<T> = Result<T, String>;
 const REFERENCE_SCHEMA: &str = "physical-reference-observables-v0.1";
 const OBSERVATION_SCHEMA: &str = "physical-normalized-observables-v0.1";
-const MAX_NORMALIZED_BYTES: u64 = 16 * 1024 * 1024;
+pub(crate) const MAX_NORMALIZED_BYTES: u64 = 16 * 1024 * 1024;
 
 /// Verify receipt/output byte identity, then compare one normalized-observable output
 /// with a request-bound reference manifest. The reference must be frozen by the caller
@@ -300,9 +300,9 @@ struct ReferenceManifest {
     observables: BTreeMap<String, ReferenceObservable>,
 }
 
-struct ObservedObservable {
-    value: f64,
-    unit: String,
+pub(crate) struct ObservedObservable {
+    pub(crate) value: f64,
+    pub(crate) unit: String,
 }
 
 fn parse_reference(
@@ -444,7 +444,7 @@ fn parse_reference(
     })
 }
 
-fn parse_observation(
+pub(crate) fn parse_observation(
     value: &Value,
     request_sha256: &str,
     request_id: &str,
@@ -548,7 +548,7 @@ fn unresolved_report(
     })
 }
 
-fn safe_relative_path(reference: &str) -> CompareResult<PathBuf> {
+pub(crate) fn safe_relative_path(reference: &str) -> CompareResult<PathBuf> {
     if reference.is_empty()
         || reference.trim() != reference
         || reference
