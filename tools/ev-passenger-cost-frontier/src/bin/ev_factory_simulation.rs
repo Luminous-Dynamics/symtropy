@@ -502,7 +502,10 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         .first()
         .cloned()
         .ok_or_else(|| "replication_seed_list_must_not_be_empty".to_string())?;
-    if runs.iter().any(|run| run.scenario_count != reference.scenario_count) {
+    if runs
+        .iter()
+        .any(|run| run.scenario_count != reference.scenario_count)
+    {
         return Err("replications_returned_inconsistent_scenario_counts".into());
     }
 
@@ -563,9 +566,8 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.output_never_exceeds_released_input = runs
         .iter()
         .all(|run| run.output_never_exceeds_released_input);
-    report.all_buffers_respected_capacity = runs
-        .iter()
-        .all(|run| run.all_buffers_respected_capacity);
+    report.all_buffers_respected_capacity =
+        runs.iter().all(|run| run.all_buffers_respected_capacity);
     report.station_time_accounting_within_horizon = runs
         .iter()
         .all(|run| run.station_time_accounting_within_horizon);
@@ -1278,7 +1280,11 @@ mod tests {
         assert_eq!(report.scenario_statistics.len(), report.scenario_count);
         let baseline = &report.scenario_statistics[0];
         assert_eq!(baseline.good_units_per_hour.sample_count, 20);
-        assert!(baseline.paired_good_units_per_hour_delta_vs_baseline.is_none());
+        assert!(
+            baseline
+                .paired_good_units_per_hour_delta_vs_baseline
+                .is_none()
+        );
         for statistic in report.scenario_statistics.iter().skip(1) {
             let delta = statistic
                 .paired_good_units_per_hour_delta_vs_baseline
@@ -1300,7 +1306,12 @@ mod tests {
         catalog.replication_seeds.clear();
         let report = evaluate_catalog(&catalog).expect("single-seed simulation");
         assert_eq!(report.replication_count, 1);
-        assert_eq!(report.scenario_statistics[0].good_units_per_hour.sample_count, 1);
+        assert_eq!(
+            report.scenario_statistics[0]
+                .good_units_per_hour
+                .sample_count,
+            1
+        );
         assert!(
             report.scenario_statistics[0]
                 .good_units_per_hour
