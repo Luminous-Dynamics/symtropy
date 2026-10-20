@@ -402,12 +402,26 @@ fn extremal_weight_assignment(
         if remaining <= WEIGHT_SUM_TOLERANCE {
             break;
         }
-        let (_, upper) = bounds[&model.model_id];
-        let current = weights[&model.model_id];
-        let addition = (upper - current).min(remaining);
-        *weights
-            .get_mut(&model.model_id)
-            .expect("weight map was initialized from every interval") += addition;
+        let Some((_, upper)) = bounds.get(&model.model_id) else {
+            return Err(vec![format!(
+                "missing weight interval for model '{}'",
+                model.model_id
+            )]);
+        };
+        let Some(current) = weights.get(&model.model_id).copied() else {
+            return Err(vec![format!(
+                "missing weight allocation for model '{}'",
+                model.model_id
+            )]);
+        };
+        let addition = (*upper - current).min(remaining);
+        let Some(weight) = weights.get_mut(&model.model_id) else {
+            return Err(vec![format!(
+                "missing mutable weight allocation for model '{}'",
+                model.model_id
+            )]);
+        };
+        *weight += addition;
         remaining = (remaining - addition).max(0.0);
     }
     if remaining > WEIGHT_SUM_TOLERANCE {
@@ -422,10 +436,15 @@ fn weighted_loss(
     losses: &BTreeMap<String, f64>,
     weights: &BTreeMap<String, f64>,
 ) -> Result<f64, Vec<String>> {
-    let total: f64 = weights
-        .iter()
-        .map(|(model_id, weight)| losses[model_id] * weight)
-        .sum();
+    let mut total = 0.0;
+    for (model_id, weight) in weights {
+        let Some(loss) = losses.get(model_id) else {
+            return Err(vec![format!(
+                "missing loss for model '{model_id}' in weight-sensitivity report"
+            )]);
+        };
+        total += loss * weight;
+    }
     if total.is_finite() {
         Ok(total)
     } else {
