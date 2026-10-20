@@ -227,12 +227,14 @@ fn parse_utc_seconds(value: &str) -> Result<i64, String> {
         return Err("utc_timestamp_must_use_YYYY_MM_DDTHH_MM_SSZ".into());
     }
     let parse = |start: usize, end: usize| -> Result<i64, String> {
-        let part = &value[start..end];
-        if !part.bytes().all(|byte| byte.is_ascii_digit()) {
-            return Err("utc_timestamp_has_non_numeric_component".into());
+        let mut parsed = 0_i64;
+        for byte in &bytes[start..end] {
+            if !byte.is_ascii_digit() {
+                return Err("utc_timestamp_has_non_numeric_component".into());
+            }
+            parsed = parsed * 10 + i64::from(*byte - b'0');
         }
-        part.parse::<i64>()
-            .map_err(|_| "utc_timestamp_component_out_of_range".to_string())
+        Ok(parsed)
     };
     let year = parse(0, 4)?;
     let month = parse(5, 7)?;
