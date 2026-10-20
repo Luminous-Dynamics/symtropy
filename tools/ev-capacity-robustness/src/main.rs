@@ -222,7 +222,7 @@ struct RobustReport {
     schema_version: String,
     tool: String,
     benchmark_id: String,
-    expected_seeds_per_vocation_size: usize,
+    expected_seeds_per_vocation_size_and_port_policy: usize,
     fleet_sizes: Vec<usize>,
     vocations: Vec<String>,
     policies: Vec<String>,
@@ -723,7 +723,7 @@ fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Re
         schema_version: "0.1.0".into(),
         tool: "ev-capacity-robustness".into(),
         benchmark_id: "EV-ROBUST-001".into(),
-        expected_seeds_per_vocation_size: options.expected_seeds,
+        expected_seeds_per_vocation_size_and_port_policy: options.expected_seeds,
         fleet_sizes: fleet_sizes.into_iter().collect(),
         vocations: vocations.into_iter().collect(),
         policies: vec!["fcfs".into(), "earliest_departure_first".into()],
@@ -746,12 +746,13 @@ fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Re
 }
 
 fn to_csv(report: &RobustReport) -> String {
-    let mut out = String::from("vocation,fleet_size,policy,replicate_count,capacity_fraction,installed_capacity_kw,capacity_kw_per_vehicle,feasible_replicates,empirical_feasibility_fraction,coverage_target,robust_target_met,wilson95_low,wilson95_high,deadline_p05,deadline_p50,deadline_p95,energy_service_p05,energy_service_p50,energy_service_p95,failed_seed_ids\n");
+    let mut out = String::from("vocation,fleet_size,port_release_policy,policy,replicate_count,capacity_fraction,installed_capacity_kw,capacity_kw_per_vehicle,feasible_replicates,empirical_feasibility_fraction,coverage_target,robust_target_met,wilson95_low,wilson95_high,deadline_p05,deadline_p50,deadline_p95,energy_service_p05,energy_service_p50,energy_service_p95,failed_seed_ids\n");
     for group in &report.policy_aggregates {
         for point in &group.capacity_points {
             let fields = [
                 csv_escape(&group.vocation),
                 group.fleet_size.to_string(),
+                csv_escape(&group.port_release_policy),
                 csv_escape(&group.policy),
                 group.replicate_count.to_string(),
                 format!("{:.6}", point.capacity_fraction_of_port_nameplate),
@@ -875,9 +876,9 @@ mod tests {
 
     #[test]
     fn parses_manifest_and_rejects_duplicate_run_coordinates() {
-        let good = "fleet_size\tseed\tvocation\treport_path\n10\t0\tbeverage\t/tmp/a.json\n";
-        assert_eq!(parse_run_manifest(good).unwrap().len(), 1);
-        let duplicate = "10\t0\tbeverage\t/tmp/a.json\n10\t0\tbeverage\t/tmp/b.json\n";
+        let good = "fleet_size\tseed\tvocation\tport_release_policy\treport_path\n10\t0\tbeverage\trelease_on_charge_completion\tresults/a.json\n10\t0\tbeverage\thold_until_departure\tresults/b.json\n";
+        assert_eq!(parse_run_manifest(good).unwrap().len(), 2);
+        let duplicate = "10\t0\tbeverage\trelease_on_charge_completion\t/tmp/a.json\n10\t0\tbeverage\trelease_on_charge_completion\t/tmp/b.json\n";
         assert!(parse_run_manifest(duplicate).unwrap_err().contains("duplicate_run_coordinate"));
     }
 
