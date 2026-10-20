@@ -257,6 +257,43 @@ fn validate_embedded_schema_contract(schema: &Value) -> Vec<String> {
     {
         errors.push("embedded adequacy receipt schema version does not match validator".to_owned());
     }
+    if schema.get("type").and_then(Value::as_str) != Some("object") {
+        errors.push("embedded adequacy receipt schema root must be an object".to_owned());
+    }
+    if schema.get("additionalProperties").and_then(Value::as_bool) != Some(false) {
+        errors.push("embedded adequacy receipt schema must reject unknown root fields".to_owned());
+    }
+    for (pointer, expected, label) in [
+        (
+            "/properties/candidate_model_set_digest/pattern",
+            "^[0-9a-f]{64}$",
+            "candidate model-set digest pattern",
+        ),
+        (
+            "/properties/challenge_family_manifest_sha256/pattern",
+            "^[0-9a-f]{64}$",
+            "challenge manifest digest pattern",
+        ),
+        (
+            "/properties/independent_unit_manifest_sha256/pattern",
+            "^[0-9a-f]{64}$",
+            "independent unit digest pattern",
+        ),
+        (
+            "/properties/pre_reveal_prediction_digest/pattern",
+            "^[0-9a-f]{64}$",
+            "pre-reveal prediction digest pattern",
+        ),
+        (
+            "/properties/source_commit/pattern",
+            "^[0-9a-f]{40,64}$",
+            "source commit pattern",
+        ),
+    ] {
+        if schema.pointer(pointer).and_then(Value::as_str) != Some(expected) {
+            errors.push(format!("embedded adequacy receipt schema {label} changed"));
+        }
+    }
     let schema_required: BTreeSet<&str> = schema
         .get("required")
         .and_then(Value::as_array)
@@ -348,7 +385,7 @@ mod tests {
             .expect("absence is an explicit unassessed result");
         assert_eq!(result.assessment_disposition, "not_assessed");
         assert_eq!(result.qualification, "not_assessed");
-        assert_eq!(result.reason_codes, vec!["assessment_receipt_not_supplied"]);
+        assert_eq!(result.reason_codes, vec!["assessment_receipt_not_supplied".to_owned()]);
         assert!(result.assessment_receipt_sha256.is_none());
     }
 
@@ -382,7 +419,7 @@ mod tests {
         assert_eq!(result.qualification, "blocked_unresolved");
         assert_eq!(
             result.reason_codes,
-            vec!["candidate_model_registry_digest_mismatch"]
+            vec!["candidate_model_registry_digest_mismatch".to_owned()]
         );
     }
 
@@ -398,7 +435,7 @@ mod tests {
         assert_eq!(result.qualification, "blocked_unresolved");
         assert_eq!(
             result.reason_codes,
-            vec!["challenge_family_manifest_digest_mismatch"]
+            vec!["challenge_family_manifest_digest_mismatch".to_owned()]
         );
     }
 
@@ -409,7 +446,7 @@ mod tests {
             .expect("missing comparison identity maps to unassessed");
         assert_eq!(result.assessment_disposition, "qualified_within_challenge_scope");
         assert_eq!(result.qualification, "not_assessed");
-        assert_eq!(result.reason_codes, vec!["expected_scope_identity_missing"]);
+        assert_eq!(result.reason_codes, vec!["expected_scope_identity_missing".to_owned()]);
     }
 
     #[test]
@@ -476,6 +513,28 @@ mod tests {
         )
         .expect("whitespace does not change receipt semantics");
         assert_ne!(first.assessment_receipt_sha256, second.assessment_receipt_sha256);
+    }
+
+    #[test]
+    fn schema_cannot_be_weakened_to_allow_unknown_fields() {
+        let mut schema: Value =
+            serde_json::from_str(EMBEDDED_RECEIPT_SCHEMA).expect("schema JSON should parse");
+        schema["additionalProperties"] = Value::Bool(true);
+        let errors = validate_embedded_schema_contract(&schema);
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("reject unknown root fields"))
+        );
+
+        schema["additionalProperties"] = Value::Bool(false);
+        schema["properties"]["candidate_model_set_digest"]["pattern"] = Value::String(".*".to_owned());
+        let errors = validate_embedded_schema_contract(&schema);
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("candidate model-set digest pattern"))
+        );
     }
 
     #[test]
