@@ -35,6 +35,39 @@
 //! user / platform code avoids pulling `symthaea-core` into this crate's
 //! public dep graph.
 
+/// A typed reason why a motor planner rejected the current command request.
+///
+/// These categories are intentionally platform-neutral; adapters may retain a
+/// more specific diagnostic alongside this interoperable status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MotorPlannerFault {
+    InvalidConfiguration,
+    InvalidGain,
+    InvalidObservation,
+    EncodingFailure,
+    ActuatorInterfaceMismatch,
+    BridgeFailure,
+    InvalidOutput,
+}
+
+/// Status of the most recent motor-planning request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MotorPlannerStatus {
+    /// The most recent request completed without an adapter/planner fault.
+    #[default]
+    Ready,
+    /// The request was rejected; commands must not be treated as accepted work.
+    Rejected(MotorPlannerFault),
+}
+
+/// Commands and their status returned together to avoid dropping rejection
+/// metadata at generic agent boundaries.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MotorPlanResult {
+    pub commands: Vec<f64>,
+    pub status: MotorPlannerStatus,
+}
+
 /// Plan per-actuator motor commands for one tick.
 ///
 /// `observation` is the agent's current sensor reading (as passed to
@@ -46,6 +79,15 @@
 /// index it by joint id.
 pub trait MotorPlanner {
     fn plan(&mut self, observation: &[f64], gain: f64, num_actuators: usize) -> Vec<f64>;
+
+    /// Status corresponding to the most recent call to [`plan`].
+    ///
+    /// Legacy planners default to `Ready`; fault-aware planners should
+    /// override this. Callers that require rejection diagnostics should use
+    /// `RoboticAgent::tick_motor_plan_with` and inspect the bundled status.
+    fn status(&self) -> MotorPlannerStatus {
+        MotorPlannerStatus::Ready
+    }
 }
 
 /// Trivial planner: emit the scalar gain uniformly to every actuator.
