@@ -9,8 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env, fs,
-    process,
+    env, fs, process,
 };
 
 const SCHEMA_BYTES: &[u8] =
@@ -74,7 +73,10 @@ fn validate_source_commit(source_commit: &str) -> Result<(), String> {
                 .chars()
                 .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase()))
     {
-        return Err("source commit must be a 40-character lowercase Git SHA or UNPINNED_LOCAL_RUN".to_owned());
+        return Err(
+            "source commit must be a 40-character lowercase Git SHA or UNPINNED_LOCAL_RUN"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -86,7 +88,9 @@ fn validate_digest_or_unpinned(value: &str, label: &str) -> Result<(), String> {
                 .chars()
                 .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase()))
     {
-        return Err(format!("{label} must be 64 lowercase hexadecimal characters or UNPINNED_LOCAL_RUN"));
+        return Err(format!(
+            "{label} must be 64 lowercase hexadecimal characters or UNPINNED_LOCAL_RUN"
+        ));
     }
     Ok(())
 }
@@ -134,7 +138,9 @@ fn validate_registration(input: &[u8]) -> Result<Value, Vec<String>> {
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
         .map_err(|error| vec![format!("embedded schema JSON is invalid: {error}")])?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
     })?;
     let validator = jsonschema::draft202012::new(&schema)
         .map_err(|error| vec![format!("cannot build scoring schema validator: {error}")])?;
@@ -147,8 +153,12 @@ fn validate_registration(input: &[u8]) -> Result<Value, Vec<String>> {
         return Err(errors);
     }
 
-    let target_index = registration["target_period_index"].as_i64().unwrap_or_default();
-    let origin_index = registration["forecast_origin_index"].as_i64().unwrap_or_default();
+    let target_index = registration["target_period_index"]
+        .as_i64()
+        .unwrap_or_default();
+    let origin_index = registration["forecast_origin_index"]
+        .as_i64()
+        .unwrap_or_default();
     let evaluation_as_of = registration["outcome_snapshot"]["evaluation_as_of_index"]
         .as_i64()
         .unwrap_or_default();
@@ -162,7 +172,10 @@ fn validate_registration(input: &[u8]) -> Result<Value, Vec<String>> {
         .as_i64()
         .unwrap_or_default();
     if fit_cutoff >= origin_index {
-        errors.push("reconciliation parameter fit cutoff must be strictly before forecast origin".to_owned());
+        errors.push(
+            "reconciliation parameter fit cutoff must be strictly before forecast origin"
+                .to_owned(),
+        );
     }
 
     let forecasts = registration["forecasts"]
@@ -213,8 +226,14 @@ fn validate_registration(input: &[u8]) -> Result<Value, Vec<String>> {
     for (draw_id, rows) in &rows_by_draw {
         let actual = rows.keys().cloned().collect::<BTreeSet<_>>();
         if actual != forecast_ids {
-            let missing = forecast_ids.difference(&actual).cloned().collect::<Vec<_>>();
-            let unexpected = actual.difference(&forecast_ids).cloned().collect::<Vec<_>>();
+            let missing = forecast_ids
+                .difference(&actual)
+                .cloned()
+                .collect::<Vec<_>>();
+            let unexpected = actual
+                .difference(&forecast_ids)
+                .cloned()
+                .collect::<Vec<_>>();
             errors.push(format!(
                 "predictive draw {draw_id} must contain exactly one row for every declared forecast; missing {missing:?}, unexpected {unexpected:?}"
             ));
@@ -226,12 +245,20 @@ fn validate_registration(input: &[u8]) -> Result<Value, Vec<String>> {
         .as_array()
         .expect("schema validation requires outcome rows");
     for row in outcome_rows {
-        let forecast_id = string_at(row, "forecast_id").expect("schema validated outcome forecast_id");
+        let forecast_id =
+            string_at(row, "forecast_id").expect("schema validated outcome forecast_id");
         if !forecast_ids.contains(forecast_id) {
-            errors.push(format!("outcome snapshot references unknown forecast {forecast_id}"));
+            errors.push(format!(
+                "outcome snapshot references unknown forecast {forecast_id}"
+            ));
         }
-        if outcomes_by_forecast.insert(forecast_id.to_owned(), row).is_some() {
-            errors.push(format!("outcome snapshot repeats forecast row {forecast_id}"));
+        if outcomes_by_forecast
+            .insert(forecast_id.to_owned(), row)
+            .is_some()
+        {
+            errors.push(format!(
+                "outcome snapshot repeats forecast row {forecast_id}"
+            ));
         }
         let status = string_at(row, "status").expect("schema validated outcome status");
         let observed_count = row.get("observed_count").unwrap_or(&Value::Null);
@@ -369,9 +396,9 @@ fn evaluate_with_runtime(
         let mut raw_samples = Vec::with_capacity(sample_rows_by_draw.len());
         let mut reconciled_samples = Vec::with_capacity(sample_rows_by_draw.len());
         for (draw_id, draw_rows) in &sample_rows_by_draw {
-            let row = draw_rows
-                .get(forecast_id)
-                .unwrap_or_else(|| panic!("semantic validation requires forecast {forecast_id} in draw {draw_id}"));
+            let row = draw_rows.get(forecast_id).unwrap_or_else(|| {
+                panic!("semantic validation requires forecast {forecast_id} in draw {draw_id}")
+            });
             raw_samples.push(
                 nonnegative_integer_at(row, "raw_count")
                     .expect("schema validation requires integer raw sample counts"),
@@ -381,10 +408,16 @@ fn evaluate_with_runtime(
                     .expect("schema validation requires integer reconciled sample counts"),
             );
         }
-        let raw_crps = empirical_crps(&raw_samples, observed)
-            .map_err(|error| vec![format!("cannot score raw samples for {forecast_id}: {error}")])?;
-        let reconciled_crps = empirical_crps(&reconciled_samples, observed)
-            .map_err(|error| vec![format!("cannot score reconciled samples for {forecast_id}: {error}")])?;
+        let raw_crps = empirical_crps(&raw_samples, observed).map_err(|error| {
+            vec![format!(
+                "cannot score raw samples for {forecast_id}: {error}"
+            )]
+        })?;
+        let reconciled_crps = empirical_crps(&reconciled_samples, observed).map_err(|error| {
+            vec![format!(
+                "cannot score reconciled samples for {forecast_id}: {error}"
+            )]
+        })?;
         let improvement = raw_crps - reconciled_crps;
         eligible_forecast_ids.push(forecast_id.to_owned());
         raw_crps_total += raw_crps;
@@ -432,8 +465,8 @@ fn evaluate_with_runtime(
     });
     let forecast_inventory_sha256 =
         canonical_json_sha256(&forecast_inventory).map_err(|error| vec![error])?;
-    let outcome_snapshot_sha256 = canonical_json_sha256(&registration["outcome_snapshot"])
-        .map_err(|error| vec![error])?;
+    let outcome_snapshot_sha256 =
+        canonical_json_sha256(&registration["outcome_snapshot"]).map_err(|error| vec![error])?;
     let schema_sha256 = sha256_hex(SCHEMA_BYTES);
     let input_sha256 = sha256_hex(input);
     let registration_id =
@@ -639,7 +672,8 @@ mod tests {
         let mut changed = fixture();
         changed["outcome_snapshot"]["rows"][0]["observed_count"] = json!(16);
         let changed_bytes = serde_json::to_vec(&changed).expect("changed fixture serializes");
-        let revised = evaluate(&changed_bytes).expect("revised synthetic outcome snapshot remains valid");
+        let revised =
+            evaluate(&changed_bytes).expect("revised synthetic outcome snapshot remains valid");
         assert_eq!(
             original["forecast_inventory_sha256"],
             revised["forecast_inventory_sha256"]
@@ -660,12 +694,20 @@ mod tests {
         let mut early = fixture();
         early["outcome_snapshot"]["rows"][0]["outcome_available_index"] = json!(11);
         let errors = audit(&early).expect_err("outcome cannot predate publication after target");
-        assert!(errors.iter().any(|error| error.contains("strictly after target period")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("strictly after target period"))
+        );
 
         let mut future = fixture();
         future["outcome_snapshot"]["rows"][0]["outcome_available_index"] = json!(13);
         let errors = audit(&future).expect_err("outcome cannot postdate evaluation as-of");
-        assert!(errors.iter().any(|error| error.contains("not available by evaluation-as-of")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("not available by evaluation-as-of"))
+        );
     }
 
     #[test]
@@ -676,7 +718,11 @@ mod tests {
             .unwrap()
             .pop();
         let errors = audit(&missing).expect_err("all forecast IDs require an explicit outcome row");
-        assert!(errors.iter().any(|error| error.contains("is missing a row for forecast")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("is missing a row for forecast"))
+        );
 
         let mut duplicate = fixture();
         let row = duplicate["outcome_snapshot"]["rows"][0].clone();
@@ -685,7 +731,11 @@ mod tests {
             .unwrap()
             .push(row);
         let errors = audit(&duplicate).expect_err("duplicate outcome labels are ambiguous");
-        assert!(errors.iter().any(|error| error.contains("repeats forecast row")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("repeats forecast row"))
+        );
     }
 
     #[test]
@@ -693,13 +743,18 @@ mod tests {
         let mut value = fixture();
         value["outcome_snapshot"]["rows"][7]["observed_count"] = json!(0);
         let errors = audit(&value).expect_err("unknown labels cannot use zero as a placeholder");
-        assert!(errors.iter().any(|error| error.contains("must keep observed_count")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must keep observed_count"))
+        );
     }
 
     #[test]
     fn receipt_binds_runtime_provenance() {
         let runtime = ScoreRuntime {
-            dependency_lock_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            dependency_lock_sha256:
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             rustc_version: "rustc 1.96.0".to_owned(),
             cargo_version: "cargo 1.96.0".to_owned(),
         };
@@ -726,6 +781,9 @@ mod tests {
             &changed,
         )
         .expect("valid separately pinned provenance");
-        assert_ne!(receipt["receipt_commitment_sha256"], altered["receipt_commitment_sha256"]);
+        assert_ne!(
+            receipt["receipt_commitment_sha256"],
+            altered["receipt_commitment_sha256"]
+        );
     }
 }
