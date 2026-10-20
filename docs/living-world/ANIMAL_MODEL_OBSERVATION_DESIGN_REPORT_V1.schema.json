@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_MODEL_OBSERVATION_DESIGN_REPORT_V1.schema.json",
   "title": "Animal Model Observation Design Report V1",
-  "description": "Structural contract for expected decision-loss reduction from declared candidate observations. This report is conditional on the registered model set and is not a field recommendation or empirical ecological validation.",
+  "description": "Structural contract for expected decision-loss reduction from declared candidate observations. Each outcome includes posterior model weights for audit. Every report marks model-set adequacy and empirical validation not_assessed; it is conditional analysis, not a field recommendation or ecological validation.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "status",
+    "qualification",
     "scenario",
     "input_sha256",
     "model_ids",
@@ -120,7 +121,8 @@
                 "outcome",
                 "probability",
                 "selected_action",
-                "expected_loss_after_observation"
+                "expected_loss_after_observation",
+                "posterior_model_weights"
               ],
               "properties": {
                 "outcome": {
@@ -139,13 +141,45 @@
                 "expected_loss_after_observation": {
                   "type": "number",
                   "minimum": 0
+                },
+                "posterior_model_weights": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "patternProperties": {
+                    "^[a-z][a-z0-9_]*$": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           }
         }
       }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_set_adequacy",
+        "empirical_validation",
+        "use_scope"
+      ],
+      "properties": {
+        "model_set_adequacy": {
+          "const": "not_assessed"
+        },
+        "empirical_validation": {
+          "const": "not_assessed"
+        },
+        "use_scope": {
+          "const": "conditional_model_set_analysis_only"
+        }
+      }
     }
   },
-  "$comment": "A strict semantic checker should verify model_ids and model_weights align, observation_count equals ranked_observations.length, each design ID is unique, outcome probabilities sum to one, expected_post_observation_loss equals the probability-weighted outcome losses, gross value equals baseline minus expected post-observation loss within tolerance, net value equals gross value minus cost, and ranking is descending by net value with deterministic ID tie-breaks."
+  "$comment": "A strict semantic checker should verify model_ids and model_weights align, observation_count equals ranked_observations.length, each design ID is unique, outcome probabilities sum to one, expected_post_observation_loss equals the probability-weighted outcome losses, gross value equals baseline minus expected post-observation loss within tolerance, net value equals gross value minus cost, and ranking is descending by net value with deterministic ID tie-breaks. The mandatory qualification object must remain not_assessed for model-set adequacy and empirical validation in this CLI; posterior model weights must be non-negative, normalized across each outcome, and correspond to the declared model_ids. "
 }
