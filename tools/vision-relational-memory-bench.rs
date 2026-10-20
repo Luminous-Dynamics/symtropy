@@ -20,8 +20,9 @@ const FRESHNESS_LIMIT: usize = 7;
 const REPLICATES: usize = 12;
 const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
-// Frozen confirmatory seed domain; differs from the exploratory reports.
-const ROOT_SEED: u64 = 0xA54F_F53A_5F1D_36F1;
+// Fresh diagnostic seed domain for the noisy-confidence generator revision.
+// This is not a preregistered confirmation: policy design has seen prior runs.
+const ROOT_SEED: u64 = 0x3C6E_F372_FE94_F82B;
 const CAPS: [usize; 5] = [1, 2, 3, 4, 8];
 const STRATA_COUNT: usize = 8;
 const STRATA_NAMES: [&str; STRATA_COUNT] = [
@@ -151,6 +152,21 @@ impl Evidence {
     }
 }
 
+fn sample_confidence(rng: &mut Rng, corrupted: bool) -> u16 {
+    // Confidence is informative but not a corruption label. Clean evidence is
+    // more likely to be rated high-confidence, but both clean and corrupted
+    // observations can occupy every confidence tier.
+    let draw = rng.range(1_000);
+    match (corrupted, draw) {
+        (false, 0..=749) => 950,
+        (false, 750..=949) => 650,
+        (false, _) => 350,
+        (true, 0..=149) => 950,
+        (true, 150..=549) => 650,
+        (true, _) => 350,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Episode {
     query: Query,
@@ -204,7 +220,7 @@ impl Episode {
                 value,
                 source_tick: source as u8,
                 arrival_tick: arrival as u8,
-                confidence: if corrupted { 350 } else { 950 },
+                confidence: sample_confidence(&mut rng, corrupted),
             });
         }
         Self { query, profile, truth, stream }
@@ -726,6 +742,36 @@ fn main() { report(); }
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn confidence_is_informative_but_not_a_corruption_label() {
+        let mut clean_rng = Rng::new(0xC1EA_0001);
+        let mut corrupt_rng = Rng::new(0xC077_0002);
+        let mut clean_counts = [0_usize; 3];
+        let mut corrupt_counts = [0_usize; 3];
+        let confidence_bucket = |value: u16| match value {
+            950 => 0,
+            650 => 1,
+            350 => 2,
+            _ => panic!("unexpected confidence tier"),
+        };
+
+        for _ in 0..20_000 {
+            let clean = sample_confidence(&mut clean_rng, false);
+            let corrupt = sample_confidence(&mut corrupt_rng, true);
+            clean_counts[confidence_bucket(clean)] += 1;
+            corrupt_counts[confidence_bucket(corrupt)] += 1;
+        }
+
+        // Both clean and corrupted observations appear in every tier, while
+        // high confidence remains more common for clean observations.
+        assert!(clean_counts.iter().all(|count| *count > 0));
+        assert!(corrupt_counts.iter().all(|count| *count > 0));
+        assert!(clean_counts[0] > corrupt_counts[0]);
+        assert!(clean_counts[1] < clean_counts[0]);
+        assert!(corrupt_counts[2] > 0);
+        assert!(corrupt_counts[0] > 0);
+    }
 
     #[test]
     fn seeded_worlds_and_randomness_replay_exactly() {
