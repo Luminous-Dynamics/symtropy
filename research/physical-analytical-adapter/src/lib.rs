@@ -739,6 +739,27 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn bounded_simply_supported_request_encloses_deflection_and_stress() {
+        let receipt = evaluate_request_bytes(
+            &fixture("simply-supported-bounds-v0.2.json"),
+            REV,
+        )
+        .expect("bounded simply supported request");
+        assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA_V2);
+        assert_eq!(receipt["result_status"], "PASS");
+        for key in ["midspan_deflection_m", "maximum_bending_stress_pa"] {
+            let nominal = receipt["outputs"][key].as_f64().expect("nominal output");
+            let range = &receipt["output_intervals"][key];
+            assert!(range["lower"].as_f64().unwrap() <= nominal);
+            assert_eq!(range["nominal"].as_f64(), Some(nominal));
+            assert!(nominal <= range["upper"].as_f64().unwrap());
+        }
+        assert_eq!(receipt["output_intervals"]["midspan_deflection_m"]["unit"], "m");
+        assert_eq!(receipt["output_intervals"]["maximum_bending_stress_pa"]["unit"], "Pa");
+    }
+
     #[test]
     fn point_only_v0_1_request_keeps_legacy_receipt_shape() {
         let receipt = evaluate_request_bytes(&fixture("analytical-bar-v0.1.json"), REV)
