@@ -11,7 +11,10 @@ Scale passive hydroponics as a federation of independently isolatable growing mo
 ## Why pursue it
 
 - Non-circulating hydroponic lettuce systems can operate without pumps or electricity when designed around a finite initial water/nutrient charge. FAO documents a commercial-lettuce management method: https://www.fao.org/family-farming/detail/en/c/1613788/
+- A University of Hawaii commercial-grower publication describes a non-circulating method for leafy, romaine, and semi-head lettuce with one initial water/nutrient application and no pumps/electricity. It is a crop-specific reference, not proof of universal all-season outdoor scalability: https://www.ctahr.hawaii.edu/oc/freepubs/pdf/VC-1.pdf
+- A peer-reviewed lettuce study found that root-zone air-gap geometry affected yield in non-aerated, non-circulated systems; one tested configuration averaged 220 g/head and alternatives were 7–19% lower. That makes root oxygen architecture a first-class experimental variable, not a detail to assume away: https://doi.org/10.1300/J484v11n02_04
 - New Mexico State University describes wick and Kratky systems as low-cost and passive, but cautions against assuming these simple designs suit commercial-scale production or large, high-water-demand crops: https://pubs.nmsu.edu/_h/H180/index.html
+- A 2025 review of 272 urban-agriculture studies found hydroponic systems among the highest-yield typologies in its synthesis (12–15 kg/m²) but also with peak energy demand. The review demonstrates why yield alone is a poor comparison and does not establish this passive outdoor design's performance: https://doi.org/10.1016/j.eiar.2025.108040
 - Water quality, pH, salinity, nutrient balance, dissolved oxygen, and temperature affect performance; high solution temperatures reduce oxygen solubility. See Missouri Extension (2026): https://extension.missouri.edu/publications/g6984
 - Life-cycle results depend on the comparison boundary. A 2025 lettuce LCA found full controlled-environment systems using artificial light can carry high energy and climate impacts, while other impacts vary with production method and location: https://doi.org/10.1007/s11367-025-02463-6
 - Johannesburg urban-farming research identifies hydroponics as a local food-access strategy while emphasizing site context and water quality: https://doi.org/10.1002/uar2.20047
@@ -68,6 +71,16 @@ The 20% water-productivity and 10% yield non-inferiority values are hypotheses f
 - Units, time interval, source, calibration state, and uncertainty must accompany observations.
 - Simulation outputs must be distinguishable from measured observations and agronomic forecasts.
 - A common reservoir or common pump is a potential common-mode failure; record dependency graph and isolation boundaries.
+
+## Solver composition, not solver reinvention
+
+- Use the existing Sol-Atlas SWMM reference path for qualified rainfall-runoff, stormwater, and drainage hydraulics. This hydroponics ledger must not be described as a runoff or flood solver: https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/172
+- Use the Sol-Atlas Johannesburg/Highveld agricultural resilience profile for climate-data provenance, local evidence gaps, and production-system archetypes: https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/107
+- Use established crop-water models such as FAO AquaCrop only for crop/environment regimes within their documented assumptions. AquaCrop's soil-water/crop-response scope should not be repurposed as a hydroponic reservoir-chemistry model.
+- Use the existing Symthaea hydroponic analysis profile as the parent contract for bounded analytical requests, but keep passive outdoor exposure distinct from controlled-environment greenhouse conditions: https://github.com/Luminous-Dynamics/symthaea/issues/6213
+- Reuse Mycelix's environment-neutral production reference and physical-observation contracts rather than creating duplicate identity/currentness/provenance layers: https://github.com/Luminous-Dynamics/mycelix/issues/3229 and https://github.com/Luminous-Dynamics/mycelix/issues/3231
+
+The new kernel owns only reservoir mass bookkeeping. It is not a replacement for domain-qualified hydrology, crop physiology, water-quality, thermal, or pathogen models.
 
 ## Cross-repository responsibility boundaries
 
