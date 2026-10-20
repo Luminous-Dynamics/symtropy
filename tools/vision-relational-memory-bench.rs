@@ -503,6 +503,41 @@ mod tests {
     }
 
     #[test]
+    fn selective_policy_abstains_on_low_confidence_and_stale_claims() {
+        let query = Query { keys: [1, 2, 3] };
+        let mut memory = Memory::new(Kind::QueryKeyedSelective, 3, query, 7);
+        memory.observe(Evidence { key: 1, value: true, source_tick: HORIZON as u8, arrival_tick: HORIZON as u8, confidence: 950 });
+        memory.observe(Evidence { key: 2, value: true, source_tick: HORIZON as u8, arrival_tick: HORIZON as u8, confidence: 350 });
+        memory.observe(Evidence { key: 3, value: false, source_tick: HORIZON as u8, arrival_tick: HORIZON as u8, confidence: 950 });
+        assert_eq!(
+            memory.decide_with_threshold(HORIZON, DecisionThreshold { min_confidence: 900, max_age: 7 }),
+            None
+        );
+        assert_eq!(
+            memory.decide_with_threshold(HORIZON, DecisionThreshold { min_confidence: 350, max_age: 7 }),
+            Some(true)
+        );
+
+        let mut stale = Memory::new(Kind::QueryKeyedSelective, 3, query, 7);
+        for (key, value) in [(1, true), (2, true), (3, false)] {
+            stale.observe(Evidence { key, value, source_tick: 30, arrival_tick: 30, confidence: 950 });
+        }
+        assert_eq!(
+            stale.decide_with_threshold(HORIZON, DecisionThreshold { min_confidence: 350, max_age: 4 }),
+            None
+        );
+    }
+
+    #[test]
+    fn development_calibration_is_deterministic_and_uses_declared_grid() {
+        let a = calibrate_threshold();
+        let b = calibrate_threshold();
+        assert_eq!(a, b);
+        assert!([350, 900].contains(&a.min_confidence));
+        assert!([2, 4, FRESHNESS_LIMIT].contains(&a.max_age));
+    }
+
+    #[test]
     fn every_policy_respects_capacity_and_deterministic_replay() {
         let ep = Episode::generate(0xCAFE_BABE, Family::HeldOut);
         for kind in Kind::ALL {
