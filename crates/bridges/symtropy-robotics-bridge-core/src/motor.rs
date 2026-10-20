@@ -178,4 +178,101 @@ mod tests {
         let cmds = p.plan(&[], 0.5, 0);
         assert!(cmds.is_empty());
     }
+
+    struct FixturePlanner {
+        calls: usize,
+        commands: Option<Vec<f64>>,
+        planner_status: MotorPlannerStatus,
+    }
+
+    impl FixturePlanner {
+        fn ready() -> Self {
+            Self {
+                calls: 0,
+                commands: None,
+                planner_status: MotorPlannerStatus::Ready,
+            }
+        }
+    }
+
+    impl MotorPlanner for FixturePlanner {
+        fn plan(&mut self, _observation: &[f64], _gain: f64, num_actuators: usize) -> Vec<f64> {
+            self.calls += 1;
+            self.commands
+                .clone()
+                .unwrap_or_else(|| vec![0.25; num_actuators])
+        }
+
+        fn status(&self) -> MotorPlannerStatus {
+            self.planner_status
+        }
+    }
+
+    #[test]
+    fn typed_planner_rejects_non_finite_input_before_calling_legacy_plan() {
+        let mut planner = FixturePlanner::ready();
+        let result = planner.plan_result(&[0.2, f64::NAN], 0.5, 4);
+
+        assert_eq!(planner.calls, 0);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidObservation)
+        );
+    }
+
+    #[test]
+    fn typed_planner_rejects_invalid_gain_before_calling_legacy_plan() {
+        let mut planner = FixturePlanner::ready();
+        let result = planner.plan_result(&[0.2], f64::INFINITY, 4);
+
+        assert_eq!(planner.calls, 0);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidGain)
+        );
+    }
+
+    #[test]
+    fn typed_planner_rejects_wrong_output_shape() {
+        let mut planner = FixturePlanner::ready();
+        planner.commands = Some(vec![0.1; 3]);
+        let result = planner.plan_result(&[0.2], 0.5, 4);
+
+        assert_eq!(planner.calls, 1);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidOutput)
+        );
+    }
+
+    #[test]
+    fn typed_planner_rejects_non_finite_output() {
+        let mut planner = FixturePlanner::ready();
+        planner.commands = Some(vec![0.1, 0.2, f64::INFINITY, 0.4]);
+        let result = planner.plan_result(&[0.2], 0.5, 4);
+
+        assert_eq!(planner.calls, 1);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidOutput)
+        );
+    }
+
+    #[test]
+    fn typed_planner_does_not_leak_commands_on_reported_rejection() {
+        let mut planner = FixturePlanner::ready();
+        planner.commands = Some(vec![0.9; 4]);
+        planner.planner_status = MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure);
+        let result = planner.plan_result(&[0.2], 0.5, 4);
+
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure)
+        );
+    }
 }
