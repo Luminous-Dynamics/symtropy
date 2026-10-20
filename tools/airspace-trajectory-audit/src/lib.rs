@@ -272,11 +272,16 @@ pub fn broadphase_candidate_pairs(
         let horizontal_margin = checked_add(
             criteria.minimum_horizontal_separation_m,
             trajectory.horizontal_uncertainty_bound_m,
-        )?;
+        )?
+        .next_up();
         let vertical_margin = checked_add(
             criteria.minimum_vertical_separation_m,
             trajectory.vertical_uncertainty_bound_m,
-        )?;
+        )?
+        .next_up();
+        if !horizontal_margin.is_finite() || !vertical_margin.is_finite() {
+            return Err(AuditInputError::NumericOverflow);
+        }
         let (mut min_x, mut max_x) = (f64::INFINITY, f64::NEG_INFINITY);
         let (mut min_y, mut max_y) = (f64::INFINITY, f64::NEG_INFINITY);
         let (mut min_z, mut max_z) = (f64::INFINITY, f64::NEG_INFINITY);
