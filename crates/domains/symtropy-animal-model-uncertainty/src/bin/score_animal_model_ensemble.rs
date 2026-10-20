@@ -51,7 +51,12 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
     Ok(())
 }
 
-type ParsedInput = (Vec<ModelOutcome>, f64, Option<Vec<ModelWeightInterval>>, f64);
+type ParsedInput = (
+    Vec<ModelOutcome>,
+    f64,
+    Option<Vec<ModelWeightInterval>>,
+    f64,
+);
 
 fn parse_input(root: &Value) -> Result<ParsedInput, String> {
     ensure_only_fields(
@@ -183,7 +188,12 @@ fn parse_input(root: &Value) -> Result<ParsedInput, String> {
         Some(_) => return Err("model_weight_intervals must be an array when present".to_owned()),
     };
 
-    Ok((models, cvar_alpha, model_weight_intervals, practical_loss_difference_margin))
+    Ok((
+        models,
+        cvar_alpha,
+        model_weight_intervals,
+        practical_loss_difference_margin,
+    ))
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -336,14 +346,14 @@ fn main() {
         model_weight_intervals.as_deref(),
         practical_loss_difference_margin,
     ) {
-            Ok(comparisons) => comparisons,
-            Err(errors) => {
-                for error in errors {
-                    eprintln!("action-preference analysis rejected input: {error}");
-                }
-                process::exit(1);
+        Ok(comparisons) => comparisons,
+        Err(errors) => {
+            for error in errors {
+                eprintln!("action-preference analysis rejected input: {error}");
             }
-        };
+            process::exit(1);
+        }
+    };
 
     let output = build_report(
         &raw,
@@ -453,7 +463,10 @@ mod tests {
             Some(sha256_hex(SYNTHETIC_EXAMPLE.as_bytes()).as_str())
         );
         assert_eq!(report["model_count"].as_u64(), Some(2));
-        assert_eq!(report["practical_loss_difference_margin"].as_f64(), Some(practical_margin));
+        assert_eq!(
+            report["practical_loss_difference_margin"].as_f64(),
+            Some(practical_margin)
+        );
         assert_eq!(report["model_weights"][0]["weight"].as_f64(), Some(0.6));
         assert_eq!(report["model_ids"].as_array().map(Vec::len), Some(2));
         assert_eq!(
