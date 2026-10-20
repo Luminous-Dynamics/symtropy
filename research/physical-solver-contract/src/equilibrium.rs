@@ -251,8 +251,14 @@ pub fn assess_equilibrium_bytes(
         ));
     }
 
-    let force_status = force["status"].as_str().unwrap_or("UNRESOLVED");
-    let moment_status = moment["status"].as_str().unwrap_or("UNRESOLVED");
+    let force_status = force["status"]
+        .as_str()
+        .unwrap_or("UNRESOLVED")
+        .to_owned();
+    let moment_status = moment["status"]
+        .as_str()
+        .unwrap_or("UNRESOLVED")
+        .to_owned();
     let overall = if force_status == "PASS" && moment_status == "PASS" {
         "PASS"
     } else {
