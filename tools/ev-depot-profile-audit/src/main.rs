@@ -3,8 +3,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env,
-    fs,
+    env, fs,
     io::Read,
     path::Path,
     process::ExitCode,
@@ -509,8 +508,11 @@ mod tests {
         let csv = String::from_utf8(expected_csv())
             .unwrap()
             .replace("00:15:00,100", "00:30:00,100");
-        assert!(audit_csv(&metadata.filename, csv.as_bytes(), &metadata)
-            .unwrap_err().contains("time_sequence_mismatch"));
+        assert!(
+            audit_csv(&metadata.filename, csv.as_bytes(), &metadata)
+                .unwrap_err()
+                .contains("time_sequence_mismatch")
+        );
 
         let csv = String::from_utf8(expected_csv())
             .unwrap()
@@ -524,10 +526,9 @@ mod tests {
 
     #[test]
     fn rejects_wrong_interval_count_and_unknown_power_schema() {
-        let metadata = parse_profile_filename(
-            "fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv",
-        )
-        .unwrap();
+        let metadata =
+            parse_profile_filename("fleet1-beverage-delivery_10vehs_avg-prof_immediate_15min.csv")
+                .unwrap();
         let too_short = "time,avg_power_kw\n00:00:00,1\n";
         assert!(
             audit_csv(&metadata.filename, too_short.as_bytes(), &metadata)
