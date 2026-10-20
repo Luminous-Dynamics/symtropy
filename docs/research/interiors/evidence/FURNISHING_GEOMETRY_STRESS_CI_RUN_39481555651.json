@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_kind": "exact_head_synthetic_geometry_stress_run",
+  "repository": "Luminous-Dynamics/symtropy",
+  "pr_number": 2391,
+  "source_sha": "a6fadac278a7005c61ff92626ed41e600a3fdb40",
+  "workflow_run": {
+    "id": 39481555651,
+    "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39481555651",
+    "name": "Furnishing Layout Audit",
+    "conclusion": "success",
+    "runner_image": "ubuntu-24.04",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "kernel": "Linux runnervmxehtw 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64",
+    "visible_vcpus": 4,
+    "cpu_model": "AMD EPYC 9V45 96-Core Processor",
+    "reported_memory_gib": 15
+  },
+  "gates": {
+    "rust_tests_passed": 26,
+    "rust_tests_failed": 0,
+    "formatting": "passed",
+    "clippy_warnings_denied": "passed",
+    "exact_head_assertion": "passed",
+    "brute_force_overlap_equivalence_test": "passed",
+    "harness_findings": "0 unexpected findings in every stress workload"
+  },
+  "workloads": [
+    {
+      "name": "sparse_grid",
+      "items": 25,
+      "iterations": 40,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "p50_ms": 0.029,
+      "p95_ms": 0.041
+    },
+    {
+      "name": "sparse_grid",
+      "items": 100,
+      "iterations": 30,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "p50_ms": 0.141,
+      "p95_ms": 0.189
+    },
+    {
+      "name": "sparse_grid",
+      "items": 1000,
+      "iterations": 15,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "p50_ms": 2.322,
+      "p95_ms": 2.445
+    },
+    {
+      "name": "sparse_grid",
+      "items": 10000,
+      "iterations": 1,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "single_sample_ms": 43.149
+    },
+    {
+      "name": "tight_functional_clearance",
+      "items": 25,
+      "iterations": 40,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "p50_ms": 0.028,
+      "p95_ms": 0.044
+    },
+    {
+      "name": "tight_functional_clearance",
+      "items": 100,
+      "iterations": 30,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "p50_ms": 0.139,
+      "p95_ms": 0.164
+    },
+    {
+      "name": "tight_functional_clearance",
+      "items": 1000,
+      "iterations": 15,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "p50_ms": 2.226,
+      "p95_ms": 2.293
+    },
+    {
+      "name": "tight_functional_clearance",
+      "items": 10000,
+      "iterations": 1,
+      "expected_collision_pairs": 0,
+      "observed_collision_pairs": 0,
+      "unexpected_findings": 0,
+      "single_sample_ms": 43.08
+    },
+    {
+      "name": "dense_footprint_overlap",
+      "items": 25,
+      "iterations": 40,
+      "expected_collision_pairs": 72,
+      "observed_collision_pairs": 72,
+      "unexpected_findings": 0,
+      "p50_ms": 0.035,
+      "p95_ms": 0.047
+    },
+    {
+      "name": "dense_footprint_overlap",
+      "items": 100,
+      "iterations": 30,
+      "expected_collision_pairs": 342,
+      "observed_collision_pairs": 342,
+      "unexpected_findings": 0,
+      "p50_ms": 0.175,
+      "p95_ms": 0.199
+    },
+    {
+      "name": "dense_footprint_overlap",
+      "items": 1000,
+      "iterations": 15,
+      "expected_collision_pairs": 3811,
+      "observed_collision_pairs": 3811,
+      "unexpected_findings": 0,
+      "p50_ms": 2.656,
+      "p95_ms": 2.773
+    },
+    {
+      "name": "dense_footprint_overlap",
+      "items": 10000,
+      "iterations": 1,
+      "expected_collision_pairs": 39402,
+      "observed_collision_pairs": 39402,
+      "unexpected_findings": 0,
+      "single_sample_ms": 49.088
+    }
+  ],
+  "methodology": {
+    "input": "Generated synthetic axis-aligned rectangle layouts",
+    "timed_region": "Full audit of preconstructed in-memory JSON Value",
+    "excluded": "Corpus construction, live network/DHT, UI/renderer, measured-site error, peak memory",
+    "note": "For 10,000 items the stress harness uses one timed sample because the matched brute-force baseline is output/scan heavy. A single observation is latency evidence, not a percentile estimate or SLA."
+  },
+  "claim_limits": [
+    "Synthetic 2D rectangle tests do not establish accessibility, code compliance, physical safety, usability, resident benefit or measured-site truth.",
+    "Dense pair enumeration is output-sensitive; report correct pair count alongside latency.",
+    "The matched v0.2 brute-force baseline has not yet completed at the current harness revision, so no speedup ratio is claimed."
+  ]
+}

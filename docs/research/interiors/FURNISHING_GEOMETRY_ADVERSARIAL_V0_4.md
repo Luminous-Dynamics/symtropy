@@ -45,6 +45,18 @@ These are proposed gates, not achieved results:
 
 Compare at least three implementations on the same source cases and machine: the v0.2 all-pairs oracle, v0.3 BVH/indexed implementation, and an independent brute-force reference used as the collision truth. Record source SHA, toolchain, OS/CPU/RAM, input digest, iteration count, expected/observed collision counts, p50/p95 and peak memory. A hosted CI run is a regression sentinel; stable hardware and repeated runs are required for a general performance claim.
 
+## Exact-head stress result — run 39481555651
+
+The focused [Furnishing Layout Audit run #39481555651](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39481555651) passed at source SHA `a6fadac278a7005c61ff92626ed41e600a3fdb40`: 26 Rust tests passed, formatting and strict Clippy passed, and every sparse/tight/dense stress assertion matched expected collision counts with zero unexpected findings. The machine and per-tier outputs are archived in [the run receipt](evidence/FURNISHING_GEOMETRY_STRESS_CI_RUN_39481555651.json).
+
+| Workload | 25 items p50/p95 | 100 p50/p95 | 1,000 p50/p95 | 10,000 items |
+|---|---:|---:|---:|---:|
+| Sparse grid | 0.029 / 0.041 ms | 0.141 / 0.189 ms | 2.322 / 2.445 ms | 43.149 ms (single sample) |
+| Tight functional clearance | 0.028 / 0.044 ms | 0.139 / 0.164 ms | 2.226 / 2.293 ms | 43.080 ms (single sample) |
+| Dense footprint overlap | 0.035 / 0.047 ms | 0.175 / 0.199 ms | 2.656 / 2.773 ms | 49.088 ms (single sample; 39,402 expected and observed collision pairs) |
+
+The 10,000-item measurements use one sample, so they are not p50/p95 estimates. The runner reported Ubuntu 24.04, Rust 1.96.0, four visible vCPUs on an AMD EPYC 9V45 host and 15 GiB memory. These are diagnostic hosted-runner observations, not a production SLA. The matched v0.2 baseline remains in progress; no speedup ratio is claimed.
+
 ## Claim boundary
 
 These cases still use axis-aligned 2D rectangles. They do not model door swing arcs, moving drawers beyond their declared rectangular envelopes, 3D objects, uncertainty in measured dimensions, wheelchair swept-path geometry, reach ranges, transfer spaces, egress, accessibility standards or building code. Those should be added as separate, sourced and independently reviewable task models. Unknown required evidence must block, not be guessed.

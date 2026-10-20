@@ -18,6 +18,8 @@ on:
       - 'fixtures/interiors/furnishing_functional_envelopes_v0_2.json'
       - 'fixtures/interiors/furnishing_functional_envelopes_v0_2.schema.json'
       - 'tools/furnishing-layout-audit/**'
+      - 'docs/research/interiors/FURNISHING_GEOMETRY_ADVERSARIAL_V0_4.md'
+      - 'docs/research/interiors/evidence/FURNISHING_GEOMETRY_STRESS_CI_RUN_39481555651.json'
       - '.github/workflows/furnishing-layout-audit.yml'
 permissions:
   contents: read
