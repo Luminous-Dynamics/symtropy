@@ -1,0 +1,51 @@
+{
+  "schema_version": "physical-solver-capabilities-v0.1",
+  "manifest_id": "symtropy-physical-solver-capabilities",
+  "manifest_version": "0.1.0",
+  "backends": [
+    {
+      "backend_id": "symtropy-analytical-reference",
+      "backend_version": "0.1.0",
+      "implementation_kind": "in_process_reference",
+      "dispatch_eligible": true,
+      "qualification_tier": "closed_form_equation_contract",
+      "supported_physics": ["static_linear_elastic"],
+      "supported_units": {
+        "length": "m",
+        "force": "N",
+        "area": "m^2",
+        "stress": "Pa",
+        "second_moment": "m^4",
+        "distributed_load": "N/m"
+      },
+      "cases": [
+        {
+          "case_id": "axial_bar",
+          "assumption_profile": "uniform_linear_elastic_axial_bar",
+          "outputs": ["axial_stress_pa", "axial_strain", "extension_m"],
+          "known_answer_fixtures": ["analytical-bar-v0.1.json"]
+        },
+        {
+          "case_id": "cantilever_tip_load",
+          "assumption_profile": "small_deflection_euler_bernoulli_cantilever_tip_load",
+          "outputs": ["tip_deflection_m", "maximum_bending_stress_pa"],
+          "known_answer_fixtures": ["cantilever-tip-load-v0.1.json"]
+        },
+        {
+          "case_id": "simply_supported_uniform_load",
+          "assumption_profile": "small_deflection_euler_bernoulli_simply_supported_uniform_load",
+          "outputs": ["midspan_deflection_m", "maximum_bending_stress_pa"],
+          "known_answer_fixtures": ["simply-supported-uniform-load-v0.1.json"]
+        }
+      ],
+      "validation_evidence": [
+        "synthetic_known_answer_fixtures",
+        "metamorphic_scaling_tests",
+        "deterministic_bounded_interval_stress_tests"
+      ],
+      "real_world_validation_status": "UNRESOLVED",
+      "external_solver_invoked": false,
+      "claim_ceiling": "named closed-form analytical reference cases only; not measured physical validation or structural qualification"
+    }
+  ]
+}
