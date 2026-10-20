@@ -8,6 +8,7 @@ on:
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
+      - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
     branches: [main]
@@ -83,6 +84,7 @@ jobs:
             > ev-factory-simulation-report.json
           jq -e '
             .benchmark_id == "EV-FACTORY-SIM-001"
+            and .random_stream_policy == "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream"
             and .scenario_count == 6
             and .measured_horizon_seconds == 518400
             and .input_evidence_class == "synthetic"
@@ -150,6 +152,7 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json \
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json \
             docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
+            docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
