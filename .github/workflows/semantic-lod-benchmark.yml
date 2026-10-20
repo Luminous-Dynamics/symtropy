@@ -38,6 +38,7 @@ jobs:
           grep -q '"workload_id": "SEMANTIC-LOD-100"' target/semantic-lod-report.json
           grep -q '"workload_id": "SEMANTIC-LOD-1000"' target/semantic-lod-report.json
           grep -q '"workload_id": "SEMANTIC-LOD-10000"' target/semantic-lod-report.json
+          grep -q '"reference_matches_heap": true' target/semantic-lod-report.json
           if grep -q '"protected_demotion_count": [1-9]' target/semantic-lod-report.json; then
             echo "protected entity was downgraded" >&2
             exit 1
