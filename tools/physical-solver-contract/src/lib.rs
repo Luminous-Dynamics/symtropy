@@ -187,6 +187,7 @@ pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
         return issues;
     }
 
+    let request_object = value.as_object().expect("object checked above");
     for key in [
         "schema_version",
         "request_id",
@@ -203,7 +204,7 @@ pub fn validate_request_json(value: &Value) -> Vec<ValidationIssue> {
         "required_outputs",
         "acceptance",
     ] {
-        if !value.get(key).is_some() {
+        if !request_object.contains_key(key) {
             issue(
                 &mut issues,
                 format!("$.{key}"),
