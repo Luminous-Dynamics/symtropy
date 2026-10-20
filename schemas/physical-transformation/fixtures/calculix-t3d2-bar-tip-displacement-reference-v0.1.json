@@ -1,0 +1,24 @@
+{
+  "schema_version": "physical-reference-observables-v0.1",
+  "reference_id": "reference:ccx-t3d2-tip-u",
+  "case_id": "ccx-t3d2-axial-bar-v0.1",
+  "request_id": "fixture:ccx-t3d2-bar",
+  "scene_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "scene_revision": 1,
+  "request_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "comparison_protocol_id": "protocol:ccx-t3d2-closed-form-v0.1",
+  "oracle": {
+    "method": "analytical_exact",
+    "identity": "tip axial displacement u_x = F*L/(E*A)",
+    "source_ref": "docs/research/PHYSICAL_CCX_T3D2_SMOKE_V0_1.md#closed-form-reference"
+  },
+  "observables": [
+    {
+      "observable_id": "tip_ux",
+      "expected_value": 0.00005,
+      "unit": "m",
+      "absolute_tolerance": 0.0000000001,
+      "relative_tolerance": 0.000001
+    }
+  ]
+}
