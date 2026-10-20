@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
     mesh_convergence::assess_mesh_refinement_study_bytes,
-    reference_compare::compare_reference_observables,
-    validate_request_bytes, validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
+    reference_compare::compare_reference_observables, validate_request_bytes,
+    validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
 use std::{env, fs, path::Path, process::ExitCode};
 
@@ -121,8 +121,8 @@ fn run() -> Result<(), String> {
                     .to_owned(),
             );
         }
-        let root = artifact_root
-            .ok_or_else(|| "--mesh-study requires --artifact-root".to_owned())?;
+        let root =
+            artifact_root.ok_or_else(|| "--mesh-study requires --artifact-root".to_owned())?;
         let study_bytes = fs::read(&study_path)
             .map_err(|error| format!("could not read mesh-study manifest {study_path}: {error}"))?;
         let report = assess_mesh_refinement_study_bytes(&study_bytes, Path::new(&root))?;
