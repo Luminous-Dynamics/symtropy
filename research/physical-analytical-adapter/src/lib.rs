@@ -881,7 +881,6 @@ mod tests {
         });
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
 
-
         let mut mutated = request.clone();
         mutated["input_bounds"]["inputs"]["area_m2"]["basis"] = json!("guesswork");
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
@@ -891,7 +890,10 @@ mod tests {
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
 
         let mut mutated = request.clone();
-        mutated["input_bounds"]["inputs"]["area_m2"].as_object_mut().unwrap().remove("source_ref");
+        mutated["input_bounds"]["inputs"]["area_m2"]
+            .as_object_mut()
+            .unwrap()
+            .remove("source_ref");
         assert!(evaluate_request_bytes(mutated.to_string().as_bytes(), REV).is_err());
 
         let mut mutated = request;
