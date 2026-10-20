@@ -1230,6 +1230,10 @@ mod randomized_timing {
         answered: u64,
         correct_answered: u64,
         abstentions: u64,
+        persistent_episodes: u64,
+        persistent_correct: u64,
+        removed_episodes: u64,
+        false_persistence: u64,
         view_attempts: u64,
         executed_views: u64,
         completed_views: u64,
@@ -1255,6 +1259,18 @@ mod randomized_timing {
             if let Some(steps) = result.natural_or_view_recovery_steps {
                 self.recovery_steps_sum += u64::from(steps);
                 self.recovery_observations += 1;
+            }
+
+            if result.truth {
+                self.persistent_episodes += 1;
+                if result.decision == Decision::Present {
+                    self.persistent_correct += 1;
+                }
+            } else {
+                self.removed_episodes += 1;
+                if result.decision == Decision::Present {
+                    self.false_persistence += 1;
+                }
             }
 
             match result.decision {
@@ -1285,65 +1301,206 @@ mod randomized_timing {
         }
     }
 
-    fn seed_for(replicate: usize, pair: usize, family: SceneFamily) -> u64 {
-        let family_domain = match family {
+    fn paired_delta(policy_losses: &[f64], baseline_losses: &[f64]) -> Vec<f64> {
+        policy_losses
+            .iter()
+            .zip(baseline_losses.iter())
+            .map(|(policy, baseline)| policy - baseline)
+            .collect()
+    }
+
+    fn mean(values: &[f64]) -> f64 {
+        if values.is_empty() {
+            return f64::NAN;
+        }
+        values.iter().sum::<f64>() / values.len() as f64
+    }
+
+    /// Percentile paired bootstrap over exogenous seed pairs. The persistent
+    /// and removed branches are averaged inside each pair before resampling,
+    /// so counterfactual siblings are never treated as independent samples.
+    fn paired_bootstrap_ci(values: &[f64], domain: u64) -> (f64, f64) {
+        const BOOTSTRAPS: usize = 2_000;
+        if values.is_empty() {
+            return (f64::NAN, f64::NAN);
+        }
+        let mut means = Vec::with_capacity(BOOTSTRAPS);
+        for bootstrap_index in 0..BOOTSTRAPS {
+            let bootstrap_seed = mix64(
+                ROOT_SEED
+                    ^ domain
+                    ^ (bootstrap_index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15),
+            );
+            let mut total = 0.0;
+            for draw in 0..values.len() {
+                let draw_seed = mix64(
+                    bootstrap_seed
+                        ^ (draw as u64).wrapping_mul(0xD1B5_4A32_D192_ED03),
+                );
+                let index = (draw_seed % values.len() as u64) as usize;
+                total += values[index];
+            }
+            means.push(total / values.len() as f64);
+        }
+        means.sort_by(f64::total_cmp);
+        let lower = means[((BOOTSTRAPS as f64 * 0.025) as usize).min(BOOTSTRAPS - 1)];
+        let upper = means[((BOOTSTRAPS as f64 * 0.975) as usize).min(BOOTSTRAPS - 1)];
+        (lower, upper)
+    }
+
+    fn family_domain(family: SceneFamily) -> u64 {
+        match family {
             SceneFamily::Development => 0x5449_4D45_4445_564C,
             SceneFamily::HeldOut => 0x5449_4D45_484F_4C44,
-        };
+        }
+    }
+
+    fn seed_for(replicate: usize, pair: usize, family: SceneFamily) -> u64 {
         mix64(
             ROOT_SEED
-                ^ family_domain
+                ^ family_domain(family)
                 ^ (replicate as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
                 ^ (pair as u64).wrapping_mul(0xD1B5_4A32_D192_ED03),
         )
     }
 
-    pub(super) fn run_report() {
+    fn run_report() {
         println!("VIS-ACT-005 randomized-timing and delayed-view diagnostic");
         println!("event-driven onset/duration/delay; transient RGB evidence; hidden view-success outcomes");
-        println!("fixed-sweep baseline included; resource units remain synthetic");
-        println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tview_attempts_per_episode\texecuted_views\tcompleted_views\tfresh_evidence_rate_per_executed_view\tviews_without_fresh_evidence\trecovery_rate\tmean_recovery_steps_when_recovered\tlatency_units_per_episode\tbudget_violations");
+        println!("paired bootstrap resamples exogenous seed pairs; resource units remain synthetic");
+        println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tremoved_false_persistence_rate\tview_attempts_per_episode\texecuted_views\tcompleted_views\tfresh_evidence_rate_per_executed_view\tviews_without_fresh_evidence\trecovery_rate\tmean_recovery_steps_when_recovered\tlatency_units_per_episode\tbudget_violations\tpaired_delta_loss_vs_passive\tbootstrap95_lo_vs_passive\tbootstrap95_hi_vs_passive\tpaired_delta_loss_vs_fixed_sweep\tbootstrap95_lo_vs_fixed_sweep\tbootstrap95_hi_vs_fixed_sweep");
+
+        let policies = TimedPolicy::ALL;
+        let passive_index = policies
+            .iter()
+            .position(|policy| *policy == TimedPolicy::PassiveNoView)
+            .expect("passive no-view baseline exists");
+        let sweep_index = policies
+            .iter()
+            .position(|policy| *policy == TimedPolicy::FixedSweep)
+            .expect("fixed-sweep baseline exists");
 
         for family in [SceneFamily::Development, SceneFamily::HeldOut] {
-            for policy in TimedPolicy::ALL {
-                let mut aggregate = Aggregate::default();
-                for replicate in 0..WORLD_REPLICATES {
-                    for pair in 0..PAIRS_PER_REPLICATE {
-                        let seed = seed_for(replicate, pair, family);
-                        let persistent = TimedWorld::generated(seed, true, family);
-                        let removed = persistent.paired_with(false);
-                        aggregate.record(run_episode(persistent, policy));
-                        aggregate.record(run_episode(removed, policy));
+            let mut totals = vec![Aggregate::default(); policies.len()];
+            let mut early_onset = vec![Aggregate::default(); policies.len()];
+            let mut late_onset = vec![Aggregate::default(); policies.len()];
+            let pair_count = WORLD_REPLICATES * PAIRS_PER_REPLICATE;
+            let mut paired_losses = vec![Vec::with_capacity(pair_count); policies.len()];
+
+            for replicate in 0..WORLD_REPLICATES {
+                for pair in 0..PAIRS_PER_REPLICATE {
+                    let seed = seed_for(replicate, pair, family);
+                    let persistent = TimedWorld::generated(seed, true, family);
+                    let removed = persistent.paired_with(false);
+                    let is_early = persistent.occlusion_onset <= 2;
+
+                    for (index, policy) in policies.iter().copied().enumerate() {
+                        let present_result = run_episode(persistent, policy);
+                        let removed_result = run_episode(removed, policy);
+                        totals[index].record(present_result);
+                        totals[index].record(removed_result);
+                        if is_early {
+                            early_onset[index].record(present_result);
+                            early_onset[index].record(removed_result);
+                        } else {
+                            late_onset[index].record(present_result);
+                            late_onset[index].record(removed_result);
+                        }
+                        // Treat the paired persistent/removal branches as one
+                        // independent exogenous unit for uncertainty analysis.
+                        paired_losses[index].push(
+                            (present_result.loss + removed_result.loss) / 2.0,
+                        );
                     }
                 }
+            }
 
-                let mean_recovery = if aggregate.recovery_observations == 0 {
+            let family_code = family_domain(family);
+            for (index, policy) in policies.iter().copied().enumerate() {
+                let total = totals[index];
+                let passive_delta =
+                    paired_delta(&paired_losses[index], &paired_losses[passive_index]);
+                let sweep_delta =
+                    paired_delta(&paired_losses[index], &paired_losses[sweep_index]);
+                let (passive_low, passive_high) = paired_bootstrap_ci(
+                    &passive_delta,
+                    family_code ^ (index as u64).wrapping_mul(0xA24B_AED4_963E_E407),
+                );
+                let (sweep_low, sweep_high) = paired_bootstrap_ci(
+                    &sweep_delta,
+                    family_code ^ 0x5357_4545_505F_4349
+                        ^ (index as u64).wrapping_mul(0x9FB2_1C65_1E98_DF25),
+                );
+                let mean_recovery = if total.recovery_observations == 0 {
                     "NA".to_string()
                 } else {
                     format!(
                         "{:.3}",
-                        aggregate.recovery_steps_sum as f64
-                            / aggregate.recovery_observations as f64
+                        total.recovery_steps_sum as f64
+                            / total.recovery_observations as f64
                     )
                 };
                 println!(
-                    "{}\t{}\t{}\t{:.4}\t{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}",
+                    "{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(),
                     policy.name(),
-                    aggregate.episodes,
-                    aggregate.mean_loss(),
-                    Aggregate::rate(aggregate.correct_answered, aggregate.answered),
-                    Aggregate::rate(aggregate.abstentions, aggregate.episodes),
-                    aggregate.view_attempts as f64 / aggregate.episodes.max(1) as f64,
-                    aggregate.executed_views,
-                    aggregate.completed_views,
-                    Aggregate::rate(aggregate.fresh_views, aggregate.executed_views),
-                    aggregate.views_without_fresh,
-                    Aggregate::rate(aggregate.recovery_observations, aggregate.episodes),
+                    total.episodes,
+                    total.mean_loss(),
+                    Aggregate::rate(total.correct_answered, total.answered),
+                    Aggregate::rate(total.abstentions, total.episodes),
+                    Aggregate::rate(total.false_persistence, total.removed_episodes),
+                    total.view_attempts as f64 / total.episodes.max(1) as f64,
+                    total.executed_views,
+                    total.completed_views,
+                    Aggregate::rate(total.fresh_views, total.executed_views),
+                    total.views_without_fresh,
+                    Aggregate::rate(total.recovery_observations, total.episodes),
                     mean_recovery,
-                    aggregate.latency_sum as f64 / aggregate.episodes.max(1) as f64,
-                    aggregate.budget_violations,
+                    total.latency_sum as f64 / total.episodes.max(1) as f64,
+                    total.budget_violations,
+                    mean(&passive_delta),
+                    passive_low,
+                    passive_high,
+                    mean(&sweep_delta),
+                    sweep_low,
+                    sweep_high,
                 );
+            }
+
+            println!(
+                "VIS-ACT-005 timing-stratum diagnostics for {} (early onset <= 2; late onset >= 3)",
+                family.name()
+            );
+            println!("family\tstratum\tpolicy\tepisodes\tmean_loss\tabstention_rate\tremoved_false_persistence_rate\tfresh_evidence_rate_per_executed_view\trecovery_rate\tmean_recovery_steps_when_recovered");
+            for (stratum_name, strata) in [
+                ("early_onset", &early_onset),
+                ("late_onset", &late_onset),
+            ] {
+                for (index, policy) in policies.iter().copied().enumerate() {
+                    let aggregate = strata[index];
+                    let recovery = if aggregate.recovery_observations == 0 {
+                        "NA".to_string()
+                    } else {
+                        format!(
+                            "{:.3}",
+                            aggregate.recovery_steps_sum as f64
+                                / aggregate.recovery_observations as f64
+                        )
+                    };
+                    println!(
+                        "{}\t{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{}\t{}",
+                        family.name(),
+                        stratum_name,
+                        policy.name(),
+                        aggregate.episodes,
+                        aggregate.mean_loss(),
+                        Aggregate::rate(aggregate.abstentions, aggregate.episodes),
+                        Aggregate::rate(aggregate.false_persistence, aggregate.removed_episodes),
+                        Aggregate::rate(aggregate.fresh_views, aggregate.executed_views),
+                        Aggregate::rate(aggregate.recovery_observations, aggregate.episodes),
+                        recovery,
+                    );
+                }
             }
         }
     }
@@ -1499,6 +1656,18 @@ mod randomized_timing {
             if sweep.side_view_available {
                 assert_eq!(TimedPolicy::FixedSweep.propose(&sweep, false), Action::ChangeView);
             }
+        }
+
+        #[test]
+        fn paired_bootstrap_is_deterministic_and_returns_ordered_intervals() {
+            let deltas = [-0.2, -0.1, 0.0, 0.1, 0.05, -0.15];
+            let a = paired_bootstrap_ci(&deltas, 0x1234);
+            let b = paired_bootstrap_ci(&deltas, 0x1234);
+            assert_eq!(a, b);
+            assert!(a.0 <= a.1);
+
+            let zeros = [0.0; 8];
+            assert_eq!(paired_bootstrap_ci(&zeros, 9), (0.0, 0.0));
         }
 
         #[test]
