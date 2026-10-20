@@ -38,7 +38,7 @@ Query relevance is public input, so query-keyed retention may filter irrelevant 
 - Eight latent binary claims; each episode exposes a query over three distinct claim keys. The query asks whether at least two of the three claims currently hold.
 - A 48-event evidence stream contains correlated hot-distractor bursts, independently changing claims, delayed/out-of-order source times, and occasional corrupted evidence.
 - Every episode independently samples distractor frequency, claim-change rate, maximum delay, and corruption from a family-specific range. Factor values vary within each family, so high/low nuisance strata are not assigned solely by the development/held-out label.
-- Policies: bounded FIFO, deterministic seeded uniform reservoir, query-keyed latest-source-time memory, a query-keyed selective policy calibrated on separate development seeds, and a query-keyed hazard-aware policy that estimates per-claim transition hazard from released high-confidence evidence.
+- Policies: bounded FIFO, deterministic seeded uniform reservoir, query-keyed latest-source-time memory, a query-keyed selective policy calibrated on separate development seeds, a naive query-keyed hazard policy, and a grid-posterior query-keyed gap-aware hazard policy that scores same/different observations using their actual source-time gap.
 - Capacities: 1, 2, 3, 4, and 8 evidence entries. Each policy receives the same released stream and public query at each episode/capacity pair.
 - 12 seed replicates × 32 episode seeds = 384 paired episodes per family and policy/capacity.
 - Loss: correct answer = 0; abstention without fresh retained evidence for all three queried claims = 0.25; incorrect answer = 1.
@@ -159,6 +159,18 @@ Before using the hazard result as an engineering acceptance claim, preregister t
 The report prints this model. A deterministic 100,000-draw calibration test verifies that error rates increase from high to medium to low confidence and that the aggregate remains near the profile base rate. The latest candidate uses seed root `0x510E_527F_ADE6_82D1`.
 
 **Interpretation rule:** rerun the full report on the current exact head. If the hazard-aware advantage shrinks or disappears, report that directly; do not restore the leakage to preserve an earlier result. The candidate should only be considered for external comparison if the noisy-confidence results support it, and then it must still pass benchmark-native external evaluation.
+
+## Next candidate: gap-aware likelihood under irregular sampling
+
+The current branch adds issue [VIS-MEM-004](https://github.com/Luminous-Dynamics/symtropy/issues/2422) as a separate policy, `query_keyed_gap_aware`. The naive hazard estimator uses observed transition count divided by elapsed source ticks; under irregular sampling, that is not the correct likelihood. For a symmetric binary Markov process with per-tick flip probability (p) and observation gap (Delta), the probability of a changed value is:
+
+\[
+P(X_{t+\Delta}\ne X_t\mid p)=\frac{1-(1-2p)^\Delta}{2}.
+\]
+
+The new policy maintains bounded fixed-point log-likelihood scores over a small hazard grid, initialized by a documented prior. It only updates from released high-confidence observations in increasing source-time order, discounts stale evidence by the posterior expected hazard, and uses the same task loss / abstention threshold. Reported logical state bytes include its grid posterior. Negative controls check gap-one equivalence, normalization/monotonicity, stale-update rejection and state cost.
+
+The policy was added after inspecting earlier experimental outcomes; it is therefore a candidate for exploration, not a confirmatory claim. The new confidence model, gap-aware policy and fresh seed root must pass exact-head qualification before any new metric is reported. The earlier leakage-contaminated results remain historical and cannot be used to validate the new version.
 
 This is a symbolic evidence-stream benchmark. It isolates memory selection, source-time/provenance and decision behavior. It does not test visual perception, natural language understanding, 3D geometry, manipulation, physical safety, actual wall time, hardware memory, GPU use, or energy. Passing it is a diagnostic step—not proof of external benchmark superiority or deployment readiness.
 
