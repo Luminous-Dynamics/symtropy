@@ -529,7 +529,7 @@ fn report() {
         }
 
         println!("VIS-MEM-002 evaluator-only failure-mode strata (capacity=3; groups may overlap)");
-        println!("STRATUM\\tfamily\\tmode\\tlevel\\tpolicy\\tepisodes\\tmean_loss\\tanswer_rate\\taccuracy_when_answered\\tdelta_loss_vs_fifo\\tbootstrap95_lo_vs_fifo\\tbootstrap95_hi_vs_fifo");
+        println!("STRATUM\tfamily\tmode\tlevel\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
         for (stratum_index, stratum_name) in STRATA_NAMES.iter().copied().enumerate() {
             for level in 0..=1 {
                 for (policy_index, kind) in Kind::ALL.iter().copied().enumerate() {
@@ -548,7 +548,7 @@ fn report() {
                         let (lo, hi) = bootstrap_ci(&cell.delta_vs_fifo, seed);
                         (delta, lo, hi)
                     };
-                    println!("STRATUM\\t{}\\t{}\\t{}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{}\\t{:.4}\\t{:.4}\\t{:.4}",
+                    println!("STRATUM\t{}\t{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.4}\t{:.4}",
                         family.name(), stratum_name, level == 1, kind.name(), cell.n,
                         cell.mean_loss(), cell.answer_rate(), cell.accuracy(), delta, lo, hi);
                 }
