@@ -559,7 +559,7 @@ mod tests {
         BenchmarkCase {
             schema: CASE_SCHEMA_V1.into(),
             case_id: "flood.synthetic.lake-at-rest.v1".into(),
-            claim_ceiling: ClaimTier::HeldOutObservation,
+            claim_ceiling: ClaimTier::AnalyticalOrManufactured,
             target: BenchmarkTarget {
                 quantity: "water_depth".into(),
                 units: "m".into(),
@@ -743,8 +743,7 @@ mod tests {
 
     #[test]
     fn impact_and_operational_claims_require_their_own_context() {
-        let mut impact = case();
-        impact = heldout_case();
+        let mut impact = heldout_case();
         impact.claim_ceiling = ClaimTier::DecisionImpact;
         impact.evidence.push(super::EvidenceRecord {
             class: super::EvidenceClass::DecisionImpact,
@@ -836,9 +835,16 @@ mod tests {
 
     #[test]
     fn claim_ceiling_never_implies_operational_readiness() {
-        let mut spec = case();
+        let mut spec = heldout_case();
         spec.claim_ceiling = ClaimTier::DecisionImpact;
         spec.decision_utility_spec = Some("pre-registered cost-loss policy".into());
+        spec.evidence.push(super::EvidenceRecord {
+            class: super::EvidenceClass::DecisionImpact,
+            status: super::EvidenceStatus::Pass,
+            suite_id: "impact-decision-value-v1".into(),
+            source_uri: None,
+            detail: "Synthetic metadata fixture for decision-value tier".into(),
+        });
         assert_eq!(spec.validate(), Ok(()));
         let result = passing_result(&spec);
         assert_eq!(result.validate_against(&spec), Ok(()));
