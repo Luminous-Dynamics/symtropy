@@ -619,6 +619,65 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             },
             scrapped_jobs_total: summarize_distribution(&scrapped)?,
             measured_rework_attempts: summarize_distribution(&rework)?,
+            variant_wait_statistics: {
+                let variant_count = first_scenario.variant_wait_statistics.len();
+                let mut variant_statistics = Vec::with_capacity(variant_count);
+                for variant_index in 0..variant_count {
+                    let reference_wait = &first_scenario.variant_wait_statistics[variant_index];
+                    let mut sample_counts = Vec::with_capacity(runs.len());
+                    let mut averages = Vec::with_capacity(runs.len());
+                    let mut p95s = Vec::with_capacity(runs.len());
+                    let mut maxima = Vec::with_capacity(runs.len());
+                    let mut all_have_average = true;
+                    let mut all_have_p95 = true;
+                    let mut all_have_maximum = true;
+                    for run in &runs {
+                        let wait = run.scenarios[scenario_index]
+                            .variant_wait_statistics
+                            .get(variant_index)
+                            .ok_or_else(|| "replications_returned_inconsistent_variant_wait_count".to_string())?;
+                        if wait.variant != reference_wait.variant {
+                            return Err("replications_returned_inconsistent_variant_order".into());
+                        }
+                        sample_counts.push(wait.sample_count as f64);
+                        if let Some(value) = wait.average_wait_seconds {
+                            averages.push(value);
+                        } else {
+                            all_have_average = false;
+                        }
+                        if let Some(value) = wait.p95_wait_seconds {
+                            p95s.push(value);
+                        } else {
+                            all_have_p95 = false;
+                        }
+                        if let Some(value) = wait.maximum_wait_seconds {
+                            maxima.push(value as f64);
+                        } else {
+                            all_have_maximum = false;
+                        }
+                    }
+                    variant_statistics.push(VariantWaitScenarioStatistics {
+                        variant: reference_wait.variant,
+                        sample_count: summarize_distribution(&sample_counts)?,
+                        average_wait_seconds: if all_have_average {
+                            Some(summarize_distribution(&averages)?)
+                        } else {
+                            None
+                        },
+                        p95_wait_seconds: if all_have_p95 {
+                            Some(summarize_distribution(&p95s)?)
+                        } else {
+                            None
+                        },
+                        maximum_wait_seconds: if all_have_maximum {
+                            Some(summarize_distribution(&maxima)?)
+                        } else {
+                            None
+                        },
+                    });
+                }
+                variant_statistics
+            },
         });
     }
 
@@ -958,6 +1017,32 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         });
     }
 
+    let variant_wait_statistics = state
+        .variant_wait_samples_seconds
+        .iter()
+        .enumerate()
+        .map(|(variant, samples)| {
+            if samples.is_empty() {
+                return VariantWaitStatistics {
+                    variant,
+                    sample_count: 0,
+                    average_wait_seconds: None,
+                    p95_wait_seconds: None,
+                    maximum_wait_seconds: None,
+                };
+            }
+            let mut sorted: Vec<f64> = samples.iter().map(|value| *value as f64).collect();
+            sorted.sort_by(f64::total_cmp);
+            VariantWaitStatistics {
+                variant,
+                sample_count: samples.len(),
+                average_wait_seconds: Some(sorted.iter().sum::<f64>() / sorted.len() as f64),
+                p95_wait_seconds: Some(quantile_sorted(&sorted, 0.95)),
+                maximum_wait_seconds: samples.iter().copied().max(),
+            }
+        })
+        .collect();
+
     let interstation_buffers: Vec<BufferResult> = catalog
         .buffer_capacities
         .iter()
@@ -984,6 +1069,8 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     };
     Ok(ScenarioResult {
         scenario_id: baseline_id,
+        dispatch_policy: catalog.dispatch_policy,
+        maximum_consecutive_skips: catalog.maximum_consecutive_skips,
         intervention_station_id: extra_server_at
             .map(|index| catalog.stations[index].station_id.clone()),
         added_servers: if extra_server_at.is_some() { 1 } else { 0 },
@@ -1005,6 +1092,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             measured_seconds as f64,
         ),
         interstation_buffers,
+        variant_wait_statistics,
         stations: station_results,
         output_never_exceeds_released_input,
         all_buffers_respected_capacity,
@@ -1437,6 +1525,123 @@ mod tests {
             "../../fixtures/ev_factory_simulation_v0_1.json"
         ))
         .expect("fixture parses")
+    }
+
+    fn test_job(id: u64, variant: usize, consecutive_skips: u32) -> Job {
+        Job {
+            id,
+            variant,
+            enqueued_at_seconds: 0,
+            consecutive_skips,
+        }
+    }
+
+    #[test]
+    fn dispatch_policy_defaults_to_fifo_for_legacy_catalogs() {
+        let original = include_str!("../../fixtures/ev_factory_simulation_v0_1.json");
+        let legacy = original.replace("  \"dispatch_policy\": \"fifo\",\n", "");
+        let catalog: Catalog = serde_json::from_str(&legacy).expect("legacy fixture parses");
+        assert_eq!(catalog.dispatch_policy, DispatchPolicy::Fifo);
+        assert_eq!(catalog.maximum_consecutive_skips, 3);
+    }
+
+    #[test]
+    fn changeover_policy_preserves_fifo_within_variant_and_bounds_skips() {
+        let mut queue = VecDeque::from([
+            test_job(10, 0, 0),
+            test_job(11, 1, 0),
+            test_job(12, 1, 0),
+        ]);
+        let first = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+        )
+        .expect("oldest matching variant");
+        assert_eq!(first.id, 11, "FIFO is preserved within the matching variant");
+        assert_eq!(queue[0].id, 10);
+        assert_eq!(queue[0].consecutive_skips, 1);
+
+        let second = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+        )
+        .expect("next matching-variant job");
+        assert_eq!(second.id, 12, "later same-variant job cannot overtake an earlier one of its variant");
+        assert_eq!(queue[0].consecutive_skips, 2);
+
+        let forced_oldest = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+        )
+        .expect("max-skip aging forces the oldest job");
+        assert_eq!(forced_oldest.id, 10);
+    }
+
+    #[test]
+    fn fifo_policy_and_no_match_fall_back_to_oldest_queue_entry() {
+        let mut fifo = VecDeque::from([test_job(2, 1, 0), test_job(1, 0, 0)]);
+        assert_eq!(
+            select_queued_job(&mut fifo, Some(0), DispatchPolicy::Fifo, 3)
+                .expect("FIFO")
+                .id,
+            2
+        );
+
+        let mut no_match = VecDeque::from([test_job(7, 2, 0), test_job(8, 3, 0)]);
+        assert_eq!(
+            select_queued_job(&mut no_match, Some(1), DispatchPolicy::MinimizeChangeover, 3)
+                .expect("fallback")
+                .id,
+            7
+        );
+    }
+
+    #[test]
+    fn dispatch_policies_share_seed_streams_and_keep_flow_guardrails() {
+        let mut fifo = fixture();
+        fifo.dispatch_policy = DispatchPolicy::Fifo;
+        let mut aware = fixture();
+        aware.dispatch_policy = DispatchPolicy::MinimizeChangeover;
+
+        let fifo_report = evaluate_catalog(&fifo).expect("FIFO report");
+        let aware_report = evaluate_catalog(&aware).expect("variant-aware report");
+        assert_eq!(fifo_report.replication_seeds, aware_report.replication_seeds);
+        assert_eq!(fifo_report.scenario_count, aware_report.scenario_count);
+        assert_eq!(fifo_report.replication_count, 20);
+        assert_eq!(aware_report.replication_count, 20);
+        assert_eq!(fifo_report.dispatch_policy, DispatchPolicy::Fifo);
+        assert_eq!(aware_report.dispatch_policy, DispatchPolicy::MinimizeChangeover);
+        assert!(fifo_report.output_never_exceeds_released_input);
+        assert!(aware_report.output_never_exceeds_released_input);
+        assert!(fifo_report.all_buffers_respected_capacity);
+        assert!(aware_report.all_buffers_respected_capacity);
+        assert!(fifo_report.station_time_accounting_within_horizon);
+        assert!(aware_report.station_time_accounting_within_horizon);
+        assert!(!fifo_report.release_ready);
+        assert!(!aware_report.release_ready);
+
+        for (fifo_scenario, aware_scenario) in fifo_report.scenarios.iter().zip(&aware_report.scenarios) {
+            assert_eq!(fifo_scenario.scenario_id, aware_scenario.scenario_id);
+            assert_eq!(fifo_scenario.released_jobs_total, aware_scenario.released_jobs_total);
+            assert!(fifo_scenario.good_units_total <= fifo_scenario.released_jobs_total);
+            assert!(aware_scenario.good_units_total <= aware_scenario.released_jobs_total);
+            assert_eq!(fifo_scenario.maximum_consecutive_skips, 3);
+            assert_eq!(aware_scenario.maximum_consecutive_skips, 3);
+            assert_eq!(fifo_scenario.variant_wait_statistics.len(), 3);
+            assert_eq!(aware_scenario.variant_wait_statistics.len(), 3);
+        }
+        assert!(aware_report.scenario_statistics.iter().all(|scenario| {
+            scenario.variant_wait_statistics.len() == 3
+                && scenario.variant_wait_statistics.iter().all(|variant| {
+                    variant.sample_count.sample_count == 20
+                })
+        }));
     }
 
     #[test]
