@@ -100,12 +100,10 @@ pub fn projected_error_bound_px(
 
     let viewport_height_px = match model {
         ProjectionModel::Perspective {
-            viewport_height_px,
-            ..
+            viewport_height_px, ..
         }
         | ProjectionModel::Orthographic {
-            viewport_height_px,
-            ..
+            viewport_height_px, ..
         } => viewport_height_px,
     };
     if viewport_height_px == 0 {
