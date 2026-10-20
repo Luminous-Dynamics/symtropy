@@ -779,7 +779,7 @@ mod tests {
         value["evidence_scope"] = json!("authorized_historical");
         let errors =
             evaluate(&value).expect_err("real historical rows require governance clearance");
-        assert!(errors.iter().any(|error| error.contains("authorized"));
+        assert!(errors.iter().any(|error| error.contains("authorized")));
     }
 
     #[test]
