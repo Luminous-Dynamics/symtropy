@@ -364,7 +364,12 @@ fn parse_reference(
         get_str(value, "comparison_protocol_id", "reference manifest")?,
         "comparison protocol ID",
     )?;
-    let oracle = get_object(value, "oracle", "reference manifest")?;
+    let oracle = value
+        .get("oracle")
+        .ok_or_else(|| "reference manifest.oracle missing".to_owned())?;
+    let _ = oracle
+        .as_object()
+        .ok_or_else(|| "reference manifest.oracle must be an object".to_owned())?;
     exact_keys(
         oracle,
         &["method", "identity", "source_ref"],
