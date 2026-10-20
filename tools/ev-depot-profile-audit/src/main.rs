@@ -1,13 +1,7 @@
 use csv::{ReaderBuilder, StringRecord, Trim};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeSet,
-    env, fs,
-    io::Read,
-    path::Path,
-    process::ExitCode,
-};
+use std::{collections::BTreeSet, env, fs, io::Read, path::Path, process::ExitCode};
 use zip::ZipArchive;
 
 const EXPECTED_INTERVALS: usize = 96;
