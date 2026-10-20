@@ -1246,7 +1246,8 @@ mod tests {
     #[test]
     fn duplicate_load_ids_and_dofs_are_rejected() {
         let mut request: Value = serde_json::from_str(BAR_REQUEST).unwrap();
-        request["loads"].as_array_mut().unwrap().push(request["loads"][0].clone());
+        let duplicate_load = request["loads"][0].clone();
+        request["loads"].as_array_mut().unwrap().push(duplicate_load);
         request["boundary_conditions"][0]["dofs"] =
             serde_json::json!(["ux", "ux"]);
         let issues = validate_request_json(&request);
