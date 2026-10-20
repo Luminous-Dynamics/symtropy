@@ -3,7 +3,7 @@
 
 //! Core robotic agent traits and utilities.
 
-use crate::motor::{MotorPlanResult, MotorPlanner};
+use crate::motor::{MotorPlanResult, MotorPlanner, MotorPlannerFault, MotorPlannerStatus};
 use crate::platform::PlatformType;
 use symtropy_physics::body::BodyHandle;
 
