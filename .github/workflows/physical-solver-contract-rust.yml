@@ -95,11 +95,129 @@ jobs:
             and .output_artifact_bytes_verified == false
           ' solver-contract-receipt-verification.json
 
-      - name: Upload validation receipts
+      - name: Verify local output bytes without implying execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          request="schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+          artifact_root="solver-contract-artifacts"
+          mkdir -p "$artifact_root"
+          request_sha256="$(sha256sum "$request" | cut -d ' ' -f 1)"
+          request_id="$(jq -r '.request_id' "$request")"
+          source_revision="$(jq -r '.source_revision' "$request")"
+          outputs_json='[]'
+
+          while IFS= read -r kind; do
+            artifact_ref="\${kind}.json"
+            printf '{"synthetic_fixture_only":true,"output_kind":"%s"}\n' "$kind" \
+              > "$artifact_root/$artifact_ref"
+            artifact_sha256="$(sha256sum "$artifact_root/$artifact_ref" | cut -d ' ' -f 1)"
+            entry="$(jq -cn \
+              --arg kind "$kind" \
+              --arg ref "$artifact_ref" \
+              --arg digest "$artifact_sha256" \
+              '{output_id:("fixture-" + $kind),kind:$kind,sha256:$digest,media_type:"application/json",unit:null,artifact_ref:$ref}')"
+            outputs_json="$(jq -cn --argjson outputs "$outputs_json" --argjson entry "$entry" '$outputs + [$entry]')"
+          done < <(jq -r '.required_outputs[]' "$request")
+
+          jq -n \
+            --slurpfile request "$request" \
+            --arg digest "$request_sha256" \
+            --arg request_id "$request_id" \
+            --arg revision "$source_revision" \
+            --argjson outputs "$outputs_json" '
+            {
+              schema_version:"physical-solver-receipt-v0.1",
+              request_id:$request_id,
+              request_sha256:$digest,
+              source_revision:$revision,
+              adapter:{
+                adapter_id:"synthetic-artifact-byte-fixture",
+                version:"0.1.0",
+                executable_sha256:("b" * 64),
+                configuration_sha256:("c" * 64),
+                solver_name:"synthetic-test-only",
+                solver_version:"0.1.0",
+                solver_build_ref:"fixture-only:no-solver-executed"
+              },
+              status:"PASS",
+              evidence_class:"synthetic",
+              physics_evaluated:$request[0].requested_physics,
+              physics_omitted:[],
+              convergence:{
+                state:"not_applicable",
+                iterations:null,
+                residual:null,
+                mesh_refinement_evaluated:false,
+                details:"Synthetic verifier control only; no solver executed."
+              },
+              outputs:$outputs,
+              uncertainty:{
+                state:"unknown",
+                method:null,
+                summary:"No physical uncertainty is represented in this fixture."
+              },
+              validity_envelope:{
+                supported_geometry:"synthetic fixture only",
+                supported_material_model:"synthetic fixture only",
+                load_regime:"synthetic fixture only",
+                limitations:["No numerical or physical result is asserted."]
+              },
+              claim_ceiling:"Synthetic byte-verification test only; not physical qualification.",
+              diagnostics:[]
+            }' > solver-contract-synthetic-pass-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" \
+            --receipt solver-contract-synthetic-pass-receipt.json \
+            --artifact-root "$artifact_root" \
+            > solver-contract-artifact-verification.json
+          jq -e '
+            .receipt_contract_validation == "PASS"
+            and .producer_status == "PASS"
+            and .artifact_verification_status == "PASS"
+            and .output_artifact_bytes_verified == true
+            and .solver_execution_authenticated == false
+            and .physical_result_qualified == false
+            and .verified_output_count == (.artifact_results | length)
+            and (.artifact_results | all(.[]; .status == "PASS"))
+          ' solver-contract-artifact-verification.json
+
+          first_ref="$(jq -r '.outputs[0].artifact_ref' solver-contract-synthetic-pass-receipt.json)"
+          printf 'deliberately mutated output bytes\n' > "$artifact_root/$first_ref"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" \
+            --receipt solver-contract-synthetic-pass-receipt.json \
+            --artifact-root "$artifact_root" \
+            > solver-contract-artifact-tampered-verification.json
+          jq -e '
+            .artifact_verification_status == "FAIL"
+            and .output_artifact_bytes_verified == false
+            and .physical_result_qualified == false
+            and any(.artifact_results[]; .status == "FAIL")
+          ' solver-contract-artifact-tampered-verification.json
+
+          jq '.outputs[0].artifact_ref = "../outside.json"' \
+            solver-contract-synthetic-pass-receipt.json \
+            > solver-contract-path-escape-receipt.json
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$request" \
+            --receipt solver-contract-path-escape-receipt.json \
+            --artifact-root "$artifact_root" \
+            > solver-contract-artifact-path-escape-verification.json
+          jq -e '
+            .artifact_verification_status == "UNRESOLVED"
+            and .output_artifact_bytes_verified == false
+            and any(.artifact_results[]; .status == "UNRESOLVED")
+          ' solver-contract-artifact-path-escape-verification.json
+
+      - name: Upload validation receipts and reports
         uses: actions/upload-artifact@v4
         with:
           name: physical-solver-contract-receipts
-          path: solver-contract-*-receipt.json
+          path: |
+            solver-contract-*-receipt.json
+            solver-contract-*verification.json
           if-no-files-found: error
           retention-days: 90
 
