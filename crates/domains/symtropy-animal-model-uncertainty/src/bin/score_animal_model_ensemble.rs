@@ -248,6 +248,8 @@ fn build_report(
             "second_action": result.second_action,
             "minimum_loss_difference": result.minimum_loss_difference,
             "maximum_loss_difference": result.maximum_loss_difference,
+            "minimizing_weights": result.minimizing_weights,
+            "maximizing_weights": result.maximizing_weights,
             "stability": result.stability.as_str()
         })).collect::<Vec<Value>>()
     })
