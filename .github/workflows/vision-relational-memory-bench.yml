@@ -124,6 +124,7 @@ jobs:
           grep -Fq "expected_task_loss_reduction_minus_value_of_information" vis-active-query.tsv
           awk -F '\t' '$1 == "PAIRWISE" { if (NF != 7) exit 1; n++ } END { if (n != 3) exit 1 }' vis-active-query.tsv
           grep -Fq "sensing-budget Pareto frontier" vis-active-query.tsv
+          grep -Fq "Requests are evenly scheduled across the fixed 48-tick horizon" vis-active-query.tsv
           awk -F '\t' '$1 == "BUDGET" && $2 == "family" { if (NF != 16) exit 1; header++ } $1 == "BUDGET" && ($2 == "development" || $2 == "held_out") { if (NF != 16) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 80 || seen[8] != 16 || seen[16] != 16 || seen[24] != 16 || seen[32] != 16 || seen[48] != 16) exit 1 }' vis-active-query.tsv
           grep -Fq "STOP_SENSITIVITY" vis-active-query.tsv
           awk -F '\t' '$1 == "STOP_SENSITIVITY" && $2 == "family" { if (NF != 14) exit 1; header++ } $1 == "STOP_SENSITIVITY" && ($2 == "development" || $2 == "held_out") { if (NF != 14) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 8 || seen["0.010"] != 2 || seen["0.040"] != 2 || seen["0.080"] != 2 || seen["0.120"] != 2) exit 1 }' vis-active-query.tsv
