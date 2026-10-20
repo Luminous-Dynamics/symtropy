@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
-    reference_compare::compare_reference_observables,
-    validate_request_bytes, validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
+    reference_compare::compare_reference_observables, validate_request_bytes,
+    validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
 use std::{env, fs, path::Path, process::ExitCode};
 
@@ -121,7 +121,9 @@ fn run() -> Result<(), String> {
                 )?
             }
             (Some(_), _, _) => {
-                return Err("--reference requires --observation-output-id and --artifact-root".to_owned());
+                return Err(
+                    "--reference requires --observation-output-id and --artifact-root".to_owned(),
+                );
             }
             (None, Some(_), _) => {
                 return Err("--observation-output-id requires --reference".to_owned());
@@ -135,7 +137,10 @@ fn run() -> Result<(), String> {
         }
     } else {
         if artifact_root.is_some() || reference_path.is_some() || observation_output_id.is_some() {
-            return Err("--artifact-root, --reference and --observation-output-id require --receipt".to_owned());
+            return Err(
+                "--artifact-root, --reference and --observation-output-id require --receipt"
+                    .to_owned(),
+            );
         }
         let revision = validator_revision.ok_or_else(|| {
             "request validation requires --validator-revision <git-sha>".to_owned()
