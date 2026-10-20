@@ -219,7 +219,7 @@ fn run_workload(item_count: usize, iterations: usize, workload: Workload) {
         assert_eq!(
             unexpected_findings,
             0,
-            "{} at {item_count} items: unexpected oracle findings",
+            "{} at {item_count} items: unexpected oracle findings: {findings:#?}",
             workload.name()
         );
         black_box(&findings);
