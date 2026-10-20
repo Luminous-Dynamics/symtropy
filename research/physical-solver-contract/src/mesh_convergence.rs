@@ -6,9 +6,7 @@
 //! PASS is not physical validation, model credibility, or engineering-use approval.
 
 use crate::{
-    reference_compare::{
-        MAX_NORMALIZED_BYTES, ObservedObservable, parse_observation, safe_relative_path,
-    },
+    reference_compare::{MAX_NORMALIZED_BYTES, parse_observation, safe_relative_path},
     sha256_file, sha256_hex, verify_solver_output_artifact_bytes,
 };
 use serde_json::{Value, json};
@@ -612,6 +610,17 @@ pub fn assess_mesh_refinement_study_bytes(
         .windows(2)
         .map(|pair| pair[0].spec.h_m / pair[1].spec.h_m)
         .collect();
+    if mesh_ratios
+        .iter()
+        .any(|ratio| !ratio.is_finite() || *ratio <= 1.1)
+    {
+        return Ok(unresolved_report(
+            &study,
+            &study_sha256,
+            &levels,
+            "one or more mesh refinement ratios are non-finite or not greater than 1.1",
+        ));
+    }
     let mean_ratio = mesh_ratios.iter().sum::<f64>() / mesh_ratios.len() as f64;
     let ratio_spread = mesh_ratios
         .iter()
@@ -776,13 +785,23 @@ pub fn assess_mesh_refinement_study_bytes(
     }
     if accuracy_status == "UNRESOLVED" {
         diagnostics.push(
-            "relative-error acceptance is undefined because the reference value is zero".to_owned(),
+            "relative-error acceptance is undefined or cannot be computed reliably".to_owned(),
         );
     }
+    let study_status = if convergence_status == "FAIL" || accuracy_status == "FAIL" {
+        "FAIL"
+    } else if convergence_status != "PASS"
+        || accuracy_status == "UNRESOLVED"
+        || accuracy_status == "NOT_SPECIFIED"
+    {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
 
     Ok(json!({
         "schema_version": REPORT_SCHEMA,
-        "study_status": convergence_status,
+        "study_status": study_status,
         "mesh_convergence_status": convergence_status,
         "fine_mesh_accuracy_status": accuracy_status,
         "study_id": study.study_id,
