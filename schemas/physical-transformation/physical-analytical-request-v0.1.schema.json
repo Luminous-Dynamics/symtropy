@@ -433,7 +433,9 @@
       "required": [
         "lower",
         "upper",
-        "unit"
+        "unit",
+        "basis",
+        "source_ref"
       ],
       "properties": {
         "lower": {
@@ -451,6 +453,20 @@
             "Pa",
             "m^4"
           ]
+        },
+        "basis": {
+          "enum": [
+            "instrumented_measurement",
+            "datasheet_tolerance",
+            "engineering_estimate",
+            "scenario_bound"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
         }
       }
     }
