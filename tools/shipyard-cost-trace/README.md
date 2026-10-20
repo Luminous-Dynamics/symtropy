@@ -14,7 +14,7 @@ The nested Cargo workspace isolates this slice from the main Symtropy workspace 
 
 ## Paradigm shift: plan, simulation, observation and finance are different facts
 
-Each event binds a build, exact vessel-configuration SHA-256, task, stage, event identity, source reference, source-permission disposition, and explicit related-event links. Quantity axes are keyed by semantic identity and unit. Quantity events may carry an optional, versioned unit-rate card; direct financial actuals are a separate event kind and are accepted only at Observed stage.
+Each event binds a build, exact vessel-configuration SHA-256, task, stage, event identity, source reference, source-permission disposition plus a permission/terms reference, and explicit related-event links. The permission status is not self-authenticating: the kernel checks that a reference is present but does not validate the referenced licence or authorization. Quantity axes are keyed by semantic identity and unit. Quantity events may carry an optional, versioned unit-rate card; direct financial actuals are a separate event kind and are accepted only at Observed stage.
 
 The audit returns three non-additive views:
 
@@ -30,14 +30,14 @@ Do not add view 2 to view 3. A time record costed at an hourly rate and the invo
 - Duplicate event IDs are invalid.
 - Duplicate line-level financial transaction allocation keys within a build are invalid. Use a source invoice/transaction identifier plus line allocation, not only the invoice header, for the stable key.
 - Financial actuals must be Observed; they cannot be entered as plans or simulations.
-- Empty source references, unresolved rights/access disposition, malformed configuration digests, missing rate-card basis/revision, negative or non-finite quantities, invalid rates and arithmetic overflow are rejected.
+- Empty source references, missing rights/terms reference, unresolved rights/access disposition, malformed configuration digests, missing rate-card basis/revision, negative or non-finite quantities, invalid rates and arithmetic overflow are rejected.
 - Missing plans/observations, mismatched configuration revisions, unresolved references, and cyclic lineage are not auto-filled.
 - Financial actual totals remain partitioned by vessel configuration revision and sum in exact integer minor units. Rate-card estimates remain floating-point estimates and use stable event-ID accumulation order for repeatability; this does not make model estimates exact decimal accounting.
 - The implementation checks that source references are present; it does not fetch/authenticate sources, validate license terms, prove payroll was allocated to a task, or establish that a rate is commercially correct.
 
 ## Test contract
 
-The library unit suite contains 25 authored tests: known-answer quantity variance; simulated-vs-observed separation; missing-plan semantics; configuration-revision mismatch; rate-card estimate vs invoice separation; duplicate event and transaction identities; stage/evidence constraints; malformed digest/source; unresolved rights; missing rate metadata; overflow; unresolved lineage; cross-build/configuration/stage lineage mismatches; lineage-cycle rejection; configuration-scoped financial actuals; exact minor-unit credit reconciliation and overflow rejection; empty-ledger rejection; a 5,000-event lineage chain; and same-stage floating-point aggregation invariance under input permutation. Three integration tests in tests/oracle.rs independently check all 16 pairs of planned/observed integer quantities from 0 through 3, separate cost views, and missing-plan semantics.
+The library unit suite contains 26 authored tests: known-answer quantity variance; simulated-vs-observed separation; missing-plan semantics; configuration-revision mismatch; rate-card estimate vs invoice separation; duplicate event and transaction identities; stage/evidence constraints; malformed digest/source; unresolved rights; missing rate metadata; overflow; unresolved lineage; cross-build/configuration/stage lineage mismatches; lineage-cycle rejection; configuration-scoped financial actuals; exact minor-unit credit reconciliation and overflow rejection; missing rights-reference rejection; empty-ledger rejection; a 5,000-event lineage chain; and same-stage floating-point aggregation invariance under input permutation. Three integration tests in tests/oracle.rs independently check all 16 pairs of planned/observed integer quantities from 0 through 3, separate cost views, and missing-plan semantics.
 
 The three tests in tests/oracle.rs provide an independently hand-calculated tiny arithmetic oracle for 16 planned/observed pairs, cost-view separation, and missing-plan semantics. This is not yet an independent full implementation of the ledger verifier. The next expansion should add frozen fixtures for material movements, rework, overtime, credits, partial execution, and revision propagation, plus a separate verifier implementation. The dedicated workflow runs the current suite, Clippy, release-mode scale characterization and repeat-output comparison; do not claim any gate passed until it reports success on the exact head.
 
