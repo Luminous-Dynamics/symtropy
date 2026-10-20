@@ -3,7 +3,7 @@
 
 //! Core robotic agent traits and utilities.
 
-use crate::motor::MotorPlanner;
+use crate::motor::{MotorPlanResult, MotorPlanner};
 use crate::platform::PlatformType;
 use symtropy_physics::body::BodyHandle;
 
@@ -38,15 +38,40 @@ pub trait RoboticAgent {
         true
     }
 
-    /// Plan per-joint motor commands with the given planner.
+    /// Plan per-joint motor commands and preserve the planner's status.
+    ///
+    /// Consumers of fault-aware planners should prefer this method over the
+    /// legacy vector-only helper so a rejected plan cannot be mistaken for an
+    /// accepted command vector. A rejected result still contains the planner's
+    /// contract-required vector shape; the caller must consult `status` and
+    /// apply the appropriate platform-specific fallback.
+    fn tick_motor_plan_with<P: MotorPlanner>(
+        &mut self,
+        observation: &[f64],
+        danger_level: f64,
+        planner: &mut P,
+    ) -> MotorPlanResult {
+        let gain = self.tick(observation, danger_level);
+        let commands = planner.plan(observation, gain, self.platform().num_actuators());
+        MotorPlanResult {
+            commands,
+            status: planner.status(),
+        }
+    }
+
+    /// Legacy vector-only planning helper.
+    ///
+    /// This preserves source compatibility, but discards typed planner status.
+    /// Safety- or integrity-sensitive callers should use
+    /// `tick_motor_plan_with` and handle a rejected result explicitly.
     fn tick_motor_commands_with<P: MotorPlanner>(
         &mut self,
         observation: &[f64],
         danger_level: f64,
         planner: &mut P,
     ) -> Vec<f64> {
-        let gain = self.tick(observation, danger_level);
-        planner.plan(observation, gain, self.platform().num_actuators())
+        self.tick_motor_plan_with(observation, danger_level, planner)
+            .commands
     }
 
     /// Convenience: run one tick and plan per-joint motor commands using
