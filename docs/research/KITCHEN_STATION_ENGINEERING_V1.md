@@ -142,6 +142,23 @@ These are stretch targets to test, not literature-derived guarantees, certificat
 - A household prototype cannot establish food-service compliance or product certification.
 - No prototype, measured savings, hygiene improvement or superiority is claimed here.
 
+## 6.1. Current standards and South African deployment boundary
+
+A fresh standards check changes the compliance checklist: NSF's Joint Committee on Food Equipment posted **NSF/ANSI 2-2026** on 25 September 2026 (revision 14). Its stated scope is minimum food-protection and sanitation requirements for food-handling/processing equipment materials, design, fabrication, construction and performance. That is a version to review for commercial food-service designs; this brief is not an interpretation of the paid standard and does not imply certification. Source: https://standards.nsf.org/discussion/nsfansi-2-2026-food-equipment-uploaded
+
+South Africa's National Department of Health currently lists R638 of 22 June 2018 under Food Hygiene and Microbiology / food-premises regulations. Commercial deployment must map the design and test plan to the actual applicable R638 clauses, local Environmental Health Practitioner requirements, potable-water/plumbing rules, and any required approval. Do not assume a US NSF listing or FDA model code substitutes for South African compliance. Source: https://www.health.gov.za/food-control-regulations/
+
+For water-stressed and variable-supply deployment, record pressure and supply interruptions as test conditions, not assumed regional constants. South African domestic water norms/standards describe greywater sources such as baths, showers and hand basins and exclude kitchen-sink wastewater from that definition due to its solids and chemical load. Therefore, this design does **not** propose kitchen sink discharge reuse as ordinary greywater, nor any route back to potable, food-contact or final-rinse use. Any recovery/reuse variant is a separate engineering and legal review, not part of the baseline station. Source: https://www.gov.za/sites/default/files/gcis_document/201709/41100gon982.pdf. The applicability of this document and any later amendments must be checked before installation.
+
+## 6.2. Industry benchmark baseline: feature parity is not the breakthrough
+
+A concrete commercial reference is KOHLER's Prolific 23-inch workstation sink: its current product page lists three graduated accessory ledges, a cutting board, two grated racks, colander and wash bin, plus a cone-shaped bowl/drain geometry. This shows that adjustable accessory arrangements and multi-function bowls are already established product features. It does not supply independent task-water, splash-deposition, drying-time or repair-time evidence.
+
+- KOHLER Prolific 23-inch product page: https://la.kohler.com/en/product-detail/23650
+- KOHLER Strive workstation feature example: https://la.kohler.com/en/product-detail/33657-PC
+
+Benchmark at least one mainstream workstation sink and one conventional sink/rack setup. Capture product model/revision, installation geometry, accessory list, published materials and dimensions, parts/warranty information available to the buyer, measured water pressure and measured flow. Public marketing claims are hypotheses to test, not measured outcomes.
+
 ## 7. Implementation sequence
 
 1. Assemble an inexpensive, instrumented baseline: known-volume collection or calibrated flow meter, pressure and temperature observations, standardized plate/pot/cup set, safe tracer, scale, stopwatch and ambient thermometer/hygrometer.
