@@ -2,8 +2,8 @@
 
 //! Verify the frozen model-set adequacy oracle without running ecology.
 
-use symtropy_animal_model_set_adequacy::validate_embedded_oracle;
 use std::process;
+use symtropy_animal_model_set_adequacy::validate_embedded_oracle;
 
 fn main() {
     match validate_embedded_oracle() {
