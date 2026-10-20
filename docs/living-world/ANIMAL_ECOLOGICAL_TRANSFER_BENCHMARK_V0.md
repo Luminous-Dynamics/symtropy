@@ -46,6 +46,10 @@ Compare candidates and baselines with the same initial states, exogenous random 
 
 These reference different layers. Do not rank an embodied fly simulator, a behavior representation benchmark, a tracking benchmark, and a multi-species ecology simulator using one shared scalar.
 
+- The [Bio-logger Ethogram Benchmark (BEBE)](https://doi.org/10.1186/s40462-024-00511-8) reports 1,654 hours from 149 individuals across nine taxa for behavior classification from animal-borne tags. It supplies useful sensor-to-ethogram comparisons, not a direct test of an autonomous agent's closed-loop response to ecology changes.
+- [DISK](https://doi.org/10.1038/s41592-025-02893-y), published in *Nature Methods* on 4 December 2025 (2026 volume), evaluates missing-skeleton imputation across seven animal skeleton datasets. It reports RMSE, MPJPE, and PCK@0.01 on missing keypoints; those metrics should be used for the pose-data layer, not substituted for policy or ecosystem validity.
+- [Movebank's data policy](https://www.movebank.org/cms/movebank-content/data-policy) makes access and reuse study-specific, with owner-controlled permissions/licenses; it notes that animals and tags should not be presumed unique across studies and calls for extra protections for threatened or at-risk populations. Public-data status or an upstream code license is not a substitute for an asset-by-asset permission and location-sensitivity audit.
+
 ## Experimental protocol
 
 ### Frozen run identity
