@@ -180,11 +180,12 @@ pub fn assess(world: &World, profiles: Vec<ConnectorProfile>) -> Check<DfdAssess
         match profile.disassembly_effort_person_minutes {
             Some(minutes) => {
                 vector.effort_declared_count += 1;
-                let current = vector.declared_effort_total_person_minutes.unwrap_or(0);
-                vector.declared_effort_total_person_minutes = Some(
-                    current.checked_add(minutes)
-                        .ok_or_else(|| "declared DfD effort total overflow".to_owned())?
-                );
+                if let Some(current) = vector.declared_effort_total_person_minutes {
+                    vector.declared_effort_total_person_minutes = Some(
+                        current.checked_add(minutes)
+                            .ok_or_else(|| "declared DfD effort total overflow".to_owned())?
+                    );
+                }
             }
             None => vector.declared_effort_total_person_minutes = None,
         }
@@ -366,6 +367,20 @@ mod tests {
         let left = assess(&world, vec![a.clone(), b.clone()]).expect("left order");
         let right = assess(&world, vec![b, a]).expect("right order");
         assert_eq!(left, right);
+    }
+
+
+    #[test]
+    fn missing_effort_stays_unresolved_even_when_later_profiles_have_effort() {
+        let world = world_with_two_connections();
+        let mut first = known_profile("AB", 5, ConnectorKind::ReversibleFastener);
+        first.disassembly_effort_person_minutes = None;
+        let second = known_profile("BC", 12, ConnectorKind::CutRequired);
+        let result = assess(&world, vec![first, second]).expect("missing effort is representable");
+        assert_eq!(result.status, AssessmentStatus::Unresolved);
+        assert_eq!(result.vector.effort_declared_count, 1);
+        assert_eq!(result.vector.declared_effort_total_person_minutes, None);
+        assert_eq!(result.unresolved_connection_ids, vec!["AB"]);
     }
 
     #[test]
