@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -168,7 +168,7 @@ fn required_finite_nonnegative(
 
 fn metric_summary(values: &[f64]) -> Value {
     let mut sorted = values.to_vec();
-    sorted.sort_by(f64::total_cmp);
+    sorted.sort_by(|left, right| left.total_cmp(right));
     let quantile = |p: f64| -> Value {
         if sorted.is_empty() {
             Value::Null
@@ -593,7 +593,7 @@ mod tests {
     fn tripinfo_verification_rejects_invalid_completed_trip_metrics() {
         let expected = ids(&["A_00000"]);
         let xml = r#"<tripinfos><tripinfo id="A_00000" arrival="10" duration="NaN" waitingTime="0" timeLoss="0" departDelay="0" routeLength="1"/></tripinfos>"#;
-        assert!(parse_sumo_outcomes(xml, &expected).unwrap_err().contains("not numeric"));
+        assert!(parse_sumo_outcomes(xml, &expected).unwrap_err().contains("must be finite and non-negative"));
     }
 
     #[test]
