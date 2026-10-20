@@ -29,13 +29,10 @@ use symtropy_animal_model_uncertainty::decision::{
     compare_actions_under_weight_uncertainty, score_model_ensemble, score_weight_sensitivity,
 };
 
-#[cfg(test)]
 const SYNTHETIC_EXAMPLE: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_EXAMPLE_V1.json");
-#[cfg(test)]
 const EMBEDDED_INPUT_SCHEMA: &str =
     include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json");
-#[cfg(test)]
 const EMBEDDED_REPORT_SCHEMA: &str = include_str!(
     "../../../../../docs/living-world/ANIMAL_MODEL_DECISION_RISK_REPORT_V1.schema.json"
 );
@@ -285,12 +282,45 @@ fn build_report(
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
     let Some(path) = arguments.next() else {
-        eprintln!("usage: score_animal_model_ensemble <outcomes.json>");
+        eprintln!(
+            "usage: score_animal_model_ensemble <outcomes.json>\\n\\
+             options: --help, --example, --input-schema, --report-schema"
+        );
         process::exit(2);
     };
     if arguments.next().is_some() {
-        eprintln!("usage: score_animal_model_ensemble <outcomes.json>");
+        eprintln!(
+            "usage: score_animal_model_ensemble <outcomes.json>\\n\\
+             options: --help, --example, --input-schema, --report-schema"
+        );
         process::exit(2);
+    }
+
+    match path.to_str() {
+        Some("--help" | "-h") => {
+            println!(
+                "Score declared action losses across registered ecological models.\\n\\
+                 Usage: score_animal_model_ensemble <outcomes.json>\\n\\
+                 --example       print a synthetic input example\\n\\
+                 --input-schema  print the expected input schema\\n\\
+                 --report-schema print the risk report schema\\n\\
+                 This computes conditional risk only; it does not validate model-set adequacy."
+            );
+            return;
+        }
+        Some("--example") => {
+            print!("{SYNTHETIC_EXAMPLE}");
+            return;
+        }
+        Some("--input-schema") => {
+            print!("{EMBEDDED_INPUT_SCHEMA}");
+            return;
+        }
+        Some("--report-schema") => {
+            print!("{EMBEDDED_REPORT_SCHEMA}");
+            return;
+        }
+        _ => {}
     }
 
     let raw = match fs::read_to_string(&path) {
