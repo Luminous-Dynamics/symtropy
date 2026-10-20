@@ -11,6 +11,7 @@ on:
       - "schemas/physical-transformation/analytical-fixtures/**"
       - "schemas/physical-transformation/physical-analytical-*.schema.json"
       - ".github/workflows/physical-analytical-adapter.yml"
+      - ".github/workflows/physical-transformation-reference.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
@@ -21,6 +22,7 @@ on:
       - "schemas/physical-transformation/analytical-fixtures/**"
       - "schemas/physical-transformation/physical-analytical-*.schema.json"
       - ".github/workflows/physical-analytical-adapter.yml"
+      - ".github/workflows/physical-transformation-reference.yml"
   workflow_dispatch:
 
 permissions:
