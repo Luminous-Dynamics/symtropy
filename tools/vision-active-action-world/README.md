@@ -16,7 +16,7 @@ rustc --edition=2024 --test tools/vision-active-action-world.rs -o /tmp/vis-act-
 /tmp/vis-act-world-tests
 ```
 
-The focused workflow `.github/workflows/vision-active-action-bench.yml` runs both the earlier hand-authored diagnostic harness and this generated-world harness, then uploads both TSV reports.
+The focused workflow `.github/workflows/vision-active-action-bench.yml` runs both the earlier hand-authored diagnostic harness and this generated-world harness, then uploads both TSV reports. The causal-world report repeats each profile across eight independent world-seed sets (36 episodes per set); the random policy adds 16 policy seeds within each set, which are not independent world samples. Report columns separate overall loss, run-oracle regret, action value, latency/sensor unit use, and loss strata for high occlusion, high blur, high distractor salience, and high novelty.
 
 ## How this differs from VIS-ACT-001's first pilot
 
