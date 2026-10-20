@@ -37,12 +37,15 @@ fn parse(bytes: &[u8], path: &Path) -> Check<Value> {
 }
 
 fn string<'a>(v: &'a Value, key: &str, at: &str) -> Check<&'a str> {
-    v.get(key).and_then(Value::as_str)
+    v.get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{at}.{key}: expected string"))
 }
 
 fn array<'a>(v: &'a Value, key: &str, at: &str) -> Check<&'a [Value]> {
-    v.get(key).and_then(Value::as_array).map(Vec::as_slice)
+    v.get(key)
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
         .ok_or_else(|| format!("{at}.{key}: expected array"))
 }
 
@@ -78,7 +81,9 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
         || index.get("fixture_sha256").and_then(Value::as_str) != Some(hash(fixture_bytes).as_str())
         || index.get("scenario_count").and_then(Value::as_u64) != Some(CASE_IDS.len() as u64)
     {
-        return Err("index metadata, source SHA, fixture digest, or case count mismatch".to_owned());
+        return Err(
+            "index metadata, source SHA, fixture digest, or case count mismatch".to_owned(),
+        );
     }
     let indexed = array(&index, "cases", "index")?;
     if indexed.len() != CASE_IDS.len() {
@@ -89,8 +94,8 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
     let sumo_path = root.join("sumo-version.txt");
     let netconvert_version = String::from_utf8(read(&netconvert_path)?)
         .map_err(|_| "netconvert version is not UTF-8".to_owned())?;
-    let sumo_version = String::from_utf8(read(&sumo_path)?)
-        .map_err(|_| "SUMO version is not UTF-8".to_owned())?;
+    let sumo_version =
+        String::from_utf8(read(&sumo_path)?).map_err(|_| "SUMO version is not UTF-8".to_owned())?;
     if !netconvert_version.contains(SUMO_VERSION) || !sumo_version.contains(SUMO_VERSION) {
         return Err(format!("runtime did not report pinned {SUMO_VERSION}"));
     }
@@ -101,9 +106,7 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
         let case = &cases[i];
         let row = &indexed[i];
         let at = format!("case[{case_id}]");
-        if string(row, "case_id", &at)? != case_id
-            || string(row, "directory", &at)? != case_id
-        {
+        if string(row, "case_id", &at)? != case_id || string(row, "directory", &at)? != case_id {
             return Err(format!("{at}: index case identity mismatch"));
         }
         let dir = root.join(case_id);
@@ -121,9 +124,13 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
         {
             return Err(format!("{at}: manifest metadata/claim boundary mismatch"));
         }
-        let manifest_files = manifest.get("files_sha256").and_then(Value::as_object)
+        let manifest_files = manifest
+            .get("files_sha256")
+            .and_then(Value::as_object)
             .ok_or_else(|| format!("{at}: missing manifest files_sha256"))?;
-        let index_files = row.get("file_sha256").and_then(Value::as_object)
+        let index_files = row
+            .get("file_sha256")
+            .and_then(Value::as_object)
             .ok_or_else(|| format!("{at}: missing index file_sha256"))?;
         let mut verified_files = serde_json::Map::new();
         for file in FILES {
@@ -134,8 +141,7 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             {
                 return Err(format!("{at}: file digest mismatch for {file}"));
             }
-            let xml = String::from_utf8(bytes)
-                .map_err(|_| format!("{at}: {file} is not UTF-8"))?;
+            let xml = String::from_utf8(bytes).map_err(|_| format!("{at}: {file} is not UTF-8"))?;
             if !xml.starts_with("<?xml") || !xml.contains("</") {
                 return Err(format!("{at}: {file} does not resemble an XML document"));
             }
@@ -171,18 +177,28 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
             }
         }
         let expected_vehicles: u64 = cfg_demands.iter().try_fold(0u64, |sum, demand| {
-            let count = demand.get("vehicles").and_then(Value::as_u64)
+            let count = demand
+                .get("vehicles")
+                .and_then(Value::as_u64)
                 .ok_or_else(|| format!("{at}: invalid vehicle count"))?;
-            sum.checked_add(count).ok_or_else(|| format!("{at}: vehicle count overflow"))
+            sum.checked_add(count)
+                .ok_or_else(|| format!("{at}: vehicle count overflow"))
         })?;
         let exported_vehicles = routes_xml.matches("<vehicle id=").count() as u64;
         if exported_vehicles != expected_vehicles
             || manifest.get("exported_vehicles").and_then(Value::as_u64) != Some(expected_vehicles)
             || manifest.get("network_edges").and_then(Value::as_u64) != Some(cfg_edges.len() as u64)
-            || manifest.get("demand_streams").and_then(Value::as_u64) != Some(cfg_demands.len() as u64)
-            || manifest.get("sinks").and_then(Value::as_array).map(Vec::len) != Some(cfg_sinks.len())
+            || manifest.get("demand_streams").and_then(Value::as_u64)
+                != Some(cfg_demands.len() as u64)
+            || manifest
+                .get("sinks")
+                .and_then(Value::as_array)
+                .map(Vec::len)
+                != Some(cfg_sinks.len())
         {
-            return Err(format!("{at}: exported graph/demand/sink inventory differs from fixture"));
+            return Err(format!(
+                "{at}: exported graph/demand/sink inventory differs from fixture"
+            ));
         }
 
         let net_path = dir.join("network.net.xml");
@@ -231,7 +247,10 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
 fn run() -> Check<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
-        return Err("usage: verify_sumo_export <fixture.json> <export-root> <expected-source-sha>".to_owned());
+        return Err(
+            "usage: verify_sumo_export <fixture.json> <export-root> <expected-source-sha>"
+                .to_owned(),
+        );
     }
     let fixture_path = Path::new(&args[1]);
     let fixture_bytes = read(fixture_path)?;
@@ -239,8 +258,7 @@ fn run() -> Check<()> {
     let output = PathBuf::from(&args[2]).join("sumo-verification-receipt.json");
     let bytes = serde_json::to_vec_pretty(&receipt)
         .map_err(|e| format!("serialize verification receipt: {e}"))?;
-    fs::write(&output, &bytes)
-        .map_err(|e| format!("write {}: {e}", output.display()))?;
+    fs::write(&output, &bytes).map_err(|e| format!("write {}: {e}", output.display()))?;
     println!("{}", String::from_utf8_lossy(&bytes));
     Ok(())
 }
