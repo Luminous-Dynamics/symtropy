@@ -282,7 +282,6 @@ fn parse_sumo_outcomes(xml: &str, expected_ids: &BTreeSet<String>) -> Check<Valu
     }))
 }
 
-
 fn semantic_comparability(case: &Value, manifest: &Value, at: &str) -> Check<Value> {
     let edges = array(case, "edges", at)?;
     let sinks = array(case, "sinks", at)?;
@@ -296,13 +295,15 @@ fn semantic_comparability(case: &Value, manifest: &Value, at: &str) -> Check<Val
             .find(|gap| gap.contains(needle))
             .map(str::to_owned)
             .ok_or_else(|| {
-                format!("{at}: manifest omitted required semantic-gap declaration containing {needle:?}")
+                format!(
+                    "{at}: manifest omitted required semantic-gap declaration containing {needle:?}"
+                )
             })
     };
 
-    let edge_limits_declared = edges.iter().any(|edge| {
-        edge.get("capacity_per_step").is_some() || edge.get("storage").is_some()
-    });
+    let edge_limits_declared = edges
+        .iter()
+        .any(|edge| edge.get("capacity_per_step").is_some() || edge.get("storage").is_some());
     if edge_limits_declared {
         reasons.push(json!({
             "code": "EDGE_CAPACITY_STORAGE_UNCALIBRATED",
@@ -325,7 +326,11 @@ fn semantic_comparability(case: &Value, manifest: &Value, at: &str) -> Check<Val
     }
 
     let accessible_demand = demands.iter().any(|demand| {
-        demand.get("accessible_vehicles").and_then(Value::as_u64).unwrap_or(0) > 0
+        demand
+            .get("accessible_vehicles")
+            .and_then(Value::as_u64)
+            .unwrap_or(0)
+            > 0
     });
     if accessible_demand {
         reasons.push(json!({
@@ -766,7 +771,10 @@ mod tests {
                 .iter()
                 .map(|reason| reason["code"].as_str().expect("reason code"))
                 .collect();
-            assert!(codes.contains(&"EDGE_CAPACITY_STORAGE_UNCALIBRATED"), "{id}");
+            assert!(
+                codes.contains(&"EDGE_CAPACITY_STORAGE_UNCALIBRATED"),
+                "{id}"
+            );
             assert!(codes.contains(&"SINK_SERVICE_GATES_NOT_ENFORCED"), "{id}");
             assert!(codes.contains(&"ACCESSIBILITY_LABEL_ONLY"), "{id}");
             if id == "ENTRY_CLOSURE_DURING_DEPARTURES_003" {
