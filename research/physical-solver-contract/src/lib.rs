@@ -652,8 +652,8 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
 
     let receipt: Value = serde_json::from_slice(receipt_bytes)
         .map_err(|error| format!("invalid solver receipt JSON: {error}"))?;
-    exact_keys(
-        &receipt,
+    allowed_keys(
+        object(&receipt, "receipt", "receipt")?,
         &[
             "schema_version",
             "request_id",
@@ -671,6 +671,7 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
             "claim_ceiling",
             "diagnostics",
         ],
+        &["input_artifacts"],
         "receipt",
     )?;
 
@@ -912,6 +913,39 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
             return Err(format!(
                 "{at}.artifact_ref must be non-empty and at most 2048 bytes"
             ));
+        }
+    }
+
+    if let Some(input_artifacts) = receipt.get("input_artifacts") {
+        let input_artifacts = input_artifacts
+            .as_array()
+            .ok_or_else(|| "receipt.input_artifacts must be an array when present".to_owned())?;
+        let mut input_ids = BTreeSet::new();
+        for (index, input) in input_artifacts.iter().enumerate() {
+            let at = format!("receipt.input_artifacts[{index}]");
+            exact_keys(
+                input,
+                &["input_id", "kind", "sha256", "media_type", "artifact_ref"],
+                &at,
+            )?;
+            let input_id = string(input, "input_id", &at)?;
+            token(&input_id, "input artifact ID")?;
+            if !input_ids.insert(input_id) {
+                return Err(format!("{at}.input_id is duplicated"));
+            }
+            let kind = string(input, "kind", &at)?;
+            if kind.trim().is_empty() || kind.len() > 128 {
+                return Err(format!("{at}.kind must be non-empty and at most 128 bytes"));
+            }
+            validate_hex(&string(input, "sha256", &at)?, 64, "input artifact SHA-256")?;
+            let media_type = string(input, "media_type", &at)?;
+            if media_type.trim().is_empty() || media_type.len() > 128 {
+                return Err(format!("{at}.media_type must be non-empty and at most 128 bytes"));
+            }
+            let artifact_ref = string(input, "artifact_ref", &at)?;
+            if artifact_ref.trim().is_empty() || artifact_ref.len() > 2048 {
+                return Err(format!("{at}.artifact_ref must be non-empty and at most 2048 bytes"));
+            }
         }
     }
 
