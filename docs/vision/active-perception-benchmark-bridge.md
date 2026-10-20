@@ -45,10 +45,15 @@ Keep the vision model and environment fixed when attributing gains to active-per
 - no acquisition / passive memory; always-view when legal; deterministic or randomized view under the same acquisition budget;
 - confidence-threshold and surprise/novelty-triggered policies;
 - no memory, last observation, bounded FIFO/sparse retention, confidence-gated overwrite, provenance-and-time-aware belief memory, and active revision after disconfirmation;
+- uniform reservoir sampling as a baseline, plus a two-timescale recency-protected reservoir that pins the latest direct non-occluded evidence separately from a one-entry uniform historical sample;
 - compute escalation and a task-value/expected-value-of-information policy where that action is legal and its cost can be measured;
 - an evaluator-only feasible oracle for regret, plus a clearly labeled clairvoyant ceiling that is **never** counted as an eligible policy.
 
 Do not silently change a VLM, prompt, resolution, crop strategy, tracking model, inference precision, action decoder, or planner between baseline and proposed policy. If any component must change, run a factorial ablation to isolate its contribution. Compare under matched total budgets, not the same number of policy calls while omitting allocator, view-motion, retry or memory costs.
+
+## Qualified memory diagnostic and next hypothesis
+
+At the exact prior head 869d8217270db05cd1bc06cb5b3f7edca9a90857, the rendered/timing diagnostic reported held-out mean loss of **0.1927** for uniform_reservoir_2, **0.0794** for bounded_fifo, and **0.0859** for fixed_sweep. The report's paired bootstrap interval for reservoir versus fixed sweep was **[0.0885, 0.1237]** for the loss increase. Its paired point difference versus FIFO was +0.1133; the report did not emit a FIFO-specific confidence interval. Reservoir and FIFO had the same aggregate acquisition/recovery counts in this generator, while reservoir abstention was 0.7708 versus FIFO's 0.3177. This motivates a recency-protected two-timescale candidate, but does not establish a universal ranking or prove causal mediation. The next run keeps those claims bounded and adds a regression proving that a later occluded frame cannot evict the latest direct evidence from the protected slot.
 
 ## Required measurements
 

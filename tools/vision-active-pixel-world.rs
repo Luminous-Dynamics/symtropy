@@ -377,6 +377,7 @@ enum Policy {
     ProvenancePassive,
     ActiveRevision,
     UniformReservoir,
+    RecencyProtectedReservoir,
 }
 
 impl Policy {
@@ -389,6 +390,7 @@ impl Policy {
             Self::ProvenancePassive => "provenance_memory_passive",
             Self::ActiveRevision => "active_revision",
             Self::UniformReservoir => "uniform_reservoir_2",
+            Self::RecencyProtectedReservoir => "recency_protected_reservoir_2",
         }
     }
 
@@ -396,7 +398,7 @@ impl Policy {
         match self {
             Self::NoMemory => 0,
             Self::LastObservation | Self::ConfidenceGated | Self::ProvenancePassive | Self::ActiveRevision => 1,
-            Self::BoundedFifo | Self::UniformReservoir => 2,
+            Self::BoundedFifo | Self::UniformReservoir | Self::RecencyProtectedReservoir => 2,
         }
     }
 
@@ -426,6 +428,14 @@ enum Memory {
         seen: u64,
         actor_seed: u64,
     },
+    /// Two timescales: preserve the latest direct cue while independently
+    /// sampling one historical frame. Occlusion cannot evict the direct cue.
+    RecencyProtectedReservoir {
+        latest_informative: Option<Evidence>,
+        archive: VecDeque<Evidence>,
+        seen: u64,
+        actor_seed: u64,
+    },
 }
 
 impl Memory {
@@ -442,6 +452,12 @@ impl Memory {
             Policy::ProvenancePassive | Policy::ActiveRevision => Self::ProvenanceLatest(None),
             Policy::UniformReservoir => Self::UniformReservoir {
                 entries: VecDeque::with_capacity(2),
+                seen: 0,
+                actor_seed,
+            },
+            Policy::RecencyProtectedReservoir => Self::RecencyProtectedReservoir {
+                latest_informative: None,
+                archive: VecDeque::with_capacity(1),
                 seen: 0,
                 actor_seed,
             },
@@ -491,6 +507,26 @@ impl Memory {
                     }
                 }
             }
+            Self::RecencyProtectedReservoir { latest_informative, archive, seen, actor_seed } => {
+                if evidence.cue != Cue::Occluded {
+                    *latest_informative = Some(evidence);
+                }
+                *seen = (*seen).saturating_add(1);
+                if archive.is_empty() {
+                    archive.push_back(evidence);
+                } else {
+                    // The archive is a one-entry uniform sample. It is kept
+                    // separate from the protected current-evidence slot.
+                    let draw = mix64(
+                        *actor_seed
+                            ^ (*seen).wrapping_mul(0xD1B5_4A32_D192_ED03)
+                            ^ 0x5245_4350_524F_5445,
+                    ) % *seen;
+                    if draw == 0 {
+                        archive[0] = evidence;
+                    }
+                }
+            }
         }
     }
 
@@ -524,6 +560,17 @@ impl Memory {
                     .filter(|e| e.cue != Cue::Occluded && terminal.tick.saturating_sub(e.tick) <= 1)
                     .max_by_key(|e| e.tick)
                     .and_then(|e| e.cue.decision())
+                    .unwrap_or(Decision::Abstain),
+                _ => Decision::Abstain,
+            },
+            Policy::RecencyProtectedReservoir => match self {
+                Self::RecencyProtectedReservoir { latest_informative, archive, .. } => latest_informative
+                    .filter(|e| terminal.tick.saturating_sub(e.tick) <= 1)
+                    .and_then(|e| e.cue.decision())
+                    .or_else(|| archive.iter()
+                        .filter(|e| e.cue != Cue::Occluded && terminal.tick.saturating_sub(e.tick) <= 1)
+                        .max_by_key(|e| e.tick)
+                        .and_then(|e| e.cue.decision()))
                     .unwrap_or(Decision::Abstain),
                 _ => Decision::Abstain,
             },
@@ -718,6 +765,8 @@ fn run_report() {
         Policy::ConfidenceGated,
         Policy::ProvenancePassive,
         Policy::ActiveRevision,
+        Policy::UniformReservoir,
+        Policy::RecencyProtectedReservoir,
     ];
     let families = [SceneFamily::Development, SceneFamily::HeldOut];
 
@@ -1088,10 +1137,11 @@ mod randomized_timing {
         FixedSweep,
         RandomLegalView,
         UniformReservoir,
+        RecencyProtectedReservoir,
     }
 
     impl TimedPolicy {
-        const ALL: [Self; 10] = [
+        const ALL: [Self; 11] = [
             Self::NoMemory,
             Self::PassiveNoView,
             Self::LastObservation,
@@ -1102,6 +1152,7 @@ mod randomized_timing {
             Self::FixedSweep,
             Self::RandomLegalView,
             Self::UniformReservoir,
+            Self::RecencyProtectedReservoir,
         ];
 
         fn name(self) -> &'static str {
@@ -1116,6 +1167,7 @@ mod randomized_timing {
                 Self::FixedSweep => "fixed_sweep",
                 Self::RandomLegalView => "random_legal_view",
                 Self::UniformReservoir => "uniform_reservoir_2",
+                Self::RecencyProtectedReservoir => "recency_protected_reservoir_2",
             }
         }
 
@@ -1129,6 +1181,7 @@ mod randomized_timing {
                 Self::ActiveRevision => Policy::ActiveRevision,
                 Self::RandomLegalView => Policy::BoundedFifo,
                 Self::UniformReservoir => Policy::UniformReservoir,
+                Self::RecencyProtectedReservoir => Policy::RecencyProtectedReservoir,
             }
         }
 
@@ -1899,6 +1952,52 @@ mod randomized_timing {
                 assert_eq!(left_entries, right_entries);
                 assert_eq!(*left_seen, u64::from(tick) + 1);
                 assert_eq!(*left_seen, *right_seen);
+            }
+        }
+
+        #[test]
+        fn recency_protected_reservoir_preserves_direct_evidence_through_occlusion() {
+            let (base, _) = paired(0xBEEF_A11CE, SceneFamily::HeldOut);
+            let world = TimedWorld {
+                occlusion_onset: 1,
+                occlusion_duration: 4,
+                view_delay: 1,
+                view_available: true,
+                view_successful: true,
+                ..base
+            };
+            let receipt = ViewReceipt {
+                requested_tick: 1,
+                completion_tick: 2,
+                executed: true,
+                successful: true,
+            };
+
+            for (terminal_present, expected_cue, expected_decision) in [
+                (true, Cue::Present, Decision::Present),
+                (false, Cue::Absent, Decision::Absent),
+            ] {
+                let branch = world.paired_with(terminal_present);
+                let mut memory = Memory::new_seeded(Policy::RecencyProtectedReservoir, 0xA11CE);
+                let initial = branch.frame(0, false, None);
+                assert_eq!(perceive(&initial).cue, Cue::Present);
+                memory.observe(&initial);
+
+                let occluded = branch.frame(1, false, None);
+                assert_eq!(perceive(&occluded).cue, Cue::Occluded);
+                memory.observe(&occluded);
+
+                let revealed = branch.frame(2, true, Some(receipt));
+                assert_eq!(perceive(&revealed).cue, expected_cue);
+                memory.observe(&revealed);
+
+                let terminal = branch.frame(3, true, Some(receipt));
+                assert_eq!(perceive(&terminal).cue, Cue::Occluded);
+                memory.observe(&terminal);
+                assert_eq!(
+                    memory.decide(Policy::RecencyProtectedReservoir, &terminal),
+                    expected_decision
+                );
             }
         }
 
