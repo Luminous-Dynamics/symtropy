@@ -6,7 +6,7 @@
 //! engineering-use qualification.
 
 use crate::{sha256_hex, verify_solver_output_artifact_bytes};
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -585,13 +585,6 @@ fn exact_keys(value: &Value, expected: &[&str], at: &str) -> CompareResult<()> {
         ));
     }
     Ok(())
-}
-
-fn get_object<'a>(value: &'a Value, key: &str, at: &str) -> CompareResult<&'a Map<String, Value>> {
-    value
-        .get(key)
-        .and_then(Value::as_object)
-        .ok_or_else(|| format!("{at}.{key} must be an object"))
 }
 
 fn get_array<'a>(value: &'a Value, key: &str, at: &str) -> CompareResult<&'a Vec<Value>> {
