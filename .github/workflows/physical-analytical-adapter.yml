@@ -5,6 +5,7 @@ on:
     branches: ["research/physical-analytical-adapter-v0-1"]
     paths:
       - "research/physical-analytical-adapter/**"
+      - "docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md"
       - "research/physical-transformation-reference/**"
       - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
       - "research/physical-analytical-adapter/README.md"
@@ -16,6 +17,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "research/physical-analytical-adapter/**"
+      - "docs/research/PHYSICAL_ANALYTICAL_INTERVAL_METHOD_V0_1.md"
       - "research/physical-transformation-reference/**"
       - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
       - "research/physical-analytical-adapter/README.md"
