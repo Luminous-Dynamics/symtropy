@@ -589,6 +589,29 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn manifest_unit_claims_must_match_the_si_contract() {
+        let mut manifest: Value = serde_json::from_str(MANIFEST).expect("pinned manifest");
+        manifest["backends"][0]["supported_units"]["length"] = json!("ft");
+        assert!(
+            validate_manifest(&manifest)
+                .unwrap_err()
+                .contains("supported_units.length must be 'm'")
+        );
+    }
+
+    #[test]
+    fn in_process_manifest_entry_cannot_claim_external_solver_invocation() {
+        let mut manifest: Value = serde_json::from_str(MANIFEST).expect("pinned manifest");
+        manifest["backends"][0]["external_solver_invoked"] = json!(true);
+        assert!(
+            validate_manifest(&manifest)
+                .unwrap_err()
+                .contains("must be false for an in-process reference backend")
+        );
+    }
+
     #[test]
     fn duplicate_backend_ids_make_the_manifest_invalid() {
         let mut manifest: Value = serde_json::from_str(MANIFEST).expect("pinned manifest");
