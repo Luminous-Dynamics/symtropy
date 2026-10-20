@@ -27,6 +27,18 @@ The `pirb-hierarchy-coherence-audit` binary measures parent/child consistency fo
 
 The checked-in hierarchy fixture has invented aggregate counts. Its all-zero/all-one artifact digests are placeholders and do not identify captured provider data. The fixture includes two complete exact-sum constraints and one incomplete spatial constraint whose missing child must not be imputed as zero. See `docs/tech/PIRB_HIERARCHICAL_FORECAST_COHERENCE_V0_1.md` for the contract and claim limits.
 
+## Selective forecasting, abstention and regime shift
+
+The `pirb-selective-forecast-audit` binary evaluates a pre-registered threshold grid for a reason-coded forecast-serving policy. It measures risk versus coverage, Brier score and binary log loss on issued cases with mature known outcomes, and a clearly labeled offline full-candidate reference. It reports unknown/immature outcomes rather than imputing no-event, and separately reports selection by group and regime. Small group/regime summaries are suppressed below the policy's minimum count.
+
+A reason-coded abstention can be caused by target mismatch, stale/unknown inputs, shifted/unknown regime, insufficient evidence, or a low selection score. The policy decision must match the pinned contract. Abstained rows must have a null `served_probability`, even though their candidate probabilities remain in the offline evaluation archive. Thresholds and selection-model feature cutoff are pre-registered; there is no threshold selection on held-out labels.
+
+Run the synthetic aggregate-only fixture:
+
+    cargo run --bin pirb-selective-forecast-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-selective-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+
+See `docs/tech/PIRB_SELECTIVE_FORECAST_AUDIT_V0_1.md` for the target, metric formulas, claim ceilings and research references. A lower selective risk is not sufficient evidence of superiority unless coverage, eligibility counts, reason mix, regime behavior and group coverage are also acceptable.
+
 ## Outcome-vintage sensitivity
 
 The separate `pirb-outcome-vintage-sensitivity` binary compares 2–20 frozen datasets whose forecast archives and every issued prediction remain identical but whose outcome release IDs/digests differ. It rejects changed probabilities, prediction cutoffs/horizons, unit mappings, outcome source/definition, split, privacy, or resampling policy. It reports how many held-out labels or their publication-availability months changed against the designated first/reference release, each vintage's source/licensing/attribution references, and the min/max/spread of descriptive score values across releases. It does **not** decide which vintage is correct, average incompatible labels, or turn the observed score range into a confidence interval. For reproducibility, input order defines the reference outcome release.

@@ -29,4 +29,8 @@ path = "src/benchmark_registration_main.rs"
 name = "pirb-hierarchy-coherence-audit"
 path = "src/hierarchy_coherence_main.rs"
 
+[[bin]]
+name = "pirb-selective-forecast-audit"
+path = "src/selective_forecast_main.rs"
+
 [workspace]
