@@ -20,7 +20,8 @@ const FRESHNESS_LIMIT: usize = 7;
 const REPLICATES: usize = 12;
 const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
-const ROOT_SEED: u64 = 0x6A09_E667_F3BC_C909;
+// Frozen confirmatory seed domain; differs from the exploratory reports.
+const ROOT_SEED: u64 = 0xA54F_F53A_5F1D_36F1;
 const CAPS: [usize; 5] = [1, 2, 3, 4, 8];
 const STRATA_COUNT: usize = 8;
 const STRATA_NAMES: [&str; STRATA_COUNT] = [
