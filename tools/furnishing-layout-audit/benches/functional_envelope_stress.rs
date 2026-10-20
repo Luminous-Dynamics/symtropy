@@ -121,7 +121,7 @@ fn generated_corpus(item_count: usize, workload: Workload) -> Value {
 
     json!({
         "schema_version": "0.2.0",
-        "benchmark_id": "furnishing-functional-envelope-adversarial-001",
+        "benchmark_id": "furnishing-functional-envelope-known-truth-001",
         "status": "synthetic_specification_not_run",
         "units": { "length": "m", "area": "m2" },
         "coordinate_frame": {
