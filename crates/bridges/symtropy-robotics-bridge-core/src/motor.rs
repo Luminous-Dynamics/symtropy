@@ -354,7 +354,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod atomfab_workcell_fault_corpus_tests {
     use super::MotorPlannerFault;
@@ -398,7 +397,11 @@ mod atomfab_workcell_fault_corpus_tests {
 
         let mut ids = BTreeSet::new();
         for case in &corpus.cases {
-            assert!(ids.insert(case.case_id.as_str()), "duplicate corpus id: {}", case.case_id);
+            assert!(
+                ids.insert(case.case_id.as_str()),
+                "duplicate corpus id: {}",
+                case.case_id
+            );
             if case.expected.decision != "accept" {
                 assert!(
                     !case.expected.simulation_action_authorized,
@@ -426,9 +429,15 @@ mod atomfab_workcell_fault_corpus_tests {
 
         let required_adapter_faults = [
             ("stale-observation", MotorPlannerFault::InvalidObservation),
-            ("non-finite-observation", MotorPlannerFault::InvalidObservation),
+            (
+                "non-finite-observation",
+                MotorPlannerFault::InvalidObservation,
+            ),
             ("invalid-planner-gain", MotorPlannerFault::InvalidGain),
-            ("actuator-count-mismatch", MotorPlannerFault::ActuatorInterfaceMismatch),
+            (
+                "actuator-count-mismatch",
+                MotorPlannerFault::ActuatorInterfaceMismatch,
+            ),
             ("bridge-timeout", MotorPlannerFault::BridgeFailure),
             ("malformed-planner-output", MotorPlannerFault::InvalidOutput),
         ];
@@ -448,16 +457,26 @@ mod atomfab_workcell_fault_corpus_tests {
                 !case.expected.simulation_action_authorized,
                 "{case_id} must not authorize simulated action"
             );
-            assert!(!case.control, "fault case {case_id} must not be marked as control");
+            assert!(
+                !case.control,
+                "fault case {case_id} must not be marked as control"
+            );
         }
 
-        let mapped_count = corpus.cases.iter().filter(|case| case.adapter_fault.is_some()).count();
+        let mapped_count = corpus
+            .cases
+            .iter()
+            .filter(|case| case.adapter_fault.is_some())
+            .count();
         assert_eq!(mapped_count, required_adapter_faults.len());
 
-        assert!(corpus.cases.iter().any(|case| {
-            case.control
-                && case.expected.decision == "accept"
-                && case.expected.simulation_action_authorized
-        }), "the corpus must include an accepted control; reject-all is not valid");
+        assert!(
+            corpus.cases.iter().any(|case| {
+                case.control
+                    && case.expected.decision == "accept"
+                    && case.expected.simulation_action_authorized
+            }),
+            "the corpus must include an accepted control; reject-all is not valid"
+        );
     }
 }
