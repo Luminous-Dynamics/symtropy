@@ -48,6 +48,24 @@ fn run() -> Result<(), String> {
         physical_transformation_reference::recovery_validation::ComparisonStatus::Synthetic => "synthetic",
         physical_transformation_reference::recovery_validation::ComparisonStatus::Unresolved => "unresolved",
     };
+    let recovery_residual = recovery_validation
+        .observed_mass_residual_mg
+        .ok_or_else(|| "recovery fixture residual unexpectedly unresolved".to_owned())?;
+    let recovery_reused_delta = recovery_validation
+        .reused_delta_mg
+        .ok_or_else(|| "recovery fixture reused delta unexpectedly unresolved".to_owned())?;
+    let recovery_recycled_delta = recovery_validation
+        .recycled_delta_mg
+        .ok_or_else(|| "recovery fixture recycled delta unexpectedly unresolved".to_owned())?;
+    let recovery_contaminated_delta = recovery_validation
+        .contaminated_delta_mg
+        .ok_or_else(|| "recovery fixture contaminated delta unexpectedly unresolved".to_owned())?;
+    let recovery_waste_delta = recovery_validation
+        .waste_delta_mg
+        .ok_or_else(|| "recovery fixture waste delta unexpectedly unresolved".to_owned())?;
+    let recovery_unaccounted_delta = recovery_validation
+        .unaccounted_delta_mg
+        .ok_or_else(|| "recovery fixture unaccounted delta unexpectedly unresolved".to_owned())?;
 
     println!(
         concat!(
@@ -129,12 +147,12 @@ fn run() -> Result<(), String> {
         outcome.deconstruction_recovered_component_count,
         outcome.deconstruction_recovered_mass_mg,
         recovery_status,
-        recovery_validation.observed_mass_residual_mg.unwrap_or(i128::MIN),
-        recovery_validation.reused_delta_mg.unwrap_or(i128::MIN),
-        recovery_validation.recycled_delta_mg.unwrap_or(i128::MIN),
-        recovery_validation.contaminated_delta_mg.unwrap_or(i128::MIN),
-        recovery_validation.waste_delta_mg.unwrap_or(i128::MIN),
-        recovery_validation.unaccounted_delta_mg.unwrap_or(i128::MIN)
+        recovery_residual,
+        recovery_reused_delta,
+        recovery_recycled_delta,
+        recovery_contaminated_delta,
+        recovery_waste_delta,
+        recovery_unaccounted_delta
     );
     Ok(())
 }
