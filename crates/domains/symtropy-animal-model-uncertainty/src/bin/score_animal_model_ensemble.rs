@@ -353,7 +353,9 @@ mod tests {
                 score_weight_sensitivity(
                     &models,
                     &score.action,
-                    intervals.as_deref().expect("example declares weight intervals"),
+                    intervals
+                        .as_deref()
+                        .expect("example declares weight intervals"),
                 )
                 .expect("valid model-weight intervals"),
             );
