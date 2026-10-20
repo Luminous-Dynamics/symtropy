@@ -1,0 +1,230 @@
+{
+  "schema_version": "beverage-process-scenarios-v1",
+  "status": "synthetic_engineering_contract_not_process_measurements",
+  "scenarios": [
+    {
+      "id": "BT-001",
+      "product": "beer",
+      "module": "fermentation_thermal",
+      "scenario": "nominal_closed_batch",
+      "evidence_class": "SIMULATED",
+      "expected_disposition": "FEASIBLE_IF_BALANCES_CLOSE",
+      "initial_state": {
+        "volume_l": "synthetic-positive",
+        "temperature_c": "synthetic-finite"
+      },
+      "constraints": [
+        "mass_balance_with_declared_inputs",
+        "energy_balance_with_declared_heat_terms",
+        "no_capacity_violation"
+      ],
+      "metrics": [
+        "mass_residual",
+        "energy_residual",
+        "temperature_tracking_error"
+      ],
+      "claim_ceiling": "Contract scenario only; does not validate beer fermentation physics."
+    },
+    {
+      "id": "BT-002",
+      "product": "wine",
+      "module": "fermentation_thermal",
+      "scenario": "declared_evaporation_and_withdrawal",
+      "evidence_class": "SIMULATED",
+      "expected_disposition": "FEASIBLE_ONLY_WITH_EXPLICIT_LOSS_TERMS",
+      "initial_state": {
+        "volume_l": "synthetic-positive",
+        "temperature_c": "synthetic-finite"
+      },
+      "constraints": [
+        "all_mass_losses_named",
+        "input_output_balance",
+        "no_hidden_inventory_reset"
+      ],
+      "metrics": [
+        "mass_residual",
+        "saleable_volume",
+        "loss_fraction"
+      ],
+      "claim_ceiling": "Synthetic material-accounting test; not a measured winery yield."
+    },
+    {
+      "id": "BT-003",
+      "product": "spirits_wash",
+      "module": "fermentation_thermal",
+      "scenario": "cooling_capacity_insufficient",
+      "evidence_class": "SIMULATED",
+      "expected_disposition": "INFEASIBLE_NOT_SILENTLY_RELAXED",
+      "initial_state": {
+        "volume_l": "synthetic-positive",
+        "temperature_c": "synthetic-finite"
+      },
+      "constraints": [
+        "thermal_capacity_limit",
+        "declared_temperature_constraint",
+        "infeasible_status_required"
+      ],
+      "metrics": [
+        "infeasible_step_count",
+        "temperature_tracking_error",
+        "capacity_exceedance"
+      ],
+      "claim_ceiling": "Does not qualify any distillation or still operation."
+    },
+    {
+      "id": "BT-004",
+      "product": "wine",
+      "module": "fermentation_thermal",
+      "scenario": "biased_temperature_sensor",
+      "evidence_class": "SIMULATED_SENSOR_FAULT",
+      "expected_disposition": "UNCERTAIN_OR_FAULT",
+      "initial_state": {
+        "volume_l": "synthetic-positive",
+        "temperature_c": "synthetic-finite"
+      },
+      "constraints": [
+        "sensor_identity",
+        "bias_scenario_declared",
+        "uncertainty_or_fault_exposed"
+      ],
+      "metrics": [
+        "detection_latency",
+        "false_normal_rate",
+        "state_estimation_error"
+      ],
+      "claim_ceiling": "Synthetic fault-injection contract only."
+    },
+    {
+      "id": "BT-005",
+      "product": "beer",
+      "module": "fermentation_thermal",
+      "scenario": "stale_or_missing_energy_meter",
+      "evidence_class": "PARTIAL_INPUTS",
+      "expected_disposition": "INDETERMINATE_OR_INCOMPLETE",
+      "initial_state": {
+        "volume_l": "synthetic-positive",
+        "temperature_c": "synthetic-finite"
+      },
+      "constraints": [
+        "missingness_reported",
+        "no_zero_imputation",
+        "energy_claim_blocked_without_meter"
+      ],
+      "metrics": [
+        "input_coverage",
+        "claim_eligibility"
+      ],
+      "claim_ceiling": "Missing energy data cannot support efficiency claims."
+    },
+    {
+      "id": "BT-006",
+      "product": "beer",
+      "module": "fermentation_thermal",
+      "scenario": "scale_and_geometry_shift",
+      "evidence_class": "SIMULATED",
+      "expected_disposition": "SHIFT_REPORT_REQUIRED",
+      "initial_state": {
+        "volume_l": "synthetic-positive",
+        "temperature_c": "synthetic-finite"
+      },
+      "constraints": [
+        "geometry_versioned",
+        "thermal_parameters_not_assumed_invariant",
+        "per_scale_results"
+      ],
+      "metrics": [
+        "temperature_tracking_error",
+        "capacity_margin",
+        "parameter_sensitivity"
+      ],
+      "claim_ceiling": "A small-vessel result does not establish industrial-scale transfer."
+    },
+    {
+      "id": "BT-007",
+      "product": "cross_beverage",
+      "module": "pareto_optimizer",
+      "scenario": "hidden_objective_weight_change",
+      "evidence_class": "SIMULATED",
+      "expected_disposition": "REJECT_UNVERSIONED_OBJECTIVE",
+      "initial_state": {
+        "volume_l": "not_applicable",
+        "temperature_c": "not_applicable"
+      },
+      "constraints": [
+        "objective_version_declared",
+        "metric_vector_preserved",
+        "hard_gates_non_compensatory"
+      ],
+      "metrics": [
+        "pareto_frontier",
+        "hard_gate_violations"
+      ],
+      "claim_ceiling": "A changed objective cannot be presented as an improvement under the old policy."
+    },
+    {
+      "id": "BT-008",
+      "product": "cross_beverage",
+      "module": "pareto_optimizer",
+      "scenario": "all_candidates_infeasible",
+      "evidence_class": "SIMULATED",
+      "expected_disposition": "NO_FEASIBLE_CANDIDATE",
+      "initial_state": {
+        "volume_l": "not_applicable",
+        "temperature_c": "not_applicable"
+      },
+      "constraints": [
+        "no_synthetic_winner",
+        "all_failures_preserved",
+        "hard_constraints_not_relaxed"
+      ],
+      "metrics": [
+        "feasible_candidate_count",
+        "infeasible_candidate_count"
+      ],
+      "claim_ceiling": "No feasible result is an acceptable outcome; do not fabricate a Pareto winner."
+    },
+    {
+      "id": "BT-009",
+      "product": "wine",
+      "module": "resource_accounting",
+      "scenario": "different_functional_units",
+      "evidence_class": "MEASURED_OR_SIMULATED_MIXED",
+      "expected_disposition": "NOT_COMPARABLE",
+      "initial_state": {
+        "volume_l": "not_applicable",
+        "temperature_c": "not_applicable"
+      },
+      "constraints": [
+        "saleable_product_basis",
+        "facility_boundary_alignment",
+        "evidence_class_separation"
+      ],
+      "metrics": [
+        "water_per_saleable_l",
+        "energy_per_saleable_l"
+      ],
+      "claim_ceiling": "Unmatched boundaries cannot support a resource-efficiency ranking."
+    },
+    {
+      "id": "BT-010",
+      "product": "spirits",
+      "module": "distillation",
+      "scenario": "unqualified_future_module",
+      "evidence_class": "SIMULATED",
+      "expected_disposition": "MODULE_NOT_QUALIFIED",
+      "initial_state": {
+        "volume_l": "not_applicable",
+        "temperature_c": "not_applicable"
+      },
+      "constraints": [
+        "module_specific_qualification",
+        "mass_energy_transfer_validation",
+        "professional_safety_review"
+      ],
+      "metrics": [
+        "qualification_state"
+      ],
+      "claim_ceiling": "No distillation simulation or operational setting is qualified by this scenario definition."
+    }
+  ]
+}
