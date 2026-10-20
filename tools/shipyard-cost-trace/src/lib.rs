@@ -105,6 +105,9 @@ struct QuantityGroupKey {
 struct RateCardGroupKey {
     build_id: String,
     configuration_sha256: String,
+    task_id: String,
+    quantity_key: String,
+    unit: String,
     stage: Stage,
     currency_basis_id: String,
     minor_unit_exponent: u8,
@@ -115,6 +118,7 @@ struct RateCardGroupKey {
 struct CurrencyGroupKey {
     build_id: String,
     configuration_sha256: String,
+    task_id: String,
     currency_basis_id: String,
     minor_unit_exponent: u8,
 }
@@ -147,6 +151,9 @@ pub struct QuantityReconciliation {
 pub struct RateCardCostTotal {
     pub build_id: String,
     pub configuration_sha256: String,
+    pub task_id: String,
+    pub quantity_key: String,
+    pub unit: String,
     pub stage: Stage,
     pub currency_basis_id: String,
     pub minor_unit_exponent: u8,
@@ -159,6 +166,7 @@ pub struct RateCardCostTotal {
 pub struct FinancialActualTotal {
     pub build_id: String,
     pub configuration_sha256: String,
+    pub task_id: String,
     pub currency_basis_id: String,
     pub minor_unit_exponent: u8,
     /// Exact sum of observed direct financial transactions in minor currency units.
@@ -478,6 +486,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                 let key = CurrencyGroupKey {
                     build_id: event.build_id.clone(),
                     configuration_sha256: event.configuration_sha256.clone(),
+                    task_id: event.task_id.clone(),
                     currency_basis_id: transaction.currency_basis_id.clone(),
                     minor_unit_exponent: transaction.minor_unit_exponent,
                 };
@@ -526,6 +535,9 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         .map(|(key, amount)| RateCardCostTotal {
             build_id: key.build_id,
             configuration_sha256: key.configuration_sha256,
+            task_id: key.task_id,
+            quantity_key: key.quantity_key,
+            unit: key.unit,
             stage: key.stage,
             currency_basis_id: key.currency_basis_id,
             minor_unit_exponent: key.minor_unit_exponent,
@@ -539,6 +551,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         .map(|(key, amount)| FinancialActualTotal {
             build_id: key.build_id,
             configuration_sha256: key.configuration_sha256,
+            task_id: key.task_id,
             currency_basis_id: key.currency_basis_id,
             minor_unit_exponent: key.minor_unit_exponent,
             amount_minor_units: amount,
@@ -874,6 +887,18 @@ mod tests {
         let mut second = first.clone();
         second.reverse();
         assert_eq!(audit(&first).unwrap(), audit(&second).unwrap());
+    }
+
+    #[test]
+    fn financial_actuals_remain_separated_by_work_package() {
+        let mut welding = financial_event("invoice-weld", "inv-1:line-1", 30_000);
+        welding.task_id = "welding-block-a".to_owned();
+        let mut painting = financial_event("invoice-paint", "inv-2:line-1", 12_000);
+        painting.task_id = "paint-block-a".to_owned();
+        let report = audit(&[welding, painting]).unwrap();
+        assert_eq!(report.financial_actuals.len(), 2);
+        assert!(report.financial_actuals.iter().any(|row| row.task_id == "welding-block-a" && row.amount_minor_units == 30_000));
+        assert!(report.financial_actuals.iter().any(|row| row.task_id == "paint-block-a" && row.amount_minor_units == 12_000));
     }
 
     #[test]
