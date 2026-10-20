@@ -31,7 +31,7 @@ No timing threshold is used in CI. The logs are evidence for a named exact commi
 
 ## Archived diagnostic observation
 
-The first passing hosted exact-head run is archived at [FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json](evidence/FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json). It measured the 10,000-item sparse synthetic workload at p50 50.631 ms / p95 57.347 ms on Ubuntu 24.04 with Rust 1.96.0. This is one runner observation with no machine-level CPU/memory receipt and is not a stable SLA. The workflow now prints `rustc --version --verbose`, kernel and CPU/memory metadata before future scale runs. Do not compare benchmark numbers across runners without retaining that provenance.
+Two passing hosted exact-head observations are archived at [FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json](evidence/FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json). The first measured the 10,000-item sparse synthetic workload at p50 50.631 ms / p95 57.347 ms; the second measured p50 67.022 ms / p95 67.450 ms on a 4-vCPU AMD EPYC 7763 runner with 15 GiB reported RAM. Both were below the provisional 100 ms p95 target. The wall-clock variation reinforces that this is diagnostic evidence, not a stable SLA. The workflow prints `rustc --version --verbose`, kernel and CPU/memory metadata to retain context for future runs. Dense/clustered worst cases remain unmeasured; do not generalize the sparse result to those workloads.
 
 ## Acceptance gates
 
