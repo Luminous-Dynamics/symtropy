@@ -1,0 +1,50 @@
+name: TAVIS result audit (Rust)
+
+on:
+  push:
+    branches: ["feat/tavis-result-audit-20261020"]
+    paths:
+      - "tools/vision-active-benchmarks/tavis-result-audit/**"
+      - ".github/workflows/tavis-result-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-active-benchmarks/tavis-result-audit/**"
+      - ".github/workflows/tavis-result-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tavis-result-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - name: Format check
+        run: cargo fmt --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml -- --check
+      - name: Compile and test result audit
+        run: cargo test --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml
