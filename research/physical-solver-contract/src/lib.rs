@@ -1008,9 +1008,10 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
         "request_sha256": expected_request_sha256,
         "source_revision": source_revision,
         "physics_partition_exact": true,
-        "required_outputs_present": status != "PASS" || strings(&request, "required_outputs", "request")?.iter().all(|kind| output_kinds.contains(kind)),
+        "required_outputs_present": strings(&request, "required_outputs", "request")?.iter().all(|kind| output_kinds.contains(kind)),
         "solver_execution_authenticated": false,
         "output_artifact_bytes_verified": false,
+        "physical_result_qualified": false,
         "claim_ceiling": "receipt/request consistency only; producer execution, output bytes, numerical correctness, and physical validity are not authenticated"
     }))
 }
