@@ -16,6 +16,8 @@ on:
     paths:
       - "research/physical-analytical-adapter/**"
       - "research/physical-transformation-reference/**"
+      - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
+      - "research/physical-analytical-adapter/README.md"
       - "schemas/physical-transformation/analytical-fixtures/**"
       - "schemas/physical-transformation/physical-analytical-*.schema.json"
       - ".github/workflows/physical-analytical-adapter.yml"
