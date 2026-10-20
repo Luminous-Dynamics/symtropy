@@ -615,7 +615,8 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.scenario_statistics = statistics;
     let mut replication_outcomes = Vec::with_capacity(runs.len() * report.scenario_count);
     for run in &runs {
-        let baseline = run.scenarios
+        let baseline = run
+            .scenarios
             .first()
             .ok_or_else(|| "replication_baseline_scenario_missing".to_string())?;
         for scenario in &run.scenarios {
@@ -1574,7 +1575,10 @@ mod tests {
         let aware_report =
             evaluate_catalog(&variant_aware).expect("variant-aware no-setup control");
         assert_eq!(fifo_report.scenarios, aware_report.scenarios);
-        assert_eq!(fifo_report.scenario_statistics, aware_report.scenario_statistics);
+        assert_eq!(
+            fifo_report.scenario_statistics,
+            aware_report.scenario_statistics
+        );
         assert_eq!(
             fifo_report.station_sequence_statistics,
             aware_report.station_sequence_statistics
@@ -1607,7 +1611,10 @@ mod tests {
     #[test]
     fn replication_outcomes_preserve_seed_pairing_and_scenario_identity() {
         let report = evaluate_catalog(&fixture()).expect("replicated simulation");
-        assert_eq!(report.replication_outcomes.len(), 20 * report.scenario_count);
+        assert_eq!(
+            report.replication_outcomes.len(),
+            20 * report.scenario_count
+        );
         for seed in &report.replication_seeds {
             let outcomes: Vec<_> = report
                 .replication_outcomes
@@ -1615,15 +1622,30 @@ mod tests {
                 .filter(|outcome| outcome.seed == *seed)
                 .collect();
             assert_eq!(outcomes.len(), report.scenario_count);
-            let baseline = outcomes.iter()
+            let baseline = outcomes
+                .iter()
                 .find(|outcome| outcome.scenario_id == "baseline")
                 .expect("per-seed baseline");
-            assert!(baseline.paired_good_units_per_hour_delta_vs_baseline.is_none());
-            for outcome in outcomes.iter().filter(|outcome| outcome.scenario_id != "baseline") {
-                let delta = outcome.paired_good_units_per_hour_delta_vs_baseline
+            assert!(
+                baseline
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .is_none()
+            );
+            for outcome in outcomes
+                .iter()
+                .filter(|outcome| outcome.scenario_id != "baseline")
+            {
+                let delta = outcome
+                    .paired_good_units_per_hour_delta_vs_baseline
                     .expect("intervention paired delta");
-                assert!((delta - (outcome.good_units_per_hour - baseline.good_units_per_hour)).abs() < 1e-12);
-                assert_eq!(outcome.baseline_good_units_per_hour, baseline.good_units_per_hour);
+                assert!(
+                    (delta - (outcome.good_units_per_hour - baseline.good_units_per_hour)).abs()
+                        < 1e-12
+                );
+                assert_eq!(
+                    outcome.baseline_good_units_per_hour,
+                    baseline.good_units_per_hour
+                );
             }
         }
     }
