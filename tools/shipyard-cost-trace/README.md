@@ -19,7 +19,7 @@ The audit returns three non-additive views:
 
 1. Quantity reconciliation by build/configuration/task/axis/unit. Observed-minus-planned variance is available only when both an explicit planned quantity and an explicit observed quantity exist. Missing events remain None, never a substitute zero. Different configuration digests do not reconcile against one another.
 2. Quantity × rate-card cost, grouped by build/configuration/stage/money basis/rate-card revision. These are estimates at every stage, including rates applied to observed quantities.
-3. Direct observed financial transactions, grouped by build and declared currency basis.
+3. Direct observed financial transactions, grouped by build/configuration and declared currency basis.
 
 Do not add view 2 to view 3. A time record costed at an hourly rate and the invoice/payroll record for that work are alternative views until explicit, source-backed accounting allocation reconciles them. Credit notes may be represented by finite negative financial actuals. Currency basis is not converted implicitly.
 
@@ -34,9 +34,9 @@ Do not add view 2 to view 3. A time record costed at an hourly rate and the invo
 
 ## Test contract
 
-The library unit suite contains 21 authored tests: known-answer quantity variance; simulated-vs-observed separation; missing-plan semantics; configuration-revision mismatch; rate-card estimate vs invoice separation; duplicate event and transaction identities; stage/evidence constraints; malformed digest/source; unresolved rights; missing rate metadata; overflow; unresolved lineage; cross-build/configuration/stage lineage mismatches; lineage-cycle rejection; configuration-scoped financial actuals; and input-order invariance. Three integration tests in tests/oracle.rs independently check all 16 pairs of planned/observed integer quantities from 0 through 3, separate cost views, and missing-plan semantics.
+The library unit suite contains 24 authored tests: known-answer quantity variance; simulated-vs-observed separation; missing-plan semantics; configuration-revision mismatch; rate-card estimate vs invoice separation; duplicate event and transaction identities; stage/evidence constraints; malformed digest/source; unresolved rights; missing rate metadata; overflow; unresolved lineage; cross-build/configuration/stage lineage mismatches; lineage-cycle rejection; configuration-scoped financial actuals; empty-ledger rejection; a 5,000-event lineage chain; and same-stage floating-point aggregation invariance under input permutation. Three integration tests in tests/oracle.rs independently check all 16 pairs of planned/observed integer quantities from 0 through 3, separate cost views, and missing-plan semantics.
 
-The next expansion should add an independently written tiny-ledger oracle and frozen fixtures for material movements, rework, overtime, credits, partial execution, and revision propagation. The three oracle tests are executed by the package's dedicated verification workflow; do not claim the oracle gate passed until that exact-head workflow succeeds.
+The three tests in tests/oracle.rs provide an independently hand-calculated tiny arithmetic oracle for 16 planned/observed pairs, cost-view separation, and missing-plan semantics. This is not yet an independent full implementation of the ledger verifier. The next expansion should add frozen fixtures for material movements, rework, overtime, credits, partial execution, and revision propagation, plus a separate verifier implementation. The dedicated workflow runs the current suite, Clippy, and repeat-output comparison; do not claim any gate passed until it reports success on the exact head.
 
 ## Industry and scientific boundary
 
