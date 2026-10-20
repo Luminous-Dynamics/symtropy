@@ -278,7 +278,7 @@ mod tests {
     }
 
     #[test]
-    fn double_rarefaction_rejects_invalid_and_dry_threshold_inputs() {
+    fn double_rarefaction_rejects_invalid_inputs() {
         for args in [
             (0.0, 0.0, 1.0, 1.0, 9.81),
             (0.0, 1.0, 0.0, 1.0, 9.81),
