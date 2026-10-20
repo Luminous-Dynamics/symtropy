@@ -533,7 +533,6 @@ pub fn audit_fixtures(document: &Value) -> Vec<String> {
     errors
 }
 
-
 /// Dispatch the independent oracle by the frozen fixture schema version.
 pub fn audit_document(document: &Value) -> Vec<String> {
     match text(document, "schema_version") {
@@ -614,8 +613,7 @@ fn expected_functional_envelope_outcome(
     sizes: &BTreeMap<String, ItemSize>,
 ) -> Option<&'static str> {
     let envelope_id = text(requirement, "target_envelope_id")?;
-    let (envelope, owner_id, owner_size) =
-        envelope_definition(catalog, sizes, envelope_id)?;
+    let (envelope, owner_id, owner_size) = envelope_definition(catalog, sizes, envelope_id)?;
     if text(envelope, "evidence_state") == Some("unknown") {
         return Some("indeterminate");
     }
@@ -628,8 +626,7 @@ fn expected_functional_envelope_outcome(
     else {
         return Some("indeterminate");
     };
-    let envelope_rect =
-        transformed_functional_envelope(envelope, owner_size, owner_placement)?;
+    let envelope_rect = transformed_functional_envelope(envelope, owner_size, owner_placement)?;
     let room = field(scenario, "room")?;
     let room_width = field(room, "width_m")?.as_f64()?;
     let room_depth = field(room, "depth_m")?.as_f64()?;
@@ -666,7 +663,9 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
         errors.push("root: unexpected functional-envelope benchmark_id".to_owned());
     }
     if text(document, "status") != Some("synthetic_specification_not_run") {
-        errors.push("root: functional-envelope fixtures must remain explicitly marked not run".to_owned());
+        errors.push(
+            "root: functional-envelope fixtures must remain explicitly marked not run".to_owned(),
+        );
     }
     if text(field(document, "units").unwrap_or(&Value::Null), "length") != Some("m") {
         errors.push("root.units: functional-envelope audit requires metres".to_owned());
@@ -702,7 +701,9 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
             .map(str::to_owned)
             .unwrap_or_else(|| format!("scenario[{scenario_index}]"));
         if text(scenario, "scope") != Some("synthetic_only") {
-            errors.push(format!("{label}: functional-envelope oracle accepts synthetic-only scope"));
+            errors.push(format!(
+                "{label}: functional-envelope oracle accepts synthetic-only scope"
+            ));
         }
         let Some(room) = field(scenario, "room") else {
             errors.push(format!("{label}: missing room"));
@@ -721,7 +722,9 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
             || room_width <= 0.0
             || room_depth <= 0.0
         {
-            errors.push(format!("{label}: room dimensions must be positive and finite"));
+            errors.push(format!(
+                    "{label}: room dimensions must be positive and finite"
+                ));
             continue;
         }
 
@@ -737,22 +740,30 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 continue;
             };
             let Some(width) = field(item, "width_m").and_then(Value::as_f64) else {
-                errors.push(format!("{label}.catalog.{item_id}: width_m must be numeric"));
+                errors.push(format!(
+                    "{label}.catalog.{item_id}: width_m must be numeric"
+                ));
                 continue;
             };
             let Some(depth) = field(item, "depth_m").and_then(Value::as_f64) else {
-                errors.push(format!("{label}.catalog.{item_id}: depth_m must be numeric"));
+                errors.push(format!(
+                    "{label}.catalog.{item_id}: depth_m must be numeric"
+                ));
                 continue;
             };
             if !width.is_finite() || !depth.is_finite() || width <= 0.0 || depth <= 0.0 {
-                errors.push(format!("{label}.catalog.{item_id}: dimensions must be positive and finite"));
+                errors.push(format!(
+                    "{label}.catalog.{item_id}: dimensions must be positive and finite"
+                ));
                 continue;
             }
             let size = ItemSize { width, depth };
             sizes.insert(item_id.to_owned(), size);
 
             let Some(envelopes) = array(item, "functional_envelopes") else {
-                errors.push(format!("{label}.catalog.{item_id}: missing functional_envelopes array"));
+                errors.push(format!(
+                    "{label}.catalog.{item_id}: missing functional_envelopes array"
+                ));
                 continue;
             };
             for envelope in envelopes {
@@ -775,10 +786,12 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 ) {
                     errors.push(format!("{label}.{envelope_id}: unsupported evidence_state"));
                 }
-                let Some(local) = field(envelope, "rect_local_item_frame")
-                    .and_then(Rect::from_value)
+                let Some(local) =
+                    field(envelope, "rect_local_item_frame").and_then(Rect::from_value)
                 else {
-                    errors.push(format!("{label}.{envelope_id}: malformed local envelope rectangle"));
+                    errors.push(format!(
+                        "{label}.{envelope_id}: malformed local envelope rectangle"
+                    ));
                     continue;
                 };
                 if !local.is_valid()
@@ -808,20 +821,32 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 continue;
             };
             if text(requirement, "kind") != Some("functional_envelope_clear") {
-                errors.push(format!("{label}.{requirement_id}: unsupported requirement kind"));
+                errors.push(format!(
+                    "{label}.{requirement_id}: unsupported requirement kind"
+                ));
             }
             let Some(envelope_id) = text(requirement, "target_envelope_id") else {
-                errors.push(format!("{label}.{requirement_id}: missing target_envelope_id"));
+                errors.push(format!(
+                    "{label}.{requirement_id}: missing target_envelope_id"
+                ));
                 continue;
             };
             let Some((envelope, _, _)) = envelope_definition(catalog, &sizes, envelope_id) else {
-                errors.push(format!("{label}.{requirement_id}: unknown target envelope {envelope_id:?}"));
+                errors.push(format!(
+                    "{label}.{requirement_id}: unknown target envelope {envelope_id:?}"
+                ));
                 continue;
             };
-            if field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool).is_none() {
-                errors.push(format!("{label}.{requirement_id}: must_be_satisfied_to_advance must be boolean"));
+            if field(requirement, "must_be_satisfied_to_advance")
+                .and_then(Value::as_bool)
+                .is_none()
+            {
+                errors.push(format!(
+                    "{label}.{requirement_id}: must_be_satisfied_to_advance must be boolean"
+                ));
             }
-            if field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool) == Some(true)
+            if field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool)
+                == Some(true)
                 && text(envelope, "evidence_state") == Some("unknown")
             {
                 mandatory_unknown = true;
@@ -835,7 +860,12 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
         if alternatives.is_empty() {
             errors.push(format!("{label}: alternatives must not be empty"));
         }
-        unique_ids(alternatives, "alternative_id", &format!("{label}.alternatives"), &mut errors);
+        unique_ids(
+            alternatives,
+            "alternative_id",
+            &format!("{label}.alternatives"),
+            &mut errors,
+        );
 
         for alternative in alternatives {
             let Some(alternative_id) = text(alternative, "alternative_id") else {
@@ -857,24 +887,34 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                     continue;
                 };
                 if !catalog_ids.contains(item_id) {
-                    errors.push(format!("{label}.{alternative_id}: unknown item {item_id:?}"));
+                    errors.push(format!(
+                        "{label}.{alternative_id}: unknown item {item_id:?}"
+                    ));
                     continue;
                 }
                 let Some(rotation) = field(placement, "rotation_degrees").and_then(Value::as_u64)
                 else {
-                    errors.push(format!("{label}.{alternative_id}.{item_id}: missing numeric rotation_degrees"));
+                    errors.push(format!(
+                        "{label}.{alternative_id}.{item_id}: missing numeric rotation_degrees"
+                    ));
                     continue;
                 };
                 if ![0, 90, 180, 270].contains(&rotation) {
-                    errors.push(format!("{label}.{alternative_id}.{item_id}: unsupported rotation {rotation}"));
+                    errors.push(format!(
+                        "{label}.{alternative_id}.{item_id}: unsupported rotation {rotation}"
+                    ));
                     continue;
                 }
                 let Some((placed_id, rect)) = placement_rect(placement, &sizes) else {
-                    errors.push(format!("{label}.{alternative_id}.{item_id}: cannot derive footprint"));
+                    errors.push(format!(
+                        "{label}.{alternative_id}.{item_id}: cannot derive footprint"
+                    ));
                     continue;
                 };
                 if !rect.is_valid() || !rect.inside_room(room_width, room_depth) {
-                    errors.push(format!("{label}.{alternative_id}.{item_id}: footprint is invalid or outside room"));
+                    errors.push(format!(
+                        "{label}.{alternative_id}.{item_id}: footprint is invalid or outside room"
+                    ));
                 }
                 footprints.push((placed_id, rect));
             }
@@ -907,10 +947,9 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                     errors.push(format!("{label}.{alternative_id}: check references unknown requirement {requirement_id:?}"));
                     continue;
                 }
-                let Some(requirement) = requirements
-                    .iter()
-                    .find(|requirement| text(requirement, "requirement_id") == Some(requirement_id))
-                else {
+                let Some(requirement) = requirements.iter().find(|requirement| {
+                    text(requirement, "requirement_id") == Some(requirement_id)
+                }) else {
                     continue;
                 };
                 let actual = expected_functional_envelope_outcome(
@@ -940,22 +979,34 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 };
                 requirements.iter().any(|requirement| {
                     text(requirement, "requirement_id") == Some(requirement_id)
-                        && field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool)
+                        && field(requirement, "must_be_satisfied_to_advance")
+                            .and_then(Value::as_bool)
                             == Some(true)
                         && matches!(text(check, "outcome"), Some("fail" | "indeterminate"))
                 })
             });
             if mandatory_failure && text(alternative, "promotion_disposition") != Some("blocked") {
-                errors.push(format!("{label}.{alternative_id}: mandatory envelope conflict/unknown must remain blocked"));
+                errors.push(format!(
+                    "{label}.{alternative_id}: mandatory envelope conflict/unknown must remain blocked"
+                ));
             }
-            if !matches!(text(alternative, "promotion_disposition"), Some("blocked" | "candidate_only")) {
-                errors.push(format!("{label}.{alternative_id}: invalid promotion_disposition"));
+            if !matches!(
+                text(alternative, "promotion_disposition"),
+                Some("blocked" | "candidate_only")
+            ) {
+                errors.push(format!(
+                    "{label}.{alternative_id}: invalid promotion_disposition"
+                ));
             }
             if placement_ids.len() != placements.len() {
-                errors.push(format!("{label}.{alternative_id}: duplicate item placement"));
+                errors.push(format!(
+                    "{label}.{alternative_id}: duplicate item placement"
+                ));
             }
             if check_ids.len() != checks.len() {
-                errors.push(format!("{label}.{alternative_id}: duplicate requirement check"));
+                errors.push(format!(
+                    "{label}.{alternative_id}: duplicate requirement check"
+                ));
             }
         }
 
@@ -1119,7 +1170,10 @@ mod tests {
     #[test]
     fn frozen_functional_envelope_scenarios_pass() {
         let errors = audit_functional_envelopes(&functional_baseline());
-        assert!(errors.is_empty(), "functional-envelope audit errors: {errors:#?}");
+        assert!(
+            errors.is_empty(),
+            "functional-envelope audit errors: {errors:#?}"
+        );
     }
 
     #[test]
@@ -1127,7 +1181,11 @@ mod tests {
         let errors = errors_after(functional_baseline(), |doc| {
             doc["scenarios"][0]["alternatives"][1]["expected_checks"][0]["outcome"] = json!("pass");
         });
-        assert!(errors.iter().any(|error| error.contains("expected outcome should be \"fail\"")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected outcome should be \"fail\""))
+        );
     }
 
     #[test]
@@ -1135,26 +1193,46 @@ mod tests {
         let errors = errors_after(functional_baseline(), |doc| {
             doc["scenarios"][1]["alternatives"][1]["placements"][1]["x_m"] = json!(0.9);
         });
-        assert!(errors.iter().any(|error| error.contains("expected outcome should be \"pass\"")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected outcome should be \"pass\""))
+        );
     }
 
     #[test]
     fn unknown_mandatory_envelope_evidence_cannot_be_promoted() {
         let errors = errors_after(functional_baseline(), |doc| {
-            doc["scenarios"][2]["alternatives"][0]["promotion_disposition"] = json!("candidate_only");
+            doc["scenarios"][2]["alternatives"][0]["promotion_disposition"] =
+                json!("candidate_only");
         });
-        assert!(errors.iter().any(|error| error.contains("unknown mandatory functional-envelope evidence")));
-        assert!(errors.iter().any(|error| error.contains("must remain blocked")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown mandatory functional-envelope evidence"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must remain blocked"))
+        );
     }
 
     #[test]
     fn out_of_room_functional_envelope_is_a_hard_failure() {
         let errors = audit_functional_envelopes(&functional_baseline());
-        assert!(errors.is_empty(), "outside-room fixture must have a correct blocked oracle: {errors:#?}");
+        assert!(
+            errors.is_empty(),
+            "outside-room fixture must have a correct blocked oracle: {errors:#?}"
+        );
         let errors = errors_after(functional_baseline(), |doc| {
             doc["scenarios"][3]["alternatives"][0]["expected_checks"][0]["outcome"] = json!("pass");
         });
-        assert!(errors.iter().any(|error| error.contains("expected outcome should be \"fail\"")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected outcome should be \"fail\""))
+        );
     }
 
     #[test]
