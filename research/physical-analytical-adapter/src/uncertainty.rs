@@ -537,7 +537,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn deterministic_randomized_interior_points_are_enclosed_for_all_cases() {
         let cases: Vec<CaseFixture> = vec![
@@ -575,8 +574,8 @@ mod tests {
         let mut seed = 0x6a09_e667_f3bc_c909_u64;
         for (case_id, entries) in cases {
             let (nominal, bounds) = fixture(&entries);
-            let ranges = propagate(case_id, &nominal, &bounds)
-                .expect("valid randomized-sampling interval");
+            let ranges =
+                propagate(case_id, &nominal, &bounds).expect("valid randomized-sampling interval");
             for sample_index in 0..4_096 {
                 let point: BTreeMap<String, f64> = entries
                     .iter()
@@ -633,8 +632,7 @@ mod tests {
 
         for (case_id, entries) in cases {
             let (nominal, bounds) = fixture(&entries);
-            let original = propagate(case_id, &nominal, &bounds)
-                .expect("valid original enclosure");
+            let original = propagate(case_id, &nominal, &bounds).expect("valid original enclosure");
             let load_key = match case_id {
                 "axial_bar" | "cantilever_tip_load" => "force_n",
                 "simply_supported_uniform_load" => "load_n_per_m",
@@ -643,7 +641,10 @@ mod tests {
             let scaled_nominal: BTreeMap<String, f64> = nominal
                 .iter()
                 .map(|(key, value)| {
-                    (key.clone(), if key == load_key { value * 2.0 } else { *value })
+                    (
+                        key.clone(),
+                        if key == load_key { value * 2.0 } else { *value },
+                    )
                 })
                 .collect();
             let scaled_bounds: BTreeMap<String, Interval> = bounds
@@ -662,7 +663,10 @@ mod tests {
                 .collect();
             let scaled = propagate(case_id, &scaled_nominal, &scaled_bounds)
                 .expect("valid doubled-load enclosure");
-            assert_eq!(original.keys().collect::<Vec<_>>(), scaled.keys().collect::<Vec<_>>());
+            assert_eq!(
+                original.keys().collect::<Vec<_>>(),
+                scaled.keys().collect::<Vec<_>>()
+            );
             for key in original.keys() {
                 assert_close_relative(scaled[key].lower, original[key].lower * 2.0);
                 assert_close_relative(scaled[key].upper, original[key].upper * 2.0);
