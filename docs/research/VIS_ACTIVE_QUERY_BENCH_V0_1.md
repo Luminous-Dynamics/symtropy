@@ -136,6 +136,37 @@ The risk-threshold stop baseline uses a declared task-risk threshold of 0.04 as 
 
 The budget-frontier schema is 80 data rows (2 families × 5 budgets × 8 policies), 16 columns. The stop-cost sensitivity schema is 8 data rows (2 families × 4 thresholds), 14 columns. Both require byte-for-byte report replay, row/column validation and SHA verification.
 
+## Full-horizon budget report — exploratory result
+
+The corrected full-horizon scheduler passed exact-head qualification at `8e27f5a569dedc7f8f79c377481ff16f25d09db5`: [run #39510256320](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39510256320) passed **24 memory tests + 15 active-query tests**, repeated-report byte comparison, 80 budget rows/8 cost-sensitivity rows, schema checks, and both SHA validations. Combined artifact: [#12305231544](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39510256320/artifacts/12305231544). The general CI workflow was still pending at the qualification check, so this is focused benchmark qualification rather than a claim that every PR check was green.
+
+Held-out loss at each maximum request budget (384 matched episodes per policy):
+
+| Max requests | Round-robin loss ↓ | Approx. VOI loss ↓ | VOI − RR loss (paired 95% CI) | Risk-threshold stop loss ↓ | Mean requests used by stop |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 | 0.2500 | 0.2500 | 0.0000 [-0.0091, +0.0104] | 0.2565 | 8.000 |
+| 16 | 0.2500 | 0.2565 | +0.0065 [-0.0163, +0.0312] | 0.2350 | 16.000 |
+| 24 | 0.2318 | 0.2298 | -0.0020 [-0.0299, +0.0247] | 0.2357 | 24.000 |
+| 32 | 0.2331 | 0.2311 | -0.0020 [-0.0345, +0.0312] | 0.2311 | 32.000 |
+| 48 | 0.1842 | 0.1914 | +0.0072 [-0.0208, +0.0378] | 0.2103 | 47.969 |
+
+The active policy's paired interval against round-robin includes zero at every budget in this seed set. The answer rate/accuracy frontier also warns against optimizing only for answer coverage: at budget 16, VOI answers more often but has higher mean loss than round-robin. More requests help, but the simple active allocation heuristic does not yet demonstrate a stable advantage over round-robin on the new seed root.
+
+The **risk-threshold stop baseline is not a successful stopping method** in this implementation. With threshold 0.04, it uses 47.969 of 48 requests on average in held-out episodes, so it saves virtually no sensing budget while its task loss is worse than round-robin. It frequently fails to push its own terminal Bayes-risk estimate below the stop threshold. The cost-sensitivity sweep reinforces that conclusion:
+
+| Stop cost (task-loss units/request) | Held-out mean requests used | Held-out loss | Delta vs round-robin (paired 95% CI) |
+| ---: | ---: | ---: | --- |
+| 0.010 | 48.000 | 0.2103 | +0.0260 [-0.0059, +0.0605] |
+| 0.040 | 47.969 | 0.2103 | +0.0260 [-0.0072, +0.0592] |
+| 0.080 | 47.781 | 0.2096 | +0.0254 [-0.0065, +0.0618] |
+| 0.120 | 47.492 | 0.2083 | +0.0241 [-0.0091, +0.0579] |
+
+These are exploratory intervals, with no supported claim that stopping beats round-robin. Raising the cost threshold slightly reduces requests, but not enough to justify the loss trade-off. Do not tune further thresholds on this held-out report; the next stopping candidate should use a calibrated **marginal value of another observation** and a frozen development-only cost calibration.
+
+The initial budget report at head `7a2fcd0b59ec6c15efe2b90da612dfbd86035f42` used a front-loaded prefix then a long blind tail. That report is superseded for general budget comparisons; see the protocol correction above. The new report spreads low budgets across the horizon, while preserving the world transition process through the terminal tick.
+
+
+
 ## Reproduce
 
 ```sh
