@@ -69,13 +69,18 @@ jobs:
       - name: Compile and test result audit
         shell: bash
         run: cargo test --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml
-      - name: Commit formatted Rust source back to branch
-        if: github.event_name == 'push' && matrix.os == 'ubuntu-latest'
+      - name: Commit formatted Rust source back to same-repository PR branch
+        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ github.head_ref }}
         run: |
           set -euo pipefail
+          if [[ -z "$TARGET_BRANCH" ]]; then
+            echo "Refusing to push because PR head branch is unavailable." >&2
+            exit 2
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tools/vision-active-benchmarks/tavis-result-audit/src/lib.rs tools/vision-active-benchmarks/tavis-result-audit/src/main.rs
@@ -84,4 +89,4 @@ jobs:
             exit 0
           fi
           git commit -m "style(vision): format TAVIS audit source"
-          git push origin "HEAD:$GITHUB_REF_NAME"
+          git push origin "HEAD:$TARGET_BRANCH"
