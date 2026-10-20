@@ -895,7 +895,6 @@ mod tests {
         let scaled_sha = sha256_hex(&scaled_request);
         let scene_sha = baseline["scene_sha256"].as_str().unwrap();
         let scene_revision = baseline["scene_revision"].as_u64().unwrap();
-        let frame = baseline["coordinate_frame_id"].as_str().unwrap();
         let root = std::env::temp_dir().join(format!(
             "symtropy-load-scaling-{}-{}",
             std::process::id(),
