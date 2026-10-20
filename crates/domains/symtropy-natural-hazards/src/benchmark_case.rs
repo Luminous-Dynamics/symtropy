@@ -135,6 +135,8 @@ pub struct BenchmarkCase {
     pub reference: Option<ComparisonModel>,
     pub baseline: Option<ComparisonModel>,
     pub metrics: Vec<BenchmarkMetric>,
+    /// Evidence records supporting this case's declared claim ceiling.
+    pub evidence: Vec<super::EvidenceRecord>,
     pub splits: Vec<SplitAssignment>,
     pub input_digest_sha256: String,
     pub config_digest_sha256: String,
@@ -159,6 +161,11 @@ pub enum CaseValidationError {
     InvalidComparisonModel(&'static str),
     MissingReferenceForClaim,
     MissingBaselineForClaim,
+    MissingEvidence(super::EvidenceClass),
+    FailedEvidence(super::EvidenceClass),
+    UnavailableEvidence(super::EvidenceClass),
+    NotApplicableEvidence(super::EvidenceClass),
+    EmptyEvidenceSuite,
     NoMetrics,
     InvalidMetric(String),
     InvalidSplit(String),
@@ -229,6 +236,7 @@ impl BenchmarkCase {
             }
         }
 
+        validate_case_evidence(self.claim_ceiling, &self.evidence)?;
         if self.claim_ceiling >= ClaimTier::PublishedReference {
             validate_comparison(self.reference.as_ref(), "reference")?;
         }
@@ -279,6 +287,86 @@ impl BenchmarkCase {
         }
         Ok(())
     }
+}
+
+fn validate_case_evidence(
+    claim_ceiling: ClaimTier,
+    records: &[super::EvidenceRecord],
+) -> Result<(), CaseValidationError> {
+    let mut suite_keys = BTreeSet::new();
+    for record in records {
+        if !nonblank(&record.suite_id) || !nonblank(&record.detail) {
+            return Err(CaseValidationError::EmptyEvidenceSuite);
+        }
+        if record.source_uri.as_deref().is_some_and(|uri| !uri.starts_with("https://")) {
+            return Err(CaseValidationError::EmptyEvidenceSuite);
+        }
+        if !suite_keys.insert((record.class, key(&record.suite_id))) {
+            return Err(CaseValidationError::EmptyEvidenceSuite);
+        }
+    }
+
+    // Each tier requires its own evidence; presentation quality is never a
+    // substitute for physical, observational, impact, or operational evidence.
+    let requirements: Vec<Vec<super::EvidenceClass>> = match claim_ceiling {
+        ClaimTier::Execution => vec![],
+        ClaimTier::StructuralInvariant => vec![vec![super::EvidenceClass::StructuralInvariant]],
+        ClaimTier::AnalyticalOrManufactured => vec![
+            vec![super::EvidenceClass::StructuralInvariant],
+            vec![super::EvidenceClass::AnalyticalOrManufactured],
+        ],
+        ClaimTier::PublishedReference => vec![
+            vec![super::EvidenceClass::StructuralInvariant],
+            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+        ],
+        ClaimTier::HeldOutObservation => vec![
+            vec![super::EvidenceClass::StructuralInvariant],
+            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+            vec![super::EvidenceClass::HeldOutObservation],
+        ],
+        ClaimTier::DecisionImpact => vec![
+            vec![super::EvidenceClass::StructuralInvariant],
+            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+            vec![super::EvidenceClass::HeldOutObservation],
+            vec![super::EvidenceClass::DecisionImpact],
+        ],
+        ClaimTier::Operational => vec![
+            vec![super::EvidenceClass::StructuralInvariant],
+            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![super::EvidenceClass::PublishedBenchmark, super::EvidenceClass::ReferenceDifferential],
+            vec![super::EvidenceClass::HeldOutObservation],
+            vec![super::EvidenceClass::DecisionImpact],
+            vec![super::EvidenceClass::OperationalSkill],
+        ],
+    };
+
+    for accepted_classes in requirements {
+        let matching: Vec<_> = records
+            .iter()
+            .filter(|record| accepted_classes.contains(&record.class))
+            .collect();
+        if matching.is_empty() {
+            return Err(CaseValidationError::MissingEvidence(accepted_classes[0]));
+        }
+        for record in &matching {
+            match record.status {
+                super::EvidenceStatus::Pass => {}
+                super::EvidenceStatus::Fail => {
+                    return Err(CaseValidationError::FailedEvidence(record.class));
+                }
+                super::EvidenceStatus::Unavailable => {
+                    return Err(CaseValidationError::UnavailableEvidence(record.class));
+                }
+                super::EvidenceStatus::NotApplicable => {
+                    return Err(CaseValidationError::NotApplicableEvidence(record.class));
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn validate_comparison(
@@ -498,6 +586,22 @@ mod tests {
                 tolerance: Some(1.0e-6),
                 threshold: None,
             }],
+            evidence: vec![
+                super::EvidenceRecord {
+                    class: super::EvidenceClass::StructuralInvariant,
+                    status: super::EvidenceStatus::Pass,
+                    suite_id: "closed-basin-budget-v1".into(),
+                    source_uri: None,
+                    detail: "Synthetic contract fixture for structural checks".into(),
+                },
+                super::EvidenceRecord {
+                    class: super::EvidenceClass::AnalyticalOrManufactured,
+                    status: super::EvidenceStatus::Pass,
+                    suite_id: "lake-at-rest-analytic-v1".into(),
+                    source_uri: None,
+                    detail: "Synthetic analytical target used only to test schema behavior".into(),
+                },
+            ],
             splits: vec![
                 SplitAssignment {
                     sample_id: "cal-sample-1".into(),
@@ -520,13 +624,33 @@ mod tests {
         }
     }
 
+    fn heldout_case() -> BenchmarkCase {
+        let mut spec = case();
+        spec.claim_ceiling = ClaimTier::HeldOutObservation;
+        spec.evidence.push(super::EvidenceRecord {
+            class: super::EvidenceClass::PublishedBenchmark,
+            status: super::EvidenceStatus::Pass,
+            suite_id: "published-lake-at-rest-v1".into(),
+            source_uri: Some("https://example.org/benchmark".into()),
+            detail: "Synthetic metadata fixture for reference-tier validation".into(),
+        });
+        spec.evidence.push(super::EvidenceRecord {
+            class: super::EvidenceClass::HeldOutObservation,
+            status: super::EvidenceStatus::Pass,
+            suite_id: "heldout-observation-v1".into(),
+            source_uri: Some("https://example.org/heldout".into()),
+            detail: "Synthetic metadata fixture for evidence-tier validation".into(),
+        });
+        spec
+    }
+
     fn passing_result(case: &BenchmarkCase) -> BenchmarkResult {
         BenchmarkResult {
             schema: RESULT_SCHEMA_V1.into(),
             result_id: "run-001".into(),
             case_id: case.case_id.clone(),
             model_revision: "0123456789abcdef".into(),
-            claim_tier: ClaimTier::HeldOutObservation,
+            claim_tier: case.claim_ceiling,
             status: BenchmarkRunStatus::Pass,
             input_digest_sha256: case.input_digest_sha256.clone(),
             config_digest_sha256: case.config_digest_sha256.clone(),
@@ -565,13 +689,13 @@ mod tests {
 
     #[test]
     fn reference_and_baseline_are_required_for_the_claimed_tier() {
-        let mut no_reference = case();
+        let mut no_reference = heldout_case();
         no_reference.reference = None;
         assert_eq!(
             no_reference.validate(),
             Err(CaseValidationError::MissingReferenceForClaim)
         );
-        let mut no_baseline = case();
+        let mut no_baseline = heldout_case();
         no_baseline.baseline = None;
         assert_eq!(
             no_baseline.validate(),
@@ -581,7 +705,7 @@ mod tests {
 
     #[test]
     fn normalized_event_identity_cannot_leak_from_calibration_to_holdout() {
-        let mut leaked = case();
+        let mut leaked = heldout_case();
         leaked.splits[1].event_id = " CAL-EVENT-1 ".into();
         assert_eq!(
             leaked.validate(),
@@ -591,7 +715,7 @@ mod tests {
 
     #[test]
     fn sample_identity_must_be_unique_across_roles() {
-        let mut duplicate = case();
+        let mut duplicate = heldout_case();
         duplicate.splits[1].sample_id = " CAL-SAMPLE-1 ".into();
         assert_eq!(
             duplicate.validate(),
@@ -620,7 +744,15 @@ mod tests {
     #[test]
     fn impact_and_operational_claims_require_their_own_context() {
         let mut impact = case();
+        impact = heldout_case();
         impact.claim_ceiling = ClaimTier::DecisionImpact;
+        impact.evidence.push(super::EvidenceRecord {
+            class: super::EvidenceClass::DecisionImpact,
+            status: super::EvidenceStatus::Pass,
+            suite_id: "cost-loss-evaluation-v1".into(),
+            source_uri: None,
+            detail: "Synthetic contract fixture for decision impact evidence".into(),
+        });
         assert_eq!(
             impact.validate(),
             Err(CaseValidationError::MissingDecisionUtilitySpec)
@@ -628,6 +760,13 @@ mod tests {
         impact.decision_utility_spec = Some("predeclared cost-loss table v1".into());
         assert_eq!(impact.validate(), Ok(()));
         impact.claim_ceiling = ClaimTier::Operational;
+        impact.evidence.push(super::EvidenceRecord {
+            class: super::EvidenceClass::OperationalSkill,
+            status: super::EvidenceStatus::Pass,
+            suite_id: "operational-verification-v1".into(),
+            source_uri: None,
+            detail: "Synthetic contract fixture for operational claim gating".into(),
+        });
         assert_eq!(
             impact.validate(),
             Err(CaseValidationError::MissingOperationalContext)
@@ -666,6 +805,18 @@ mod tests {
         assert_eq!(
             no_samples.validate_against(&spec),
             Err(ResultValidationError::PassingResultHasNoScoredSamples)
+        );
+    }
+
+    #[test]
+    fn low_tier_evidence_cannot_be_promoted_to_heldout_skill() {
+        let mut spec = case();
+        spec.claim_ceiling = ClaimTier::HeldOutObservation;
+        assert_eq!(
+            spec.validate(),
+            Err(CaseValidationError::MissingEvidence(
+                super::EvidenceClass::PublishedBenchmark
+            ))
         );
     }
 
