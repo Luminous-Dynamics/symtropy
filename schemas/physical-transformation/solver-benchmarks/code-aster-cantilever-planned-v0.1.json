@@ -44,7 +44,7 @@
   },
   "reference": {
     "kind": "closed_form_analytical",
-    "source_url": "https://github.com/Luminous-Dynamics/symtropy/tree/research/physical-analytical-adapter-v0-1",
+    "source_url": "https://github.com/Luminous-Dynamics/symtropy/blob/26015cc5a1ebae4e2fe68f493196f4c832836928/research/physical-transformation-reference/src/mechanics.rs",
     "source_permission": "open_verified",
     "outputs": [
       {
@@ -61,11 +61,12 @@
         "relative_tolerance": 0.05,
         "absolute_tolerance": 1
       }
-    ]
+    ],
+    "source_revision": "26015cc5a1ebae4e2fe68f493196f4c832836928"
   },
   "input_fixture": {
     "path": "schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json",
-    "sha256": null,
+    "sha256": "093324b768d1028025fb32b5889e6899870052cb12e68f88a749db53ead287c3",
     "content_class": "synthetic"
   },
   "mesh_plan": {
