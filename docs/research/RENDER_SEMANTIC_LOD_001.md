@@ -17,11 +17,11 @@ The new idea is to allocate visual quality by declared screen-space error, seman
 - Stable output ordering, duplicate/malformed-input rejection, infeasible-budget rejection, and unit tests for core behaviors.
 - Machine-readable manifest at benchmarks/render/SEMANTIC-LOD-01.json.
 
-This is a policy kernel only. The host still supplies projected-error estimates and cost units. It does not currently extract mesh error, read the camera, switch Bevy assets, alter render-graph state, or prove physics-state independence by capture comparison.
+This is a policy kernel plus a manifest-driven CPU benchmark runner. The host still supplies projected-error estimates and cost units. It does not currently extract mesh error, read the camera, switch Bevy assets, alter render-graph state, or prove physics-state independence by capture comparison. The runner lives in `crates/apps/symtropy-lod-benchmark`; its dedicated workflow is `.github/workflows/semantic-lod-benchmark.yml`. It emits an exact-source, lockfile-digest, and fixture-digest-bound JSON report. No report from the new runner is considered valid until the exact-head workflow succeeds.
 
 ## Benchmark plan
 
-Run deterministic workloads at 100, 1,000, and 10,000 entities. Measure allocator p50/p95/p99, the quality-rank histogram, cost budget and realized cost, error distribution, and protected-feature outcomes. When integrated into a rendered scene, also report frame intervals and GPU timestamps separately; wgpu GPU timestamps are only available when the adapter supports the required feature.
+Run deterministic workloads at 100, 1,000, and 10,000 entities with `cargo run --locked -p symtropy-lod-benchmark -- --samples 30 --output target/semantic-lod-report.json`. The harness validates invariants on every run and emits the exact source revision, `Cargo.lock` SHA-256, fixture SHA-256, compiler version, platform, allocator p50/p95/p99, quality-rank histogram, cost budget and realized cost, error-ceiling outcomes, protected-detail outcomes, and an output SHA-256. Measure allocator p50/p95/p99, the quality-rank histogram, cost budget and realized cost, error distribution, and protected-feature outcomes. When integrated into a rendered scene, also report frame intervals and GPU timestamps separately; wgpu GPU timestamps are only available when the adapter supports the required feature.
 
 Proposed maximum projected-error profiles are 1 px for precision inspection, 2 px for interactive detail, and 4 px for strategic overview. These are hypotheses, not established perceptual thresholds.
 
@@ -37,8 +37,8 @@ A credible advantage means preserving task-relevant detail at lower measured cos
 
 ## Next tranche
 
-1. Run focused render-bridge tests on this exact head and fix failures.
-2. Add a Rust harness that consumes the manifest and generates fixed workloads.
+1. Complete formatting, strict Clippy, focused render-bridge tests, and the exact-head workload workflow; fix failures without weakening invariants.
+2. Use policy-only run receipts to quantify scaling, then compare the heap allocator with an independent simple greedy reference on a smaller frozen corpus to detect implementation drift and measure algorithmic overhead.
 3. Calibrate candidate cost units from measured backend workloads.
 4. Add geometric-error projection fixtures and camera-motion hysteresis.
 5. Integrate one opt-in Bevy LOD path and compare against the #2009 baseline.
