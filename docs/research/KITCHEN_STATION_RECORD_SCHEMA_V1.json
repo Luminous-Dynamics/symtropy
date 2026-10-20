@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json",
+  "$id": "urn:luminous-dynamics:symtropy:kitchen-station-record:1.0.0",
   "title": "Kitchen Station Benchmark Trial Record",
   "description": "One immutable candidate × scenario × trial record. This is a data contract, not evidence of product performance or certification.",
   "type": "object",
@@ -332,6 +332,8 @@
             "number",
             "string",
             "boolean",
+            "object",
+            "array",
             "null"
           ]
         },
