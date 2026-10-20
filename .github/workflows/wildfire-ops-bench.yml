@@ -126,6 +126,17 @@ jobs:
                 ] | length == 1)))
           ' wildfire-voi-reference-receipt.json
 
+      - name: Independently verify the VOI receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_voi_receipt -- \
+            benchmarks/fixtures/WILDFIRE_VOI_V0_1.json \
+            wildfire-voi-reference-receipt.json \
+            "$source_commit"
+
       - name: Upload deterministic wildfire decision receipts
         uses: actions/upload-artifact@v4
         with:

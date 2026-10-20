@@ -28,7 +28,7 @@ Each world enumerates independent Bernoulli road availability states. Inspection
 - **B1 — entropy-only:** selects the eligible observation with largest binary entropy, ignoring its downstream route consequence and inspection cost.
 - **B2 — decision-aware VoI:** compute minimum expected route cost before observation; for each possible perfect probe, enumerate conditional route costs for the open and closed outcomes; compute gross expected cost reduction minus inspection cost; probe only when net value is positive and the answer arrives by the decision deadline. Otherwise abstain.
 
-The policies receive the scenario roads, priors, actions, inspection costs/availability and deadline. They do not receive oracle labels.
+The policies receive the scenario roads, priors, actions, inspection costs/availability and deadline. They do not receive oracle labels. A separate Rust binary recomputes policy choices, each candidate's expected value, deadline eligibility, the aggregate scorecard, exact source commit, and raw fixture digest before upload.
 
 ## Metrics and hard gates
 
