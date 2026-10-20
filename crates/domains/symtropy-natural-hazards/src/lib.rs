@@ -248,7 +248,11 @@ impl HazardModelProfile {
         if let Err(reason) = self.check_scope(scope) {
             return QualificationDecision::OutOfScope(reason);
         }
-        match self.evidence.iter().find(|record| record.class == required_class) {
+        match self
+            .evidence
+            .iter()
+            .find(|record| record.class == required_class)
+        {
             Some(record) => match record.status {
                 EvidenceStatus::Pass => QualificationDecision::Qualified,
                 EvidenceStatus::Fail => QualificationDecision::FailedEvidence(required_class),
@@ -394,7 +398,8 @@ impl HazardRunReceipt {
 
     /// Returns true only when at least one declared domain-specific budget exists and all close.
     pub fn all_declared_budgets_close(&self) -> bool {
-        !self.budget_residuals.is_empty() && self.budget_residuals.iter().all(BudgetResidual::closes)
+        !self.budget_residuals.is_empty()
+            && self.budget_residuals.iter().all(BudgetResidual::closes)
     }
 }
 
@@ -449,7 +454,10 @@ mod tests {
             HazardKind::AsteroidCometImpact.family(),
             HazardFamily::Extraterrestrial
         );
-        assert_eq!(HazardKind::GeomagneticStorm.family(), HazardFamily::SpaceWeather);
+        assert_eq!(
+            HazardKind::GeomagneticStorm.family(),
+            HazardFamily::SpaceWeather
+        );
         assert_eq!(HazardKind::Epidemic.family(), HazardFamily::Biological);
     }
 
@@ -527,8 +535,7 @@ mod tests {
             source_uri: None,
             detail: "Reference input is not available in this run".into(),
         });
-        let decision =
-            model.qualification_decision(&scope(), EvidenceClass::PublishedBenchmark);
+        let decision = model.qualification_decision(&scope(), EvidenceClass::PublishedBenchmark);
         assert_eq!(
             decision,
             QualificationDecision::UnavailableEvidence(EvidenceClass::PublishedBenchmark)
