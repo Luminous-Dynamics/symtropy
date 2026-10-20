@@ -259,6 +259,9 @@ impl PreferenceStability {
 pub struct ActionPreferenceRange {
     pub first_action: String,
     pub second_action: String,
+    /// Hard-constraint availability, distinct from the loss comparison.
+    pub first_admissible_across_all_models: bool,
+    pub second_admissible_across_all_models: bool,
     /// Extremes of loss(first_action) - loss(second_action).
     /// Negative values favor the first action; positive values favor the second.
     pub minimum_loss_difference: f64,
@@ -467,6 +470,12 @@ pub fn compare_actions_under_weight_uncertainty(
     Ok(ActionPreferenceRange {
         first_action: first_action.to_owned(),
         second_action: second_action.to_owned(),
+        first_admissible_across_all_models: models
+            .iter()
+            .all(|model| model.admissible_actions.contains(first_action)),
+        second_admissible_across_all_models: models
+            .iter()
+            .all(|model| model.admissible_actions.contains(second_action)),
         minimum_loss_difference,
         maximum_loss_difference,
         minimizing_weights,
@@ -859,6 +868,8 @@ mod tests {
         assert!((result.minimum_loss_difference + 1.4).abs() < 1e-9);
         assert!((result.maximum_loss_difference - 1.8).abs() < 1e-9);
         assert_eq!(result.stability, PreferenceStability::CanFlip);
+        assert!(!result.first_admissible_across_all_models);
+        assert!(result.second_admissible_across_all_models);
     }
 
     #[test]
