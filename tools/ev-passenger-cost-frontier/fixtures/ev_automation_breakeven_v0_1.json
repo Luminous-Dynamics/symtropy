@@ -1,0 +1,438 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-AUTOMATION-001",
+  "evaluation_horizon_years": 7,
+  "asset_life_years": 10,
+  "discount_rate_fraction": 0.1,
+  "demand_cases_good_units_per_year": [
+    1000,
+    10000,
+    50000,
+    100000
+  ],
+  "sites": [
+    {
+      "site_id": "south-africa-example",
+      "country_or_region": "South Africa (illustrative)",
+      "local_currency": "ZAR",
+      "local_currency_per_usd": 16.4,
+      "fx_reference_date": "2026-10-20",
+      "fx_evidence_class": "synthetic",
+      "operating_days_per_year": 240,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "unpaid_break_hours_per_shift": 0.5,
+      "availability_fraction": 0.85,
+      "performance_fraction": 0.9,
+      "fully_loaded_labor_cost_per_hour_local": 120,
+      "electricity_cost_per_kwh_local": 2.8,
+      "useful_thermal_energy_cost_per_kwh_local": 1.5,
+      "building_lease_cost_per_sqm_year_local": 950,
+      "site_cost_evidence_class": "synthetic",
+      "local_compliance_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Local code review not performed."
+      },
+      "battery_hv_safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Battery/HV site process review not independently verified."
+      },
+      "note": "All regional cost and FX inputs are synthetic scenario knobs, not current rates or quotes."
+    },
+    {
+      "site_id": "india-example",
+      "country_or_region": "India (illustrative)",
+      "local_currency": "INR",
+      "local_currency_per_usd": 85,
+      "fx_reference_date": "2026-10-20",
+      "fx_evidence_class": "synthetic",
+      "operating_days_per_year": 260,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "unpaid_break_hours_per_shift": 0.5,
+      "availability_fraction": 0.85,
+      "performance_fraction": 0.9,
+      "fully_loaded_labor_cost_per_hour_local": 850,
+      "electricity_cost_per_kwh_local": 9,
+      "useful_thermal_energy_cost_per_kwh_local": 4.5,
+      "building_lease_cost_per_sqm_year_local": 800,
+      "site_cost_evidence_class": "synthetic",
+      "local_compliance_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Local code review not performed."
+      },
+      "battery_hv_safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Battery/HV site process review not independently verified."
+      },
+      "note": "All regional cost and FX inputs are synthetic scenario knobs, not current rates or quotes."
+    },
+    {
+      "site_id": "brazil-example",
+      "country_or_region": "Brazil (illustrative)",
+      "local_currency": "BRL",
+      "local_currency_per_usd": 5.5,
+      "fx_reference_date": "2026-10-20",
+      "fx_evidence_class": "synthetic",
+      "operating_days_per_year": 240,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "unpaid_break_hours_per_shift": 0.5,
+      "availability_fraction": 0.83,
+      "performance_fraction": 0.9,
+      "fully_loaded_labor_cost_per_hour_local": 48,
+      "electricity_cost_per_kwh_local": 0.95,
+      "useful_thermal_energy_cost_per_kwh_local": 0.35,
+      "building_lease_cost_per_sqm_year_local": 550,
+      "site_cost_evidence_class": "synthetic",
+      "local_compliance_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Local code review not performed."
+      },
+      "battery_hv_safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-verified",
+        "as_of": "2026-10-20",
+        "note": "Battery/HV site process review not independently verified."
+      },
+      "note": "All regional cost and FX inputs are synthetic scenario knobs, not current rates or quotes."
+    }
+  ],
+  "families": [
+    {
+      "family_id": "inbound-kitting",
+      "label": "Inbound picking and kitting",
+      "options": [
+        {
+          "option_id": "manual",
+          "label": "Manual pick, scan and kitting",
+          "mode": "manual",
+          "cycle_minutes_per_attempt": 6,
+          "equipment_capex_usd_per_cell": 12000,
+          "integration_capex_usd": 0,
+          "operators_per_cell_per_shift": 2,
+          "footprint_sqm_per_cell": 22,
+          "electrical_kwh_per_attempt": 0.8,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.96,
+          "failed_attempt_cost_local": 100,
+          "rework_fraction": 0.1,
+          "rework_cost_per_attempt_local": 30,
+          "annual_maintenance_fraction_of_capex": 0.02,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Baseline manual picking with serialized scan and manual kit checks."
+        },
+        {
+          "option_id": "assisted",
+          "label": "Assisted kitting with guided scan / torque-tools data link",
+          "mode": "assisted",
+          "cycle_minutes_per_attempt": 4.5,
+          "equipment_capex_usd_per_cell": 35000,
+          "integration_capex_usd": 7000,
+          "operators_per_cell_per_shift": 1,
+          "footprint_sqm_per_cell": 25,
+          "electrical_kwh_per_attempt": 1.1,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.98,
+          "failed_attempt_cost_local": 100,
+          "rework_fraction": 0.06,
+          "rework_cost_per_attempt_local": 30,
+          "annual_maintenance_fraction_of_capex": 0.04,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Assistive scanning, guided work and ergonomic presentation; no production claim."
+        },
+        {
+          "option_id": "automated",
+          "label": "Automated pick-to-light / controlled material presentation",
+          "mode": "automated",
+          "cycle_minutes_per_attempt": 3.5,
+          "equipment_capex_usd_per_cell": 100000,
+          "integration_capex_usd": 15000,
+          "operators_per_cell_per_shift": 1,
+          "footprint_sqm_per_cell": 35,
+          "electrical_kwh_per_attempt": 2.5,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.99,
+          "failed_attempt_cost_local": 100,
+          "rework_fraction": 0.03,
+          "rework_cost_per_attempt_local": 30,
+          "annual_maintenance_fraction_of_capex": 0.06,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "More equipment and integration capital; requires variant and error-proofing validation."
+        }
+      ],
+      "note": "Station boundary covers kit preparation only; upstream warehouse inventory, replenishment routes and MOQ working capital are not included."
+    },
+    {
+      "family_id": "battery-hv-install",
+      "label": "Battery and high-voltage module installation",
+      "options": [
+        {
+          "option_id": "manual",
+          "label": "Manual assisted lifting and controlled torque",
+          "mode": "manual",
+          "cycle_minutes_per_attempt": 15,
+          "equipment_capex_usd_per_cell": 20000,
+          "integration_capex_usd": 0,
+          "operators_per_cell_per_shift": 3,
+          "footprint_sqm_per_cell": 35,
+          "electrical_kwh_per_attempt": 3,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.96,
+          "failed_attempt_cost_local": 1200,
+          "rework_fraction": 0.08,
+          "rework_cost_per_attempt_local": 150,
+          "annual_maintenance_fraction_of_capex": 0.03,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Manual work with lift assist, prescribed HV procedure and torque verification assumptions."
+        },
+        {
+          "option_id": "assisted",
+          "label": "Guided battery lift and digital torque interlocks",
+          "mode": "assisted",
+          "cycle_minutes_per_attempt": 10,
+          "equipment_capex_usd_per_cell": 75000,
+          "integration_capex_usd": 15000,
+          "operators_per_cell_per_shift": 2,
+          "footprint_sqm_per_cell": 45,
+          "electrical_kwh_per_attempt": 4,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.98,
+          "failed_attempt_cost_local": 1200,
+          "rework_fraction": 0.04,
+          "rework_cost_per_attempt_local": 150,
+          "annual_maintenance_fraction_of_capex": 0.05,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Additional positioners and traceability; no assumption that safety validation is complete."
+        },
+        {
+          "option_id": "automated",
+          "label": "Automated battery placement and controlled fastening",
+          "mode": "automated",
+          "cycle_minutes_per_attempt": 8,
+          "equipment_capex_usd_per_cell": 200000,
+          "integration_capex_usd": 30000,
+          "operators_per_cell_per_shift": 1,
+          "footprint_sqm_per_cell": 55,
+          "electrical_kwh_per_attempt": 6,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.99,
+          "failed_attempt_cost_local": 1200,
+          "rework_fraction": 0.02,
+          "rework_cost_per_attempt_local": 150,
+          "annual_maintenance_fraction_of_capex": 0.07,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Higher capex and maintenance; HV safe-state, collision and recovery risks remain hard approval gates."
+        }
+      ],
+      "note": "Costs cover the station task only, not battery pack procurement, battery room design or complete HV safety certification."
+    },
+    {
+      "family_id": "end-of-line-test",
+      "label": "End-of-line electrical and functional test",
+      "options": [
+        {
+          "option_id": "manual",
+          "label": "Manual technician inspection and test sequence",
+          "mode": "manual",
+          "cycle_minutes_per_attempt": 25,
+          "equipment_capex_usd_per_cell": 15000,
+          "integration_capex_usd": 0,
+          "operators_per_cell_per_shift": 2,
+          "footprint_sqm_per_cell": 25,
+          "electrical_kwh_per_attempt": 2,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.95,
+          "failed_attempt_cost_local": 600,
+          "rework_fraction": 0.08,
+          "rework_cost_per_attempt_local": 100,
+          "annual_maintenance_fraction_of_capex": 0.02,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Baseline inspection/testing; exact test plan and equipment are unspecified scenario assumptions."
+        },
+        {
+          "option_id": "assisted",
+          "label": "Sequenced semi-automatic test rig and digital results",
+          "mode": "assisted",
+          "cycle_minutes_per_attempt": 15,
+          "equipment_capex_usd_per_cell": 90000,
+          "integration_capex_usd": 20000,
+          "operators_per_cell_per_shift": 2,
+          "footprint_sqm_per_cell": 35,
+          "electrical_kwh_per_attempt": 4,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.98,
+          "failed_attempt_cost_local": 600,
+          "rework_fraction": 0.04,
+          "rework_cost_per_attempt_local": 100,
+          "annual_maintenance_fraction_of_capex": 0.04,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Automates data capture and selected tests; does not eliminate human disposition."
+        },
+        {
+          "option_id": "automated",
+          "label": "Automated EOL test and trace-linked diagnosis",
+          "mode": "automated",
+          "cycle_minutes_per_attempt": 10,
+          "equipment_capex_usd_per_cell": 220000,
+          "integration_capex_usd": 50000,
+          "operators_per_cell_per_shift": 1,
+          "footprint_sqm_per_cell": 50,
+          "electrical_kwh_per_attempt": 7,
+          "useful_thermal_kwh_per_attempt": 0,
+          "good_yield_fraction": 0.995,
+          "failed_attempt_cost_local": 600,
+          "rework_fraction": 0.015,
+          "rework_cost_per_attempt_local": 100,
+          "annual_maintenance_fraction_of_capex": 0.07,
+          "evidence_class": "synthetic",
+          "technical_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Cycle, process capability and maintainability have not been measured for this station option."
+          },
+          "safety_gate": {
+            "status": "unknown",
+            "evidence_class": "unknown",
+            "source_reference": "unknown://not-verified",
+            "as_of": "2026-10-20",
+            "note": "Task-specific risk assessment and machine/electrical safety validation are not supplied."
+          },
+          "note": "Automated test hardware and diagnostic capture; validated safety test coverage remains mandatory."
+        }
+      ],
+      "note": "This compares station economics; no test fixture described here is a homologation or safety validation procedure."
+    }
+  ],
+  "claim_ceiling": "Every wage, FX rate, utility price, lease rate, station cycle, labor count, yield, rework rate, cost of a failed attempt, capex and maintenance fraction in this fixture is synthetic. Reported NPV and payback are arithmetic over assumptions only, not quotes or predicted returns. Safety/compliance gates remain unknown."
+}

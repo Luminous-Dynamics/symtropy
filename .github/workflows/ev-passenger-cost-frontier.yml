@@ -33,6 +33,7 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_automation_breakeven_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -103,6 +104,23 @@ jobs:
             and all(.results[]; .cost_of_goods_if_vat_unrecoverable_low >= .cost_of_goods_if_vat_recovered_low)
             and all(.results[]; .cost_of_goods_if_vat_unrecoverable_high >= .cost_of_goods_if_vat_recovered_high)
           ' ev-localization-cost-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_automation_frontier -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_automation_breakeven_v0_1.json \
+            > ev-automation-breakeven-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-AUTOMATION-001"
+            and .result_count == 108
+            and all(.results[]; .target_good_units_per_year > 0)
+            and all(.results[]; .planned_attempt_capacity_per_year >= .planned_attempts_per_year)
+            and all(.results[]; .good_capacity_per_year >= .target_good_units_per_year)
+            and all(.results[]; .required_cells > 0)
+            and all(.results[]; .total_station_cost_usd_per_good_unit > 0)
+            and all(.results[]; .release_ready == false)
+            and all(.results[]; .evidence_release_grade == false)
+            and all(.results[] | select(.is_manual_baseline); .annual_operating_savings_vs_manual_usd == 0)
+            and all(.results[] | select(.is_manual_baseline); .incremental_installed_capex_vs_manual_usd == 0)
+            and all(.results[] | select(.is_manual_baseline); .discounted_npv_vs_manual_usd == 0)
+          ' ev-automation-breakeven-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -112,7 +130,9 @@ jobs:
             tools/ev-passenger-cost-frontier/src/bin/ev_localization_frontier.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_frontier.rs \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json \
-            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json > ev-passenger-cost-report.sha256
+            tools/ev-passenger-cost-frontier/src/bin/ev_automation_frontier.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_automation_breakeven_v0_1.json \
+            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-automation-breakeven-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-passenger-cost-frontier-report
@@ -120,5 +140,6 @@ jobs:
             ev-passenger-cost-report.json
             ev-localization-cost-report.json
             ev-factory-design-report.json
+            ev-automation-breakeven-report.json
             ev-passenger-cost-report.sha256
           if-no-files-found: error
