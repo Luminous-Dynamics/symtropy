@@ -244,7 +244,8 @@ fn update_stock(
 mod tests {
     use super::{Compartment, EcosystemState, ProcessStep, StepError, Stocks};
 
-    const FIXTURE: &str = include_str!("../fixtures/process_steps_v0.csv");
+    const INPUTS: &str = include_str!("../fixtures/process_steps_v0.csv");
+    const EXPECTED: &str = include_str!("../fixtures/expected_stocks_v0.csv");
 
     fn field(fields: &[&str], index: usize) -> u64 {
         fields[index]
@@ -253,18 +254,27 @@ mod tests {
     }
 
     #[test]
-    fn frozen_process_corpus_matches_expected_stocks() {
-        let mut lines = FIXTURE.lines();
-        let header = lines.next().expect("fixture header");
-        assert_eq!(header.split(',').count(), 22);
+    fn frozen_process_corpus_matches_separate_expected_stocks() {
+        let mut input_lines = INPUTS.lines();
+        let input_header = input_lines.next().expect("input header");
+        assert_eq!(input_header.split(',').count(), 17);
+
+        let mut expected_lines = EXPECTED.lines();
+        let expected_header = expected_lines.next().expect("expected header");
+        assert_eq!(expected_header.split(',').count(), 6);
 
         let mut cases = 0;
-        for line in lines {
-            if line.trim().is_empty() {
+        for input_line in input_lines {
+            if input_line.trim().is_empty() {
                 continue;
             }
-            let f: Vec<&str> = line.split(',').collect();
-            assert_eq!(f.len(), 22, "malformed fixture row: {}", f[0]);
+            let f: Vec<&str> = input_line.split(',').collect();
+            assert_eq!(f.len(), 17, "malformed input row: {}", f[0]);
+
+            let expected_line = expected_lines.next().expect("matching expected row");
+            let e: Vec<&str> = expected_line.split(',').collect();
+            assert_eq!(e.len(), 6, "malformed expected row: {}", f[0]);
+            assert_eq!(f[0], e[0], "case ordering / identity mismatch");
 
             let initial = Stocks {
                 dissolved_p_umol: field(&f, 1),
@@ -288,11 +298,11 @@ mod tests {
                 decomposition_o2_umol: field(&f, 16),
             };
             let expected = Stocks {
-                dissolved_p_umol: field(&f, 17),
-                living_biomass_p_umol: field(&f, 18),
-                water_detritus_p_umol: field(&f, 19),
-                sediment_organic_p_umol: field(&f, 20),
-                dissolved_oxygen_umol: field(&f, 21),
+                dissolved_p_umol: field(&e, 1),
+                living_biomass_p_umol: field(&e, 2),
+                water_detritus_p_umol: field(&e, 3),
+                sediment_organic_p_umol: field(&e, 4),
+                dissolved_oxygen_umol: field(&e, 5),
             };
 
             let mut state = EcosystemState::new(initial);
@@ -301,6 +311,7 @@ mod tests {
             cases += 1;
         }
         assert_eq!(cases, 4);
+        assert!(expected_lines.next().is_none(), "unexpected extra oracle rows");
     }
 
     #[test]
