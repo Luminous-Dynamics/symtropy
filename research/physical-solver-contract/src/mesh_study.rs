@@ -7,7 +7,7 @@
 
 use crate::sha256_hex;
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 pub type MeshStudyResult<T> = Result<T, String>;
 
@@ -92,7 +92,7 @@ pub fn audit_mesh_refinement_study(
             ));
         }
 
-        if let Some(primary) = primary {
+        if let Some(primary) = primary.as_ref() {
             primary_errors.push(primary.absolute_error);
             if primary.observable_id != study.primary_observable_id {
                 return Err(format!(
@@ -416,7 +416,7 @@ fn parse_study(value: &Value) -> MeshStudyResult<StudyManifest> {
         return Err(format!("mesh study may not exceed {MAXIMUM_LEVELS} levels"));
     }
 
-    let mut levels = Vec::with_capacity(raw_levels.len());
+    let mut levels: Vec<StudyLevel> = Vec::with_capacity(raw_levels.len());
     let mut ids = BTreeSet::new();
     for (index, raw) in raw_levels.iter().enumerate() {
         let at = format!("mesh study.levels[{index}]");
@@ -516,7 +516,7 @@ fn parse_reference_for_study(
         get_str(value, "comparison_protocol_id", "reference manifest")?,
         "comparison protocol ID",
     )?;
-    if digest(study_value_reference(study, reference_sha256), "reference_sha256", "mesh study")? != reference_sha256 {
+    if study.reference_sha256 != reference_sha256 {
         return Err("mesh study reference digest does not match exact reference bytes".to_owned());
     }
     if reference_id != study.reference_id
@@ -600,12 +600,6 @@ fn parse_reference_for_study(
         primary_relative_tolerance,
         observable_ids,
     })
-}
-
-fn study_value_reference<'a>(study: &'a StudyManifest, _reference_sha256: &str) -> &'a Value {
-    // Intentionally unused helper prevented at compile-time by keeping the reference
-    // digest comparison directly in the public entry point.
-    unreachable!("reference digest is checked before parsing the manifest")
 }
 
 fn parse_comparison_report(
@@ -692,9 +686,6 @@ fn parse_comparison_report(
         if !expected_within_tolerance {
             any_failing = true;
         }
-        if let Some(reference_entry) = get_array_value(value, "observable_results", index) {
-            let _ = reference_entry;
-        }
         if id == study.primary_observable_id {
             if unit != reference.primary_unit
                 || expected_value != reference.primary_expected_value
@@ -728,10 +719,6 @@ fn parse_comparison_report(
         producer_status: producer_status.to_owned(),
         primary_observable: primary,
     })
-}
-
-fn get_array_value(value: &Value, key: &str, index: usize) -> Option<&Value> {
-    value.get(key)?.as_array()?.get(index)
 }
 
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> MeshStudyResult<()> {
