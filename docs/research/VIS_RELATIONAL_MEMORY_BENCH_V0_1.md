@@ -24,11 +24,12 @@ Query relevance is public input, so query-keyed retention may filter irrelevant 
 - Eight latent binary claims; each episode exposes a query over three distinct claim keys. The query asks whether at least two of the three claims currently hold.
 - A 48-event evidence stream contains correlated hot-distractor bursts, independently changing claims, delayed/out-of-order source times, and occasional corrupted evidence.
 - Development and held-out profiles change distractor frequency, claim-change rate, maximum delay, and corruption rate.
-- Policies: bounded FIFO, deterministic seeded uniform reservoir, and query-keyed latest-source-time memory.
+- Policies: bounded FIFO, deterministic seeded uniform reservoir, query-keyed latest-source-time memory, and a selective query-keyed decision policy whose freshness/confidence threshold is chosen on separate development-calibration seeds and then frozen for both report families.
 - Capacities: 1, 2, 3, 4, and 8 evidence entries. Each policy receives the same released stream and public query at each episode/capacity pair.
 - 12 seed replicates × 32 episode seeds = 384 paired episodes per family and policy/capacity.
 - Loss: correct answer = 0; abstention without fresh retained evidence for all three queried claims = 0.25; incorrect answer = 1.
-- Metrics: mean loss (primary), answer rate, accuracy on answered episodes, fresh query-claim coverage, mean memory entries, and paired 95% bootstrap intervals for every policy's loss difference versus FIFO. Positive deltas mean worse loss.
+- Metrics: mean loss (primary), answer rate, accuracy on answered episodes, fresh query-claim coverage, mean memory entries, the selected selective threshold, and paired 95% bootstrap intervals for every policy's loss difference versus FIFO. Positive deltas mean worse loss.
+- Selective threshold grid: minimum evidence confidence {350, 900} × maximum source age {2, 4, 7}. Selection minimizes mean decision loss on a separate 256-episode development calibration seed set; ties prefer higher confidence then lower allowed age. Those calibration seeds are disjoint from the report seeds and held-out outcomes never select thresholds.
 - Fixed-seed report replay and tests cover delayed stale evidence, query-irrelevant distractors, capacity bounds, and deterministic bootstrap.
 
 ## Hypotheses and advancement gate
