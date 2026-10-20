@@ -20,6 +20,8 @@ The HUD explicitly labels the orbits as illustrative, not ephemeris.
 ## What is implemented
 
 - A static catalog of the Sun, Mercury, Venus, Earth, Moon, Mars, Jupiter, Saturn, Uranus and Neptune, using reference radii and approximate distance scales as fixture anchors.
+- Deterministic circular guide paths for the eight planet orbits and the Moon, rendered as camera-relative segments. Path geometry and line thickness are presentation guides, not integrated orbital states.
+- A deterministic synthetic skyfield for background texture. These are angular markers attached to a camera-relative background shell, not stars with physical positions or a catalogue.
 - Canonical LargeWorldPosition values represented by cell addresses and local offsets.
 - Camera-relative transform updates and explicit precision-budget checks.
 - Perspective apparent-diameter estimates and apparent-size bands.
@@ -31,7 +33,7 @@ The HUD explicitly labels the orbits as illustrative, not ephemeris.
 ## What is not implemented
 
 - No NASA/JPL SPICE integration, epoch, timescale, body-fixed orientation, or dynamically computed ephemeris.
-- No surface imagery/DEM tiles, terrain LOD, atmospheres, rings, eclipses, orbital dynamics or spacecraft trails. Orbit guides are static circular geometry, not integrated paths.
+- No surface imagery/DEM tiles, terrain LOD, atmospheres, rings, eclipses, orbital dynamics or spacecraft trails. Orbit guides are static circular geometry, not integrated paths; the synthetic stars are not an astronomical catalogue.
 - No high/middle/low GPU vertex shader path; this prototype uses budget-checked camera-relative f32 transforms. Shader-space precision still needs separate validation.
 - No qualified depth strategy. The stage-dependent near/far ranges are fixture inputs, not a recommendation for the final renderer.
 - No GPU timestamp receipt or matched comparison against Gaia Sky, Cesium, Unreal or Unity.
