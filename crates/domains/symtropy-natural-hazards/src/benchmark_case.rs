@@ -406,7 +406,8 @@ fn validate_comparison(
 fn validate_split_identities(splits: &[SplitAssignment]) -> Result<(), CaseValidationError> {
     let mut samples = BTreeSet::new();
     for split in splits {
-        if !nonblank(&split.sample_id) || !nonblank(&split.event_id) || !nonblank(&split.region_id) {
+        if !nonblank(&split.sample_id) || !nonblank(&split.event_id) || !nonblank(&split.region_id)
+        {
             return Err(CaseValidationError::InvalidSplit(split.sample_id.clone()));
         }
         if !samples.insert(key(&split.sample_id)) {
