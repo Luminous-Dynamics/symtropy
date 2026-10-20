@@ -725,6 +725,27 @@ mod tests {
     }
 
     #[test]
+    fn hand_calculated_nominal_golden_uses_no_generic_evaluator() {
+        // Independent arithmetic: 6 energy units satisfy 2 water + 1 sanitation
+        // + 1 food-preservation unit, leaving 2 for one reference operation.
+        let demands = [("water", 2_u64), ("sanitation", 1_u64), ("food_preservation", 1_u64)];
+        let service_energy_per_unit = 1_u64;
+        let operation_energy = 2_u64;
+        let mut remaining = 6_u64;
+        let mut delivered = Vec::new();
+        for (_service, demand) in demands {
+            let amount = demand.min(remaining / service_energy_per_unit);
+            remaining -= amount * service_energy_per_unit;
+            delivered.push(amount);
+        }
+        assert_eq!(delivered, vec![2, 1, 1]);
+        assert_eq!(remaining, 2);
+        let conforming_units = 1_u64.min(remaining / operation_energy);
+        assert_eq!(conforming_units, 1);
+        assert_eq!(remaining - conforming_units * operation_energy, 0);
+    }
+
+    #[test]
     fn sha256_known_answer() {
         assert_eq!(
             sha256_hex(b"abc"),
