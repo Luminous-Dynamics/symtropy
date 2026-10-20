@@ -625,12 +625,65 @@ fn mean_optional(values: impl Iterator<Item = Option<f64>>) -> Option<f64> {
     }
 }
 
+const WORLD_SEED_REPLICATES: usize = 8;
+
+#[derive(Debug, Clone, Copy)]
+struct RunMetrics {
+    mean_loss: f64,
+    mean_regret: f64,
+    mean_action_value: f64,
+    high_occlusion_loss: f64,
+    high_blur_loss: f64,
+    high_distractor_loss: f64,
+    high_novelty_loss: f64,
+    latency_units_per_episode: f64,
+    sensor_actions_per_episode: f64,
+}
+
+fn average(values: impl Iterator<Item = f64>) -> f64 {
+    let values: Vec<f64> = values.collect();
+    values.iter().sum::<f64>() / values.len() as f64
+}
+
+fn metrics_for_world_seed(
+    summaries: &[RunSummaryV1],
+    worlds: &[HiddenWorld],
+) -> Result<RunMetrics, EvaluationError> {
+    let high_occlusion_loss = mean_optional(summaries.iter().map(|summary|
+        mean_loss_for_stratum(summary, worlds, |world| world.occlusion_milli >= 700)))
+        .ok_or(EvaluationError::NonFiniteAggregate)?;
+    let high_blur_loss = mean_optional(summaries.iter().map(|summary|
+        mean_loss_for_stratum(summary, worlds, |world| world.blur_milli >= 700)))
+        .ok_or(EvaluationError::NonFiniteAggregate)?;
+    let high_distractor_loss = mean_optional(summaries.iter().map(|summary|
+        mean_loss_for_stratum(summary, worlds, |world| world.distractor_salience_milli >= 900)))
+        .ok_or(EvaluationError::NonFiniteAggregate)?;
+    let high_novelty_loss = mean_optional(summaries.iter().map(|summary|
+        mean_loss_for_stratum(summary, worlds, |world| world.novelty_milli >= 900)))
+        .ok_or(EvaluationError::NonFiniteAggregate)?;
+
+    Ok(RunMetrics {
+        mean_loss: average(summaries.iter().map(|summary| summary.mean_realized_loss)),
+        mean_regret: average(summaries.iter().map(|summary| summary.mean_regret_vs_run_budget_oracle)),
+        mean_action_value: average(summaries.iter().map(mean_action_value)),
+        high_occlusion_loss,
+        high_blur_loss,
+        high_distractor_loss,
+        high_novelty_loss,
+        latency_units_per_episode: average(summaries.iter().filter_map(|summary| mean_resource(summary, "latency_unit"))),
+        sensor_actions_per_episode: average(summaries.iter().filter_map(|summary| mean_resource(summary, "sensor_action"))),
+    })
+}
+
 fn run_report() -> Result<(), EvaluationError> {
-    let development_worlds = generate_worlds(EPISODE_COUNT, ROOT_SEED);
-    let held_out_worlds = generate_held_out_worlds(
-        EPISODE_COUNT,
-        ROOT_SEED ^ 0xD1B5_4A32_D192_ED03,
-    );
+    let profiles = [
+        ("development_levels", ROOT_SEED, WorldProfile::DevelopmentLevels),
+        (
+            "held_out_severity_levels",
+            ROOT_SEED ^ 0xD1B5_4A32_D192_ED03,
+            WorldProfile::HeldOutSeverityLevels,
+        ),
+    ];
     let policies = [
         Policy::AlwaysCheap,
         Policy::AlwaysEscalate,
@@ -639,55 +692,51 @@ fn run_report() -> Result<(), EvaluationError> {
         Policy::DeterministicRandom,
         Policy::SequentialEvidence,
     ];
-    let profile = resource_profile(development_worlds.len());
 
     println!("VIS-ACT-002 causal synthetic active-vision pilot");
     println!("Action-conditioned outcomes generated from hidden target identity and sensor/action rules.");
     println!("Not real sensors, not a powered study, abstract resource units only.");
-    println!(
-        "episodes_per_profile={} latency_budget={} sensor_action_budget={}",
-        development_worlds.len(),
-        profile["latency_unit"].run_budget.unwrap(),
-        profile["sensor_action"].run_budget.unwrap()
-    );
-    println!("Random baseline repeats 16 policy seeds on the same worlds; not independent world samples.");
-    println!("profile\tpolicy\tseed_replicates\tmean_loss\tmin_loss\tmax_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\thigh_occlusion_loss\thigh_blur_loss\thigh_distractor_loss\thigh_novelty_loss\tlatency_units_per_episode\tsensor_actions_per_episode");
+    println!("world_seed_replicates={} episodes_per_seed=36; nuisance values differ between development and held-out severity profiles.", WORLD_SEED_REPLICATES);
+    println!("Random policy uses 16 policy seeds within each world-seed replicate; those are not independent worlds.");
+    println!("profile\tpolicy\tworld_seed_replicates\tpolicy_seed_replicates\tmean_loss\tmin_world_mean_loss\tmax_world_mean_loss\tmean_run_oracle_regret\tmean_action_value_vs_cheap\thigh_occlusion_loss\thigh_blur_loss\thigh_distractor_loss\thigh_novelty_loss\tlatency_units_per_episode\tsensor_actions_per_episode");
 
-    for (profile_name, worlds) in [
-        ("development_levels", development_worlds.as_slice()),
-        ("held_out_severity_levels", held_out_worlds.as_slice()),
-    ] {
+    for (profile_name, root_seed, world_profile) in profiles {
         for policy in policies {
-            let repetitions = if matches!(policy, Policy::DeterministicRandom) { 16 } else { 1 };
-            let mut summaries = Vec::with_capacity(repetitions);
-            for policy_seed in 0..repetitions {
-                summaries.push(evaluate_policy(policy, worlds, policy_seed as u64)?);
-            }
-            let mean_loss = summaries.iter().map(|summary| summary.mean_realized_loss).sum::<f64>()
-                / summaries.len() as f64;
-            let min_loss = summaries.iter().map(|summary| summary.mean_realized_loss).fold(f64::INFINITY, f64::min);
-            let max_loss = summaries.iter().map(|summary| summary.mean_realized_loss).fold(f64::NEG_INFINITY, f64::max);
-            let mean_regret = summaries.iter().map(|summary| summary.mean_regret_vs_run_budget_oracle).sum::<f64>()
-                / summaries.len() as f64;
-            let mean_action_value = summaries.iter().map(mean_action_value).sum::<f64>() / summaries.len() as f64;
-            let high_occlusion_loss = mean_optional(summaries.iter().map(|summary|
-                mean_loss_for_stratum(summary, worlds, |world| world.occlusion_milli >= 700)));
-            let high_blur_loss = mean_optional(summaries.iter().map(|summary|
-                mean_loss_for_stratum(summary, worlds, |world| world.blur_milli >= 700)));
-            let high_distractor_loss = mean_optional(summaries.iter().map(|summary|
-                mean_loss_for_stratum(summary, worlds, |world| world.distractor_salience_milli >= 900)));
-            let high_novelty_loss = mean_optional(summaries.iter().map(|summary|
-                mean_loss_for_stratum(summary, worlds, |world| world.novelty_milli >= 900)));
-            let latency_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "latency_unit")).sum::<f64>()
-                / summaries.len() as f64;
-            let sensor_per_episode = summaries.iter().filter_map(|summary| mean_resource(summary, "sensor_action")).sum::<f64>()
-                / summaries.len() as f64;
+            let policy_seed_replicates = if matches!(policy, Policy::DeterministicRandom) { 16 } else { 1 };
+            let mut world_metrics = Vec::with_capacity(WORLD_SEED_REPLICATES);
 
+            for world_replicate in 0..WORLD_SEED_REPLICATES {
+                let world_seed = root_seed.wrapping_add(
+                    (world_replicate as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15),
+                );
+                let worlds = generate_worlds_with_profile(EPISODE_COUNT, world_seed, world_profile);
+                let mut summaries = Vec::with_capacity(policy_seed_replicates);
+                for policy_seed in 0..policy_seed_replicates {
+                    summaries.push(evaluate_policy(policy, &worlds, policy_seed as u64)?);
+                }
+                world_metrics.push(metrics_for_world_seed(&summaries, &worlds)?);
+            }
+
+            let mean_loss = average(world_metrics.iter().map(|metrics| metrics.mean_loss));
+            let min_world_mean_loss = world_metrics.iter().map(|metrics| metrics.mean_loss).fold(f64::INFINITY, f64::min);
+            let max_world_mean_loss = world_metrics.iter().map(|metrics| metrics.mean_loss).fold(f64::NEG_INFINITY, f64::max);
             println!(
-                "{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:?}\t{:?}\t{:?}\t{:?}\t{:.3}\t{:.3}",
-                profile_name, policy.name(), repetitions, mean_loss, min_loss, max_loss,
-                mean_regret, mean_action_value, high_occlusion_loss, high_blur_loss,
-                high_distractor_loss, high_novelty_loss, latency_per_episode, sensor_per_episode
+                "{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.3}\t{:.3}",
+                profile_name,
+                policy.name(),
+                WORLD_SEED_REPLICATES,
+                policy_seed_replicates,
+                mean_loss,
+                min_world_mean_loss,
+                max_world_mean_loss,
+                average(world_metrics.iter().map(|metrics| metrics.mean_regret)),
+                average(world_metrics.iter().map(|metrics| metrics.mean_action_value)),
+                average(world_metrics.iter().map(|metrics| metrics.high_occlusion_loss)),
+                average(world_metrics.iter().map(|metrics| metrics.high_blur_loss)),
+                average(world_metrics.iter().map(|metrics| metrics.high_distractor_loss)),
+                average(world_metrics.iter().map(|metrics| metrics.high_novelty_loss)),
+                average(world_metrics.iter().map(|metrics| metrics.latency_units_per_episode)),
+                average(world_metrics.iter().map(|metrics| metrics.sensor_actions_per_episode)),
             );
         }
     }
