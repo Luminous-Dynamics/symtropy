@@ -183,6 +183,8 @@ pub fn evaluate_quality_budget(
 }
 
 /// Compare candidates only for the same frozen scenario and same hardware identity.
+/// The case digest must exclude solver-variant settings; every run carries its own
+/// validated configuration digest so uniform/adaptive variants remain comparable.
 /// Solver variant and configuration digests are recorded but are expected to differ.
 ///
 /// The error fields must already have been evaluated against the same declared
