@@ -126,7 +126,9 @@ pub fn compare_reference_observables(
     let observation_bytes = fs::read(&canonical_file)
         .map_err(|error| format!("could not read normalized observation artifact: {error}"))?;
     let observed_artifact_sha256 = sha256_hex(&observation_bytes);
-    if observed_artifact_sha256 != expected_artifact_sha || observed_artifact_sha256 != first_observed_sha {
+    if observed_artifact_sha256 != expected_artifact_sha
+        || observed_artifact_sha256 != first_observed_sha
+    {
         return Ok(unresolved_report(
             &artifact_report,
             &reference_parsed,
@@ -140,7 +142,11 @@ pub fn compare_reference_observables(
     let observation: Value = serde_json::from_slice(&observation_bytes)
         .map_err(|error| format!("invalid normalized-observables JSON: {error}"))?;
     let observed = parse_observation(&observation, &request_sha256, &reference_parsed.case_id)?;
-    let reference_ids: BTreeSet<&str> = reference_parsed.observables.keys().map(String::as_str).collect();
+    let reference_ids: BTreeSet<&str> = reference_parsed
+        .observables
+        .keys()
+        .map(String::as_str)
+        .collect();
     let observed_ids: BTreeSet<&str> = observed.keys().map(String::as_str).collect();
     if reference_ids != observed_ids {
         let missing: Vec<_> = reference_ids.difference(&observed_ids).copied().collect();
@@ -159,7 +165,9 @@ pub fn compare_reference_observables(
     let mut diagnostics = Vec::<String>::new();
     let mut any_outside_tolerance = false;
     for (id, expected) in &reference_parsed.observables {
-        let actual = observed.get(id).expect("equal observable inventories were checked");
+        let actual = observed
+            .get(id)
+            .expect("equal observable inventories were checked");
         if actual.unit != expected.unit {
             return Ok(unresolved_report(
                 &artifact_report,
@@ -219,7 +227,11 @@ pub fn compare_reference_observables(
         }));
     }
 
-    let status = if any_outside_tolerance { "FAIL" } else { "PASS" };
+    let status = if any_outside_tolerance {
+        "FAIL"
+    } else {
+        "PASS"
+    };
     Ok(json!({
         "schema_version": "physical-numerical-comparison-report-v0.1",
         "comparison_status": status,
@@ -281,22 +293,36 @@ fn parse_reference(value: &Value, request_sha256: &str) -> CompareResult<Referen
         ],
         "reference manifest",
     )?;
-    expect_str(value, "schema_version", REFERENCE_SCHEMA, "reference manifest")?;
+    expect_str(
+        value,
+        "schema_version",
+        REFERENCE_SCHEMA,
+        "reference manifest",
+    )?;
     let bound_request_sha = get_str(value, "request_sha256", "reference manifest")?;
     if bound_request_sha != request_sha256 {
         return Err("reference manifest is not bound to the exact request bytes".to_owned());
     }
-    let reference_id = token(get_str(value, "reference_id", "reference manifest")?, "reference ID")?;
+    let reference_id = token(
+        get_str(value, "reference_id", "reference manifest")?,
+        "reference ID",
+    )?;
     let case_id = token(get_str(value, "case_id", "reference manifest")?, "case ID")?;
     let protocol_id = token(
         get_str(value, "comparison_protocol_id", "reference manifest")?,
         "comparison protocol ID",
     )?;
     let oracle = get_object(value, "oracle", "reference manifest")?;
-    exact_keys(oracle, &["method", "identity", "source_ref"], "reference.oracle")?;
+    exact_keys(
+        oracle,
+        &["method", "identity", "source_ref"],
+        "reference.oracle",
+    )?;
     let oracle_method = get_str(oracle, "method", "reference.oracle")?;
     if !["analytical_exact", "independent_numerical"].contains(&oracle_method) {
-        return Err("reference.oracle.method must be analytical_exact or independent_numerical".to_owned());
+        return Err(
+            "reference.oracle.method must be analytical_exact or independent_numerical".to_owned(),
+        );
     }
     let oracle_identity = non_empty(
         get_str(oracle, "identity", "reference.oracle")?,
@@ -368,7 +394,12 @@ fn parse_observation(
         &["schema_version", "request_sha256", "case_id", "observables"],
         "normalized observation",
     )?;
-    expect_str(value, "schema_version", OBSERVATION_SCHEMA, "normalized observation")?;
+    expect_str(
+        value,
+        "schema_version",
+        OBSERVATION_SCHEMA,
+        "normalized observation",
+    )?;
     if get_str(value, "request_sha256", "normalized observation")? != request_sha256 {
         return Err("normalized observation is not bound to the exact request bytes".to_owned());
     }
@@ -380,10 +411,16 @@ fn parse_observation(
     for (index, item) in array.iter().enumerate() {
         let at = format!("observation.observables[{index}]");
         exact_keys(item, &["observable_id", "value", "unit"], &at)?;
-        let id = token(get_str(item, "observable_id", &at)?, "observed observable ID")?;
+        let id = token(
+            get_str(item, "observable_id", &at)?,
+            "observed observable ID",
+        )?;
         let value = finite_number(item, "value", &at)?;
         let unit = non_empty(get_str(item, "unit", &at)?, &format!("{at}.unit"), 64)?;
-        if observables.insert(id.clone(), ObservedObservable { value, unit }).is_some() {
+        if observables
+            .insert(id.clone(), ObservedObservable { value, unit })
+            .is_some()
+        {
             return Err(format!("{at} duplicates observable ID '{id}'"));
         }
     }
@@ -446,13 +483,17 @@ fn safe_relative_path(reference: &str) -> CompareResult<PathBuf> {
 }
 
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> CompareResult<()> {
-    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{at} must be an object"))?;
     let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
     let actual_set: BTreeSet<&str> = object.keys().map(String::as_str).collect();
     let missing: Vec<_> = expected_set.difference(&actual_set).copied().collect();
     let unknown: Vec<_> = actual_set.difference(&expected_set).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
-        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
     }
     Ok(())
 }
@@ -504,7 +545,9 @@ fn non_negative(value: &Value, key: &str, at: &str) -> CompareResult<f64> {
 
 fn non_empty(value: &str, at: &str, max_bytes: usize) -> CompareResult<String> {
     if value.trim().is_empty() || value.len() > max_bytes {
-        return Err(format!("{at} must be non-empty and no longer than {max_bytes} bytes"));
+        return Err(format!(
+            "{at} must be non-empty and no longer than {max_bytes} bytes"
+        ));
     }
     Ok(value.to_owned())
 }
@@ -525,7 +568,11 @@ fn token(value: &str, label: &str) -> CompareResult<String> {
 mod tests {
     use super::*;
     use serde_json::json;
-    use std::{fs, path::PathBuf, time::{SystemTime, UNIX_EPOCH}};
+    use std::{
+        fs,
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
 
     fn temporary_root() -> PathBuf {
         let unique = SystemTime::now()
@@ -541,10 +588,9 @@ mod tests {
     }
 
     fn request_bytes() -> Vec<u8> {
-        fs::read(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"),
-        )
+        fs::read(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+            "../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json",
+        ))
         .expect("existing solver request fixture is valid")
     }
     fn build_receipt(request: &[u8], output_sha: &str, status: &str) -> Value {
