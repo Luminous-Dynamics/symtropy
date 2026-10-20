@@ -719,7 +719,7 @@ mod tests {
     }
 
     fn assert_near(observed: f64, expected: f64) {
-        let tolerance = expected.abs().max(1.0) * 1.0e-12;
+        let tolerance = (expected.abs() * 1.0e-12).max(1.0e-15);
         assert!(
             (observed - expected).abs() <= tolerance,
             "observed {observed:.17e}, expected {expected:.17e}, tolerance {tolerance:.17e}"
