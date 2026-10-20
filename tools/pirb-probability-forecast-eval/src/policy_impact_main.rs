@@ -290,7 +290,9 @@ fn validate_contract(input: &[u8], source_commit: &str) -> Result<Value, Vec<Str
         )]
     })?;
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
-        vec![format!("embedded policy-impact schema JSON is invalid: {error}")]
+        vec![format!(
+            "embedded policy-impact schema JSON is invalid: {error}"
+        )]
     })?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
         vec![format!(
