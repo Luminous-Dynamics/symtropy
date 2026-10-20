@@ -154,5 +154,96 @@
     "Synthetic 2D rectangle tests do not establish accessibility, code compliance, physical safety, usability, resident benefit or measured-site truth.",
     "Dense pair enumeration is output-sensitive; report correct pair count alongside latency.",
     "The matched v0.2 brute-force baseline has not yet completed at the current harness revision, so no speedup ratio is claimed."
+  ],
+  "additional_observations": [
+    {
+      "workflow_run_id": 39480214388,
+      "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39480214388",
+      "exact_source_sha": "b39fd191e2e5573956dace5434b114278481319a",
+      "note": "Five-iteration 10,000-item observation before the stress harness reduced this tier to one sample. Algorithm under test is the same BVH/indexed oracle; benchmark harness iteration count differs from later observations.",
+      "runner_image": "ubuntu-24.04",
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "host_kernel": "Linux runnervmxehtw 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64",
+      "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+      "visible_vcpus": 4,
+      "reported_memory_gib": 15,
+      "tests_passed": 26,
+      "tests_failed": 0,
+      "measurements": [
+        {
+          "workload": "sparse_grid",
+          "items": 10000,
+          "iterations": 5,
+          "expected_collisions": 0,
+          "observed_collisions": 0,
+          "unexpected_findings": 0,
+          "p50_ms": 67.257,
+          "p95_ms": 69.717
+        },
+        {
+          "workload": "tight_functional_clearance",
+          "items": 10000,
+          "iterations": 5,
+          "expected_collisions": 0,
+          "observed_collisions": 0,
+          "unexpected_findings": 0,
+          "p50_ms": 67.013,
+          "p95_ms": 67.404
+        },
+        {
+          "workload": "dense_footprint_overlap",
+          "items": 10000,
+          "iterations": 5,
+          "expected_collisions": 39402,
+          "observed_collisions": 39402,
+          "unexpected_findings": 0,
+          "p50_ms": 74.096,
+          "p95_ms": 76.33
+        }
+      ]
+    },
+    {
+      "workflow_run_id": 39481819778,
+      "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39481819778",
+      "exact_source_sha": "794a50d928e8f457bb3afbcda6f5c84cb291a14e",
+      "note": "Latest docs/workflow exact-head run; 10,000-item tiers use one sample. This is an observed latency, not a stable percentile estimate.",
+      "runner_image": "ubuntu-24.04",
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "host_kernel": "Linux runnervmxehtw 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64",
+      "cpu_model": "AMD EPYC 7763 64-Core Processor",
+      "visible_vcpus": 4,
+      "reported_memory_gib": 15,
+      "tests_passed": 26,
+      "tests_failed": 0,
+      "measurements": [
+        {
+          "workload": "sparse_grid",
+          "items": 10000,
+          "iterations": 1,
+          "expected_collisions": 0,
+          "observed_collisions": 0,
+          "unexpected_findings": 0,
+          "single_sample_ms": 61.53
+        },
+        {
+          "workload": "tight_functional_clearance",
+          "items": 10000,
+          "iterations": 1,
+          "expected_collisions": 0,
+          "observed_collisions": 0,
+          "unexpected_findings": 0,
+          "single_sample_ms": 60.209
+        },
+        {
+          "workload": "dense_footprint_overlap",
+          "items": 10000,
+          "iterations": 1,
+          "expected_collisions": 39402,
+          "observed_collisions": 39402,
+          "unexpected_findings": 0,
+          "single_sample_ms": 69.187
+        }
+      ]
+    }
   ]
 }
