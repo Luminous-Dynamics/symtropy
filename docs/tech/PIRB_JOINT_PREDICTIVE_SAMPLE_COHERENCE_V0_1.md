@@ -41,7 +41,7 @@ For every complete constraint and every draw, the receipt computes:
 signed_residual = parent_count - sum(child_counts)
 ```
 
-It reports the raw and reconciled residual and status separately. Summary metrics include raw/reconciled constraint-draw coherence rates, the fraction of draws where every complete constraint is coherent, mean absolute residuals, and total/maximum per-row adjustment magnitude. Metrics use registered tolerances; exact synthetic fixtures use zero tolerance. The receipt binds the full input digest, schema digest, deterministic serialization of sample rows, source commit, hierarchy digest and method digest.
+It reports the raw and reconciled residual and status separately. Summary metrics include raw/reconciled constraint-draw coherence rates, the fraction of draws where every complete constraint is coherent, mean absolute residuals, and total/maximum per-row adjustment magnitude. Metrics use registered tolerances; exact synthetic fixtures use zero tolerance. The receipt binds the full input digest—which commits to every registered draw/node row—the schema digest, source commit, hierarchy digest and method digest. The CI independently checks the full input file hash rather than hashing parsed JSON a second time with a different serializer.
 
 ## Fixture expectations
 
