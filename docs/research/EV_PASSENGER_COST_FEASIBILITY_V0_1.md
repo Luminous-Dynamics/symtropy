@@ -30,6 +30,21 @@ These targets are deliberately demanding. The declared range/consumption pair mu
 
 Safety is a hard gate, not a weighted metric that can be exchanged for a lower price. The benchmark should map to the applicable market's homologation requirements and an explicit independent safety assessment. Euro NCAP's current 2026–2028 protocol set separates Safe Driving, Crash Avoidance, Crash Protection and Post-Crash Safety; an overall star target alone is not enough to say a design is qualified: https://www.euroncap.com/protocols/ .
 
+## Preliminary synthetic frontier result
+
+Under the fixture's explicit—but unverified—commercial assumptions (15% VAT, 8% distributor/dealer share of ex-VAT retail, and 12% OEM gross margin), the R307,710 ceiling permits approximately **R216,628 cost of goods** and yields R246,168 of net OEM revenue. The 8% and 12% assumptions are placeholders, not sourced South African industry margin data.
+
+| Synthetic architecture | COGS low–high | Implied retail low–high | Interpretation |
+|---|---:|---:|---|
+| 42 kWh cost-first | R188,464–R265,773 | R267,704–R377,519 | Low case fits; high case misses |
+| 42 kWh serviceability-first | R200,582–R276,898 | R284,917–R393,321 | Low case fits; high case misses |
+| 42 kWh structural pack | R196,895–R285,842 | R279,680–R406,026 | Low case fits; high case misses |
+| 45 kWh range-margin derivative | R193,294–R271,892 | R274,565–R386,210 | More energy margin; high case still misses |
+
+These are deterministic calculations over synthetic component, conversion, warranty, tooling, yield and volume assumptions—not a forecast or bill of materials. **No architecture robustly meets the target across its full cost range.** The useful result is the size of the evidence gap and the cost drivers to quote, not a claim that these prices are achievable. The next input should be volume-bounded landed supplier quotations and a defensible manufacturing-volume plan, not tuned synthetic estimates.
+
+**Pack-energy boundary warning:** the first-order consistency calculation currently interprets the consumption number as energy drawn from the traction pack, then checks (range \times consumption/100 \le nominal\ pack\ energy \times usable\ fraction). It does not validate a WLTP result. Before comparing the target's consumption with published WLTP figures, confirm whether each source measures pack-side energy or energy drawn from the grid including charging losses, and normalize to a common measurement boundary. At 300 km and 12 kWh/100 km, the energy demand is 36 kWh: the 42 kWh variants have only 0.96–1.56 kWh nominal-to-demand headroom in this simplified usable-energy model, whereas the 45 kWh derivative has 3.6 kWh. None of those margins includes validated end-of-life, temperature, route or accessory-load tests.
+
 ## Cost accounting
 
 Every bill-of-materials component carries an explicit quantity unit and unit-cost basis. For example, nominal pack cells are modelled as pack kWh multiplied by a cost per kWh; pack enclosure/thermal management and battery-management/high-voltage protection are separate per-vehicle-set line items. All numbers in the initial fixture are synthetic, and the line-item split is a modeling structure rather than a supplier quote.
