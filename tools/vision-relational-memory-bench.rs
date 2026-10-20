@@ -20,9 +20,9 @@ const FRESHNESS_LIMIT: usize = 7;
 const REPLICATES: usize = 12;
 const PAIRS: usize = 32;
 const BOOTSTRAPS: usize = 2_000;
-// Fresh diagnostic seed domain for the noisy-confidence generator revision.
-// This is not a preregistered confirmation: policy design has seen prior runs.
-const ROOT_SEED: u64 = 0x3C6E_F372_FE94_F82B;
+// Fresh seed domain for the calibrated confidence-conditioned sensor model.
+// The algorithm is still an exploratory candidate, not preregistered evidence.
+const ROOT_SEED: u64 = 0x510E_527F_ADE6_82D1;
 const CAPS: [usize; 5] = [1, 2, 3, 4, 8];
 const STRATA_COUNT: usize = 8;
 const STRATA_NAMES: [&str; STRATA_COUNT] = [
@@ -152,19 +152,27 @@ impl Evidence {
     }
 }
 
-fn sample_confidence(rng: &mut Rng, corrupted: bool) -> u16 {
-    // Confidence is informative but not a corruption label. Clean evidence is
-    // more likely to be rated high-confidence, but both clean and corrupted
-    // observations can occupy every confidence tier.
-    let draw = rng.range(1_000);
-    match (corrupted, draw) {
-        (false, 0..=749) => 950,
-        (false, 750..=949) => 650,
-        (false, _) => 350,
-        (true, 0..=149) => 950,
-        (true, 150..=549) => 650,
-        (true, _) => 350,
+fn sample_confidence(rng: &mut Rng) -> u16 {
+    // Draw reported confidence independently of whether the value is
+    // corrupted. The tier changes the observation's error probability below.
+    match rng.range(1_000) {
+        0..=749 => 950,
+        750..=949 => 850,
+        _ => 650,
     }
+}
+
+fn conditional_corruption_rate(base_rate: u64, confidence: u16) -> u64 {
+    // Normalize per-tier relative risks so the weighted population corruption
+    // probability is approximately base_rate / 1000 for tier weights
+    // (0.75, 0.20, 0.05). Relative risk multipliers are (20, 160, 320) / 63.
+    let multiplier = match confidence {
+        950 => 20_u64,
+        850 => 160_u64,
+        650 => 320_u64,
+        _ => 160_u64,
+    };
+    (base_rate.saturating_mul(multiplier).saturating_add(31) / 63).min(999)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -212,7 +220,9 @@ impl Episode {
                 let delay = rng.range(profile.max_delay + 1);
                 (key, arrival.saturating_sub(delay))
             };
-            let corrupted = rng.chance(profile.corruption_rate);
+            let confidence = sample_confidence(&mut rng);
+            let corruption_probability = conditional_corruption_rate(profile.corruption_rate, confidence);
+            let corrupted = rng.chance(corruption_probability);
             let mut value = truth[source][key];
             if corrupted { value = !value; }
             stream.push(Evidence {
@@ -220,7 +230,7 @@ impl Episode {
                 value,
                 source_tick: source as u8,
                 arrival_tick: arrival as u8,
-                confidence: sample_confidence(&mut rng, corrupted),
+                confidence,
             });
         }
         Self { query, profile, truth, stream }
@@ -598,7 +608,7 @@ fn calibration_seed(index: usize) -> u64 {
 fn calibrate_threshold() -> DecisionThreshold {
     // A completely separate development-seed set selects the threshold.
     // Held-out report seeds never participate in this selection.
-    let confidence_grid = [350_u16, 900_u16];
+    let confidence_grid = [650_u16, 900_u16];
     let age_grid = [2_usize, 4_usize, FRESHNESS_LIMIT];
     let mut best: Option<(f64, DecisionThreshold)> = None;
 
@@ -642,7 +652,8 @@ fn report() {
         selective_threshold.min_confidence, selective_threshold.max_age);
     println!("8 claims; public majority query over 3; 48 revealed events; source time can differ from arrival time");
     println!("paired policies, correlated distractor bursts, changing claims, delayed and occasionally corrupted evidence");
-    println!("confidence is probabilistic, not a corruption label: clean P(950,650,350)=(0.75,0.20,0.05); corrupted=(0.15,0.40,0.45)");
+    println!("confidence is sampled independently; P(confidence 950,850,650)=(0.75,0.20,0.05)");
+    println!("conditional corruption p per tier = base_rate * (20,160,320)/63 per thousand; aggregate rate approximately preserved");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
     println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
@@ -752,26 +763,30 @@ mod tests {
         let mut corrupt_counts = [0_usize; 3];
         let confidence_bucket = |value: u16| match value {
             950 => 0,
-            650 => 1,
-            350 => 2,
+            850 => 1,
+            650 => 2,
             _ => panic!("unexpected confidence tier"),
         };
+        let n = 100_000_u64;
+        let mut rng = Rng::new(0xC0FF_EE12);
+        let mut tier_counts = [0_u64; 3];
+        let mut corrupt_counts = [0_u64; 3];
 
-        for _ in 0..20_000 {
-            let clean = sample_confidence(&mut clean_rng, false);
-            let corrupt = sample_confidence(&mut corrupt_rng, true);
-            clean_counts[confidence_bucket(clean)] += 1;
-            corrupt_counts[confidence_bucket(corrupt)] += 1;
+        for _ in 0..n {
+            let confidence = sample_confidence(&mut rng);
+            let tier = confidence_bucket(confidence);
+            tier_counts[tier] += 1;
+            if rng.chance(conditional_corruption_rate(60, confidence)) {
+                corrupt_counts[tier] += 1;
+            }
         }
 
-        // Both clean and corrupted observations appear in every tier, while
-        // high confidence remains more common for clean observations.
-        assert!(clean_counts.iter().all(|count| *count > 0));
-        assert!(corrupt_counts.iter().all(|count| *count > 0));
-        assert!(clean_counts[0] > corrupt_counts[0]);
-        assert!(clean_counts[1] < clean_counts[0]);
-        assert!(corrupt_counts[2] > 0);
-        assert!(corrupt_counts[0] > 0);
+        assert!(tier_counts.iter().all(|count| *count > 0));
+        let rates: [u64; 3] = std::array::from_fn(|i| corrupt_counts[i] * 1_000 / tier_counts[i]);
+        assert!(rates[0] < rates[1], "high-confidence observations should be less error-prone");
+        assert!(rates[1] < rates[2], "medium-confidence observations should be less error-prone than low-confidence");
+        let overall_rate = corrupt_counts.iter().sum::<u64>() * 1_000 / n;
+        assert!((45..=75).contains(&overall_rate), "expected aggregate corruption near base rate 60/1000, got {overall_rate}");
     }
 
     #[test]
@@ -825,14 +840,14 @@ mod tests {
         let query = Query { keys: [1, 2, 3] };
         let mut memory = Memory::new(Kind::QueryKeyedSelective, 3, query, 7);
         memory.observe(Evidence { key: 1, value: true, source_tick: HORIZON as u8, arrival_tick: HORIZON as u8, confidence: 950 });
-        memory.observe(Evidence { key: 2, value: true, source_tick: HORIZON as u8, arrival_tick: HORIZON as u8, confidence: 350 });
+        memory.observe(Evidence { key: 2, value: true, source_tick: HORIZON as u8, arrival_tick: HORIZON as u8, confidence: 650 });
         memory.observe(Evidence { key: 3, value: false, source_tick: HORIZON as u8, arrival_tick: HORIZON as u8, confidence: 950 });
         assert_eq!(
             memory.decide_with_threshold(HORIZON, DecisionThreshold { min_confidence: 900, max_age: 7 }),
             None
         );
         assert_eq!(
-            memory.decide_with_threshold(HORIZON, DecisionThreshold { min_confidence: 350, max_age: 7 }),
+            memory.decide_with_threshold(HORIZON, DecisionThreshold { min_confidence: 650, max_age: 7 }),
             Some(true)
         );
 
@@ -904,7 +919,7 @@ mod tests {
         let a = calibrate_threshold();
         let b = calibrate_threshold();
         assert_eq!(a, b);
-        assert!([350, 900].contains(&a.min_confidence));
+        assert!([650, 900].contains(&a.min_confidence));
         assert!([2, 4, FRESHNESS_LIMIT].contains(&a.max_age));
     }
 
