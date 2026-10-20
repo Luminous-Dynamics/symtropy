@@ -414,7 +414,7 @@ mod tests {
     #[test]
     fn all_paths_conserve_vehicle_mass_and_respect_capacity() {
         let results = validate_fixture(&fixture()).expect("fixture validates");
-        assert_eq!(results.len(), 3);
+        assert_eq!(results.len(), CASE_IDS.len());
         for case in results {
             for path in case["paths"].as_array().expect("paths") {
                 let sim = &path["simulation"];
