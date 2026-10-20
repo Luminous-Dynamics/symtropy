@@ -11,7 +11,7 @@ use physical_transformation_reference::mechanics::{
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub type Check<T> = Result<T, String>;
 
@@ -185,28 +185,48 @@ pub fn evaluate_request_bytes(bytes: &[u8], adapter_revision: &str) -> Check<Val
             &input_digest,
             "UNRESOLVED",
             Value::Null,
+            None,
             diagnostics,
         ));
     }
 
     match evaluate_case(request.case, &request.inputs) {
-        Ok(outputs) => Ok(receipt(
-            &request,
-            adapter_revision,
-            &input_digest,
-            "PASS",
-            outputs,
-            Vec::new(),
-        )),
+        Ok(outputs) => {
+            let interval_result = match request.input_bounds.as_ref() {
+                Some(bounds) => build_output_intervals(&request, &outputs, bounds).map(Some),
+                None => Ok(None),
+            };
+            match interval_result {
+                Ok(output_intervals) => Ok(receipt(
+                    &request,
+                    adapter_revision,
+                    &input_digest,
+                    "PASS",
+                    outputs,
+                    output_intervals,
+                    Vec::new(),
+                )),
+                Err(error) => Ok(receipt(
+                    &request,
+                    adapter_revision,
+                    &input_digest,
+                    "UNRESOLVED",
+                    Value::Null,
+                    None,
+                    vec![format!(
+                        "bounded analytical evaluation could not be completed: {error}"
+                    )],
+                )),
+            }
+        }
         Err(error) => Ok(receipt(
             &request,
             adapter_revision,
             &input_digest,
             "UNRESOLVED",
             Value::Null,
-            vec![format!(
-                "analytical evaluation could not be completed: {error}"
-            )],
+            None,
+            vec![format!("analytical evaluation could not be completed: {error}")],
         )),
     }
 }
@@ -217,10 +237,16 @@ fn receipt(
     request_digest: &str,
     status: &str,
     outputs: Value,
+    output_intervals: Option<Value>,
     diagnostics: Vec<String>,
 ) -> Value {
-    json!({
-        "schema_version": RECEIPT_SCHEMA,
+    let schema_version = if request.schema_version == REQUEST_SCHEMA_V2 {
+        RECEIPT_SCHEMA_V2
+    } else {
+        RECEIPT_SCHEMA
+    };
+    let mut result = json!({
+        "schema_version": schema_version,
         "request_id": request.request_id,
         "request_sha256": request_digest,
         "source_revision": request.source_revision,
@@ -242,7 +268,65 @@ fn receipt(
         },
         "diagnostics": diagnostics,
         "claim_ceiling": "named closed-form analytical case only; not physical validation, structural certification, or real collapse prediction"
-    })
+    });
+    if request.schema_version == REQUEST_SCHEMA_V2 {
+        result["input_bounds"] = request
+            .input_bounds_raw
+            .clone()
+            .unwrap_or(Value::Null);
+        result["output_intervals"] = output_intervals.unwrap_or(Value::Null);
+        result["interval_semantics"] = json!(
+            "deterministic output enclosure conditional on declared input bounds; not a probability distribution or confidence interval"
+        );
+    }
+    result
+}
+
+fn build_output_intervals(
+    request: &ParsedRequest,
+    outputs: &Value,
+    bounds: &BTreeMap<String, uncertainty::Interval>,
+) -> Check<Value> {
+    let nominal_inputs = request
+        .inputs
+        .iter()
+        .map(|(key, value)| {
+            let number = value
+                .as_f64()
+                .filter(|number| number.is_finite())
+                .ok_or_else(|| format!("request.inputs.{key} must be finite"))?;
+            Ok((key.clone(), number))
+        })
+        .collect::<Check<BTreeMap<String, f64>>>()?;
+    let intervals = uncertainty::propagate(request.case.id(), &nominal_inputs, bounds)?;
+    let output_units = request.case.units();
+    let mut result = Map::new();
+    for (key, interval) in intervals {
+        let nominal = outputs
+            .get(&key)
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("nominal output '{key}' is missing or non-finite"))?;
+        if !interval.contains(nominal) || interval.lower > interval.upper {
+            return Err(format!(
+                "output interval '{key}' does not enclose its nominal value"
+            ));
+        }
+        let unit = output_units
+            .get(&key)
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("unit for analytical output '{key}' is missing"))?;
+        result.insert(
+            key,
+            json!({
+                "lower": interval.lower,
+                "nominal": nominal,
+                "upper": interval.upper,
+                "unit": unit
+            }),
+        );
+    }
+    Ok(Value::Object(result))
 }
 
 fn evaluate_case(case: CaseKind, inputs: &Map<String, Value>) -> Check<Value> {
@@ -297,21 +381,14 @@ fn evaluate_case(case: CaseKind, inputs: &Map<String, Value>) -> Check<Value> {
 }
 
 fn parse_request(value: &Value) -> Check<ParsedRequest> {
-    exact_keys(
-        value,
-        &[
-            "schema_version",
-            "request_id",
-            "source_revision",
-            "case_id",
-            "assumption_profile",
-            "requested_physics",
-            "units",
-            "inputs",
-        ],
-        "request",
-    )?;
-    expect_string(value, "schema_version", REQUEST_SCHEMA, "request")?;
+    let schema_version = string(value, "schema_version", "request")?;
+    let expected_keys = match schema_version.as_str() {
+        REQUEST_SCHEMA => REQUEST_KEYS,
+        REQUEST_SCHEMA_V2 if value.get("input_bounds").is_some() => REQUEST_KEYS_V2,
+        REQUEST_SCHEMA_V2 => REQUEST_KEYS,
+        _ => return Err(format!("unsupported request schema version '{schema_version}'")),
+    };
+    exact_keys(value, expected_keys, "request")?;
     let request_id = string(value, "request_id", "request")?;
     token(&request_id, "request ID")?;
     let source_revision = string(value, "source_revision", "request")?;
@@ -388,14 +465,117 @@ fn parse_request(value: &Value) -> Check<ParsedRequest> {
         }
     }
 
+    let (input_bounds, input_bounds_raw) =
+        if let Some(raw_bounds) = value.get("input_bounds") {
+            if schema_version != REQUEST_SCHEMA_V2 {
+                return Err("input_bounds requires physical-analytical-request-v0.2".to_owned());
+            }
+            let bounds = parse_input_bounds(raw_bounds, case, inputs)?;
+            (Some(bounds), Some(raw_bounds.clone()))
+        } else {
+            (None, None)
+        };
+
     Ok(ParsedRequest {
+        schema_version,
         request_id,
         source_revision,
         case,
         requested_physics,
         physics_omitted,
         inputs: inputs.to_owned(),
+        input_bounds,
+        input_bounds_raw,
     })
+}
+
+fn parse_input_bounds(
+    raw_bounds: &Value,
+    case: CaseKind,
+    inputs: &Map<String, Value>,
+) -> Check<BTreeMap<String, uncertainty::Interval>> {
+    let bounds = raw_bounds
+        .as_object()
+        .ok_or_else(|| "request.input_bounds must be an object".to_owned())?;
+    exact_keys_map(bounds, case.input_keys(), "request.input_bounds")?;
+    let mut result = BTreeMap::new();
+    for key in case.input_keys() {
+        let at = format!("request.input_bounds.{key}");
+        let entry = bounds
+            .get(*key)
+            .and_then(Value::as_object)
+            .ok_or_else(|| format!("{at} must be an object"))?;
+        exact_keys_map(
+            entry,
+            &["lower", "upper", "unit", "evidence_class", "source_ref"],
+            &at,
+        )?;
+        let lower = entry
+            .get("lower")
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("{at}.lower must be finite"))?;
+        let upper = entry
+            .get("upper")
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("{at}.upper must be finite"))?;
+        let interval = uncertainty::Interval::new(lower, upper)
+            .map_err(|error| format!("{at}: {error}"))?;
+        let nominal = inputs
+            .get(*key)
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("request.inputs.{key} must be finite"))?;
+        if !interval.contains(nominal) {
+            return Err(format!(
+                "nominal input '{key}' lies outside request.input_bounds"
+            ));
+        }
+        let unit = map_string(entry, "unit", &at)?;
+        if unit != expected_input_unit(key) {
+            return Err(format!(
+                "{at}.unit must be '{}'",
+                expected_input_unit(key)
+            ));
+        }
+        let evidence = map_string(entry, "evidence_class", &at)?;
+        if !["specified", "measured", "estimated", "synthetic", "unknown"]
+            .contains(&evidence.as_str())
+        {
+            return Err(format!("{at}.evidence_class is unsupported"));
+        }
+        let source_ref = entry
+            .get("source_ref")
+            .ok_or_else(|| format!("{at}.source_ref is missing"))?;
+        if !(source_ref.is_null() || source_ref.as_str().is_some()) {
+            return Err(format!("{at}.source_ref must be a string or null"));
+        }
+        if let Some(source_ref) = source_ref.as_str()
+            && source_ref.trim().is_empty()
+        {
+            return Err(format!("{at}.source_ref must not be empty"));
+        }
+        if evidence == "measured" && source_ref.as_str().is_none() {
+            return Err(format!(
+                "{at}: measured bounds require a source_ref"
+            ));
+        }
+        result.insert(key.to_owned(), interval);
+    }
+    Ok(result)
+}
+
+fn expected_input_unit(key: &str) -> &'static str {
+    match key {
+        "force_n" => "N",
+        "load_n_per_m" => "N/m",
+        "length_m" | "outer_fiber_distance_m" => "m",
+        "area_m2" => "m^2",
+        "youngs_modulus_pa" => "Pa",
+        "second_moment_area_m4" => "m^4",
+        _ => "unknown",
+    }
 }
 
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
