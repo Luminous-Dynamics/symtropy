@@ -58,4 +58,6 @@ jobs:
           free -h || true
       - name: Benchmark functional-envelope oracle at 25/100/1000/10000 tasks
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_scaling
+      - name: Stress sparse, tight-clearance and dense-overlap geometry
+        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_stress
 
