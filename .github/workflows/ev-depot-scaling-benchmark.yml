@@ -87,7 +87,7 @@ jobs:
                   --output-corpus "${corpus}" \
                   --output-manifest "${manifest}" \
                   --fleet-size "${size}" --seed "${seed}" \
-                  --kwh-per-mile 1.8 --pack-capacity-kwh 600 --initial-soc-fraction 0.1 \
+                  --kwh-per-mile 1.8 --pack-capacity-kwh 800 --initial-soc-fraction 0.1 \
                   --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
                   --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
                   --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
