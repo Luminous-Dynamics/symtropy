@@ -28,27 +28,37 @@
       "force_n": {
         "lower": -100,
         "upper": 100,
-        "unit": "N"
+        "unit": "N",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       },
       "length_m": {
         "lower": 2,
         "upper": 2,
-        "unit": "m"
+        "unit": "m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       },
       "youngs_modulus_pa": {
         "lower": 200000000000,
         "upper": 200000000000,
-        "unit": "Pa"
+        "unit": "Pa",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       },
       "second_moment_area_m4": {
         "lower": 0.000008,
         "upper": 0.000008,
-        "unit": "m^4"
+        "unit": "m^4",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       },
       "outer_fiber_distance_m": {
         "lower": 0.1,
         "upper": 0.1,
-        "unit": "m"
+        "unit": "m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture://synthetic-scenario"
       }
     }
   }
