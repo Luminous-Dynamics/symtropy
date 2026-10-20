@@ -242,7 +242,7 @@ fn update_stock(
 
 #[cfg(test)]
 mod tests {
-    use super::{Compartment, EcosystemState, ProcessStep, StepError, Stocks};
+    use super::{update_stock, Compartment, EcosystemState, ProcessStep, StepError, Stocks};
 
     const INPUTS: &str = include_str!("../fixtures/process_steps_v0.csv");
     const EXPECTED: &str = include_str!("../fixtures/expected_stocks_v0.csv");
@@ -432,6 +432,24 @@ mod tests {
             sediment_organic_p_umol: 4,
             dissolved_oxygen_umol: 0,
         });
+    }
+
+    #[test]
+    fn stock_flux_algebra_is_independent_of_term_order() {
+        let forward = update_stock(
+            80,
+            &[20, 3],
+            &[10, 5],
+            Compartment::DissolvedNutrient,
+        );
+        let permuted = update_stock(
+            80,
+            &[3, 20],
+            &[5, 10],
+            Compartment::DissolvedNutrient,
+        );
+        assert_eq!(forward, Ok(88));
+        assert_eq!(permuted, forward);
     }
 
     #[test]
