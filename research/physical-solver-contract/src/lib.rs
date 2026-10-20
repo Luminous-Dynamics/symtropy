@@ -1052,6 +1052,159 @@ mod tests {
                 .any(|d| d.as_str().unwrap().contains("youngs_modulus_pa"))
         );
     }
+    fn solver_receipt(request_bytes: &[u8], status: &str) -> Value {
+        let request: Value = serde_json::from_slice(request_bytes).unwrap();
+        let requested = request["requested_physics"].as_array().unwrap().clone();
+        let pass = status == "PASS";
+        let physics_evaluated = if pass {
+            Value::Array(requested.clone())
+        } else {
+            json!([])
+        };
+        let physics_omitted = if pass {
+            json!([])
+        } else {
+            Value::Array(requested.clone())
+        };
+        let outputs: Vec<Value> = if pass {
+            request["required_outputs"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .enumerate()
+                .map(|(index, output)| {
+                    let kind = output.as_str().unwrap().to_owned();
+                    json!({
+                        "output_id": format!("fixture-output-{index}"),
+                        "kind": kind,
+                        "sha256": "a".repeat(64),
+                        "media_type": "application/json",
+                        "unit": null,
+                        "artifact_ref": format!("fixture-only:{kind}")
+                    })
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+        json!({
+            "schema_version": SOLVER_RESULT_RECEIPT_SCHEMA,
+            "request_id": request["request_id"],
+            "request_sha256": sha256_hex(request_bytes),
+            "source_revision": request["source_revision"],
+            "adapter": {
+                "adapter_id": "test.synthetic-adapter",
+                "version": "0.1.0",
+                "executable_sha256": "b".repeat(64),
+                "configuration_sha256": "c".repeat(64),
+                "solver_name": if pass { json!("synthetic-test-only") } else { Value::Null },
+                "solver_version": if pass { json!("0.1.0") } else { Value::Null },
+                "solver_build_ref": if pass { json!("fixture-only:not-a-real-solver") } else { Value::Null }
+            },
+            "status": status,
+            "evidence_class": "synthetic",
+            "physics_evaluated": physics_evaluated,
+            "physics_omitted": physics_omitted,
+            "convergence": {
+                "state": "not_applicable",
+                "iterations": null,
+                "residual": null,
+                "mesh_refinement_evaluated": false,
+                "details": "Synthetic contract fixture; no solver execution is asserted."
+            },
+            "outputs": outputs,
+            "uncertainty": {
+                "state": "unknown",
+                "method": null,
+                "summary": "No measured data or physical uncertainty estimate is present."
+            },
+            "validity_envelope": {
+                "supported_geometry": "synthetic fixture only",
+                "supported_material_model": "synthetic fixture only",
+                "load_regime": "synthetic fixture only",
+                "limitations": ["Test-only receipt; never engineering evidence."]
+            },
+            "claim_ceiling": if status == "UNRESOLVED" {
+                "UNRESOLVED: contract fixture only."
+            } else {
+                "Synthetic contract test only; no physical qualification."
+            },
+            "diagnostics": []
+        })
+    }
+
+    #[test]
+    fn solver_receipt_checks_exact_request_bytes_without_attesting_execution() {
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let receipt_bytes = serde_json::to_vec(&solver_receipt(&request_bytes, "PASS")).unwrap();
+        let report = validate_solver_receipt_bytes(&request_bytes, &receipt_bytes)
+            .expect("synthetic receipt is internally consistent");
+        assert_eq!(report["receipt_contract_validation"], "PASS");
+        assert_eq!(report["producer_status"], "PASS");
+        assert_eq!(report["physics_partition_exact"], true);
+        assert_eq!(report["required_outputs_present"], true);
+        assert_eq!(report["solver_execution_authenticated"], false);
+        assert_eq!(report["output_artifact_bytes_verified"], false);
+
+        // Whitespace changes the exact request-byte identity even when JSON semantics do not.
+        let mut changed_bytes = request_bytes.clone();
+        changed_bytes.push(b' ');
+        let error = validate_solver_receipt_bytes(&changed_bytes, &receipt_bytes).unwrap_err();
+        assert!(error.contains("exact request bytes"));
+    }
+
+    #[test]
+    fn unresolved_receipt_requires_exact_disjoint_physics_partition() {
+        let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "UNRESOLVED");
+        let valid = serde_json::to_vec(&receipt).unwrap();
+        assert!(validate_solver_receipt_bytes(&request_bytes, &valid).is_ok());
+
+        receipt["physics_evaluated"] = json!(["dynamic_response"]);
+        let overlap = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            validate_solver_receipt_bytes(&request_bytes, &overlap)
+                .unwrap_err()
+                .contains("both evaluated and omitted")
+        );
+
+        receipt["physics_evaluated"] = json!([]);
+        receipt["physics_omitted"] = json!(["fracture"]);
+        let incomplete = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            validate_solver_receipt_bytes(&request_bytes, &incomplete)
+                .unwrap_err()
+                .contains("does not classify requested physics")
+        );
+
+        receipt["physics_omitted"] = json!(["dynamic_response", "fracture", "topology"]);
+        let extra = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            validate_solver_receipt_bytes(&request_bytes, &extra)
+                .unwrap_err()
+                .contains("unrequested physics")
+        );
+    }
+
+    #[test]
+    fn pass_receipt_cannot_promote_physics_outside_declared_fidelity() {
+        let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
+        let receipt = solver_receipt(&request_bytes, "PASS");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        let error = validate_solver_receipt_bytes(&request_bytes, &receipt_bytes).unwrap_err();
+        assert!(error.contains("outside the declared model fidelity"));
+    }
+
+    #[test]
+    fn pass_receipt_must_include_every_required_output_kind() {
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "PASS");
+        receipt["outputs"].as_array_mut().unwrap().pop();
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        let error = validate_solver_receipt_bytes(&request_bytes, &receipt_bytes).unwrap_err();
+        assert!(error.contains("missing required output kind"));
+    }
+
     #[test]
     fn invalid_json_and_revision_fail_closed() {
         assert!(validate_request_bytes(b"{", REV).is_err());
