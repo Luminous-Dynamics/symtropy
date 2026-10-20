@@ -21,9 +21,18 @@ fn manifest_declares_correct_schema_and_claim_ceiling() {
         root["schema"].as_str(),
         Some("symtropy.natural_hazard_benchmark_manifest.v0.1")
     );
-    assert_eq!(root["claim_ceiling"].as_str(), Some("catalogue_and_work_plan_only"));
-    assert_eq!(root["global_gate_policy"]["unsupported_hazard"].as_str(), Some("unavailable"));
-    assert_eq!(root["global_gate_policy"]["universal_realism_score"].as_bool(), Some(false));
+    assert_eq!(
+        root["claim_ceiling"].as_str(),
+        Some("catalogue_and_work_plan_only")
+    );
+    assert_eq!(
+        root["global_gate_policy"]["unsupported_hazard"].as_str(),
+        Some("unavailable")
+    );
+    assert_eq!(
+        root["global_gate_policy"]["universal_realism_score"].as_bool(),
+        Some(false)
+    );
 }
 
 #[test]
@@ -52,8 +61,13 @@ fn every_hazard_has_unique_identity_and_measurable_candidate_outputs() {
         assert!(!id.trim().is_empty(), "hazard ID must not be blank");
         assert!(ids.insert(id), "duplicate hazard ID: {id}");
 
-        let family = hazard["family"].as_str().expect("hazard family is required");
-        assert!(!family.trim().is_empty(), "{id}: hazard family must not be blank");
+        let family = hazard["family"]
+            .as_str()
+            .expect("hazard family is required");
+        assert!(
+            !family.trim().is_empty(),
+            "{id}: hazard family must not be blank"
+        );
 
         let status = hazard["coverage_status"]
             .as_str()
@@ -70,15 +84,23 @@ fn every_hazard_has_unique_identity_and_measurable_candidate_outputs() {
         let reference = hazard["candidate_reference"]
             .as_str()
             .expect("candidate reference is required");
-        assert!(!reference.trim().is_empty(), "{id}: candidate reference must not be blank");
+        assert!(
+            !reference.trim().is_empty(),
+            "{id}: candidate reference must not be blank"
+        );
 
         let metrics = hazard["candidate_metrics"]
             .as_array()
             .expect("candidate metrics must be an array");
-        assert!(!metrics.is_empty(), "{id}: at least one candidate metric is required");
+        assert!(
+            !metrics.is_empty(),
+            "{id}: at least one candidate metric is required"
+        );
         for metric in metrics {
             assert!(
-                metric.as_str().is_some_and(|value| !value.trim().is_empty()),
+                metric
+                    .as_str()
+                    .is_some_and(|value| !value.trim().is_empty()),
                 "{id}: metric names must be non-empty strings"
             );
         }
@@ -109,7 +131,9 @@ fn all_reference_links_are_https_and_have_unique_names() {
 #[test]
 fn existing_work_links_are_issue_refs_not_fabricated_solver_claims() {
     let root = manifest();
-    let hazards = root["hazards"].as_array().expect("hazards must be an array");
+    let hazards = root["hazards"]
+        .as_array()
+        .expect("hazards must be an array");
     let mut linked_work_items = 0usize;
 
     for hazard in hazards {
@@ -117,8 +141,7 @@ fn existing_work_links_are_issue_refs_not_fabricated_solver_claims() {
             for item in items {
                 let issue = item.as_str().expect("local work ref must be a string");
                 assert!(
-                    issue.starts_with('#')
-                        && issue[1..].chars().all(|ch| ch.is_ascii_digit()),
+                    issue.starts_with('#') && issue[1..].chars().all(|ch| ch.is_ascii_digit()),
                     "local work references must be explicit issue numbers: {issue}"
                 );
                 linked_work_items += 1;
