@@ -1452,8 +1452,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn rectangle_touching_edges_is_not_a_collision() {
         let left = Rect {
@@ -1549,16 +1547,18 @@ mod tests {
                 "y_m": 20.0,
                 "rotation_degrees": rotation
             });
-            let actual = super::transformed_functional_envelope(
-                &envelope,
-                item_size,
-                &placement,
-            )
-            .expect("supported quarter-turn should produce an envelope");
+            let actual = super::transformed_functional_envelope(&envelope, item_size, &placement)
+                .expect("supported quarter-turn should produce an envelope");
             assert!((actual.x - x).abs() < 1e-9, "rotation {rotation}: x");
             assert!((actual.y - y).abs() < 1e-9, "rotation {rotation}: y");
-            assert!((actual.width - width).abs() < 1e-9, "rotation {rotation}: width");
-            assert!((actual.depth - depth).abs() < 1e-9, "rotation {rotation}: depth");
+            assert!(
+                (actual.width - width).abs() < 1e-9,
+                "rotation {rotation}: width"
+            );
+            assert!(
+                (actual.depth - depth).abs() < 1e-9,
+                "rotation {rotation}: depth"
+            );
         }
     }
 
@@ -1580,7 +1580,10 @@ mod tests {
         assert!(
             super::transformed_functional_envelope(
                 &envelope,
-                super::ItemSize { width: 1.0, depth: 0.6 },
+                super::ItemSize {
+                    width: 1.0,
+                    depth: 0.6
+                },
                 &placement,
             )
             .is_none()
@@ -1590,12 +1593,16 @@ mod tests {
     #[test]
     fn spatial_index_handles_empty_and_fully_overlapping_sets() {
         let empty = SpatialIndex::new(&[]);
-        assert!(empty.query_indices(Rect {
-            x: 0.0,
-            y: 0.0,
-            width: 1.0,
-            depth: 1.0,
-        }).is_empty());
+        assert!(
+            empty
+                .query_indices(Rect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 1.0,
+                    depth: 1.0,
+                })
+                .is_empty()
+        );
         assert!(empty.overlapping_pairs().is_empty());
 
         let all_same = (0..16)
