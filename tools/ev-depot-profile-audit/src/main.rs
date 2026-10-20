@@ -2,7 +2,7 @@ use csv::{ReaderBuilder, StringRecord, Trim};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     env, fs,
     io::Read,
     path::Path,
@@ -329,7 +329,7 @@ fn audit_zip(
             });
             continue;
         }
-        match audit_csv(&name, &bytes, &metadata) {
+        match audit_csv(&metadata.filename, &bytes, &metadata) {
             Ok(profile) => profiles.push(profile),
             Err(reason) => findings.push(AuditFinding {
                 filename: name,
