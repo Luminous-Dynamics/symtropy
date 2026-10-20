@@ -266,7 +266,10 @@
         "active_sensing_returns_exact_local_depth_and_resource",
         "active_sensing_does_not_peek_at_adjacent_or_global_cells",
         "ambiguous_water_cue_band_cm",
-        "active_sensing_budget_source"
+        "active_sensing_budget_source",
+        "water_memory_max_age_ticks",
+        "resource_memory_max_age_ticks",
+        "blocked_edge_memory_max_age_ticks"
       ],
       "properties": {
         "latency_ticks_source": {
@@ -329,6 +332,18 @@
         "active_sensing_budget_source": {
           "type": "string",
           "minLength": 1
+        },
+        "water_memory_max_age_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "resource_memory_max_age_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blocked_edge_memory_max_age_ticks": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
