@@ -31,7 +31,7 @@ A single “risk score” or predicted perimeter cannot represent the different 
 4. **Feasible action:** the set of plans that satisfy route, vehicle, shelter and accessibility constraints under the available evidence.
 5. **Decision value:** whether a new observation could change the feasible plan before its useful decision deadline.
 
-The new target is not “one accurate map.” It is a policy that degrades safely under observation loss, admits when no evidenced plan is feasible, and tells the operator exactly which missing measurement or failed capability changes the decision.
+The new target is not “one accurate map.” It is a policy that degrades safely under observation loss, admits when no evidenced plan is feasible, and tells the operator exactly which missing measurement or failed capability changes the decision. Shelter total capacity and accessible-trip capacity are observations too: they must carry an observation time, be no later than the decision’s as-of time, and remain unusable when marked stale, unknown or conflicted.
 
 ## 4. Project ownership
 
@@ -114,7 +114,7 @@ Keep feasibility, service coverage, time, accessibility, lifeline continuity, un
 - 100% agreement with hand-computed choice/abstention outcomes for the six frozen cases.
 - 100% rejection of candidate plans using blocked, unknown, stale or conflicted road states.
 - 100% rejection of candidate plans requiring unavailable or unverified mandatory lifelines.
-- 100% preservation of shelter total capacity and accessible-trip capacity as hard constraints.
+- 100% preservation of shelter total capacity and accessible-trip capacity as hard constraints, including stale/future observation rejection.
 - Zero promotion of hotspot detections to perimeter claims or post-fire observations to active-response inputs.
 - Exact candidate/oracle separation and stable canonical receipt under all input-order permutations.
 - Every comparison records exact code SHA, fixture digest, policy version, as-of time and denominator.
