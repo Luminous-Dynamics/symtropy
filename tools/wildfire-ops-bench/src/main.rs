@@ -173,6 +173,9 @@ fn candidate_projection(case: &Value) -> Value {
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
+        .filter(|item| {
+            item.get("observed_at").and_then(Value::as_str).is_some_and(|t| t <= as_of)
+        })
         .cloned()
         .collect();
     shelters.sort_by(|a, b| {
@@ -723,8 +726,8 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         let p = format!("{at}.shelters[{i}]");
         require_keys(
             shelter,
-            &["id", "capacity", "accessible_capacity", "status"],
-            &["id", "capacity", "accessible_capacity", "status"],
+            &["id", "capacity", "accessible_capacity", "status", "observed_at"],
+            &["id", "capacity", "accessible_capacity", "status", "observed_at"],
             &p,
         )?;
         nonnegative_u64(field(shelter, "capacity", &p)?, &format!("{p}.capacity"))?;
@@ -735,6 +738,10 @@ fn validate_case(case: &Value, index: usize) -> Check<Value> {
         let status = text_field(shelter, "status", &p)?;
         if !EVIDENCE_STATUSES.contains(&status) {
             return Err(format!("{p}: invalid shelter status {status}"));
+        }
+        let observed_at = text_field(shelter, "observed_at", &p)?;
+        if !timestamp(observed_at) || observed_at > as_of {
+            return Err(format!("{p}: shelter-capacity timestamp must be valid and not after as_of"));
         }
     }
 
@@ -1173,6 +1180,24 @@ mod tests {
             case["B3_evidence_bounded_feasible_choice"]["selected_plan_id"].as_str(),
             Some("PLAN-ACCESSIBLE")
         );
+    }
+
+    #[test]
+    fn stale_shelter_capacity_rejects_plan_even_when_route_is_open() {
+        let mut corpus = fixture();
+        corpus["cases"][4]["shelters"][1]["status"] = json!("stale");
+        let scenarios = validate_corpus(&corpus).expect("stale shelter status is an admissible evidence state");
+        let result = &scenarios[4]["B3_evidence_bounded_feasible_choice"];
+        assert_eq!(result["selected_plan_id"], Value::Null);
+        assert_eq!(result["no_evidenced_feasible_plan"].as_bool(), Some(true));
+    }
+
+    #[test]
+    fn rejects_future_shelter_capacity_observation() {
+        let mut corpus = fixture();
+        corpus["cases"][4]["shelters"][1]["observed_at"] = json!("2026-07-05T12:05:00Z");
+        let error = validate_corpus(&corpus).expect_err("future shelter capacity is not admissible");
+        assert!(error.contains("shelter-capacity timestamp must be valid and not after as_of"));
     }
 
     #[test]
