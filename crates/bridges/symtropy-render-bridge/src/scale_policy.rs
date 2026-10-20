@@ -396,15 +396,17 @@ mod tests {
             100.0,
             ApparentSizeProjection::Perspective {
                 viewport_height_px: 2_160,
-                ..base
+                vertical_fov_radians: 1.0,
+                centre_distance: 10_000.0,
             },
         )
         .expect("higher resolution");
         let zoomed = projected_sphere_diameter_px(
             100.0,
             ApparentSizeProjection::Perspective {
+                viewport_height_px: 1_080,
                 vertical_fov_radians: 0.5,
-                ..base
+                centre_distance: 10_000.0,
             },
         )
         .expect("narrower FOV");
