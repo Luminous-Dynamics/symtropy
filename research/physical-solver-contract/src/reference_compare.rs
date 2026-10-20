@@ -725,7 +725,8 @@ mod tests {
             "scene_revision":serde_json::from_slice::<Value>(request).unwrap()["scene_revision"],
             "case_id":"fixture-bar-reference",
             "observables":[{"observable_id":"fixture_displacement_m","value":value,"unit":"m"}]
-        })).unwrap()
+        }))
+        .unwrap()
     }
 
     fn parse_reference_for_request(
