@@ -334,6 +334,7 @@ fn evaluate_fixture(
     if causal_expected.trim().is_empty() {
         return Err(format!("{causal_path}.expected: must not be empty"));
     }
+    let trace_report = verify_policy_trace_pair(causal, shared_step, causal_id)?;
 
     let policy_id = string_at(manifest, "$manifest", "policy_id")?;
     Ok(json!({
@@ -347,14 +348,230 @@ fn evaluate_fixture(
         "policy_id": policy_id,
         "scenario_count": results.len(),
         "scenario_results": results,
-        "future_blindness_contract": {
-            "id": causal_id,
-            "shared_observations_through_step": shared_step,
-            "status": "INPUT_CONTRACT_VALIDATION_ONLY",
-            "non_claim": "No policy action trace was supplied; this does not prove action-level future blindness."
-        }
+        "future_blindness_contract": trace_report
     }))
 }
+
+const POLICY_TRACE_PAIR_SCHEMA_V1: &str = "civ-res-policy-trace-pair/0.1";
+
+/// Verifies a paired action trace using only policy-visible observation histories.
+/// This validates supplied synthetic receipts; it does not execute or sandbox a deployed policy.
+fn verify_policy_trace_pair(
+    causal: &Value,
+    shared_step: u64,
+    causal_id: &str,
+) -> Result<Value, String> {
+    let pair_path = "$fixture.causality_pair.policy_trace_pair";
+    let pair = field(causal, "$fixture.causality_pair", "policy_trace_pair")?;
+    let schema = string_at(pair, pair_path, "schema_version")?;
+    if schema != POLICY_TRACE_PAIR_SCHEMA_V1 {
+        return Err(format!(
+            "{pair_path}.schema_version: expected {POLICY_TRACE_PAIR_SCHEMA_V1}, got {schema}"
+        ));
+    }
+
+    let left = field(pair, pair_path, "left")?;
+    let right = field(pair, pair_path, "right")?;
+    let left_path = format!("{pair_path}.left");
+    let right_path = format!("{pair_path}.right");
+    let left_policy_id = string_at(left, &left_path, "policy_id")?;
+    let right_policy_id = string_at(right, &right_path, "policy_id")?;
+    let left_policy_version = string_at(left, &left_path, "policy_version")?;
+    let right_policy_version = string_at(right, &right_path, "policy_version")?;
+    if left_policy_id.trim().is_empty() || left_policy_version.trim().is_empty() {
+        return Err(format!("{pair_path}: policy identity/version must not be empty"));
+    }
+    if left_policy_id != right_policy_id || left_policy_version != right_policy_version {
+        return Err(format!(
+            "{pair_path}: paired traces must use the same policy ID and version"
+        ));
+    }
+
+    let left_steps = array_at(left, &left_path, "steps")?;
+    let right_steps = array_at(right, &right_path, "steps")?;
+    if left_steps.len() != right_steps.len() || left_steps.len() <= shared_step as usize {
+        return Err(format!(
+            "{pair_path}: trace lengths must match and cover the declared shared prefix"
+        ));
+    }
+
+    let mut first_observation_divergence: Option<u64> = None;
+    let mut first_action_divergence: Option<u64> = None;
+    for (index, (left_step, right_step)) in left_steps.iter().zip(right_steps).enumerate() {
+        let step_path = format!("{pair_path}.step[{index}]");
+        let left_step_path = format!("{step_path}.left");
+        let right_step_path = format!("{step_path}.right");
+        let left_step_no = u64_at(left_step, &left_step_path, "step")?;
+        let right_step_no = u64_at(right_step, &right_step_path, "step")?;
+        if left_step_no != index as u64 || right_step_no != index as u64 {
+            return Err(format!(
+                "{step_path}: step indices must be contiguous and start at zero"
+            ));
+        }
+
+        let left_history =
+            field(left_step, &left_step_path, "visible_history")?;
+        let right_history =
+            field(right_step, &right_step_path, "visible_history")?;
+        validate_visible_history(
+            left_history,
+            left_step_no,
+            &format!("{left_step_path}.visible_history"),
+        )?;
+        validate_visible_history(
+            right_history,
+            right_step_no,
+            &format!("{right_step_path}.visible_history"),
+        )?;
+
+        let left_input = field(left_step, &left_step_path, "policy_input")?;
+        let right_input = field(right_step, &right_step_path, "policy_input")?;
+        validate_policy_input(
+            left_input,
+            left_step_no,
+            left_history,
+            &format!("{left_step_path}.policy_input"),
+        )?;
+        validate_policy_input(
+            right_input,
+            right_step_no,
+            right_history,
+            &format!("{right_step_path}.policy_input"),
+        )?;
+
+        if left_history != right_history {
+            first_observation_divergence.get_or_insert(left_step_no);
+            if left_step_no <= shared_step {
+                return Err(format!(
+                    "{step_path}: visible histories differ within the declared shared prefix"
+                ));
+            }
+        }
+        let left_action = field(left_step, &left_step_path, "action")?;
+        let right_action = field(right_step, &right_step_path, "action")?;
+        if left_action != right_action {
+            first_action_divergence.get_or_insert(left_step_no);
+            if left_history == right_history {
+                return Err(format!(
+                    "{step_path}: actions differ despite identical policy-visible histories"
+                ));
+            }
+        }
+    }
+
+    if first_observation_divergence.is_none() {
+        return Err(format!(
+            "{pair_path}: paired futures never produce a differing visible history"
+        ));
+    }
+    Ok(json!({
+        "id": causal_id,
+        "status": "RECORDED_TRACE_PREFIX_MATCHED_SYNTHETIC",
+        "policy_id": left_policy_id,
+        "policy_version": left_policy_version,
+        "shared_observations_through_step": shared_step,
+        "matched_prefix_actions": shared_step + 1,
+        "first_visible_history_divergence_step": first_observation_divergence,
+        "first_action_divergence_step": first_action_divergence,
+        "claim_ceiling": "Checks fixture-supplied traces only. It does not execute/sandbox a live policy, prove absence of runtime side channels, or establish physical performance, safety, savings, or real-world resilience."
+    }))
+}
+
+fn validate_visible_history(history: &Value, step: u64, path: &str) -> Result<(), String> {
+    let entries = history
+        .as_array()
+        .ok_or_else(|| format!("{path}: expected an array"))?;
+    if entries.len() != step as usize + 1 {
+        return Err(format!(
+            "{path}: must contain exactly the observation prefix through this step"
+        ));
+    }
+    for (index, entry) in entries.iter().enumerate() {
+        let entry_path = format!("{path}[{index}]");
+        let observed_step = u64_at(entry, &entry_path, "step")?;
+        if observed_step != index as u64 {
+            return Err(format!(
+                "{entry_path}.step: history must be contiguous and ordered"
+            ));
+        }
+        let object = entry.as_object().ok_or_else(|| {
+            format!("{entry_path}: expected object with only step and observation fields")
+        })?;
+        if object.len() != 2
+            || !object.contains_key("step")
+            || !object.contains_key("observation")
+        {
+            return Err(format!(
+                "{entry_path}: expected only step and observation fields"
+            ));
+        }
+        let observation = field(entry, &entry_path, "observation")?;
+        if !observation.is_object() {
+            return Err(format!("{entry_path}.observation: expected an object"));
+        }
+    }
+    Ok(())
+}
+
+fn validate_policy_input(
+    input: &Value,
+    step: u64,
+    visible_history: &Value,
+    path: &str,
+) -> Result<(), String> {
+    reject_forbidden_policy_fields(input, path)?;
+    let object = input
+        .as_object()
+        .ok_or_else(|| format!("{path}: expected an object"))?;
+    if object.len() != 2
+        || !object.contains_key("step")
+        || !object.contains_key("observation_history")
+    {
+        return Err(format!(
+            "{path}: policy input must contain only step and observation_history; hidden/future fields are forbidden"
+        ));
+    }
+    let input_step = u64_at(input, path, "step")?;
+    if input_step != step {
+        return Err(format!("{path}.step: does not match the current decision step"));
+    }
+    let history = field(input, path, "observation_history")?;
+    if history != visible_history {
+        return Err(format!(
+            "{path}.observation_history: does not match the exact visible history"
+        ));
+    }
+    Ok(())
+}
+
+fn reject_forbidden_policy_fields(value: &Value, path: &str) -> Result<(), String> {
+    match value {
+        Value::Object(object) => {
+            for (key, child) in object {
+                let normalized = key.to_ascii_lowercase().replace('-', "_");
+                if normalized.contains("future")
+                    || normalized.contains("hidden_event")
+                    || normalized == "scenario_id"
+                    || normalized == "world_state"
+                    || normalized == "oracle_state"
+                {
+                    return Err(format!(
+                        "{path}.{key}: forbidden future/hidden policy input"
+                    ));
+                }
+                reject_forbidden_policy_fields(child, &format!("{path}.{key}"))?;
+            }
+        }
+        Value::Array(items) => {
+            for (index, child) in items.iter().enumerate() {
+                reject_forbidden_policy_fields(child, &format!("{path}[{index}]"))?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 
 fn evaluate_scenario(
     scenario: &Value,
@@ -907,18 +1124,61 @@ mod tests {
     }
 
     #[test]
-    fn future_blindness_is_reported_as_contract_check_not_action_trace_proof() {
+    fn future_blindness_trace_checks_identical_prefix_actions_and_later_divergence() {
         let (fixture, manifest) = fixture_and_manifest();
         let report = evaluate_fixture(&fixture, "test-fixture", &manifest).expect("evaluation");
-        assert_eq!(
-            report["future_blindness_contract"]["status"],
-            "INPUT_CONTRACT_VALIDATION_ONLY"
-        );
-        assert!(
-            report["future_blindness_contract"]["non_claim"]
-                .as_str()
-                .expect("non-claim")
-                .contains("No policy action trace")
-        );
+        let trace = &report["future_blindness_contract"];
+        assert_eq!(trace["status"], "RECORDED_TRACE_PREFIX_MATCHED_SYNTHETIC");
+        assert_eq!(trace["policy_id"], "criticality-heuristic");
+        assert_eq!(trace["policy_version"], "fixture-policy/1");
+        assert_eq!(trace["shared_observations_through_step"], 1);
+        assert_eq!(trace["matched_prefix_actions"], 2);
+        assert_eq!(trace["first_visible_history_divergence_step"], 2);
+        assert_eq!(trace["first_action_divergence_step"], 2);
+        assert!(trace["claim_ceiling"].as_str().expect("ceiling").contains("does not execute/sandbox a live policy"));
+    }
+
+    #[test]
+    fn future_blindness_rejects_action_divergence_under_identical_visible_history() {
+        let (mut fixture, manifest) = fixture_and_manifest();
+        fixture["causality_pair"]["policy_trace_pair"]["left"]["steps"][1]["action"] =
+            json!({"kind": "illegally_different_action"});
+        let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
+            .expect_err("divergent action with the same policy input must fail");
+        assert!(error.contains("actions differ despite identical policy-visible histories"), "{error}");
+    }
+
+    #[test]
+    fn future_blindness_rejects_hidden_future_policy_inputs() {
+        let (mut fixture, manifest) = fixture_and_manifest();
+        fixture["causality_pair"]["policy_trace_pair"]["right"]["steps"][0]["policy_input"]
+            ["scenario_id"] = json!("S02_COMMON_MODE_OUTAGE");
+        let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
+            .expect_err("scenario identity must not enter policy inputs");
+        assert!(error.contains("forbidden future/hidden policy input"), "{error}");
+    }
+
+    #[test]
+    fn future_blindness_rejects_divergent_actions_if_observations_never_diverge() {
+        let (mut fixture, manifest) = fixture_and_manifest();
+        let left_history = fixture["causality_pair"]["policy_trace_pair"]["left"]["steps"][2]
+            ["visible_history"].clone();
+        fixture["causality_pair"]["policy_trace_pair"]["right"]["steps"][2]
+            ["visible_history"] = left_history.clone();
+        fixture["causality_pair"]["policy_trace_pair"]["right"]["steps"][2]
+            ["policy_input"]["observation_history"] = left_history;
+        let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
+            .expect_err("different action under identical observations must fail");
+        assert!(error.contains("actions differ despite identical policy-visible histories"), "{error}");
+    }
+
+    #[test]
+    fn future_blindness_rejects_mismatched_policy_versions() {
+        let (mut fixture, manifest) = fixture_and_manifest();
+        fixture["causality_pair"]["policy_trace_pair"]["right"]["policy_version"] =
+            json!("fixture-policy/2");
+        let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
+            .expect_err("paired traces must use one policy version");
+        assert!(error.contains("same policy ID and version"), "{error}");
     }
 }
