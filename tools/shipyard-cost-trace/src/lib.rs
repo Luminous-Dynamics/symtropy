@@ -55,8 +55,9 @@ pub struct FinancialTransaction {
     /// Stable line-level transaction allocation key, for example invoice-123:line-04.
     /// Unique per build; do not use only an invoice header when it has multiple lines.
     pub transaction_ref: String,
-    /// Signed to permit explicit credit notes; money bases must match before comparison.
-    pub amount: f64,
+    /// Exact signed minor units; negative values represent explicit credit notes.
+    /// The currency_basis_id must define the minor-unit scale (for example, ZAR cents).
+    pub amount_minor_units: i64,
     pub currency_basis_id: String,
 }
 
@@ -148,8 +149,8 @@ pub struct FinancialActualTotal {
     pub build_id: String,
     pub configuration_sha256: String,
     pub currency_basis_id: String,
-    /// Sum of observed direct financial transactions only for this build/configuration/money basis.
-    pub amount: f64,
+    /// Exact sum of observed direct financial transactions in minor currency units.
+    pub amount_minor_units: i64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -239,9 +240,6 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
             }
             if !is_nonempty(&transaction.transaction_ref) {
                 errors.push(format!("{label}: financial actual requires transaction_ref"));
-            }
-            if !transaction.amount.is_finite() {
-                errors.push(format!("{label}: financial amount must be finite"));
             }
             if !is_nonempty(&transaction.currency_basis_id) {
                 errors.push(format!("{label}: financial actual has no currency_basis_id"));
@@ -391,7 +389,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
 
     let mut quantities: BTreeMap<QuantityGroupKey, [Option<f64>; 3]> = BTreeMap::new();
     let mut estimated_costs: BTreeMap<RateCardGroupKey, f64> = BTreeMap::new();
-    let mut financials: BTreeMap<CurrencyGroupKey, f64> = BTreeMap::new();
+    let mut financials: BTreeMap<CurrencyGroupKey, i64> = BTreeMap::new();
 
     // Stable accumulation order is required; floating-point addition is not associative.
     let mut ordered_events: Vec<&LedgerEvent> = events.iter().collect();
@@ -437,9 +435,9 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                     configuration_sha256: event.configuration_sha256.clone(),
                     currency_basis_id: transaction.currency_basis_id.clone(),
                 };
-                let prior = financials.get(&key).copied().unwrap_or(0.0);
-                let sum = add_finite(prior, transaction.amount).ok_or_else(|| {
-                    vec![format!("{}: financial actual aggregation overflow", event.event_id)]
+                let prior = financials.get(&key).copied().unwrap_or(0_i64);
+                let sum = prior.checked_add(transaction.amount_minor_units).ok_or_else(|| {
+                    vec![format!("{}: financial actual integer minor-unit overflow", event.event_id)]
                 })?;
                 financials.insert(key, sum);
             }
@@ -495,7 +493,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
             build_id: key.build_id,
             configuration_sha256: key.configuration_sha256,
             currency_basis_id: key.currency_basis_id,
-            amount,
+            amount_minor_units: amount,
         })
         .collect();
 
@@ -541,7 +539,7 @@ mod tests {
         }
     }
 
-    fn financial_event(event_id: &str, reference: &str, amount: f64) -> LedgerEvent {
+    fn financial_event(event_id: &str, reference: &str, amount_minor_units: i64) -> LedgerEvent {
         LedgerEvent {
             event_id: event_id.to_owned(),
             build_id: "build-001".to_owned(),
@@ -553,16 +551,16 @@ mod tests {
             related_event_ids: Vec::new(),
             kind: EventKind::FinancialActual(FinancialTransaction {
                 transaction_ref: reference.to_owned(),
-                amount,
-                currency_basis_id: "ZAR-2026-SA".to_owned(),
+                amount_minor_units,
+                currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
             }),
         }
     }
 
     fn rate() -> QuantityRate {
         QuantityRate {
-            unit_rate: 100.0,
-            currency_basis_id: "ZAR-2026-SA".to_owned(),
+            unit_rate: 10_000.0,
+            currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
             rate_card_ref: "rate-card-v1".to_owned(),
         }
     }
@@ -624,12 +622,12 @@ mod tests {
     fn financial_actuals_are_not_added_to_rate_card_costs() {
         let events = vec![
             quantity_event("actual-hours", Stage::Observed, CONFIG_A, "weld-01", "labor.welder", 2.0, Some(rate())),
-            financial_event("invoice-line", "inv-42:line-3", 350.0),
+            financial_event("invoice-line", "inv-42:line-3", 35_000),
         ];
         let report = audit(&events).unwrap();
         assert_eq!(report.rate_card_costs.iter().find(|row| row.stage == Stage::Observed).unwrap().amount, 200.0);
         assert_eq!(report.financial_actuals.len(), 1);
-        assert_eq!(report.financial_actuals[0].amount, 350.0);
+        assert_eq!(report.financial_actuals[0].amount_minor_units, 35_000);
     }
 
     #[test]
@@ -645,8 +643,8 @@ mod tests {
     #[test]
     fn duplicate_financial_allocation_is_rejected() {
         let events = vec![
-            financial_event("event-1", "inv-42:line-3", 350.0),
-            financial_event("event-2", "inv-42:line-3", 350.0),
+            financial_event("event-1", "inv-42:line-3", 35_000),
+            financial_event("event-2", "inv-42:line-3", 35_000),
         ];
         let errors = audit(&events).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("duplicate financial transaction allocation")));
@@ -751,9 +749,9 @@ mod tests {
 
     #[test]
     fn financial_actuals_for_distinct_configuration_revisions_are_not_merged() {
-        let mut revised = financial_event("invoice-revised", "inv-43:line-1", 125.0);
+        let mut revised = financial_event("invoice-revised", "inv-43:line-1", 12_500);
         revised.configuration_sha256 = CONFIG_B.to_owned();
-        let original = financial_event("invoice-original", "inv-42:line-1", 200.0);
+        let original = financial_event("invoice-original", "inv-42:line-1", 20_000);
         let report = audit(&[original, revised]).unwrap();
         assert_eq!(report.financial_actuals.len(), 2);
         assert!(report.financial_actuals.iter().any(|row| row.configuration_sha256 == CONFIG_A && row.amount == 200.0));
@@ -820,9 +818,12 @@ mod tests {
     }
 
     #[test]
-    fn non_finite_financial_actuals_are_rejected() {
-        let event = financial_event("event-1", "inv-42:line-3", f64::INFINITY);
-        let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("financial amount must be finite")));
+    fn financial_minor_unit_overflow_is_rejected() {
+        let events = vec![
+            financial_event("event-1", "inv-42:line-3", i64::MAX),
+            financial_event("event-2", "inv-43:line-3", 1),
+        ];
+        let errors = audit(&events).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("financial actual integer minor-unit overflow")));
     }
 }
