@@ -139,6 +139,17 @@ jobs:
             and (.cases | all(.edges | all(.entries_at_or_after_closure == 0)))
           ' wildfire-network-flow-reference-receipt.json
 
+      - name: Independently verify directed-network receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_network_flow_receipt -- \
+            benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json \
+            wildfire-network-flow-reference-receipt.json \
+            "$source_commit"
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:

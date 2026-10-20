@@ -36,7 +36,7 @@ This is **not a full Cell Transmission Model**: links are finite FIFO queues wit
 - No new vehicle enters a closed edge at or after its closure step.
 - Sink cumulative arrivals, accessible arrivals and per-step ingress remain within their distinct constraints.
 - Input order does not affect served counts or clearance under the declared deterministic scheduler.
-- Receipt pins exact source SHA and the raw fixture SHA-256. The focused workflow asserts all cases pass and preserves model claim boundaries.
+- Receipt pins exact source SHA and the raw fixture SHA-256. A separate Rust verifier recomputes stepwise mass balance, per-link entry/exit capacities, post-closure entries, sink constraints, percentile calculations, served/unserved totals and aggregate scorecard before artifact upload.
 
 ## Evaluation metrics and next steps
 
