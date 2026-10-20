@@ -485,6 +485,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     {
         return Err("variant_and_source_buffer_dimensions_must_be_positive".into());
     }
+    if catalog.maximum_consecutive_skips == 0 {
+        return Err("maximum_consecutive_skips_must_be_positive".into());
+    }
     validate_positive_finite(
         "mean_supply_interarrival_seconds",
         catalog.mean_supply_interarrival_seconds,
@@ -786,6 +789,8 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         replication_seeds: vec![catalog.seed],
         random_stream_policy:
             "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
+        dispatch_policy: catalog.dispatch_policy,
+        maximum_consecutive_skips: catalog.maximum_consecutive_skips,
         scenario_count: scenarios.len(),
         scenario_statistics: Vec::new(),
         station_sequence_statistics: Vec::new(),
@@ -854,6 +859,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         measured_good_units: 0,
         scrapped_jobs_total: 0,
         measured_rework_attempts: 0,
+        variant_wait_samples_seconds: vec![Vec::new(); catalog.variant_count],
         buffer_capacity_violation: false,
     };
     schedule_event(&mut state, 0, EventKind::SupplyArrival);
@@ -873,6 +879,8 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     id,
                     variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
                         as usize,
+                    enqueued_at_seconds: state.now,
+                    consecutive_skips: 0,
                 });
                 state.supplier_backlog_peak = state
                     .supplier_backlog_peak
@@ -1057,11 +1065,50 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
 fn refill_source_buffer(state: &mut SimState, catalog: &Catalog) {
     while state.source_buffer.len() < catalog.source_buffer_capacity {
         match state.supplier_backlog.pop_front() {
-            Some(job) => state.source_buffer.push_back(job),
+            Some(mut job) => {
+                job.enqueued_at_seconds = state.now;
+                job.consecutive_skips = 0;
+                state.source_buffer.push_back(job);
+            }
             None => break,
         }
     }
     state.source_buffer_peak = state.source_buffer_peak.max(state.source_buffer.len());
+}
+
+fn select_queued_job(
+    queue: &mut VecDeque<Job>,
+    last_variant: Option<usize>,
+    policy: DispatchPolicy,
+    maximum_consecutive_skips: u32,
+) -> Option<Job> {
+    if policy == DispatchPolicy::Fifo || last_variant.is_none() || queue.is_empty() {
+        return queue.pop_front();
+    }
+
+    // Aging forces the oldest job after it has been bypassed the configured
+    // maximum number of times. Otherwise, select the oldest job matching this
+    // server's last variant. Position-based removal preserves FIFO within each
+    // variant and makes all tie-breaking deterministic.
+    if queue
+        .front()
+        .is_some_and(|job| job.consecutive_skips >= maximum_consecutive_skips)
+    {
+        return queue.pop_front();
+    }
+
+    let preferred_variant = last_variant.expect("checked as present");
+    let Some(index) = queue.iter().position(|job| job.variant == preferred_variant) else {
+        return queue.pop_front();
+    };
+    if index == 0 {
+        return queue.pop_front();
+    }
+
+    for job in queue.iter_mut().take(index) {
+        job.consecutive_skips = job.consecutive_skips.saturating_add(1);
+    }
+    queue.remove(index)
 }
 
 fn sample_service_seconds(catalog: &Catalog, station: &Station, job_id: u64, attempt: u32) -> u64 {
@@ -1250,6 +1297,9 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                         state.measured_good_units += 1;
                     }
                 } else {
+                    let mut job = job;
+                    job.enqueued_at_seconds = state.now;
+                    job.consecutive_skips = 0;
                     state.buffers[station_index].push_back(job);
                     let length = state.buffers[station_index].len();
                     state.buffer_peak_occupancy[station_index] =
@@ -1279,18 +1329,34 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 ) {
                     continue;
                 }
+                let last_variant =
+                    state.stations[station_index].servers[server_index].last_variant;
                 let job = if station_index == 0 {
-                    let value = state.source_buffer.pop_front();
+                    let value = select_queued_job(
+                        &mut state.source_buffer,
+                        last_variant,
+                        catalog.dispatch_policy,
+                        catalog.maximum_consecutive_skips,
+                    );
                     if value.is_some() {
                         refill_source_buffer(state, catalog);
                     }
                     value
                 } else {
-                    state.buffers[station_index - 1].pop_front()
+                    select_queued_job(
+                        &mut state.buffers[station_index - 1],
+                        last_variant,
+                        catalog.dispatch_policy,
+                        catalog.maximum_consecutive_skips,
+                    )
                 };
                 let Some(job) = job else {
                     continue;
                 };
+                if state.now >= catalog.warmup_seconds {
+                    state.variant_wait_samples_seconds[job.variant]
+                        .push(state.now.saturating_sub(job.enqueued_at_seconds));
+                }
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
