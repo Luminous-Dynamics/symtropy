@@ -69,8 +69,8 @@ pub fn double_shock(
     // * sqrt(g/2 * (1/h_star + 1/h0)) for h_star > h0.
     for _ in 0..100 {
         let middle_depth_m = lower_depth_m + 0.5 * (upper_depth_m - lower_depth_m);
-        let shock_curve_m_s =
-            (middle_depth_m - initial_depth_m) * (0.5 * gravity_m_s2 * (1.0 / middle_depth_m + 1.0 / initial_depth_m)).sqrt();
+        let shock_curve_m_s = (middle_depth_m - initial_depth_m)
+            * (0.5 * gravity_m_s2 * (1.0 / middle_depth_m + 1.0 / initial_depth_m)).sqrt();
         if !shock_curve_m_s.is_finite() {
             return Err(SolverError::InvalidAnalyticalInput);
         }
