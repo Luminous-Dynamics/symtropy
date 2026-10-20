@@ -627,7 +627,7 @@ mod tests {
             ),
         ];
 
-        let mut seed = 0x5eed_1788_d15c_a11u64;
+        let mut seed = 0x05ee_d178_8d15_ca11_u64;
         for (case_id, entries) in cases {
             let (nominal, bounds) = fixture(&entries);
             let ranges = propagate(case_id, &nominal, &bounds).expect("bounded test case");
