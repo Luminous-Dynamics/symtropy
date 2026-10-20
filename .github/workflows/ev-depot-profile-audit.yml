@@ -45,9 +45,9 @@ jobs:
             nlr-162-resource-version-2-2021-06-08 > nlr-profile-audit-report.json
           audit_exit=$?
           set -e
-          jq '{valid, source_zip_bytes, zip_entry_count, csv_entry_count, expected_profile_count, valid_profile_count, invalid_profile_count, unique_profile_key_count, missing_profile_keys, duplicate_profile_keys, findings: .findings[0:20], profile_examples: .profiles[0:3]}' nlr-profile-audit-report.json
+          jq '{valid, source_zip_bytes, zip_entry_count, csv_entry_count, expected_profile_count, valid_profile_count, invalid_profile_count, unique_profile_key_count, ignored_macos_sidecar_count, missing_profile_keys, duplicate_profile_keys, findings: .findings[0:20], profile_examples: .profiles[0:3]}' nlr-profile-audit-report.json
           test "$audit_exit" -eq 0
-          jq -e '.valid == true and .expected_profile_count == 81 and .valid_profile_count == 81 and .csv_entry_count == 81 and .unique_profile_key_count == 81 and (.missing_profile_keys | length == 0) and (.duplicate_profile_keys | length == 0) and (.findings | length == 0) and all(.profiles[]; .interval_count == 96 and .resolution_minutes == 15 and .total_energy_kwh >= 0 and .peak_power_kw >= 0 and (.internal_csv_sha256 | length == 64)) and (.source_zip_sha256 | length == 64)' nlr-profile-audit-report.json
+          jq -e '.valid == true and .expected_profile_count == 81 and .valid_profile_count == 81 and .csv_entry_count == 81 and .ignored_macos_sidecar_count == 30 and .unique_profile_key_count == 81 and (.missing_profile_keys | length == 0) and (.duplicate_profile_keys | length == 0) and (.findings | length == 0) and all(.profiles[]; .interval_count == 96 and .resolution_minutes == 15 and .total_energy_kwh >= 0 and .peak_power_kw >= 0 and (.internal_csv_sha256 | length == 64)) and (.source_zip_sha256 | length == 64)' nlr-profile-audit-report.json
           jq -r '.profiles[] | [.fleet_id, .fleet_size, .strategy, .profile_class, .total_energy_kwh, .peak_power_kw, .mean_power_kw, .zero_interval_count] | @tsv' nlr-profile-audit-report.json > nlr-profile-comparison-table.tsv
       - name: Hash code, report and external archive identity
         run: |
