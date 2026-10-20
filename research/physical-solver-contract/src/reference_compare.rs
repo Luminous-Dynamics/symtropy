@@ -77,6 +77,20 @@ pub fn compare_reference_observables(
         ));
     }
 
+    let adapter_value = receipt
+        .get("adapter")
+        .ok_or_else(|| "receipt.adapter is missing".to_owned())?;
+    let adapter_id = get_str(adapter_value, "adapter_id", "receipt.adapter")?.to_owned();
+    let adapter_version = get_str(adapter_value, "version", "receipt.adapter")?.to_owned();
+    let adapter_executable_sha256 =
+        get_str(adapter_value, "executable_sha256", "receipt.adapter")?.to_owned();
+    let adapter_configuration_sha256 =
+        get_str(adapter_value, "configuration_sha256", "receipt.adapter")?.to_owned();
+    let solver_name = get_str(adapter_value, "solver_name", "receipt.adapter")?.to_owned();
+    let solver_version = get_str(adapter_value, "solver_version", "receipt.adapter")?.to_owned();
+    let solver_build_ref = get_str(adapter_value, "solver_build_ref", "receipt.adapter")?.to_owned();
+    let receipt_sha256 = sha256_hex(receipt_bytes);
+
     let outputs = get_array(&receipt, "outputs", "receipt")?;
     let selected = outputs
         .iter()
@@ -263,6 +277,14 @@ pub fn compare_reference_observables(
         "oracle_identity": reference_parsed.oracle_identity,
         "oracle_source_ref": reference_parsed.oracle_source_ref,
         "request_sha256": request_sha256,
+        "receipt_sha256": receipt_sha256,
+        "adapter_id": adapter_id,
+        "adapter_version": adapter_version,
+        "adapter_executable_sha256": adapter_executable_sha256,
+        "adapter_configuration_sha256": adapter_configuration_sha256,
+        "solver_name": solver_name,
+        "solver_version": solver_version,
+        "solver_build_ref": solver_build_ref,
         "case_id": reference_parsed.case_id,
         "request_id": reference_parsed.request_id,
         "scene_sha256": reference_parsed.scene_sha256,
