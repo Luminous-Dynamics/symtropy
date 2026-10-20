@@ -14,7 +14,12 @@ pub type Check<T> = Result<T, String>;
 const MANIFEST: &str =
     include_str!("../../../schemas/physical-transformation/physical-solver-capabilities-v0.1.json");
 const MANIFEST_SCHEMA: &str = "physical-solver-capabilities-v0.1";
-const MANIFEST_KEYS: &[&str] = &["schema_version", "manifest_id", "manifest_version", "backends"];
+const MANIFEST_KEYS: &[&str] = &[
+    "schema_version",
+    "manifest_id",
+    "manifest_version",
+    "backends",
+];
 const BACKEND_KEYS: &[&str] = &[
     "backend_id",
     "backend_version",
@@ -90,7 +95,13 @@ pub fn resolve_request(
 ) -> Check<Resolution> {
     let manifest: Value = serde_json::from_str(MANIFEST)
         .map_err(|error| format!("pinned capability manifest JSON is invalid: {error}"))?;
-    resolve_against_manifest(&manifest, case_id, assumption_profile, requested_physics, units)
+    resolve_against_manifest(
+        &manifest,
+        case_id,
+        assumption_profile,
+        requested_physics,
+        units,
+    )
 }
 
 fn resolve_against_manifest(
@@ -124,9 +135,9 @@ fn resolve_against_manifest(
             .get("cases")
             .and_then(Value::as_array)
             .ok_or_else(|| "manifest backend cases must be an array".to_owned())?;
-        let case_record = cases.iter().find(|entry| {
-            entry.get("case_id").and_then(Value::as_str) == Some(case_id)
-        });
+        let case_record = cases
+            .iter()
+            .find(|entry| entry.get("case_id").and_then(Value::as_str) == Some(case_id));
         let Some(case_record) = case_record else {
             continue;
         };
@@ -224,9 +235,8 @@ fn resolve_against_manifest(
     } else if !unit_compatible_case_seen {
         diagnostics.push("request units do not match a registered backend capability".to_owned());
     } else {
-        diagnostics.push(
-            "matching backend exists but is not qualified for automatic dispatch".to_owned(),
-        );
+        diagnostics
+            .push("matching backend exists but is not qualified for automatic dispatch".to_owned());
     }
     Ok(unresolved(
         digest,
@@ -306,7 +316,9 @@ fn validate_manifest(manifest: &Value) -> Check<()> {
             .iter()
             .find(|physics| !KNOWN_PHYSICS.contains(&physics.as_str()))
         {
-            return Err(format!("{at}.supported_physics contains unsupported value '{unsupported}'"));
+            return Err(format!(
+                "{at}.supported_physics contains unsupported value '{unsupported}'"
+            ));
         }
 
         let supported_units = backend
@@ -315,7 +327,8 @@ fn validate_manifest(manifest: &Value) -> Check<()> {
             .ok_or_else(|| format!("{at}.supported_units must be an object"))?;
         exact_keys_map(supported_units, UNIT_KEYS, &format!("{at}.supported_units"))?;
         for (key, expected_unit) in EXPECTED_UNITS {
-            let actual = nonempty_map_string(supported_units, key, &format!("{at}.supported_units"))?;
+            let actual =
+                nonempty_map_string(supported_units, key, &format!("{at}.supported_units"))?;
             if actual != *expected_unit {
                 return Err(format!(
                     "{at}.supported_units.{key} must be '{expected_unit}', got '{actual}'"
@@ -380,8 +393,7 @@ fn validate_manifest(manifest: &Value) -> Check<()> {
 
 fn units_match(request: &Map<String, Value>, capability: &Map<String, Value>) -> bool {
     UNIT_KEYS.iter().all(|key| {
-        request.get(*key).and_then(Value::as_str)
-            == capability.get(*key).and_then(Value::as_str)
+        request.get(*key).and_then(Value::as_str) == capability.get(*key).and_then(Value::as_str)
     })
 }
 
@@ -398,7 +410,9 @@ fn exact_keys_map(actual: &Map<String, Value>, expected: &[&str], at: &str) -> C
     let missing: Vec<_> = expected_set.difference(&actual_set).copied().collect();
     let unknown: Vec<_> = actual_set.difference(&expected_set).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
-        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+        return Err(format!(
+            "{at}: missing keys {missing:?}; unknown keys {unknown:?}"
+        ));
     }
     Ok(())
 }
@@ -508,7 +522,10 @@ mod tests {
         let backend = result.selected_backend.expect("selected backend");
         assert_eq!(backend["backend_id"], "symtropy-analytical-reference");
         assert_eq!(backend["external_solver_invoked"], false);
-        assert_eq!(result.outputs, vec!["axial_stress_pa", "axial_strain", "extension_m"]);
+        assert_eq!(
+            result.outputs,
+            vec!["axial_stress_pa", "axial_strain", "extension_m"]
+        );
         assert_eq!(result.manifest_sha256.len(), 64);
     }
 
@@ -556,7 +573,10 @@ mod tests {
         let mut manifest: Value = serde_json::from_str(MANIFEST).expect("pinned manifest");
         let mut duplicate_backend = manifest["backends"][0].clone();
         duplicate_backend["backend_id"] = json!("second-reference-backend");
-        manifest["backends"].as_array_mut().unwrap().push(duplicate_backend);
+        manifest["backends"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate_backend);
         let result = resolve_against_manifest(
             &manifest,
             "axial_bar",
@@ -584,11 +604,8 @@ mod tests {
         .expect("unimplemented external execution must abstain");
         assert_eq!(result.status, SelectionStatus::Unresolved);
         assert!(result.selected_backend.is_none());
-        assert!(
-            result.diagnostics[0].contains("not qualified for automatic dispatch")
-        );
+        assert!(result.diagnostics[0].contains("not qualified for automatic dispatch"));
     }
-
 
     #[test]
     fn manifest_unit_claims_must_match_the_si_contract() {
@@ -617,8 +634,10 @@ mod tests {
         let mut manifest: Value = serde_json::from_str(MANIFEST).expect("pinned manifest");
         let duplicate = manifest["backends"][0].clone();
         manifest["backends"].as_array_mut().unwrap().push(duplicate);
-        assert!(validate_manifest(&manifest)
-            .unwrap_err()
-            .contains("backend_id is duplicated"));
+        assert!(
+            validate_manifest(&manifest)
+                .unwrap_err()
+                .contains("backend_id is duplicated")
+        );
     }
 }
