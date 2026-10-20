@@ -1,0 +1,72 @@
+name: Physical Benchmark Manifest
+
+on:
+  push:
+    branches: ["research/physical-benchmark-manifest-v0-1"]
+    paths:
+      - "schemas/physical-transformation/benchmark-manifest-v0.1.schema.json"
+      - "schemas/physical-transformation/benchmark-manifest-v0.1.json"
+      - ".github/workflows/physical-benchmark-manifest.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "schemas/physical-transformation/benchmark-manifest-v0.1.schema.json"
+      - "schemas/physical-transformation/benchmark-manifest-v0.1.json"
+      - ".github/workflows/physical-benchmark-manifest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-benchmark-manifest-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate JSON syntax
+        run: |
+          jq empty schemas/physical-transformation/benchmark-manifest-v0.1.schema.json
+          jq empty schemas/physical-transformation/benchmark-manifest-v0.1.json
+      - name: Audit status vocabulary, provenance and evidence gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="schemas/physical-transformation/benchmark-manifest-v0.1.json"
+          jq -e '
+            . as $manifest
+            | .schema_version == "physical-benchmark-manifest-v0.1"
+            and (.catalogs | length >= 1)
+            and (.benchmarks | length >= 1)
+            and ([.catalogs[].catalog_id] | length == (unique | length))
+            and ([.benchmarks[].benchmark_id] | length == (unique | length))
+            and all($manifest.benchmarks[];
+              . as $benchmark
+              | ($benchmark.catalog_id as $catalog | any($manifest.catalogs[]; .catalog_id == $catalog))
+              and ($benchmark.status != "PASS")
+              and ($benchmark.equivalence_claim == "none_unverified")
+              and (
+                (["catalogued","inputs_unavailable","fixture_incomplete","implemented_unverified","equation_verified","numerically_verified","experimentally_validated"] | index($benchmark.status)) != null
+              )
+              and (
+                (["equation_verified","numerically_verified","experimentally_validated"] | index($benchmark.status)) == null
+                or (
+                  ($benchmark.evidence.fixture_ref | type == "string" and length > 0)
+                  and ($benchmark.evidence.source_digest_sha256 | test("^[0-9a-f]{64}$"))
+                  and ($benchmark.evidence.oracle_ref | type == "string" and length > 0)
+                  and ($benchmark.evidence.tolerance | type == "string" and length > 0)
+                  and ($benchmark.evidence.exact_head_test_ref | type == "string" and length > 0)
+                )
+              )
+            )
+          ' "$manifest"
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "Benchmark metadata audit passed at exact source revision $source_commit; no catalog entry is promoted to verified without fixture/oracle/tolerance/test evidence."
