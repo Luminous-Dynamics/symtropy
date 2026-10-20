@@ -919,9 +919,10 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                         .metrics
                         .attempts_started_after_warmup += 1;
                 }
+                let completion_at = state.now.saturating_add(service_seconds);
                 schedule_event(
                     state,
-                    state.now.saturating_add(service_seconds),
+                    completion_at,
                     EventKind::OperationComplete {
                         station: station_index,
                         server: server_index,
@@ -951,9 +952,10 @@ fn release_server_after_operation(
             .mean_time_to_repair_seconds
             .round()
             .max(1.0) as u64;
+        let repair_at = state.now.saturating_add(repair_seconds);
         schedule_event(
             state,
-            state.now.saturating_add(repair_seconds),
+            repair_at,
             EventKind::RepairComplete {
                 station: station_index,
                 server: server_index,
