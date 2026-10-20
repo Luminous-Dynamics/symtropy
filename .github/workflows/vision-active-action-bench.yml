@@ -167,6 +167,12 @@ jobs:
           grep -Fq "timing-stratum diagnostics" rendered-pixel-world.tsv
           grep -Fq "early_onset" rendered-pixel-world.tsv
           grep -Fq "late_onset" rendered-pixel-world.tsv
+          grep -Fq "acquisition-stratum diagnostics" rendered-pixel-world.tsv
+          grep -Fq "view_available_and_successful" rendered-pixel-world.tsv
+          grep -Fq "view_available_but_failed" rendered-pixel-world.tsv
+          grep -Fq "view_unavailable" rendered-pixel-world.tsv
+          grep -Fq "short_view_delay_le_2" rendered-pixel-world.tsv
+          grep -Fq "long_view_delay_gt_2" rendered-pixel-world.tsv
 
       - name: Upload rendered-pixel world diagnostic report
         uses: actions/upload-artifact@v4
