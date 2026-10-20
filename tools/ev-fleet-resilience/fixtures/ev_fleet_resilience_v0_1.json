@@ -141,7 +141,8 @@
           "target_soc_fraction": 0.03
         }
       ],
-      "capacity_events": []
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
     },
     {
       "scenario_id": "depot-grid-baseline",
@@ -185,7 +186,8 @@
           "target_soc_fraction": 0.72
         }
       ],
-      "capacity_events": []
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
     },
     {
       "scenario_id": "depot-grid-curtailment",
@@ -236,7 +238,8 @@
           "site_power_budget_kw": 8,
           "available_port_count": 3
         }
-      ]
+      ],
+      "port_release_policy": "release_on_charge_completion"
     },
     {
       "scenario_id": "port-loss-and-taper",
@@ -279,7 +282,8 @@
           "site_power_budget_kw": 12,
           "available_port_count": 1
         }
-      ]
+      ],
+      "port_release_policy": "release_on_charge_completion"
     },
     {
       "scenario_id": "port-stable-baseline",
@@ -315,7 +319,8 @@
           "target_soc_fraction": 0.76
         }
       ],
-      "capacity_events": []
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
     },
     {
       "scenario_id": "rural-feeder-baseline",
@@ -351,7 +356,8 @@
           "target_soc_fraction": 0.7
         }
       ],
-      "capacity_events": []
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
     },
     {
       "scenario_id": "rural-feeder-interruption",
@@ -400,7 +406,8 @@
           "site_power_budget_kw": 6,
           "available_port_count": 1
         }
-      ]
+      ],
+      "port_release_policy": "release_on_charge_completion"
     }
   ]
 }
