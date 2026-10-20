@@ -539,18 +539,22 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
     })
 }
 
-fn error_value(observed: f64, reference: f64) -> Check<(f64, Option<f64>)> {
+fn error_value(observed: f64, reference: f64) -> Check<(f64, Option<f64>, &'static str)> {
     let absolute_error = (observed - reference).abs();
     if !absolute_error.is_finite() {
         return Err("absolute error overflowed finite range".to_owned());
     }
-    let relative_error = if reference == 0.0 {
-        None
+    let (relative_error, status) = if reference == 0.0 {
+        (None, "undefined_zero_reference")
     } else {
         let value = absolute_error / reference.abs();
-        value.is_finite().then_some(value)
+        if value.is_finite() {
+            (Some(value), "computed")
+        } else {
+            (None, "overflow")
+        }
     };
-    Ok((absolute_error, relative_error))
+    Ok((absolute_error, relative_error, status))
 }
 
 /// Verify a pinned multi-level mesh study and return convergence diagnostics.
@@ -620,10 +624,13 @@ pub fn assess_mesh_refinement_study_bytes(
     let mut level_reports = Vec::<Value>::with_capacity(levels.len());
     let mut errors = Vec::<f64>::with_capacity(levels.len());
     let mut relative_errors = Vec::<Option<f64>>::with_capacity(levels.len());
+    let mut relative_error_statuses = Vec::<&'static str>::with_capacity(levels.len());
     for level in &levels {
-        let (absolute_error, relative_error) = error_value(level.value, study.reference.value)?;
+        let (absolute_error, relative_error, relative_error_status) =
+            error_value(level.value, study.reference.value)?;
         errors.push(absolute_error);
         relative_errors.push(relative_error);
+        relative_error_statuses.push(relative_error_status);
         level_reports.push(json!({
             "level_id": level.spec.level_id,
             "h_m": level.spec.h_m,
@@ -640,6 +647,7 @@ pub fn assess_mesh_refinement_study_bytes(
             "absolute_error_vs_reference": absolute_error,
             "relative_error_vs_reference": relative_error,
             "relative_error_defined": relative_error.is_some(),
+            "relative_error_status": relative_error_status,
             "artifact_verification_status": level.artifact_verification_status,
             "producer_status": level.producer_status
         }));
@@ -736,10 +744,15 @@ pub fn assess_mesh_refinement_study_bytes(
 
     let fine_error = *errors.last().expect("at least three levels");
     let fine_relative_error = *relative_errors.last().expect("at least three levels");
+    let fine_relative_error_status = *relative_error_statuses.last().expect("at least three levels");
     let accuracy_status = match (study.max_fine_absolute_error, study.max_fine_relative_error) {
         (None, None) => "NOT_SPECIFIED",
         (Some(max_abs), Some(max_rel)) => {
-            if fine_error <= max_abs && fine_relative_error.is_some_and(|error| error <= max_rel) {
+            if fine_error > max_abs {
+                "FAIL"
+            } else if fine_relative_error.is_none() {
+                "UNRESOLVED"
+            } else if fine_relative_error.is_some_and(|error| error <= max_rel) {
                 "PASS"
             } else {
                 "FAIL"
@@ -800,6 +813,7 @@ pub fn assess_mesh_refinement_study_bytes(
         "fine_mesh_absolute_error": fine_error,
         "fine_mesh_relative_error": fine_relative_error,
         "fine_mesh_relative_error_defined": fine_relative_error.is_some(),
+        "fine_mesh_relative_error_status": fine_relative_error_status,
         "maximum_fine_absolute_error": study.max_fine_absolute_error,
         "maximum_fine_relative_error": study.max_fine_relative_error,
         "reference_error_decreases_monotonically": errors.windows(2).all(|pair| pair[1] < pair[0]),
