@@ -18,7 +18,7 @@ Aquatic ecosystem processes need a hydrodynamic host that supplies water transpo
 
 ## Tests authored
 
-- four frozen synthetic stock/transfer cases;
+- four frozen synthetic stock/transfer cases with a separate expected-output CSV oracle;
 - nutrient-equivalent conservation on internal transfers;
 - oxygen source/sink accounting;
 - rejected-step atomicity on source exhaustion and overflow;
