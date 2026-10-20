@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-selective-forecast-v0.1.schema.json",
+  "title": "PIRB Selective Forecasting and Abstention Audit v0.1",
+  "description": "Evaluates risk-coverage and reason-coded abstention without treating abstention as a no-event result. Evaluation rows are offline/audit data; candidate predictions for abstained rows must not be emitted as served forecasts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "evidence_scope",
+    "provider",
+    "policy",
+    "privacy",
+    "rows"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-selective-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "model_version",
+        "forecast_artifact_sha256",
+        "outcome_snapshot_sha256",
+        "attribution"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "forecast_origin_index",
+        "target_period_index",
+        "selection_model_sha256",
+        "selection_features_cutoff_index",
+        "deployed_threshold",
+        "threshold_grid",
+        "abstain_on_stale_inputs",
+        "abstain_on_unknown_inputs",
+        "abstain_on_shifted_regime",
+        "abstain_on_unknown_regime"
+      ],
+      "properties": {
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forecast_origin_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_period_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selection_model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "selection_features_cutoff_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deployed_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "threshold_grid": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "abstain_on_stale_inputs": {
+          "const": true
+        },
+        "abstain_on_unknown_inputs": {
+          "const": true
+        },
+        "abstain_on_shifted_regime": {
+          "const": true
+        },
+        "abstain_on_unknown_regime": {
+          "const": true
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregate_only",
+        "group_policy_reference"
+      ],
+      "properties": {
+        "aggregate_only": {
+          "const": true
+        },
+        "group_policy_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "group_id",
+          "target_id",
+          "selection_score",
+          "offline_candidate_probability",
+          "input_status",
+          "regime_status",
+          "outcome_status",
+          "outcome",
+          "policy_disposition",
+          "reason_code",
+          "served_probability"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^case-[A-Za-z0-9_-]+$"
+          },
+          "group_id": {
+            "type": "string",
+            "pattern": "^group-[A-Za-z0-9_-]+$"
+          },
+          "target_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "selection_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Pre-outcome suitability score derived only from features available at the forecast origin."
+          },
+          "offline_candidate_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Candidate retained only in this offline evaluation archive; it is not a served answer when policy_disposition is abstained."
+          },
+          "input_status": {
+            "enum": [
+              "fresh",
+              "stale",
+              "unknown"
+            ]
+          },
+          "regime_status": {
+            "enum": [
+              "in_distribution",
+              "shifted",
+              "unknown"
+            ]
+          },
+          "outcome_status": {
+            "enum": [
+              "known",
+              "unknown",
+              "immature"
+            ]
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy_disposition": {
+            "enum": [
+              "forecast_issued",
+              "abstained"
+            ]
+          },
+          "reason_code": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "insufficient_evidence",
+                  "stale_inputs",
+                  "unknown_inputs",
+                  "out_of_support",
+                  "unknown_regime",
+                  "target_mismatch",
+                  "low_selection_score"
+                ]
+              }
+            ]
+          },
+          "served_probability": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome_status": {
+                  "const": "known"
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "type": "integer",
+                  "enum": [
+                    0,
+                    1
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome_status": {
+                  "enum": [
+                    "unknown",
+                    "immature"
+                  ]
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "policy_disposition": {
+                  "const": "forecast_issued"
+                }
+              },
+              "required": [
+                "policy_disposition"
+              ]
+            },
+            "then": {
+              "properties": {
+                "reason_code": {
+                  "type": "null"
+                },
+                "served_probability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "policy_disposition": {
+                  "const": "abstained"
+                }
+              },
+              "required": [
+                "policy_disposition"
+              ]
+            },
+            "then": {
+              "properties": {
+                "reason_code": {
+                  "enum": [
+                    "insufficient_evidence",
+                    "stale_inputs",
+                    "unknown_inputs",
+                    "out_of_support",
+                    "unknown_regime",
+                    "target_mismatch",
+                    "low_selection_score"
+                  ]
+                },
+                "served_probability": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
