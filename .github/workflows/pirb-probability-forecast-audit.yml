@@ -69,6 +69,9 @@ jobs:
       - name: Assert score-admissibility fixture is synthetic and claim-limited
         run: jq -e '.evidence_scope == "synthetic" and .claims.score_calculated == false and .claims.comparison_superiority_established == false and .comparison_type == "reconciled_vs_unreconciled_distribution" and .score.score_name == "log_score"' docs/fixtures/pirb-score-admissibility-log-score-reconciliation-synthetic-v0.1.json > /dev/null
 
+      - name: Assert joint-score oracle fixtures are synthetic and aggregate-only
+        run: jq -e 'all([inputs][]; .evidence_scope == "synthetic" and .privacy.aggregate_only == true)' docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json docs/fixtures/pirb-joint-score-three-draw-synthetic-v0.1.json > /dev/null
+
       - name: Run schema, metric, maturity, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
 
@@ -374,6 +377,58 @@ jobs:
               and .claim_ceiling == "metric_admissibility_only"
             ' pirb-score-admissibility-receipt.json
 
+      - name: Evaluate joint energy and variogram score formula oracles
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          four="docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json"
+          three="docs/fixtures/pirb-joint-score-three-draw-synthetic-v0.1.json"
+          schema="docs/schemas/pirb-joint-score-registration-v0.1.schema.json"
+          four_sha="$(sha256sum "$four" | awk '{print $1}')"
+          three_sha="$(sha256sum "$three" | awk '{print $1}')"
+          schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-joint-score-eval -- \
+            --input "$four" --source-commit "$source_commit" > pirb-joint-score-four-draw-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg input_sha "$four_sha" --arg schema_sha "$schema_sha" '
+            .receipt_type == "joint_forecast_score_oracle"
+            and .registration_id == "pirb-joint-score-four-draw-oracle"
+            and .evidence_scope == "synthetic"
+            and .source_commit == $source_commit
+            and .source_commit_pinned == true
+            and .input_sha256 == $input_sha
+            and .schema_sha256 == $schema_sha
+            and (.score_implementation_sha256 | test("^[0-9a-f]{64}$"))
+            and .draw_count == 4
+            and (.score_results.base_unreconciled.energy_score - 0.42677669529663687 | fabs < 0.000000000001)
+            and (.score_results.base_unreconciled.variogram_score - 0.25 | fabs < 0.000000000001)
+            and (.score_results.reconciled.energy_score - 1.2803300858899105 | fabs < 0.000000000001)
+            and (.score_results.reconciled.variogram_score - 1.0 | fabs < 0.000000000001)
+            and .coherence_summary.base_coherent_draw_count == 1
+            and .coherence_summary.reconciled_coherent_draw_count == 4
+            and .metric_semantics.log_score_used == false
+            and .metric_semantics.scored_vector_parent_child_overlap == false
+            and .metric_semantics.shared_draw_ids_authenticate_statistical_coupling == false
+            and .claims.real_world_forecast_superiority_established == false
+            and .claims.causal_impact_established == false
+          ' pirb-joint-score-four-draw-receipt.json
+
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-joint-score-eval -- \
+            --input "$three" --source-commit "$source_commit" > pirb-joint-score-three-draw-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg input_sha "$three_sha" --arg schema_sha "$schema_sha" '
+            .receipt_type == "joint_forecast_score_oracle"
+            and .registration_id == "pirb-joint-score-three-draw-oracle"
+            and .source_commit == $source_commit
+            and .input_sha256 == $input_sha
+            and .schema_sha256 == $schema_sha
+            and .draw_count == 3
+            and (.score_results.base_unreconciled.energy_score - 0.948392656214749 | fabs < 0.000000000001)
+            and (.score_results.base_unreconciled.variogram_score - 0.4444444444444444 | fabs < 0.000000000001)
+            and .claims.real_world_forecast_superiority_established == false
+          ' pirb-joint-score-three-draw-receipt.json
+
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
         uses: actions/upload-artifact@v4
@@ -387,6 +442,11 @@ jobs:
             pirb-joint-sample-coherence-receipt.json
             pirb-policy-impact-admissibility-receipt.json
             pirb-score-admissibility-receipt.json
+            pirb-joint-score-four-draw-receipt.json
+            pirb-joint-score-three-draw-receipt.json
+            docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json
+            docs/fixtures/pirb-joint-score-three-draw-synthetic-v0.1.json
+            docs/schemas/pirb-joint-score-registration-v0.1.schema.json
             docs/fixtures/pirb-score-admissibility-log-score-reconciliation-synthetic-v0.1.json
             docs/schemas/pirb-score-admissibility-v0.1.schema.json
             docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json
