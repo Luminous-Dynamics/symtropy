@@ -1,0 +1,158 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-action-value-synthetic-capacity-v01",
+  "evidence_scope": "synthetic",
+  "provider": {
+    "provider_id": "synthetic-conflict-prevention-forecast",
+    "model_version": "invented-action-value-fixture-v0.1",
+    "forecast_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "outcome_snapshot_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "action_assumptions_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "attribution": "All probabilities, harm units, costs, intervention-effect assumptions and outcomes in this fixture are invented."
+  },
+  "policy": {
+    "target_id": "state-based-country-month-brd25",
+    "forecast_origin_index": 10,
+    "target_period_index": 11,
+    "action_features_cutoff_index": 9,
+    "capacity_grid": [
+      2,
+      4
+    ],
+    "action_cost_multiplier_grid": [
+      0.5,
+      1,
+      1.5
+    ],
+    "effectiveness_multiplier_grid": [
+      0.5,
+      1
+    ],
+    "minimum_group_report_count": 3
+  },
+  "privacy": {
+    "aggregate_only": true,
+    "group_policy_reference": "synthetic opaque aggregate group IDs"
+  },
+  "governance": {
+    "data_authority_status": "not_applicable",
+    "data_authority_reference": "synthetic-fixture-no-provider-data",
+    "disclosure_review_status": "not_applicable",
+    "disclosure_review_reference": "synthetic-fixture-no-sensitive-data",
+    "independent_source_capture_verified": false
+  },
+  "rows": [
+    {
+      "case_id": "case-001",
+      "group_id": "group-a",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.8,
+      "forecast_disposition": "forecast_issued",
+      "reason_code": null,
+      "served_probability": 0.8,
+      "expected_harm_per_event": 100,
+      "action_cost": 10,
+      "assumed_effectiveness": 0.5,
+      "outcome_status": "known",
+      "outcome": 1
+    },
+    {
+      "case_id": "case-002",
+      "group_id": "group-a",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.6,
+      "forecast_disposition": "forecast_issued",
+      "reason_code": null,
+      "served_probability": 0.6,
+      "expected_harm_per_event": 80,
+      "action_cost": 18,
+      "assumed_effectiveness": 0.6,
+      "outcome_status": "known",
+      "outcome": 0
+    },
+    {
+      "case_id": "case-003",
+      "group_id": "group-a",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.4,
+      "forecast_disposition": "forecast_issued",
+      "reason_code": null,
+      "served_probability": 0.4,
+      "expected_harm_per_event": 100,
+      "action_cost": 20,
+      "assumed_effectiveness": 0.8,
+      "outcome_status": "known",
+      "outcome": 1
+    },
+    {
+      "case_id": "case-004",
+      "group_id": "group-a",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.3,
+      "forecast_disposition": "forecast_issued",
+      "reason_code": null,
+      "served_probability": 0.3,
+      "expected_harm_per_event": 100,
+      "action_cost": 5,
+      "assumed_effectiveness": 0.5,
+      "outcome_status": "known",
+      "outcome": 0
+    },
+    {
+      "case_id": "case-005",
+      "group_id": "group-b",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.9,
+      "forecast_disposition": "forecast_issued",
+      "reason_code": null,
+      "served_probability": 0.9,
+      "expected_harm_per_event": 50,
+      "action_cost": 40,
+      "assumed_effectiveness": 0.5,
+      "outcome_status": "known",
+      "outcome": 1
+    },
+    {
+      "case_id": "case-006",
+      "group_id": "group-b",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.7,
+      "forecast_disposition": "abstained",
+      "reason_code": "abstain_stale_inputs",
+      "served_probability": null,
+      "expected_harm_per_event": 20,
+      "action_cost": 2,
+      "assumed_effectiveness": 0.4,
+      "outcome_status": "known",
+      "outcome": 1
+    },
+    {
+      "case_id": "case-007",
+      "group_id": "group-b",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.5,
+      "forecast_disposition": "forecast_issued",
+      "reason_code": null,
+      "served_probability": 0.5,
+      "expected_harm_per_event": 90,
+      "action_cost": 15,
+      "assumed_effectiveness": 0.7,
+      "outcome_status": "unknown",
+      "outcome": null
+    },
+    {
+      "case_id": "case-008",
+      "group_id": "group-b",
+      "target_id": "state-based-country-month-brd25",
+      "offline_candidate_probability": 0.45,
+      "forecast_disposition": "abstained",
+      "reason_code": "abstain_insufficient_evidence",
+      "served_probability": null,
+      "expected_harm_per_event": 110,
+      "action_cost": 30,
+      "assumed_effectiveness": 0.8,
+      "outcome_status": "known",
+      "outcome": 1
+    }
+  ]
+}
