@@ -19,25 +19,30 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "ANIMAL-ECOLOGICAL-TRANSFER-ORACLE-V1"
+      "const": "ANIMAL-ECOLOGICAL-TRANSFER-ORACLE-V1",
+      "type": "string"
     },
     "status": {
-      "const": "synthetic_contract_fixture"
+      "const": "synthetic_contract_fixture",
+      "type": "string"
     },
     "research_snapshot": {
       "type": "string",
-      "format": "date"
+      "format": "date",
+      "minLength": 10
     },
     "tracking_issue": {
       "type": "string",
-      "format": "uri"
+      "format": "uri",
+      "minLength": 1
     },
     "note": {
       "type": "string",
       "minLength": 1
     },
     "case_count": {
-      "const": 51
+      "const": 51,
+      "type": "integer"
     },
     "independent_unit": {
       "type": "string",
