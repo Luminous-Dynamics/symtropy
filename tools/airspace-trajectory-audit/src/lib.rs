@@ -193,6 +193,163 @@ impl fmt::Display for AuditInputError {
 
 impl Error for AuditInputError {}
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct TrajectoryPairCandidate {
+    /// Index of one trajectory in the input slice; always less than `second_index`.
+    pub first_index: usize,
+    /// Index of the other trajectory in the input slice.
+    pub second_index: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ExpandedTrajectoryEnvelope {
+    input_index: usize,
+    start_utc_ms: i64,
+    end_utc_ms: i64,
+    min_x: f64,
+    max_x: f64,
+    min_y: f64,
+    max_y: f64,
+    min_z: f64,
+    max_z: f64,
+}
+
+/// Generate conservative candidates for one fleet in a common Cartesian frame and vertical datum.
+///
+/// This sweep-and-prune broadphase only filters geometry candidates; callers must still run
+/// `audit_trajectory_pair` for every returned pair. It fails closed unless the scenario criteria
+/// cover the full min-start/max-end time span of the input slice, since otherwise pruning could
+/// conceal a `NotAssessable` outcome. Inputs with mixed frames/datums are rejected rather than
+/// silently compared.
+///
+/// Each trajectory's full path AABB is expanded by (base threshold + its own uncertainty) on each
+/// side. This deliberately double-counts the base threshold across a pair, allowing false positives
+/// in exchange for conservative candidate recall. Expanded bounds round outward by one representable
+/// floating-point step. Non-finite expanded bounds fail closed with `NumericOverflow`.
+///
+/// Returned indices refer to the original slice, and pairs are sorted deterministically. This
+/// prototype is not ATC/UTM, clearance, dispatch, or flight-control software.
+pub fn broadphase_candidate_pairs(
+    trajectories: &[Trajectory],
+    criteria: &SeparationCriteria,
+) -> Result<Vec<TrajectoryPairCandidate>, AuditInputError> {
+    validate_criteria(criteria)?;
+    if trajectories.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut ids = std::collections::BTreeSet::new();
+    for trajectory in trajectories {
+        validate_trajectory(trajectory)?;
+        if !ids.insert(trajectory.trajectory_id.as_str()) {
+            return Err(AuditInputError::SameTrajectoryId);
+        }
+    }
+
+    let frame = &trajectories[0].reference_frame_id;
+    let datum = &trajectories[0].vertical_datum_id;
+    if trajectories.iter().any(|t| &t.reference_frame_id != frame) {
+        return Err(AuditInputError::ReferenceFrameMismatch);
+    }
+    if trajectories.iter().any(|t| &t.vertical_datum_id != datum) {
+        return Err(AuditInputError::VerticalDatumMismatch);
+    }
+
+    let fleet_start = trajectories.iter().map(|t| t.points[0].time_utc_ms).min()
+        .ok_or(AuditInputError::InvalidTrajectory("trajectory has no points"))?;
+    let fleet_end = trajectories.iter().map(|t| t.points[t.points.len() - 1].time_utc_ms).max()
+        .ok_or(AuditInputError::InvalidTrajectory("trajectory has no points"))?;
+    if criteria.valid_from_utc_ms > fleet_start || criteria.valid_until_utc_ms < fleet_end {
+        return Err(AuditInputError::InvalidCriteria(
+            "broadphase requires criteria validity to cover the full fleet time span",
+        ));
+    }
+
+    let mut envelopes = Vec::with_capacity(trajectories.len());
+    for (input_index, trajectory) in trajectories.iter().enumerate() {
+        let horizontal_margin = checked_add(
+            criteria.minimum_horizontal_separation_m,
+            trajectory.horizontal_uncertainty_bound_m,
+        )?;
+        let vertical_margin = checked_add(
+            criteria.minimum_vertical_separation_m,
+            trajectory.vertical_uncertainty_bound_m,
+        )?;
+        let (mut min_x, mut max_x) = (f64::INFINITY, f64::NEG_INFINITY);
+        let (mut min_y, mut max_y) = (f64::INFINITY, f64::NEG_INFINITY);
+        let (mut min_z, mut max_z) = (f64::INFINITY, f64::NEG_INFINITY);
+        for point in &trajectory.points {
+            min_x = min_x.min(point.x_m);
+            max_x = max_x.max(point.x_m);
+            min_y = min_y.min(point.y_m);
+            max_y = max_y.max(point.y_m);
+            min_z = min_z.min(point.z_m);
+            max_z = max_z.max(point.z_m);
+        }
+        envelopes.push(ExpandedTrajectoryEnvelope {
+            input_index,
+            start_utc_ms: trajectory.points[0].time_utc_ms,
+            end_utc_ms: trajectory.points[trajectory.points.len() - 1].time_utc_ms,
+            min_x: outward_lower(min_x, horizontal_margin)?,
+            max_x: outward_upper(max_x, horizontal_margin)?,
+            min_y: outward_lower(min_y, horizontal_margin)?,
+            max_y: outward_upper(max_y, horizontal_margin)?,
+            min_z: outward_lower(min_z, vertical_margin)?,
+            max_z: outward_upper(max_z, vertical_margin)?,
+        });
+    }
+
+    envelopes.sort_by(|a, b| a.min_x.total_cmp(&b.min_x)
+        .then_with(|| a.input_index.cmp(&b.input_index)));
+    let mut active: Vec<ExpandedTrajectoryEnvelope> = Vec::new();
+    let mut candidates = Vec::new();
+    for current in envelopes {
+        active.retain(|previous| previous.max_x >= current.min_x);
+        for previous in &active {
+            if previous.end_utc_ms < current.start_utc_ms
+                || current.end_utc_ms < previous.start_utc_ms
+            {
+                continue;
+            }
+            if previous.max_y < current.min_y || current.max_y < previous.min_y {
+                continue;
+            }
+            if previous.max_z < current.min_z || current.max_z < previous.min_z {
+                continue;
+            }
+            let (first_index, second_index) = if previous.input_index < current.input_index {
+                (previous.input_index, current.input_index)
+            } else {
+                (current.input_index, previous.input_index)
+            };
+            candidates.push(TrajectoryPairCandidate { first_index, second_index });
+        }
+        active.push(current);
+    }
+    candidates.sort_unstable();
+    candidates.dedup();
+    Ok(candidates)
+}
+
+fn outward_lower(value: f64, margin: f64) -> Result<f64, AuditInputError> {
+    let expanded = value - margin;
+    if !expanded.is_finite() {
+        return Err(AuditInputError::NumericOverflow);
+    }
+    let outward = expanded.next_down();
+    if outward.is_finite() { Ok(outward) } else { Err(AuditInputError::NumericOverflow) }
+}
+
+fn outward_upper(value: f64, margin: f64) -> Result<f64, AuditInputError> {
+    let expanded = value + margin;
+    if !expanded.is_finite() {
+        return Err(AuditInputError::NumericOverflow);
+    }
+    let outward = expanded.next_up();
+    if outward.is_finite() { Ok(outward) } else { Err(AuditInputError::NumericOverflow) }
+}
+
 /// Audit two trajectories against explicit, time-bounded separation criteria.
 ///
 /// The algorithm checks each overlapping pair of linear segments. It clips each segment-pair

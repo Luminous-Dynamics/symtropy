@@ -5,7 +5,8 @@
 //! from the declared scalar bounds rather than by reusing the implementation's minimization logic.
 
 use symtropy_airspace_trajectory_audit::{
-    ConflictDisposition, SeparationCriteria, Trajectory, TrajectoryPoint, audit_trajectory_pair,
+    ConflictDisposition, SeparationCriteria, Trajectory, TrajectoryPairCandidate, TrajectoryPoint,
+    audit_trajectory_pair, broadphase_candidate_pairs,
 };
 
 fn point(time_utc_ms: i64, x_m: f64, y_m: f64, z_m: f64) -> TrajectoryPoint {
@@ -413,3 +414,93 @@ fn exhaustive_sloped_segments_match_integer_rational_closest_approach_oracle() {
         }
     }
 }
+
+#[test]
+fn broadphase_has_full_recall_against_brute_force_pairwise_audits() {
+    use std::collections::BTreeSet;
+
+    // Frozen deterministic fleet with varied time, slopes, altitude, and uncertainty.
+    let mut fleet = Vec::new();
+    for i in 0_i32..96 {
+        let start = 1_000_i64 + i64::from(i % 9) * 100;
+        let x0 = f64::from((i * 47) % 211 - 105);
+        let y0 = f64::from((i * 31) % 197 - 98);
+        let z0 = 100.0 + f64::from((i * 11) % 7) * 25.0;
+        let drift_x = f64::from((i * 13) % 31 - 15);
+        let drift_y = f64::from((i * 17) % 29 - 14);
+        let drift_z = f64::from((i * 7) % 5 - 2) * 10.0;
+        fleet.push(Trajectory {
+            trajectory_id: format!("fleet-{i:03}"),
+            revision: "broadphase-oracle-v1".to_owned(),
+            reference_frame_id: "BROADPHASE-LOCAL-XYZ".to_owned(),
+            vertical_datum_id: "BROADPHASE-VERTICAL".to_owned(),
+            source_reference: format!("fixture://broadphase/fleet-{i:03}"),
+            source_sha256: "a".repeat(64),
+            horizontal_uncertainty_bound_m: f64::from(i % 4) * 2.5,
+            vertical_uncertainty_bound_m: f64::from(i % 3) * 1.5,
+            points: vec![
+                point(start, x0, y0, z0),
+                point(start + 10_000, x0 + drift_x, y0 + drift_y, z0 + drift_z),
+                point(start + 20_000, x0 + 2.0 * drift_x, y0 + 2.0 * drift_y, z0 + 2.0 * drift_z),
+            ],
+        });
+    }
+
+    let mut rule = criteria();
+    rule.valid_from_utc_ms = 0;
+    rule.valid_until_utc_ms = 30_000;
+    let candidates: BTreeSet<(usize, usize)> = broadphase_candidate_pairs(&fleet, &rule)
+        .expect("common-frame, fully covered fleet should be assessable")
+        .into_iter()
+        .map(|pair: TrajectoryPairCandidate| (pair.first_index, pair.second_index))
+        .collect();
+
+    let mut brute_force_conflicts = 0_usize;
+    for i in 0..fleet.len() {
+        for j in (i + 1)..fleet.len() {
+            let report = audit_trajectory_pair(&fleet[i], &fleet[j], &rule)
+                .expect("brute-force pairwise comparison must be valid");
+            if report.disposition == ConflictDisposition::ConflictDetected {
+                brute_force_conflicts += 1;
+                assert!(candidates.contains(&(i, j)),
+                    "broadphase omitted brute-force conflict pair ({i}, {j})");
+            }
+        }
+    }
+    assert!(brute_force_conflicts > 0, "fixture must contain actual conflicts");
+    assert!(candidates.len() < fleet.len() * (fleet.len() - 1) / 2,
+        "broadphase fixture should demonstrate pruning versus all-pairs enumeration");
+}
+
+#[test]
+fn broadphase_fails_closed_when_criteria_do_not_cover_fleet_time_span() {
+    let (a, b) = crossing_pair_for_metamorphic_tests();
+    let mut rule = criteria();
+    rule.valid_from_utc_ms = 2_000;
+    rule.valid_until_utc_ms = 10_000;
+    assert_eq!(
+        broadphase_candidate_pairs(&[a, b], &rule),
+        Err(symtropy_airspace_trajectory_audit::AuditInputError::InvalidCriteria(
+            "broadphase requires criteria validity to cover the full fleet time span"
+        ))
+    );
+}
+
+#[test]
+fn broadphase_rejects_mixed_reference_frames_and_vertical_datums() {
+    let (a, mut b) = crossing_pair_for_metamorphic_tests();
+    let rule = criteria();
+    b.reference_frame_id = "OTHER-REFERENCE-FRAME".to_owned();
+    assert_eq!(
+        broadphase_candidate_pairs(&[a.clone(), b.clone()], &rule),
+        Err(symtropy_airspace_trajectory_audit::AuditInputError::ReferenceFrameMismatch)
+    );
+
+    b.reference_frame_id = a.reference_frame_id.clone();
+    b.vertical_datum_id = "OTHER-VERTICAL-DATUM".to_owned();
+    assert_eq!(
+        broadphase_candidate_pairs(&[a, b], &rule),
+        Err(symtropy_airspace_trajectory_audit::AuditInputError::VerticalDatumMismatch)
+    );
+}
+
