@@ -24,6 +24,11 @@ use std::process;
 use serde_json::{Value, json};
 use symtropy_animal_model_uncertainty::decision::{ModelOutcome, score_model_ensemble};
 
+const SYNTHETIC_EXAMPLE: &str =
+    include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_EXAMPLE_V1.json");
+const EMBEDDED_INPUT_SCHEMA: &str =
+    include_str!("../../../../../docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json");
+
 fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
     if root.get("schema_version").and_then(Value::as_str)
         != Some("ANIMAL-MODEL-DECISION-OUTCOMES-V1")
@@ -157,25 +162,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_two_model_synthetic_example() {
-        let input = json!({
-            "schema_version": "ANIMAL-MODEL-DECISION-OUTCOMES-V1",
-            "cvar_alpha": 0.9,
-            "models": [
-                {
-                    "model_id": "predator_coupled",
-                    "weight": 0.6,
-                    "action_losses": {"graze": 2.0, "retreat": 5.0, "wait": 3.0},
-                    "admissible_actions": ["graze", "retreat", "wait"]
-                },
-                {
-                    "model_id": "predator_weak",
-                    "weight": 0.4,
-                    "action_losses": {"graze": 9.0, "retreat": 4.0, "wait": 3.0},
-                    "admissible_actions": ["retreat", "wait"]
-                }
-            ]
-        });
+    fn scores_committed_two_model_synthetic_example() {
+        let input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("committed example should parse");
         let (models, alpha) = parse_input(&input).expect("valid synthetic model set");
         let scores = score_model_ensemble(&models, alpha).expect("valid synthetic losses");
         let graze = scores.iter().find(|score| score.action == "graze").expect("graze");
@@ -183,6 +172,23 @@ mod tests {
         assert!((graze.expected_loss - 4.8).abs() < 1e-9);
         assert!(!graze.admissible_across_all_models);
         assert_eq!(wait.worst_case_loss, 3.0);
+    }
+
+    #[test]
+    fn decision_input_schema_matches_example_contract() {
+        let example: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        let schema: Value =
+            serde_json::from_str(EMBEDDED_INPUT_SCHEMA).expect("input schema should parse");
+        assert_eq!(
+            example["schema_version"].as_str(),
+            schema["properties"]["schema_version"]["const"].as_str()
+        );
+        assert_eq!(
+            schema["properties"]["models"]["minItems"].as_u64(),
+            Some(1)
+        );
+        assert!(example["models"].as_array().is_some_and(|models| !models.is_empty()));
     }
 
     #[test]
