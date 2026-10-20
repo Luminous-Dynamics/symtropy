@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_MODEL_DECISION_OUTCOMES_V1.schema.json",
   "title": "Animal Model Decision Outcomes V1",
-  "description": "Shape constraints for declared per-model action losses. Weight sums, matching action sets, model ID uniqueness, and loss semantics are validated by the Rust decision kernel.",
+  "description": "Shape constraints for declared per-model action losses. Unknown properties are rejected; weight sums, matching action sets, model ID uniqueness, and loss semantics are validated by the Rust decision kernel.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,7 +17,10 @@
       "const": "ANIMAL-MODEL-DECISION-OUTCOMES-V1"
     },
     "status": {
-      "const": "synthetic_fixture_not_ecological_validation"
+      "enum": [
+        "synthetic_fixture_not_ecological_validation",
+        "declared_model_outcomes_not_validated"
+      ]
     },
     "cvar_alpha": {
       "type": "number",
