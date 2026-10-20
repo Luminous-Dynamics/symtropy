@@ -1,0 +1,191 @@
+name: EV Depot Scaling Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-depot-workload/**"
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-depot-scaling-benchmark.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-depot-workload/**"
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-depot-scaling-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scaling-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: |
+          cargo fmt --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-depot-workload/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-fleet-resilience/Cargo.toml --all -- --check
+      - name: Run unit and negative-control tests
+        run: |
+          cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-fleet-resilience/Cargo.toml --all-targets
+      - name: Download all three pinned NLR vocation datasets
+        run: |
+          set -euo pipefail
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules"
+          mkdir -p benchmark-artifacts/source-audits benchmark-artifacts/conditions
+          for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            mkdir -p "${RUNNER_TEMP}/nlr/${fleet}"
+            curl --fail --show-error --silent --location "${BASE}/${fleet}/veh_op_days.csv" -o "${RUNNER_TEMP}/nlr/${fleet}/veh_op_days.csv"
+            curl --fail --show-error --silent --location "${BASE}/${fleet}/veh_schedules.csv" -o "${RUNNER_TEMP}/nlr/${fleet}/veh_schedules.csv"
+          done
+      - name: Audit all source duty schedules before sampling
+        run: |
+          set -euo pipefail
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+              "${RUNNER_TEMP}/nlr/${fleet}/veh_op_days.csv" \
+              "${RUNNER_TEMP}/nlr/${fleet}/veh_schedules.csv" \
+              --fleet-id "${fleet}" \
+              --dataset-id nlr-hdev-depot-charging-2021 \
+              --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+              --source-revision "${REV}" \
+              --evidence-class published_operational_summary \
+              --kwh-per-mile 1.8 > "benchmark-artifacts/source-audits/${fleet}.audit.json"
+          done
+          jq -e '.operation_days_input_rows == 76 and .schedule_input_rows == 234 and .reconciled_operation_day_count == 76 and (.operation_days_invalid_rows|length == 0) and (.schedule_invalid_rows|length == 0) and (.operation_day_reconciliation_issues|length == 0)' benchmark-artifacts/source-audits/fleet1-beverage-delivery.audit.json
+          jq -e '.operation_days_input_rows == 100 and .schedule_input_rows == 302 and .reconciled_operation_day_count == 100 and (.operation_days_invalid_rows|length == 0) and (.schedule_invalid_rows|length == 0) and (.operation_day_reconciliation_issues|length == 0)' benchmark-artifacts/source-audits/fleet2-warehouse-delivery.audit.json
+          jq -e '.operation_days_input_rows == 236 and .schedule_input_rows == 782 and .reconciled_operation_day_count == 236 and (.operation_days_invalid_rows|length == 0) and (.schedule_invalid_rows|length == 0) and (.operation_day_reconciliation_issues|length == 0)' benchmark-artifacts/source-audits/fleet3-food-delivery.audit.json
+      - name: Run 27 matched workload conditions and both controllers
+        run: |
+          set -euo pipefail
+          for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            for size in 10 50 100; do
+              ports="${size}"
+              if [ "${ports}" -gt 30 ]; then ports=30; fi
+              site_budget="$((ports * 150))"
+              for seed in 101 202 303; do
+                id="${fleet}-n${size}-seed${seed}"
+                corpus="benchmark-artifacts/conditions/${id}.corpus.json"
+                manifest="benchmark-artifacts/conditions/${id}.manifest.json"
+                report="benchmark-artifacts/conditions/${id}.simulation.json"
+                summary="benchmark-artifacts/conditions/${id}.summary.json"
+                cargo run --quiet --manifest-path tools/ev-depot-workload/Cargo.toml -- \
+                  --input-report "benchmark-artifacts/source-audits/${fleet}.audit.json" \
+                  --output-corpus "${corpus}" \
+                  --output-manifest "${manifest}" \
+                  --fleet-size "${size}" --seed "${seed}" \
+                  --kwh-per-mile 1.8 --pack-capacity-kwh 600 --initial-soc-fraction 0.1 \
+                  --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
+                  --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
+                  --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
+                  --charger-ports "${ports}" --site-power-budget-kw "${site_budget}"
+                cargo run --quiet --manifest-path tools/ev-fleet-resilience/Cargo.toml -- "${corpus}" > "${report}"
+                jq -e --argjson n "${size}" '
+                  .suite_id == "EV-CHARGE-RESILIENCE-001"
+                  and (.results | length == 2)
+                  and (.capacity_frontiers | length == 2)
+                  and all(.results[]; .job_count == $n and .evidence_class == "estimate"
+                    and .site_power_limit_respected and .individual_power_limits_respected
+                    and ((.energy_balance_residual_kwh | fabs) < 0.000001)
+                    and (.jobs | length == $n)
+                    and ([.jobs[].job_id] | unique | length == $n))
+                  and all(.capacity_frontiers[]; .evidence_class == "estimate"
+                    and (.points | length == 20)
+                    and .sample_spacing_percent == 5
+                    and .minimum_deadline_completion_target == 0.95
+                    and .minimum_energy_service_target == 0.95
+                    and all(.points[]; .site_power_limit_respected and .individual_power_limits_respected))
+                ' "${report}"
+                jq --arg fleet "${fleet}" --argjson n "${size}" --argjson seed "${seed}" '
+                  {
+                    fleet_id: $fleet,
+                    fleet_size: $n,
+                    seed: $seed,
+                    evidence_class: "estimate",
+                    policies: [.results[] | {
+                      scenario_id, policy, job_count,
+                      completed_by_deadline_count, missed_deadline_count,
+                      energy_service_fraction, requested_battery_energy_kwh,
+                      delivered_battery_energy_kwh, unserved_battery_energy_kwh,
+                      p50_queue_wait_minutes: .median_queue_wait_minutes,
+                      p95_queue_wait_minutes,
+                      maximum_site_input_power_kw,
+                      energy_balance_residual_kwh
+                    }],
+                    frontiers: [.capacity_frontiers[] | {
+                      policy,
+                      minimum_sampled_feasible_site_power_kw,
+                      minimum_sampled_feasible_kw_per_vehicle:
+                        (if .minimum_sampled_feasible_site_power_kw == null then null
+                         else .minimum_sampled_feasible_site_power_kw / $n end),
+                      sample_spacing_percent,
+                      feasible_sample_count,
+                      service_monotonicity_violations,
+                      feasibility_monotonicity_violations
+                    }]
+                  }
+                ' "${report}" > "${summary}"
+              done
+            done
+          done
+      - name: Aggregate seed variation and scaling results
+        run: |
+          set -euo pipefail
+          jq -s 'sort_by(.fleet_id, .fleet_size, .seed)' benchmark-artifacts/conditions/*.summary.json > benchmark-artifacts/scaling-comparison.json
+          jq '
+            def stats:
+              sort as $v |
+              {sample_count: ($v|length),
+               min: (if ($v|length)==0 then null else $v[0] end),
+               median: (if ($v|length)==0 then null elif (($v|length)%2)==1 then $v[(($v|length)/2|floor)] else (($v[(($v|length)/2|floor)-1] + $v[(($v|length)/2|floor)])/2) end),
+               max: (if ($v|length)==0 then null else $v[-1] end)};
+            group_by([.fleet_id, .fleet_size]) |
+            map(. as $group | {
+              fleet_id: $group[0].fleet_id,
+              fleet_size: $group[0].fleet_size,
+              seed_count: ($group|length),
+              seeds: [$group[].seed],
+              fcfs_minimum_sampled_kw_per_vehicle:
+                ([$group[].frontiers[] | select(.policy=="fcfs") | .minimum_sampled_feasible_kw_per_vehicle | select(.!=null)] | stats),
+              edf_minimum_sampled_kw_per_vehicle:
+                ([$group[].frontiers[] | select(.policy=="earliest_departure_first") | .minimum_sampled_feasible_kw_per_vehicle | select(.!=null)] | stats),
+              fcfs_deadline_completion_fraction:
+                ([$group[].policies[] | select(.policy=="fcfs") | (.completed_by_deadline_count / .job_count)] | stats),
+              edf_deadline_completion_fraction:
+                ([$group[].policies[] | select(.policy=="earliest_departure_first") | (.completed_by_deadline_count / .job_count)] | stats),
+              fcfs_energy_service_fraction:
+                ([$group[].policies[] | select(.policy=="fcfs") | .energy_service_fraction] | stats),
+              edf_energy_service_fraction:
+                ([$group[].policies[] | select(.policy=="earliest_departure_first") | .energy_service_fraction] | stats)
+            })
+          ' benchmark-artifacts/scaling-comparison.json > benchmark-artifacts/scaling-aggregate.json
+          jq -e 'length == 27 and all(.[]; .evidence_class == "estimate" and (.policies|length == 2) and (.frontiers|length == 2))' benchmark-artifacts/scaling-comparison.json
+          jq -e 'length == 9 and all(.[]; .seed_count == 3 and .fcfs_minimum_sampled_kw_per_vehicle.sample_count == 3 and .edf_minimum_sampled_kw_per_vehicle.sample_count == 3)' benchmark-artifacts/scaling-aggregate.json
+          jq -r '.[] | [.fleet_id, .fleet_size, (.fcfs_minimum_sampled_kw_per_vehicle.median // "none"), (.edf_minimum_sampled_kw_per_vehicle.median // "none"), .fcfs_deadline_completion_fraction.median, .edf_deadline_completion_fraction.median] | @tsv' benchmark-artifacts/scaling-aggregate.json
+      - name: Hash all inputs, assumptions and outputs
+        run: |
+          set -euo pipefail
+          find tools/ev-depot-duty-audit tools/ev-depot-workload tools/ev-fleet-resilience -type f -not -path '*/target/*' -print0 | sort -z | xargs -0 sha256sum > benchmark-artifacts/code-and-fixture.sha256
+          sha256sum benchmark-artifacts/source-audits/*.audit.json benchmark-artifacts/conditions/*.corpus.json benchmark-artifacts/conditions/*.manifest.json benchmark-artifacts/conditions/*.simulation.json benchmark-artifacts/conditions/*.summary.json benchmark-artifacts/scaling-comparison.json benchmark-artifacts/scaling-aggregate.json > benchmark-artifacts/report-and-assumption.sha256
+          (cd "${RUNNER_TEMP}/nlr" && find . -type f -name '*.csv' -print0 | sort -z | xargs -0 sha256sum) > benchmark-artifacts/pinned-source-inputs.sha256
+      - name: Upload scaling benchmark evidence (raw source CSVs excluded)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-depot-scaling-benchmark-${{ github.sha }}
+          path: |
+            benchmark-artifacts/
+          if-no-files-found: error
+          retention-days: 14
