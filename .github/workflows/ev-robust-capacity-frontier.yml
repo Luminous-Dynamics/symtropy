@@ -115,7 +115,7 @@ jobs:
                   --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
                   --charger-ports "${ports}" --site-power-budget-kw "${site_kw}"
                 "${SIMULATOR}" "${input}" > "${report}"
-                printf '%s\t%s\t%s\t%s\n' "${fleet_size}" "${seed}" "${fleet}" "${report}" >> "${ROOT}/runs.tsv"
+                printf '%s\t%s\t%s\t%s\n' "${fleet_size}" "${seed}" "${fleet}" "results/${tag}.json" >> "${ROOT}/runs.tsv"
               done
             done
           done
@@ -127,10 +127,11 @@ jobs:
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/ev-robust"
           AGGREGATOR="${CARGO_TARGET_DIR}/release/ev-capacity-robustness"
+          cd "${ROOT}"
           "${AGGREGATOR}" \
-            --runs-manifest "${ROOT}/runs.tsv" \
-            --output-json "${ROOT}/ev-robust-capacity-report.json" \
-            --output-csv "${ROOT}/ev-robust-capacity-frontier.csv" \
+            --runs-manifest "runs.tsv" \
+            --output-json "ev-robust-capacity-report.json" \
+            --output-csv "ev-robust-capacity-frontier.csv" \
             --expected-seeds 20 --minimum-fleet-sizes 3 --minimum-vocations 3 \
             --coverage-target 0.95
           jq -e '.benchmark_id == "EV-ROBUST-001" and .validated_run_count == 180 and .expected_seeds_per_vocation_size == 20 and (.fleet_sizes == [10,50,100]) and (.vocations | length == 3) and (.policy_aggregates | length == 18) and all(.policy_aggregates[]; .replicate_count == 20 and .sampled_capacity_spacing_percent == 5 and (.capacity_points | length == 20) and .port_count == ((.fleet_size + 1) / 2 | floor) and all(.capacity_points[]; .replicate_count == 20 and .empirical_feasibility_fraction >= 0 and .empirical_feasibility_fraction <= 1 and (.wilson_95_percent_interval[0] >= 0) and (.wilson_95_percent_interval[1] <= 1)))' "${ROOT}/ev-robust-capacity-report.json"
@@ -139,8 +140,9 @@ jobs:
         run: |
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/ev-robust"
-          find "${ROOT}/source" "${ROOT}/audit" "${ROOT}/inputs" "${ROOT}/results" -type f -print0 | sort -z | xargs -0 sha256sum > "${ROOT}/all-files.sha256"
-          sha256sum tools/ev-capacity-robustness/Cargo.toml tools/ev-capacity-robustness/src/main.rs tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-workload/Cargo.toml tools/ev-depot-workload/src/main.rs tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs "${ROOT}/runs.tsv" "${ROOT}/ev-robust-capacity-report.json" "${ROOT}/ev-robust-capacity-frontier.csv" >> "${ROOT}/all-files.sha256"
+          cd "${ROOT}"
+          find source audit inputs results -type f -print0 | sort -z | xargs -0 sha256sum > all-files.sha256
+          sha256sum "${GITHUB_WORKSPACE}/tools/ev-capacity-robustness/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-capacity-robustness/src/main.rs" "${GITHUB_WORKSPACE}/tools/ev-depot-duty-audit/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-depot-duty-audit/src/main.rs" "${GITHUB_WORKSPACE}/tools/ev-depot-workload/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-depot-workload/src/main.rs" "${GITHUB_WORKSPACE}/tools/ev-fleet-resilience/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-fleet-resilience/src/main.rs" runs.tsv ev-robust-capacity-report.json ev-robust-capacity-frontier.csv >> all-files.sha256
       - name: Upload complete replay package (pinned source data excluded)
         uses: actions/upload-artifact@v4
         with:
