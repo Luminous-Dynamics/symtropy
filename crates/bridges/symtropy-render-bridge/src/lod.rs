@@ -17,7 +17,8 @@
 //! total budget cannot satisfy those pins and the remaining minimum costs, the
 //! allocator returns an error rather than silently dropping protected detail.
 
-use std::collections::HashSet;
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashSet};
 
 /// Failure from malformed LOD data or an infeasible hard budget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,6 +112,75 @@ pub struct LodAllocation {
     pub degraded_entity_count: usize,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Demotion {
+    loss_per_saved_unit: f64,
+    entity_id: u64,
+    demand_index: usize,
+    saved_units: u64,
+}
+
+impl PartialEq for Demotion {
+    fn eq(&self, other: &Self) -> bool {
+        self.loss_per_saved_unit
+            .total_cmp(&other.loss_per_saved_unit)
+            .is_eq()
+            && self.entity_id == other.entity_id
+            && self.demand_index == other.demand_index
+            && self.saved_units == other.saved_units
+    }
+}
+
+impl Eq for Demotion {}
+
+impl PartialOrd for Demotion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Demotion {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // BinaryHeap is a max-heap: reverse the score so the smallest error
+        // loss per saved unit is selected first. Stable IDs break score ties.
+        other
+            .loss_per_saved_unit
+            .total_cmp(&self.loss_per_saved_unit)
+            .then_with(|| other.entity_id.cmp(&self.entity_id))
+            .then_with(|| other.demand_index.cmp(&self.demand_index))
+    }
+}
+
+fn next_demotion(
+    demand: &LodDemand,
+    demand_index: usize,
+    current_index: usize,
+    max_screen_error_px: f32,
+) -> Option<Demotion> {
+    if demand.is_protected() || current_index == 0 {
+        return None;
+    }
+
+    let current = demand.candidates[current_index];
+    let next = demand.candidates[current_index - 1];
+    if next.screen_error_px > max_screen_error_px {
+        return None;
+    }
+
+    let saved_units = u64::from(current.cost_units - next.cost_units);
+    let current_error = f64::from(current.screen_error_px);
+    let next_error = f64::from(next.screen_error_px);
+    let added_error =
+        f64::from(demand.importance) * (next_error * next_error - current_error * current_error);
+
+    Some(Demotion {
+        loss_per_saved_unit: added_error / saved_units as f64,
+        entity_id: demand.entity_id,
+        demand_index,
+        saved_units,
+    })
+}
+
 /// Allocate representations under a shared cost budget.
 ///
 /// The starting point is the finest available representation for every entity.
@@ -160,54 +230,38 @@ pub fn allocate_lod(
             .ok_or(LodError::InvalidCostOrCostOrder)?;
     }
 
-    while total_cost_units > budget_units {
-        let mut best_demotion: Option<(f64, u64, usize, u64)> = None;
-
-        for (demand_index, demand) in demands.iter().enumerate() {
-            if demand.is_protected() || selected_indices[demand_index] == 0 {
-                continue;
-            }
-
-            let current_index = selected_indices[demand_index];
-            let current = demand.candidates[current_index];
-            let next = demand.candidates[current_index - 1];
-            if next.screen_error_px > max_screen_error_px {
-                continue;
-            }
-            let saved_units = u64::from(current.cost_units - next.cost_units);
-            let current_error = f64::from(current.screen_error_px);
-            let next_error = f64::from(next.screen_error_px);
-            let added_error = f64::from(demand.importance)
-                * (next_error * next_error - current_error * current_error);
-            let loss_per_saved_unit = added_error / saved_units as f64;
-
-            let replace = match best_demotion {
-                None => true,
-                Some((best_score, best_entity_id, _, _)) => {
-                    loss_per_saved_unit.total_cmp(&best_score).is_lt()
-                        || (loss_per_saved_unit.total_cmp(&best_score).is_eq()
-                            && demand.entity_id < best_entity_id)
-                }
-            };
-
-            if replace {
-                best_demotion = Some((
-                    loss_per_saved_unit,
-                    demand.entity_id,
-                    demand_index,
-                    saved_units,
-                ));
-            }
+    let mut demotions = BinaryHeap::new();
+    for (demand_index, demand) in demands.iter().enumerate() {
+        let finest_index = selected_indices[demand_index];
+        if let Some(demotion) = next_demotion(
+            demand,
+            demand_index,
+            finest_index,
+            max_screen_error_px,
+        ) {
+            demotions.push(demotion);
         }
+    }
 
-        let Some((_, _, demand_index, saved_units)) = best_demotion else {
+    while total_cost_units > budget_units {
+        let Some(demotion) = demotions.pop() else {
             return Err(LodError::BudgetInfeasible);
         };
 
-        selected_indices[demand_index] -= 1;
+        selected_indices[demotion.demand_index] -= 1;
         total_cost_units = total_cost_units
-            .checked_sub(saved_units)
+            .checked_sub(demotion.saved_units)
             .ok_or(LodError::InvalidCostOrCostOrder)?;
+
+        let next_index = selected_indices[demotion.demand_index];
+        if let Some(next) = next_demotion(
+            &demands[demotion.demand_index],
+            demotion.demand_index,
+            next_index,
+            max_screen_error_px,
+        ) {
+            demotions.push(next);
+        }
     }
 
     let mut choices = Vec::with_capacity(demands.len());
