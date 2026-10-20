@@ -94,6 +94,9 @@ jobs:
           jq -e '
             .result == "pass" and .benchmark_id == "WILDFIRE-SUMO-BEHAVIOR-001"
             and .case_count == 6 and (.cases | length == 6)
+            and .comparison_policy.status == "not_comparable"
+            and (.comparison_policy.reasons | length >= 1)
+            and (.cases | all(.comparability.status == "not_comparable"))
             and (.cases | all(
               .tripinfo_inventory_complete == true
               and .tripinfo_record_count == .demand_vehicle_count
