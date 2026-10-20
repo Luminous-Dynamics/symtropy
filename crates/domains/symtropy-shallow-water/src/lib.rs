@@ -221,13 +221,13 @@ impl ShallowWater1D {
         if !dt_s.is_finite() || dt_s <= 0.0 {
             return Err(SolverError::InvalidTimeStep);
         }
-        if let Some(maximum_s) = self.maximum_stable_timestep_s(config)? {
-            if dt_s > maximum_s * (1.0 + 1.0e-12) {
-                return Err(SolverError::TimeStepExceedsCfl {
-                    requested_s: dt_s,
-                    maximum_s,
-                });
-            }
+        if let Some(maximum_s) = self.maximum_stable_timestep_s(config)?
+            && dt_s > maximum_s * (1.0 + 1.0e-12)
+        {
+            return Err(SolverError::TimeStepExceedsCfl {
+                requested_s: dt_s,
+                maximum_s,
+            });
         }
 
         let initial = self.cells.clone();
@@ -482,6 +482,9 @@ pub fn ritter_dam_break(
 
     let c0 = (gravity_m_s2 * left_depth_m).sqrt();
     let similarity = x_m / time_s;
+    if !c0.is_finite() || !similarity.is_finite() {
+        return Err(SolverError::InvalidAnalyticalInput);
+    }
     let (depth_m, velocity_m_s) = if similarity <= -c0 {
         (left_depth_m, 0.0)
     } else if similarity >= 2.0 * c0 {
@@ -492,10 +495,14 @@ pub fn ritter_dam_break(
         (depth, velocity)
     };
 
+    let discharge_m2_s = depth_m * velocity_m_s;
+    if !depth_m.is_finite() || !velocity_m_s.is_finite() || !discharge_m2_s.is_finite() {
+        return Err(SolverError::InvalidAnalyticalInput);
+    }
     Ok(RitterState {
         depth_m,
         velocity_m_s,
-        discharge_m2_s: depth_m * velocity_m_s,
+        discharge_m2_s,
     })
 }
 
