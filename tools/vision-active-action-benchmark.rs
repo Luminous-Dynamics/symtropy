@@ -436,11 +436,16 @@ fn guarded_action(
 }
 
 fn evaluate_policy(policy: Policy, cases: &[SyntheticScenario]) -> Result<RunSummaryV1, EvaluationError> {
-    let mut trials = Vec::with_capacity(cases.len());
+    // Budgeted policies are evaluated in canonical trial order. Otherwise, simply
+    // permuting episode order could change which later episodes receive a sensor
+    // action, confounding policy quality with evaluation ordering.
+    let mut ordered_cases = cases.to_vec();
+    ordered_cases.sort_by_key(|scenario| scenario.id);
+    let mut trials = Vec::with_capacity(ordered_cases.len());
     let mut spent_latency = 0_u128;
     let mut spent_sensor = 0_u128;
 
-    for scenario in cases {
+    for scenario in &ordered_cases {
         let requested = policy.propose(scenario.id, scenario.observation);
         let chosen = guarded_action(
             requested,
