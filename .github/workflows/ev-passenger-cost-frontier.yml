@@ -64,7 +64,7 @@ jobs:
             and all(.results[]; .release_disposition == "needs_evidence")
             and all(.results[]; .economics_result == "range_crosses_target_ceiling")
           ' ev-passenger-cost-report.json
-          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev-localization-frontier -- \
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_localization_frontier -- \
             tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json \
             > ev-localization-cost-report.json
           jq -e '
