@@ -40,6 +40,7 @@ const LATENCY_RUN_BUDGET: u128 = 50;
 const SENSOR_RUN_BUDGET: u128 = 4;
 const TRIAL_LATENCY_BUDGET: u64 = 10;
 const TRIAL_SENSOR_BUDGET: u64 = 1;
+const MIN_ACTION_LATENCY_UNITS: u128 = 1;
 
 #[derive(Debug, Clone, Copy)]
 struct PublicObservation {
@@ -408,10 +409,21 @@ impl Policy {
     }
 }
 
-fn fits_remaining(action: VisionAction, spent_latency: u128, spent_sensor: u128) -> bool {
+fn fits_remaining(
+    action: VisionAction,
+    spent_latency: u128,
+    spent_sensor: u128,
+    episodes_after: usize,
+) -> bool {
     let cost = costs(action);
-    spent_latency + u128::from(cost["latency_unit"]) <= LATENCY_RUN_BUDGET
-        && spent_sensor + u128::from(cost["sensor_action"]) <= SENSOR_RUN_BUDGET
+    // Reserve the cheapest legal fallback for every remaining episode. This
+    // prevents an early policy from spending so much that later trials cannot
+    // be scored, making budget enforcement itself order-dependent.
+    let projected_latency = spent_latency
+        + u128::from(cost["latency_unit"])
+        + (episodes_after as u128) * MIN_ACTION_LATENCY_UNITS;
+    let projected_sensor = spent_sensor + u128::from(cost["sensor_action"]);
+    projected_latency <= LATENCY_RUN_BUDGET && projected_sensor <= SENSOR_RUN_BUDGET
 }
 
 fn guarded_action(
@@ -419,15 +431,16 @@ fn guarded_action(
     observation: PublicObservation,
     spent_latency: u128,
     spent_sensor: u128,
+    episodes_after: usize,
 ) -> Result<VisionAction, EvaluationError> {
     if observation.action_available(requested)
-        && fits_remaining(requested, spent_latency, spent_sensor)
+        && fits_remaining(requested, spent_latency, spent_sensor, episodes_after)
     {
         return Ok(requested);
     }
     for fallback in [VisionAction::KeepCheap, VisionAction::AbstainOrHandoff] {
         if observation.action_available(fallback)
-            && fits_remaining(fallback, spent_latency, spent_sensor)
+            && fits_remaining(fallback, spent_latency, spent_sensor, episodes_after)
         {
             return Ok(fallback);
         }
@@ -445,13 +458,15 @@ fn evaluate_policy(policy: Policy, cases: &[SyntheticScenario]) -> Result<RunSum
     let mut spent_latency = 0_u128;
     let mut spent_sensor = 0_u128;
 
-    for scenario in &ordered_cases {
+    for (index, scenario) in ordered_cases.iter().enumerate() {
+        let episodes_after = ordered_cases.len() - index - 1;
         let requested = policy.propose(scenario.id, scenario.observation);
         let chosen = guarded_action(
             requested,
             scenario.observation,
             spent_latency,
             spent_sensor,
+            episodes_after,
         )?;
         let chosen_cost = costs(chosen);
         spent_latency += u128::from(chosen_cost["latency_unit"]);
