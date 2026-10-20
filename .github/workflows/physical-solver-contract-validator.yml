@@ -1,0 +1,72 @@
+name: Physical Solver Contract Validator
+
+on:
+  push:
+    branches: ["research/physical-solver-contract-validator-v0-1"]
+    paths:
+      - "tools/physical-solver-contract/**"
+      - "schemas/physical-transformation/**"
+      - ".github/workflows/physical-solver-contract-validator.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/physical-solver-contract/**"
+      - "schemas/physical-transformation/**"
+      - ".github/workflows/physical-solver-contract-validator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-solver-contract-validator-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/physical-solver-contract/Cargo.toml --all -- --check
+
+      - name: Run semantic validator tests with locked dependencies
+        run: cargo test --locked --manifest-path tools/physical-solver-contract/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/physical-solver-contract/Cargo.toml --all-targets -- -D warnings
+
+      - name: Validate analytical request without implying a solve
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path tools/physical-solver-contract/Cargo.toml -- \
+            validate-request schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json > request-report.json
+          jq -e '.valid == true and (.request_sha256 | test("^[0-9a-f]{64}$")) and (.interpretation | contains("no solver was executed"))' request-report.json
+
+      - name: Verify exact request-byte binding for unresolved fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          request="schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json"
+          receipt="schemas/physical-transformation/fixtures/unresolved-receipt-v0.1.json"
+          request_digest="$(sha256sum "$request" | cut -d ' ' -f 1)"
+          request_id="$(jq -r '.request_id' "$request")"
+          source_revision="$(jq -r '.source_revision' "$request")"
+          jq --arg digest "$request_digest" --arg id "$request_id" --arg revision "$source_revision" \
+            '.request_sha256 = $digest | .request_id = $id | .source_revision = $revision' \
+            "$receipt" > receipt-bound.json
+          cargo run --quiet --locked --manifest-path tools/physical-solver-contract/Cargo.toml -- \
+            validate-receipt receipt-bound.json "$request" > receipt-report.json
+          jq -e '.valid == true and .status == "UNRESOLVED" and (.interpretation | contains("does not attest execution"))' receipt-report.json
