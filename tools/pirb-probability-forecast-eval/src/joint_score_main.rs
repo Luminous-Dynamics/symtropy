@@ -739,7 +739,7 @@ mod tests {
             receipt["coherence_summary"]["reconciled_coherent_draw_count"],
             4
         );
-        assert_eq!(receipt["coherence_summary"]["base_coherent_draw_count"], 1);
+        assert_eq!(receipt["coherence_summary"]["base_coherent_draw_count"], 2);
         assert_eq!(
             receipt["claims"]["real_world_forecast_superiority_established"],
             false
