@@ -1114,6 +1114,7 @@ mod randomized_timing {
         fresh_view_evidence: bool,
         view_returned_no_fresh_evidence: bool,
         natural_or_view_recovery_steps: Option<u8>,
+        view_attributable_recovery_steps: Option<u8>,
         latency_units: u64,
         budget_violations: u64,
     }
@@ -1129,6 +1130,7 @@ mod randomized_timing {
         let mut budget_violations = 0_u64;
         let mut receipt: Option<ViewReceipt> = None;
         let mut recovery_steps = None;
+        let mut view_recovery_steps = None;
         let mut terminal = world.frame(0, false, None);
 
         for tick in 0..=HORIZON {
@@ -1146,9 +1148,14 @@ mod randomized_timing {
                 if r.completion_tick == tick && tick <= DECISION_DEADLINE && r.executed {
                     debug_assert!(r.completion_tick >= r.requested_tick);
                     completed = true;
-                    fresh_view_evidence |= r.successful
+                    let action_revealed_fresh_evidence = r.successful
                         && tick < world.natural_reveal_tick()
                         && evidence.cue != Cue::Occluded;
+                    fresh_view_evidence |= action_revealed_fresh_evidence;
+                    if action_revealed_fresh_evidence && view_recovery_steps.is_none() {
+                        view_recovery_steps =
+                            Some(tick.saturating_sub(world.occlusion_onset));
+                    }
                 }
             }
 
@@ -1218,6 +1225,7 @@ mod randomized_timing {
             fresh_view_evidence,
             view_returned_no_fresh_evidence,
             natural_or_view_recovery_steps: recovery_steps,
+            view_attributable_recovery_steps: view_recovery_steps,
             latency_units,
             budget_violations,
         }
@@ -1241,6 +1249,8 @@ mod randomized_timing {
         views_without_fresh: u64,
         recovery_steps_sum: u64,
         recovery_observations: u64,
+        view_recovery_steps_sum: u64,
+        view_recovery_observations: u64,
         budget_violations: u64,
         latency_sum: u64,
     }
@@ -1259,6 +1269,10 @@ mod randomized_timing {
             if let Some(steps) = result.natural_or_view_recovery_steps {
                 self.recovery_steps_sum += u64::from(steps);
                 self.recovery_observations += 1;
+            }
+            if let Some(steps) = result.view_attributable_recovery_steps {
+                self.view_recovery_steps_sum += u64::from(steps);
+                self.view_recovery_observations += 1;
             }
 
             if result.truth {
@@ -1368,7 +1382,7 @@ mod randomized_timing {
         println!("VIS-ACT-005 randomized-timing and delayed-view diagnostic");
         println!("event-driven onset/duration/delay; transient RGB evidence; hidden view-success outcomes");
         println!("paired bootstrap resamples exogenous seed pairs; resource units remain synthetic");
-        println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tremoved_false_persistence_rate\tview_attempts_per_episode\texecuted_views\tcompleted_views\tfresh_evidence_rate_per_executed_view\tviews_without_fresh_evidence\trecovery_rate\tmean_recovery_steps_when_recovered\tlatency_units_per_episode\tbudget_violations\tpaired_delta_loss_vs_passive\tbootstrap95_lo_vs_passive\tbootstrap95_hi_vs_passive\tpaired_delta_loss_vs_fixed_sweep\tbootstrap95_lo_vs_fixed_sweep\tbootstrap95_hi_vs_fixed_sweep");
+        println!("family\tpolicy\tepisodes\tmean_loss\tanswered_accuracy\tabstention_rate\tremoved_false_persistence_rate\tview_attempts_per_episode\texecuted_views\tcompleted_views\tfresh_evidence_rate_per_executed_view\tviews_without_fresh_evidence\trecovery_rate\tmean_recovery_steps_when_recovered\tview_attributable_recovery_rate\tmean_view_recovery_steps_when_attributed\tlatency_units_per_episode\tbudget_violations\tpaired_delta_loss_vs_passive\tbootstrap95_lo_vs_passive\tbootstrap95_hi_vs_passive\tpaired_delta_loss_vs_fixed_sweep\tbootstrap95_lo_vs_fixed_sweep\tbootstrap95_hi_vs_fixed_sweep");
 
         let policies = TimedPolicy::ALL;
         let passive_index = policies
@@ -1440,8 +1454,17 @@ mod randomized_timing {
                             / total.recovery_observations as f64
                     )
                 };
+                let mean_view_recovery = if total.view_recovery_observations == 0 {
+                    "NA".to_string()
+                } else {
+                    format!(
+                        "{:.3}",
+                        total.view_recovery_steps_sum as f64
+                            / total.view_recovery_observations as f64
+                    )
+                };
                 println!(
-                    "{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}",
+                    "{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}",
                     family.name(),
                     policy.name(),
                     total.episodes,
@@ -1456,6 +1479,8 @@ mod randomized_timing {
                     total.views_without_fresh,
                     Aggregate::rate(total.recovery_observations, total.episodes),
                     mean_recovery,
+                    Aggregate::rate(total.view_recovery_observations, total.episodes),
+                    mean_view_recovery,
                     total.latency_sum as f64 / total.episodes.max(1) as f64,
                     total.budget_violations,
                     mean(&passive_delta),
@@ -1471,7 +1496,7 @@ mod randomized_timing {
                 "VIS-ACT-005 timing-stratum diagnostics for {} (early onset <= 2; late onset >= 3)",
                 family.name()
             );
-            println!("family\tstratum\tpolicy\tepisodes\tmean_loss\tabstention_rate\tremoved_false_persistence_rate\tfresh_evidence_rate_per_executed_view\trecovery_rate\tmean_recovery_steps_when_recovered");
+            println!("family\tstratum\tpolicy\tepisodes\tmean_loss\tabstention_rate\tremoved_false_persistence_rate\tfresh_evidence_rate_per_executed_view\trecovery_rate\tmean_recovery_steps_when_recovered\tview_attributable_recovery_rate\tmean_view_recovery_steps_when_attributed");
             for (stratum_name, strata) in [
                 ("early_onset", &early_onset),
                 ("late_onset", &late_onset),
@@ -1487,8 +1512,17 @@ mod randomized_timing {
                                 / aggregate.recovery_observations as f64
                         )
                     };
+                    let view_recovery = if aggregate.view_recovery_observations == 0 {
+                        "NA".to_string()
+                    } else {
+                        format!(
+                            "{:.3}",
+                            aggregate.view_recovery_steps_sum as f64
+                                / aggregate.view_recovery_observations as f64
+                        )
+                    };
                     println!(
-                        "{}\t{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{}\t{}",
+                        "{}\t{}\t{}\t{}\t{:.4}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                         family.name(),
                         stratum_name,
                         policy.name(),
@@ -1499,6 +1533,8 @@ mod randomized_timing {
                         Aggregate::rate(aggregate.fresh_views, aggregate.executed_views),
                         Aggregate::rate(aggregate.recovery_observations, aggregate.episodes),
                         recovery,
+                        Aggregate::rate(aggregate.view_recovery_observations, aggregate.episodes),
+                        view_recovery,
                     );
                 }
             }
@@ -1575,6 +1611,28 @@ mod randomized_timing {
         }
 
         #[test]
+        fn successful_view_recovery_is_separated_from_natural_recovery() {
+            let (world, _) = paired(0x1234_5678, SceneFamily::Development);
+            let forced = TimedWorld {
+                view_available: true,
+                view_successful: true,
+                occlusion_onset: 1,
+                occlusion_duration: 4,
+                view_delay: 1,
+                ..world
+            };
+            let result = run_episode(forced, TimedPolicy::ActiveRevision);
+            assert!(result.fresh_view_evidence);
+            assert_eq!(result.view_attributable_recovery_steps, Some(1));
+            assert!(result.natural_or_view_recovery_steps.is_some());
+
+            let mut aggregate = Aggregate::default();
+            aggregate.record(result);
+            assert_eq!(aggregate.view_recovery_observations, 1);
+            assert_eq!(aggregate.view_recovery_steps_sum, 1);
+        }
+
+        #[test]
         fn failed_view_is_completed_but_has_no_fresh_evidence_credit() {
             let (world, _) = paired(0xFACE_1234, SceneFamily::HeldOut);
             let failed = TimedWorld {
@@ -1591,6 +1649,7 @@ mod randomized_timing {
             assert!(result.completed);
             assert!(!result.fresh_view_evidence);
             assert!(result.view_returned_no_fresh_evidence);
+            assert_eq!(result.view_attributable_recovery_steps, None);
             assert_eq!(result.budget_violations, 0);
         }
 
@@ -1610,6 +1669,7 @@ mod randomized_timing {
             assert!(result.executed);
             assert!(!result.fresh_view_evidence);
             assert!(result.view_returned_no_fresh_evidence);
+            assert_eq!(result.view_attributable_recovery_steps, None);
         }
 
         #[test]
