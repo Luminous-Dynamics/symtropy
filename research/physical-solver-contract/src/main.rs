@@ -2,7 +2,8 @@
 use physical_solver_contract::{
     equilibrium::assess_equilibrium_bytes, load_scaling::assess_load_scaling_relation_bytes,
     mesh_convergence::assess_mesh_refinement_study_bytes,
-    reference_compare::compare_reference_observables, validate_request_bytes,
+    reference_compare::compare_reference_observables,
+    superposition::assess_superposition_relation_bytes, validate_request_bytes,
     validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
 use std::{env, fs, path::Path, process::ExitCode};
@@ -23,6 +24,13 @@ fn run() -> Result<(), String> {
     let mut receipt_path: Option<String> = None;
     let mut mesh_study_path: Option<String> = None;
     let mut load_scaling_manifest_path: Option<String> = None;
+    let mut superposition_manifest_path: Option<String> = None;
+    let mut request_a_path: Option<String> = None;
+    let mut receipt_a_path: Option<String> = None;
+    let mut request_b_path: Option<String> = None;
+    let mut receipt_b_path: Option<String> = None;
+    let mut request_combined_path: Option<String> = None;
+    let mut receipt_combined_path: Option<String> = None;
     let mut scaled_request_path: Option<String> = None;
     let mut scaled_receipt_path: Option<String> = None;
     let mut equilibrium_manifest_path: Option<String> = None;
@@ -44,6 +52,59 @@ fn run() -> Result<(), String> {
                         .ok_or_else(|| "--request requires a path".to_owned())?
                         .clone(),
                 );
+                i += 2;
+            }
+            "--superposition-manifest" => {
+                if superposition_manifest_path.is_some() {
+                    return Err("--superposition-manifest may be supplied only once".to_owned());
+                }
+                superposition_manifest_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--superposition-manifest requires a manifest path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--request-a" => {
+                if request_a_path.is_some() {
+                    return Err("--request-a may be supplied only once".to_owned());
+                }
+                request_a_path = Some(args.get(i + 1).ok_or_else(|| "--request-a requires a path".to_owned())?.clone());
+                i += 2;
+            }
+            "--receipt-a" => {
+                if receipt_a_path.is_some() {
+                    return Err("--receipt-a may be supplied only once".to_owned());
+                }
+                receipt_a_path = Some(args.get(i + 1).ok_or_else(|| "--receipt-a requires a path".to_owned())?.clone());
+                i += 2;
+            }
+            "--request-b" => {
+                if request_b_path.is_some() {
+                    return Err("--request-b may be supplied only once".to_owned());
+                }
+                request_b_path = Some(args.get(i + 1).ok_or_else(|| "--request-b requires a path".to_owned())?.clone());
+                i += 2;
+            }
+            "--receipt-b" => {
+                if receipt_b_path.is_some() {
+                    return Err("--receipt-b may be supplied only once".to_owned());
+                }
+                receipt_b_path = Some(args.get(i + 1).ok_or_else(|| "--receipt-b requires a path".to_owned())?.clone());
+                i += 2;
+            }
+            "--request-combined" => {
+                if request_combined_path.is_some() {
+                    return Err("--request-combined may be supplied only once".to_owned());
+                }
+                request_combined_path = Some(args.get(i + 1).ok_or_else(|| "--request-combined requires a path".to_owned())?.clone());
+                i += 2;
+            }
+            "--receipt-combined" => {
+                if receipt_combined_path.is_some() {
+                    return Err("--receipt-combined may be supplied only once".to_owned());
+                }
+                receipt_combined_path = Some(args.get(i + 1).ok_or_else(|| "--receipt-combined requires a path".to_owned())?.clone());
                 i += 2;
             }
             "--load-scaling-manifest" => {
@@ -188,6 +249,55 @@ fn run() -> Result<(), String> {
             }
             other => return Err(format!("unknown argument: {other}")),
         }
+    }
+
+    if let Some(manifest_path) = superposition_manifest_path.as_deref() {
+        if request_path.is_some()
+            || receipt_path.is_some()
+            || mesh_study_path.is_some()
+            || load_scaling_manifest_path.is_some()
+            || scaled_request_path.is_some()
+            || scaled_receipt_path.is_some()
+            || equilibrium_manifest_path.is_some()
+            || reaction_force_output_id.is_some()
+            || reaction_moment_output_id.is_some()
+            || reference_path.is_some()
+            || observation_output_id.is_some()
+            || validator_revision.is_some()
+        {
+            return Err("--superposition-manifest cannot be combined with other solver-contract modes".to_owned());
+        }
+        let request_a_path = request_a_path.ok_or_else(|| "--superposition-manifest requires --request-a".to_owned())?;
+        let receipt_a_path = receipt_a_path.ok_or_else(|| "--superposition-manifest requires --receipt-a".to_owned())?;
+        let request_b_path = request_b_path.ok_or_else(|| "--superposition-manifest requires --request-b".to_owned())?;
+        let receipt_b_path = receipt_b_path.ok_or_else(|| "--superposition-manifest requires --receipt-b".to_owned())?;
+        let request_combined_path = request_combined_path.ok_or_else(|| "--superposition-manifest requires --request-combined".to_owned())?;
+        let receipt_combined_path = receipt_combined_path.ok_or_else(|| "--superposition-manifest requires --receipt-combined".to_owned())?;
+        let root = artifact_root.ok_or_else(|| "--superposition-manifest requires --artifact-root".to_owned())?;
+        let request_a_bytes = fs::read(&request_a_path).map_err(|error| format!("could not read request A {request_a_path}: {error}"))?;
+        let receipt_a_bytes = fs::read(&receipt_a_path).map_err(|error| format!("could not read receipt A {receipt_a_path}: {error}"))?;
+        let request_b_bytes = fs::read(&request_b_path).map_err(|error| format!("could not read request B {request_b_path}: {error}"))?;
+        let receipt_b_bytes = fs::read(&receipt_b_path).map_err(|error| format!("could not read receipt B {receipt_b_path}: {error}"))?;
+        let request_combined_bytes = fs::read(&request_combined_path).map_err(|error| format!("could not read combined request {request_combined_path}: {error}"))?;
+        let receipt_combined_bytes = fs::read(&receipt_combined_path).map_err(|error| format!("could not read combined receipt {receipt_combined_path}: {error}"))?;
+        let manifest_bytes = fs::read(manifest_path).map_err(|error| format!("could not read superposition manifest {manifest_path}: {error}"))?;
+        let report = assess_superposition_relation_bytes(
+            &request_a_bytes, &receipt_a_bytes,
+            &request_b_bytes, &receipt_b_bytes,
+            &request_combined_bytes, &receipt_combined_bytes,
+            Path::new(&root), &manifest_bytes,
+        )?;
+        println!(
+            "{}",
+            serde_json::to_string(&report).map_err(|error| format!("report serialization failed: {error}"))?
+        );
+        return Ok(());
+    }
+    if request_a_path.is_some() || receipt_a_path.is_some()
+        || request_b_path.is_some() || receipt_b_path.is_some()
+        || request_combined_path.is_some() || receipt_combined_path.is_some()
+    {
+        return Err("superposition request/receipt paths require --superposition-manifest".to_owned());
     }
 
     if let Some(manifest_path) = load_scaling_manifest_path.as_deref() {
