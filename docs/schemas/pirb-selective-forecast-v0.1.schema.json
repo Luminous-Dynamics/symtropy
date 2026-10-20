@@ -6,13 +6,14 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
-    "registration_id",
     "evidence_scope",
-    "provider",
+    "governance",
     "policy",
     "privacy",
-    "rows"
+    "provider",
+    "registration_id",
+    "rows",
+    "schema_version"
   ],
   "properties": {
     "schema_version": {
@@ -244,13 +245,13 @@
               },
               {
                 "enum": [
-                  "insufficient_evidence",
-                  "stale_inputs",
-                  "unknown_inputs",
-                  "out_of_support",
-                  "unknown_regime",
-                  "target_mismatch",
-                  "low_selection_score"
+                  "abstain_insufficient_evidence",
+                  "abstain_stale_inputs",
+                  "abstain_unknown_inputs",
+                  "abstain_out_of_support",
+                  "abstain_unknown_regime",
+                  "abstain_target_mismatch",
+                  "abstain_low_selection_score"
                 ]
               }
             ]
@@ -360,13 +361,13 @@
               "properties": {
                 "reason_code": {
                   "enum": [
-                    "insufficient_evidence",
-                    "stale_inputs",
-                    "unknown_inputs",
-                    "out_of_support",
-                    "unknown_regime",
-                    "target_mismatch",
-                    "low_selection_score"
+                    "abstain_insufficient_evidence",
+                    "abstain_stale_inputs",
+                    "abstain_unknown_inputs",
+                    "abstain_out_of_support",
+                    "abstain_unknown_regime",
+                    "abstain_target_mismatch",
+                    "abstain_low_selection_score"
                   ]
                 },
                 "served_probability": {
@@ -377,6 +378,77 @@
           }
         ]
       }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_authority_status",
+        "data_authority_reference",
+        "disclosure_review_status",
+        "disclosure_review_reference",
+        "independent_source_capture_verified"
+      ],
+      "properties": {
+        "data_authority_status": {
+          "enum": [
+            "authorized",
+            "pending",
+            "denied",
+            "not_applicable"
+          ]
+        },
+        "data_authority_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disclosure_review_status": {
+          "enum": [
+            "approved",
+            "pending",
+            "rejected",
+            "not_applicable"
+          ]
+        },
+        "disclosure_review_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_source_capture_verified": {
+          "type": "boolean"
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_scope": {
+            "const": "authorized_historical"
+          }
+        },
+        "required": [
+          "evidence_scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "governance": {
+            "properties": {
+              "data_authority_status": {
+                "const": "authorized"
+              },
+              "disclosure_review_status": {
+                "const": "approved"
+              },
+              "independent_source_capture_verified": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
