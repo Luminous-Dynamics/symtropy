@@ -450,8 +450,12 @@ impl Counts {
         self.loss_sum / self.episodes.max(1) as f64
     }
 
-    fn rate(numerator: u64, denominator: u64) -> f64 {
-        if denominator == 0 { 0.0 } else { numerator as f64 / denominator as f64 }
+    fn rate(numerator: u64, denominator: u64) -> String {
+        if denominator == 0 {
+            "NA".to_string()
+        } else {
+            format!("{:.4}", numerator as f64 / denominator as f64)
+        }
     }
 }
 
@@ -516,7 +520,7 @@ fn run_report() {
         let min_replicate_loss = replicate_losses.iter().copied().fold(f64::INFINITY, f64::min);
         let max_replicate_loss = replicate_losses.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         println!(
-            "{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.3}\t{}\t{}",
+            "{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3}\t{:.3}\t{}\t{}",
             policy.name(),
             total.episodes,
             total.mean_loss(),
@@ -651,6 +655,12 @@ mod tests {
             assert!(result.latency_units <= LATENCY_BUDGET);
             assert_eq!(result.budget_violations, 0);
         }
+    }
+
+    #[test]
+    fn undefined_rate_denominators_are_reported_as_na() {
+        assert_eq!(Counts::rate(0, 0), "NA");
+        assert_eq!(Counts::rate(1, 4), "0.2500");
     }
 
     #[test]
