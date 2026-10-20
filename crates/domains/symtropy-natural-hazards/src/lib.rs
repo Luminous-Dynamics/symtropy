@@ -9,6 +9,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod benchmark_case;
 pub mod cascade;
 pub mod scoring;
 
