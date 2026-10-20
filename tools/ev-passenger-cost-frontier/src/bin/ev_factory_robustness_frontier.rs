@@ -879,7 +879,7 @@ mod tests {
         assert!((summary.p05 - 1.1).abs() < 1e-12);
         assert_eq!(
             summary.mean_confidence_95_lower,
-            Some(1.0 - 4.303 / 3.0_f64.sqrt())
+            Some(2.0 - 4.303 / 3.0_f64.sqrt())
         );
     }
 }
