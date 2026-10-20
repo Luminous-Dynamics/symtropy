@@ -744,6 +744,42 @@ mod tests {
     }
 
     #[test]
+    fn run_oracle_respects_shared_budget_when_individual_best_actions_do_not_fit() {
+        let mut first = trial(1, VisionAction::EscalateCurrent, 1.0);
+        let mut second = trial(2, VisionAction::ChangeView, 4.0);
+
+        for t in [&mut first, &mut second] {
+            t.resource_profile.get_mut("latency").unwrap().run_budget = Some(20);
+            t.candidates[1].declared_resource_units = units(15, 0);
+            t.candidates[1].counterfactual_task_loss = 1.0;
+            t.candidates[2].declared_resource_units = units(5, 1);
+        }
+        first.actual_resource_units = actual(Some(15), Some(0));
+        second.actual_resource_units = actual(Some(5), Some(1));
+
+        let summary = summarize_run_v1(&[second, first]).unwrap();
+        assert_eq!(summary.mean_trial_oracle_loss, 1.0);
+        assert_eq!(summary.mean_run_budget_feasible_counterfactual_loss, 2.5);
+        assert_eq!(
+            summary.run_budget_oracle_actions,
+            vec![VisionAction::EscalateCurrent, VisionAction::ChangeView]
+        );
+        assert_eq!(summary.total_actual_resource_units["latency"], Some(20));
+        assert_eq!(summary.run_budget_status["latency"], BudgetStatus::WithinBudget);
+        assert_eq!(summary.mean_regret_vs_run_budget_oracle, 0.0);
+    }
+
+    #[test]
+    fn no_globally_budget_feasible_plan_is_reported_not_approximated() {
+        let mut t = trial(1, VisionAction::EscalateCurrent, 3.0);
+        t.resource_profile.get_mut("latency").unwrap().run_budget = Some(0);
+        assert_eq!(
+            summarize_run_v1(&[t]),
+            Err(EvaluationError::NoRunBudgetFeasiblePlan)
+        );
+    }
+
+    #[test]
     fn empty_run_and_inconsistent_run_budgets_fail_closed() {
         assert_eq!(summarize_run_v1(&[]), Err(EvaluationError::EmptyRun));
 
