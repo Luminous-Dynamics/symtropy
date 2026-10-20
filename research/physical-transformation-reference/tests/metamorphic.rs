@@ -327,7 +327,9 @@ fn fixed_seed_parameter_sweep_preserves_declared_mechanics_relations() {
             second_moment,
             outer_fiber,
         )
-        .unwrap_or_else(|error| panic!("scaled supported beam case {case_index} rejected: {error}"));
+        .unwrap_or_else(|error| {
+            panic!("scaled supported beam case {case_index} rejected: {error}")
+        });
         close(
             supported_scaled.midspan_deflection_m,
             supported.midspan_deflection_m * beam_scale.powi(4),
@@ -340,4 +342,3 @@ fn fixed_seed_parameter_sweep_preserves_declared_mechanics_relations() {
         );
     }
 }
-
