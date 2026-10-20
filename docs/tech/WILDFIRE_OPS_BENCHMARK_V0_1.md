@@ -65,7 +65,7 @@ The fixture uses pre-enumerated candidate plans so the initial oracle is small a
 
 B1 is a negative control, not a representation of all commercial evacuation software. B3 is a deterministic candidate-plan gate, not yet a robust optimizer or a validated real-world recommendation engine.
 
-The receipt includes a corpus-level scorecard so reviewers need not infer method behavior by manually reading the six cases. For this exact synthetic corpus, the frozen reference assertions expect B1 to select five plans and all five to fail at least one feasibility gate, with two hidden blocked-edge violations and one of six oracle-choice matches. B3 should select three feasible plans, abstain in the other three cases, select zero infeasible plans, and match all six predeclared toy-oracle outcomes. These values are **synthetic acceptance checks only**; they are not field benchmarks or evidence of safer real-world evacuation.
+The receipt includes a corpus-level scorecard so reviewers need not infer method behavior by manually reading the six cases. For this exact synthetic corpus, the frozen reference assertions expect B1 to select five plans and all five to fail at least one feasibility gate, with two hidden blocked-edge violations and one of six oracle-choice matches. B3 should select three feasible plans, abstain in the other three cases, select zero infeasible plans, match all six predeclared toy-oracle outcomes, and report zero choice mismatches. These values are **synthetic acceptance checks only**; they are not field benchmarks or evidence of safer real-world evacuation.
 
 ## 7. Metrics
 
