@@ -1,0 +1,470 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-PASSENGER-COST-001",
+  "currency": "ZAR",
+  "market": {
+    "country": "South Africa",
+    "baseline_vehicle": "BYD Dolphin Surf",
+    "baseline_variant": "Retail entry offer as shown on BYD South Africa website; exact trim and included charges must be confirmed before formal comparison",
+    "observed_retail_price": 341900,
+    "observed_on": "2026-10-20",
+    "price_source_url": "https://www.byd.co.za/offers/dolphin-surf",
+    "undercut_fraction": 0.1,
+    "retail_price_includes_vat": true,
+    "vat_fraction": 0.15,
+    "distributor_margin_fraction": 0.08,
+    "target_oem_gross_margin_fraction": 0.12
+  },
+  "target": {
+    "minimum_seats": 5,
+    "minimum_payload_kg": 350,
+    "minimum_declared_range_km": 300,
+    "maximum_declared_consumption_kwh_per_100km": 12,
+    "maximum_curb_mass_kg": 1350,
+    "comparison_note": "Research targets for a compact five-seat hatch, not verified production specifications. Confirm matching warranty, safety protocol, trim, price boundary and homologated test procedure before making a like-for-like market claim."
+  },
+  "candidates": [
+    {
+      "candidate_id": "compact-42-lfp-cost-first",
+      "label": "42 kWh LFP, single motor, cost-first architecture",
+      "architecture": "Replaceable pack enclosure; front-wheel drive; high-strength-steel unibody; standard-size wheels; home/depot AC charging",
+      "envelope": {
+        "seats": 5,
+        "payload_capacity_kg": 350,
+        "declared_range_km": 300,
+        "declared_consumption_kwh_per_100km": 11.8,
+        "curb_mass_kg": 1330,
+        "nominal_pack_kwh": 42,
+        "usable_pack_fraction": 0.88
+      },
+      "manufacturing_yield_fraction": 0.97,
+      "amortization_units": 50000,
+      "envelope_evidence_class": "synthetic",
+      "envelope_source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+      "envelope_as_of": "2026-10-20",
+      "technical_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No physical prototype or road-load validation is supplied."
+      },
+      "safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No crash, post-crash, electrical safety or type-approval evidence is supplied."
+      },
+      "components": [
+        {
+          "component_id": "battery-pack",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 60000,
+            "high": 78000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative pack cost range; not a supplier quote."
+          }
+        },
+        {
+          "component_id": "drive-unit-inverter-reduction",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+          }
+        },
+        {
+          "component_id": "body-crash-structure",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 28000,
+            "high": 38000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative structure, closures and crash components; tooling treatment is separate."
+          }
+        },
+        {
+          "component_id": "suspension-steering-brakes",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 12000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative chassis component allowance."
+          }
+        },
+        {
+          "component_id": "cabin-hvac-thermal",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative cabin, HVAC and thermal-system allowance."
+          }
+        },
+        {
+          "component_id": "electrical-electronics-wiring",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 8000,
+            "high": 13000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
+          }
+        },
+        {
+          "component_id": "wheels-seats-glazing-lights-trim",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 16000,
+            "high": 22000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative remaining parts allowance."
+          }
+        }
+      ],
+      "factory_conversion_cost": {
+        "low": 25000,
+        "high": 36000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Per good vehicle: illustrative labor, plant energy, overhead, assembly and end-of-line QA."
+      },
+      "warranty_service_reserve": {
+        "low": 5000,
+        "high": 9000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative per-vehicle warranty, service and field-support reserve."
+      },
+      "fixed_program_investment": {
+        "low": 150000000,
+        "high": 250000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative tooling, validation, engineering and homologation investment; amortization denominator is explicit."
+      },
+      "notes": [
+        "Scenario values are deliberately synthetic and only exercise the arithmetic.",
+        "The 36 kWh pack and 11.8 kWh/100 km envelope are hypotheses, not a validated range result."
+      ]
+    },
+    {
+      "candidate_id": "compact-42-lfp-serviceable",
+      "label": "42 kWh LFP, single motor, serviceability-first architecture",
+      "architecture": "Replaceable pack modules and inspectable enclosure; front-wheel drive; more standardized fasteners and service access",
+      "envelope": {
+        "seats": 5,
+        "payload_capacity_kg": 350,
+        "declared_range_km": 300,
+        "declared_consumption_kwh_per_100km": 12,
+        "curb_mass_kg": 1345,
+        "nominal_pack_kwh": 42,
+        "usable_pack_fraction": 0.88
+      },
+      "manufacturing_yield_fraction": 0.98,
+      "amortization_units": 50000,
+      "envelope_evidence_class": "synthetic",
+      "envelope_source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+      "envelope_as_of": "2026-10-20",
+      "technical_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No physical prototype or road-load validation is supplied."
+      },
+      "safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No crash, post-crash, electrical safety or type-approval evidence is supplied."
+      },
+      "components": [
+        {
+          "component_id": "battery-pack",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 60000,
+            "high": 78000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative serviceable pack cost range; not a supplier quote."
+          }
+        },
+        {
+          "component_id": "drive-unit-inverter-reduction",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+          }
+        },
+        {
+          "component_id": "body-crash-structure",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 30000,
+            "high": 40000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative structure, closures and crash components; tooling treatment is separate."
+          }
+        },
+        {
+          "component_id": "suspension-steering-brakes",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 19000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative chassis component allowance."
+          }
+        },
+        {
+          "component_id": "cabin-hvac-thermal",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative cabin, HVAC and thermal-system allowance."
+          }
+        },
+        {
+          "component_id": "electrical-electronics-wiring",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 8000,
+            "high": 13000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
+          }
+        },
+        {
+          "component_id": "wheels-seats-glazing-lights-trim",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 18000,
+            "high": 24000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative remaining parts allowance."
+          }
+        }
+      ],
+      "factory_conversion_cost": {
+        "low": 29000,
+        "high": 38000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Per good vehicle: illustrative labor, plant energy, overhead, assembly and end-of-line QA."
+      },
+      "warranty_service_reserve": {
+        "low": 4000,
+        "high": 8000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative per-vehicle warranty, service and field-support reserve; serviceability savings are not assumed as proven."
+      },
+      "fixed_program_investment": {
+        "low": 175000000,
+        "high": 300000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative tooling, validation, engineering and homologation investment; amortization denominator is explicit."
+      },
+      "notes": [
+        "The design explores service access and module replacement without assuming that repairability outweighs its initial cost.",
+        "Repair time, parts availability, pack aging and field maintenance cost require physical validation."
+      ]
+    },
+    {
+      "candidate_id": "compact-42-lfp-structural-pack",
+      "label": "42 kWh LFP, single motor, structural-pack architecture",
+      "architecture": "More integrated battery enclosure and underbody structure; front-wheel drive; fewer pack-level mechanical interfaces",
+      "envelope": {
+        "seats": 5,
+        "payload_capacity_kg": 350,
+        "declared_range_km": 300,
+        "declared_consumption_kwh_per_100km": 11.9,
+        "curb_mass_kg": 1325,
+        "nominal_pack_kwh": 42,
+        "usable_pack_fraction": 0.88
+      },
+      "manufacturing_yield_fraction": 0.95,
+      "amortization_units": 50000,
+      "envelope_evidence_class": "synthetic",
+      "envelope_source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+      "envelope_as_of": "2026-10-20",
+      "technical_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No physical prototype or road-load validation is supplied."
+      },
+      "safety_gate": {
+        "status": "unknown",
+        "evidence_class": "unknown",
+        "source_reference": "unknown://not-assessed",
+        "as_of": "2026-10-20",
+        "note": "No crash, post-crash, electrical safety or type-approval evidence is supplied."
+      },
+      "components": [
+        {
+          "component_id": "battery-pack",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 60000,
+            "high": 78000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative structural-pack cost range; not a supplier quote."
+          }
+        },
+        {
+          "component_id": "drive-unit-inverter-reduction",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 12000,
+            "high": 17000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative integrated drive-unit cost; no supplier evidence."
+          }
+        },
+        {
+          "component_id": "body-crash-structure",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 32000,
+            "high": 45000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative more-integrated structure; repair and crash implications unverified."
+          }
+        },
+        {
+          "component_id": "suspension-steering-brakes",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 12000,
+            "high": 18000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative chassis component allowance."
+          }
+        },
+        {
+          "component_id": "cabin-hvac-thermal",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 13000,
+            "high": 20000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative cabin, HVAC and thermal-system allowance."
+          }
+        },
+        {
+          "component_id": "electrical-electronics-wiring",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 8000,
+            "high": 13000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative harness, controllers, sensors and low-voltage electronics allowance."
+          }
+        },
+        {
+          "component_id": "wheels-seats-glazing-lights-trim",
+          "quantity_per_vehicle": 1,
+          "unit_cost": {
+            "low": 15000,
+            "high": 21000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Illustrative remaining parts allowance."
+          }
+        }
+      ],
+      "factory_conversion_cost": {
+        "low": 25000,
+        "high": 37000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Per good vehicle: illustrative labor, plant energy, overhead, assembly and end-of-line QA."
+      },
+      "warranty_service_reserve": {
+        "low": 6000,
+        "high": 11000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative warranty/service reserve; greater integration may shift rather than remove repair cost."
+      },
+      "fixed_program_investment": {
+        "low": 200000000,
+        "high": 350000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-passenger-cost-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Illustrative tooling, validation, engineering and homologation investment; amortization denominator is explicit."
+      },
+      "notes": [
+        "This candidate tests the integration-versus-repairability trade-off, not an assumed winner.",
+        "A structural battery may lower part count while increasing repair, inspection and end-of-life complexity; those functions must be separately verified."
+      ]
+    }
+  ],
+  "claim_ceiling": "Illustrative architecture-cost scenarios only. All vehicle-envelope and cost values are synthetic and must not be interpreted as a supplier quote, feasible production price, measured efficiency, validated range or safety claim."
+}

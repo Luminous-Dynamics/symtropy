@@ -1,0 +1,60 @@
+name: EV Passenger Cost Frontier
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/**"
+      - "docs/research/EV_PASSENGER_COST_FEASIBILITY_V0_1.md"
+      - ".github/workflows/ev-passenger-cost-frontier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/**"
+      - "docs/research/EV_PASSENGER_COST_FEASIBILITY_V0_1.md"
+      - ".github/workflows/ev-passenger-cost-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cost-frontier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse strict schema and fixture as JSON
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Emit deterministic reference report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
+            > ev-passenger-cost-report.json
+          jq -e '
+            .benchmark_id == "EV-PASSENGER-COST-001"
+            and .baseline_observed_retail_price == 341900
+            and .retail_price_ceiling == 307710
+            and (.results | length) == 3
+            and all(.results[]; .declared_mission_fit == true)
+            and all(.results[]; .cost_inputs_release_grade == false)
+            and all(.results[]; .release_disposition == "needs_evidence")
+          ' ev-passenger-cost-report.json
+          sha256sum \
+            tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
+            tools/ev-passenger-cost-frontier/src/main.rs \
+            ev-passenger-cost-report.json > ev-passenger-cost-report.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-passenger-cost-frontier-report
+          path: |
+            ev-passenger-cost-report.json
+            ev-passenger-cost-report.sha256
+          if-no-files-found: error
