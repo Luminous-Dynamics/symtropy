@@ -18,6 +18,9 @@ pub const SCENARIO_MANIFEST_SCHEMA: &str = "luminous.landscape-scenario-manifest
 pub const DESIGN_SNAPSHOT_SCHEMA: &str = "luminous.landscape-design.v0";
 pub const DESIGN_SNAPSHOT_SCHEMA_URI: &str =
     "https://luminousdynamics.io/schemas/landscape-design-v0.schema.json";
+pub const EVALUATION_PLAN_SCHEMA: &str = "luminous.landscape-evaluation-plan.v0";
+pub const EVALUATION_PLAN_SCHEMA_URI: &str =
+    "https://luminousdynamics.io/schemas/landscape-evaluation-plan-v0.schema.json";
 pub const LOCAL_DRAWING_FRAME: &str = "LOCAL_CARTESIAN_DRAWING_UNITS";
 pub const SYNTHETIC_GEOMETRY_STATUS: &str = "synthetic-benchmark";
 pub const SCHEMATIC_GEOMETRY_STATUS: &str = "schematic-design-intent";
@@ -36,6 +39,7 @@ pub enum LandscapeRunPurpose {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct DesignSnapshotRef {
     /// SHA-256 of the exact snapshot byte sequence consumed by the scenario.
     pub sha256: String,
@@ -49,10 +53,15 @@ pub struct DesignSnapshotRef {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct LandscapeScenarioManifest {
     pub schema: String,
     pub scenario_id: String,
     pub design_snapshot: DesignSnapshotRef,
+    /// Optional reference to the preregistered evaluation plan for this run.
+    /// If present, the exact plan bytes are required for validation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evaluation_plan: Option<EvaluationPlanRef>,
     pub model_id: String,
     pub model_version: String,
     pub purpose: LandscapeRunPurpose,
@@ -60,6 +69,16 @@ pub struct LandscapeScenarioManifest {
     /// SHA-256 of a canonical, versioned boundary-condition document.
     /// Use a canonical empty-boundary document when the purpose needs none.
     pub boundary_conditions_sha256: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EvaluationPlanRef {
+    /// SHA-256 of the exact evaluation-plan byte sequence.
+    pub sha256: String,
+    pub schema: String,
+    pub schema_uri: String,
+    pub evaluation_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -179,6 +198,34 @@ impl LandscapeScenarioManifest {
         snapshot_bytes: &[u8],
         boundary_conditions_bytes: &[u8],
     ) -> Result<(), Vec<ContractViolation>> {
+        self.validate_with_evaluation_plan_bytes(snapshot_bytes, boundary_conditions_bytes, None)
+    }
+
+    /// Validate a scenario that pins an explicit evaluation plan.
+    ///
+    /// The evaluation plan must already have passed its authoritative
+    /// Sol-Atlas validator. Symtropy verifies byte identity and that the
+    /// plan points to this exact snapshot/scope; it does not duplicate the
+    /// full evaluation-plan validator or infer causal validity.
+    pub fn validate_against_evaluation_plan(
+        &self,
+        snapshot_bytes: &[u8],
+        boundary_conditions_bytes: &[u8],
+        evaluation_plan_bytes: &[u8],
+    ) -> Result<(), Vec<ContractViolation>> {
+        self.validate_with_evaluation_plan_bytes(
+            snapshot_bytes,
+            boundary_conditions_bytes,
+            Some(evaluation_plan_bytes),
+        )
+    }
+
+    fn validate_with_evaluation_plan_bytes(
+        &self,
+        snapshot_bytes: &[u8],
+        boundary_conditions_bytes: &[u8],
+        evaluation_plan_bytes: Option<&[u8]>,
+    ) -> Result<(), Vec<ContractViolation>> {
         let mut violations = self
             .validate_snapshot_metadata(snapshot_bytes)
             .err()
@@ -193,10 +240,96 @@ impl LandscapeScenarioManifest {
             ));
         }
 
+        match (&self.evaluation_plan, evaluation_plan_bytes) {
+            (None, None) => {}
+            (Some(_), None) => violations.push(ContractViolation::new(
+                "evaluation-plan-bytes-required",
+                "$.evaluation_plan",
+                "manifest pins an evaluation plan but its exact bytes were not supplied",
+            )),
+            (None, Some(_)) => violations.push(ContractViolation::new(
+                "evaluation-plan-reference-required",
+                "$.evaluation_plan",
+                "evaluation-plan bytes cannot be supplied unless the manifest pins their reference",
+            )),
+            (Some(reference), Some(bytes)) => {
+                self.validate_evaluation_plan_bytes(reference, bytes, &mut violations)
+            }
+        }
+
         if violations.is_empty() {
             Ok(())
         } else {
             Err(violations)
+        }
+    }
+
+    fn validate_evaluation_plan_bytes(
+        &self,
+        reference: &EvaluationPlanRef,
+        bytes: &[u8],
+        violations: &mut Vec<ContractViolation>,
+    ) {
+        if sha256_hex(bytes) != reference.sha256 {
+            violations.push(ContractViolation::new(
+                "evaluation-plan-digest-mismatch",
+                "$.evaluation_plan.sha256",
+                "the declared evaluation-plan digest does not match the exact plan bytes",
+            ));
+        }
+
+        let plan: Value = match serde_json::from_slice(bytes) {
+            Ok(plan) => plan,
+            Err(error) => {
+                violations.push(ContractViolation::new(
+                    "evaluation-plan-json-invalid",
+                    "$.evaluation_plan",
+                    format!("evaluation-plan bytes are not valid JSON: {error}"),
+                ));
+                return;
+            }
+        };
+
+        if plan.get("schema").and_then(Value::as_str) != Some(EVALUATION_PLAN_SCHEMA) {
+            violations.push(ContractViolation::new(
+                "evaluation-plan-schema-unsupported",
+                "$.evaluation_plan.schema",
+                format!("expected {EVALUATION_PLAN_SCHEMA}"),
+            ));
+        }
+        if plan.get("schema_uri").and_then(Value::as_str) != Some(EVALUATION_PLAN_SCHEMA_URI) {
+            violations.push(ContractViolation::new(
+                "evaluation-plan-schema-uri-unsupported",
+                "$.evaluation_plan.schema_uri",
+                format!("expected {EVALUATION_PLAN_SCHEMA_URI}"),
+            ));
+        }
+        if plan.get("evaluation_id").and_then(Value::as_str)
+            != Some(reference.evaluation_id.as_str())
+        {
+            violations.push(ContractViolation::new(
+                "evaluation-plan-id-mismatch",
+                "$.evaluation_plan.evaluation_id",
+                "declared evaluation ID differs from the exact evaluation-plan bytes",
+            ));
+        }
+        if plan.get("project_snapshot_sha256").and_then(Value::as_str)
+            != Some(self.design_snapshot.sha256.as_str())
+        {
+            violations.push(ContractViolation::new(
+                "evaluation-plan-snapshot-mismatch",
+                "$.evaluation_plan.project_snapshot_sha256",
+                "evaluation plan must pin the same exact design snapshot as the scenario",
+            ));
+        }
+        if plan.get("project_scope").and_then(Value::as_str)
+            != Some(self.design_snapshot.scope.as_str())
+        {
+            violations.push(ContractViolation::new(
+                "evaluation-plan-scope-mismatch",
+                "$.evaluation_plan.project_scope",
+                "evaluation-plan scope must match the scenario's design snapshot scope",
+            ));
         }
     }
 
@@ -245,6 +378,30 @@ impl LandscapeScenarioManifest {
             "$.boundary_conditions_sha256",
             &mut violations,
         );
+        if let Some(reference) = &self.evaluation_plan {
+            validate_sha256(&reference.sha256, "$.evaluation_plan.sha256", &mut violations);
+            if reference.schema != EVALUATION_PLAN_SCHEMA {
+                violations.push(ContractViolation::new(
+                    "evaluation-plan-schema-unsupported",
+                    "$.evaluation_plan.schema",
+                    format!("expected {EVALUATION_PLAN_SCHEMA}"),
+                ));
+            }
+            if reference.schema_uri != EVALUATION_PLAN_SCHEMA_URI {
+                violations.push(ContractViolation::new(
+                    "evaluation-plan-schema-uri-unsupported",
+                    "$.evaluation_plan.schema_uri",
+                    format!("expected {EVALUATION_PLAN_SCHEMA_URI}"),
+                ));
+            }
+            if !valid_evaluation_id(&reference.evaluation_id) {
+                violations.push(ContractViolation::new(
+                    "evaluation-plan-id-invalid",
+                    "$.evaluation_plan.evaluation_id",
+                    "expected eval- followed by 3..=61 lowercase letters, digits, or hyphens",
+                ));
+            }
+        }
 
         match design_snapshot_ref(snapshot_bytes) {
             Err(error) => violations.push(error),
@@ -352,6 +509,20 @@ impl LandscapeScenarioManifest {
     }
 }
 
+fn valid_evaluation_id(value: &str) -> bool {
+    let Some(suffix) = value.strip_prefix("eval-") else {
+        return false;
+    };
+    (3..=61).contains(&suffix.len())
+        && suffix
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+        && suffix
+            .as_bytes()
+            .first()
+            .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+}
+
 fn validate_sha256(value: &str, path: &'static str, violations: &mut Vec<ContractViolation>) {
     if value.len() != 64
         || !value
@@ -422,12 +593,66 @@ mod tests {
             schema: SCENARIO_MANIFEST_SCHEMA.to_string(),
             scenario_id: "landscape-fixture-001".to_string(),
             design_snapshot: design_snapshot_ref(bytes).unwrap(),
+            evaluation_plan: None,
             model_id: "contract-test".to_string(),
             model_version: "v0".to_string(),
             purpose,
             seed: 1,
             boundary_conditions_sha256: sha256_hex(b"boundary-conditions-v0-empty"),
         }
+    }
+
+    fn evaluation_plan_for_snapshot(snapshot_bytes: &[u8]) -> (EvaluationPlanRef, Vec<u8>) {
+        let snapshot_ref = design_snapshot_ref(snapshot_bytes).unwrap();
+        let plan = json!({
+            "schema": EVALUATION_PLAN_SCHEMA,
+            "schema_uri": EVALUATION_PLAN_SCHEMA_URI,
+            "evaluation_id": "eval-landscape-site-v0",
+            "project_snapshot_sha256": snapshot_ref.sha256,
+            "created_at_unix_s": 1792454400_u64,
+            "project_scope": snapshot_ref.scope,
+            "plan_status": "draft",
+            "study_design": "descriptive-monitoring",
+            "analysis_intent": "descriptive",
+            "time_windows": {
+                "baseline": {"start_unix_s": 10_u64, "end_unix_s": 20_u64},
+                "follow_up": {"start_unix_s": 20_u64, "end_unix_s": 30_u64}
+            },
+            "arms": [{
+                "id": "arm-reference",
+                "role": "reference",
+                "site_ref_sha256": sha256_hex(b"opaque-reference-site"),
+                "allocation_method": "observational"
+            }],
+            "outcomes": [{
+                "metric_id": "heat.shade_fraction_at_declared_time",
+                "unit": "percent_of_area",
+                "method_id": "shade-method-v0",
+                "method_uri": "https://example.org/methods/shade-v0",
+                "sampling_design": "weekly",
+                "minimum_observations_per_arm_window": 1_u64,
+                "uncertainty_method": "Interval from repeat observations.",
+                "desired_direction": "non-directional",
+                "target_band": null
+            }],
+            "causal_analysis_plan": null,
+            "privacy": {
+                "location_sensitivity": "restricted",
+                "publication_policy": "private",
+                "consent_status": "pending",
+                "consent_record_ref": null,
+                "aggregation_policy": ""
+            },
+            "interpretation_limit": "validation-does-not-prove-impact-or-causality"
+        });
+        let bytes = serde_json::to_vec(&plan).unwrap();
+        let reference = EvaluationPlanRef {
+            sha256: sha256_hex(&bytes),
+            schema: EVALUATION_PLAN_SCHEMA.to_string(),
+            schema_uri: EVALUATION_PLAN_SCHEMA_URI.to_string(),
+            evaluation_id: "eval-landscape-site-v0".to_string(),
+        };
+        (reference, bytes)
     }
 
     #[test]
@@ -474,6 +699,95 @@ mod tests {
             sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    #[test]
+    fn evaluation_plan_reference_binds_exact_plan_and_snapshot() {
+        let snapshot_bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
+        let (reference, plan_bytes) = evaluation_plan_for_snapshot(&snapshot_bytes);
+        let mut manifest = manifest(&snapshot_bytes, LandscapeRunPurpose::SchemaQualification);
+        manifest.evaluation_plan = Some(reference);
+
+        assert_eq!(
+            manifest.validate_against_evaluation_plan(
+                &snapshot_bytes,
+                b"boundary-conditions-v0-empty",
+                &plan_bytes
+            ),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn evaluation_plan_reference_requires_exact_plan_bytes() {
+        let snapshot_bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
+        let (reference, _plan_bytes) = evaluation_plan_for_snapshot(&snapshot_bytes);
+        let mut manifest = manifest(&snapshot_bytes, LandscapeRunPurpose::SchemaQualification);
+        manifest.evaluation_plan = Some(reference);
+
+        let errors = manifest
+            .validate_against_inputs(&snapshot_bytes, b"boundary-conditions-v0-empty")
+            .unwrap_err();
+        assert!(errors.iter().any(|error| error.code == "evaluation-plan-bytes-required"));
+    }
+
+    #[test]
+    fn evaluation_plan_digest_and_id_must_match_exact_bytes() {
+        let snapshot_bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
+        let (reference, plan_bytes) = evaluation_plan_for_snapshot(&snapshot_bytes);
+        let mut changed_plan: Value = serde_json::from_slice(&plan_bytes).unwrap();
+        changed_plan["evaluation_id"] = json!("eval-mutated-plan-v0");
+        let changed_bytes = serde_json::to_vec(&changed_plan).unwrap();
+        let mut manifest = manifest(&snapshot_bytes, LandscapeRunPurpose::SchemaQualification);
+        manifest.evaluation_plan = Some(reference);
+
+        let errors = manifest
+            .validate_against_evaluation_plan(
+                &snapshot_bytes,
+                b"boundary-conditions-v0-empty",
+                &changed_bytes
+            )
+            .unwrap_err();
+        assert!(errors.iter().any(|error| error.code == "evaluation-plan-digest-mismatch"));
+        assert!(errors.iter().any(|error| error.code == "evaluation-plan-id-mismatch"));
+    }
+
+    #[test]
+    fn evaluation_plan_must_pin_same_snapshot_and_scope() {
+        let snapshot_bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
+        let (mut reference, plan_bytes) = evaluation_plan_for_snapshot(&snapshot_bytes);
+        let mut changed_plan: Value = serde_json::from_slice(&plan_bytes).unwrap();
+        changed_plan["project_snapshot_sha256"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        changed_plan["project_scope"] = json!("watershed");
+        let changed_bytes = serde_json::to_vec(&changed_plan).unwrap();
+        reference.sha256 = sha256_hex(&changed_bytes);
+        let mut manifest = manifest(&snapshot_bytes, LandscapeRunPurpose::SchemaQualification);
+        manifest.evaluation_plan = Some(reference);
+
+        let errors = manifest
+            .validate_against_evaluation_plan(
+                &snapshot_bytes,
+                b"boundary-conditions-v0-empty",
+                &changed_bytes
+            )
+            .unwrap_err();
+        assert!(errors.iter().any(|error| error.code == "evaluation-plan-snapshot-mismatch"));
+        assert!(errors.iter().any(|error| error.code == "evaluation-plan-scope-mismatch"));
+    }
+
+    #[test]
+    fn evaluation_plan_bytes_without_a_pinned_reference_are_rejected() {
+        let snapshot_bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
+        let (_, plan_bytes) = evaluation_plan_for_snapshot(&snapshot_bytes);
+        let manifest = manifest(&snapshot_bytes, LandscapeRunPurpose::SchemaQualification);
+        let errors = manifest
+            .validate_against_evaluation_plan(
+                &snapshot_bytes,
+                b"boundary-conditions-v0-empty",
+                &plan_bytes
+            )
+            .unwrap_err();
+        assert!(errors.iter().any(|error| error.code == "evaluation-plan-reference-required"));
     }
 
     #[test]
