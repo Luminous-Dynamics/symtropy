@@ -18,6 +18,9 @@ on:
       - "docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json"
       - "docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json"
       - "docs/tech/PIRB_JOINT_PREDICTIVE_SAMPLE_COHERENCE_V0_1.md"
+      - "docs/schemas/pirb-policy-impact-registration-v0.1.schema.json"
+      - "docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json"
+      - "docs/tech/PIRB_POLICY_IMPACT_ADMISSIBILITY_V0_1.md"
       - "tools/pirb-probability-forecast-eval/**"
       - ".github/workflows/pirb-probability-forecast-audit.yml"
   workflow_dispatch:
@@ -56,6 +59,9 @@ jobs:
 
       - name: Assert joint sample fixture is synthetic and aggregate-only
         run: jq -e '.evidence_scope == "synthetic" and .privacy.aggregate_only == true and .sample_policy.representation == "joint_predictive_samples"' docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json > /dev/null
+
+      - name: Assert policy impact fixture is synthetic and aggregate-only
+        run: jq -e '.evidence_scope == "synthetic" and .privacy.aggregate_only == true and .causal_lane.effect_status == "unestimated" and .causal_lane.independent_review_eligibility == "not_identified"' docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json > /dev/null
 
       - name: Run schema, metric, maturity, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
@@ -280,6 +286,45 @@ jobs:
               and .reconciliation_method_sha256 == "2222222222222222222222222222222222222222222222222222222222222222"
             ' pirb-joint-sample-coherence-receipt.json
 
+      - name: Audit exact-head policy impact admissibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json"
+          schema="docs/schemas/pirb-policy-impact-registration-v0.1.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-policy-impact-admissibility -- \
+            --input "$input" --source-commit "$source_commit" > pirb-policy-impact-admissibility-receipt.json
+
+          jq -e \
+            --arg source_commit "$source_commit" \
+            --arg input_sha "$expected_input_sha" \
+            --arg schema_sha "$expected_schema_sha" \
+            '
+              .receipt_version == "0.1"
+              and .receipt_type == "policy_impact_admissibility"
+              and .registration_id == "pirb-policy-impact-synthetic-before-after-not-identified"
+              and .evidence_scope == "synthetic"
+              and .source_commit_pinned == true
+              and .source_commit == $source_commit
+              and .input_sha256 == $input_sha
+              and .schema_sha256 == $schema_sha
+              and .design_type == "before_after"
+              and .independent_review_eligibility == "not_identified"
+              and (.missing_independent_review_gates | length == 1)
+              and .forecast_performance_estimated == false
+              and .policy_value_estimated == false
+              and .causal_effect_estimated == false
+              and .effect_estimate == null
+              and .causal_impact_established == false
+              and .live_decision_authority == false
+              and .claim_ceiling == "contract_and_admissibility_only"
+            ' pirb-policy-impact-admissibility-receipt.json
+
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
         uses: actions/upload-artifact@v4
@@ -291,6 +336,9 @@ jobs:
             pirb-views-normalized.json
             pirb-views-score-receipt.json
             pirb-joint-sample-coherence-receipt.json
+            pirb-policy-impact-admissibility-receipt.json
+            docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json
+            docs/schemas/pirb-policy-impact-registration-v0.1.schema.json
             docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json
             docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json
             docs/fixtures/views-import-manifest-synthetic-v0.1.json
