@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/mine-adaptive-interval-bench/**"
       - "docs/tech/MINE_ADAPTIVE_INTERVAL_BENCHMARK_V0_1.md"
+      - "docs/tech/THIRD_PARTY_ADAPTIVE_CONFORMAL_ATTRIBUTION.md"
       - ".github/workflows/mine-adaptive-interval-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -68,6 +69,7 @@ jobs:
             and .coverage_band_upper == 0.95
             and .coverage_window_ticks == 8
             and .min_labels_per_coverage_window == 6
+            and .coverage_band_sustained_windows == 3
             and .max_telemetry_age_periods == 1
             and .healthy_ticks_required_for_reentry == 3
             and .guarded_hard_control_acceptances == 0
