@@ -99,6 +99,17 @@
     "boundary_conditions_sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "evaluation_plan": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/evaluationPlanRef"
+        }
+      ],
+      "description": "Optional digest-bound reference to the preregistered evaluation plan. When present, the exact plan bytes are required for validation."
     }
   },
   "allOf": [
@@ -125,5 +136,33 @@
         }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "evaluationPlanRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "schema",
+        "schema_uri",
+        "evaluation_id"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "schema": {
+          "const": "luminous.landscape-evaluation-plan.v0"
+        },
+        "schema_uri": {
+          "const": "https://luminousdynamics.io/schemas/landscape-evaluation-plan-v0.schema.json"
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^eval-[a-z0-9][a-z0-9-]{2,60}$"
+        }
+      }
+    }
+  }
 }
