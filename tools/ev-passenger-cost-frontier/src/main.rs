@@ -402,7 +402,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     }
     let mut candidate_ids = BTreeSet::new();
     if catalog.currency.len() != 3
-        || !catalog.currency.chars().all(|character| character.is_ascii_uppercase())
+        || !catalog
+            .currency
+            .chars()
+            .all(|character| character.is_ascii_uppercase())
     {
         return Err("currency_must_be_three_letter_uppercase_code".to_string());
     }
