@@ -558,10 +558,14 @@ fn radius_for(
         Policy::OnlineResidualFeedbackIntervalOnly => online_radius,
         Policy::RollingQuantileIntervalOnly => rolling_radius(history, 20, fixed_radius),
         Policy::AciClippedReferenceIntervalOnly => {
-            let percentile = ((1.0 - aci_alpha.clamp(0.01, 0.99)) * 100.0)
-                .ceil()
-                .clamp(1.0, 99.0) as usize;
-            quantile(history, percentile).unwrap_or(fixed_radius)
+            if aci_alpha <= 1.0 / (history.len() + 1) as f64 {
+                history.iter().copied().reduce(f64::max).unwrap_or(fixed_radius)
+            } else {
+                let percentile = ((1.0 - aci_alpha.clamp(0.0, 1.0)) * 100.0)
+                    .ceil()
+                    .clamp(1.0, 100.0) as usize;
+                quantile(history, percentile).unwrap_or(fixed_radius)
+            }
         }
         Policy::CopReferenceIntervalOnly => (cop_threshold + cop_integrator).max(0.0),
         Policy::MultiHorizonIntervalOnly
@@ -647,11 +651,9 @@ fn evaluate_stream(
                 // ACI's feedback is updated from the coverage outcome observed at
                 // prediction time, not recomputed using the current interval.
                 if covered_at_origin {
-                    aci_alpha = (aci_alpha + ACI_LEARNING_RATE * ACI_TARGET_ALPHA)
-                        .clamp(0.01, 0.99);
+                    aci_alpha += ACI_LEARNING_RATE * ACI_TARGET_ALPHA;
                 } else {
-                    aci_alpha = (aci_alpha - ACI_LEARNING_RATE * (1.0 - ACI_TARGET_ALPHA))
-                        .clamp(0.01, 0.99);
+                    aci_alpha -= ACI_LEARNING_RATE * (1.0 - ACI_TARGET_ALPHA);
                 }
             }
             if policy == Policy::CopReferenceIntervalOnly {
