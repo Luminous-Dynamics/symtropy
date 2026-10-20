@@ -450,6 +450,18 @@ fn verify_policy_trace_pair(
         }
         let left_action = field(left_step, &left_step_path, "action")?;
         let right_action = field(right_step, &right_step_path, "action")?;
+        let recomputed_left_action = criticality_heuristic_action(left_input)?;
+        let recomputed_right_action = criticality_heuristic_action(right_input)?;
+        if left_action != &recomputed_left_action {
+            return Err(format!(
+                "{left_step_path}.action: supplied action does not match the visible-input reference policy"
+            ));
+        }
+        if right_action != &recomputed_right_action {
+            return Err(format!(
+                "{right_step_path}.action: supplied action does not match the visible-input reference policy"
+            ));
+        }
         let left_input_bytes = serde_json::to_vec(left_input)
             .map_err(|error| format!("{left_step_path}.policy_input: serialize failed: {error}"))?;
         let right_input_bytes = serde_json::to_vec(right_input).map_err(|error| {
@@ -566,6 +578,51 @@ fn validate_policy_input(
         ));
     }
     Ok(())
+}
+
+/// A transparent reference policy, deliberately restricted to the exact visible-input envelope.
+/// This is a test baseline, not an industrial scheduler or a safety controller.
+fn criticality_heuristic_action(input: &Value) -> Result<Value, String> {
+    let path = "$policy_input";
+    reject_forbidden_policy_fields(input, path)?;
+    let object = input
+        .as_object()
+        .ok_or_else(|| format!("{path}: expected an object"))?;
+    if object.len() != 2
+        || !object.contains_key("step")
+        || !object.contains_key("observation_history")
+    {
+        return Err(format!(
+            "{path}: policy input must contain only step and observation_history"
+        ));
+    }
+    let step = u64_at(input, path, "step")?;
+    let history = field(input, path, "observation_history")?;
+    validate_visible_history(history, step, &format!("{path}.observation_history"))?;
+    let current = history
+        .as_array()
+        .and_then(|entries| entries.last())
+        .ok_or_else(|| format!("{path}.observation_history: current observation missing"))?;
+    let observation = field(current, &format!("{path}.observation_history[{step}]"), "observation")?;
+
+    if observation.get("controller_operational").and_then(Value::as_bool) == Some(false) {
+        return Ok(json!({"kind": "request_controller_repair"}));
+    }
+    if observation.get("service_floors_met").and_then(Value::as_bool) == Some(false) {
+        return Ok(json!({"kind": "preserve_essential_service_floors"}));
+    }
+    if step == 0 {
+        return Ok(json!({"kind": "preserve_essential_service_floors"}));
+    }
+    if observation.get("service_floors_met").and_then(Value::as_bool) == Some(true) {
+        if step == 1 {
+            return Ok(json!({"kind": "reserve_repair_stock"}));
+        }
+        return Ok(json!({"kind": "produce_if_gates_pass"}));
+    }
+
+    // Missing current-step floor evidence is not favorable evidence.
+    Ok(json!({"kind": "request_service_floor_observation"}))
 }
 
 fn reject_forbidden_policy_fields(value: &Value, path: &str) -> Result<(), String> {
@@ -1144,6 +1201,60 @@ mod tests {
             report["scenario_results"][0]["result"]["conforming_output_by_step"],
             json!([0, 0, 0])
         );
+    }
+
+
+    #[test]
+    fn criticality_heuristic_recomputes_actions_from_only_current_visible_history() {
+        let first = json!({
+            "step": 0,
+            "observation_history": [
+                {"step": 0, "observation": {"power_available": 6, "controller_operational": true}}
+            ]
+        });
+        assert_eq!(
+            criticality_heuristic_action(&first).expect("first action"),
+            json!({"kind": "preserve_essential_service_floors"})
+        );
+
+        let second = json!({
+            "step": 1,
+            "observation_history": [
+                {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+                {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}}
+            ]
+        });
+        assert_eq!(
+            criticality_heuristic_action(&second).expect("second action"),
+            json!({"kind": "reserve_repair_stock"})
+        );
+
+        let third_without_current_floor_evidence = json!({
+            "step": 2,
+            "observation_history": [
+                {"step": 0, "observation": {"power_available": 6, "controller_operational": true}},
+                {"step": 1, "observation": {"power_available": 6, "service_floors_met": true}},
+                {"step": 2, "observation": {"power_available": 6, "controller_operational": true}}
+            ]
+        });
+        assert_eq!(
+            criticality_heuristic_action(&third_without_current_floor_evidence)
+                .expect("unknown current floor disposition"),
+            json!({"kind": "request_service_floor_observation"})
+        );
+    }
+
+    #[test]
+    fn reference_policy_rejects_hidden_future_fields_before_deciding() {
+        let input = json!({
+            "step": 0,
+            "observation_history": [
+                {"step": 0, "observation": {"power_available": 6}}
+            ],
+            "future_event_schedule": ["controller-fails-at-step-2"]
+        });
+        let error = criticality_heuristic_action(&input).expect_err("hidden future is not policy input");
+        assert!(error.contains("forbidden future/hidden policy input"), "{error}");
     }
 
     #[test]
