@@ -7,7 +7,7 @@
 
 use crate::{
     reference_compare::{MAX_NORMALIZED_BYTES, parse_observation, safe_relative_path},
-    sha256_file, sha256_hex, verify_solver_output_artifact_bytes,
+    sha256_hex, verify_solver_output_artifact_bytes,
 };
 use serde_json::{Value, json};
 use std::{
@@ -390,17 +390,8 @@ fn rooted_path(root: &Path, reference: &str) -> Check<PathBuf> {
 }
 
 fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelObservation> {
-    let (mesh_path, _mesh_len) = {
-        let path = rooted_path(root, &level.mesh_ref)?;
-        (path.clone(), fs::metadata(path).map_err(|error| error.to_string())?.len())
-    };
-    let (actual_mesh_sha256, _) = sha256_file(&mesh_path)?;
-    if actual_mesh_sha256 != level.mesh_sha256 {
-        return Err(format!(
-            "level '{}': mesh bytes do not match declared mesh_sha256",
-            level.level_id
-        ));
-    }
+    // The actual mesh must be a receipt-declared input, not merely a file
+    // whose hash was copied into the study manifest.
     let (_, request_bytes) = read_rooted_bytes(root, &level.request_ref, MAX_NORMALIZED_BYTES)?;
     let (receipt_path, receipt_bytes) =
         read_rooted_bytes(root, &level.receipt_ref, MAX_NORMALIZED_BYTES)?;
@@ -427,6 +418,14 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
             level.level_id
         ));
     }
+    if artifact_report["input_artifact_verification_status"] != "PASS"
+        || artifact_report["input_artifact_bytes_verified"] != true
+    {
+        return Err(format!(
+            "level '{}': receipt-bound input artifact bytes did not PASS",
+            level.level_id
+        ));
+    }
     if artifact_report["producer_status"] != "PASS"
         || artifact_report["physical_result_qualified"] != false
     {
@@ -444,6 +443,39 @@ fn load_level(root: &Path, study: &StudySpec, level: &LevelSpec) -> Check<LevelO
     if string(convergence, "state", "receipt.convergence")? != "converged" {
         return Err(format!(
             "level '{}': receipt does not declare solver convergence",
+            level.level_id
+        ));
+    }
+    let input_artifacts = receipt
+        .get("input_artifacts")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "receipt.input_artifacts is required for mesh refinement".to_owned())?;
+    let mesh_input = input_artifacts
+        .iter()
+        .find(|input| input.get("input_id").and_then(Value::as_str) == Some("mesh"))
+        .ok_or_else(|| format!("level '{}': receipt does not declare input_id 'mesh'", level.level_id))?;
+    if mesh_input.get("kind").and_then(Value::as_str) != Some("finite_element_mesh")
+        || mesh_input.get("sha256").and_then(Value::as_str) != Some(level.mesh_sha256.as_str())
+        || mesh_input.get("artifact_ref").and_then(Value::as_str) != Some(level.mesh_ref.as_str())
+    {
+        return Err(format!(
+            "level '{}': study mesh identity does not match receipt-declared mesh input",
+            level.level_id
+        ));
+    }
+    let verified_mesh = artifact_report["input_artifact_results"]
+        .as_array()
+        .and_then(|results| {
+            results.iter().find(|result| {
+                result.get("input_id").and_then(Value::as_str) == Some("mesh")
+            })
+        })
+        .ok_or_else(|| format!("level '{}': mesh input has no byte-verification record", level.level_id))?;
+    if verified_mesh["status"] != "PASS"
+        || verified_mesh["observed_sha256"].as_str() != Some(level.mesh_sha256.as_str())
+    {
+        return Err(format!(
+            "level '{}': receipt-declared mesh input lacks a matching byte-verification PASS",
             level.level_id
         ));
     }
