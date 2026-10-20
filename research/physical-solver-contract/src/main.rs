@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
-    equilibrium::assess_equilibrium_bytes, mesh_convergence::assess_mesh_refinement_study_bytes,
+    equilibrium::assess_equilibrium_bytes, load_scaling::assess_load_scaling_relation_bytes,
+    mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables, validate_request_bytes,
     validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
@@ -21,6 +22,9 @@ fn run() -> Result<(), String> {
     let mut request_path: Option<String> = None;
     let mut receipt_path: Option<String> = None;
     let mut mesh_study_path: Option<String> = None;
+    let mut load_scaling_manifest_path: Option<String> = None;
+    let mut scaled_request_path: Option<String> = None;
+    let mut scaled_receipt_path: Option<String> = None;
     let mut equilibrium_manifest_path: Option<String> = None;
     let mut reaction_force_output_id: Option<String> = None;
     let mut reaction_moment_output_id: Option<String> = None;
@@ -38,6 +42,39 @@ fn run() -> Result<(), String> {
                 request_path = Some(
                     args.get(i + 1)
                         .ok_or_else(|| "--request requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--load-scaling-manifest" => {
+                if load_scaling_manifest_path.is_some() {
+                    return Err("--load-scaling-manifest may be supplied only once".to_owned());
+                }
+                load_scaling_manifest_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--load-scaling-manifest requires a manifest path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--scaled-request" => {
+                if scaled_request_path.is_some() {
+                    return Err("--scaled-request may be supplied only once".to_owned());
+                }
+                scaled_request_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--scaled-request requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--scaled-receipt" => {
+                if scaled_receipt_path.is_some() {
+                    return Err("--scaled-receipt may be supplied only once".to_owned());
+                }
+                scaled_receipt_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--scaled-receipt requires a path".to_owned())?
                         .clone(),
                 );
                 i += 2;
@@ -151,6 +188,48 @@ fn run() -> Result<(), String> {
         }
     }
 
+    if let Some(manifest_path) = load_scaling_manifest_path {
+        if mesh_study_path.is_some()
+            || equilibrium_manifest_path.is_some()
+            || load_scaling_manifest_path.is_some()
+            || scaled_request_path.is_some()
+            || scaled_receipt_path.is_some()
+            || reaction_force_output_id.is_some()
+            || reaction_moment_output_id.is_some()
+            || reference_path.is_some()
+            || observation_output_id.is_some()
+            || validator_revision.is_some()
+        {
+            return Err("--load-scaling-manifest cannot be combined with mesh-study, equilibrium, reference-comparison, or request-validator options".to_owned());
+        }
+        let request_path = request_path.ok_or_else(|| "--load-scaling-manifest requires --request for the baseline".to_owned())?;
+        let receipt_path = receipt_path.ok_or_else(|| "--load-scaling-manifest requires --receipt for the baseline".to_owned())?;
+        let scaled_request_path = scaled_request_path.ok_or_else(|| "--load-scaling-manifest requires --scaled-request".to_owned())?;
+        let scaled_receipt_path = scaled_receipt_path.ok_or_else(|| "--load-scaling-manifest requires --scaled-receipt".to_owned())?;
+        let root = artifact_root.ok_or_else(|| "--load-scaling-manifest requires --artifact-root".to_owned())?;
+        let baseline_request_bytes = fs::read(&request_path).map_err(|error| format!("could not read baseline request {request_path}: {error}"))?;
+        let baseline_receipt_bytes = fs::read(&receipt_path).map_err(|error| format!("could not read baseline receipt {receipt_path}: {error}"))?;
+        let scaled_request_bytes = fs::read(&scaled_request_path).map_err(|error| format!("could not read scaled request {scaled_request_path}: {error}"))?;
+        let scaled_receipt_bytes = fs::read(&scaled_receipt_path).map_err(|error| format!("could not read scaled receipt {scaled_receipt_path}: {error}"))?;
+        let manifest_bytes = fs::read(&manifest_path).map_err(|error| format!("could not read load-scaling manifest {manifest_path}: {error}"))?;
+        let report = assess_load_scaling_relation_bytes(
+            &baseline_request_bytes,
+            &baseline_receipt_bytes,
+            &scaled_request_bytes,
+            &scaled_receipt_bytes,
+            Path::new(&root),
+            &manifest_bytes,
+        )?;
+        println!(
+            "{}",
+            serde_json::to_string(&report).map_err(|error| format!("report serialization failed: {error}"))?
+        );
+        return Ok(());
+    }
+    if scaled_request_path.is_some() || scaled_receipt_path.is_some() {
+        return Err("--scaled-request and --scaled-receipt require --load-scaling-manifest".to_owned());
+    }
+
     if let Some(study_path) = mesh_study_path.as_deref() {
         if request_path.is_some()
             || receipt_path.is_some()
@@ -181,6 +260,9 @@ fn run() -> Result<(), String> {
 
     if let Some(manifest_path) = equilibrium_manifest_path {
         if mesh_study_path.is_some()
+            || load_scaling_manifest_path.is_some()
+            || scaled_request_path.is_some()
+            || scaled_receipt_path.is_some()
             || reference_path.is_some()
             || observation_output_id.is_some()
             || validator_revision.is_some()
@@ -225,7 +307,7 @@ fn run() -> Result<(), String> {
     }
 
     let request_path = request_path.ok_or_else(|| {
-        "usage: physical-solver-contract --request <path> --validator-revision <git-sha> OR --request <path> --receipt <receipt-path> [--artifact-root <directory>] [--reference <manifest.json> --observation-output-id <output-id>] OR --mesh-study <manifest.json> --artifact-root <study-root> OR --request <path> --receipt <path> --artifact-root <root> --equilibrium-manifest <manifest.json> --reaction-force-output-id <id> --reaction-moment-output-id <id>".to_owned()
+        "usage: physical-solver-contract --request <path> --validator-revision <git-sha> OR --request <path> --receipt <receipt-path> [--artifact-root <directory>] [--reference <manifest.json> --observation-output-id <output-id>] OR --mesh-study <manifest.json> --artifact-root <study-root> OR --request <path> --receipt <path> --artifact-root <root> --equilibrium-manifest <manifest.json> --reaction-force-output-id <id> --reaction-moment-output-id <id> OR --request <baseline.json> --receipt <baseline-receipt.json> --scaled-request <scaled.json> --scaled-receipt <scaled-receipt.json> --artifact-root <root> --load-scaling-manifest <relation.json>".to_owned()
     })?;
     let request_bytes = fs::read(&request_path)
         .map_err(|error| format!("could not read {request_path}: {error}"))?;
@@ -264,7 +346,13 @@ fn run() -> Result<(), String> {
             (None, None, None) => validate_solver_receipt_bytes(&request_bytes, &receipt_bytes)?,
         }
     } else {
-        if artifact_root.is_some() || reference_path.is_some() || observation_output_id.is_some() {
+        if artifact_root.is_some()
+            || reference_path.is_some()
+            || observation_output_id.is_some()
+            || load_scaling_manifest_path.is_some()
+            || scaled_request_path.is_some()
+            || scaled_receipt_path.is_some()
+        {
             return Err(
                 "--artifact-root, --reference and --observation-output-id require --receipt"
                     .to_owned(),
