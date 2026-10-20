@@ -62,6 +62,16 @@ struct ReconciledOperationDayProfile {
 }
 
 #[derive(Debug, Serialize)]
+struct ReconciledScheduleSegment {
+    operation_day_id: u64,
+    start_second: u32,
+    end_second: u32,
+    duration_seconds: u32,
+    on_shift: bool,
+    vmt_miles: f64,
+}
+
+#[derive(Debug, Serialize)]
 struct DayIssue {
     operation_day_id: u64,
     reasons: Vec<String>,
@@ -87,6 +97,7 @@ struct Report {
     reconciled_operation_day_count: usize,
     operation_day_reconciliation_issues: Vec<DayIssue>,
     reconciled_operation_day_profiles: Vec<ReconciledOperationDayProfile>,
+    reconciled_operation_day_segments: Vec<ReconciledScheduleSegment>,
     schedule_segment_count_for_reconciled_days: usize,
     reconciled_vmt_miles_total_across_operation_day_records: f64,
     daily_vmt_miles: Distribution,
@@ -353,6 +364,7 @@ fn audit(
     let mut issues = Vec::<DayIssue>::new();
     let mut reconciled = Vec::<OpDay>::new();
     let mut reconciled_profiles = Vec::<ReconciledOperationDayProfile>::new();
+    let mut reconciled_schedule_segments = Vec::<ReconciledScheduleSegment>::new();
     let mut segments_for_reconciled = 0_usize;
 
     for day in operation_days.values() {
@@ -421,6 +433,14 @@ fn audit(
                 first_on_shift_start_second,
                 last_on_shift_end_second,
             });
+            reconciled_schedule_segments.extend(segments.iter().map(|segment| ReconciledScheduleSegment {
+                operation_day_id: segment.operation_day_id,
+                start_second: segment.start_second,
+                end_second: segment.end_second,
+                duration_seconds: segment.total_seconds,
+                on_shift: segment.on_shift,
+                vmt_miles: segment.vmt,
+            }));
             reconciled.push(day.clone());
             segments_for_reconciled += segments.len();
         } else {
@@ -468,6 +488,7 @@ fn audit(
         reconciled_operation_day_count: reconciled.len(),
         operation_day_reconciliation_issues: issues,
         reconciled_operation_day_profiles: reconciled_profiles,
+        reconciled_operation_day_segments: reconciled_schedule_segments,
         schedule_segment_count_for_reconciled_days: segments_for_reconciled,
         reconciled_vmt_miles_total_across_operation_day_records: vmt_values.iter().sum(),
         daily_vmt_miles: distribution(&vmt_values),
