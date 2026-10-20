@@ -146,7 +146,7 @@ mod tests {
         assert_eq!(left.velocity_m_s, 0.0);
 
         // x=0 falls within the constant star state for this depth ratio.
-        let star = stoker_dam_break(0.0, time, h_left, h_right, gravity).unwrap();
+        let star = stoker_dam_break(0.5 * time, time, h_left, h_right, gravity).unwrap();
         assert!(star.depth_m > h_right && star.depth_m < h_left);
         assert!(star.velocity_m_s > 0.0);
         assert!((star.discharge_m2_s - star.depth_m * star.velocity_m_s).abs() < 1.0e-12);
