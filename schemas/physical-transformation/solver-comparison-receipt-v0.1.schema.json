@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/solver-comparison-receipt-v0.1.schema.json",
+  "title": "External Solver Reference Comparison Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "manifest_sha256",
+    "run_receipt_sha256",
+    "verifier_revision",
+    "overall_comparison_status",
+    "numerical_comparison_status",
+    "solver_identity_status",
+    "input_provenance_status",
+    "execution_evidence_status",
+    "physical_validation_status",
+    "refinement_results",
+    "diagnostics",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "solver-comparison-receipt-v0.1"
+    },
+    "benchmark_id": {
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "run_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "verifier_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "overall_comparison_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNRESOLVED"
+      ]
+    },
+    "numerical_comparison_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNRESOLVED"
+      ]
+    },
+    "solver_identity_status": {
+      "enum": [
+        "PINNED_MATCH",
+        "MISMATCH",
+        "UNRESOLVED"
+      ]
+    },
+    "input_provenance_status": {
+      "enum": [
+        "PINNED_MATCH",
+        "MISMATCH",
+        "UNRESOLVED"
+      ]
+    },
+    "execution_evidence_status": {
+      "const": "SELF_REPORTED"
+    },
+    "physical_validation_status": {
+      "const": "UNRESOLVED"
+    },
+    "refinement_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refinement_level",
+          "element_count",
+          "exit_code",
+          "convergence_status",
+          "status",
+          "output_comparisons",
+          "reaction_balance_residual_relative"
+        ],
+        "properties": {
+          "refinement_level": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "element_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "convergence_status": {
+            "enum": [
+              "converged",
+              "not_converged",
+              "unknown"
+            ]
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "UNRESOLVED"
+            ]
+          },
+          "reaction_balance_residual_relative": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "output_comparisons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "quantity",
+                "unit",
+                "semantics",
+                "reference_value",
+                "actual_value",
+                "absolute_error",
+                "allowed_error",
+                "status"
+              ],
+              "properties": {
+                "quantity": {
+                  "type": "string"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "semantics": {
+                  "type": "string"
+                },
+                "reference_value": {
+                  "type": "number"
+                },
+                "actual_value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "absolute_error": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "allowed_error": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "status": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "UNRESOLVED"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
