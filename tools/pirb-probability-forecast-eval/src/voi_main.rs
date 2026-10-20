@@ -549,7 +549,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         }
     }
 
-    if string_at(&registration, "evidence_scope") == Some("authorized_historical") {
+    if string_at(registration, "evidence_scope") == Some("authorized_historical") {
         let model = &registration["model"];
         for (field, label) in [
             ("scenario_model_sha256", "scenario model"),
@@ -619,7 +619,7 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
     let actions = parse_actions(&registration);
     let (current_action_id, current_expected_utility) = best_action(&prior, &actions);
     let evidence_scope =
-        string_at(&registration, "evidence_scope").expect("schema validated evidence_scope");
+        string_at(registration, "evidence_scope").expect("schema validated evidence_scope");
     let decision_deadline =
         integer_at(&registration, "decision_deadline_index").expect("schema validated deadline");
     let mut source_evaluations = Vec::new();
