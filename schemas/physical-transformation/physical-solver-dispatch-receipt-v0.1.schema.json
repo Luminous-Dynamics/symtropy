@@ -4,51 +4,176 @@
   "title": "Physical Solver Dispatch Receipt v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "request_id", "request_schema_version", "request_sha256", "source_revision", "dispatcher_revision", "adapter_revision", "manifest_sha256", "case_id", "requested_physics", "physics_omitted", "selection_status", "evaluation_status", "selected_backend", "model_evaluation_attempted", "external_solver_invoked", "outputs", "adapter_receipt", "diagnostics", "claim_ceiling"],
+  "required": [
+    "schema_version",
+    "request_id",
+    "request_schema_version",
+    "request_sha256",
+    "source_revision",
+    "dispatcher_revision",
+    "adapter_revision",
+    "manifest_sha256",
+    "case_id",
+    "requested_physics",
+    "physics_omitted",
+    "selection_status",
+    "evaluation_status",
+    "selected_backend",
+    "model_evaluation_attempted",
+    "external_solver_invoked",
+    "outputs",
+    "adapter_receipt",
+    "diagnostics",
+    "claim_ceiling"
+  ],
   "properties": {
-    "schema_version": {"const": "physical-solver-dispatch-receipt-v0.1"},
-    "request_id": {"type": "string", "minLength": 1},
-    "request_schema_version": {"enum": ["physical-analytical-request-v0.1", "physical-analytical-request-v0.2"]},
-    "request_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "dispatcher_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "adapter_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "case_id": {"type": "string", "minLength": 1},
-    "requested_physics": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
-    "physics_omitted": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
-    "selection_status": {"enum": ["SELECTED", "UNRESOLVED"]},
-    "evaluation_status": {"enum": ["PASS", "UNRESOLVED", "NOT_EVALUATED"]},
+    "schema_version": {
+      "const": "physical-solver-dispatch-receipt-v0.1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request_schema_version": {
+      "enum": [
+        "physical-analytical-request-v0.1"
+      ]
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "dispatcher_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "adapter_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requested_physics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "physics_omitted": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "selection_status": {
+      "enum": [
+        "SELECTED",
+        "UNRESOLVED"
+      ]
+    },
+    "evaluation_status": {
+      "enum": [
+        "PASS",
+        "UNRESOLVED",
+        "NOT_EVALUATED"
+      ]
+    },
     "selected_backend": {
       "oneOf": [
-        {"type": "null"},
+        {
+          "type": "null"
+        },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["backend_id", "backend_version", "implementation_kind", "qualification_tier", "real_world_validation_status", "external_solver_invoked", "claim_ceiling"],
+          "required": [
+            "backend_id",
+            "backend_version",
+            "implementation_kind",
+            "qualification_tier",
+            "real_world_validation_status",
+            "external_solver_invoked",
+            "claim_ceiling"
+          ],
           "properties": {
-            "backend_id": {"type": "string", "minLength": 1},
-            "backend_version": {"type": "string", "minLength": 1},
-            "implementation_kind": {"enum": ["in_process_reference"]},
-            "qualification_tier": {"const": "closed_form_equation_contract"},
-            "real_world_validation_status": {"enum": ["UNRESOLVED", "PARTIALLY_VALIDATED", "VALIDATED_WITHIN_DECLARED_ENVELOPE"]},
-            "external_solver_invoked": {"const": false},
-            "claim_ceiling": {"type": "string", "minLength": 1}
+            "backend_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "backend_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "implementation_kind": {
+              "enum": [
+                "in_process_reference"
+              ]
+            },
+            "qualification_tier": {
+              "const": "closed_form_equation_contract"
+            },
+            "real_world_validation_status": {
+              "enum": [
+                "UNRESOLVED",
+                "PARTIALLY_VALIDATED",
+                "VALIDATED_WITHIN_DECLARED_ENVELOPE"
+              ]
+            },
+            "external_solver_invoked": {
+              "const": false
+            },
+            "claim_ceiling": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       ]
     },
-    "model_evaluation_attempted": {"type": "boolean"},
-    "external_solver_invoked": {"const": false},
-    "outputs": {"type": ["object", "null"]},
-    "adapter_receipt": {
-      "oneOf": [
-        {"type": "null"},
-        {"$ref": "physical-analytical-receipt-v0.1.schema.json"},
-        {"$ref": "physical-analytical-receipt-v0.2.schema.json"}
+    "model_evaluation_attempted": {
+      "type": "boolean"
+    },
+    "external_solver_invoked": {
+      "const": false
+    },
+    "outputs": {
+      "type": [
+        "object",
+        "null"
       ]
     },
-    "diagnostics": {"type": "array", "items": {"type": "string"}},
-    "claim_ceiling": {"type": "string", "minLength": 1}
+    "adapter_receipt": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "physical-analytical-receipt-v0.1.schema.json"
+        }
+      ]
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
   }
 }
