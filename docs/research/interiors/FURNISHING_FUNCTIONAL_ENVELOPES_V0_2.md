@@ -22,7 +22,7 @@ The frozen corpus covers a clear drawer, a blocked drawer, a front/service envel
 
 ## v0.3 scaling work
 
-The stacked implementation in [FURNISHING_FUNCTIONAL_ENVELOPES_V0_3.md](FURNISHING_FUNCTIONAL_ENVELOPES_V0_3.md) adds a balanced BVH broad phase for sparse collision queries, indexed task/envelope lookups, brute-force equivalence tests, and a dependency-free 25/100/1,000/10,000 task benchmark. The BVH narrows candidates only; exact rectangle overlap remains authoritative. No performance claim is made until the exact-head workflow emits p50/p95 results.
+The stacked implementation in [FURNISHING_FUNCTIONAL_ENVELOPES_V0_3.md](FURNISHING_FUNCTIONAL_ENVELOPES_V0_3.md) adds a balanced BVH broad phase for sparse collision queries, indexed task/envelope lookups, brute-force equivalence tests, and a dependency-free 25/100/1,000/10,000 task benchmark. The first passing exact-head run reported p95 57.347 ms at 10,000 sparse synthetic items/tasks; see the [frozen run receipt](../interiors/evidence/FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json). This is a single hosted-runner observation—not a performance SLA or SOTA comparison. The BVH narrows candidates only; exact rectangle overlap remains authoritative.
 
 ## Acceptance gates (proposed, not measured)
 

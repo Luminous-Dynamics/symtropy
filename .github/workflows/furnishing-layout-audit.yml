@@ -47,6 +47,15 @@ jobs:
         run: cargo test --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml
       - name: Run Clippy
         run: cargo clippy --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Record benchmark environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Benchmark source SHA: $(git rev-parse HEAD)"
+          rustc --version --verbose
+          uname -a
+          lscpu || true
+          free -h || true
       - name: Benchmark functional-envelope oracle at 25/100/1000/10000 tasks
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_scaling
 

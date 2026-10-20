@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_kind": "single_run_diagnostic_benchmark_receipt",
+  "benchmark_name": "functional_envelope_scaling",
+  "source": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "exact_head_sha": "fe742b6cdfd59600427cd9b5e9c772273093cb90",
+    "pull_request": 2364,
+    "base_branch": "feat/furnishing-functional-envelope-oracle-v0-2-20261020"
+  },
+  "workflow": {
+    "name": "Furnishing Layout Audit",
+    "run_id": 39457699979,
+    "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39457699979",
+    "conclusion": "success",
+    "runner_image": "ubuntu-24.04",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "hardware_details_recorded": false
+  },
+  "workload": {
+    "generated": true,
+    "synthetic_only": true,
+    "geometry": "axis_aligned_2d_rectangles",
+    "distribution": "sparse_grid",
+    "tasks_per_item": 1,
+    "construction_excluded_from_timed_region": true,
+    "timed_operation": "audit_functional_envelopes over preconstructed in-memory JSON Value",
+    "expected_findings": 0,
+    "memory_profiled": false,
+    "live_network_or_dht_included": false
+  },
+  "measurements": [
+    {
+      "items": 25,
+      "tasks": 25,
+      "iterations": 100,
+      "findings": 0,
+      "p50_ms": 0.028,
+      "p95_ms": 0.036
+    },
+    {
+      "items": 100,
+      "tasks": 100,
+      "iterations": 100,
+      "findings": 0,
+      "p50_ms": 0.138,
+      "p95_ms": 0.165
+    },
+    {
+      "items": 1000,
+      "tasks": 1000,
+      "iterations": 30,
+      "findings": 0,
+      "p50_ms": 2.364,
+      "p95_ms": 2.507
+    },
+    {
+      "items": 10000,
+      "tasks": 10000,
+      "iterations": 10,
+      "findings": 0,
+      "p50_ms": 50.631,
+      "p95_ms": 57.347
+    }
+  ],
+  "proposed_target": {
+    "measure": "p95 local audit time",
+    "items": 10000,
+    "target_ms": 100,
+    "below_target_in_this_run": true,
+    "target_is_provisional": true
+  },
+  "correctness_gates": {
+    "unit_tests": "19 passed, 0 failed",
+    "rustfmt": "passed",
+    "clippy_warnings_denied": "passed",
+    "bvh_vs_brute_force_equivalence_test": "passed"
+  },
+  "limitations": [
+    "One hosted-runner observation, not a stable-machine microbenchmark.",
+    "The CI runner CPU model and memory limit were not recorded in this run.",
+    "Sparse synthetic geometry does not represent dense overlap-heavy worst cases.",
+    "The result is not a production latency SLA and does not validate measured rooms, accessibility, building code, biomechanics, physical safety, live catalogues, or user benefit."
+  ]
+}

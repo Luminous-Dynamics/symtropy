@@ -29,6 +29,10 @@ The benchmark generates sparse, synthetic grids with 25, 100, 1,000 and 10,000 i
 
 No timing threshold is used in CI. The logs are evidence for a named exact commit and runner; a performance claim additionally needs repeated measurements on a stable reference machine, peak-memory data, correctness results and a matched baseline.
 
+## Archived diagnostic observation
+
+The first passing hosted exact-head run is archived at [FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json](evidence/FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json). It measured the 10,000-item sparse synthetic workload at p50 50.631 ms / p95 57.347 ms on Ubuntu 24.04 with Rust 1.96.0. This is one runner observation with no machine-level CPU/memory receipt and is not a stable SLA. The workflow now prints `rustc --version --verbose`, kernel and CPU/memory metadata before future scale runs. Do not compare benchmark numbers across runners without retaining that provenance.
+
 ## Acceptance gates
 
 - Zero differences between BVH collision candidates and brute-force rectangle overlap in deterministic tests.
