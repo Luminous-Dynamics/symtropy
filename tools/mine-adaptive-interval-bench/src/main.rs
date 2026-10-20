@@ -1076,6 +1076,26 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
             || !summary.mean_interval_width.is_finite()
             || !summary.p95_interval_width.is_finite()
             || !summary.max_interval_width.is_finite()
+            || summary.stream_coverage_count != per_cell_stream_count
+            || summary.coverage_recovery_successes > summary.coverage_recovery_attempts
+            || summary.coverage_recovery_attempts > per_cell_stream_count
+            || summary.coverage_recovery_rate.is_some_and(|rate| {
+                !rate.is_finite() || !(0.0..=1.0).contains(&rate)
+            })
+            || (summary.coverage_recovery_attempts == 0
+                && summary.coverage_recovery_rate.is_some())
+            || summary.absolute_coverage_error.is_some_and(|error| {
+                !error.is_finite() || !(0.0..=1.0).contains(&error)
+            })
+            || summary.mean_stream_coverage.is_some_and(|coverage| {
+                !coverage.is_finite() || !(0.0..=1.0).contains(&coverage)
+            })
+            || summary.p05_stream_coverage.is_some_and(|coverage| {
+                !coverage.is_finite() || !(0.0..=1.0).contains(&coverage)
+            })
+            || summary.p95_stream_coverage.is_some_and(|coverage| {
+                !coverage.is_finite() || !(0.0..=1.0).contains(&coverage)
+            })
     }) {
         return Err("summary dimensions or numeric metrics are invalid".to_owned());
     }
@@ -1117,10 +1137,6 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
         unguarded_negative_control_hard_control_acceptances,
         independent_gate_audit_mismatches,
         summaries,
-        coverage_band_lower: COVERAGE_BAND_LOWER,
-        coverage_band_upper: COVERAGE_BAND_UPPER,
-        coverage_window_ticks: COVERAGE_WINDOW_TICKS,
-        min_labels_per_coverage_window: MIN_LABELS_PER_COVERAGE_WINDOW,
         claim_ceiling: "deterministic synthetic interval-adaptation and independent trust-gate benchmark; proxy policies are not faithful reproductions of COP, PACE, SAOCP, or another published method; no distribution-free coverage, mine-site calibration, field performance, or safety case is claimed".to_owned(),
     })
 }
