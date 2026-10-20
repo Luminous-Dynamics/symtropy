@@ -20,6 +20,7 @@
       "sanitation": 1,
       "food_preservation": 1
     },
+    "service_power_units_per_service_unit": 1,
     "workshop_energy_required_per_reference_unit": 2,
     "max_conforming_reference_units_per_step": 1,
     "production_allowed_only_if": [

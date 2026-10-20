@@ -1,0 +1,82 @@
+name: CIV-RES-IND oracle
+
+on:
+  push:
+    branches:
+      - feat/civ-res-ind-002-rust-oracle
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json
+      - docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json
+      - tools/civ-res-ind-oracle/**
+      - .github/workflows/civ-res-ind-oracle.yml
+  pull_request:
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json
+      - docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json
+      - tools/civ-res-ind-oracle/**
+      - .github/workflows/civ-res-ind-oracle.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: civ-res-ind-oracle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-oracle:
+    name: Exact fixture, source, lock, and expected outcomes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Rust, rustfmt, and Clippy
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          components: rustfmt, clippy
+          build-warnings: warn
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/civ-res-ind-oracle/Cargo.toml -- --check
+
+      - name: Test with the committed lockfile
+        run: cargo test --locked --manifest-path tools/civ-res-ind-oracle/Cargo.toml
+
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/civ-res-ind-oracle/Cargo.toml --all-targets -- -D warnings
+
+      - name: Recompute and verify the frozen reference corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/civ-res-ind-oracle-report.json"
+          cargo run --locked --manifest-path tools/civ-res-ind-oracle/Cargo.toml -- \
+            --fixture docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json \
+            --manifest docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json \
+            --source tools/civ-res-ind-oracle/src/main.rs \
+            --lock Cargo.lock > "$report"
+          jq -e '
+            .status == "PASS_SYNTHETIC_REFERENCE_ONLY"
+            and .scenario_count == 6
+            and all(.scenario_results[]; .expected_matches == true)
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.evaluator_source_sha256 | test("^[0-9a-f]{64}$"))
+            and (.cargo_lock_sha256 | test("^[0-9a-f]{64}$"))
+          ' "$report"
+          sha256sum "$report"
+          jq '{status, evaluator_version, fixture_sha256, evaluator_source_sha256, cargo_lock_sha256, scenario_count, future_blindness_contract}' "$report"
+
+      - name: Upload exact reference report receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: civ-res-ind-oracle-report
+          path: ${{ runner.temp }}/civ-res-ind-oracle-report.json
+          if-no-files-found: error
+          retention-days: 30
