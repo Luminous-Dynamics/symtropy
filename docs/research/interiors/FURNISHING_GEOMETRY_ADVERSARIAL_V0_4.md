@@ -57,6 +57,12 @@ The focused [Furnishing Layout Audit run #39481555651](https://github.com/Lumino
 
 The 10,000-item measurements use one sample, so they are not p50/p95 estimates. The runner reported Ubuntu 24.04, Rust 1.96.0, four visible vCPUs on an AMD EPYC 9V45 host and 15 GiB memory. These are diagnostic hosted-runner observations, not a production SLA. The matched v0.2 baseline remains in progress; no speedup ratio is claimed.
 
+## Indexed-only scale extension — run #39483177535
+
+The v0.5 indexed-only scale probe passed at exact source SHA `3295b485b3aec4e017091938b5ffa8a897bd592c`. It reported 0 findings at all size tiers: 10k (3 iterations, p50 65.544 ms / p95 80.155 ms), 25k (5 iterations, p50 169.751 ms / p95 185.398 ms), 50k (single sample 373.744 ms), and 100k (single sample 760.021 ms). The run receipt, machine provenance and claim limits are archived in [FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json](evidence/FURNISHING_GEOMETRY_SCALE_100K_CI_RUN_39483177535.json).
+
+The 100k point observation is below the proposed 1 s target for this sparse synthetic workload, but it does not demonstrate a p95 or memory gate. No 25k/50k/100k brute-force comparison was run. The same-host A/B evidence at 10k remains [PR #2392](https://github.com/Luminous-Dynamics/symtropy/pull/2392). These are kernel timings, not physical/accessibility validation.
+
 ## Claim boundary
 
 These cases still use axis-aligned 2D rectangles. They do not model door swing arcs, moving drawers beyond their declared rectangular envelopes, 3D objects, uncertainty in measured dimensions, wheelchair swept-path geometry, reach ranges, transfer spaces, egress, accessibility standards or building code. Those should be added as separate, sourced and independently reviewable task models. Unknown required evidence must block, not be guessed.

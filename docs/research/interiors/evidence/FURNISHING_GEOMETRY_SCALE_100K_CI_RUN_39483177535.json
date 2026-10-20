@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_kind": "indexed_oracle_large_scale_exact_head_run",
+  "repository": "Luminous-Dynamics/symtropy",
+  "pr_number": 2391,
+  "workflow_run": {
+    "id": 39483177535,
+    "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39483177535",
+    "conclusion": "success"
+  },
+  "source_sha": "3295b485b3aec4e017091938b5ffa8a897bd592c",
+  "environment": {
+    "runner_image": "ubuntu-24.04",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "kernel": "Linux runnervmxehtw 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64",
+    "cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "visible_vcpus": 4,
+    "reported_memory_gib": 15
+  },
+  "gates": {
+    "tests_passed": 26,
+    "tests_failed": 0,
+    "formatting": "passed",
+    "clippy_warnings_denied": "passed",
+    "exact_head_assertion": "passed",
+    "stress_matrix": "passed",
+    "unexpected_findings_all_workloads": 0
+  },
+  "workload": {
+    "type": "synthetic_sparse_axis_aligned_2d_rectangles",
+    "task_checks_per_item": 1,
+    "timed_region": "audit_functional_envelopes on preconstructed in-memory JSON",
+    "excluded": "corpus generation, network/DHT, UI, peak-memory profiling, real-site measurement error",
+    "candidate_only": true,
+    "baseline_run_at_25k_50k_100k": false
+  },
+  "measurements": [
+    {
+      "items": 10000,
+      "iterations": 3,
+      "findings": 0,
+      "p50_ms": 65.544,
+      "p95_ms": 80.155,
+      "percentile_method": "nearest rank"
+    },
+    {
+      "items": 25000,
+      "iterations": 5,
+      "findings": 0,
+      "p50_ms": 169.751,
+      "p95_ms": 185.398,
+      "percentile_method": "nearest rank"
+    },
+    {
+      "items": 50000,
+      "iterations": 1,
+      "findings": 0,
+      "single_sample_ms": 373.744
+    },
+    {
+      "items": 100000,
+      "iterations": 1,
+      "findings": 0,
+      "single_sample_ms": 760.021
+    }
+  ],
+  "interpretation": {
+    "proposed_100k_p95_target_ms": 1000,
+    "observed_100k_single_sample_below_target": true,
+    "p95_gate_demonstrated": false,
+    "reason": "100k is a single timed observation; repeat measurements are needed to assess p95.",
+    "memory_gate_demonstrated": false
+  },
+  "limitations": [
+    "Synthetic sparse 2D geometry only.",
+    "The single 100k timing is a point observation, not p50/p95 or an SLA.",
+    "The run does not establish production memory capacity, peak memory, dense geometry scaling, 3D transforms, task biomechanics, accessibility, code compliance, safety or resident outcomes."
+  ]
+}
