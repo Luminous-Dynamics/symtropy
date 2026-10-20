@@ -303,7 +303,7 @@ fn evaluate_method(
             } else {
                 *fp.entry(value.clone()).or_default() += 1;
                 *fn_.entry(scenario_result.ground_truth_constraint_id.clone())
-                    .or_default() += 1;
+                .or_default() += 1;
             }
         } else {
             *fn_.entry(scenario_result.ground_truth_constraint_id.clone())
