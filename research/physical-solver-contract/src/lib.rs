@@ -691,22 +691,22 @@ pub fn validate_solver_receipt_bytes(request_bytes: &[u8], receipt_bytes: &[u8])
         )?;
     }
     for key in ["solver_name", "solver_version", "solver_build_ref"] {
-        if let Some(value) = adapter.get(key) {
-            if !value.is_null() {
-                let text = value
-                    .as_str()
-                    .ok_or_else(|| format!("receipt.adapter.{key} must be a string or null"))?;
-                if text.len()
-                    > match key {
-                        "solver_name" => 256,
-                        "solver_version" => 128,
-                        _ => 2048,
-                    }
-                {
-                    return Err(format!(
-                        "receipt.adapter.{key} exceeds its schema length limit"
-                    ));
+        if let Some(value) = adapter.get(key)
+            && !value.is_null()
+        {
+            let text = value
+                .as_str()
+                .ok_or_else(|| format!("receipt.adapter.{key} must be a string or null"))?;
+            if text.len()
+                > match key {
+                    "solver_name" => 256,
+                    "solver_version" => 128,
+                    _ => 2048,
                 }
+            {
+                return Err(format!(
+                    "receipt.adapter.{key} exceeds its schema length limit"
+                ));
             }
         }
     }
