@@ -651,9 +651,18 @@ mod tests {
         let medium = dam_break_depth_rmse(0.05);
         let fine = dam_break_depth_rmse(0.025);
 
-        assert!(medium < coarse, "refinement did not improve RMSE: coarse={coarse}, medium={medium}");
-        assert!(fine < medium, "refinement did not improve RMSE: medium={medium}, fine={fine}");
-        assert!(fine < 0.06, "fine-grid dam-break depth RMSE too high: {fine}");
+        assert!(
+            medium < coarse,
+            "refinement did not improve RMSE: coarse={coarse}, medium={medium}"
+        );
+        assert!(
+            fine < medium,
+            "refinement did not improve RMSE: medium={medium}, fine={fine}"
+        );
+        assert!(
+            fine < 0.06,
+            "fine-grid dam-break depth RMSE too high: {fine}"
+        );
     }
 
     #[test]
