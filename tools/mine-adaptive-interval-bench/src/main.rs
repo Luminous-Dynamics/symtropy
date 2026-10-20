@@ -229,6 +229,9 @@ struct Summary {
     coverage_recovery_delay_mean_ticks: Option<f64>,
     coverage_recovery_delay_p95_ticks: Option<f64>,
     coverage_recovery_delay_max_ticks: Option<usize>,
+    post_recovery_windows_in_band: usize,
+    post_recovery_windows_observed: usize,
+    post_recovery_persistence_rate: Option<f64>,
     mean_interval_width: f64,
     p95_interval_width: f64,
     max_interval_width: f64,
@@ -546,6 +549,43 @@ fn coverage_band_recovery_delay(outcomes: &[StepOutcome], onset: usize) -> Optio
     None
 }
 
+fn post_recovery_window_counts(
+    outcomes: &[StepOutcome],
+    onset: usize,
+) -> Option<(usize, usize)> {
+    let recovery_delay = coverage_band_recovery_delay(outcomes, onset)?;
+    let recovery_end = onset + recovery_delay - 1;
+    let mut last_matured_count = 0_usize;
+    let mut observed = 0_usize;
+    let mut in_band = 0_usize;
+    for end in recovery_end + 1..outcomes.len() {
+        let matured = outcomes
+            .iter()
+            .filter(|outcome| outcome.tick >= onset && outcome.tick <= end)
+            .filter_map(|outcome| {
+                let matures_at = outcome.label_matures_at?;
+                if matures_at <= end { outcome.coverage } else { None }
+            })
+            .collect::<Vec<_>>();
+        if matured.len() == last_matured_count {
+            continue;
+        }
+        last_matured_count = matured.len();
+        if matured.len() < MIN_LABELS_PER_COVERAGE_WINDOW {
+            continue;
+        }
+        let start = matured.len().saturating_sub(COVERAGE_WINDOW_TICKS);
+        let window = &matured[start..];
+        let covered = window.iter().filter(|covered| **covered).count();
+        let empirical = covered as f64 / window.len() as f64;
+        observed += 1;
+        if (COVERAGE_BAND_LOWER..=COVERAGE_BAND_UPPER).contains(&empirical) {
+            in_band += 1;
+        }
+    }
+    Some((in_band, observed))
+}
+
 fn independently_replay_gate(stream: &Stream, radii: &[f64], actual: &[Decision]) -> usize {
     if radii.len() != stream.ticks.len() || actual.len() != stream.ticks.len() {
         return 1;
@@ -819,6 +859,8 @@ struct Accumulator {
     stream_coverages: Vec<f64>,
     coverage_recovery_attempts: usize,
     coverage_recovery_delays: Vec<usize>,
+    post_recovery_windows_in_band: usize,
+    post_recovery_windows_observed: usize,
     widths: Vec<f64>,
     model_use_steps: usize,
     diagnostic_only_steps: usize,
