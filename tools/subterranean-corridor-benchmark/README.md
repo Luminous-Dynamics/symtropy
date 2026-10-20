@@ -19,7 +19,7 @@ The crate is an isolated nested Cargo workspace and does not require private Myc
 - Explicit seismic gates for site hazard, active fault displacement, liquefaction/lateral spread/slope, lining/interfaces, portals/shafts/stations, and post-event inspection/recovery.
 - Experimental functional-recovery curve metrics (`recovery` module): demand-normalized safe service over time, T50/T90/T95 only when sustained, and cumulative unmet service with right-censoring when recovery is not reached.
 - Dependency-aware safe capacity (`dependencies` module): common-cause failures invalidate every path relying on the shared dependency; missing/unknown dependency states are not credited, and unresolved capacity that is needed to meet demand blocks a comparison.
-- Deterministic constrained-crew repair scheduling (`repair` module): declared task precedence, multi-skill crew pools, resource bottlenecks, and explicit external re-entry authorization that withholds service-ready time unless satisfied.
+- Deterministic constrained-crew repair scheduling (`repair` module): declared task precedence, multi-skill crew pools, resource bottlenecks, explicit re-entry authorization, and critical-path/skill-workload makespan lower bounds. The schedule's excess over a lower bound is not called an optimality gap.
 
 Every demonstration value is synthetic. The evaluator does not fetch/authenticate sources, model seismic or continuum geotechnical physics, validate the ground, estimate real project cost, certify safety, or authorize excavation/entry/reopening. A supplied gate state is an input assertion, not an engineering conclusion.
 
