@@ -7,7 +7,7 @@
 //! It assumes a flat bed, zero initial velocities, constant gravity, and depths
 //! h_left > h_right > 0. It is an analytical verification target, not field data.
 
-use super::{BoundaryConditions, CellState, ShallowWater1D, SolverConfig, SolverError};
+use super::SolverError;
 
 /// Exact shallow-water state for a dam break with water on both sides.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -126,6 +126,7 @@ pub fn stoker_dam_break(
 
 #[cfg(test)]
 mod tests {
+    use super::super::{BoundaryConditions, CellState, ShallowWater1D, SolverConfig};
     use super::*;
 
     fn config(dx: f64) -> SolverConfig {
