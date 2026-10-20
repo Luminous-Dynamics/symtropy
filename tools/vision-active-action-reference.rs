@@ -96,10 +96,10 @@ pub struct TrialScoreV1 {
     pub chosen_action: VisionAction,
     pub action_executed: bool,
     pub realized_task_loss: f64,
-    pub best_budget_feasible_counterfactual_loss: f64,
+    pub best_trial_budget_feasible_counterfactual_loss: f64,
     /// Can be negative when the realized outcome differs stochastically from
     /// the evaluator's paired counterfactuals. Do not clamp or discard negatives.
-    pub regret_vs_oracle: f64,
+    pub regret_vs_trial_oracle: f64,
     /// Positive means the chosen action's evaluator-side counterfactual loss is
     /// lower than KeepCheap; this is not producer-visible or a causal claim by itself.
     pub counterfactual_action_value_vs_cheap: f64,
@@ -184,8 +184,9 @@ fn status_for_amount(amount: Option<u64>, budget: Option<u64>) -> BudgetStatus {
 }
 
 /// Score one trial after the policy choice and execution result are committed.
-/// Only feasible actions that satisfy declared per-trial budgets enter the oracle
-/// comparison. Run-wide budget feasibility must be assessed over a whole run.
+/// Only feasible actions that satisfy declared per-trial budgets enter this per-trial
+/// oracle comparison. Run-wide budgets are checked after aggregation, but this
+/// reference does not solve the global run-budget allocation problem.
 pub fn evaluate_trial_v1(trial: &TrialV1) -> Result<TrialScoreV1, EvaluationError> {
     if trial.loss_profile_id.trim().is_empty() {
         return Err(EvaluationError::EmptyLossProfile);
@@ -271,8 +272,8 @@ pub fn evaluate_trial_v1(trial: &TrialV1) -> Result<TrialScoreV1, EvaluationErro
         chosen_action: trial.chosen_action,
         action_executed: trial.action_executed,
         realized_task_loss: trial.realized_task_loss,
-        best_budget_feasible_counterfactual_loss: oracle_loss,
-        regret_vs_oracle: regret,
+        best_trial_budget_feasible_counterfactual_loss: oracle_loss,
+        regret_vs_trial_oracle: regret,
         counterfactual_action_value_vs_cheap: action_value,
         actual_resource_units: trial.actual_resource_units.clone(),
         trial_budget_status,
@@ -355,10 +356,10 @@ pub fn summarize_run_v1(trials: &[TrialV1]) -> Result<RunSummaryV1, EvaluationEr
     let mean_realized_loss = scores.iter().map(|s| s.realized_task_loss).sum::<f64>() / n;
     let mean_oracle_loss = scores
         .iter()
-        .map(|s| s.best_budget_feasible_counterfactual_loss)
+        .map(|s| s.best_trial_budget_feasible_counterfactual_loss)
         .sum::<f64>()
         / n;
-    let mean_regret = scores.iter().map(|s| s.regret_vs_oracle).sum::<f64>() / n;
+    let mean_regret = scores.iter().map(|s| s.regret_vs_trial_oracle).sum::<f64>() / n;
     if !mean_realized_loss.is_finite()
         || !mean_oracle_loss.is_finite()
         || !mean_regret.is_finite()
@@ -473,7 +474,7 @@ mod tests {
         let mut t = trial(1, VisionAction::ChangeView, 4.0);
         t.candidates.push(candidate(VisionAction::WaitForEvent, true, 0.0, 21, 1));
         let score = evaluate_trial_v1(&t).unwrap();
-        assert_eq!(score.best_budget_feasible_counterfactual_loss, 4.0);
+        assert_eq!(score.best_trial_budget_feasible_counterfactual_loss, 4.0);
     }
 
     #[test]
@@ -597,7 +598,7 @@ mod tests {
         t.candidates[2].declared_resource_units = units(5, 1);
         t.actual_resource_units = actual(Some(17), Some(2));
         let score = evaluate_trial_v1(&t).unwrap();
-        assert_eq!(score.best_budget_feasible_counterfactual_loss, 4.0);
+        assert_eq!(score.best_trial_budget_feasible_counterfactual_loss, 4.0);
         assert_eq!(score.actual_resource_units["latency"], Some(17));
         assert_eq!(score.trial_budget_status["latency"], BudgetStatus::WithinBudget);
     }
