@@ -10,6 +10,7 @@ A small, deterministic first-order finite-volume solver for the 1D inviscid Sain
 - Reflective and transmissive ghost-cell boundaries.
 - SSP-RK2 time stepping with a declared CFL upper bound and fail-closed state checks.
 - Water storage per unit channel width.
+- Per-step SSP-RK2 boundary mass-flux ledger with signed left/right integrated exchange, storage change, absolute conservation residual and a scale-normalized residual.
 - Exact idealized Ritter dry-bed dam-break rarefaction profile.
 - Exact wet-bed Stoker dam-break Riemann profile, including its left rarefaction, constant star state and right-moving shock.
 - Exact symmetric double-rarefaction profile, including either a lower-depth intermediate state or a dry/vacuum gap when the outward velocity reaches the analytical threshold.
@@ -21,7 +22,7 @@ The public `field_error_metrics` helper reports sample count, MAE, RMSE, signed 
 
 ## Current numerical claim ceiling
 
-The code includes synthetic numerical tests for still water, dry state, storage conservation with reflective boundaries, analytical landmarks, and three-grid field-error convergence for the Ritter dry-bed rarefaction, wet-bed Stoker shock/rarefaction, symmetric double rarefaction (including a dry gap), and symmetric double shock. The double-shock landmark checks test the Rankine–Hugoniot mass and momentum jumps. Passing these tests qualifies only the listed formulation and settings.
+The code includes synthetic numerical tests for still water, dry state, storage conservation with reflective boundaries, analytical landmarks, and three-grid field-error convergence for the Ritter dry-bed rarefaction, wet-bed Stoker shock/rarefaction, symmetric double rarefaction (including a dry gap), and symmetric double shock. The double-shock landmark checks test the Rankine–Hugoniot mass and momentum jumps. Open-boundary and reflective-boundary tests also reconcile the SSP-RK2 integrated mass flux against water-storage change at every step. Passing these tests qualifies only the listed formulation and settings.
 
 It is not a 2D solver and does not model bed friction, rainfall/infiltration, sediment, structures, moving beds, turbulent dynamics or real terrain. The Ritter solution assumes an inviscid semi-infinite reservoir discharging onto a flat dry bed; it is not a real-event dataset. No historical flood predictive skill, operational warning ability or superiority to a specialist model is claimed.
 
