@@ -149,6 +149,13 @@ struct BodyVisual {
 }
 
 #[derive(Component)]
+struct OrbitSegment {
+    start: LargeWorldPosition,
+    end: LargeWorldPosition,
+    thickness_m: f64,
+}
+
+#[derive(Component)]
 struct SurfaceTile;
 
 #[derive(Component)]
@@ -281,6 +288,51 @@ fn setup(
             Visibility::Hidden,
             BodyVisual { body_index },
         ));
+    }
+
+    // Deterministic, illustrative circular paths. These are visual guides, not ephemerides.
+    let orbit_mesh = meshes.add(Cuboid::new(1.0, 1.0, 1.0));
+    let orbit_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.20, 0.34, 0.58),
+        unlit: true,
+        ..default()
+    });
+    let sun = state.bodies.iter().find(|body| body.id == "sun").copied().expect("Sun is catalogued");
+    let earth = state.bodies.iter().find(|body| body.id == "earth").copied().expect("Earth is catalogued");
+    for body in &state.bodies {
+        let orbit_origin = if body.id == "moon" { earth.position } else { sun.position };
+        if body.id == "sun" {
+            continue;
+        }
+        let relative = body.position.relative_to_meters(&orbit_origin)
+            .expect("illustrative bodies share a coordinate frame");
+        let orbit_radius = relative[0].hypot(relative[1]).hypot(relative[2]);
+        if !orbit_radius.is_finite() || orbit_radius <= 0.0 {
+            continue;
+        }
+        let segment_count = 96_u32;
+        let thickness_m = (orbit_radius * 0.002).max(10.0);
+        for segment_index in 0..segment_count {
+            let a0 = 2.0 * PI * f64::from(segment_index) / f64::from(segment_count);
+            let a1 = 2.0 * PI * f64::from(segment_index + 1) / f64::from(segment_count);
+            let start = orbit_origin.offset_by_meters([
+                orbit_radius * a0.cos(),
+                orbit_radius * a0.sin(),
+                0.0,
+            ]).expect("orbit waypoint is representable");
+            let end = orbit_origin.offset_by_meters([
+                orbit_radius * a1.cos(),
+                orbit_radius * a1.sin(),
+                0.0,
+            ]).expect("orbit waypoint is representable");
+            commands.spawn((
+                Mesh3d(orbit_mesh.clone()),
+                MeshMaterial3d(orbit_material.clone()),
+                Transform::default(),
+                Visibility::Hidden,
+                OrbitSegment { start, end, thickness_m },
+            ));
+        }
     }
 
     let tile_mesh = meshes.add(Plane3d::default().mesh().size(1.0, 1.0));
