@@ -24,7 +24,7 @@ The versioned input fixture `fixtures/reference-trace-inputs-v0.1.json` and inde
 - OGD, scale-free OGD and decaying-step OGD on a trace containing both hits and misses.
 - OGD with `ahead=2` to exercise delayed horizon indexing.
 
-The fixture commits the input scores and algorithm parameters, not an asserted hand-written copy of the reference output. The independent Python reference generates a live expected output each CI run, which is compared both to the committed static golden and to the Rust trace. All three outputs plus the inputs are retained as a 30-day artifact. This avoids treating Rust-generated output as its own oracle while also guarding against an unreviewed change in upstream behavior or dependency semantics.
+The input fixture commits the scores and algorithm parameters. The static expected-output fixture was captured from the pinned Python reference, not hand-authored from the Rust output; it binds the exact input byte digest. Each CI run regenerates a live reference output and compares it both to that committed golden and to the Rust trace. The input, static golden, live reference and Rust output are retained as a 30-day artifact. This avoids treating Rust-generated output as its own oracle while also detecting changes in upstream behavior or dependency semantics.
 
 ## Equality contract
 
@@ -33,14 +33,14 @@ The fixture commits the input scores and algorithm parameters, not an asserted h
 - On mismatch, the comparator reports the first case/step, output field, expected value, actual value, and error.
 - The CI checkout verifies both the exact Symtropy SHA and upstream commit SHA before running.
 - Test-only Python dependency installation is isolated in a temporary virtual environment.
-- The artifact records reference output, Rust output and input fixture separately.
+- The artifact records the frozen inputs, committed golden, live reference output and Rust output separately.
 
 ## Important boundary
 
-This verifies trace compatibility only for the ten frozen parameterized cases. It does not prove equivalence for every parameter, numerical corner case, delayed-label policy, or ahead horizon. Subsequent cases must cover quantile ties, all-equal scores, `alpha_t` boundary behavior, additional window sizes, ahead greater than one, and edge conditions. A reference-compatible interval algorithm still does not confer model credibility or operational authority; the independent admission gate remains separate.
+This verifies trace compatibility only for the ten frozen parameterized cases. It does not prove equivalence for every parameter, numerical corner case, delayed-label policy, or ahead horizon. Subsequent cases should add additional window sizes, ahead greater than one for every method, numerical boundaries, and more malformed-input cases. A reference-compatible interval algorithm still does not confer model credibility or operational authority; the independent admission gate remains separate.
 
 ## Research rationale
 
-COP's ICLR 2026 paper proposes a distribution-informed update to reduce overly conservative online prediction sets while reporting coverage and regret guarantees under its stated setup ([paper](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5f8241131e6fd428aa49914da76b8ad0-Abstract-Conference.html)). A 2026 full-scale wastewater pH forecasting study reports that static and covariate-weighted intervals undercovered shifted operating regimes while online adaptation recovered nearer nominal coverage at a width cost ([PMLR study](https://proceedings.mlr.press/v329/lee26a.html)). Those results motivate the comparator set; they are not field evidence for this benchmark or for a mine-site deployment.
+COP's ICLR 2026 paper proposes a distribution-informed update to reduce overly conservative online prediction sets while reporting coverage and regret guarantees under its stated setup ([paper](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5f8241131e6fd428aa49914da76b8ad0-Abstract-Conference.html)). A 2026 full-scale wastewater pH forecasting study reports that static and covariate-weighted intervals undercovered shifted operating regimes while online adaptation recovered nearer nominal coverage at a width cost ([PMLR study](https://proceedings.mlr.press/v329/lee26a.html)). Those results motivate the comparator set; they are not field evidence for this benchmark or for a mine-site deployment. The 2026 preprint [Simultaneous Coverage and Efficiency Guarantee in Online Conformal Prediction](https://arxiv.org/abs/2607.26577) further motivates the separate reporting of absolute (non-cancelling) coverage error and interval width, since signed long-run error may hide sustained one-direction miscoverage. A separate follow-on [MINE-ACP-003](https://github.com/Luminous-Dynamics/symtropy/issues/2261) handles selective feedback, where outcome revelation itself depends on prediction or alarm status.
 
 The next phase should add larger adversarial trace suites, then evaluate the verified algorithms on temporally held-out, independently reviewed real telemetry. Report coverage, interval width, recovery time and post-recovery persistence separately; do not hide them in a composite score.
