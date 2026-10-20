@@ -195,7 +195,8 @@
               "value",
               "unit",
               "relative_tolerance",
-              "absolute_tolerance"
+              "absolute_tolerance",
+              "semantics"
             ],
             "properties": {
               "quantity": {
@@ -216,6 +217,10 @@
               "absolute_tolerance": {
                 "type": "number",
                 "minimum": 0
+              },
+              "semantics": {
+                "type": "string",
+                "minLength": 1
               }
             }
           }
