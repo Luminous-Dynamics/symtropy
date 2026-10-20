@@ -47,9 +47,7 @@ use symthaea_core::hdc::ContinuousHV;
 use symtropy_hdc_core::{
     BipolarBundle, EncoderSpec, HdcError, ItemMemory, LevelEncoder, StableHash64,
 };
-use symtropy_robotics_bridge_core::motor::{
-    MotorPlanner, MotorPlannerFault, MotorPlannerStatus,
-};
+use symtropy_robotics_bridge_core::motor::{MotorPlanner, MotorPlannerFault, MotorPlannerStatus};
 
 /// Default simulation timestep fed to `EmbodimentBridge::step` (60 Hz).
 pub const DEFAULT_DT: f32 = 1.0 / 60.0;
