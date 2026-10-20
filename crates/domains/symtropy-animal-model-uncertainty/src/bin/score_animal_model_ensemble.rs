@@ -462,6 +462,23 @@ mod tests {
             graze_retreat["stability"].as_str(),
             Some("ranking_can_flip")
         );
+        assert!((graze_retreat["minimum_loss_difference"].as_f64().expect("min diff") + 1.4).abs() < 1e-9);
+        assert!((graze_retreat["maximum_loss_difference"].as_f64().expect("max diff") - 1.8).abs() < 1e-9);
+        let minimum_weights = &graze_retreat["minimizing_weights"];
+        let maximum_weights = &graze_retreat["maximizing_weights"];
+        assert!((minimum_weights["predator_coupled"].as_f64().expect("weight") - 0.8).abs() < 1e-9);
+        assert!((minimum_weights["predator_weak"].as_f64().expect("weight") - 0.2).abs() < 1e-9);
+        assert!((maximum_weights["predator_coupled"].as_f64().expect("weight") - 0.4).abs() < 1e-9);
+        assert!((maximum_weights["predator_weak"].as_f64().expect("weight") - 0.6).abs() < 1e-9);
+        for weights in [minimum_weights, maximum_weights] {
+            let sum = weights
+                .as_object()
+                .expect("witness weight object")
+                .values()
+                .map(|value| value.as_f64().expect("numeric witness weight"))
+                .sum::<f64>();
+            assert!((sum - 1.0).abs() < 1e-9);
+        }
         assert_eq!(
             graze_retreat["first_admissible_across_all_models"].as_bool(),
             Some(false)
@@ -484,6 +501,20 @@ mod tests {
             schema["properties"]["weight_sensitivity"]["type"].as_str(),
             Some("array")
         );
+        for field in [
+            "first_admissible_across_all_models",
+            "second_admissible_across_all_models",
+            "minimizing_weights",
+            "maximizing_weights",
+            "stability",
+        ] {
+            assert!(
+                schema["properties"]["action_preference"]["items"]["required"]
+                    .as_array()
+                    .is_some_and(|required| required.iter().any(|value| value.as_str() == Some(field))),
+                "pairwise schema must require {field}"
+            );
+        }
     }
 
     #[test]
