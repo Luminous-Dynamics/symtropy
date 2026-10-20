@@ -178,10 +178,12 @@ fn run() -> Result<(), Box<dyn Error>> {
     };
 
     let output = serde_json::to_vec_pretty(&report)?;
-    if let Some(parent) = options.output_path.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = options
+        .output_path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        fs::create_dir_all(parent)?;
     }
     fs::write(&options.output_path, &output)?;
     println!("{}", String::from_utf8(output)?);
