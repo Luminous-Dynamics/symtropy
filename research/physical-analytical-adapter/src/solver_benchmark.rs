@@ -171,6 +171,23 @@ fn valid_hex(value: &str, length: usize) -> bool {
 }
 
 fn parse_manifest(manifest: &Value) -> Check<(String, String, Option<String>, CandidateIdentity, Vec<ReferenceOutput>, Vec<u64>, f64)> {
+    exact_keys(
+        manifest,
+        &[
+            "schema_version",
+            "benchmark_id",
+            "execution_state",
+            "solver_candidate",
+            "verification_level",
+            "case",
+            "reference",
+            "input_fixture",
+            "mesh_plan",
+            "acceptance",
+            "claim_ceiling",
+        ],
+        "manifest",
+    )?;
     if string_at(manifest, "schema_version", "manifest")? != MANIFEST_SCHEMA {
         return Err(format!("manifest.schema_version must be '{MANIFEST_SCHEMA}'"));
     }
@@ -182,6 +199,11 @@ fn parse_manifest(manifest: &Value) -> Check<(String, String, Option<String>, Ca
     let candidate = manifest
         .get("solver_candidate")
         .ok_or_else(|| "manifest.solver_candidate is missing".to_owned())?;
+    exact_keys(
+        candidate,
+        &["name", "role", "version_pin", "binary_sha256", "configuration_sha256"],
+        "manifest.solver_candidate",
+    )?;
     let candidate_identity = CandidateIdentity {
         name: string_at(candidate, "name", "manifest.solver_candidate")?,
         version_pin: optional_string_at(candidate, "version_pin", "manifest.solver_candidate")?,
@@ -192,6 +214,13 @@ fn parse_manifest(manifest: &Value) -> Check<(String, String, Option<String>, Ca
             "manifest.solver_candidate",
         )?,
     };
+    if candidate_identity
+        .version_pin
+        .as_deref()
+        .is_some_and(|version| version.trim().is_empty())
+    {
+        return Err("manifest.solver_candidate.version_pin must not be empty".to_owned());
+    }
     for (label, digest) in [
         ("binary_sha256", candidate_identity.binary_sha256.as_deref()),
         (
@@ -303,7 +332,21 @@ fn parse_manifest(manifest: &Value) -> Check<(String, String, Option<String>, Ca
     ))
 }
 
-fn parse_run(run_value: &Value) -> Check<(String, String, String, CandidateIdentity, Vec<ParsedRun>)> {
+fn parse_run(run_value: &Value) -> Check<(String, String, String, String, CandidateIdentity, Vec<ParsedRun>)> {
+    exact_keys(
+        run_value,
+        &[
+            "schema_version",
+            "benchmark_id",
+            "manifest_sha256",
+            "reference_source_revision",
+            "input_fixture_sha256",
+            "solver",
+            "runner",
+            "refinement_runs",
+        ],
+        "run",
+    )?;
     if string_at(run_value, "schema_version", "run")? != RUN_SCHEMA {
         return Err(format!("run.schema_version must be '{RUN_SCHEMA}'"));
     }
@@ -321,6 +364,11 @@ fn parse_run(run_value: &Value) -> Check<(String, String, String, CandidateIdent
     let solver = run_value
         .get("solver")
         .ok_or_else(|| "run.solver is missing".to_owned())?;
+    exact_keys(
+        solver,
+        &["name", "version_pin", "binary_sha256", "configuration_sha256"],
+        "run.solver",
+    )?;
     let identity = CandidateIdentity {
         name: string_at(solver, "name", "run.solver")?,
         version_pin: Some(string_at(solver, "version_pin", "run.solver")?),
@@ -336,6 +384,11 @@ fn parse_run(run_value: &Value) -> Check<(String, String, String, CandidateIdent
     let runner = run_value
         .get("runner")
         .ok_or_else(|| "run.runner is missing".to_owned())?;
+    exact_keys(
+        runner,
+        &["workflow_head_sha", "workflow_run_id", "runner_image", "execution_log_sha256"],
+        "run.runner",
+    )?;
     let workflow_head = string_at(runner, "workflow_head_sha", "run.runner")?;
     let run_id = string_at(runner, "workflow_run_id", "run.runner")?;
     let runner_image = string_at(runner, "runner_image", "run.runner")?;
@@ -355,6 +408,20 @@ fn parse_run(run_value: &Value) -> Check<(String, String, String, CandidateIdent
     .enumerate()
     {
         let label = format!("run.refinement_runs[{index}]");
+        exact_keys(
+            value,
+            &[
+                "refinement_level",
+                "element_count",
+                "exit_code",
+                "convergence_status",
+                "outputs",
+                "output_units",
+                "output_semantics",
+                "result_file_sha256",
+            ],
+            &label,
+        )?;
         let level = u64_at(value, "refinement_level", &label)?;
         let element_count = u64_at(value, "element_count", &label)?;
         let exit_code = i64_at(value, "exit_code", &label)?;
@@ -592,6 +659,7 @@ pub fn compare_manifest_run_bytes(
         refinement_results.push(json!({
             "refinement_level": run.level,
             "element_count": run.element_count,
+            "result_file_sha256": run.result_sha256,
             "exit_code": run.exit_code,
             "convergence_status": run.convergence_status,
             "status": result_status,
