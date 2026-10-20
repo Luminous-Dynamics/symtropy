@@ -177,6 +177,8 @@ The first honest win is not necessarily beating every published number. It is re
 
 The first integration test should be a small, fully synthetic river-corridor world, not a visually elaborate open world. It is intentionally designed to compose contracts from the separate workstreams and create opportunities for cross-layer failures.
 
+This is a **benchmark tranche inside existing convergence work**, not a competing scene implementation: it should be aligned with [ANIMA Cell #1185](https://github.com/Luminous-Dynamics/symtropy/issues/1185), [Living Valley #1247](https://github.com/Luminous-Dynamics/symtropy/issues/1247), and the [Living World Cell #252](https://github.com/Luminous-Dynamics/symtropy/issues/252). It does not waive those programmes' prerequisite gates. Initially use deterministic synthetic fixtures to exercise the contracts; only connect qualified hydrology, fauna/perception, habitat/terrain and persistence adapters after their authority and receipt requirements are satisfied. Where the existing owners already provide a canonical water/process or habitat state, consume those qualified outputs rather than maintaining parallel truth in the animal benchmark.
+
 ### Frozen scenario
 
 - The world contains two refuges connected by habitat corridors, a finite forage/water budget, an explicit current/depth field, and a declared predator-encounter process.
