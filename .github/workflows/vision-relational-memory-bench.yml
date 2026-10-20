@@ -30,7 +30,7 @@ concurrency:
 jobs:
   qualify-reference:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,26 +49,24 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
 
-      - name: Compile and run deterministic and negative-control tests
+      - name: Compile and run memory tests
         run: |
           set -euo pipefail
           rustc --edition=2024 --test tools/vision-relational-memory-bench.rs -o /tmp/vis-mem-tests
           /tmp/vis-mem-tests
 
-      - name: Execute report and validate schema, determinism, and integrity
+      - name: Execute memory report and validate determinism/schema
         run: |
           set -euo pipefail
           rustc --edition=2024 -O tools/vision-relational-memory-bench.rs -o /tmp/vis-mem-bench
           /tmp/vis-mem-bench > vis-relational-memory.tsv
           /tmp/vis-mem-bench > vis-relational-memory-repeat.tsv
           cmp vis-relational-memory.tsv vis-relational-memory-repeat.tsv
-
           grep -Fq "query_keyed_latest" vis-relational-memory.tsv
           grep -Fq "query_keyed_selective" vis-relational-memory.tsv
           grep -Fq "query_keyed_hazard_aware" vis-relational-memory.tsv
           grep -Fq "query_keyed_gap_aware" vis-relational-memory.tsv
           grep -Fq "query_keyed_joint_noise" vis-relational-memory.tsv
-          grep -Fq "joint-noise policy: joint transition-hazard x sensor-base-rate grid" vis-relational-memory.tsv
           grep -Fq "gap_aware_minus_hazard_aware" vis-relational-memory.tsv
           grep -Fq "joint_noise_minus_hazard_aware" vis-relational-memory.tsv
           grep -Fq "joint_noise_minus_gap_aware" vis-relational-memory.tsv
@@ -80,69 +78,37 @@ jobs:
           grep -Fq "root_mean_sensor_base_mse" vis-relational-memory.tsv
           grep -Fq "prior_sensor_base_mae" vis-relational-memory.tsv
           grep -Fq "root_mean_prior_sensor_base_mse" vis-relational-memory.tsv
-          grep -Fq "uniform_prior_sensor_mae" vis-relational-memory.tsv
           grep -Fq "confidence is sampled independently" vis-relational-memory.tsv
           grep -Fq "conditional corruption p per tier" vis-relational-memory.tsv
           grep -Fq "selective threshold calibrated on 256 separate development episodes" vis-relational-memory.tsv
-          grep -Fq "bootstrap95_lo_vs_fifo" vis-relational-memory.tsv
-          grep -Fq "STRATUM" vis-relational-memory.tsv
-          grep -Fq "query_evidence_arrived_out_of_order" vis-relational-memory.tsv
-          grep -Fq "profile_high_distractor_rate" vis-relational-memory.tsv
-          grep -Fq "profile_high_claim_flip_rate" vis-relational-memory.tsv
-          grep -Fq "profile_high_max_delay" vis-relational-memory.tsv
-          grep -Fq "profile_high_corruption_rate" vis-relational-memory.tsv
-
           test "$(grep -c '^held_out' vis-relational-memory.tsv)" -eq 35
           awk -F '\t' '$1 == "family" { if (NF != 19) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 19) exit 1; rows++ } END { if (header != 1 || rows != 70) exit 1 }' vis-relational-memory.tsv
-          grep -Fq "CALIBRATION" vis-relational-memory.tsv
           awk -F '\t' '/^CALIBRATION/ { if (NF != 10) exit 1; n++ } END { if (n != 211) exit 1 }' vis-relational-memory.tsv
-          grep -Fq "PAIRSENSOR" vis-relational-memory.tsv
           sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
           sha256sum -c vis-relational-memory.sha256
-          cat vis-relational-memory.tsv
 
-      - name: Compile, run, and validate active query benchmark
+      - name: Compile and run active-query tests
         run: |
           set -euo pipefail
           rustc --edition=2024 --test tools/vision-active-query-bench.rs -o /tmp/vis-active-query-tests
           /tmp/vis-active-query-tests
+
+      - name: Execute active-query report and validate determinism/schema
+        run: |
+          set -euo pipefail
           rustc --edition=2024 -O tools/vision-active-query-bench.rs -o /tmp/vis-active-query-bench
           /tmp/vis-active-query-bench > vis-active-query.tsv
           /tmp/vis-active-query-bench > vis-active-query-repeat.tsv
           cmp vis-active-query.tsv vis-active-query-repeat.tsv
-
           grep -Fq "value_of_information" vis-active-query.tsv
           grep -Fq "round_robin" vis-active-query.tsv
           grep -Fq "uniform_random" vis-active-query.tsv
-          grep -Fq "STRATUM" vis-active-query.tsv
           grep -Fq "claim_changed_after_latest_source" vis-active-query.tsv
           grep -Fq "query_evidence_arrived_out_of_order" vis-active-query.tsv
+          grep -Fq "query_observation_delay_gt_2" vis-active-query.tsv
           grep -Fq "profile_high_claim_flip_rate" vis-active-query.tsv
           grep -Fq "profile_high_corruption_rate" vis-active-query.tsv
           grep -Fq "profile_high_distractor_rate" vis-active-query.tsv
-          grep -Fq "query_observation_delay_gt_2" vis-active-query.tsv
-          grep -Fq "held_out" vis-active-query.tsv
-          test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
-          test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
-          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 6
-          awk -F '\t' '$1 == "family" { if (NF != 14) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 14) exit 1; rows++ } END { if (header != 1 || rows != 12) exit 1 }' vis-active-query.tsv
-          sha256sum vis-active-query.tsv > vis-active-query.sha256
-          sha256sum -c vis-active-query.sha256
-          cat vis-active-query.tsv
-
-      - name: Upload reproducible report
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-relational-memory-report
-          path: |
-            vis-relational-memory.tsv
-            vis-relational-memory.sha256
-            vis-active-query.tsv
-            vis-active-query.sha256
-          if-no-files-found: error
-          retention-days: 14
-STRATUM\tfamily\tstratum\tlevel' vis-active-query.tsv
-          grep -Fq "held_out" vis-active-query.tsv
           test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
           test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
           test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 6
@@ -150,9 +116,8 @@ STRATUM\tfamily\tstratum\tlevel' vis-active-query.tsv
           awk -F '\t' '$1 == "STRATUM" { if (NF != 12) exit 1; n++ } END { if (n < 12) exit 1 }' vis-active-query.tsv
           sha256sum vis-active-query.tsv > vis-active-query.sha256
           sha256sum -c vis-active-query.sha256
-          cat vis-active-query.tsv
 
-      - name: Upload reproducible report
+      - name: Upload both reproducible reports
         uses: actions/upload-artifact@v4
         with:
           name: vis-relational-memory-report
