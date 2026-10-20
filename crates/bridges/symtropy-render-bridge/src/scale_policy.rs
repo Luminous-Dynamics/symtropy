@@ -541,8 +541,7 @@ mod tests {
 
     #[test]
     fn hysteresis_can_cross_multiple_bands_on_a_large_camera_move() {
-        let mut latch = ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.05)
-            .expect("valid latch");
+        let mut latch = ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.05).expect("valid latch");
         assert_eq!(
             latch.update(500.0, PROFILE),
             Ok(ApparentSizeBand::SurfaceDetail)
@@ -556,8 +555,7 @@ mod tests {
             ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.5),
             Err(ApparentScaleError::InvalidHysteresisFraction)
         );
-        let mut latch = ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.05)
-            .expect("valid latch");
+        let mut latch = ScaleBandLatch::new(ApparentSizeBand::Subpixel, 0.05).expect("valid latch");
         assert_eq!(
             latch.update(f64::NAN, PROFILE),
             Err(ApparentScaleError::InvalidProjectedDiameter)
