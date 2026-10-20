@@ -621,7 +621,10 @@ pub fn assess_mesh_refinement_study_bytes(
             "one or more mesh refinement ratios are non-finite or not greater than 1.1",
         ));
     }
-    let mean_ratio = mesh_ratios.iter().sum::<f64>() / mesh_ratios.len() as f64;
+    let mean_ratio = mesh_ratios
+        .iter()
+        .map(|ratio| ratio / mesh_ratios.len() as f64)
+        .sum::<f64>();
     let ratio_spread = mesh_ratios
         .iter()
         .map(|ratio| (ratio - mean_ratio).abs() / mean_ratio)
@@ -704,9 +707,8 @@ pub fn assess_mesh_refinement_study_bytes(
             convergence_status = "FAIL";
         }
     } else {
-        let local_ratio = (coarse.spec.h_m / medium.spec.h_m
-            + medium.spec.h_m / fine.spec.h_m)
-            / 2.0;
+        let local_ratio = (coarse.spec.h_m / medium.spec.h_m) / 2.0
+            + (medium.spec.h_m / fine.spec.h_m) / 2.0;
         let order = (coarse_to_medium.abs() / medium_to_fine.abs()).ln() / local_ratio.ln();
         if !order.is_finite() || order <= 0.0 {
             diagnostics.push("observed convergence order is not finite and positive".to_owned());
