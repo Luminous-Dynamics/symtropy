@@ -170,7 +170,33 @@ impl LandscapeScenarioManifest {
     /// This gate validates identity, source/schema agreement, digests, scale,
     /// input bounds and claim eligibility. It does not establish that a solver
     /// is scientifically valid or that its outputs match the physical world.
-    pub fn validate_against_snapshot(
+    pub fn validate_against_inputs(
+        &self,
+        snapshot_bytes: &[u8],
+        boundary_conditions_bytes: &[u8],
+    ) -> Result<(), Vec<ContractViolation>> {
+        let mut violations = self
+            .validate_snapshot_metadata(snapshot_bytes)
+            .err()
+            .unwrap_or_default();
+
+        let actual_boundary_digest = sha256_hex(boundary_conditions_bytes);
+        if actual_boundary_digest != self.boundary_conditions_sha256 {
+            violations.push(ContractViolation::new(
+                "boundary-digest-mismatch",
+                "$.boundary_conditions_sha256",
+                "the declared digest does not match the exact boundary-condition bytes",
+            ));
+        }
+
+        if violations.is_empty() {
+            Ok(())
+        } else {
+            Err(violations)
+        }
+    }
+
+    fn validate_snapshot_metadata(
         &self,
         snapshot_bytes: &[u8],
     ) -> Result<(), Vec<ContractViolation>> {
@@ -413,7 +439,7 @@ mod tests {
     fn schema_qualification_accepts_a_pinned_local_schematic() {
         let bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::SchemaQualification);
-        assert_eq!(manifest.validate_against_snapshot(&bytes), Ok(()));
+        assert_eq!(manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty"), Ok(()));
     }
 
     #[test]
@@ -423,7 +449,7 @@ mod tests {
         assert_eq!(manifest.validate_against_snapshot(&bytes), Ok(()));
 
         let changed = snapshot(SCHEMATIC_GEOMETRY_STATUS);
-        let errors = manifest.validate_against_snapshot(&changed).unwrap_err();
+        let errors = manifest.validate_against_inputs(&changed, b"boundary-conditions-v0-empty").unwrap_err();
         assert!(errors.iter().any(|error| error.code == "snapshot-digest-mismatch"));
         assert!(errors.iter().any(|error| error.code == "synthetic-evidence-required"));
     }
@@ -432,7 +458,7 @@ mod tests {
     fn scientific_claim_is_blocked_for_v0_local_drawing_units() {
         let bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::ScientificSimulation);
-        let errors = manifest.validate_against_snapshot(&bytes).unwrap_err();
+        let errors = manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty").unwrap_err();
         assert!(errors.iter().any(|error| {
             error.code == "physical-claim-blocked-by-schematic-frame"
         }));
