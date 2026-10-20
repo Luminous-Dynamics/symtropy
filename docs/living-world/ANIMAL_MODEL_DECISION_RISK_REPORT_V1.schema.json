@@ -191,7 +191,9 @@
           "second_action",
           "minimum_loss_difference",
           "maximum_loss_difference",
-          "stability"
+          "stability",
+          "minimizing_weights",
+          "maximizing_weights"
         ],
         "properties": {
           "first_action": {
@@ -217,10 +219,26 @@
               "equivalent",
               "ranking_can_flip"
             ]
+          },
+          "minimizing_weights": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "maximizing_weights": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            }
           }
         }
       }
     }
   },
-  "$comment": "JSON Schema does not prove model_ids match every per_model_regret key, model_count matches model_ids.length, action coverage is complete, or risk metrics are mathematically correct. Semantic checks and the Rust scorer remain required. weight_sensitivity entries are optional in meaning (empty when no intervals are declared) and otherwise report extrema over the supplied bounded simplex; JSON Schema does not prove weights sum to one or validate optimality. action_preference reports paired difference extrema under one shared feasible weight vector; a ranking_can_flip result is stronger evidence of preference reversibility than overlap between independent action-loss envelopes. Empty when no intervals are supplied."
+  "$comment": "JSON Schema does not prove model_ids match every per_model_regret key, model_count matches model_ids.length, action coverage is complete, or risk metrics are mathematically correct. Semantic checks and the Rust scorer remain required. weight_sensitivity entries are optional in meaning (empty when no intervals are declared) and otherwise report extrema over the supplied bounded simplex; JSON Schema does not prove weights sum to one or validate optimality. action_preference reports paired difference extrema under one shared feasible weight vector; a ranking_can_flip result is stronger evidence of preference reversibility than overlap between independent action-loss envelopes. Empty when no intervals are supplied. Paired action-preference records include witness weight vectors for the minimum and maximum loss difference; validators should check each witness lies within the declared input intervals and sums to one."
 }
