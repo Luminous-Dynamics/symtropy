@@ -1,0 +1,207 @@
+{
+  "schema_version": "0.1",
+  "registration_id": "pirb-joint-score-two-leaf-four-draw-golden",
+  "evidence_scope": "synthetic",
+  "privacy": {
+    "aggregate_only": true,
+    "small_cell_suppression": true
+  },
+  "provider": {
+    "provider_id": "synthetic-two-leaf-system",
+    "forecast_release_id": "invented-four-draw-golden-v0.1",
+    "model_version": "synthetic-only",
+    "target_definition": "Invented nonnegative event counts for two non-overlapping leaf units and their parent sum.",
+    "analysis_unit_scheme": "Two leaf units plus one aggregate parent; only leaf units are scored.",
+    "temporal_aggregation": "single rolling-four-week target period",
+    "forecast_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "hierarchy_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "forecast_origin_index": 10,
+  "target_period_index": 11,
+  "temporal_index_policy": "Synthetic integer index: fit cutoff 8 < origin 10 < target 11.",
+  "sample_policy": {
+    "representation": "joint_predictive_samples",
+    "draw_ids": [
+      "draw-001",
+      "draw-002",
+      "draw-003",
+      "draw-004"
+    ],
+    "expected_draw_count": 4,
+    "parameter_fit_cutoff_index": 8,
+    "uses_test_outcomes": false,
+    "uses_future_data": false,
+    "base_reconciled_same_draw_coupling": true,
+    "source_coupling_reference": "synthetic-hand-authored-shared-draws"
+  },
+  "forecast_nodes": [
+    {
+      "forecast_id": "fc-country-total",
+      "unit_id": "unit-country-a",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "scoring_role": "aggregate"
+    },
+    {
+      "forecast_id": "fc-admin1-a",
+      "unit_id": "unit-admin1-a",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "scoring_role": "scored_leaf"
+    },
+    {
+      "forecast_id": "fc-admin1-b",
+      "unit_id": "unit-admin1-b",
+      "event_type_id": "event-organized",
+      "period_index": 11,
+      "scoring_role": "scored_leaf"
+    }
+  ],
+  "sample_rows": [
+    {
+      "draw_id": "draw-001",
+      "forecast_id": "fc-country-total",
+      "raw_count": 0,
+      "reconciled_count": 0
+    },
+    {
+      "draw_id": "draw-001",
+      "forecast_id": "fc-admin1-a",
+      "raw_count": 0,
+      "reconciled_count": 0
+    },
+    {
+      "draw_id": "draw-001",
+      "forecast_id": "fc-admin1-b",
+      "raw_count": 0,
+      "reconciled_count": 0
+    },
+    {
+      "draw_id": "draw-002",
+      "forecast_id": "fc-country-total",
+      "raw_count": 2,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-002",
+      "forecast_id": "fc-admin1-a",
+      "raw_count": 2,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-002",
+      "forecast_id": "fc-admin1-b",
+      "raw_count": 0,
+      "reconciled_count": 0
+    },
+    {
+      "draw_id": "draw-003",
+      "forecast_id": "fc-country-total",
+      "raw_count": 2,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-003",
+      "forecast_id": "fc-admin1-a",
+      "raw_count": 0,
+      "reconciled_count": 0
+    },
+    {
+      "draw_id": "draw-003",
+      "forecast_id": "fc-admin1-b",
+      "raw_count": 2,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-004",
+      "forecast_id": "fc-country-total",
+      "raw_count": 4,
+      "reconciled_count": 2
+    },
+    {
+      "draw_id": "draw-004",
+      "forecast_id": "fc-admin1-a",
+      "raw_count": 2,
+      "reconciled_count": 1
+    },
+    {
+      "draw_id": "draw-004",
+      "forecast_id": "fc-admin1-b",
+      "raw_count": 2,
+      "reconciled_count": 1
+    }
+  ],
+  "score_vector": {
+    "node_ids": [
+      "fc-admin1-a",
+      "fc-admin1-b"
+    ],
+    "overlap_policy": "scored_leaf_nodes_only_no_parent_child_double_count",
+    "observed_values": [
+      {
+        "forecast_id": "fc-admin1-a",
+        "observed_count": 0
+      },
+      {
+        "forecast_id": "fc-admin1-b",
+        "observed_count": 0
+      }
+    ],
+    "outcome_release_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "energy_score_policy": {
+    "score_name": "energy_score",
+    "formula_version": "empirical-energy-v0.1",
+    "formula_reference": "Synthetic golden: mean Euclidean distance to outcome minus unordered pairwise distance sum / M^2.",
+    "formula_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "implementation_reference": "pirb-joint-score-formulas-v0.1",
+    "implementation_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "norm": "euclidean",
+    "finite_ensemble_convention": "empirical_v_statistic_m_squared"
+  },
+  "variogram_score_policy": {
+    "score_name": "variogram_score",
+    "formula_version": "empirical-variogram-p1-v0.1",
+    "formula_reference": "Synthetic golden: unit-weight pairwise order-1 variogram score.",
+    "formula_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "implementation_reference": "pirb-joint-score-formulas-v0.1",
+    "implementation_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "exponent": 1,
+    "pair_weights": [
+      {
+        "left_node_id": "fc-admin1-a",
+        "right_node_id": "fc-admin1-b",
+        "weight": 1
+      }
+    ]
+  },
+  "aggregation_constraints": [
+    {
+      "constraint_id": "constraint-country-a-total",
+      "parent_forecast_id": "fc-country-total",
+      "child_forecast_ids": [
+        "fc-admin1-a",
+        "fc-admin1-b"
+      ],
+      "expected_child_keys": [
+        "unit-admin1-a",
+        "unit-admin1-b"
+      ],
+      "completeness": "complete",
+      "absolute_tolerance": 0
+    }
+  ],
+  "outcome_policy": {
+    "common_rows_verified": true,
+    "heldout_outcomes": true,
+    "outcome_maturity_status": "synthetic",
+    "common_rows_policy_reference": "synthetic-golden-outcome-vector",
+    "dependence_uncertainty_plan": "One outcome and four draws only; no empirical uncertainty or superiority claim is estimated."
+  },
+  "governance": {
+    "data_authority_status": "not_applicable_synthetic",
+    "disclosure_review_status": "not_applicable_synthetic",
+    "data_authority_reference": "synthetic-only",
+    "disclosure_review_reference": "synthetic-only"
+  }
+}
