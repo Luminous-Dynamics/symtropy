@@ -39,6 +39,21 @@ Keep commercial pre-rinse valves on a separate benchmark track from household fa
 
 The valve test method and any applicable commercial certification/compliance process do not replace a matched, real-task soil-removal test.
 
+### Current commercial reference envelope
+
+EPA's current pre-rinse page says the WaterSense label for this product category ended on 1 January 2019 after DOE incorporated the efficiency threshold and performance test into federal requirements. Do not describe new products as currently WaterSense-labelled on the basis of that retired programme. EPA lists DOE's maximum flow rates by measured spray-force class: up to 1.00 gpm (3.79 L/min) for force at or below 5 ozf; 1.20 gpm (4.54 L/min) for force above 5 and up to 8 ozf; and 1.28 gpm (4.85 L/min) for force above 8 ozf. These are U.S. regulatory reference classes, not universal South African compliance criteria, and not evidence of completed-task performance.
+
+- EPA pre-rinse spray valves, programme status and class limits: https://www.epa.gov/watersense/pre-rinse-spray-valves
+- EPA's WaterSense at Work technical guidance recommends checking pressure regularly and cites a 20–80 psi (138–552 kPa) operating range for expected performance: https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P1017K23.txt
+- A current product-side example is the T&S Brass B-0171 pre-rinse unit, which lists a 1.15 gpm (4.35 L/min) spray valve and manufacturer inlet-pressure range. Use its exact model/revision as an optional purchasable reference, then measure it at the fixture; specifications are not independent test results: https://www.tsbrass.com/products/pre-rinse-units/prerinseunits/B-0171
+
+### Proposed staged comparison
+
+1. **Valve bench:** reproduce the applicable standardized flow/spray-force method on at least three randomly selected production specimens per design where feasible. Record unit-to-unit variation and post-cycle performance.
+2. **Matched task:** use a standardized soil/plate fixture, fixed distance and angle, measured pressure, randomized valve order and a preregistered removal endpoint. Report water, trigger time, force, spatial coverage, residual soil, splash deposition and operator effort separately.
+3. **Operational pilot:** only after the bench gates pass, test across several independent commercial-kitchen stations and operators. A useful design target is at least three sites with several weeks of use at each site, balancing valve order where practical. Record task mix, blocked time, cleaning and maintenance, nozzle clogging/wear, actual water and rerinse events. This is a proposed engineering study design, not a regulatory requirement.
+4. **Decision:** report per-site and pooled paired effects with uncertainty; do not let a strong result at one venue hide failures elsewhere. The current PR's Rust harness verifies the data/conditions contract, not statistical sufficiency or physical trial quality.
+
 ### C. Efficient water delivery and batch-versus-flow washing
 
 Do not assume the best water-saving change is always a lower-flow faucet. Compare a measured-volume batch-wash workflow with continuous-flow rinsing and lower-flow stream/spray controls using the same load, cleaning endpoint and final-rinse rule. South Africa's CoGTA consumer guidance recommends a plugged sink instead of a running tap for washing dishes and for rinsing vegetables; treat this as a useful behavior/design hypothesis, not measured performance evidence.
