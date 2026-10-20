@@ -659,7 +659,7 @@ fn report() {
         }
     }
 
-    println!("STRATUM\\tfamily\\tstratum\\tlevel\\tpolicy\\tepisodes\\tmean_loss\\tanswer_rate\\taccuracy_when_answered\\tdelta_loss_vs_round_robin\\tbootstrap95_lo\\tbootstrap95_hi");
+    println!("STRATUM\tfamily\tstratum\tlevel\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
     for (family_index, family) in Family::ALL.iter().copied().enumerate() {
         for (stratum_index, stratum_name) in STRATA_NAMES.iter().copied().enumerate() {
             for level in 0..=1 {
@@ -681,7 +681,7 @@ fn report() {
                         let (lo, hi) = bootstrap_ci(&cell.paired_deltas_vs_rr, seed);
                         (delta, lo, hi)
                     };
-                    println!("STRATUM\\t{}\\t{}\\t{}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{}\\t{:.4}\\t{:.4}\\t{:.4}",
+                    println!("STRATUM\t{}\t{}\t{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.4}\t{:.4}\t{:.4}",
                         family.name(), stratum_name, level == 1, policy.name(), cell.episodes,
                         cell.mean_loss(), cell.answer_rate(), cell.accuracy(), delta, lo, hi);
                 }
