@@ -87,6 +87,11 @@ jobs:
               or (.coverage_recovery_rate != null and
                   (.coverage_recovery_rate < 0 or .coverage_recovery_rate > 1))
               or (.coverage_recovery_attempts == 0 and .coverage_recovery_rate != null)
+              or .post_recovery_windows_in_band > .post_recovery_windows_observed
+              or (.post_recovery_persistence_rate != null and
+                  (.post_recovery_persistence_rate < 0 or .post_recovery_persistence_rate > 1))
+              or (.post_recovery_windows_observed == 0 and .post_recovery_persistence_rate != null)
+              or (.post_recovery_windows_observed > 0 and .post_recovery_persistence_rate == null)
               or (.absolute_coverage_error != null and
                   (.absolute_coverage_error < 0 or .absolute_coverage_error > 1))
               or .independent_gate_audit_mismatches != 0
