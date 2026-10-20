@@ -247,7 +247,6 @@ pub fn assess(world: &World, profiles: Vec<ConnectorProfile>) -> Check<DfdAssess
     })
 }
 
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DfdFixtureSummary {
     pub status: AssessmentStatus,
@@ -317,7 +316,9 @@ pub fn run_reference_fixture() -> Check<DfdFixtureSummary> {
         connection_count: assessment.vector.connection_count,
         reversible_fastener_count: assessment.vector.connector_kinds.reversible_fastener,
         cut_required_count: assessment.vector.connector_kinds.cut_required,
-        declared_effort_total_person_minutes: assessment.vector.declared_effort_total_person_minutes,
+        declared_effort_total_person_minutes: assessment
+            .vector
+            .declared_effort_total_person_minutes,
         metadata_incomplete_count: assessment.vector.metadata_incomplete_count,
     };
     if summary.status != AssessmentStatus::Complete
@@ -327,7 +328,9 @@ pub fn run_reference_fixture() -> Check<DfdFixtureSummary> {
         || summary.declared_effort_total_person_minutes != Some(17)
         || summary.metadata_incomplete_count != 0
     {
-        return Err(format!("frozen DfD fixture failed its known-answer contract: {summary:?}"));
+        return Err(format!(
+            "frozen DfD fixture failed its known-answer contract: {summary:?}"
+        ));
     }
     Ok(summary)
 }
@@ -482,7 +485,6 @@ mod tests {
         assert_eq!(result.vector.metadata_complete_count, 1);
     }
 
-
     #[test]
     fn unknown_required_tool_class_blocks_complete_assessment() {
         let world = world_with_two_connections();
@@ -538,7 +540,6 @@ mod tests {
         assert_eq!(result.vector.declared_effort_total_person_minutes, None);
         assert_eq!(result.unresolved_connection_ids, vec!["AB"]);
     }
-
 
     #[test]
     fn frozen_dfd_receipt_fixture_matches_declared_vector() {
