@@ -72,7 +72,10 @@ fn run() -> Result<(), String> {
             "\"connected_components_after_cut\":{},",
             "\"connected_components_after_reconnect\":{},",
             "\"recovered_component_count\":{},",
-            "\"recovered_mass_mg\":{}",
+            "\"recovered_mass_mg\":{},",
+            "\"deconstruction_step_count\":{},",
+            "\"deconstruction_recovered_component_count\":{},",
+            "\"deconstruction_recovered_mass_mg\":{}",
             "}},",
             "\"claim_ceiling\":\"software_invariants_and_closed_form_analytical_cases_only_not_structural_or_collapse_prediction\"",
             "}}"
@@ -106,7 +109,10 @@ fn run() -> Result<(), String> {
         outcome.after_cut_connected_components,
         outcome.after_reconnect_connected_components,
         outcome.recovered_component_count,
-        outcome.recovered_mass_mg
+        outcome.recovered_mass_mg,
+        outcome.deconstruction_step_count,
+        outcome.deconstruction_recovered_component_count,
+        outcome.deconstruction_recovered_mass_mg
     );
     Ok(())
 }
