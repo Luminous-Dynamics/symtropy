@@ -907,7 +907,10 @@ mod tests {
         catalog.routes[0].imports[0].origin.evidence_class = EvidenceClass::Unknown;
         let result = evaluate_catalog(&catalog).results.remove(0);
         assert!(!result.tariff_treatments_qualified);
-        assert_eq!(result.economics_evidence_status, EconomicsEvidenceStatus::NeedsEvidence);
+        assert_eq!(
+            result.economics_evidence_status,
+            EconomicsEvidenceStatus::NeedsEvidence
+        );
     }
 
     #[test]
@@ -916,7 +919,10 @@ mod tests {
         catalog.routes[0].imports[0].purchase_value.evidence_class = EvidenceClass::Synthetic;
         let result = evaluate_catalog(&catalog).results.remove(0);
         assert!(!result.cost_inputs_release_grade);
-        assert_eq!(result.economics_evidence_status, EconomicsEvidenceStatus::NeedsEvidence);
+        assert_eq!(
+            result.economics_evidence_status,
+            EconomicsEvidenceStatus::NeedsEvidence
+        );
     }
 
     #[test]
