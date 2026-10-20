@@ -442,7 +442,11 @@ fn parse_input_bounds(
         let item = bound_inputs
             .get(*key)
             .ok_or_else(|| format!("{at} is required"))?;
-        exact_keys(item, &["lower", "upper", "unit", "basis", "source_ref"], &at)?;
+        exact_keys(
+            item,
+            &["lower", "upper", "unit", "basis", "source_ref"],
+            &at,
+        )?;
         let fields = item
             .as_object()
             .ok_or_else(|| format!("{at} must be an object"))?;
