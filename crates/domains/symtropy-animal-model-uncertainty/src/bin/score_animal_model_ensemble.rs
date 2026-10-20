@@ -296,12 +296,12 @@ fn main() {
     };
     let (models, cvar_alpha, model_weight_intervals, practical_loss_difference_margin) =
         match parse_input(&root) {
-        Ok(parsed) => parsed,
-        Err(error) => {
-            eprintln!("invalid model outcome input: {error}");
-            process::exit(2);
-        }
-    };
+            Ok(parsed) => parsed,
+            Err(error) => {
+                eprintln!("invalid model outcome input: {error}");
+                process::exit(2);
+            }
+        };
     let scores = match score_model_ensemble(&models, cvar_alpha) {
         Ok(scores) => scores,
         Err(errors) => {
@@ -366,7 +366,8 @@ mod tests {
     fn scores_committed_two_model_synthetic_example() {
         let input: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("committed example should parse");
-        let (models, alpha, _, practical_margin) = parse_input(&input).expect("valid synthetic model set");
+        let (models, alpha, _, _practical_margin) =
+            parse_input(&input).expect("valid synthetic model set");
         let scores = score_model_ensemble(&models, alpha).expect("valid synthetic losses");
         let graze = scores
             .iter()
@@ -393,6 +394,10 @@ mod tests {
         );
         assert_eq!(schema["properties"]["models"]["minItems"].as_u64(), Some(1));
         assert_eq!(
+            schema["properties"]["practical_loss_difference_margin"]["minimum"].as_f64(),
+            Some(0.0)
+        );
+        assert_eq!(
             schema["properties"]["model_weight_intervals"]["items"]["required"],
             json!(["model_id", "lower", "upper"])
         );
@@ -407,7 +412,8 @@ mod tests {
     fn risk_report_is_bound_to_input_and_matches_report_contract() {
         let root: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
-        let (models, alpha, intervals, practical_margin) = parse_input(&root).expect("input should parse");
+        let (models, alpha, intervals, practical_margin) =
+            parse_input(&root).expect("input should parse");
         let scores = score_model_ensemble(&models, alpha).expect("scores should be valid");
         let mut weight_sensitivity = Vec::new();
         for score in &scores {
@@ -444,6 +450,7 @@ mod tests {
             Some(sha256_hex(SYNTHETIC_EXAMPLE.as_bytes()).as_str())
         );
         assert_eq!(report["model_count"].as_u64(), Some(2));
+        assert_eq!(report["practical_loss_difference_margin"].as_f64(), Some(practical_margin));
         assert_eq!(report["model_weights"][0]["weight"].as_f64(), Some(0.6));
         assert_eq!(report["model_ids"].as_array().map(Vec::len), Some(2));
         assert_eq!(
@@ -592,6 +599,18 @@ mod tests {
             parse_input(&input)
                 .expect_err("missing scenario must fail")
                 .contains("scenario")
+        );
+    }
+
+    #[test]
+    fn rejects_negative_practical_loss_difference_margin() {
+        let mut input: Value =
+            serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
+        input["practical_loss_difference_margin"] = json!(-0.01);
+        assert!(
+            parse_input(&input)
+                .expect_err("negative practical margin must fail")
+                .contains("practical_loss_difference_margin")
         );
     }
 
