@@ -19,6 +19,7 @@ A calibration update can change interval width. It cannot clear the admission la
 - Calibration uses a separate fixed 64-item synthetic residual sample.
 - SHA-256 digests bind the serialized calibration set and generated stream corpus in the receipt.
 - A held-out stream is never used to select a policy or tune its parameters.
+- Nine policies are summarized across both splits and all 12 scenario families (216 split × family × policy cells).
 
 These counts establish repeatability and test coverage, not statistical power for real mines or infrastructure.
 
@@ -65,7 +66,7 @@ The receipt is deterministically recomputable from source, fixed calibration val
 
 ## Reference attribution and external comparisons
 
-**Algorithm attribution:** ACI and COP update structures were derived from Junxi Wu’s MIT-licensed repository [creator-xi/Conformal-Optimistic-Prediction](https://github.com/creator-xi/Conformal-Optimistic-Prediction), especially its `core/methods.py` implementation of ACI, ACI (clipped), and COP. The repository’s MIT license must be retained with any substantial copied code; this crate currently re-expresses algorithm steps in Rust rather than copying the Python file. The adapters are explicitly adapted for this deterministic benchmark. See the ICLR paper and pinned source commit added in the next provenance update.
+**Algorithm attribution:** ACI and COP update structures were derived from Junxi Wu’s MIT-licensed repository [creator-xi/Conformal-Optimistic-Prediction](https://github.com/creator-xi/Conformal-Optimistic-Prediction), especially its `core/methods.py` implementation of ACI, ACI (clipped), and COP. The repository’s MIT license must be retained with any substantial copied code; this crate currently re-expresses algorithm steps in Rust rather than copying the Python file. The adapters are explicitly adapted for this deterministic benchmark. License and source attribution are recorded in [THIRD_PARTY_ADAPTIVE_CONFORMAL_ATTRIBUTION.md](THIRD_PARTY_ADAPTIVE_CONFORMAL_ATTRIBUTION.md); the upstream revision is pinned at [a41c0dcadc10979d8521ab9b5b8f3d460807d883](https://github.com/creator-xi/Conformal-Optimistic-Prediction/commit/a41c0dcadc10979d8521ab9b5b8f3d460807d883).
 
 Relevant reference directions:
 - **[Distribution-informed Online Conformal Prediction (ICLR 2026)](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5f8241131e6fd428aa49914da76b8ad0-Abstract-Conference.html):** a published approach for using estimated nonconformity-score distributions to reduce excessive interval width while addressing coverage under shift. A faithful, version-pinned implementation and its stated assumptions should be integrated as a distinct comparator, not approximated by the proxy here.
