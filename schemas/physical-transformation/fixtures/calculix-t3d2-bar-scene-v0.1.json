@@ -1,0 +1,17 @@
+{
+  "schema_version": "physical-scene-truss-v0.1",
+  "scene_id": "scene:ccx-t3d2-bar",
+  "coordinate_frame_id": "fixture:bar-global-x",
+  "nodes": [
+    { "node_id": "bar-end-a", "coordinates_m": [0.0, 0.0, 0.0] },
+    { "node_id": "bar-end-b", "coordinates_m": [1.0, 0.0, 0.0] }
+  ],
+  "elements": [
+    {
+      "element_id": "bar-001",
+      "element_type": "T3D2",
+      "node_ids": ["bar-end-a", "bar-end-b"],
+      "cross_section_area_m2": 0.0001
+    }
+  ]
+}
