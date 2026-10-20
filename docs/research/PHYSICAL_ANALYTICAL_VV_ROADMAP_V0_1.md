@@ -84,3 +84,19 @@ To claim superiority later, preregister a matched case list, inputs, reference o
 ## Non-goals
 
 No result from this ladder alone authorizes construction, demolition, machinery control, code compliance or an occupied-building safety decision. Real-world actions require fit-for-purpose engineering review and evidence matching the actual site and system.
+
+
+## Deterministic enclosure stress evidence
+
+The bounded input interval API has known-answer and endpoint-combination checks. The next stress layer adds a fixed-seed interior sample sweep over all three models: 4,096 parameter points per case (12,288 total) with signed load ranges that cross zero, plus a load-scaling metamorphic check for interval endpoints. These checks are useful for detecting implementation mistakes, but they do not prove interval soundness for every floating-point input. The soundness argument still depends on correct interval propagation, outward rounding, domain checks and independently derived endpoint oracles. Record sample count, exact source SHA, compiler/toolchain and any counterexamples in the receipt/review notes.
+
+### Benchmark comparison hierarchy
+
+| Level | Reference / method | What it can establish | What it cannot establish |
+|---|---|---|---|
+| Formula oracle | Closed-form axial bar and Euler-Bernoulli beam references | Equation implementation and units for named idealizations | General structural response or real specimen validity |
+| Independent benchmark catalog | [NAFEMS Standard Benchmarks](https://www.nafems.org/publications/resource_center/p18/) and [2026 SOFiSTiK verification cases](https://docs.sofistik.com/2026/en/verification/index.html) | Matched-case verification for selected solver features and reference outputs | A universal ranking from unrelated cases or different model fidelity |
+| Credibility framework | [ASME V&V 10](https://www.asme.org/codes-standards/vvuq-standards) and [NIST GCR 14-917-27](https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=915449) | A structured verification/validation/calibration/uncertainty process | Automatic certification or a numeric pass threshold for every application |
+| Experimental validation | Rights-cleared measurements with traceable geometry, material tests, loading, boundary conditions and calibration | Error within a stated specimen/test envelope | Unseen materials, geometries, environments, damage modes or structural forms |
+
+The practical competitive claim should be about evidence orchestration, honest abstention, reproducibility and uncertainty visibility—not that three closed-form equations outperform established FEA products. A superiority claim requires a pre-registered matched benchmark, equivalent inputs/model classes, fixed reference tolerances, recorded failures, and ideally independent reproduction.
