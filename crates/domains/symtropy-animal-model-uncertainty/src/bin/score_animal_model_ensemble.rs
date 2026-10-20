@@ -282,11 +282,15 @@ fn build_report(
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
     let Some(path) = arguments.next() else {
-        eprintln!("usage: score_animal_model_ensemble <outcomes.json> (options: --help, --example, --input-schema, --report-schema)");
+        eprintln!(
+            "usage: score_animal_model_ensemble <outcomes.json> (options: --help, --example, --input-schema, --report-schema)"
+        );
         process::exit(2);
     };
     if arguments.next().is_some() {
-        eprintln!("usage: score_animal_model_ensemble <outcomes.json> (options: --help, --example, --input-schema, --report-schema)");
+        eprintln!(
+            "usage: score_animal_model_ensemble <outcomes.json> (options: --help, --example, --input-schema, --report-schema)"
+        );
         process::exit(2);
     }
 
