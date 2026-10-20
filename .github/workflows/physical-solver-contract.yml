@@ -38,6 +38,7 @@ jobs:
           set -euo pipefail
           jq empty schemas/physical-transformation/solver-request-v0.1.schema.json
           jq empty schemas/physical-transformation/solver-receipt-v0.1.schema.json
+          jq empty schemas/physical-transformation/solver-validation-receipt-v0.1.schema.json
           jq empty schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json
           jq empty schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json
           jq empty schemas/physical-transformation/fixtures/unresolved-receipt-v0.1.json
@@ -52,6 +53,9 @@ jobs:
           jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
                  and .properties.schema_version.const == "physical-solver-receipt-v0.1"
                  and (.properties.status.enum | index("UNRESOLVED") != null)'             schemas/physical-transformation/solver-receipt-v0.1.schema.json
+          jq -e '.properties.request_validation.const == "PASS"
+                 and .properties.physical_result_status.const == "UNRESOLVED"
+                 and .properties.solver_invoked.const == false'             schemas/physical-transformation/solver-validation-receipt-v0.1.schema.json
           jq -e '.model_fidelity == "analytical_linear_elastic"
                  and .requested_physics == ["static_linear_elastic"]
                  and .units.length == "m"
