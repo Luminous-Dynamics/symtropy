@@ -17,7 +17,8 @@
     "scores",
     "weight_sensitivity",
     "action_preference",
-    "practical_loss_difference_margin"
+    "practical_loss_difference_margin",
+    "decision_qualification"
   ],
   "properties": {
     "schema_version": {
@@ -251,6 +252,128 @@
     "practical_loss_difference_margin": {
       "type": "number",
       "minimum": 0
+    },
+    "decision_qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "assessment_disposition",
+        "qualification",
+        "reason_codes",
+        "assessment_receipt_sha256",
+        "candidate_model_set_digest",
+        "challenge_family_manifest_sha256",
+        "source_commit",
+        "evaluator_version",
+        "scope",
+        "scope_statement",
+        "does_not_validate_empirical_biology"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "ANIMAL-DECISION-QUALIFICATION-V1"
+        },
+        "assessment_disposition": {
+          "enum": [
+            "qualified_within_challenge_scope",
+            "omission_detected",
+            "unresolved",
+            "incomplete",
+            "not_assessed"
+          ]
+        },
+        "qualification": {
+          "enum": [
+            "within_scope",
+            "blocked_by_omission",
+            "blocked_unresolved",
+            "blocked_incomplete",
+            "not_assessed"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "assessment_receipt_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate_model_set_digest": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "challenge_family_manifest_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_commit": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40,64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluator_version": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope_statement": {
+          "const": "Qualification applies only to the declared model registry and blinded challenge scope; it is not universal model completeness or empirical biological validation."
+        },
+        "does_not_validate_empirical_biology": {
+          "const": true
+        }
+      },
+      "$comment": "A `within_scope` qualification requires a typed assessment receipt whose model-registry digest and challenge-manifest digest match the expected digests in the decision input. A digest binds bytes but is not a digital signature. All other states preserve numeric within-model-set risk summaries while refusing to claim scope-qualified decision robustness."
     }
   },
   "$comment": "JSON Schema does not prove model_ids match every per_model_regret key, model_count matches model_ids.length, action coverage is complete, or risk metrics are mathematically correct. Semantic checks and the Rust scorer remain required. weight_sensitivity entries are optional in meaning (empty when no intervals are declared) and otherwise report extrema over the supplied bounded simplex; JSON Schema does not prove weights sum to one or validate optimality. action_preference reports paired difference extrema under one shared feasible weight vector; a ranking_can_flip result is stronger evidence of preference reversibility than overlap between independent action-loss envelopes. Empty when no intervals are supplied. Paired action-preference records include witness weight vectors for the minimum and maximum loss difference; validators should check each witness lies within the declared input intervals and sums to one. Pairwise preference is not an action recommendation: the explicit per-action unanimous-admissibility flags must be respected independently of loss ranking. practical_loss_difference_margin records the preregistered threshold used for qualitative action-preference classification and must be a finite non-negative value in the loss units declared by the decision objective. Qualitative stability uses practical_loss_difference_margin: strict preference means the full loss-difference range clears the margin; equivalent means the full range remains within plus/minus the margin; noninferiority means no plausible weighting is worse by more than the margin. These are decision thresholds, not statistical confidence statements."
