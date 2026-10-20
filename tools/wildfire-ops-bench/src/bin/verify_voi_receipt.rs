@@ -353,11 +353,36 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, source_commit: &str) -> Check<(
         let b2_receipt = row
             .get("B2_decision_aware_voi")
             .ok_or_else(|| format!("{at}: missing B2 section"))?;
-        check_optional_id(b1_receipt, "selected_observation_id", b1_id, &format!("{at}.B1"))?;
-        check_optional_id(b2_receipt, "selected_observation_id", b2_id, &format!("{at}.B2"))?;
-        check_bool(b1_receipt, "matches_oracle_expected_observation", b1_id == expected, &format!("{at}.B1"))?;
-        check_bool(b2_receipt, "matches_oracle_expected_observation", b2_id == expected, &format!("{at}.B2"))?;
-        check_number(row, "baseline_expected_cost_before_observation", before, &at)?;
+        check_optional_id(
+            b1_receipt,
+            "selected_observation_id",
+            b1_id,
+            &format!("{at}.B1"),
+        )?;
+        check_optional_id(
+            b2_receipt,
+            "selected_observation_id",
+            b2_id,
+            &format!("{at}.B2"),
+        )?;
+        check_bool(
+            b1_receipt,
+            "matches_oracle_expected_observation",
+            b1_id == expected,
+            &format!("{at}.B1"),
+        )?;
+        check_bool(
+            b2_receipt,
+            "matches_oracle_expected_observation",
+            b2_id == expected,
+            &format!("{at}.B2"),
+        )?;
+        check_number(
+            row,
+            "baseline_expected_cost_before_observation",
+            before,
+            &at,
+        )?;
         check_bool(b2_receipt, "abstained", b2.is_none(), &format!("{at}.B2"))?;
 
         match b1 {
@@ -365,30 +390,53 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, source_commit: &str) -> Check<(
                 let expected_after = b1_receipt
                     .get("expected_cost_after_observation")
                     .and_then(Value::as_f64)
-                    .ok_or_else(|| format!("{at}.B1.expected_cost_after_observation: expected number"))?;
+                    .ok_or_else(|| {
+                        format!("{at}.B1.expected_cost_after_observation: expected number")
+                    })?;
                 if (expected_after - score.after).abs() > EPSILON {
                     return Err(format!("{at}.B1 expected-after cost mismatch"));
                 }
                 b1_selected += 1;
             }
             None => {
-                if !b1_receipt.get("expected_cost_after_observation").is_some_and(Value::is_null) {
-                    return Err(format!("{at}.B1: expected null after-cost when no probe is selected"));
+                if !b1_receipt
+                    .get("expected_cost_after_observation")
+                    .is_some_and(Value::is_null)
+                {
+                    return Err(format!(
+                        "{at}.B1: expected null after-cost when no probe is selected"
+                    ));
                 }
             }
         }
         match b2 {
             Some(score) => {
-                check_number(b2_receipt, "expected_cost_after_observation", score.after, &format!("{at}.B2"))?;
-                check_number(b2_receipt, "net_value_of_information", score.net, &format!("{at}.B2"))?;
+                check_number(
+                    b2_receipt,
+                    "expected_cost_after_observation",
+                    score.after,
+                    &format!("{at}.B2"),
+                )?;
+                check_number(
+                    b2_receipt,
+                    "net_value_of_information",
+                    score.net,
+                    &format!("{at}.B2"),
+                )?;
                 if !score.eligible || score.net <= EPSILON {
-                    return Err(format!("{at}.B2 selected a late or non-positive-value probe"));
+                    return Err(format!(
+                        "{at}.B2 selected a late or non-positive-value probe"
+                    ));
                 }
                 b2_selected += 1;
             }
             None => {
-                if !b2_receipt.get("expected_cost_after_observation").is_some_and(Value::is_null)
-                    || !b2_receipt.get("net_value_of_information").is_some_and(Value::is_null)
+                if !b2_receipt
+                    .get("expected_cost_after_observation")
+                    .is_some_and(Value::is_null)
+                    || !b2_receipt
+                        .get("net_value_of_information")
+                        .is_some_and(Value::is_null)
                 {
                     return Err(format!("{at}.B2: expected null cost/value when abstaining"));
                 }
@@ -407,25 +455,70 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, source_commit: &str) -> Check<(
             }
             let candidate = candidate_rows
                 .iter()
-                .find(|candidate| candidate.get("observation_id").and_then(Value::as_str) == Some(score.id.as_str()))
+                .find(|candidate| {
+                    candidate.get("observation_id").and_then(Value::as_str)
+                        == Some(score.id.as_str())
+                })
                 .ok_or_else(|| format!("{at}: receipt omitted observation {}", score.id))?;
             if candidate.get("road_id").and_then(Value::as_str) != Some(score.road_id.as_str())
-                || candidate.get("available_at_step").and_then(Value::as_u64) != Some(score.available_at)
+                || candidate.get("available_at_step").and_then(Value::as_u64)
+                    != Some(score.available_at)
             {
-                return Err(format!("{at}: road or availability changed for {}", score.id));
+                return Err(format!(
+                    "{at}: road or availability changed for {}",
+                    score.id
+                ));
             }
-            check_number(candidate, "entropy_nats", score.entropy, &format!("{at}.{}", score.id))?;
-            check_number(candidate, "expected_cost_after_observation", score.after, &format!("{at}.{}", score.id))?;
-            check_number(candidate, "gross_expected_cost_reduction", score.gross, &format!("{at}.{}", score.id))?;
-            check_number(candidate, "inspection_cost", score.inspection_cost, &format!("{at}.{}", score.id))?;
-            check_number(candidate, "net_value_of_information", score.net, &format!("{at}.{}", score.id))?;
-            check_bool(candidate, "eligible_by_deadline", score.eligible, &format!("{at}.{}", score.id))?;
+            check_number(
+                candidate,
+                "entropy_nats",
+                score.entropy,
+                &format!("{at}.{}", score.id),
+            )?;
+            check_number(
+                candidate,
+                "expected_cost_after_observation",
+                score.after,
+                &format!("{at}.{}", score.id),
+            )?;
+            check_number(
+                candidate,
+                "gross_expected_cost_reduction",
+                score.gross,
+                &format!("{at}.{}", score.id),
+            )?;
+            check_number(
+                candidate,
+                "inspection_cost",
+                score.inspection_cost,
+                &format!("{at}.{}", score.id),
+            )?;
+            check_number(
+                candidate,
+                "net_value_of_information",
+                score.net,
+                &format!("{at}.{}", score.id),
+            )?;
+            check_bool(
+                candidate,
+                "eligible_by_deadline",
+                score.eligible,
+                &format!("{at}.{}", score.id),
+            )?;
             let reason = candidate.get("rejection_reason");
-            if !score.eligible && reason.and_then(Value::as_str) != Some("result_after_decision_deadline") {
-                return Err(format!("{at}: late observation {} lacks rejection reason", score.id));
+            if !score.eligible
+                && reason.and_then(Value::as_str) != Some("result_after_decision_deadline")
+            {
+                return Err(format!(
+                    "{at}: late observation {} lacks rejection reason",
+                    score.id
+                ));
             }
             if score.eligible && !reason.is_some_and(Value::is_null) {
-                return Err(format!("{at}: eligible observation {} has rejection reason", score.id));
+                return Err(format!(
+                    "{at}: eligible observation {} has rejection reason",
+                    score.id
+                ));
             }
         }
         let late_count = scores.iter().filter(|score| !score.eligible).count();
@@ -451,12 +544,27 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, source_commit: &str) -> Check<(
     let fields = [
         ("case_count", CASE_IDS.len()),
         ("B1_entropy_only.selected_count", b1_selected),
-        ("B1_entropy_only.expected_observation_match_count", b1_matches),
-        ("B1_entropy_only.expected_observation_mismatch_count", CASE_IDS.len() - b1_matches),
+        (
+            "B1_entropy_only.expected_observation_match_count",
+            b1_matches,
+        ),
+        (
+            "B1_entropy_only.expected_observation_mismatch_count",
+            CASE_IDS.len() - b1_matches,
+        ),
         ("B2_decision_aware_voi.selected_count", b2_selected),
-        ("B2_decision_aware_voi.abstention_count", CASE_IDS.len() - b2_selected),
-        ("B2_decision_aware_voi.expected_observation_match_count", b2_matches),
-        ("B2_decision_aware_voi.expected_observation_mismatch_count", CASE_IDS.len() - b2_matches),
+        (
+            "B2_decision_aware_voi.abstention_count",
+            CASE_IDS.len() - b2_selected,
+        ),
+        (
+            "B2_decision_aware_voi.expected_observation_match_count",
+            b2_matches,
+        ),
+        (
+            "B2_decision_aware_voi.expected_observation_mismatch_count",
+            CASE_IDS.len() - b2_matches,
+        ),
         ("B2_decision_aware_voi.deadline_violation_count", b2_late),
     ];
     for (path, expected) in fields {
