@@ -38,6 +38,8 @@ pub struct QuantityRate {
     pub unit_rate: f64,
     /// Must identify currency, minor-unit denomination, price year and region/basis.
     pub currency_basis_id: String,
+    /// Number of decimal digits in one major currency unit (e.g. 2 for ZAR cents).
+    pub minor_unit_exponent: u8,
     /// Immutable identity for the rate-card/method revision used.
     pub rate_card_ref: String,
 }
@@ -61,6 +63,8 @@ pub struct FinancialTransaction {
     /// The currency_basis_id must define the minor-unit scale (for example, ZAR cents).
     pub amount_minor_units: i64,
     pub currency_basis_id: String,
+    /// Must agree with this basis ID everywhere it appears in the ledger.
+    pub minor_unit_exponent: u8,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -103,6 +107,7 @@ struct RateCardGroupKey {
     configuration_sha256: String,
     stage: Stage,
     currency_basis_id: String,
+    minor_unit_exponent: u8,
     rate_card_ref: String,
 }
 
@@ -111,6 +116,7 @@ struct CurrencyGroupKey {
     build_id: String,
     configuration_sha256: String,
     currency_basis_id: String,
+    minor_unit_exponent: u8,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -143,6 +149,7 @@ pub struct RateCardCostTotal {
     pub configuration_sha256: String,
     pub stage: Stage,
     pub currency_basis_id: String,
+    pub minor_unit_exponent: u8,
     pub rate_card_ref: String,
     /// Quantity × rate estimate, never an invoice actual.
     pub amount: f64,
@@ -153,6 +160,7 @@ pub struct FinancialActualTotal {
     pub build_id: String,
     pub configuration_sha256: String,
     pub currency_basis_id: String,
+    pub minor_unit_exponent: u8,
     /// Exact sum of observed direct financial transactions in minor currency units.
     pub amount_minor_units: i64,
 }
@@ -234,6 +242,9 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
                 if !is_nonempty(&rate.currency_basis_id) {
                     errors.push(format!("{label}: rated quantity has no currency_basis_id"));
                 }
+                if rate.minor_unit_exponent > 6 {
+                    errors.push(format!("{label}: minor_unit_exponent must be within 0..=6"));
+                }
                 if !is_nonempty(&rate.rate_card_ref) {
                     errors.push(format!("{label}: rated quantity has no rate_card_ref"));
                 }
@@ -248,6 +259,9 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
             }
             if !is_nonempty(&transaction.currency_basis_id) {
                 errors.push(format!("{label}: financial actual has no currency_basis_id"));
+            }
+            if transaction.minor_unit_exponent > 6 {
+                errors.push(format!("{label}: minor_unit_exponent must be within 0..=6"));
             }
         }
     }
@@ -439,6 +453,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                     build_id: event.build_id.clone(),
                     configuration_sha256: event.configuration_sha256.clone(),
                     currency_basis_id: transaction.currency_basis_id.clone(),
+                    minor_unit_exponent: transaction.minor_unit_exponent,
                 };
                 let prior = financials.get(&key).copied().unwrap_or(0_i64);
                 let sum = prior.checked_add(transaction.amount_minor_units).ok_or_else(|| {
@@ -487,6 +502,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
             configuration_sha256: key.configuration_sha256,
             stage: key.stage,
             currency_basis_id: key.currency_basis_id,
+            minor_unit_exponent: key.minor_unit_exponent,
             rate_card_ref: key.rate_card_ref,
             amount,
         })
@@ -498,6 +514,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
             build_id: key.build_id,
             configuration_sha256: key.configuration_sha256,
             currency_basis_id: key.currency_basis_id,
+            minor_unit_exponent: key.minor_unit_exponent,
             amount_minor_units: amount,
         })
         .collect();
@@ -559,6 +576,7 @@ mod tests {
                 transaction_ref: reference.to_owned(),
                 amount_minor_units,
                 currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
+                minor_unit_exponent: 2,
             }),
         }
     }
@@ -567,6 +585,7 @@ mod tests {
         QuantityRate {
             unit_rate: 10_000.0,
             currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
+            minor_unit_exponent: 2,
             rate_card_ref: "rate-card-v1".to_owned(),
         }
     }
