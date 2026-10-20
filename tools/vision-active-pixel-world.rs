@@ -132,8 +132,8 @@ impl HiddenWorld {
             SceneFamily::HeldOut => 13 + usize::from(unit_milli(exogenous_seed, 0x5441_5247_4554_5901) % 7),
         };
         let exposure = match family {
-            SceneFamily::Development => i16::from(unit_milli(exogenous_seed, 0x4558_504F_5355_5245) % 9) - 4,
-            SceneFamily::HeldOut => i16::from(unit_milli(exogenous_seed, 0x4558_504F_5355_5245) % 41) - 20,
+            SceneFamily::Development => (unit_milli(exogenous_seed, 0x4558_504F_5355_5245) % 9) as i16 - 4,
+            SceneFamily::HeldOut => (unit_milli(exogenous_seed, 0x4558_504F_5355_5245) % 41) as i16 - 20,
         };
         Self {
             exogenous_seed,
