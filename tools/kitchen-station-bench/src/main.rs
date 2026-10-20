@@ -14,6 +14,7 @@ struct Contracts {
     candidate_ids: BTreeSet<String>,
     scenario_metrics: BTreeMap<String, BTreeSet<String>>,
     metric_ids: BTreeSet<String>,
+    metric_unit_options: BTreeMap<String, BTreeSet<String>>,
     contract_digests: BTreeMap<String, String>,
 }
 
@@ -111,12 +112,22 @@ fn load_contracts(dir: &Path) -> Check<Contracts> {
         if !candidate_ids.insert(id.clone()) { return Err(format!("duplicate candidate ID {id}")); }
     }
     let metric_ids = registry_map.keys().cloned().collect::<BTreeSet<_>>();
+    let mut metric_unit_options = BTreeMap::new();
+    for (id, metric) in registry_map {
+        let options = metric.get("unit_options").and_then(Value::as_array)
+            .ok_or_else(|| format!("metric {id} lacks machine-readable unit_options"))?
+            .iter().map(|v| v.as_str().map(str::to_owned)
+                .ok_or_else(|| format!("metric {id} unit_options must contain strings")))
+            .collect::<Check<BTreeSet<_>>>()?;
+        if options.is_empty() { return Err(format!("metric {id} has no unit options")); }
+        metric_unit_options.insert(id.clone(), options);
+    }
     for (scenario, metrics) in &scenario_metrics {
         for metric in metrics {
             if !metric_ids.contains(metric) { return Err(format!("scenario {scenario} has unregistered metric {metric}")); }
         }
     }
-    Ok(Contracts { candidate_ids, scenario_metrics, metric_ids, contract_digests })
+    Ok(Contracts { candidate_ids, scenario_metrics, metric_ids, metric_unit_options, contract_digests })
 }
 
 fn artifact_is_remote(uri: &str) -> bool {
@@ -183,10 +194,16 @@ fn validate_metric(v: &Value, at: &str, contracts: &Contracts, records_dir: &Pat
     reject_unknown_keys(v, KEYS, at, errors);
     let id = match req_text(v, "metric_id", at) { Ok(x) => x, Err(e) => { errors.push(e); return; } };
     if !contracts.metric_ids.contains(&id) { errors.push(format!("{at}: unregistered metric ID {id}")); }
-    match req_text(v, "unit", at) {
-        Ok(s) if !s.trim().is_empty() => {},
-        Ok(_) => errors.push(format!("{at}: unit is empty")),
-        Err(e) => errors.push(e)
+    let unit = match req_text(v, "unit", at) {
+        Ok(s) if !s.trim().is_empty() => s,
+        Ok(_) => { errors.push(format!("{at}: unit is empty")); return; },
+        Err(e) => { errors.push(e); return; }
+    };
+    match contracts.metric_unit_options.get(&id) {
+        Some(options) if options.contains("protocol-defined") => {},
+        Some(options) if options.contains(&unit) => {},
+        Some(options) => errors.push(format!("{at}: unit {unit} is not one of registered options {options:?}")),
+        None => errors.push(format!("{at}: no unit contract registered for metric {id}"))
     }
     let status = match req_text(v, "metric_status", at) { Ok(x) => x, Err(e) => { errors.push(e); return; } };
     match status.as_str() {
@@ -694,6 +711,10 @@ mod tests {
             candidate_ids:["REF-0","P1-DRAINBACK"].into_iter().map(str::to_owned).collect(),
             scenario_metrics:[("SINK-TEST-001".into(),["water_l","cleaning_endpoint"].into_iter().map(str::to_owned).collect())].into_iter().collect(),
             metric_ids:["water_l","cleaning_endpoint"].into_iter().map(str::to_owned).collect(),
+            metric_unit_options:[
+                ("water_l".to_owned(), ["L/task".to_owned()].into_iter().collect()),
+                ("cleaning_endpoint".to_owned(), ["1".to_owned()].into_iter().collect())
+            ].into_iter().collect(),
             contract_digests:BTreeMap::new()
         }
     }
@@ -736,6 +757,8 @@ mod tests {
         assert!(loaded.scenario_metrics.len() >= 13);
         assert!(loaded.candidate_ids.len() >= 8);
         assert!(loaded.metric_ids.len() >= 67);
+        assert_eq!(loaded.metric_unit_options.len(), loaded.metric_ids.len());
+        assert!(loaded.metric_unit_options.values().all(|opts| !opts.is_empty()));
         assert_eq!(loaded.contract_digests.len(), 4);
         assert!(loaded.contract_digests.values().all(|h| valid_sha256(h)));
         assert!(loaded.scenario_metrics.contains_key("SINK-PRERINSE-FORCE-013"));
@@ -749,6 +772,14 @@ mod tests {
         r["metrics"][1]["value"] = Value::Null;
         r["metrics"][1]["status_reason"] = json!("endpoint measurement unavailable");
         assert!(!physically_eligible(&r, &contracts()));
+    }
+
+    #[test]
+    fn rejects_unit_not_allowed_by_metric_registry() {
+        let mut r = record();
+        r["metrics"][0]["unit"] = json!("bananas");
+        let errors = validate_record(&r, "fixture", Path::new("."), &contracts());
+        assert!(errors.iter().any(|e| e.contains("unit bananas is not one of registered options")));
     }
 
 }
