@@ -1037,6 +1037,7 @@ mod randomized_timing {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum TimedPolicy {
         NoMemory,
+        PassiveNoView,
         LastObservation,
         BoundedFifo,
         ConfidenceGated,
@@ -1046,8 +1047,9 @@ mod randomized_timing {
     }
 
     impl TimedPolicy {
-        const ALL: [Self; 7] = [
+        const ALL: [Self; 8] = [
             Self::NoMemory,
+            Self::PassiveNoView,
             Self::LastObservation,
             Self::BoundedFifo,
             Self::ConfidenceGated,
@@ -1058,7 +1060,8 @@ mod randomized_timing {
 
         fn name(self) -> &'static str {
             match self {
-                Self::NoMemory => "no_memory",
+                Self::NoMemory => "reactive_view_no_memory",
+                Self::PassiveNoView => "passive_no_view",
                 Self::LastObservation => "last_observation",
                 Self::BoundedFifo => "bounded_fifo",
                 Self::ConfidenceGated => "confidence_gated",
@@ -1070,7 +1073,7 @@ mod randomized_timing {
 
         fn memory_policy(self) -> Policy {
             match self {
-                Self::NoMemory => Policy::NoMemory,
+                Self::NoMemory | Self::PassiveNoView => Policy::NoMemory,
                 Self::LastObservation => Policy::LastObservation,
                 Self::BoundedFifo | Self::FixedSweep => Policy::BoundedFifo,
                 Self::ConfidenceGated => Policy::ConfidenceGated,
@@ -1081,6 +1084,7 @@ mod randomized_timing {
 
         fn propose(self, frame: &RgbFrame, attempted: bool) -> Action {
             match self {
+                Self::PassiveNoView => Action::Wait,
                 // The fixed-sweep baseline acts at two predeclared ticks when
                 // possible, rather than reacting to pixels. A shared one-view
                 // budget makes this a fair fixed schedule, not free scanning.
@@ -1468,6 +1472,15 @@ mod randomized_timing {
             assert!(!result.completed);
             assert!(!result.fresh_view_evidence);
             assert!(result.view_returned_no_fresh_evidence);
+        }
+
+        #[test]
+        fn passive_no_view_baseline_never_proposes_sensing() {
+            let (world, _) = paired(0x0BADC0DE, SceneFamily::HeldOut);
+            for tick in 0..=HORIZON {
+                let frame = world.frame(tick, false, None);
+                assert_eq!(TimedPolicy::PassiveNoView.propose(&frame, false), Action::Wait);
+            }
         }
 
         #[test]
