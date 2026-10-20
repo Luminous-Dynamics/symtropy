@@ -54,9 +54,7 @@ pub fn field_error_metrics(
     let mut signed_sum = 0.0;
     let mut maximum_absolute_error: f64 = 0.0;
 
-    for (index, (actual_value, expected_value)) in
-        actual.iter().zip(expected.iter()).enumerate()
-    {
+    for (index, (actual_value, expected_value)) in actual.iter().zip(expected.iter()).enumerate() {
         if !actual_value.is_finite() || !expected_value.is_finite() {
             return Err(MetricError::NonFiniteValue { index });
         }
