@@ -256,7 +256,7 @@ fn main() {
         Workload::DenseFootprintOverlap,
     ];
     for workload in workloads {
-        for (item_count, iterations) in [(25, 40), (100, 30), (1_000, 15), (10_000, 5)] {
+        for (item_count, iterations) in [(25, 40), (100, 30), (1_000, 15), (10_000, 1)] {
             run_workload(item_count, iterations, workload);
         }
     }
