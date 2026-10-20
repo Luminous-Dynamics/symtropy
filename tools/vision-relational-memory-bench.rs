@@ -819,6 +819,26 @@ fn report() {
             }
         }
 
+        // A preregistered direct paired contrast for the new policy: each
+        // policy's deltas share the same per-episode FIFO loss, so subtracting
+        // them cancels FIFO and yields gap-aware minus naive-hazard loss.
+        let primary_capacity_index = CAPS.iter().position(|cap| *cap == 3).expect("capacity 3 is declared");
+        let hazard_index = Kind::ALL.iter().position(|kind| *kind == Kind::QueryKeyedHazardAware).expect("hazard policy is declared");
+        let gap_index = Kind::ALL.iter().position(|kind| *kind == Kind::QueryKeyedGapAware).expect("gap-aware policy is declared");
+        let hazard_cell = &cells[hazard_index * CAPS.len() + primary_capacity_index];
+        let gap_cell = &cells[gap_index * CAPS.len() + primary_capacity_index];
+        let paired_deltas: Vec<f64> = gap_cell.delta_vs_fifo.iter()
+            .zip(hazard_cell.delta_vs_fifo.iter())
+            .map(|(gap_delta, hazard_delta)| gap_delta - hazard_delta)
+            .collect();
+        let paired_delta = paired_deltas.iter().sum::<f64>() / paired_deltas.len().max(1) as f64;
+        let paired_seed = mix64(ROOT_SEED ^ 0x5041_4952_5749_5345
+            ^ match family { Family::Development => 0x4445_56, Family::HeldOut => 0x4845_4C44 });
+        let (paired_lo, paired_hi) = bootstrap_ci(&paired_deltas, paired_seed);
+        println!("PAIRWISE\\tfamily\\tcontrast\\tepisodes\\tdelta_loss_a_minus_b\\tbootstrap95_lo\\tbootstrap95_hi");
+        println!("PAIRWISE\\t{}\\tgap_aware_minus_hazard_aware\\t{}\\t{:.4}\\t{:.4}\\t{:.4}",
+            family.name(), paired_deltas.len(), paired_delta, paired_lo, paired_hi);
+
         println!("VIS-MEM-002 evaluator-only failure-mode strata (capacity=3; groups may overlap)");
         println!("STRATUM\tfamily\tmode\tlevel\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
         for (stratum_index, stratum_name) in STRATA_NAMES.iter().copied().enumerate() {
