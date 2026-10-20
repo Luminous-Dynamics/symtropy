@@ -320,14 +320,7 @@ fn main() {
 }
 
 fn validate_fraction(name: &str, value: f64, allow_one: bool) -> Result<(), String> {
-    if !value.is_finite()
-        || value < 0.0
-        || if allow_one {
-            value > 1.0
-        } else {
-            value >= 1.0
-        }
-    {
+    if !value.is_finite() || value < 0.0 || if allow_one { value > 1.0 } else { value >= 1.0 } {
         return Err(format!("{name}_must_be_a_valid_fraction"));
     }
     Ok(())
@@ -389,7 +382,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             return Err("station_ids_must_be_unique_and_station_text_nonempty".into());
         }
         if station.servers == 0 || station.max_rework_attempts > 10 {
-            return Err(format!("station_{}_server_or_rework_count_invalid", station.station_id));
+            return Err(format!(
+                "station_{}_server_or_rework_count_invalid",
+                station.station_id
+            ));
         }
         validate_positive_finite("mean_cycle_seconds", station.mean_cycle_seconds)?;
         validate_fraction(
@@ -545,8 +541,9 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
                         as usize,
                 });
-                state.supplier_backlog_peak =
-                    state.supplier_backlog_peak.max(state.supplier_backlog.len());
+                state.supplier_backlog_peak = state
+                    .supplier_backlog_peak
+                    .max(state.supplier_backlog.len());
                 refill_source_buffer(&mut state, catalog);
                 let delta = state.rng.around(
                     catalog.mean_supply_interarrival_seconds,
@@ -623,7 +620,10 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             after_station_id: catalog.stations[index].station_id.clone(),
             capacity_units: *capacity,
             peak_occupancy_units: state.buffer_peak_occupancy[index],
-            average_occupancy_units: safe_ratio(state.buffer_wip_area[index], measured_seconds as f64),
+            average_occupancy_units: safe_ratio(
+                state.buffer_wip_area[index],
+                measured_seconds as f64,
+            ),
         })
         .collect();
     let all_buffers_respected_capacity = !state.buffer_capacity_violation
@@ -631,15 +631,15 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             .iter()
             .all(|buffer| buffer.peak_occupancy_units <= buffer.capacity_units)
         && state.source_buffer_peak <= catalog.source_buffer_capacity;
-    let output_never_exceeds_released_input =
-        state.good_units_total <= state.released_jobs_total;
+    let output_never_exceeds_released_input = state.good_units_total <= state.released_jobs_total;
     let baseline_id = match extra_server_at {
         None => "baseline".to_string(),
         Some(index) => format!("add-one-server-{}", catalog.stations[index].station_id),
     };
     Ok(ScenarioResult {
         scenario_id: baseline_id,
-        intervention_station_id: extra_server_at.map(|index| catalog.stations[index].station_id.clone()),
+        intervention_station_id: extra_server_at
+            .map(|index| catalog.stations[index].station_id.clone()),
         added_servers: if extra_server_at.is_some() { 1 } else { 0 },
         released_jobs_total: state.released_jobs_total,
         good_units_total: state.good_units_total,
@@ -789,19 +789,17 @@ fn complete_operation(
         return Ok(());
     }
 
-    let machine_fails =
-        machine_fails_after_job(state, station, service_seconds_for_job);
+    let machine_fails = machine_fails_after_job(state, station, service_seconds_for_job);
     if passed {
         if state.now >= catalog.warmup_seconds {
             state.stations[station_index]
                 .metrics
                 .successful_attempts_after_warmup += 1;
         }
-        state.stations[station_index].servers[server_index].state =
-            ServerState::WaitingOutput {
-                job,
-                machine_fails_after_release: machine_fails,
-            };
+        state.stations[station_index].servers[server_index].state = ServerState::WaitingOutput {
+            job,
+            machine_fails_after_release: machine_fails,
+        };
     } else {
         state.scrapped_jobs_total += 1;
         if state.now >= catalog.warmup_seconds {
@@ -809,13 +807,7 @@ fn complete_operation(
                 .metrics
                 .scrapped_jobs_after_warmup += 1;
         }
-        release_server_after_operation(
-            state,
-            catalog,
-            station_index,
-            server_index,
-            machine_fails,
-        );
+        release_server_after_operation(state, catalog, station_index, server_index, machine_fails);
     }
     Ok(())
 }
@@ -1043,6 +1035,11 @@ mod tests {
         catalog.product_quality_release_gate = GateStatus::Passed;
         let report = evaluate_catalog(&catalog).expect("simulation");
         assert!(!report.release_ready);
-        assert!(report.scenarios.iter().all(|scenario| !scenario.release_ready));
+        assert!(
+            report
+                .scenarios
+                .iter()
+                .all(|scenario| !scenario.release_ready)
+        );
     }
 }
