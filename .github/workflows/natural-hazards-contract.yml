@@ -1,0 +1,39 @@
+name: Natural Hazards Contract
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-natural-hazards/**"
+      - ".github/workflows/natural-hazards-contract.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: natural-hazards-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Qualify natural-hazard contracts (exact checkout)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --package symtropy-natural-hazards -- --check
+
+      - name: Run focused unit tests
+        run: cargo test --locked -p symtropy-natural-hazards
+
+      - name: Run focused Clippy
+        run: cargo clippy --locked -p symtropy-natural-hazards --all-targets -- -D warnings
