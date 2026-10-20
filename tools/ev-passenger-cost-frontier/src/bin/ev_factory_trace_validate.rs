@@ -502,9 +502,9 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                         event.event_id
                     ));
                 }
-                let index = *station_index
-                    .get(station_id)
-                    .ok_or_else(|| format!("event_{}_references_unknown_station", event.event_id))?;
+                let index = *station_index.get(station_id).ok_or_else(|| {
+                    format!("event_{}_references_unknown_station", event.event_id)
+                })?;
                 job.in_process = None;
                 job.quality_pending = true;
                 station_completed[index] += 1;
@@ -512,9 +512,9 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
             EventKind::QualityPass => {
                 let job_id = event.job_id.as_ref().expect("shape validated");
                 let station_id = event.station_id.as_ref().expect("shape validated");
-                let index = *station_index
-                    .get(station_id)
-                    .ok_or_else(|| format!("event_{}_references_unknown_station", event.event_id))?;
+                let index = *station_index.get(station_id).ok_or_else(|| {
+                    format!("event_{}_references_unknown_station", event.event_id)
+                })?;
                 let job = job_states
                     .get_mut(job_id)
                     .ok_or_else(|| format!("event_{}_job_not_released", event.event_id))?;
@@ -536,14 +536,17 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
             EventKind::QualityFail => {
                 let job_id = event.job_id.as_ref().expect("shape validated");
                 let station_id = event.station_id.as_ref().expect("shape validated");
-                let index = *station_index
-                    .get(station_id)
-                    .ok_or_else(|| format!("event_{}_references_unknown_station", event.event_id))?;
+                let index = *station_index.get(station_id).ok_or_else(|| {
+                    format!("event_{}_references_unknown_station", event.event_id)
+                })?;
                 let job = job_states
                     .get_mut(job_id)
                     .ok_or_else(|| format!("event_{}_job_not_released", event.event_id))?;
                 if !job.quality_pending || job.station_index != index {
-                    return Err(format!("event_{}_quality_without_matching_station_end", event.event_id));
+                    return Err(format!(
+                        "event_{}_quality_without_matching_station_end",
+                        event.event_id
+                    ));
                 }
                 job.quality_pending = false;
                 if job.attempts_at_station <= trace.stations[index].max_rework_attempts {
@@ -622,7 +625,10 @@ fn validate_trace(trace: &Trace) -> Result<TraceReport, String> {
                 let station_id = event.station_id.as_ref().expect("shape validated");
                 let resource_id = event.resource_id.as_ref().expect("shape validated");
                 if resource_station.get(resource_id) != Some(station_id) {
-                    return Err(format!("event_{}_resource_station_mismatch", event.event_id));
+                    return Err(format!(
+                        "event_{}_resource_station_mismatch",
+                        event.event_id
+                    ));
                 }
                 if resource_active.contains_key(resource_id) {
                     return Err(format!(
