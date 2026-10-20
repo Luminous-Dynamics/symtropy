@@ -76,6 +76,7 @@ struct Report {
     schema_version: String,
     benchmark_id: String,
     seed: u64,
+    random_stream_policy: String,
     scenario_count: usize,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
@@ -192,7 +193,7 @@ struct SimState {
     now: u64,
     next_event_sequence: u64,
     events: BinaryHeap<TimedEvent>,
-    rng: DeterministicRng,
+    supplier_rng: DeterministicRng,
     stations: Vec<StationRuntime>,
     buffers: Vec<VecDeque<Job>>,
     buffer_peak_occupancy: Vec<usize>,
@@ -278,6 +279,34 @@ impl DeterministicRng {
     fn around(&mut self, mean: f64, variability: f64) -> u64 {
         let factor = 1.0 + ((self.unit() * 2.0 - 1.0) * variability);
         (mean * factor).round().max(1.0) as u64
+    }
+
+    fn for_key(seed: u64, domain: &str, station_id: &str, job_id: u64, attempt: u32) -> Self {
+        // Stable FNV-1a over explicit typed fields; don't rely on DefaultHasher
+        // as a cross-version serialization contract.
+        let mut hash = 0xcbf29ce484222325_u64;
+        fn absorb(hash: &mut u64, bytes: &[u8]) {
+            for byte in bytes {
+                *hash ^= u64::from(*byte);
+                *hash = hash.wrapping_mul(0x100000001b3);
+            }
+        }
+        let seed_bytes = seed.to_le_bytes();
+        let domain_bytes = domain.as_bytes();
+        let station_bytes = station_id.as_bytes();
+        let job_bytes = job_id.to_le_bytes();
+        let attempt_bytes = attempt.to_le_bytes();
+        for part in [
+            seed_bytes.as_slice(),
+            domain_bytes,
+            station_bytes,
+            job_bytes.as_slice(),
+            attempt_bytes.as_slice(),
+        ] {
+            absorb(&mut hash, &(part.len() as u64).to_le_bytes());
+            absorb(&mut hash, part);
+        }
+        Self::new(hash)
     }
 }
 
@@ -456,6 +485,8 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         schema_version: catalog.schema_version.clone(),
         benchmark_id: catalog.benchmark_id.clone(),
         seed: catalog.seed,
+        random_stream_policy:
+            "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
         scenario_count: scenarios.len(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
@@ -500,7 +531,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         now: 0,
         next_event_sequence: 0,
         events: BinaryHeap::new(),
-        rng: DeterministicRng::new(catalog.seed),
+        supplier_rng: DeterministicRng::new(catalog.seed ^ 0x535550504c595f31),
         stations: station_runtime,
         buffers: catalog
             .buffer_capacities
@@ -545,7 +576,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     .supplier_backlog_peak
                     .max(state.supplier_backlog.len());
                 refill_source_buffer(&mut state, catalog);
-                let delta = state.rng.around(
+                let delta = state.supplier_rng.around(
                     catalog.mean_supply_interarrival_seconds,
                     catalog.supply_interarrival_variability_fraction,
                 );
@@ -726,17 +757,38 @@ fn refill_source_buffer(state: &mut SimState, catalog: &Catalog) {
     state.source_buffer_peak = state.source_buffer_peak.max(state.source_buffer.len());
 }
 
-fn sample_service_seconds(state: &mut SimState, station: &Station) -> u64 {
-    state.rng.around(
+fn sample_service_seconds(catalog: &Catalog, station: &Station, job_id: u64, attempt: u32) -> u64 {
+    DeterministicRng::for_key(
+        catalog.seed,
+        "service-time",
+        &station.station_id,
+        job_id,
+        attempt,
+    )
+    .around(
         station.mean_cycle_seconds,
         station.cycle_time_variability_fraction,
     )
 }
 
-fn machine_fails_after_job(state: &mut SimState, station: &Station, service_seconds: u64) -> bool {
+fn machine_fails_after_job(
+    catalog: &Catalog,
+    station: &Station,
+    job_id: u64,
+    attempt: u32,
+    service_seconds: u64,
+) -> bool {
     let probability =
         1.0 - (-(service_seconds as f64) / station.mean_time_between_failures_seconds).exp();
-    state.rng.unit() < probability
+    DeterministicRng::for_key(
+        catalog.seed,
+        "machine-failure",
+        &station.station_id,
+        job_id,
+        attempt,
+    )
+    .unit()
+        < probability
 }
 
 fn complete_operation(
@@ -763,9 +815,17 @@ fn complete_operation(
     };
 
     let station = &catalog.stations[station_index];
-    let passed = state.rng.unit() < station.good_yield_fraction;
+    let passed = DeterministicRng::for_key(
+        catalog.seed,
+        "quality-outcome",
+        &station.station_id,
+        job.id,
+        station_attempts,
+    )
+    .unit()
+        < station.good_yield_fraction;
     if !passed && station_attempts <= station.max_rework_attempts {
-        let rework_seconds = sample_service_seconds(state, station);
+        let rework_seconds = sample_service_seconds(catalog, station, job.id, station_attempts + 1);
         let runtime = &mut state.stations[station_index];
         if state.now >= catalog.warmup_seconds {
             runtime.metrics.rework_attempts_after_warmup += 1;
@@ -789,7 +849,13 @@ fn complete_operation(
         return Ok(());
     }
 
-    let machine_fails = machine_fails_after_job(state, station, service_seconds_for_job);
+    let machine_fails = machine_fails_after_job(
+        catalog,
+        station,
+        job.id,
+        station_attempts,
+        service_seconds_for_job,
+    );
     if passed {
         if state.now >= catalog.warmup_seconds {
             state.stations[station_index]
@@ -894,7 +960,7 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     continue;
                 };
                 let station = &catalog.stations[station_index];
-                let mut service_seconds = sample_service_seconds(state, station);
+                let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
                 if server.last_variant.is_some_and(|last| last != job.variant) {
                     service_seconds =
@@ -967,6 +1033,28 @@ mod tests {
             "../../fixtures/ev_factory_simulation_v0_1.json"
         ))
         .expect("fixture parses")
+    }
+
+    #[test]
+    fn keyed_random_streams_are_reproducible_and_independent_of_unrelated_draws() {
+        let expected_job_b =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1).next_u64();
+        let mut unrelated_job =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 41, 1);
+        for _ in 0..100 {
+            let _ = unrelated_job.next_u64();
+        }
+        let actual_job_b =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1).next_u64();
+        assert_eq!(expected_job_b, actual_job_b);
+        let job_a =
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 41, 1).next_u64();
+        assert_ne!(job_a, expected_job_b);
+        assert_ne!(
+            DeterministicRng::for_key(20261020, "service-time", "battery-module", 42, 1).next_u64(),
+            DeterministicRng::for_key(20261020, "quality-outcome", "battery-module", 42, 1)
+                .next_u64()
+        );
     }
 
     #[test]
