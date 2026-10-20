@@ -68,6 +68,9 @@ jobs:
             and .summary.connection_count == 2
             and .summary.recovered_component_count == 1
             and .summary.recovered_mass_mg == 1000
+            and .summary.deconstruction_step_count == 3
+            and .summary.deconstruction_recovered_component_count == 2
+            and .summary.deconstruction_recovered_mass_mg == 3000
             and .summary.axial_bar_stress_pa > 99999
             and .summary.axial_bar_stress_pa < 100001
             and .summary.axial_bar_extension_m > 0
