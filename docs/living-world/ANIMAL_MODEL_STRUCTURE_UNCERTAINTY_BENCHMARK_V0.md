@@ -80,6 +80,22 @@ Within one structure, paired exogenous random streams can reduce variance. Acros
 
 Use proper scoring rules that match outcomes (e.g. Brier/log scores for probabilistic classes, CRPS/interval scores for suitable continuous forecasts). Report calibration together with sharpness so overly broad intervals cannot win by coverage alone. Publish per-model scores, paired uncertainty and sensitivity to defensible model-weight ranges.
 
+## Decision-relevant experiment design (not entropy maximization)
+
+A model-discriminating observation should be valued by whether it can change a decision and reduce its expected loss—not merely by whether it reduces model entropy. A signal can identify which model is more likely yet have zero practical value if every model recommends the same admissible action with the same consequences.
+
+For an explicitly declared model prior and likelihood table, the pilot uses expected value of sample information:
+
+`EVSI(e) = min_a E[L(a,M)] - E_{Y|e}[min_a E[L(a,M)|Y,e]]`
+
+`net_value(e) = EVSI(e) - cost_in_declared_loss_units(e)`
+
+The observation outcome likelihoods must form a probability distribution *within each model structure*; every likelihood must identify every registered model; all action losses and admissibility constraints are complete; and no action can become eligible solely because one model received zero posterior weight. A design with no action admissible across the registered set is rejected rather than making a model-specific action appear robust.
+
+The new Rust API `score_observation_designs` ranks candidate designs with deterministic tie-breaking and per-outcome action/loss summaries. Its tests cover a discriminating signal with known expected value, information that does not change a decision (zero EVSI), cost-sensitive ranking, unnormalized likelihoods, missing/unknown model entries, impossible outcomes, duplicated IDs and empty shared action sets. These are synthetic arithmetic tests, not learned observation likelihoods or empirical claims.
+
+**Guardrail:** the result is conditional on the declared models, weights, outcome likelihoods, loss function, and loss-equivalent cost mapping. It cannot establish model-set adequacy. If likelihoods or costs are speculative, the ranking is only a sensitivity scenario; it must not be presented as a calibrated observation plan.
+
 ## Executable Rust contract seam
 
 The companion crate `symtropy-animal-model-uncertainty` in the current draft branch now contains two small, explicit boundaries:
