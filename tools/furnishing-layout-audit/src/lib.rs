@@ -723,8 +723,8 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
             || room_depth <= 0.0
         {
             errors.push(format!(
-                    "{label}: room dimensions must be positive and finite"
-                ));
+                "{label}: room dimensions must be positive and finite"
+            ));
             continue;
         }
 
