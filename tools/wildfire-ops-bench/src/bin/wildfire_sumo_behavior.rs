@@ -55,8 +55,17 @@ fn run() -> Result<(), String> {
         "fixture_sha256": hash(&fixture_bytes),
         "sumo_version": SUMO_VERSION,
         "case_count": results.len(),
+        "comparison_policy": {
+            "status": "not_comparable",
+            "reasons": [
+                "edge capacity and storage are not calibrated between models",
+                "shelter and accessibility gates are not equivalent",
+                "closure rerouting differs from fixed-route blocking",
+                "network coordinates and lengths are synthetic"
+            ]
+        },
         "cases": results,
-        "claim_boundary": "SUMO-native observations over synthetic fixtures; source capacity/storage, closure, sink and accessibility semantics are not yet matched to Symtropy"
+        "claim_boundary": "SUMO-native observations on synthetic fixtures; no matched-model, field-accuracy or safety claim"
     });
     let out = root.join("sumo-behavior-summary.json");
     let bytes =
