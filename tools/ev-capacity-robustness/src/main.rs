@@ -29,6 +29,7 @@ struct Coordinate {
     vocation: String,
     fleet_size: usize,
     seed: u64,
+    port_release_policy: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,6 +47,7 @@ struct PolicyResult {
     evidence_class: String,
     evidence_reference: String,
     policy: String,
+    port_release_policy: String,
     job_count: usize,
     completed_by_deadline_count: usize,
     missed_deadline_count: usize,
@@ -73,6 +75,7 @@ struct Frontier {
     scenario_id: String,
     evidence_class: String,
     policy: String,
+    port_release_policy: String,
     base_site_power_budget_kw: f64,
     minimum_deadline_completion_target: f64,
     minimum_energy_service_target: f64,
@@ -113,6 +116,7 @@ struct SimulationReportOwned {
 #[derive(Debug, Clone)]
 struct PolicyResultOwned {
     policy: String,
+    port_release_policy: String,
     job_count: usize,
     completed_by_deadline_count: usize,
     missed_deadline_count: usize,
@@ -129,6 +133,7 @@ struct PolicyResultOwned {
 #[derive(Debug, Clone)]
 struct FrontierOwned {
     policy: String,
+    port_release_policy: String,
     base_site_power_budget_kw: f64,
     points: Vec<CapacityPointOwned>,
 }
@@ -181,6 +186,7 @@ struct CapacityPointAggregate {
 struct PolicyAggregate {
     vocation: String,
     fleet_size: usize,
+    port_release_policy: String,
     policy: String,
     replicate_count: usize,
     jobs_per_replicate: usize,
@@ -206,6 +212,7 @@ struct RunReceipt {
     vocation: String,
     fleet_size: usize,
     seed: u64,
+    port_release_policy: String,
     report_sha256: String,
     source_evidence_reference: String,
 }
@@ -219,6 +226,7 @@ struct RobustReport {
     fleet_sizes: Vec<usize>,
     vocations: Vec<String>,
     policies: Vec<String>,
+    port_release_policies: Vec<String>,
     empirical_capacity_coverage_target: f64,
     per_run_service_targets: ServiceTargets,
     caveat: String,
