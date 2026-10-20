@@ -114,6 +114,33 @@ jobs:
           grep -Fq "value_of_information" vis-active-query.tsv
           grep -Fq "round_robin" vis-active-query.tsv
           grep -Fq "uniform_random" vis-active-query.tsv
+          grep -Fq "STRATUM" vis-active-query.tsv
+          grep -Fq "claim_changed_after_latest_source" vis-active-query.tsv
+          grep -Fq "query_evidence_arrived_out_of_order" vis-active-query.tsv
+          grep -Fq "profile_high_claim_flip_rate" vis-active-query.tsv
+          grep -Fq "profile_high_corruption_rate" vis-active-query.tsv
+          grep -Fq 
+          grep -Fq "held_out" vis-active-query.tsv
+          test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
+          test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
+          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 6
+          awk -F '\t' '$1 == "family" { if (NF != 14) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 14) exit 1; rows++ } END { if (header != 1 || rows != 12) exit 1 }' vis-active-query.tsv
+          sha256sum vis-active-query.tsv > vis-active-query.sha256
+          sha256sum -c vis-active-query.sha256
+          cat vis-active-query.tsv
+
+      - name: Upload reproducible report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-relational-memory-report
+          path: |
+            vis-relational-memory.tsv
+            vis-relational-memory.sha256
+            vis-active-query.tsv
+            vis-active-query.sha256
+          if-no-files-found: error
+          retention-days: 14
+STRATUM\tfamily\tstratum\tlevel' vis-active-query.tsv
           grep -Fq "held_out" vis-active-query.tsv
           test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
           test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
