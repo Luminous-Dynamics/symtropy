@@ -82,24 +82,25 @@ pub trait RoboticAgent {
             };
         }
 
-        let commands = planner.plan(observation, gain, num_actuators);
-        let status = planner.status();
-        if status != MotorPlannerStatus::Ready {
-            // Do not surface candidate commands as accepted when a planner
-            // explicitly reports rejection.
+        // Use the planner's typed path, then independently enforce the
+        // caller-facing result contract even if an implementor overrides it.
+        let result = planner.plan_result(observation, gain, num_actuators);
+        if result.status != MotorPlannerStatus::Ready {
             return MotorPlanResult {
                 commands: vec![0.0; num_actuators],
-                status,
+                status: result.status,
             };
         }
-        if commands.len() != num_actuators || commands.iter().any(|value| !value.is_finite()) {
+        if result.commands.len() != num_actuators
+            || result.commands.iter().any(|value| !value.is_finite())
+        {
             return MotorPlanResult {
                 commands: vec![0.0; num_actuators],
                 status: MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidOutput),
             };
         }
 
-        MotorPlanResult { commands, status }
+        result
     }
 
     /// Legacy vector-only planning helper.
