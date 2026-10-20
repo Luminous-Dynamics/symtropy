@@ -260,7 +260,7 @@ fn compare_observables(
     alpha: f64,
     absolute_tolerance: f64,
     relative_tolerance: f64,
-) -> (Vec<Value>, usize, usize) {
+) -> (Vec<Value>, usize, usize, usize) {
     let mut results = Vec::with_capacity(baseline.len());
     let mut violations = 0usize;
     let mut unresolved = 0usize;
