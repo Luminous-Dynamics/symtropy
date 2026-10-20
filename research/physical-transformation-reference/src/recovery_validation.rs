@@ -530,7 +530,6 @@ mod tests {
         assert_eq!(result.aggregate.observed_mass_residual_mg, Some(40));
     }
 
-
     #[test]
     fn exact_plan_match_can_include_declared_nonzero_unaccounted_mass() {
         let world = recovered_world();
