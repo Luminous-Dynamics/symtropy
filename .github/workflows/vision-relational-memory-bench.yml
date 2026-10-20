@@ -86,6 +86,7 @@ jobs:
           awk -F '\t' '/^CALIBRATION/ { if (NF != 10) exit 1; n++ } END { if (n != 211) exit 1 }' vis-relational-memory.tsv
           sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
           sha256sum -c vis-relational-memory.sha256
+          cat vis-relational-memory.tsv
 
       - name: Compile and run active-query tests
         run: |
@@ -116,6 +117,7 @@ jobs:
           awk -F '\t' '$1 == "STRATUM" { if (NF != 12) exit 1; n++ } END { if (n < 12) exit 1 }' vis-active-query.tsv
           sha256sum vis-active-query.tsv > vis-active-query.sha256
           sha256sum -c vis-active-query.sha256
+          cat vis-active-query.tsv
 
       - name: Upload both reproducible reports
         uses: actions/upload-artifact@v4
