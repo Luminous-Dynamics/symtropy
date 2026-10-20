@@ -190,15 +190,40 @@ fn additional_all_pass_trials(
     confidence_level: f64,
     target: f64,
 ) -> Option<usize> {
-    if target >= 1.0 { return None; }
-    for additional in 0..=100_000_usize {
-        let k = passes.checked_add(additional)?;
-        let n = trials.checked_add(additional)?;
+    if exact_lower_bound(passes, trials, confidence_level) + 1.0e-12 >= target {
+        return Some(0);
+    }
+    if target >= 1.0 {
+        return None;
+    }
+
+    // Bracket exponentially, then binary-search the minimum additional all-success trials.
+    let mut low = 1_usize;
+    let mut high = 1_usize;
+    loop {
+        let k = passes.checked_add(high)?;
+        let n = trials.checked_add(high)?;
         if exact_lower_bound(k, n, confidence_level) + 1.0e-12 >= target {
-            return Some(additional);
+            break;
+        }
+        if high >= 100_000 {
+            return None;
+        }
+        low = high.saturating_add(1);
+        high = high.saturating_mul(2).min(100_000);
+    }
+
+    while low < high {
+        let mid = low + (high - low) / 2;
+        let k = passes.checked_add(mid)?;
+        let n = trials.checked_add(mid)?;
+        if exact_lower_bound(k, n, confidence_level) + 1.0e-12 >= target {
+            high = mid;
+        } else {
+            low = mid + 1;
         }
     }
-    None
+    Some(low)
 }
 
 fn analyze(root: &Value, confidence_level: f64, target: f64) -> Result<Report, String> {
@@ -239,10 +264,10 @@ fn analyze(root: &Value, confidence_level: f64, target: f64) -> Result<Report, S
             exact_one_sided_lower_confidence_bound: lower,
             target_pass_probability: target,
             target_statistically_demonstrated: lower + 1.0e-12 >= target,
-            additional_independent_all_pass_trials_needed_to_demonstrate_target: if lower + 1.0e-12 >= target {
-                Some(0)
-            } else {
+            additional_independent_all_pass_trials_needed_to_demonstrate_target: if empirical_pass_rate + 1.0e-12 >= target {
                 additional_all_pass_trials(passes, trials, confidence_level, target)
+            } else {
+                None
             },
         };
         policy_frontiers.entry((key.vocation, key.fleet_size, key.policy)).or_default().push(condition.clone());
