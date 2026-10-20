@@ -986,6 +986,89 @@ fn calibrate_threshold() -> DecisionThreshold {
     best.expect("threshold grid is non-empty").1
 }
 
+const IDENTIFIABILITY_REPLICATES: usize = 24;
+const IDENTIFIABILITY_LENGTHS: [usize; 5] = [8, 16, 32, 64, 128];
+
+fn joint_noise_identifiability_report() {
+    println!("Joint transition/noise identifiability diagnostic (controlled on-grid synthetic trajectories)");
+    println!("Only the evaluator knows the simulated hazard and corruption rate; the estimator sees confidence, observed binary value and source tick");
+    println!("CALIBRATION\\tobservations_per_claim\\ttrue_hazard\\ttrue_sensor_base_per_thousand\\treplicates\\thazard_mae\\thazard_rmse\\tsensor_base_mae\\tsensor_base_rmse\\tuniform_prior_sensor_mae");
+
+    let prior_sensor_rate = SENSOR_BASE_RATES.iter().map(|rate| *rate as f64).sum::<f64>()
+        / SENSOR_BASE_RATES.len() as f64 / 1_000.0;
+
+    for (length_index, observations_per_claim) in IDENTIFIABILITY_LENGTHS.iter().copied().enumerate() {
+        for (hazard_index, true_hazard) in HAZARD_RATES.iter().copied().enumerate() {
+            for (sensor_index, true_sensor_rate) in SENSOR_BASE_RATES.iter().copied().enumerate() {
+                let mut hazard_abs_sum = 0.0;
+                let mut hazard_squared_sum = 0.0;
+                let mut sensor_abs_sum = 0.0;
+                let mut sensor_squared_sum = 0.0;
+                let mut prior_sensor_abs_sum = 0.0;
+
+                for replicate in 0..IDENTIFIABILITY_REPLICATES {
+                    let seed = mix64(
+                        ROOT_SEED
+                            ^ 0x4944_454E_5449_4659
+                            ^ (length_index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                            ^ (hazard_index as u64).wrapping_mul(0xD1B5_4A32_D192_ED03)
+                            ^ (sensor_index as u64).wrapping_mul(0xA24B_AED4_963E_E407)
+                            ^ (replicate as u64).wrapping_mul(0x94D0_49BB_1331_11EB),
+                    );
+                    let mut rng = Rng::new(seed);
+                    let mut latent_true = rng.chance(500);
+                    let mut stats = JointNoiseStats::default();
+
+                    for tick in 0..observations_per_claim {
+                        if tick > 0 && rng.chance((true_hazard * 1_000.0).round() as u64) {
+                            latent_true = !latent_true;
+                        }
+                        let confidence = sample_confidence(&mut rng);
+                        let p_corrupt = conditional_corruption_rate(true_sensor_rate, confidence);
+                        let corrupted = rng.chance(p_corrupt);
+                        let observed = if corrupted { !latent_true } else { latent_true };
+                        let source_tick = u8::try_from(tick).expect("calibration horizon fits source timestamp");
+
+                        // The policy sees only this release. Hidden hazard and
+                        // sensor rate remain evaluator-local for error scoring.
+                        stats.observe(Evidence {
+                            key: 0,
+                            value: observed,
+                            source_tick,
+                            arrival_tick: source_tick,
+                            confidence,
+                        });
+                    }
+
+                    let hazard_error = stats.estimated_flip_hazard() - true_hazard;
+                    let sensor_estimate = stats.estimated_sensor_base_rate();
+                    let true_sensor_rate_f64 = true_sensor_rate as f64 / 1_000.0;
+                    let sensor_error = sensor_estimate - true_sensor_rate_f64;
+                    hazard_abs_sum += hazard_error.abs();
+                    hazard_squared_sum += hazard_error.powi(2);
+                    sensor_abs_sum += sensor_error.abs();
+                    sensor_squared_sum += sensor_error.powi(2);
+                    prior_sensor_abs_sum += (prior_sensor_rate - true_sensor_rate_f64).abs();
+                }
+
+                let denominator = IDENTIFIABILITY_REPLICATES as f64;
+                println!(
+                    "CALIBRATION\\t{}\\t{:.4}\\t{}\\t{}\\t{:.4}\\t{:.4}\\t{:.4}\\t{:.4}\\t{:.4}",
+                    observations_per_claim,
+                    true_hazard,
+                    true_sensor_rate,
+                    IDENTIFIABILITY_REPLICATES,
+                    hazard_abs_sum / denominator,
+                    (hazard_squared_sum / denominator).sqrt(),
+                    sensor_abs_sum / denominator,
+                    (sensor_squared_sum / denominator).sqrt(),
+                    prior_sensor_abs_sum / denominator,
+                );
+            }
+        }
+    }
+}
+
 fn report() {
     let selective_threshold = calibrate_threshold();
     println!("VIS-MEM-002 causal multi-claim evidence-memory benchmark");
@@ -1135,6 +1218,7 @@ fn report() {
             }
         }
     }
+    joint_noise_identifiability_report();
 }
 
 fn main() { report(); }
