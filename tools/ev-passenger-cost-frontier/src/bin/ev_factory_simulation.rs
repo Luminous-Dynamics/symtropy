@@ -659,10 +659,10 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             measured_seconds as f64,
         ),
         interstation_buffers,
-        stations,
+        stations: station_results,
         output_never_exceeds_released_input,
         all_buffers_respected_capacity,
-        station_time_accounting_within_horizon,
+        station_time_accounting_within_horizon: time_accounting_within_horizon,
         release_ready: false,
         claim_ceiling: CLAIM_CEILING.to_string(),
     })
