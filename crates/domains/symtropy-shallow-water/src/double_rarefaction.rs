@@ -102,13 +102,19 @@ pub fn double_rarefaction(
         if similarity_m_s < left_tail_m_s {
             let celerity =
                 (2.0 * initial_celerity_m_s - outward_velocity_m_s - similarity_m_s) / 3.0;
-            (celerity * celerity / gravity_m_s2, similarity_m_s + celerity)
+            (
+                celerity * celerity / gravity_m_s2,
+                similarity_m_s + celerity,
+            )
         } else if similarity_m_s <= right_tail_m_s {
             (star_depth_m, 0.0)
         } else if similarity_m_s < right_head_m_s {
             let celerity =
                 (similarity_m_s - outward_velocity_m_s + 2.0 * initial_celerity_m_s) / 3.0;
-            (celerity * celerity / gravity_m_s2, similarity_m_s - celerity)
+            (
+                celerity * celerity / gravity_m_s2,
+                similarity_m_s - celerity,
+            )
         } else {
             (initial_depth_m, outward_velocity_m_s)
         }
