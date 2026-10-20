@@ -399,6 +399,7 @@ fn verify_policy_trace_pair(
 
     let mut first_observation_divergence: Option<u64> = None;
     let mut first_action_divergence: Option<u64> = None;
+    let mut trace_step_receipts: Vec<Value> = Vec::with_capacity(left_steps.len());
     for (index, (left_step, right_step)) in left_steps.iter().zip(right_steps).enumerate() {
         let step_path = format!("{pair_path}.step[{index}]");
         let left_step_path = format!("{step_path}.left");
@@ -449,6 +450,18 @@ fn verify_policy_trace_pair(
         }
         let left_action = field(left_step, &left_step_path, "action")?;
         let right_action = field(right_step, &right_step_path, "action")?;
+        let left_input_bytes = serde_json::to_vec(left_input)
+            .map_err(|error| format!("{left_step_path}.policy_input: serialize failed: {error}"))?;
+        let right_input_bytes = serde_json::to_vec(right_input)
+            .map_err(|error| format!("{right_step_path}.policy_input: serialize failed: {error}"))?;
+        let left_action_bytes = serde_json::to_vec(left_action)
+            .map_err(|error| format!("{left_step_path}.action: serialize failed: {error}"))?;
+        let right_action_bytes = serde_json::to_vec(right_action)
+            .map_err(|error| format!("{right_step_path}.action: serialize failed: {error}"))?;
+        let left_input_sha256 = sha256_hex(&left_input_bytes);
+        let right_input_sha256 = sha256_hex(&right_input_bytes);
+        let left_action_sha256 = sha256_hex(&left_action_bytes);
+        let right_action_sha256 = sha256_hex(&right_action_bytes);
         if left_action != right_action {
             first_action_divergence.get_or_insert(left_step_no);
             if left_history == right_history {
@@ -457,6 +470,15 @@ fn verify_policy_trace_pair(
                 ));
             }
         }
+        trace_step_receipts.push(json!({
+            "step": left_step_no,
+            "policy_input_sha256_left": left_input_sha256,
+            "policy_input_sha256_right": right_input_sha256,
+            "policy_input_digest_equal": left_input_sha256 == right_input_sha256,
+            "action_sha256_left": left_action_sha256,
+            "action_sha256_right": right_action_sha256,
+            "action_digest_equal": left_action_sha256 == right_action_sha256
+        }));
     }
 
     if first_observation_divergence.is_none() {
@@ -473,7 +495,8 @@ fn verify_policy_trace_pair(
         "matched_prefix_actions": shared_step + 1,
         "first_visible_history_divergence_step": first_observation_divergence,
         "first_action_divergence_step": first_action_divergence,
-        "claim_ceiling": "Checks fixture-supplied traces only. It does not execute/sandbox a live policy, prove absence of runtime side channels, or establish physical performance, safety, savings, or real-world resilience."
+        "trace_step_receipts": trace_step_receipts,
+        "claim_ceiling": "SHA-256 digests bind deterministic serde_json serializations for replay comparison, not signatures or source authenticity. Checks fixture-supplied traces only; it does not execute/sandbox a live policy, prove absence of runtime side channels, or establish physical performance, safety, savings, or real-world resilience."
     }))
 }
 
@@ -1134,6 +1157,14 @@ mod tests {
         assert_eq!(trace["matched_prefix_actions"], 2);
         assert_eq!(trace["first_visible_history_divergence_step"], 2);
         assert_eq!(trace["first_action_divergence_step"], 2);
+        let receipts = trace["trace_step_receipts"].as_array().expect("step receipts");
+        assert_eq!(receipts.len(), 3);
+        assert_eq!(receipts[0]["policy_input_sha256_left"], receipts[0]["policy_input_sha256_right"]);
+        assert_eq!(receipts[0]["action_sha256_left"], receipts[0]["action_sha256_right"]);
+        assert!(receipts[0]["policy_input_digest_equal"].as_bool().expect("input digest equality"));
+        assert!(receipts[1]["action_digest_equal"].as_bool().expect("action digest equality"));
+        assert_ne!(receipts[2]["policy_input_sha256_left"], receipts[2]["policy_input_sha256_right"]);
+        assert_ne!(receipts[2]["action_sha256_left"], receipts[2]["action_sha256_right"]);
         assert!(
             trace["claim_ceiling"]
                 .as_str()
