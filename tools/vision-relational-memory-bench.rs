@@ -639,7 +639,7 @@ fn evaluate_with_threshold(
         Kind::QueryKeyedGapAware => Some(memory.gap_aware_stats.map(|stats| stats.estimated_flip_hazard())),
         _ => None,
     }.map(|estimates| {
-        let true_rate = f64::from(ep.profile.flip_rate) / 1_000.0;
+        let true_rate = ep.profile.flip_rate as f64 / 1_000.0;
         let absolute_sum = estimates.iter().map(|estimate| (estimate - true_rate).abs()).sum::<f64>();
         let squared_sum = estimates.iter().map(|estimate| (estimate - true_rate).powi(2)).sum::<f64>();
         (
