@@ -433,6 +433,109 @@ impl GapAwareStats {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+struct JointNoiseStats {
+    last_source_tick: Option<u8>,
+    // Posterior P(latent=true) for each (hazard, sensor-base-rate) hypothesis,
+    // stored as fixed-point permille-ish u16 probabilities.
+    alpha_true: [u16; JOINT_HYPOTHESES],
+    log_scores: [i32; JOINT_HYPOTHESES],
+}
+
+impl Default for JointNoiseStats {
+    fn default() -> Self {
+        Self {
+            last_source_tick: None,
+            alpha_true: [32_768; JOINT_HYPOTHESES],
+            log_scores: std::array::from_fn(|index| {
+                HAZARD_LOG_PRIOR[index / SENSOR_BASE_RATES.len()] + SENSOR_LOG_PRIOR
+            }),
+        }
+    }
+}
+
+impl JointNoiseStats {
+    fn observe(&mut self, evidence: Evidence) {
+        let previous_tick = self.last_source_tick;
+        // Out-of-order observations cannot rewind the latent-state filter.
+        if previous_tick.is_some_and(|previous| evidence.source_tick < previous) {
+            return;
+        }
+
+        for hypothesis in 0..JOINT_HYPOTHESES {
+            let hazard_index = hypothesis / SENSOR_BASE_RATES.len();
+            let sensor_index = hypothesis % SENSOR_BASE_RATES.len();
+            let hazard = HAZARD_RATES[hazard_index];
+            let sensor_base_rate = SENSOR_BASE_RATES[sensor_index];
+            let observation_error =
+                conditional_corruption_rate(sensor_base_rate, evidence.confidence) as f64 / 1_000.0;
+
+            let prior_true = if let Some(previous_source_tick) = previous_tick {
+                let previous_true = f64::from(self.alpha_true[hypothesis]) / 65_535.0;
+                let gap = evidence.source_tick - previous_source_tick;
+                let p_change = if gap == 0 {
+                    0.0
+                } else {
+                    probability_different_after_gap(hazard, gap)
+                };
+                previous_true * (1.0 - p_change) + (1.0 - previous_true) * p_change
+            } else {
+                0.5
+            };
+
+            let observation_likelihood = if evidence.value {
+                prior_true * (1.0 - observation_error) + (1.0 - prior_true) * observation_error
+            } else {
+                prior_true * observation_error + (1.0 - prior_true) * (1.0 - observation_error)
+            }.clamp(1e-9, 1.0);
+
+            let posterior_true = if evidence.value {
+                prior_true * (1.0 - observation_error) / observation_likelihood
+            } else {
+                prior_true * observation_error / observation_likelihood
+            }.clamp(0.0, 1.0);
+
+            let increment = (observation_likelihood.ln() * LOG_SCORE_SCALE).round() as i32;
+            self.log_scores[hypothesis] = self.log_scores[hypothesis].saturating_add(increment);
+            self.alpha_true[hypothesis] = (posterior_true * 65_535.0).round() as u16;
+        }
+        self.last_source_tick = Some(evidence.source_tick);
+    }
+
+    fn posterior_weights(self) -> [f64; JOINT_HYPOTHESES] {
+        let max_score = *self.log_scores.iter().max().unwrap_or(&0);
+        std::array::from_fn(|index| {
+            (f64::from(self.log_scores[index] - max_score) / LOG_SCORE_SCALE).exp()
+        })
+    }
+
+    fn estimated_flip_hazard(self) -> f64 {
+        let weights = self.posterior_weights();
+        let denominator = weights.iter().sum::<f64>().max(f64::MIN_POSITIVE);
+        (0..JOINT_HYPOTHESES)
+            .map(|index| HAZARD_RATES[index / SENSOR_BASE_RATES.len()] * weights[index])
+            .sum::<f64>() / denominator
+    }
+
+    fn probability_true_at(self, tick: usize) -> f64 {
+        let Some(last_source_tick) = self.last_source_tick else { return 0.5; };
+        let age = tick.saturating_sub(usize::from(last_source_tick));
+        let weights = self.posterior_weights();
+        let denominator = weights.iter().sum::<f64>().max(f64::MIN_POSITIVE);
+        (0..JOINT_HYPOTHESES)
+            .map(|index| {
+                let hazard = HAZARD_RATES[index / SENSOR_BASE_RATES.len()];
+                let previous_true = f64::from(self.alpha_true[index]) / 65_535.0;
+                let persistence = (1.0 - 2.0 * hazard).powi(age as i32);
+                let p_change = (1.0 - persistence) / 2.0;
+                let p_true = previous_true * (1.0 - p_change)
+                    + (1.0 - previous_true) * p_change;
+                p_true * weights[index]
+            })
+            .sum::<f64>() / denominator
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Memory {
     kind: Kind,
@@ -445,6 +548,7 @@ struct Memory {
     // only for the policy that consumes them.
     hazard_stats: [HazardStats; QUERY_WIDTH],
     gap_aware_stats: [GapAwareStats; QUERY_WIDTH],
+    joint_noise_stats: [JointNoiseStats; QUERY_WIDTH],
 }
 
 impl Memory {
@@ -458,6 +562,7 @@ impl Memory {
             actor_seed,
             hazard_stats: [HazardStats::default(); QUERY_WIDTH],
             gap_aware_stats: [GapAwareStats::default(); QUERY_WIDTH],
+            joint_noise_stats: [JointNoiseStats::default(); QUERY_WIDTH],
         }
     }
 
@@ -469,6 +574,8 @@ impl Memory {
                     self.hazard_stats[index].observe(e);
                 } else if self.kind == Kind::QueryKeyedGapAware {
                     self.gap_aware_stats[index].observe(e);
+                } else if self.kind == Kind::QueryKeyedJointNoise {
+                    self.joint_noise_stats[index].observe(e);
                 }
             }
         }
@@ -489,7 +596,7 @@ impl Memory {
                     if draw < self.cap as u64 { self.entries[draw as usize] = e; }
                 }
             }
-            Kind::QueryKeyed | Kind::QueryKeyedSelective | Kind::QueryKeyedHazardAware | Kind::QueryKeyedGapAware => {
+            Kind::QueryKeyed | Kind::QueryKeyedSelective | Kind::QueryKeyedHazardAware | Kind::QueryKeyedGapAware | Kind::QueryKeyedJointNoise => {
                 // Query keys are public. The policy receives no hidden truth,
                 // future observation, seed or evaluator annotation.
                 if !self.query.contains(e.key()) { return; }
@@ -532,6 +639,13 @@ impl Memory {
             positive += usize::from(e.value);
         }
         Some(positive >= 2)
+    }
+
+    fn decide_joint_noise(&self, tick: usize) -> Option<bool> {
+        let probabilities: [f64; QUERY_WIDTH] = std::array::from_fn(|index| {
+            self.joint_noise_stats[index].probability_true_at(tick)
+        });
+        majority_decision(probabilities)
     }
 
     fn decide_gap_aware(&self, tick: usize) -> Option<bool> {
@@ -624,6 +738,7 @@ fn evaluate_with_threshold(
         Kind::QueryKeyedSelective => memory.decide_with_threshold(HORIZON, threshold),
         Kind::QueryKeyedHazardAware => memory.decide_hazard_aware(HORIZON),
         Kind::QueryKeyedGapAware => memory.decide_gap_aware(HORIZON),
+        Kind::QueryKeyedJointNoise => memory.decide_joint_noise(HORIZON),
         _ => memory.decide(HORIZON),
     };
     let correct = decision.is_some_and(|answer| answer == ep.target_answer());
@@ -634,6 +749,7 @@ fn evaluate_with_threshold(
         + match kind {
             Kind::QueryKeyedHazardAware => std::mem::size_of::<[HazardStats; QUERY_WIDTH]>(),
             Kind::QueryKeyedGapAware => std::mem::size_of::<[GapAwareStats; QUERY_WIDTH]>(),
+            Kind::QueryKeyedJointNoise => std::mem::size_of::<[JointNoiseStats; QUERY_WIDTH]>(),
             _ => 0,
         };
 
@@ -642,6 +758,7 @@ fn evaluate_with_threshold(
     let hazard_errors = match kind {
         Kind::QueryKeyedHazardAware => Some(memory.hazard_stats.map(|stats| stats.estimated_flip_hazard())),
         Kind::QueryKeyedGapAware => Some(memory.gap_aware_stats.map(|stats| stats.estimated_flip_hazard())),
+        Kind::QueryKeyedJointNoise => Some(memory.joint_noise_stats.map(|stats| stats.estimated_flip_hazard())),
         _ => None,
     }.map(|estimates| {
         let true_rate = ep.profile.flip_rate as f64 / 1_000.0;
@@ -795,6 +912,7 @@ fn report() {
     println!("confidence is sampled independently; P(confidence 950,850,650)=(0.75,0.20,0.05)");
     println!("conditional corruption p per tier = base_rate * (20,160,320)/63 per thousand; aggregate rate approximately preserved");
     println!("gap-aware policy: candidate per-tick hazards={HAZARD_RATES:?}; Bayesian fixed-point log-likelihood grid, irregular source-time gaps");
+    println!("joint-noise policy: joint transition-hazard x sensor-base-rate grid; online binary-state filter, confidence-conditioned emissions");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
     println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tmean_hazard_mae\troot_mean_hazard_mse\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
