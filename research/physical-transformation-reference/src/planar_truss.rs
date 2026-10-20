@@ -451,8 +451,8 @@ fn solve_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Check<Vec<f64>> 
     for pivot in 0..n {
         let mut pivot_row = pivot;
         let mut pivot_magnitude = matrix[pivot][pivot].abs();
-        for candidate in (pivot + 1)..n {
-            let magnitude = matrix[candidate][pivot].abs();
+        for (candidate, row_values) in matrix.iter().enumerate().skip(pivot + 1) {
+            let magnitude = row_values[pivot].abs();
             if magnitude > pivot_magnitude {
                 pivot_magnitude = magnitude;
                 pivot_row = candidate;
@@ -468,24 +468,26 @@ fn solve_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Check<Vec<f64>> 
             rhs.swap(pivot, pivot_row);
         }
         let diagonal = matrix[pivot][pivot];
-        for row in (pivot + 1)..n {
-            let factor = matrix[row][pivot] / diagonal;
+        let pivot_values = matrix[pivot].clone();
+        let pivot_rhs = rhs[pivot];
+        for (row_index, row_values) in matrix.iter_mut().enumerate().skip(pivot + 1) {
+            let factor = row_values[pivot] / diagonal;
             require_finite(factor, "Gaussian-elimination factor")?;
-            matrix[row][pivot] = 0.0;
-            for column in (pivot + 1)..n {
-                matrix[row][column] -= factor * matrix[pivot][column];
-                require_finite(matrix[row][column], "Gaussian-elimination matrix")?;
+            row_values[pivot] = 0.0;
+            for (column, entry) in row_values.iter_mut().enumerate().skip(pivot + 1) {
+                *entry -= factor * pivot_values[column];
+                require_finite(*entry, "Gaussian-elimination matrix")?;
             }
-            rhs[row] -= factor * rhs[pivot];
-            require_finite(rhs[row], "Gaussian-elimination load vector")?;
+            rhs[row_index] -= factor * pivot_rhs;
+            require_finite(rhs[row_index], "Gaussian-elimination load vector")?;
         }
     }
 
     let mut solution = vec![0.0_f64; n];
     for row in (0..n).rev() {
         let mut remainder = rhs[row];
-        for column in (row + 1)..n {
-            remainder -= matrix[row][column] * solution[column];
+        for (column, coefficient) in matrix[row].iter().enumerate().skip(row + 1) {
+            remainder -= coefficient * solution[column];
         }
         require_finite(remainder, "back-substitution remainder")?;
         let diagonal = matrix[row][row];
@@ -740,7 +742,7 @@ mod tests {
 
     #[test]
     fn mechanisms_invalid_geometry_and_duplicate_ids_fail_closed() {
-        let mut mechanism = PlanarTrussInput {
+        let mechanism = PlanarTrussInput {
             nodes: vec![
                 TrussNode {
                     id: "a".to_owned(),
