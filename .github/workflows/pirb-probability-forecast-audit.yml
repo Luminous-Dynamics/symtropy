@@ -72,6 +72,9 @@ jobs:
       - name: Assert joint-score oracle fixtures are synthetic and aggregate-only
         run: jq -e 'all([inputs][]; .evidence_scope == "synthetic" and .privacy.aggregate_only == true)' docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json docs/fixtures/pirb-joint-score-three-draw-synthetic-v0.1.json > /dev/null
 
+      - name: Assert capacity action-value fixture is synthetic and aggregate-only
+        run: jq -e '.evidence_scope == "synthetic" and .privacy.aggregate_only == true and (.records | length == 12) and (.records | all(.target_matched == true))' docs/fixtures/pirb-capacity-action-value-synthetic-v0.1.json > /dev/null
+
       - name: Run schema, metric, maturity, and negative-control tests
         run: cargo test --locked --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml
 
@@ -429,6 +432,60 @@ jobs:
             and .claims.real_world_forecast_superiority_established == false
           ' pirb-joint-score-three-draw-receipt.json
 
+      - name: Audit capacity-constrained action value under preregistered scenarios
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="docs/fixtures/pirb-capacity-action-value-synthetic-v0.1.json"
+          schema="docs/schemas/pirb-capacity-action-value-v0.1.schema.json"
+          expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
+          expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
+          cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-capacity-action-value-eval -- \
+            --input "$input" --source-commit "$source_commit" > pirb-capacity-action-value-receipt.json
+
+          jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_input_sha" --arg schema_sha "$expected_schema_sha" '
+            .receipt_type == "capacity_constrained_action_value_evaluation"
+            and .registration_id == "pirb-action-value-fixed-capacity-cost-grid-v1"
+            and .evidence_scope == "synthetic"
+            and .source_commit == $source_commit
+            and .source_commit_pinned == true
+            and .input_sha256 == $input_sha
+            and .schema_sha256 == $schema_sha
+            and (.implementation_sha256 | test("^[0-9a-f]{64}$"))
+            and .candidate_count == 12
+            and .scenario_count == 27
+            and .policy_result_count == 81
+            and .outcome_counts.event_count == 4
+            and .outcome_counts.no_event_count == 6
+            and .outcome_counts.unknown_outcome_count == 2
+            and (.expected_baseline_harm_from_registered_probabilities - 400.5 | fabs < 0.000000000001)
+            and .metric_semantics.unknown_outcomes_imputed_to_no_event == false
+            and .metric_semantics.effectiveness_is_assumed_not_estimated == true
+            and .claims.real_world_action_effectiveness_established == false
+            and .claims.causal_impact_established == false
+            and .claims.forecast_superiority_established == false
+            and .claims.live_dispatch_authority == false
+            and ([.policy_results[] | select(.capacity == 1 and .scenario.action_cost_multiplier == 1 and .scenario.effectiveness_multiplier == 1 and .policy == "risk_ranked_top_k")][0]) as $one
+            | ($one.selected_record_ids == ["row-01"])
+              and (($one.expected_baseline_harm - 400.5 | fabs) < 0.000000000001)
+              and (($one.assumed_avoided_harm - 36 | fabs) < 0.000000000001)
+              and (($one.expected_action_cost - 12 | fabs) < 0.000000000001)
+              and (($one.expected_net_benefit - 24 | fabs) < 0.000000000001)
+              and (($one.residual_expected_harm - 364.5 | fabs) < 0.000000000001)
+              and (($one.observed_outcome_diagnostics.event_capture_among_all_known_outcome_events - 0.25 | fabs) < 0.000000000001)
+              and $one.observed_outcome_diagnostics.selected_unknown_outcome_count == 0
+          ' pirb-capacity-action-value-receipt.json
+
+          jq -e '
+            [.policy_results[] | select(.capacity == 2 and .scenario.action_cost_multiplier == 1.5 and .scenario.effectiveness_multiplier == 0.5 and .policy == "expected_net_benefit_top_k")][0]
+            | .selected_count == 0
+              and .selected_record_ids == []
+              and .unallocated_capacity == 2
+              and .expected_net_benefit == 0
+          ' pirb-capacity-action-value-receipt.json
+
       - name: Upload exact-head synthetic receipt and inputs
         if: success()
         uses: actions/upload-artifact@v4
@@ -444,6 +501,9 @@ jobs:
             pirb-score-admissibility-receipt.json
             pirb-joint-score-four-draw-receipt.json
             pirb-joint-score-three-draw-receipt.json
+            pirb-capacity-action-value-receipt.json
+            docs/fixtures/pirb-capacity-action-value-synthetic-v0.1.json
+            docs/schemas/pirb-capacity-action-value-v0.1.schema.json
             docs/fixtures/pirb-joint-score-four-draw-synthetic-v0.1.json
             docs/fixtures/pirb-joint-score-three-draw-synthetic-v0.1.json
             docs/schemas/pirb-joint-score-registration-v0.1.schema.json
