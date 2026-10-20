@@ -28,6 +28,12 @@ The first Symtropy pairwise trajectory kernel is a deliberately tiny research co
 | FAA weight/balance and certification | Aircraft/operator-specific approved limits, design/conformity/production approval and operational obligations | Treat approved-source applicability and human/authority sign-off as external decision gates. Never generate generic aircraft limits. |
 | NIST manufacturing digital thread | Product-definition standards, conformance tests, inspection data and secure traceability through manufacture | Bind configuration, material/process/measurement evidence and design-change impact into a reproducible lifecycle thread, and reuse standard exchange formats. |
 
+## South African source and approval context
+
+For work intended to be relevant in Johannesburg/Gauteng, distinguish the FAA/EU research references above from the applicable South African authority and operational publications. SACAA's current [Airworthiness page](https://www.caa.co.za/industry-information/airworthiness/) publishes technical guidance for Design Organisation Approval, Part Manufacturing Approval, STCs, type acceptance/certification and experimental certificates. It describes Type Acceptance Certificates under South African Civil Aviation Regulations, identifies model/category/limitations, and explains the relationship between type acceptance, registration and certificate of airworthiness. This is a reason to model approval path, product/model/serial applicability and limits as typed evidence—not a generic boolean "approved".
+
+For airspace context, SACAA's [Aeronautical Charts and Information page](https://www.caa.co.za/industry-information/aeronautical-charts/) exposes AIP, AIP supplements, NOTAM summaries, aerodrome/helistop directories, registered/approved aerodromes and AIRAC/AIP amendment dates. It specifically advises users to consult the latest NOTAMs and chart hand amendments for possible changes or suspension notices. Sol-Atlas should therefore retain publication/effective dates, validity intervals and update-state; an old chart or a mapped airfield is not an operational status assertion. Exact applicability, source rights and operational procedures must be checked against the current SACAA publication for the intended aircraft category and operation.
+
 ## The paradigm shift to pursue
 
 ### 1. From model output to an evidence-carrying decision
