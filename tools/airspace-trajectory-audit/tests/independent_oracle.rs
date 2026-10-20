@@ -517,3 +517,109 @@ fn broadphase_rejects_mixed_reference_frames_and_vertical_datums() {
         Err(symtropy_airspace_trajectory_audit::AuditInputError::VerticalDatumMismatch)
     );
 }
+
+#[test]
+fn deterministic_wide_integer_oracle_stresses_floating_point_rounding() {
+    // The expected answer is computed with i128 integer arithmetic over exact integer-valued
+    // coordinates. Inputs reach 1e8 m, making squared products exceed exact f64 integer
+    // precision while remaining far below i128 overflow. This is a regression stress test for
+    // rounding in dot products, squared velocities, minimizer division and hypot comparison.
+    // It is still a finite synthetic corpus, not a proof for arbitrary f64 inputs.
+    const T0: i64 = 1_000;
+    const T1: i64 = 11_000;
+    let mut seed = 0x6a09_e667_f3bc_c909_u64;
+    let mut checked = 0_usize;
+
+    fn next(seed: &mut u64) -> u64 {
+        // Deterministic xorshift64*; no external RNG/dependency and reproducible on all hosts.
+        *seed ^= *seed >> 12;
+        *seed ^= *seed << 25;
+        *seed ^= *seed >> 27;
+        seed.wrapping_mul(0x2545_f491_4f6c_dd1d)
+    }
+
+    fn signed_coordinate(seed: &mut u64) -> i64 {
+        (next(seed) % 200_000_001) as i64 - 100_000_000
+    }
+
+    let mut rule = criteria();
+    rule.minimum_vertical_separation_m = 5.0;
+
+    for case_index in 0..20_000_usize {
+        let rx = signed_coordinate(&mut seed);
+        let ry = signed_coordinate(&mut seed);
+        let dx = signed_coordinate(&mut seed);
+        let dy = signed_coordinate(&mut seed);
+        if dx == 0 && dy == 0 {
+            continue;
+        }
+        let radius = (next(&mut seed) % 100_000_000 + 1) as i64;
+
+        let dot = i128::from(rx) * i128::from(dx) + i128::from(ry) * i128::from(dy);
+        let norm_d = i128::from(dx) * i128::from(dx) + i128::from(dy) * i128::from(dy);
+        let norm_r = i128::from(rx) * i128::from(rx) + i128::from(ry) * i128::from(ry);
+        let minimum_numerator = if dot >= 0 {
+            norm_r * norm_d
+        } else if -dot >= norm_d {
+            let ex = i128::from(rx) + i128::from(dx);
+            let ey = i128::from(ry) + i128::from(dy);
+            (ex * ex + ey * ey) * norm_d
+        } else {
+            norm_r * norm_d - dot * dot
+        };
+        let r = i128::from(radius);
+        let expected_conflict = minimum_numerator <= r * r * norm_d;
+
+        let a = Trajectory {
+            trajectory_id: "A-wide-integer-oracle".to_owned(),
+            revision: "wide-integer-oracle-v1".to_owned(),
+            reference_frame_id: "WIDE-ORACLE-LOCAL-XYZ".to_owned(),
+            vertical_datum_id: "WIDE-ORACLE-VERTICAL".to_owned(),
+            source_reference: "fixture://wide-oracle/A".to_owned(),
+            source_sha256: "a".repeat(64),
+            horizontal_uncertainty_bound_m: 0.0,
+            vertical_uncertainty_bound_m: 0.0,
+            points: vec![
+                point(T0, 0.0, 0.0, 100.0),
+                point(T1, 0.0, 0.0, 100.0),
+            ],
+        };
+        let b = Trajectory {
+            trajectory_id: "B-wide-integer-oracle".to_owned(),
+            revision: "wide-integer-oracle-v1".to_owned(),
+            reference_frame_id: "WIDE-ORACLE-LOCAL-XYZ".to_owned(),
+            vertical_datum_id: "WIDE-ORACLE-VERTICAL".to_owned(),
+            source_reference: "fixture://wide-oracle/B".to_owned(),
+            source_sha256: "b".repeat(64),
+            horizontal_uncertainty_bound_m: 0.0,
+            vertical_uncertainty_bound_m: 0.0,
+            points: vec![
+                point(T0, rx as f64, ry as f64, 100.0),
+                point(T1, (rx + dx) as f64, (ry + dy) as f64, 100.0),
+            ],
+        };
+
+        rule.minimum_horizontal_separation_m = radius as f64;
+        let report = audit_trajectory_pair(&a, &b, &rule)
+            .unwrap_or_else(|error| panic!("wide integer oracle case {case_index} invalid: {error}"));
+        let diagnostic = format!(
+            "case={case_index}, r=({rx},{ry}), d=({dx},{dy}), radius={radius}"
+        );
+        if expected_conflict {
+            assert_eq!(
+                report.disposition,
+                ConflictDisposition::ConflictDetected,
+                "integer oracle found a conflict: {diagnostic}"
+            );
+        } else {
+            assert_eq!(
+                report.disposition,
+                ConflictDisposition::NoConflictDetectedWithinEvaluatedWindow,
+                "integer oracle found no conflict: {diagnostic}"
+            );
+        }
+        checked += 1;
+    }
+    assert!(checked >= 19_999);
+}
+
