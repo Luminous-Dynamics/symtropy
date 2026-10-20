@@ -5,7 +5,14 @@ on:
     branches: ["research/wildfire-ops-benchmark-v0-1"]
     paths:
       - "docs/tech/WILDFIRE_OPS_BENCHMARK_V0_1.md"
+      - "docs/tech/WILDFIRE_TRAFFIC_CTM_BENCHMARK_V0_1.md"
+      - "docs/tech/WILDFIRE_NETWORK_FLOW_V0_1.md"
+      - "docs/tech/WILDFIRE_SUMO_ADAPTER_V0_1.md"
       - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_TRAFFIC_CTM_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_TRAFFIC_CTM_V0_1.json"
+      - "benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
       - "tools/wildfire-ops-bench/**"
       - ".github/workflows/wildfire-ops-bench.yml"
   pull_request:
@@ -209,7 +216,6 @@ jobs:
             "$source_commit"
 
       - name: Upload deterministic benchmark receipts
-      - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
           name: wildfire-resilience-benchmark-receipts
@@ -217,5 +223,6 @@ jobs:
             wildfire-ops-reference-receipt.json
             wildfire-traffic-ctm-receipt.json
             wildfire-network-flow-reference-receipt.json
+            wildfire-sumo-export/
           if-no-files-found: error
           retention-days: 90
