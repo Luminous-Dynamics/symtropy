@@ -128,6 +128,49 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         }
     }
 
+    let declared_forecast_ids = forecast_by_id.keys().cloned().collect::<BTreeSet<_>>();
+    let sample_rows = registration["predictive_samples"]["rows"]
+        .as_array()
+        .expect("schema validation requires predictive sample rows");
+    let mut sample_rows_by_draw: BTreeMap<String, BTreeMap<String, &Value>> = BTreeMap::new();
+    for sample_row in sample_rows {
+        let draw_id = string_at(sample_row, "draw_id").unwrap_or_default();
+        let forecast_id = string_at(sample_row, "forecast_id").unwrap_or_default();
+        if !forecast_by_id.contains_key(forecast_id) {
+            errors.push(format!(
+                "predictive sample {draw_id} references unknown forecast {forecast_id}"
+            ));
+        }
+        let rows_for_draw = sample_rows_by_draw.entry(draw_id.to_owned()).or_default();
+        if rows_for_draw
+            .insert(forecast_id.to_owned(), sample_row)
+            .is_some()
+        {
+            errors.push(format!(
+                "predictive draw {draw_id} repeats forecast row {forecast_id}"
+            ));
+        }
+    }
+    if sample_rows_by_draw.len() < 2 {
+        errors.push("predictive sample matrix must contain at least two distinct draws".to_owned());
+    }
+    for (draw_id, rows_for_draw) in &sample_rows_by_draw {
+        let actual_forecast_ids = rows_for_draw.keys().cloned().collect::<BTreeSet<_>>();
+        if actual_forecast_ids != declared_forecast_ids {
+            let missing = declared_forecast_ids
+                .difference(&actual_forecast_ids)
+                .cloned()
+                .collect::<Vec<_>>();
+            let unexpected = actual_forecast_ids
+                .difference(&declared_forecast_ids)
+                .cloned()
+                .collect::<Vec<_>>();
+            errors.push(format!(
+                "predictive draw {draw_id} must contain exactly one row for every declared forecast; missing {missing:?}, unexpected {unexpected:?}"
+            ));
+        }
+    }
+
     let mut constraint_ids = BTreeSet::new();
     let mut aggregation_adjacency: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for constraint in constraints {
@@ -316,6 +359,20 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         })
         .collect::<BTreeMap<_, _>>();
 
+    let mut sample_rows_by_draw: BTreeMap<String, BTreeMap<String, &Value>> = BTreeMap::new();
+    for sample_row in registration["predictive_samples"]["rows"]
+        .as_array()
+        .expect("schema validation requires predictive sample rows")
+    {
+        let draw_id = string_at(sample_row, "draw_id").expect("schema validated draw_id");
+        let forecast_id =
+            string_at(sample_row, "forecast_id").expect("schema validated forecast_id");
+        sample_rows_by_draw
+            .entry(draw_id.to_owned())
+            .or_default()
+            .insert(forecast_id.to_owned(), sample_row);
+    }
+
     let mut diagnostics = Vec::new();
     let mut assessable = 0usize;
     let mut raw_coherent = 0usize;
@@ -459,6 +516,123 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         }));
     }
 
+    let mut sample_constraint_diagnostics = Vec::new();
+    let mut sample_assessable = 0usize;
+    let mut sample_raw_coherent = 0usize;
+    let mut sample_reconciled_coherent = 0usize;
+    let mut sample_raw_incoherent = 0usize;
+    let mut sample_reconciled_incoherent = 0usize;
+    let mut sample_not_assessable = 0usize;
+
+    for (draw_id, sample_rows) in &sample_rows_by_draw {
+        for constraint in registration["aggregation_constraints"]
+            .as_array()
+            .expect("schema validation requires aggregation_constraints")
+        {
+            let constraint_id = string_at(constraint, "constraint_id")
+                .expect("schema validated constraint_id");
+            let completeness =
+                string_at(constraint, "completeness").expect("schema validated completeness");
+            let kind = string_at(constraint, "kind").expect("schema validated constraint kind");
+            let tolerance = number_at(constraint, "absolute_tolerance")
+                .expect("schema validated absolute_tolerance");
+            let parent_id = string_at(constraint, "parent_forecast_id")
+                .expect("schema validated parent_forecast_id");
+
+            if completeness != "complete" {
+                sample_not_assessable += 1;
+                sample_constraint_diagnostics.push(json!({
+                    "draw_id": draw_id,
+                    "constraint_id": constraint_id,
+                    "kind": kind,
+                    "completeness": completeness,
+                    "status": "not_assessable",
+                    "raw_signed_residual": Value::Null,
+                    "raw_status": "not_assessable",
+                    "reconciled_signed_residual": Value::Null,
+                    "reconciled_status": "not_assessable",
+                    "absolute_tolerance": tolerance
+                }));
+                continue;
+            }
+
+            let parent = sample_rows
+                .get(parent_id)
+                .expect("semantic validation guarantees parent sample row");
+            let child_ids = constraint["child_forecast_ids"]
+                .as_array()
+                .expect("schema validation requires child_forecast_ids");
+            let children = child_ids
+                .iter()
+                .map(|child_id| {
+                    sample_rows
+                        .get(child_id.as_str().expect("schema validated child forecast ID"))
+                        .copied()
+                        .expect("semantic validation guarantees child sample rows")
+                })
+                .collect::<Vec<_>>();
+            let raw_parent =
+                number_at(parent, "raw_count").expect("schema validated raw sample count");
+            let reconciled_parent = number_at(parent, "reconciled_count")
+                .expect("schema validated reconciled sample count");
+            let raw_child_sum = children
+                .iter()
+                .map(|child| number_at(child, "raw_count").expect("schema validated raw count"))
+                .sum::<f64>();
+            let reconciled_child_sum = children
+                .iter()
+                .map(|child| {
+                    number_at(child, "reconciled_count")
+                        .expect("schema validated reconciled count")
+                })
+                .sum::<f64>();
+            let raw_residual = raw_parent - raw_child_sum;
+            let reconciled_residual = reconciled_parent - reconciled_child_sum;
+            let raw_status = if raw_residual.abs() <= tolerance {
+                sample_raw_coherent += 1;
+                "coherent"
+            } else {
+                sample_raw_incoherent += 1;
+                "incoherent"
+            };
+            let reconciled_status = if reconciled_residual.abs() <= tolerance {
+                sample_reconciled_coherent += 1;
+                "coherent"
+            } else {
+                sample_reconciled_incoherent += 1;
+                "incoherent"
+            };
+            sample_assessable += 1;
+            sample_constraint_diagnostics.push(json!({
+                "draw_id": draw_id,
+                "constraint_id": constraint_id,
+                "kind": kind,
+                "completeness": completeness,
+                "status": reconciled_status,
+                "raw_parent_count": raw_parent,
+                "raw_child_sum": raw_child_sum,
+                "raw_signed_residual": raw_residual,
+                "raw_status": raw_status,
+                "reconciled_parent_count": reconciled_parent,
+                "reconciled_child_sum": reconciled_child_sum,
+                "reconciled_signed_residual": reconciled_residual,
+                "reconciled_status": reconciled_status,
+                "absolute_tolerance": tolerance
+            }));
+        }
+    }
+
+    let sample_raw_coherence_rate = if sample_assessable == 0 {
+        Value::Null
+    } else {
+        json!(sample_raw_coherent as f64 / sample_assessable as f64)
+    };
+    let sample_reconciled_coherence_rate = if sample_assessable == 0 {
+        Value::Null
+    } else {
+        json!(sample_reconciled_coherent as f64 / sample_assessable as f64)
+    };
+
     let total_absolute_adjustment = forecasts
         .iter()
         .map(|forecast| {
@@ -526,6 +700,7 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
         "hierarchy_sha256": registration["provider"]["hierarchy_sha256"],
         "reconciliation_method_sha256": registration["reconciliation_policy"]["method_sha256"],
         "constraint_diagnostics": diagnostics,
+        "predictive_sample_diagnostics": sample_constraint_diagnostics,
         "summary": {
             "constraint_count": constraint_count,
             "assessable_constraint_count": assessable,
@@ -538,11 +713,21 @@ fn validate_and_audit(input: &[u8], source_commit: &str) -> Result<Value, Vec<St
             "mean_absolute_raw_residual": mean_absolute_raw_residual,
             "mean_absolute_reconciled_residual": mean_absolute_reconciled_residual,
             "total_absolute_reconciliation_adjustment": total_absolute_adjustment,
-            "maximum_absolute_reconciliation_adjustment": maximum_absolute_adjustment
+            "maximum_absolute_reconciliation_adjustment": maximum_absolute_adjustment,
+            "predictive_sample_count": sample_rows_by_draw.len(),
+            "assessable_sample_constraint_count": sample_assessable,
+            "raw_coherent_sample_constraint_count": sample_raw_coherent,
+            "raw_incoherent_sample_constraint_count": sample_raw_incoherent,
+            "reconciled_coherent_sample_constraint_count": sample_reconciled_coherent,
+            "reconciled_incoherent_sample_constraint_count": sample_reconciled_incoherent,
+            "not_assessable_sample_constraint_count": sample_not_assessable,
+            "raw_sample_coherence_rate": sample_raw_coherence_rate,
+            "reconciled_sample_coherence_rate": sample_reconciled_coherence_rate
         },
         "claims": {
             "contract_validated": true,
             "hierarchy_coherence_measured": true,
+            "predictive_sample_coherence_measured": true,
             "forecast_accuracy_established": false,
             "decision_utility_established": false,
             "causal_impact_established": false,
@@ -727,6 +912,88 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("aggregation constraint graph contains a cycle"))
         );
+    }
+
+    #[test]
+    fn predictive_samples_are_audited_draw_by_draw() {
+        let receipt = validate_and_audit(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+            .expect("synthetic joint sample fixture is valid");
+        assert_eq!(receipt["summary"]["predictive_sample_count"], 2);
+        assert_eq!(receipt["summary"]["assessable_sample_constraint_count"], 4);
+        assert_eq!(receipt["summary"]["raw_incoherent_sample_constraint_count"], 2);
+        assert_eq!(receipt["summary"]["reconciled_coherent_sample_constraint_count"], 4);
+        assert_eq!(receipt["summary"]["not_assessable_sample_constraint_count"], 2);
+        assert_eq!(receipt["summary"]["raw_sample_coherence_rate"], 0.5);
+        assert_eq!(receipt["summary"]["reconciled_sample_coherence_rate"], 1.0);
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["raw_signed_residual"],
+            1.0
+        );
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["reconciled_signed_residual"],
+            0.0
+        );
+    }
+
+    #[test]
+    fn incoherent_reconciled_draw_is_reported_not_hidden() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"][2]["reconciled_count"] = json!(10);
+        let receipt = audit(&value).expect("coherence failure is a reportable metric result");
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["reconciled_status"],
+            "incoherent"
+        );
+        assert_eq!(
+            receipt["predictive_sample_diagnostics"][0]["reconciled_signed_residual"],
+            -1.0
+        );
+    }
+
+    #[test]
+    fn every_predictive_draw_must_have_exactly_one_row_per_forecast() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"]
+            .as_array_mut()
+            .expect("sample rows are an array")
+            .pop();
+        let errors = audit(&value).expect_err("sample rows cannot silently disappear");
+        assert!(errors.iter().any(|error| {
+            error.contains("must contain exactly one row for every declared forecast")
+        }));
+    }
+
+    #[test]
+    fn predictive_sample_rows_must_be_integer_counts() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"][0]["raw_count"] = json!(1.5);
+        let errors = audit(&value).expect_err("count realizations cannot be fractional");
+        assert!(errors.iter().any(|error| error.contains("raw_count")));
+    }
+
+    #[test]
+    fn predictive_samples_cannot_reference_unknown_forecasts() {
+        let mut value = fixture();
+        value["predictive_samples"]["rows"][0]["forecast_id"] =
+            json!("fc-not-in-forecast-inventory");
+        let errors = audit(&value).expect_err("predictive samples cannot add undeclared forecast IDs");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("references unknown forecast"))
+        );
+    }
+
+    #[test]
+    fn duplicate_forecast_row_in_a_predictive_draw_is_rejected() {
+        let mut value = fixture();
+        let first_row = value["predictive_samples"]["rows"][0].clone();
+        value["predictive_samples"]["rows"]
+            .as_array_mut()
+            .expect("sample rows are an array")
+            .push(first_row);
+        let errors = audit(&value).expect_err("duplicate draw/forecast pairs are ambiguous");
+        assert!(errors.iter().any(|error| error.contains("repeats forecast row")));
     }
 
     #[test]
