@@ -1,0 +1,392 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-BENCH-001",
+  "evidence_class": "synthetic",
+  "scenarios": [
+    {
+      "scenario_id": "steady-battery-constraint",
+      "operating_regime": "steady_state",
+      "ground_truth_constraint_id": "battery-module",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.94,
+          "active_period_fraction": 0.75,
+          "blocked_fraction": 0.34,
+          "starved_fraction": 0.01,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.12,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.88,
+          "active_period_fraction": 0.89,
+          "blocked_fraction": 0.07,
+          "starved_fraction": 0.03,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.18,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.81,
+          "active_period_fraction": 0.96,
+          "blocked_fraction": 0.1,
+          "starved_fraction": 0.02,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.52,
+          "predicted_marginal_good_output_gain_fraction": 0.17
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.79,
+          "active_period_fraction": 0.72,
+          "blocked_fraction": 0.03,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.16,
+          "predicted_marginal_good_output_gain_fraction": 0.03
+        }
+      ]
+    },
+    {
+      "scenario_id": "end-test-saturated",
+      "operating_regime": "end_test_saturated",
+      "ground_truth_constraint_id": "end-of-line-test",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.84,
+          "active_period_fraction": 0.77,
+          "blocked_fraction": 0.12,
+          "starved_fraction": 0.02,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.25,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.8,
+          "active_period_fraction": 0.78,
+          "blocked_fraction": 0.08,
+          "starved_fraction": 0.03,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.21,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.86,
+          "active_period_fraction": 0.83,
+          "blocked_fraction": 0.06,
+          "starved_fraction": 0.02,
+          "down_fraction": 0.03,
+          "interdeparture_cv": 0.22,
+          "predicted_marginal_good_output_gain_fraction": 0.03
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.94,
+          "active_period_fraction": 0.95,
+          "blocked_fraction": 0.05,
+          "starved_fraction": 0.01,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.18,
+          "predicted_marginal_good_output_gain_fraction": 0.16
+        }
+      ]
+    },
+    {
+      "scenario_id": "body-preparation-constraint",
+      "operating_regime": "variant_changeover",
+      "ground_truth_constraint_id": "body-preparation",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.89,
+          "active_period_fraction": 0.84,
+          "blocked_fraction": 0.12,
+          "starved_fraction": 0.02,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.22,
+          "predicted_marginal_good_output_gain_fraction": 0.03
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.83,
+          "active_period_fraction": 0.94,
+          "blocked_fraction": 0.07,
+          "starved_fraction": 0.01,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.4,
+          "predicted_marginal_good_output_gain_fraction": 0.13
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.85,
+          "active_period_fraction": 0.82,
+          "blocked_fraction": 0.04,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.03,
+          "interdeparture_cv": 0.17,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.94,
+          "active_period_fraction": 0.76,
+          "blocked_fraction": 0.08,
+          "starved_fraction": 0.02,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.15,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        }
+      ]
+    },
+    {
+      "scenario_id": "battery-after-rework-burst",
+      "operating_regime": "quality_rework_burst",
+      "ground_truth_constraint_id": "battery-module",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.8,
+          "active_period_fraction": 0.78,
+          "blocked_fraction": 0.05,
+          "starved_fraction": 0.11,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.15,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.86,
+          "active_period_fraction": 0.87,
+          "blocked_fraction": 0.06,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.03,
+          "interdeparture_cv": 0.2,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.87,
+          "active_period_fraction": 0.91,
+          "blocked_fraction": 0.06,
+          "starved_fraction": 0.03,
+          "down_fraction": 0.04,
+          "interdeparture_cv": 0.48,
+          "predicted_marginal_good_output_gain_fraction": 0.2
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.82,
+          "active_period_fraction": 0.86,
+          "blocked_fraction": 0.04,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.23,
+          "predicted_marginal_good_output_gain_fraction": 0.03
+        }
+      ]
+    },
+    {
+      "scenario_id": "end-test-after-automation",
+      "operating_regime": "constraint_migration",
+      "ground_truth_constraint_id": "end-of-line-test",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.94,
+          "active_period_fraction": 0.67,
+          "blocked_fraction": 0.05,
+          "starved_fraction": 0.19,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.29,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.82,
+          "active_period_fraction": 0.8,
+          "blocked_fraction": 0.04,
+          "starved_fraction": 0.06,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.18,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.8,
+          "active_period_fraction": 0.81,
+          "blocked_fraction": 0.04,
+          "starved_fraction": 0.05,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.21,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.81,
+          "active_period_fraction": 0.93,
+          "blocked_fraction": 0.03,
+          "starved_fraction": 0.02,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.43,
+          "predicted_marginal_good_output_gain_fraction": 0.14
+        }
+      ]
+    },
+    {
+      "scenario_id": "early-window-kitting",
+      "operating_regime": "time_varying_constraint_early",
+      "ground_truth_constraint_id": "inbound-kitting",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.92,
+          "active_period_fraction": 0.9,
+          "blocked_fraction": 0.08,
+          "starved_fraction": 0.01,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.24,
+          "predicted_marginal_good_output_gain_fraction": 0.12
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.85,
+          "active_period_fraction": 0.82,
+          "blocked_fraction": 0.04,
+          "starved_fraction": 0.03,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.13,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.82,
+          "active_period_fraction": 0.78,
+          "blocked_fraction": 0.03,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.19,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.79,
+          "active_period_fraction": 0.76,
+          "blocked_fraction": 0.03,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.16,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        }
+      ]
+    },
+    {
+      "scenario_id": "late-window-battery",
+      "operating_regime": "time_varying_constraint_late",
+      "ground_truth_constraint_id": "battery-module",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.93,
+          "active_period_fraction": 0.69,
+          "blocked_fraction": 0.06,
+          "starved_fraction": 0.2,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.24,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.86,
+          "active_period_fraction": 0.81,
+          "blocked_fraction": 0.06,
+          "starved_fraction": 0.07,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.2,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.84,
+          "active_period_fraction": 0.96,
+          "blocked_fraction": 0.05,
+          "starved_fraction": 0.02,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.46,
+          "predicted_marginal_good_output_gain_fraction": 0.21
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.79,
+          "active_period_fraction": 0.75,
+          "blocked_fraction": 0.03,
+          "starved_fraction": 0.08,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.16,
+          "predicted_marginal_good_output_gain_fraction": 0.01
+        }
+      ]
+    },
+    {
+      "scenario_id": "end-test-interdeparture-shock",
+      "operating_regime": "departure_variability_shock",
+      "ground_truth_constraint_id": "end-of-line-test",
+      "labels_source": "constructed_synthetic_ground_truth_by_declared_scenario_design",
+      "signals": [
+        {
+          "station_id": "inbound-kitting",
+          "utilization_fraction": 0.89,
+          "active_period_fraction": 0.81,
+          "blocked_fraction": 0.07,
+          "starved_fraction": 0.05,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.22,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "body-preparation",
+          "utilization_fraction": 0.84,
+          "active_period_fraction": 0.83,
+          "blocked_fraction": 0.05,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.02,
+          "interdeparture_cv": 0.19,
+          "predicted_marginal_good_output_gain_fraction": 0.02
+        },
+        {
+          "station_id": "battery-module",
+          "utilization_fraction": 0.86,
+          "active_period_fraction": 0.84,
+          "blocked_fraction": 0.06,
+          "starved_fraction": 0.03,
+          "down_fraction": 0.03,
+          "interdeparture_cv": 0.26,
+          "predicted_marginal_good_output_gain_fraction": 0.03
+        },
+        {
+          "station_id": "end-of-line-test",
+          "utilization_fraction": 0.82,
+          "active_period_fraction": 0.91,
+          "blocked_fraction": 0.03,
+          "starved_fraction": 0.04,
+          "down_fraction": 0.01,
+          "interdeparture_cv": 0.31,
+          "predicted_marginal_good_output_gain_fraction": 0.12
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "Hand-authored synthetic signals and by-construction labels exercise the scorer and known counterexamples only; no real plant observations, expert labels, calibrated intervention outcomes or SOTA claims."
+}
