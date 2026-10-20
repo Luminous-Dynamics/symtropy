@@ -426,6 +426,36 @@ mod tests {
     }
 
     #[test]
+    fn scenario_manifest_schema_matches_rust_contract() {
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../../schemas/landscape-scenario-manifest-v0.schema.json"
+        ))
+        .expect("scenario manifest schema must be valid JSON");
+
+        assert_eq!(schema["$id"], "https://luminousdynamics.io/schemas/landscape-scenario-manifest-v0.schema.json");
+        assert_eq!(schema["properties"]["schema"]["const"], SCENARIO_MANIFEST_SCHEMA);
+        assert_eq!(
+            schema["properties"]["design_snapshot"]["properties"]["schema"]["const"],
+            DESIGN_SNAPSHOT_SCHEMA
+        );
+        assert_eq!(
+            schema["properties"]["design_snapshot"]["properties"]["schema_uri"]["const"],
+            DESIGN_SNAPSHOT_SCHEMA_URI
+        );
+        assert_eq!(
+            schema["properties"]["design_snapshot"]["properties"]["coordinate_frame_kind"]["const"],
+            LOCAL_DRAWING_FRAME
+        );
+        for purpose in ["schema-qualification", "synthetic-benchmark"] {
+            assert!(schema["properties"]["purpose"]["enum"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value.as_str() == Some(purpose)));
+        }
+    }
+
+    #[test]
     fn sha256_matches_known_answer() {
         assert_eq!(
             sha256_hex(b"abc"),
