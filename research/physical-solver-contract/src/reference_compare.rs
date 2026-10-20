@@ -33,9 +33,24 @@ pub fn compare_reference_observables(
     let reference_sha256 = sha256_hex(reference_bytes);
     let request_sha256 = sha256_hex(request_bytes);
 
+    let request: Value = serde_json::from_slice(request_bytes)
+        .map_err(|error| format!("invalid request JSON: {error}"))?;
+    let request_id = get_str(&request, "request_id", "request")?;
+    let scene_sha256 = get_str(&request, "scene_sha256", "request")?;
+    let scene_revision = request
+        .get("scene_revision")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "request.scene_revision must be a non-negative integer".to_owned())?;
+
     let reference: Value = serde_json::from_slice(reference_bytes)
         .map_err(|error| format!("invalid reference manifest JSON: {error}"))?;
-    let reference_parsed = parse_reference(&reference, &request_sha256)?;
+    let reference_parsed = parse_reference(
+        &reference,
+        &request_sha256,
+        request_id,
+        scene_sha256,
+        scene_revision,
+    )?;
 
     let receipt: Value = serde_json::from_slice(receipt_bytes)
         .map_err(|error| format!("invalid receipt JSON: {error}"))?;
@@ -141,7 +156,14 @@ pub fn compare_reference_observables(
 
     let observation: Value = serde_json::from_slice(&observation_bytes)
         .map_err(|error| format!("invalid normalized-observables JSON: {error}"))?;
-    let observed = parse_observation(&observation, &request_sha256, &reference_parsed.case_id)?;
+    let observed = parse_observation(
+        &observation,
+        &request_sha256,
+        request_id,
+        scene_sha256,
+        scene_revision,
+        &reference_parsed.case_id,
+    )?;
     let reference_ids: BTreeSet<&str> = reference_parsed
         .observables
         .keys()
@@ -267,6 +289,9 @@ struct ReferenceObservable {
 struct ReferenceManifest {
     reference_id: String,
     case_id: String,
+    request_id: String,
+    scene_sha256: String,
+    scene_revision: u64,
     protocol_id: String,
     oracle_method: String,
     oracle_identity: String,
@@ -279,13 +304,22 @@ struct ObservedObservable {
     unit: String,
 }
 
-fn parse_reference(value: &Value, request_sha256: &str) -> CompareResult<ReferenceManifest> {
+fn parse_reference(
+    value: &Value,
+    request_sha256: &str,
+    request_id: &str,
+    scene_sha256: &str,
+    scene_revision: u64,
+) -> CompareResult<ReferenceManifest> {
     exact_keys(
         value,
         &[
             "schema_version",
             "reference_id",
             "case_id",
+            "request_id",
+            "scene_sha256",
+            "scene_revision",
             "request_sha256",
             "comparison_protocol_id",
             "oracle",
@@ -308,6 +342,21 @@ fn parse_reference(value: &Value, request_sha256: &str) -> CompareResult<Referen
         "reference ID",
     )?;
     let case_id = token(get_str(value, "case_id", "reference manifest")?, "case ID")?;
+    let bound_request_id = get_str(value, "request_id", "reference manifest")?;
+    if bound_request_id != request_id {
+        return Err("reference manifest request_id does not match request".to_owned());
+    }
+    let bound_scene_sha256 = get_str(value, "scene_sha256", "reference manifest")?;
+    if bound_scene_sha256 != scene_sha256 {
+        return Err("reference manifest scene_sha256 does not match request".to_owned());
+    }
+    let bound_scene_revision = value
+        .get("scene_revision")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "reference manifest scene_revision must be a non-negative integer".to_owned())?;
+    if bound_scene_revision != scene_revision {
+        return Err("reference manifest scene_revision does not match request".to_owned());
+    }
     let protocol_id = token(
         get_str(value, "comparison_protocol_id", "reference manifest")?,
         "comparison protocol ID",
@@ -376,6 +425,9 @@ fn parse_reference(value: &Value, request_sha256: &str) -> CompareResult<Referen
     Ok(ReferenceManifest {
         reference_id,
         case_id,
+        request_id: bound_request_id.to_owned(),
+        scene_sha256: bound_scene_sha256.to_owned(),
+        scene_revision: bound_scene_revision,
         protocol_id,
         oracle_method: oracle_method.to_owned(),
         oracle_identity,
@@ -387,11 +439,22 @@ fn parse_reference(value: &Value, request_sha256: &str) -> CompareResult<Referen
 fn parse_observation(
     value: &Value,
     request_sha256: &str,
+    request_id: &str,
+    scene_sha256: &str,
+    scene_revision: u64,
     expected_case_id: &str,
 ) -> CompareResult<BTreeMap<String, ObservedObservable>> {
     exact_keys(
         value,
-        &["schema_version", "request_sha256", "case_id", "observables"],
+        &[
+            "schema_version",
+            "request_sha256",
+            "request_id",
+            "scene_sha256",
+            "scene_revision",
+            "case_id",
+            "observables",
+        ],
         "normalized observation",
     )?;
     expect_str(
@@ -402,6 +465,19 @@ fn parse_observation(
     )?;
     if get_str(value, "request_sha256", "normalized observation")? != request_sha256 {
         return Err("normalized observation is not bound to the exact request bytes".to_owned());
+    }
+    if get_str(value, "request_id", "normalized observation")? != request_id {
+        return Err("normalized observation request_id differs from request".to_owned());
+    }
+    if get_str(value, "scene_sha256", "normalized observation")? != scene_sha256 {
+        return Err("normalized observation scene_sha256 differs from request".to_owned());
+    }
+    let observed_scene_revision = value
+        .get("scene_revision")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "normalized observation scene_revision must be a non-negative integer".to_owned())?;
+    if observed_scene_revision != scene_revision {
+        return Err("normalized observation scene_revision differs from request".to_owned());
     }
     if get_str(value, "case_id", "normalized observation")? != expected_case_id {
         return Err("normalized observation case ID differs from reference case ID".to_owned());
@@ -447,6 +523,9 @@ fn unresolved_report(
         "oracle_source_ref": reference.oracle_source_ref,
         "request_sha256": request_sha256,
         "case_id": reference.case_id,
+        "request_id": reference.request_id,
+        "scene_sha256": reference.scene_sha256,
+        "scene_revision": reference.scene_revision,
         "observation_output_id": observation_output_id,
         "artifact_verification_status": artifact_report["artifact_verification_status"],
         "producer_status": artifact_report["producer_status"],
@@ -633,6 +712,9 @@ mod tests {
         serde_json::to_vec(&json!({
             "schema_version":OBSERVATION_SCHEMA,
             "request_sha256":sha256_hex(request),
+            "request_id":serde_json::from_slice::<Value>(request).unwrap()["request_id"],
+            "scene_sha256":serde_json::from_slice::<Value>(request).unwrap()["scene_sha256"],
+            "scene_revision":serde_json::from_slice::<Value>(request).unwrap()["scene_revision"],
             "case_id":"fixture-bar-reference",
             "observables":[{"observable_id":"fixture_displacement_m","value":value,"unit":"m"}]
         })).unwrap()
