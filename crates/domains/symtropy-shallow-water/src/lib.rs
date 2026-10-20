@@ -599,9 +599,7 @@ mod tests {
         assert_eq!(front.discharge_m2_s, 0.0);
     }
 
-    #[test]
-    fn numerical_dam_break_converges_toward_ritter_depth_profile() {
-        let dx: f64 = 0.05;
+    fn dam_break_depth_rmse(dx: f64) -> f64 {
         let cfg = config(dx);
         let x_min = -5.0;
         let x_max = 13.0;
@@ -616,11 +614,14 @@ mod tests {
             .collect();
         let mut solver = ShallowWater1D::new(cells, cfg).unwrap();
         let mut time = 0.0;
+        let mut steps = 0_usize;
         while time < t_end {
             let dt = solver
                 .advance(t_end - time, cfg, BoundaryConditions::OPEN)
                 .unwrap();
             time += dt;
+            steps += 1;
+            assert!(steps < 100_000, "dam-break integration did not terminate");
             assert!(time <= t_end + 1.0e-12);
         }
 
@@ -634,9 +635,18 @@ mod tests {
                 (cell.depth_m - expected.depth_m).powi(2)
             })
             .sum::<f64>();
-        let rmse = (squared_error / count as f64).sqrt();
+        (squared_error / count as f64).sqrt()
+    }
 
-        assert!(rmse < 0.06, "dam-break depth RMSE too high: {rmse}");
+    #[test]
+    fn numerical_dam_break_error_decreases_across_three_grid_resolutions() {
+        let coarse = dam_break_depth_rmse(0.1);
+        let medium = dam_break_depth_rmse(0.05);
+        let fine = dam_break_depth_rmse(0.025);
+
+        assert!(medium < coarse, "refinement did not improve RMSE: coarse={coarse}, medium={medium}");
+        assert!(fine < medium, "refinement did not improve RMSE: medium={medium}, fine={fine}");
+        assert!(fine < 0.06, "fine-grid dam-break depth RMSE too high: {fine}");
     }
 
     #[test]
