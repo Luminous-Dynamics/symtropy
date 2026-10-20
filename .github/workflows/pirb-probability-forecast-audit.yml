@@ -181,6 +181,17 @@ jobs:
             "$expected_schema_sha" "$expected_input_sha" "$expected_lock_sha" \
             "$rustc_version" "$cargo_version" | sha256sum | awk '{print $1}')"
 
+          echo "Checking exact score receipt commitments"
+          jq -e --arg value "$expected_schema_sha" '.schema_sha256 == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$expected_input_sha" '.input_sha256 == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$expected_forecast_inventory_sha" '.forecast_inventory_sha256 == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$expected_outcome_snapshot_sha" '.outcome_snapshot_sha256 == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$expected_lock_sha" '.dependency_lock_sha256 == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$rustc_version" '.rustc_version == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$cargo_version" '.cargo_version == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$source_commit" '.source_commit == $value' pirb-hierarchy-sample-score-receipt.json
+          jq -e --arg value "$expected_receipt_commitment" '.receipt_commitment_sha256 == $value' pirb-hierarchy-sample-score-receipt.json
+
           jq -e --arg source_commit "$source_commit" --arg input_sha "$expected_input_sha" \
             --arg schema_sha "$expected_schema_sha" --arg lock_sha "$expected_lock_sha" \
             --arg rustc_version "$rustc_version" --arg cargo_version "$cargo_version" \
