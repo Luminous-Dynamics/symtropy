@@ -133,7 +133,10 @@ impl EvidenceClass {
     }
 
     fn is_process_release_grade(self) -> bool {
-        matches!(self, Self::Measured | Self::IndependentTest | Self::AuditedCost)
+        matches!(
+            self,
+            Self::Measured | Self::IndependentTest | Self::AuditedCost
+        )
     }
 }
 
@@ -328,8 +331,16 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     }
     fraction("undercut_fraction", market.undercut_fraction, false)?;
     fraction("vat_fraction", market.vat_fraction, false)?;
-    fraction("distributor_margin_fraction", market.distributor_margin_fraction, false)?;
-    fraction("target_oem_gross_margin_fraction", market.target_oem_gross_margin_fraction, false)?;
+    fraction(
+        "distributor_margin_fraction",
+        market.distributor_margin_fraction,
+        false,
+    )?;
+    fraction(
+        "target_oem_gross_margin_fraction",
+        market.target_oem_gross_margin_fraction,
+        false,
+    )?;
     if market.distributor_margin_fraction + market.target_oem_gross_margin_fraction >= 1.0 {
         return Err("combined_distributor_and_oem_margins_must_be_below_one".to_string());
     }
@@ -350,7 +361,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             return Err("route_ids_must_be_nonempty_and_unique".to_string());
         }
         if route.label.trim().is_empty() || route.local_value_method.trim().is_empty() {
-            return Err(format!("route_{}_requires_label_and_local_value_method", route.route_id));
+            return Err(format!(
+                "route_{}_requires_label_and_local_value_method",
+                route.route_id
+            ));
         }
         fraction(
             &format!("{}_manufacturing_yield_fraction", route.route_id),
@@ -361,7 +375,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             return Err(format!("route_{}_yield_must_be_positive", route.route_id));
         }
         if route.yield_source_reference.trim().is_empty() || route.yield_as_of.trim().is_empty() {
-            return Err(format!("route_{}_yield_requires_source_and_date", route.route_id));
+            return Err(format!(
+                "route_{}_yield_requires_source_and_date",
+                route.route_id
+            ));
         }
         validate_evidence_claim(
             &format!("route_{}_vat_recovery_evidence", route.route_id),
@@ -373,7 +390,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         let mut volumes = BTreeSet::new();
         for volume in &route.volume_cases {
             if *volume == 0 || !volumes.insert(*volume) {
-                return Err(format!("route_{}_volume_cases_must_be_positive_and_unique", route.route_id));
+                return Err(format!(
+                    "route_{}_volume_cases_must_be_positive_and_unique",
+                    route.route_id
+                ));
             }
         }
         if route.imports.is_empty() {
@@ -382,12 +402,18 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         let mut line_ids = BTreeSet::new();
         for line in &route.imports {
             if line.line_id.trim().is_empty() || !line_ids.insert(line.line_id.clone()) {
-                return Err(format!("route_{}_import_line_ids_must_be_nonempty_and_unique", route.route_id));
+                return Err(format!(
+                    "route_{}_import_line_ids_must_be_nonempty_and_unique",
+                    route.route_id
+                ));
             }
             if line.candidate_tariff_heading.trim().is_empty()
                 || line.customs_value_basis.trim().is_empty()
             {
-                return Err(format!("route_{}_line_{}_requires_tariff_and_customs_basis", route.route_id, line.line_id));
+                return Err(format!(
+                    "route_{}_line_{}_requires_tariff_and_customs_basis",
+                    route.route_id, line.line_id
+                ));
             }
             validate_range(
                 &format!("{}_{}_purchase_value", route.route_id, line.line_id),
@@ -402,7 +428,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 &line.duty_rate,
             )?;
             validate_evidence_claim(
-                &format!("{}_{}_classification_evidence", route.route_id, line.line_id),
+                &format!(
+                    "{}_{}_classification_evidence",
+                    route.route_id, line.line_id
+                ),
                 &line.classification,
             )?;
             validate_evidence_claim(
@@ -410,10 +439,22 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 &line.origin,
             )?;
         }
-        validate_range(&format!("{}_local_components", route.route_id), &route.local_components_cost)?;
-        validate_range(&format!("{}_factory_conversion", route.route_id), &route.factory_conversion_cost)?;
-        validate_range(&format!("{}_warranty_service", route.route_id), &route.warranty_service_reserve)?;
-        validate_range(&format!("{}_fixed_program_investment", route.route_id), &route.fixed_program_investment)?;
+        validate_range(
+            &format!("{}_local_components", route.route_id),
+            &route.local_components_cost,
+        )?;
+        validate_range(
+            &format!("{}_factory_conversion", route.route_id),
+            &route.factory_conversion_cost,
+        )?;
+        validate_range(
+            &format!("{}_warranty_service", route.route_id),
+            &route.warranty_service_reserve,
+        )?;
+        validate_range(
+            &format!("{}_fixed_program_investment", route.route_id),
+            &route.fixed_program_investment,
+        )?;
     }
     Ok(())
 }
@@ -481,11 +522,21 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
 
             if !line.purchase_value.evidence_class.is_cost_release_grade() {
                 cost_inputs_release_grade = false;
-                evidence_gaps.push(format!("{} purchase value is not quote/measured/audited evidence", line.line_id));
+                evidence_gaps.push(format!(
+                    "{} purchase value is not quote/measured/audited evidence",
+                    line.line_id
+                ));
             }
-            if !line.freight_insurance.evidence_class.is_cost_release_grade() {
+            if !line
+                .freight_insurance
+                .evidence_class
+                .is_cost_release_grade()
+            {
                 cost_inputs_release_grade = false;
-                evidence_gaps.push(format!("{} freight/insurance is not quote/measured/audited evidence", line.line_id));
+                evidence_gaps.push(format!(
+                    "{} freight/insurance is not quote/measured/audited evidence",
+                    line.line_id
+                ));
             }
             let classification_qualified = line.classification.verified
                 && line.classification.evidence_class == EvidenceClass::OfficialClassification;
@@ -493,18 +544,27 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
                 && line.origin.evidence_class == EvidenceClass::OfficialOriginDetermination;
             if !classification_qualified {
                 tariffs_qualified = false;
-                evidence_gaps.push(format!("{} tariff classification is unverified or lacks an authoritative classification record ({})", line.line_id, line.candidate_tariff_heading));
+                evidence_gaps.push(format!(
+                    "{} tariff classification is unverified or lacks an authoritative classification record ({})",
+                    line.line_id, line.candidate_tariff_heading
+                ));
             }
             if !origin_qualified {
                 tariffs_qualified = false;
-                evidence_gaps.push(format!("{} country of origin/preference eligibility is unverified or lacks an authoritative origin record", line.line_id));
+                evidence_gaps.push(format!(
+                    "{} country of origin/preference eligibility is unverified or lacks an authoritative origin record",
+                    line.line_id
+                ));
             }
             if line.duty_rate.evidence_class != EvidenceClass::OfficialTariff
                 || !classification_qualified
                 || !origin_qualified
             {
                 tariffs_qualified = false;
-                evidence_gaps.push(format!("{} duty treatment is scenario-only until rate, classification, and origin have qualified evidence", line.line_id));
+                evidence_gaps.push(format!(
+                    "{} duty treatment is scenario-only until rate, classification, and origin have qualified evidence",
+                    line.line_id
+                ));
             }
         }
 
@@ -520,19 +580,31 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
             }
         }
         if !route.yield_evidence_class.is_process_release_grade() {
-            evidence_gaps.push("manufacturing yield is not supported by measured process evidence".to_string());
+            evidence_gaps.push(
+                "manufacturing yield is not supported by measured process evidence".to_string(),
+            );
         }
-        let vat_recovery_evidence_qualified = route.vat_recovery_status != VatRecoveryStatus::Unknown
+        let vat_recovery_evidence_qualified = route.vat_recovery_status
+            != VatRecoveryStatus::Unknown
             && route.vat_recovery_evidence.verified
             && route.vat_recovery_evidence.evidence_class == EvidenceClass::OfficialTaxTreatment;
         if route.vat_recovery_status == VatRecoveryStatus::Unknown {
-            evidence_gaps.push("import VAT recovery status is unresolved; both cost frontiers are shown".to_string());
+            evidence_gaps.push(
+                "import VAT recovery status is unresolved; both cost frontiers are shown"
+                    .to_string(),
+            );
         } else if !vat_recovery_evidence_qualified {
-            evidence_gaps.push("VAT recovery status is declared without a verified authoritative tax-treatment record".to_string());
+            evidence_gaps.push(
+                "VAT recovery status is declared without a verified authoritative tax-treatment record"
+                    .to_string(),
+            );
         }
 
-        let variable_low = landed_import_low + route.local_components_cost.low + route.factory_conversion_cost.low;
-        let variable_high = landed_import_high + route.local_components_cost.high + route.factory_conversion_cost.high;
+        let variable_low =
+            landed_import_low + route.local_components_cost.low + route.factory_conversion_cost.low;
+        let variable_high = landed_import_high
+            + route.local_components_cost.high
+            + route.factory_conversion_cost.high;
         let fixed_low = route.fixed_program_investment.low;
         let fixed_high = route.fixed_program_investment.high;
         for volume in {
@@ -548,13 +620,24 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
             let cogs_recovered_high = variable_high / route.manufacturing_yield_fraction
                 + route.warranty_service_reserve.high
                 + program_high;
-            let cogs_unrecoverable_low = cogs_recovered_low + import_vat_low / route.manufacturing_yield_fraction;
-            let cogs_unrecoverable_high = cogs_recovered_high + import_vat_high / route.manufacturing_yield_fraction;
-            let selected_frontier = match (route.vat_recovery_status, vat_recovery_evidence_qualified) {
-                (VatRecoveryStatus::Recoverable, true) => Some(frontier(cogs_recovered_low, cogs_recovered_high, cogs_ceiling)),
-                (VatRecoveryStatus::Unrecoverable, true) => Some(frontier(cogs_unrecoverable_low, cogs_unrecoverable_high, cogs_ceiling)),
-                _ => None,
-            };
+            let cogs_unrecoverable_low =
+                cogs_recovered_low + import_vat_low / route.manufacturing_yield_fraction;
+            let cogs_unrecoverable_high =
+                cogs_recovered_high + import_vat_high / route.manufacturing_yield_fraction;
+            let selected_frontier =
+                match (route.vat_recovery_status, vat_recovery_evidence_qualified) {
+                    (VatRecoveryStatus::Recoverable, true) => Some(frontier(
+                        cogs_recovered_low,
+                        cogs_recovered_high,
+                        cogs_ceiling,
+                    )),
+                    (VatRecoveryStatus::Unrecoverable, true) => Some(frontier(
+                        cogs_unrecoverable_low,
+                        cogs_unrecoverable_high,
+                        cogs_ceiling,
+                    )),
+                    _ => None,
+                };
 
             if !route.yield_evidence_class.is_process_release_grade() {
                 // A synthetic yield may shape a sensitivity, but cannot upgrade the route to evidence-backed.
@@ -587,8 +670,12 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
                 local_components_cost_high: route.local_components_cost.high,
                 factory_conversion_cost_low: route.factory_conversion_cost.low,
                 factory_conversion_cost_high: route.factory_conversion_cost.high,
-                local_spend_proxy_per_good_vehicle_low: (route.local_components_cost.low + route.factory_conversion_cost.low) / route.manufacturing_yield_fraction,
-                local_spend_proxy_per_good_vehicle_high: (route.local_components_cost.high + route.factory_conversion_cost.high) / route.manufacturing_yield_fraction,
+                local_spend_proxy_per_good_vehicle_low: (route.local_components_cost.low
+                    + route.factory_conversion_cost.low)
+                    / route.manufacturing_yield_fraction,
+                local_spend_proxy_per_good_vehicle_high: (route.local_components_cost.high
+                    + route.factory_conversion_cost.high)
+                    / route.manufacturing_yield_fraction,
                 warranty_service_reserve_low: route.warranty_service_reserve.low,
                 warranty_service_reserve_high: route.warranty_service_reserve.high,
                 fixed_program_cost_per_vehicle_low: program_low,
@@ -598,8 +685,16 @@ fn evaluate_catalog(catalog: &Catalog) -> Report {
                 cost_of_goods_if_vat_unrecoverable_low: cogs_unrecoverable_low,
                 cost_of_goods_if_vat_unrecoverable_high: cogs_unrecoverable_high,
                 maximum_affordable_cost_of_goods_at_target: cogs_ceiling,
-                frontier_if_vat_recovered: frontier(cogs_recovered_low, cogs_recovered_high, cogs_ceiling),
-                frontier_if_vat_unrecoverable: frontier(cogs_unrecoverable_low, cogs_unrecoverable_high, cogs_ceiling),
+                frontier_if_vat_recovered: frontier(
+                    cogs_recovered_low,
+                    cogs_recovered_high,
+                    cogs_ceiling,
+                ),
+                frontier_if_vat_unrecoverable: frontier(
+                    cogs_unrecoverable_low,
+                    cogs_unrecoverable_high,
+                    cogs_ceiling,
+                ),
                 frontier_given_declared_vat_status: selected_frontier,
                 vat_recovery_status: route.vat_recovery_status,
                 vat_recovery_evidence_qualified,
@@ -761,7 +856,8 @@ mod tests {
         let b = evaluate_catalog(&high).results.remove(0);
         assert!(b.cost_of_goods_if_vat_recovered_low > a.cost_of_goods_if_vat_recovered_low);
         assert!(b.cost_of_goods_if_vat_recovered_high > a.cost_of_goods_if_vat_recovered_high);
-        low.routes[0].imports[0].freight_insurance = cost(20.0, 30.0, EvidenceClass::ManufacturerQuote);
+        low.routes[0].imports[0].freight_insurance =
+            cost(20.0, 30.0, EvidenceClass::ManufacturerQuote);
         let c = evaluate_catalog(&low).results.remove(0);
         assert!(c.cost_of_goods_if_vat_recovered_low > a.cost_of_goods_if_vat_recovered_low);
     }
@@ -772,7 +868,10 @@ mod tests {
         catalog.routes[0].volume_cases = vec![1000, 100];
         let report = evaluate_catalog(&catalog);
         assert_eq!(report.results.len(), 2);
-        assert!(report.results[1].fixed_program_cost_per_vehicle_low < report.results[0].fixed_program_cost_per_vehicle_low);
+        assert!(
+            report.results[1].fixed_program_cost_per_vehicle_low
+                < report.results[0].fixed_program_cost_per_vehicle_low
+        );
         assert_eq!(report.results[0].volume_units, 100);
         assert_eq!(report.results[1].volume_units, 1000);
     }
@@ -784,10 +883,21 @@ mod tests {
         catalog.routes[0].vat_recovery_evidence.verified = false;
         catalog.routes[0].vat_recovery_evidence.evidence_class = EvidenceClass::Unknown;
         let result = evaluate_catalog(&catalog).results.remove(0);
-        assert!(result.cost_of_goods_if_vat_unrecoverable_high > result.cost_of_goods_if_vat_recovered_high);
+        assert!(
+            result.cost_of_goods_if_vat_unrecoverable_high
+                > result.cost_of_goods_if_vat_recovered_high
+        );
         assert!(result.frontier_given_declared_vat_status.is_none());
-        assert!(result.evidence_gaps.iter().any(|gap| gap.contains("VAT recovery status is unresolved")));
-        assert_eq!(result.economics_evidence_status, EconomicsEvidenceStatus::NeedsEvidence);
+        assert!(
+            result
+                .evidence_gaps
+                .iter()
+                .any(|gap| gap.contains("VAT recovery status is unresolved"))
+        );
+        assert_eq!(
+            result.economics_evidence_status,
+            EconomicsEvidenceStatus::NeedsEvidence
+        );
     }
 
     #[test]
