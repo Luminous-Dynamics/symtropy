@@ -9,7 +9,9 @@ pub fn tags<'a>(xml: &'a str, element: &str) -> Check<Vec<&'a str>> {
     let mut out = Vec::new();
     while let Some(offset) = xml.get(cursor..).and_then(|tail| tail.find(&needle)) {
         let start = cursor + offset;
-        let end = xml.get(start..).and_then(|tail| tail.find('>'))
+        let end = xml
+            .get(start..)
+            .and_then(|tail| tail.find('>'))
             .map(|n| start + n)
             .ok_or_else(|| format!("unterminated {element} tag"))?;
         out.push(&xml[start..=end]);
@@ -80,7 +82,8 @@ pub fn number(attrs: &BTreeMap<String, String>, key: &str) -> Check<Option<f64>>
     match attrs.get(key) {
         None => Ok(None),
         Some(value) => {
-            let parsed = value.parse::<f64>()
+            let parsed = value
+                .parse::<f64>()
                 .map_err(|_| format!("attribute {key} is not numeric"))?;
             if !parsed.is_finite() {
                 return Err(format!("attribute {key} is not finite"));
@@ -91,7 +94,8 @@ pub fn number(attrs: &BTreeMap<String, String>, key: &str) -> Check<Option<f64>>
 }
 
 pub fn count(attrs: &BTreeMap<String, String>, key: &str) -> Check<u64> {
-    attrs.get(key)
+    attrs
+        .get(key)
         .ok_or_else(|| format!("summary lacks {key}"))?
         .parse::<u64>()
         .map_err(|_| format!("summary {key} is not a non-negative integer"))
