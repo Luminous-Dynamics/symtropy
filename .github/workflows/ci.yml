@@ -106,3 +106,6 @@ jobs:
 
     - name: Run Unit and Independent Oracle Tests
       run: cargo test --manifest-path tools/airspace-trajectory-audit/Cargo.toml
+
+    - name: Benchmark conservative broadphase at 10, 100, 1k, 10k trajectories
+      run: cargo run --release --manifest-path tools/airspace-trajectory-audit/Cargo.toml --bin benchmark_broadphase
