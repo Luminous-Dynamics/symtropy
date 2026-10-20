@@ -565,7 +565,7 @@ fn simulate_sample(
     if profile.len() != BINS_PER_DAY {
         return Err("internal_profile_bin_count_mismatch".to_string());
     }
-    let service = if requested_energy <= 1.0e-9 { 1.0 } else { (delivered / requested_energy).clamp(0.0, 2.0) };
+    let service = if requested_energy <= 1.0e-9 { 1.0 } else { (delivered / requested_energy).clamp(0.0, 1.0) };
     Ok((profile.drain(..).collect(), SampleMetric {
         sample_index,
         operation_day_ids,
@@ -726,8 +726,12 @@ mod tests {
     fn nlr_immediate_and_delayed_profiles_shift_charge_within_the_same_offshift_window() {
         let report = sample_audit_report();
         let days = validate_and_group_report(&report).unwrap();
-        let (immediate, immediate_metric) = simulate_sample(&days, &options(Strategy::Immediate), &mut 3, 0).unwrap();
-        let (delayed, delayed_metric) = simulate_sample(&days, &options(Strategy::Delayed), &mut 3, 0).unwrap();
+        let mut immediate_rng = 3;
+        let mut delayed_rng = 3;
+        let (immediate, immediate_metric) =
+            simulate_sample(&days, &options(Strategy::Immediate), &mut immediate_rng, 0).unwrap();
+        let (delayed, delayed_metric) =
+            simulate_sample(&days, &options(Strategy::Delayed), &mut delayed_rng, 0).unwrap();
         assert_eq!(immediate.len(), 96);
         assert_eq!(delayed.len(), 96);
         assert!((immediate_metric.grid_energy_delivered_kwh - delayed_metric.grid_energy_delivered_kwh).abs() < 1.0e-7);
