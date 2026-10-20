@@ -6,8 +6,10 @@ on:
     paths:
       - "tools/vision-active-action-reference.rs"
       - "tools/vision-active-action-benchmark.rs"
+      - "tools/vision-active-action-world.rs"
       - "tools/vision-active-action-reference/**"
       - "tools/vision-active-action-benchmark/**"
+      - "tools/vision-active-action-world/**"
       - ".github/workflows/vision-active-action-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -15,8 +17,10 @@ on:
     paths:
       - "tools/vision-active-action-reference.rs"
       - "tools/vision-active-action-benchmark.rs"
+      - "tools/vision-active-action-world.rs"
       - "tools/vision-active-action-reference/**"
       - "tools/vision-active-action-benchmark/**"
+      - "tools/vision-active-action-world/**"
       - ".github/workflows/vision-active-action-bench.yml"
   workflow_dispatch:
 
@@ -66,6 +70,28 @@ jobs:
           grep -Fq "surprise_only" vis-act-pilot.tsv
           grep -Fq "deterministic_random" vis-act-pilot.tsv
           grep -Fq "sequential_evidence" vis-act-pilot.tsv
+
+      - name: Compile and run causal-world tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-action-world.rs -o /tmp/vis-act-world-tests
+          /tmp/vis-act-world-tests
+
+      - name: Compile and execute causal-world diagnostic
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-action-world.rs -o /tmp/vis-act-world
+          /tmp/vis-act-world | tee causal-world-pilot.tsv
+          grep -Fq "always_cheap" causal-world-pilot.tsv
+          grep -Fq "sequential_evidence" causal-world-pilot.tsv
+
+      - name: Upload causal-world diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-causal-world-diagnostic
+          path: causal-world-pilot.tsv
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload synthetic diagnostic report
         uses: actions/upload-artifact@v4
