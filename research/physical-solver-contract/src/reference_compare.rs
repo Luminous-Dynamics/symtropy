@@ -888,6 +888,53 @@ mod tests {
     }
 
     #[test]
+    fn reference_and_observation_must_bind_exact_scene_identity() {
+        let request = request_bytes();
+        let observed = observation(&request, 0.125);
+        let (root, receipt, _) = setup(&request, &observed);
+        let reference_bytes = reference(&request, 0.125, 1e-12, 1e-10);
+
+        let mut reference_value: Value = serde_json::from_slice(&reference_bytes).unwrap();
+        reference_value["scene_sha256"] = json!("f".repeat(64));
+        let mismatched_reference = serde_json::to_vec(&reference_value).unwrap();
+        assert!(
+            compare_reference_observables(
+                &request,
+                &receipt,
+                &root,
+                "normalized",
+                &mismatched_reference
+            )
+            .is_err()
+        );
+
+        let mut observed_value: Value = serde_json::from_slice(&observed).unwrap();
+        observed_value["scene_revision"] = json!(99);
+        let mismatched_observation = serde_json::to_vec(&observed_value).unwrap();
+        fs::write(root.join("observed.json"), &mismatched_observation).unwrap();
+        let mut receipt_value: Value = serde_json::from_slice(&receipt).unwrap();
+        receipt_value["outputs"][0]["sha256"] = json!(sha256_hex(&mismatched_observation));
+        let mismatched_receipt = serde_json::to_vec(&receipt_value).unwrap();
+
+        let report = compare_reference_observables(
+            &request,
+            &mismatched_receipt,
+            &root,
+            "normalized",
+            &reference_bytes,
+        )
+        .unwrap();
+        assert_eq!(report["comparison_status"], "UNRESOLVED");
+        assert!(
+            report["diagnostics"][0]
+                .as_str()
+                .unwrap()
+                .contains("scene_revision")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn non_pass_producer_status_never_gets_a_numeric_pass() {
         let request = request_bytes();
         let observed = observation(&request, 0.125);
