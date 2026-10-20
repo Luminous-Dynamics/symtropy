@@ -135,7 +135,7 @@ pub fn surface_elevation(
 
 #[cfg(test)]
 mod tests {
-    use super::{dispersion, surface_elevation, WaveError};
+    use super::{WaveError, dispersion, surface_elevation};
 
     const FIXTURE: &str = include_str!("../fixtures/dispersion_v0.csv");
 
@@ -220,15 +220,9 @@ mod tests {
         depth_m: f64,
         step_rad_m: f64,
     ) -> f64 {
-        (omega_reference(
-            gravity_m_s2,
-            wavenumber_rad_m + step_rad_m,
-            depth_m,
-        ) - omega_reference(
-            gravity_m_s2,
-            wavenumber_rad_m - step_rad_m,
-            depth_m,
-        )) / (2.0 * step_rad_m)
+        (omega_reference(gravity_m_s2, wavenumber_rad_m + step_rad_m, depth_m)
+            - omega_reference(gravity_m_s2, wavenumber_rad_m - step_rad_m, depth_m))
+            / (2.0 * step_rad_m)
     }
 
     #[test]
@@ -244,18 +238,10 @@ mod tests {
 
         for (gravity, wavenumber, depth) in cases {
             let actual = dispersion(gravity, wavenumber, depth).expect("valid wave parameters");
-            let coarse = central_difference_group_velocity(
-                gravity,
-                wavenumber,
-                depth,
-                wavenumber * 1.0e-2,
-            );
-            let fine = central_difference_group_velocity(
-                gravity,
-                wavenumber,
-                depth,
-                wavenumber * 1.0e-4,
-            );
+            let coarse =
+                central_difference_group_velocity(gravity, wavenumber, depth, wavenumber * 1.0e-2);
+            let fine =
+                central_difference_group_velocity(gravity, wavenumber, depth, wavenumber * 1.0e-4);
             let scale = actual.group_velocity_m_s.abs().max(1.0);
             let coarse_error = (coarse - actual.group_velocity_m_s).abs();
             let fine_error = (fine - actual.group_velocity_m_s).abs();
@@ -288,22 +274,14 @@ mod tests {
         // omega scales by sqrt(s), period/celerities by 1/sqrt(s), and
         // wavelength by 1/s.
         for scale in [0.25, 2.0, 7.5] {
-            let transformed = dispersion(
-                gravity,
-                wavenumber * scale,
-                depth / scale,
-            )
-            .expect("valid transformed case");
+            let transformed = dispersion(gravity, wavenumber * scale, depth / scale)
+                .expect("valid transformed case");
             near(
                 transformed.omega_rad_s,
                 base.omega_rad_s * scale.sqrt(),
                 1.0e-10,
             );
-            near(
-                transformed.period_s,
-                base.period_s / scale.sqrt(),
-                1.0e-10,
-            );
+            near(transformed.period_s, base.period_s / scale.sqrt(), 1.0e-10);
             near(
                 transformed.phase_velocity_m_s,
                 base.phase_velocity_m_s / scale.sqrt(),
@@ -314,11 +292,7 @@ mod tests {
                 base.group_velocity_m_s / scale.sqrt(),
                 1.0e-10,
             );
-            near(
-                transformed.wavelength_m,
-                base.wavelength_m / scale,
-                1.0e-10,
-            );
+            near(transformed.wavelength_m, base.wavelength_m / scale, 1.0e-10);
         }
     }
 
@@ -328,12 +302,8 @@ mod tests {
         let wavenumber = 0.4;
         let depth = 3.75;
         let actual = dispersion(gravity, wavenumber, depth).expect("valid wave parameters");
-        let oracle = central_difference_group_velocity(
-            gravity,
-            wavenumber,
-            depth,
-            wavenumber * 1.0e-4,
-        );
+        let oracle =
+            central_difference_group_velocity(gravity, wavenumber, depth, wavenumber * 1.0e-4);
         let scale = oracle.abs().max(1.0);
 
         // Negative controls: wrong sign, missing one-half factor, or confusing
@@ -369,7 +339,10 @@ mod tests {
     #[test]
     fn invalid_configuration_fails_closed() {
         assert_eq!(dispersion(0.0, 0.1, 10.0), Err(WaveError::InvalidGravity));
-        assert_eq!(dispersion(9.81, 0.0, 10.0), Err(WaveError::InvalidWavenumber));
+        assert_eq!(
+            dispersion(9.81, 0.0, 10.0),
+            Err(WaveError::InvalidWavenumber)
+        );
         assert_eq!(dispersion(9.81, 0.1, 0.0), Err(WaveError::InvalidDepth));
         assert_eq!(
             dispersion(f64::NAN, 0.1, 10.0),
