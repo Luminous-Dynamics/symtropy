@@ -1,0 +1,572 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-LOCALIZATION-001",
+  "currency": "ZAR",
+  "market": {
+    "country": "South Africa",
+    "baseline_vehicle": "BYD Dolphin Surf retail entry offer",
+    "observed_retail_price": 341900,
+    "observed_on": "2026-10-20",
+    "price_source_url": "https://www.byd.co.za/offers/dolphin-surf",
+    "undercut_fraction": 0.1,
+    "retail_price_includes_vat": true,
+    "vat_fraction": 0.15,
+    "distributor_margin_fraction": 0.08,
+    "target_oem_gross_margin_fraction": 0.12
+  },
+  "routes": [
+    {
+      "route_id": "complete-import",
+      "label": "Complete vehicle import",
+      "route_type": "complete_import",
+      "volume_cases": [
+        1000,
+        10000,
+        50000,
+        100000
+      ],
+      "manufacturing_yield_fraction": 0.995,
+      "yield_evidence_class": "synthetic",
+      "yield_source_reference": "synthetic://ev-localization-fixture-v0.1",
+      "yield_as_of": "2026-10-20",
+      "imports": [
+        {
+          "line_id": "finished-vehicle",
+          "candidate_tariff_heading": "8703.80.90 candidate (verify final classification)",
+          "purchase_value": {
+            "low": 170000,
+            "high": 210000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic import value to exercise arithmetic; not a public factory price or supplier quote."
+          },
+          "freight_insurance": {
+            "low": 7000,
+            "high": 10000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic international freight and insurance allowance."
+          },
+          "duty_rate": {
+            "low": 0.25,
+            "high": 0.25,
+            "evidence_class": "official_tariff",
+            "source_reference": "https://www.sars.gov.za/wp-content/uploads/Legal/SCEA1964/Legal-LPrim-CE-Sch1P1Chpt1-to-99-Schedule-No-1-Part-1-Chapters-1-to-99.pdf",
+            "as_of": "2026-10-20",
+            "note": "Published general-rate observation for the candidate tariff line. Final classification and origin are unverified; applied duty is scenario-only."
+          },
+          "customs_value_basis": "scenario assumption: purchase value plus international freight and insurance; validate exact customs valuation",
+          "notes": [
+            "Replace the mixed line with classification-specific components and verify origin/preference before using a tax result."
+          ],
+          "classification": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://classification-not-verified",
+            "as_of": "2026-10-20"
+          },
+          "origin": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://origin-not-verified",
+            "as_of": "2026-10-20"
+          }
+        }
+      ],
+      "local_components_cost": {
+        "low": 0,
+        "high": 0,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local-component allowance; not verified sourcing or legal local content."
+      },
+      "factory_conversion_cost": {
+        "low": 5000,
+        "high": 9000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local manufacturing/conversion allowance; not verified process economics."
+      },
+      "warranty_service_reserve": {
+        "low": 6000,
+        "high": 10000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic per-good-vehicle warranty and service reserve."
+      },
+      "fixed_program_investment": {
+        "low": 5000000,
+        "high": 15000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic programme/tooling/validation investment; allocate only over credible cumulative volume."
+      },
+      "vat_recovery_status": "unknown",
+      "local_value_method": "Local component spend plus factory conversion is an internal spend proxy only, not a statutory local-content calculation or incentive-eligibility determination.",
+      "notes": [
+        "All vehicle, freight, yield, warranty and programme cost ranges are synthetic.",
+        "The 25% published general-rate reference does not verify classification, origin or duty eligibility for this route."
+      ],
+      "vat_recovery_evidence": {
+        "verified": false,
+        "evidence_class": "unknown",
+        "source_reference": "unknown://vat-recovery-not-assessed",
+        "as_of": "2026-10-20"
+      }
+    },
+    {
+      "route_id": "ckd-assembly",
+      "label": "CKD import plus local assembly",
+      "route_type": "ckd_assembly",
+      "volume_cases": [
+        1000,
+        10000,
+        50000,
+        100000
+      ],
+      "manufacturing_yield_fraction": 0.94,
+      "yield_evidence_class": "synthetic",
+      "yield_source_reference": "synthetic://ev-localization-fixture-v0.1",
+      "yield_as_of": "2026-10-20",
+      "imports": [
+        {
+          "line_id": "battery-accumulator",
+          "candidate_tariff_heading": "8507.60 (candidate only; verify actual pack/component classification)",
+          "purchase_value": {
+            "low": 50000,
+            "high": 80000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic battery value; not a pack quotation."
+          },
+          "freight_insurance": {
+            "low": 3000,
+            "high": 5000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic international freight and insurance allowance."
+          },
+          "duty_rate": {
+            "low": 0,
+            "high": 0,
+            "evidence_class": "official_tariff",
+            "source_reference": "https://www.sars.gov.za/wp-content/uploads/Legal/SCEA1964/Legal-LPrim-CE-Sch1P1Chpt1-to-99-Schedule-No-1-Part-1-Chapters-1-to-99.pdf",
+            "as_of": "2026-10-20",
+            "note": "The published schedule shows zero customs duty for the cited lithium-ion accumulator heading. Conditional reference only until the actual pack/component classification and origin are verified."
+          },
+          "customs_value_basis": "scenario assumption: purchase value plus international freight and insurance; validate exact customs valuation",
+          "notes": [
+            "Do not generalize a battery tariff line to assemblies, BMS or mixed packs without classification evidence."
+          ],
+          "classification": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://classification-not-verified",
+            "as_of": "2026-10-20"
+          },
+          "origin": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://origin-not-verified",
+            "as_of": "2026-10-20"
+          }
+        },
+        {
+          "line_id": "remaining-ckd-kit",
+          "candidate_tariff_heading": "Mixed CKD components; tariff lines not supplied",
+          "purchase_value": {
+            "low": 90000,
+            "high": 125000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic import value to exercise arithmetic; not a public factory price or supplier quote."
+          },
+          "freight_insurance": {
+            "low": 5000,
+            "high": 8000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic international freight and insurance allowance."
+          },
+          "duty_rate": {
+            "low": 0.15,
+            "high": 0.25,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic interval only, not a claimed tariff for this component category."
+          },
+          "customs_value_basis": "scenario assumption: purchase value plus international freight and insurance; validate exact customs valuation",
+          "notes": [
+            "Replace the mixed line with classification-specific components and verify origin/preference before using a tax result."
+          ],
+          "classification": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://classification-not-verified",
+            "as_of": "2026-10-20"
+          },
+          "origin": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://origin-not-verified",
+            "as_of": "2026-10-20"
+          }
+        }
+      ],
+      "local_components_cost": {
+        "low": 15000,
+        "high": 25000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local-component allowance; not verified sourcing or legal local content."
+      },
+      "factory_conversion_cost": {
+        "low": 18000,
+        "high": 30000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local manufacturing/conversion allowance; not verified process economics."
+      },
+      "warranty_service_reserve": {
+        "low": 6000,
+        "high": 10000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic per-good-vehicle warranty and service reserve."
+      },
+      "fixed_program_investment": {
+        "low": 150000000,
+        "high": 250000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic programme/tooling/validation investment; allocate only over credible cumulative volume."
+      },
+      "vat_recovery_status": "unknown",
+      "local_value_method": "Local component spend plus factory conversion is an internal spend proxy only, not a statutory local-content calculation or incentive-eligibility determination.",
+      "notes": [
+        "Break the imported kit into classification-specific lines before applying duties.",
+        "The reported policy direction does not prove eligibility for any incentive."
+      ],
+      "vat_recovery_evidence": {
+        "verified": false,
+        "evidence_class": "unknown",
+        "source_reference": "unknown://vat-recovery-not-assessed",
+        "as_of": "2026-10-20"
+      }
+    },
+    {
+      "route_id": "deep-local-manufacturing",
+      "label": "Deeper local component manufacturing",
+      "route_type": "deep_local_manufacturing",
+      "volume_cases": [
+        1000,
+        10000,
+        50000,
+        100000
+      ],
+      "manufacturing_yield_fraction": 0.91,
+      "yield_evidence_class": "synthetic",
+      "yield_source_reference": "synthetic://ev-localization-fixture-v0.1",
+      "yield_as_of": "2026-10-20",
+      "imports": [
+        {
+          "line_id": "battery-accumulator",
+          "candidate_tariff_heading": "8507.60 (candidate only; verify actual pack/component classification)",
+          "purchase_value": {
+            "low": 50000,
+            "high": 80000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic battery value; not a pack quotation."
+          },
+          "freight_insurance": {
+            "low": 3000,
+            "high": 5000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic international freight and insurance allowance."
+          },
+          "duty_rate": {
+            "low": 0,
+            "high": 0,
+            "evidence_class": "official_tariff",
+            "source_reference": "https://www.sars.gov.za/wp-content/uploads/Legal/SCEA1964/Legal-LPrim-CE-Sch1P1Chpt1-to-99-Schedule-No-1-Part-1-Chapters-1-to-99.pdf",
+            "as_of": "2026-10-20",
+            "note": "The published schedule shows zero customs duty for the cited lithium-ion accumulator heading. Conditional reference only until the actual pack/component classification and origin are verified."
+          },
+          "customs_value_basis": "scenario assumption: purchase value plus international freight and insurance; validate exact customs valuation",
+          "notes": [
+            "Do not generalize a battery tariff line to assemblies, BMS or mixed packs without classification evidence."
+          ],
+          "classification": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://classification-not-verified",
+            "as_of": "2026-10-20"
+          },
+          "origin": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://origin-not-verified",
+            "as_of": "2026-10-20"
+          }
+        },
+        {
+          "line_id": "remaining-imported-components",
+          "candidate_tariff_heading": "Mixed imported components; tariff lines not supplied",
+          "purchase_value": {
+            "low": 45000,
+            "high": 75000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic import value to exercise arithmetic; not a public factory price or supplier quote."
+          },
+          "freight_insurance": {
+            "low": 5000,
+            "high": 8000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic international freight and insurance allowance."
+          },
+          "duty_rate": {
+            "low": 0.1,
+            "high": 0.25,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic interval only, not a claimed tariff for this component category."
+          },
+          "customs_value_basis": "scenario assumption: purchase value plus international freight and insurance; validate exact customs valuation",
+          "notes": [
+            "Replace the mixed line with classification-specific components and verify origin/preference before using a tax result."
+          ],
+          "classification": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://classification-not-verified",
+            "as_of": "2026-10-20"
+          },
+          "origin": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://origin-not-verified",
+            "as_of": "2026-10-20"
+          }
+        }
+      ],
+      "local_components_cost": {
+        "low": 40000,
+        "high": 65000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local-component allowance; not verified sourcing or legal local content."
+      },
+      "factory_conversion_cost": {
+        "low": 28000,
+        "high": 45000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local manufacturing/conversion allowance; not verified process economics."
+      },
+      "warranty_service_reserve": {
+        "low": 6000,
+        "high": 11000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic per-good-vehicle warranty and service reserve."
+      },
+      "fixed_program_investment": {
+        "low": 200000000,
+        "high": 350000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic programme/tooling/validation investment; allocate only over credible cumulative volume."
+      },
+      "vat_recovery_status": "unknown",
+      "local_value_method": "Local component spend plus factory conversion is an internal spend proxy only, not a statutory local-content calculation or incentive-eligibility determination.",
+      "notes": [
+        "Deeper localization may reduce some imports but adds tooling, process capability, quality and supplier-development cost.",
+        "Local capability and cost are not confirmed."
+      ],
+      "vat_recovery_evidence": {
+        "verified": false,
+        "evidence_class": "unknown",
+        "source_reference": "unknown://vat-recovery-not-assessed",
+        "as_of": "2026-10-20"
+      }
+    },
+    {
+      "route_id": "shared-platform-carryover",
+      "label": "Shared platform with carryover tooling",
+      "route_type": "shared_platform",
+      "volume_cases": [
+        1000,
+        10000,
+        50000,
+        100000
+      ],
+      "manufacturing_yield_fraction": 0.95,
+      "yield_evidence_class": "synthetic",
+      "yield_source_reference": "synthetic://ev-localization-fixture-v0.1",
+      "yield_as_of": "2026-10-20",
+      "imports": [
+        {
+          "line_id": "battery-accumulator",
+          "candidate_tariff_heading": "8507.60 (candidate only; verify actual pack/component classification)",
+          "purchase_value": {
+            "low": 50000,
+            "high": 80000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic battery value; not a pack quotation."
+          },
+          "freight_insurance": {
+            "low": 3000,
+            "high": 5000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic international freight and insurance allowance."
+          },
+          "duty_rate": {
+            "low": 0,
+            "high": 0,
+            "evidence_class": "official_tariff",
+            "source_reference": "https://www.sars.gov.za/wp-content/uploads/Legal/SCEA1964/Legal-LPrim-CE-Sch1P1Chpt1-to-99-Schedule-No-1-Part-1-Chapters-1-to-99.pdf",
+            "as_of": "2026-10-20",
+            "note": "The published schedule shows zero customs duty for the cited lithium-ion accumulator heading. Conditional reference only until the actual pack/component classification and origin are verified."
+          },
+          "customs_value_basis": "scenario assumption: purchase value plus international freight and insurance; validate exact customs valuation",
+          "notes": [
+            "Do not generalize a battery tariff line to assemblies, BMS or mixed packs without classification evidence."
+          ],
+          "classification": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://classification-not-verified",
+            "as_of": "2026-10-20"
+          },
+          "origin": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://origin-not-verified",
+            "as_of": "2026-10-20"
+          }
+        },
+        {
+          "line_id": "shared-powertrain-and-electronics",
+          "candidate_tariff_heading": "Mixed imported components; tariff lines not supplied",
+          "purchase_value": {
+            "low": 75000,
+            "high": 115000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic import value to exercise arithmetic; not a public factory price or supplier quote."
+          },
+          "freight_insurance": {
+            "low": 4000,
+            "high": 7000,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic international freight and insurance allowance."
+          },
+          "duty_rate": {
+            "low": 0.1,
+            "high": 0.25,
+            "evidence_class": "synthetic",
+            "source_reference": "synthetic://ev-localization-fixture-v0.1",
+            "as_of": "2026-10-20",
+            "note": "Synthetic interval only, not a claimed tariff for this component category."
+          },
+          "customs_value_basis": "scenario assumption: purchase value plus international freight and insurance; validate exact customs valuation",
+          "notes": [
+            "Replace the mixed line with classification-specific components and verify origin/preference before using a tax result."
+          ],
+          "classification": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://classification-not-verified",
+            "as_of": "2026-10-20"
+          },
+          "origin": {
+            "verified": false,
+            "evidence_class": "unknown",
+            "source_reference": "unknown://origin-not-verified",
+            "as_of": "2026-10-20"
+          }
+        }
+      ],
+      "local_components_cost": {
+        "low": 20000,
+        "high": 35000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local-component allowance; not verified sourcing or legal local content."
+      },
+      "factory_conversion_cost": {
+        "low": 18000,
+        "high": 30000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic local manufacturing/conversion allowance; not verified process economics."
+      },
+      "warranty_service_reserve": {
+        "low": 6000,
+        "high": 10000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic per-good-vehicle warranty and service reserve."
+      },
+      "fixed_program_investment": {
+        "low": 180000000,
+        "high": 280000000,
+        "evidence_class": "synthetic",
+        "source_reference": "synthetic://ev-localization-fixture-v0.1",
+        "as_of": "2026-10-20",
+        "note": "Synthetic programme/tooling/validation investment; allocate only over credible cumulative volume."
+      },
+      "vat_recovery_status": "unknown",
+      "local_value_method": "Local component spend plus factory conversion is an internal spend proxy only, not a statutory local-content calculation or incentive-eligibility determination.",
+      "notes": [
+        "Platform volume must be the credible total for products that demonstrably share fixed investment.",
+        "Variant-specific engineering, warranty, safety and service costs cannot be assumed to disappear."
+      ],
+      "vat_recovery_evidence": {
+        "verified": false,
+        "evidence_class": "unknown",
+        "source_reference": "unknown://vat-recovery-not-assessed",
+        "as_of": "2026-10-20"
+      }
+    }
+  ],
+  "claim_ceiling": "Illustrative route-economics arithmetic over synthetic costs and explicit assumptions only. No supplier or other organization has been contacted; no quote requests were submitted."
+}
