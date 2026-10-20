@@ -139,6 +139,22 @@ These are proposed engineering gates to agree and preregister per task—not cur
 - Empirical validity requires independently sourced measurements, data-rights review, appropriate holdouts, uncertainty, and biological expert review.
 - A tracking or pose benchmark score does not establish the correctness of a simulated causal mechanism or ecology.
 
+## Competitive targets for the first pilot
+
+The figures below are **proposed stretch targets**, not published SOTA claims, current results, or qualification rules that should be retrofitted after seeing test outcomes. First reproduce the reference baseline on the exact official protocol; preregister the final margins, samples, uncertainty method, and exclusions before unsealing test results. A target is applicable only to the corresponding perception/task module—not as one global animal-realism score.
+
+| Layer | First-pilot stretch target | Guardrail / fair comparison |
+|---|---|---|
+| Animal tracking / unseen categories | On the [VastMAT](https://arxiv.org/abs/2609.34390) category-disjoint protocol, aim for **+2 absolute HOTA points** over the strongest baseline we successfully reproduce. | Use the same protocol, detections/input assumptions, and compute declaration; no more than 1 absolute HOTA point regression on seen categories without an explicit trade-off claim. The source is a preprint; first verify benchmark release, implementation, and data permissions. |
+| Skeleton-gap imputation | Aim for **≥5% relative normalized-RMSE reduction** over the strongest reproduced non-oracle baseline on held-out gap patterns. | Also report MPJPE and PCK@0.01; do not accept an RMSE win that materially damages PCK, uncertainty coverage, or downstream behavior/event statistics. Use the [DISK](https://doi.org/10.1038/s41592-025-02893-y) metric definitions and dataset splits where compatible. |
+| Bio-logger behavior classification | On [BEBE](https://doi.org/10.1186/s40462-024-00511-8), target a win over the strongest reproduced official baseline in the preregistered low-data setting, with non-inferiority on at least **7 of 9 taxa/datasets**. | Use BEBE's official evaluation and per-individual reporting; dataset licenses are independently reviewed. This is a behavior-inference target, not ecological policy validation. |
+| Multi-species learned representations | On [MABe22](https://proceedings.mlr.press/v202/sun23g.html), aim for a statistically supported lift on at least **10 of 72 task-native evaluations**, while publishing the full task-by-task results. | Do not pool incompatible metrics or tune on test tasks. Count a task as a win only under preregistered paired uncertainty/margin rules. |
+| Ecological transfer (new benchmark) | Aim for **≥10% lower normalized regret** across compositional holdouts and **≥15% lower integrated performance deficit** after preregistered transient shocks than the strongest budget-matched baseline. | Require multiple independent seed families and at least two held-out regime families; lower confidence bound must clear the preregistered practical margin. No hard accounting, hidden-state, rights, or receipt violations. |
+| Probabilistic forecasting | For a nominal 90% predictive interval, target **87–93% empirical coverage** in each adequately sampled major test stratum, not only in aggregate. | Report interval width/proper scoring rule and sample uncertainty; widen or abstain under distribution shift rather than hiding a severe subgroup miscalibration. |
+| Runtime / scale | After correctness is stable, target **2× throughput** over the same Symtropy baseline at fixed workload and fidelity. | Same hardware and workload; report p50/p95 latency, memory, compute and energy where measurable. Require zero new invariant violations and ≤1% drift on preregistered validated outputs; do not compare against FlyGym's published throughput without workload parity. |
+
+The first honest win is not necessarily beating every published number. It is reproducing the strongest applicable baselines, then demonstrating a robust, uncertainty-qualified improvement on genuinely held-out cases while preserving invariants. If baseline reproduction fails, report the replication failure; do not quietly substitute a weaker comparator.
+
 ## Roadmap: fastest path to real evidence
 
 1. Land the synthetic oracle plus deterministic structural validator.
