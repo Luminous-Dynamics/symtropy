@@ -1125,6 +1125,20 @@ mod tests {
     }
 
     #[test]
+    fn hidden_hazard_label_changes_evaluator_error_not_policy_decision() {
+        let episode = Episode::generate(0xA11C_E002, Family::HeldOut);
+        let mut relabeled = episode.clone();
+        relabeled.profile.flip_rate = 0;
+
+        let original = evaluate(&episode, Kind::QueryKeyedGapAware, 3, 0xBEEF);
+        let changed_label = evaluate(&relabeled, Kind::QueryKeyedGapAware, 3, 0xBEEF);
+        assert_eq!(original.loss, changed_label.loss);
+        assert_eq!(original.answered, changed_label.answered);
+        assert_eq!(original.correct, changed_label.correct);
+        assert_ne!(original.hazard_error_mae, changed_label.hazard_error_mae);
+    }
+
+    #[test]
     fn gap_aware_policy_reports_larger_logical_state_cost() {
         let episode = Episode::generate(0xCAFE_BABE, Family::HeldOut);
         let simple = evaluate(&episode, Kind::QueryKeyedHazardAware, 3, 0x1234);
