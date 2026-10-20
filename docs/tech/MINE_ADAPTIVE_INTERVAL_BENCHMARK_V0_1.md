@@ -2,7 +2,7 @@
 
 ## Purpose and scope
 
-This crate provides a deterministic, replayable synthetic comparison of prediction-interval policies under regime change. It is an evaluation harness, not an operating controller. It does not claim to reproduce or outperform Distribution-informed Online Conformal Prediction (COP), PACE, SAOCP, EnbPI, weighted conformal prediction, or any other published algorithm. The interval-update rules below are transparent baselines to establish a common causal benchmark before faithful reference implementations are added.
+This crate provides a deterministic, replayable synthetic comparison of prediction-interval policies under regime change. It is an evaluation harness, not an operating controller. It now includes transparent proxy baselines plus reference-derived ACI and COP adapters based on the authors’ published open-source implementation. Because this harness uses a fixed synthetic calibration corpus, a separate synthetic forecast stream, and maturity-time feedback for delayed labels, these adapters are not claimed to reproduce the papers’ exact evaluation setup, algorithms in every detail, or theorem conditions. It does not claim to outperform COP, PACE, SAOCP, EnbPI, weighted conformal prediction, or any published method.
 
 The central architectural hypothesis is a dual-loop design:
 
@@ -30,11 +30,13 @@ These counts establish repeatability and test coverage, not statistical power fo
 | \`online_residual_feedback_interval_only\` | Transparent online residual-feedback radius update using mature labels | Diagnostic only; not presented as formal ACI or COP |
 | \`rolling_quantile_interval_only\` | 90th-percentile residual from a rolling window | Diagnostic only |
 | \`multi_horizon_interval_only\` | Maximum of short- and longer-window empirical residual quantiles | Diagnostic only |
+| \`aci_clipped_reference_interval_only\` | ACI-style adaptive miscoverage target; quantile falls back to the historical maximum when the requested finite quantile is unavailable | Diagnostic only; event-time label updates are an explicit adaptation |
+| \`cop_reference_interval_only\` | COP-derived quantile-gradient plus empirical-CDF correction; learning rate scaled by the recent score range | Diagnostic only; event-time label updates are an explicit adaptation |
 | \`fixed_split_trust_gated\` | Fixed interval | Independent credibility latch plus interval-bound rejection |
 | \`multi_horizon_trust_gated\` | Adaptively updated multi-horizon interval | Same independent credibility latch and bound rejection |
 | \`multi_horizon_unguarded_negative_control\` | Multi-horizon interval | Deliberately unguarded offline negative control; never an authorized policy |
 
-The rolling quantile and residual-feedback methods are proxy baselines. They should not be cited as faithful reproductions of COP, PACE, SAOCP, EnbPI, or a distribution-free online-conformal guarantee.
+The rolling quantile and residual-feedback methods remain proxy baselines. ACI and COP use their reference update structure as a basis, with fixed calibration, synthetic monitor/target channels and label-maturity semantics adapted to this harness. The benchmark records no distribution-free online-conformal guarantee.
 
 ## Causal timing
 
@@ -61,7 +63,9 @@ The runner requires an exact 40-character lowercase source commit. It rejects ma
 
 The receipt is deterministically recomputable from source, fixed calibration values and frozen stream generator. The SHA-256 values bind the serialized bytes; they do not authenticate sensors, source producers, or the truth of physical observations.
 
-## External comparisons and benchmark roadmap
+## Reference attribution and external comparisons
+
+**Algorithm attribution:** ACI and COP update structures were derived from Junxi Wu’s MIT-licensed repository [creator-xi/Conformal-Optimistic-Prediction](https://github.com/creator-xi/Conformal-Optimistic-Prediction), especially its `core/methods.py` implementation of ACI, ACI (clipped), and COP. The repository’s MIT license must be retained with any substantial copied code; this crate currently re-expresses algorithm steps in Rust rather than copying the Python file. The adapters are explicitly adapted for this deterministic benchmark. See the ICLR paper and pinned source commit added in the next provenance update.
 
 Relevant reference directions:
 - **[Distribution-informed Online Conformal Prediction (ICLR 2026)](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5f8241131e6fd428aa49914da76b8ad0-Abstract-Conference.html):** a published approach for using estimated nonconformity-score distributions to reduce excessive interval width while addressing coverage under shift. A faithful, version-pinned implementation and its stated assumptions should be integrated as a distinct comparator, not approximated by the proxy here.
@@ -69,7 +73,7 @@ Relevant reference directions:
 - **[Reliable water-system control](https://doi.org/10.1016/j.watres.2026.126295):** a 2026 Water Research study reports simulation, laboratory-hardware and real-time system evaluation of data-driven control under tank/pressure constraints. It is a reminder to progress from deterministic simulation to hardware-in-the-loop and measured-data validation, while recognizing that its objective and system are not equivalent to this benchmark.
 
 Prioritized next steps:
-1. Port reference algorithms with pinned versions/licences, identical forecast inputs, equal label maturity, and matching nominal coverage targets.
+1. Pin the reference repository commit and verify the ACI/COP adapters against small golden traces generated from the MIT-licensed Python reference (retain attribution and license text). Expand to PACE, SAOCP, EnbPI and weighted methods only when each has a defensible implementation and assumptions.
 2. Add proper time-series blocking and repeated-seed uncertainty intervals for coverage and width; disclose dependence assumptions rather than treating every tick as independent.
 3. Add adaptive coverage-error / regret metrics and per-regime conditional coverage where denominators support them.
 4. Add latency, memory and update-cost measurement from repeated local runs; keep them separate from statistical metrics.
