@@ -447,7 +447,10 @@ mod tests {
             action_executed: true,
             fresh_observation_received: chosen.can_acquire_observation(),
             realized_task_loss: chosen_loss,
-            actual_resource_units: actual(Some(8), Some(u64::from(chosen.can_acquire_observation()))),
+            actual_resource_units: actual(
+                Some(8),
+                Some(if chosen.can_acquire_observation() { 1 } else { 0 }),
+            ),
         }
     }
 
