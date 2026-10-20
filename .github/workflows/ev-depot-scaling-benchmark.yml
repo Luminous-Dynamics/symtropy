@@ -114,6 +114,8 @@ jobs:
                     fleet_id: $fleet,
                     fleet_size: $n,
                     seed: $seed,
+                    nominal_pack_capacity_kwh: 1100,
+                    initial_soc_fraction: 0.1,
                     evidence_class: "estimate",
                     policies: [.results[] | {
                       scenario_id, policy, job_count,
@@ -156,6 +158,8 @@ jobs:
             map(. as $group | {
               fleet_id: $group[0].fleet_id,
               fleet_size: $group[0].fleet_size,
+              nominal_pack_capacity_kwh: $group[0].nominal_pack_capacity_kwh,
+              initial_soc_fraction: $group[0].initial_soc_fraction,
               seed_count: ($group|length),
               seeds: [$group[].seed],
               fcfs_minimum_sampled_kw_per_vehicle:
