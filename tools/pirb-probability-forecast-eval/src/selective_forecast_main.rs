@@ -719,9 +719,11 @@ mod tests {
         let mut value = fixture();
         value["rows"][3]["served_probability"] = json!(0.4);
         let errors = evaluate(&value).expect_err("abstained candidate cannot be served");
-        assert!(errors
-            .iter()
-            .any(|error| error.contains("/rows/3/served_probability")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("/rows/3/served_probability"))
+        );
     }
 
     #[test]
