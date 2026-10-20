@@ -490,7 +490,10 @@ mod tests {
     fn synthetic_benchmark_requires_synthetic_source_status_and_exact_digest() {
         let bytes = snapshot(SYNTHETIC_GEOMETRY_STATUS);
         let manifest = manifest(&bytes, LandscapeRunPurpose::SyntheticBenchmark);
-        assert_eq!(manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty"), Ok(()));
+        assert_eq!(
+            manifest.validate_against_inputs(&bytes, b"boundary-conditions-v0-empty"),
+            Ok(())
+        );
 
         let changed = snapshot(SCHEMATIC_GEOMETRY_STATUS);
         let errors = manifest
@@ -516,9 +519,9 @@ mod tests {
             .validate_against_inputs(&bytes, b"boundary-conditions-v0-empty")
             .unwrap_err();
         assert!(
-            errors.iter().any(
-                |error| { error.code == "physical-claim-blocked-by-schematic-frame" }
-            )
+            errors
+                .iter()
+                .any(|error| { error.code == "physical-claim-blocked-by-schematic-frame" })
         );
     }
 
