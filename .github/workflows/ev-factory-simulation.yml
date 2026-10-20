@@ -1,0 +1,98 @@
+name: EV Factory Discrete-Event Simulation
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
+      - ".github/workflows/ev-factory-simulation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
+      - ".github/workflows/ev-factory-simulation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse fixture
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .schema_version == "0.1.0"
+            and (.stations | length) == 5
+            and (.buffer_capacities | length) == 4
+            and (.stations | all(.[]; .servers > 0 and .good_yield_fraction > 0 and .good_yield_fraction <= 1))
+            and .input_evidence_class == "synthetic"
+            and .calibration_gate == "unknown"
+            and .local_compliance_gate == "unknown"
+            and .line_safety_gate == "unknown"
+            and .product_quality_release_gate == "unknown"
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Run benchmark and assert simulation invariants
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            > ev-factory-simulation-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .scenario_count == 6
+            and .measured_horizon_seconds == 518400
+            and .input_evidence_class == "synthetic"
+            and .release_ready == false
+            and .output_never_exceeds_released_input
+            and .all_buffers_respected_capacity
+            and .station_time_accounting_within_horizon
+            and (.scenarios | length) == 6
+            and .scenarios[0].scenario_id == "baseline"
+            and (.scenarios[0].stations | length) == 5
+            and (.scenarios[0].interstation_buffers | length) == 4
+            and all(.scenarios[]; .good_units_total <= .released_jobs_total)
+            and all(.scenarios[]; .release_ready == false and .all_buffers_respected_capacity and .station_time_accounting_within_horizon)
+            and all(.scenarios[]; all(.stations[]; .accounted_fraction >= 0 and .accounted_fraction <= 1.000001))
+            and all(.scenarios[1:][]; .added_servers == 1 and .intervention_station_id != null)
+          ' ev-factory-simulation-report.json
+      - name: Verify deterministic output for the declared seed
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            > ev-factory-simulation-repeat.json
+          cmp ev-factory-simulation-report.json ev-factory-simulation-repeat.json
+      - name: Negative control - invalid yield must fail closed
+        run: |
+          jq '.stations[0].good_yield_fraction = 1.1' \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > invalid-factory-simulation.json
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- invalid-factory-simulation.json >/dev/null 2>&1; then
+            echo "invalid yield was unexpectedly accepted"
+            exit 1
+          fi
+      - name: Hash source, fixture and reports
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
+            ev-factory-simulation-report.json > ev-factory-simulation-report.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-discrete-event-simulation-report
+          path: |
+            ev-factory-simulation-report.json
+            ev-factory-simulation-report.sha256
+          if-no-files-found: error
