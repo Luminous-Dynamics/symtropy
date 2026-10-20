@@ -266,6 +266,9 @@ pub fn compare_reference_observables(
         "oracle_source_ref": reference_parsed.oracle_source_ref,
         "request_sha256": request_sha256,
         "case_id": reference_parsed.case_id,
+        "request_id": reference_parsed.request_id,
+        "scene_sha256": reference_parsed.scene_sha256,
+        "scene_revision": reference_parsed.scene_revision,
         "observation_output_id": observation_output_id,
         "observation_artifact_sha256": observed_artifact_sha256,
         "artifact_verification_status": "PASS",
@@ -701,6 +704,9 @@ mod tests {
             "schema_version":REFERENCE_SCHEMA,
             "reference_id":"fixture-known-answer-v1",
             "case_id":"fixture-bar-reference",
+            "request_id":serde_json::from_slice::<Value>(request).unwrap()["request_id"],
+            "scene_sha256":serde_json::from_slice::<Value>(request).unwrap()["scene_sha256"],
+            "scene_revision":serde_json::from_slice::<Value>(request).unwrap()["scene_revision"],
             "request_sha256":sha256_hex(request),
             "comparison_protocol_id":"fixture-tolerance-v1",
             "oracle":{"method":"analytical_exact","identity":"frozen synthetic known-answer oracle","source_ref":"test-oracle://normalized-observable-v1"},
@@ -718,6 +724,20 @@ mod tests {
             "case_id":"fixture-bar-reference",
             "observables":[{"observable_id":"fixture_displacement_m","value":value,"unit":"m"}]
         })).unwrap()
+    }
+
+    fn parse_reference_for_request(
+        value: &Value,
+        request_bytes: &[u8],
+    ) -> CompareResult<ReferenceManifest> {
+        let request: Value = serde_json::from_slice(request_bytes).unwrap();
+        parse_reference(
+            value,
+            &sha256_hex(request_bytes),
+            request["request_id"].as_str().unwrap(),
+            request["scene_sha256"].as_str().unwrap(),
+            request["scene_revision"].as_u64().unwrap(),
+        )
     }
 
     fn setup(request: &[u8], obs: &[u8]) -> (PathBuf, Vec<u8>, Vec<u8>) {
@@ -912,12 +932,12 @@ mod tests {
         let mut reference_value: Value =
             serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
         reference_value["observables"][0]["relative_tolerance"] = json!(-1.0);
-        assert!(parse_reference(&reference_value, &sha256_hex(&request)).is_err());
+        assert!(parse_reference_for_request(&reference_value, &request).is_err());
 
         let mut reference_value: Value =
             serde_json::from_slice(&reference(&request, 0.125, 1e-12, 1e-10)).unwrap();
         let second = reference_value["observables"][0].clone();
         reference_value["observables"].as_array_mut().unwrap().push(second);
-        assert!(parse_reference(&reference_value, &sha256_hex(&request)).is_err());
+        assert!(parse_reference_for_request(&reference_value, &request).is_err());
     }
 }
