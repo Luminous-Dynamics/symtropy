@@ -1,0 +1,263 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_kind": "same_host_sequential_ab_benchmark",
+  "run": {
+    "id": 39481984586,
+    "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39481984586",
+    "conclusion": "success",
+    "repository": "Luminous-Dynamics/symtropy",
+    "source_branch": "bench/furnishing-adversarial-baseline-v0-2-20261020",
+    "workflow_source_sha": "9f8d9bc5707da3b84d10e3a8f6f0f0df4cecb996",
+    "baseline_oracle": "v0.2 brute-force",
+    "indexed_oracle": "v0.3 BVH/indexed",
+    "indexed_source_sha": "a6fadac278a7005c61ff92626ed41e600a3fdb40",
+    "benchmark_source_sha": "731d7d4a29d00596bf93cdc30a9519d377d17a55",
+    "benchmark_source_identical_between_versions": true
+  },
+  "environment": {
+    "runner_image": "ubuntu-24.04",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "kernel": "Linux runnervmxehtw 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64",
+    "cpu_model": "AMD EPYC 9V45 96-Core Processor",
+    "visible_vcpus": 4,
+    "reported_memory_gib": 15,
+    "sequence": "baseline benchmark first, then checkout pinned indexed source and run identical benchmark on same host"
+  },
+  "gates": {
+    "baseline_tests_passed": 18,
+    "baseline_tests_failed": 0,
+    "baseline_format": "passed",
+    "baseline_clippy_warnings_denied": "passed",
+    "indexed_source_sha_assertion": "passed",
+    "benchmark_harness_sha_equal_for_both_implementations": true,
+    "unexpected_findings_all_workloads": 0,
+    "expected_vs_observed_collision_counts_match": true
+  },
+  "measurements": [
+    {
+      "workload": "sparse_grid",
+      "items": 25,
+      "iterations": 40,
+      "baseline": {
+        "p50_ms": 0.165,
+        "p95_ms": 0.198
+      },
+      "indexed": {
+        "p50_ms": 0.058,
+        "p95_ms": 0.076
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 2.61,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "sparse_grid",
+      "items": 100,
+      "iterations": 30,
+      "baseline": {
+        "p50_ms": 2.496,
+        "p95_ms": 2.531
+      },
+      "indexed": {
+        "p50_ms": 0.321,
+        "p95_ms": 0.342
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 7.4,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "sparse_grid",
+      "items": 1000,
+      "iterations": 15,
+      "baseline": {
+        "p50_ms": 310.432,
+        "p95_ms": 312.496
+      },
+      "indexed": {
+        "p50_ms": 4.432,
+        "p95_ms": 4.656
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 67.12,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "sparse_grid",
+      "items": 10000,
+      "iterations": 1,
+      "baseline": {
+        "single_sample_ms": 50137.25
+      },
+      "indexed": {
+        "single_sample_ms": 71.502
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 701.2,
+      "ratio_basis": "single_sample_latency_ratio_not_p95"
+    },
+    {
+      "workload": "tight_functional_clearance",
+      "items": 25,
+      "iterations": 40,
+      "baseline": {
+        "p50_ms": 0.139,
+        "p95_ms": 0.157
+      },
+      "indexed": {
+        "p50_ms": 0.055,
+        "p95_ms": 0.068
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 2.31,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "tight_functional_clearance",
+      "items": 100,
+      "iterations": 30,
+      "baseline": {
+        "p50_ms": 1.816,
+        "p95_ms": 1.851
+      },
+      "indexed": {
+        "p50_ms": 0.313,
+        "p95_ms": 0.339
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 5.46,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "tight_functional_clearance",
+      "items": 1000,
+      "iterations": 15,
+      "baseline": {
+        "p50_ms": 213.138,
+        "p95_ms": 222.281
+      },
+      "indexed": {
+        "p50_ms": 4.344,
+        "p95_ms": 4.414
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 50.36,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "tight_functional_clearance",
+      "items": 10000,
+      "iterations": 1,
+      "baseline": {
+        "single_sample_ms": 34611.57
+      },
+      "indexed": {
+        "single_sample_ms": 69.288
+      },
+      "expected_collisions": 0,
+      "baseline_collisions": 0,
+      "indexed_collisions": 0,
+      "diagnostic_speedup_ratio": 499.53,
+      "ratio_basis": "single_sample_latency_ratio_not_p95"
+    },
+    {
+      "workload": "dense_footprint_overlap",
+      "items": 25,
+      "iterations": 40,
+      "baseline": {
+        "p50_ms": 0.14,
+        "p95_ms": 0.158
+      },
+      "indexed": {
+        "p50_ms": 0.072,
+        "p95_ms": 0.092
+      },
+      "expected_collisions": 72,
+      "baseline_collisions": 72,
+      "indexed_collisions": 72,
+      "diagnostic_speedup_ratio": 1.72,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "dense_footprint_overlap",
+      "items": 100,
+      "iterations": 30,
+      "baseline": {
+        "p50_ms": 1.822,
+        "p95_ms": 1.85
+      },
+      "indexed": {
+        "p50_ms": 0.381,
+        "p95_ms": 0.404
+      },
+      "expected_collisions": 342,
+      "baseline_collisions": 342,
+      "indexed_collisions": 342,
+      "diagnostic_speedup_ratio": 4.58,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "dense_footprint_overlap",
+      "items": 1000,
+      "iterations": 15,
+      "baseline": {
+        "p50_ms": 212.367,
+        "p95_ms": 214.408
+      },
+      "indexed": {
+        "p50_ms": 4.955,
+        "p95_ms": 5.113
+      },
+      "expected_collisions": 3811,
+      "baseline_collisions": 3811,
+      "indexed_collisions": 3811,
+      "diagnostic_speedup_ratio": 41.93,
+      "ratio_basis": "p95_latency_ratio"
+    },
+    {
+      "workload": "dense_footprint_overlap",
+      "items": 10000,
+      "iterations": 1,
+      "baseline": {
+        "single_sample_ms": 35571.205
+      },
+      "indexed": {
+        "single_sample_ms": 77.805
+      },
+      "expected_collisions": 39402,
+      "baseline_collisions": 39402,
+      "indexed_collisions": 39402,
+      "diagnostic_speedup_ratio": 457.18,
+      "ratio_basis": "single_sample_latency_ratio_not_p95"
+    }
+  ],
+  "conclusions": {
+    "ten_thousand_sparse_speedup_ratio": 701.2,
+    "ten_thousand_tight_clearance_speedup_ratio": 499.53,
+    "ten_thousand_dense_speedup_ratio": 457.18,
+    "ten_thousand_samples_per_version": 1,
+    "interpretation": "Large local-oracle speedup on this generated workload; 10k ratios compare single samples, not p95 or a stable-machine performance guarantee.",
+    "no_false_pair_or_missed_pair_seen": true
+  },
+  "limitations": [
+    "Synthetic axis-aligned 2D geometry only; no room measurement error, UI, network/DHT, asset import, or task solver time.",
+    "The v0.2 and v0.3 implementation versions were timed sequentially in one CI job, which improves host comparability but does not remove thermal/cache/order effects.",
+    "The 10k tier uses one sample and cannot establish p50/p95 or an SLA.",
+    "No peak-memory profile is captured.",
+    "These measurements do not establish accessibility, building-code compliance, physical safety, usability, or resident benefit."
+  ]
+}
