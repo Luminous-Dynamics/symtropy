@@ -453,6 +453,26 @@ fn parse_input_bounds(
         if map_string(fields, "unit", &at)? != expected_unit {
             return Err(format!("{at}.unit must be '{expected_unit}'"));
         }
+        let basis = map_string(fields, "basis", &at)?;
+        if ![
+            "instrumented_measurement",
+            "datasheet_tolerance",
+            "engineering_estimate",
+            "scenario_bound",
+        ]
+        .contains(&basis.as_str())
+        {
+            return Err(format!("{at}.basis is not a supported provenance class"));
+        }
+        let source_ref = map_string(fields, "source_ref", &at)?;
+        if source_ref.trim().is_empty()
+            || source_ref.len() > 2048
+            || source_ref.chars().any(char::is_control)
+        {
+            return Err(format!(
+                "{at}.source_ref must be a non-empty evidence locator of at most 2048 characters"
+            ));
+        }
         let interval =
             uncertainty::Interval::new(lower, upper).map_err(|error| format!("{at}: {error}"))?;
         let nominal = nominal_inputs
