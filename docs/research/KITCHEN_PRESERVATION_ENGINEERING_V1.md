@@ -213,6 +213,15 @@ Do not invent savings from synthetic digital-twin output. A simulator's value is
 5. Run limited field trials only after bench gates pass, with explicit participant consent, privacy-minimizing instrumentation and a failure-response plan.
 6. Link component replacement and restore-cost evidence through the existing Symtropy repair/lifecycle stack and Mycelix provenance where useful. Do not clone those systems in this programme.
 
-## 11. Decision principle
+## 11. Cross-project ownership
+
+- **Symtropy:** appliance/layout architecture, bounded thermal/resource simulation, operating-profile orchestration, maintainability and repair-task integration.
+- **Symthaea:** independent experiment design, evidence-class enforcement, uncertainty-aware comparisons and claims ceilings. Model predictions never substitute for measured temperatures, energy or repair outcomes.
+- **Mycelix:** optional permissioned supplier/lot provenance, replacement-part identity, repair/contributor attribution and service-history governance. It is not a substitute for physical qualification.
+- **Sol-Atlas:** regional climate, electricity reliability, water availability, tariffs, service capacity, supply chains and material/end-of-life routes where sourced regional evidence changes the design decision.
+
+Reuse the existing lifecycle, repairability, EVSI, provenance and kitchen-scheduling owners. Do not introduce a second universal optimizer, work-order system, provenance ledger, refrigerant service controller or food-safety authority.
+
+## 12. Decision principle
 
 The winning kitchen is not the one with the most connected appliances. It is the one that reliably preserves ingredients, supports excellent cooking, cleans effectively, uses less total resource for the declared service, remains repairable and accessible, and preserves the user's decisions and craft. The programme must be capable of concluding “no meaningful improvement demonstrated.”
