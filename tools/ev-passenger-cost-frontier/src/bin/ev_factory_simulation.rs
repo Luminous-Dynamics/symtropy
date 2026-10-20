@@ -102,6 +102,7 @@ struct Report {
     scenario_count: usize,
     scenario_statistics: Vec<ScenarioStatistics>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
+    replication_scenario_records: Vec<ReplicationScenarioRecord>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
     input_evidence_class: EvidenceClass,
@@ -143,6 +144,27 @@ struct ScenarioResult {
     station_time_accounting_within_horizon: bool,
     release_ready: bool,
     claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct ReplicationScenarioRecord {
+    seed: u64,
+    scenario_id: String,
+    measured_good_units_per_hour: f64,
+    good_units_total: u64,
+    released_jobs_total: u64,
+    scrapped_jobs_total: u64,
+    measured_rework_attempts: u64,
+    variant_wait_statistics: Vec<VariantWaitStatistics>,
+    stations: Vec<ReplicationStationRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct ReplicationStationRecord {
+    station_id: String,
+    changeovers_started: u64,
+    output_transfers: u64,
+    out_of_order_output_transfers: u64,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -687,6 +709,32 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.replication_count = runs.len();
     report.replication_seeds = seeds;
     report.scenario_statistics = statistics;
+    report.replication_scenario_records = runs
+        .iter()
+        .flat_map(|run| {
+            run.scenarios.iter().map(|scenario| ReplicationScenarioRecord {
+                seed: run.seed,
+                scenario_id: scenario.scenario_id.clone(),
+                measured_good_units_per_hour: scenario.measured_good_units_per_hour,
+                good_units_total: scenario.good_units_total,
+                released_jobs_total: scenario.released_jobs_total,
+                scrapped_jobs_total: scenario.scrapped_jobs_total,
+                measured_rework_attempts: scenario.measured_rework_attempts,
+                variant_wait_statistics: scenario.variant_wait_statistics.clone(),
+                stations: scenario
+                    .stations
+                    .iter()
+                    .map(|station| ReplicationStationRecord {
+                        station_id: station.station_id.clone(),
+                        changeovers_started: station.changeovers_started_after_warmup,
+                        output_transfers: station.output_transfers_after_warmup,
+                        out_of_order_output_transfers:
+                            station.out_of_order_output_transfers_after_warmup,
+                    })
+                    .collect(),
+            })
+        })
+        .collect();
     let mut station_statistics = Vec::new();
     for scenario_index in 0..report.scenario_count {
         for station_index in 0..runs[0].scenarios[scenario_index].stations.len() {
@@ -855,6 +903,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         scenario_count: scenarios.len(),
         scenario_statistics: Vec::new(),
         station_sequence_statistics: Vec::new(),
+        replication_scenario_records: Vec::new(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
         input_evidence_class: catalog.input_evidence_class,
@@ -1600,6 +1649,22 @@ mod tests {
             .id,
             7
         );
+    }
+
+    #[test]
+    fn report_preserves_seed_scenario_records_for_valid_paired_comparison() {
+        let report = evaluate_catalog(&fixture()).expect("20-seed report");
+        assert_eq!(report.replication_scenario_records.len(), report.replication_count * report.scenario_count);
+        let mut tuples = BTreeSet::new();
+        for record in &report.replication_scenario_records {
+            assert!(report.replication_seeds.contains(&record.seed));
+            assert!(report.scenarios.iter().any(|scenario| scenario.scenario_id == record.scenario_id));
+            assert!(tuples.insert((record.seed, record.scenario_id.as_str())));
+            assert_eq!(record.variant_wait_statistics.len(), 3);
+            assert_eq!(record.stations.len(), 5);
+            assert!(record.good_units_total <= record.released_jobs_total);
+        }
+        assert_eq!(tuples.len(), 20 * report.scenario_count);
     }
 
     #[test]
