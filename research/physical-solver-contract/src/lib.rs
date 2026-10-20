@@ -4,6 +4,7 @@
 //! Every receipt produced here has physical_result_status=UNRESOLVED because
 //! this crate does not invoke a qualified mechanics solver.
 
+pub mod mesh_convergence;
 pub mod reference_compare;
 
 use serde_json::{Map, Value, json};
