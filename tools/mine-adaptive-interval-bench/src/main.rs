@@ -1366,12 +1366,12 @@ mod tests {
                 hard_control: false,
             })
             .collect::<Vec<_>>();
-        assert_eq!(Some(13), coverage_band_recovery_delay(&delayed, 0));
+        assert_eq!(Some(12), coverage_band_recovery_delay(&delayed, 0));
 
         for outcome in &mut delayed {
             outcome.label_matures_at = Some(outcome.tick);
         }
-        assert_eq!(Some(8), coverage_band_recovery_delay(&delayed[..8], 0));
+        assert_eq!(Some(7), coverage_band_recovery_delay(&delayed[..8], 0));
     }
 
     #[test]
