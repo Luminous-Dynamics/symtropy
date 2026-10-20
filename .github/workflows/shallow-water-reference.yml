@@ -33,7 +33,7 @@ jobs:
         run: cargo fmt --package symtropy-shallow-water -- --check
 
       - name: Run shallow-water numerical tests
-        run: cargo test --locked -p symtropy-shallow-water
+        run: cargo test --locked -p symtropy-shallow-water -- --nocapture
 
       - name: Run shallow-water Clippy
         run: cargo clippy --locked -p symtropy-shallow-water --all-targets -- -D warnings
