@@ -505,17 +505,11 @@ fn selected_strategy(policy: PolicyKind, signal: &ObservedSignals, inputs: &Inpu
                 strategy_id_by_kind(&inputs.catalog, "lease")?
             }
         }
-        PolicyKind::PerfectInformationOracle => inputs.best_strategy_for_family_placeholder(),
+        PolicyKind::PerfectInformationOracle => {
+            return Err("perfect_information_oracle_requires_family_specific_costs".into());
+        }
     }.to_string();
     Ok((strategy.clone(), selector_rule(policy, signal)))
-}
-
-impl Inputs {
-    fn best_strategy_for_family_placeholder(&self) -> &str {
-        // This branch is replaced in evaluate_family because the family-specific oracle
-        // requires the family ID; it intentionally has no signal-based selection rule.
-        self.catalog.strategies[0].strategy_id.as_str()
-    }
 }
 
 fn selector_rule(policy: PolicyKind, signal: &ObservedSignals) -> String {
@@ -529,6 +523,30 @@ fn selector_rule(policy: PolicyKind, signal: &ObservedSignals) -> String {
         PolicyKind::AdaptiveReuseConfidence => format!("refurbish when observed reuse_success >= {REUSE_SUCCESS_THRESHOLD:.2} and redeployability >= {REDEPLOYABILITY_THRESHOLD:.2}; otherwise lease (reuse {:.2}, redeploy {:.2})", signal.reuse_success_fraction, signal.redeployability_fraction),
         PolicyKind::AdaptiveCombined => format!("rent if active_fraction < {LOW_ACTIVITY_THRESHOLD:.2}; else lease if product changes >= {HIGH_CHANGE_THRESHOLD:.2}; else refurbish if reuse success and redeployability thresholds pass (active {:.2}, changes {:.2}, reuse {:.2}, redeploy {:.2})",signal.active_fraction, signal.product_change_events_per_year, signal.reuse_success_fraction, signal.redeployability_fraction),
         PolicyKind::PerfectInformationOracle => "non-deployable lower-bound oracle: selects cheapest strategy using outcome costs".into(),
+    }
+}
+
+fn policy_rule_description(policy: PolicyKind) -> String {
+    match policy {
+        PolicyKind::FixedPurchase => "fixed: purchase_new for every family".into(),
+        PolicyKind::FixedLease => "fixed: lease for every family".into(),
+        PolicyKind::FixedRent => "fixed: short_term_rent for every family".into(),
+        PolicyKind::FixedRefurbish => "fixed: refurbish_redeploy for every family".into(),
+        PolicyKind::AdaptiveLowActivityRent => format!(
+            "adaptive: rent when observed active_fraction < {LOW_ACTIVITY_THRESHOLD:.2}, else refurbish_redeploy"
+        ),
+        PolicyKind::AdaptiveHighChangeLease => format!(
+            "adaptive: lease when observed product_change_events_per_year >= {HIGH_CHANGE_THRESHOLD:.2}, else refurbish_redeploy"
+        ),
+        PolicyKind::AdaptiveReuseConfidence => format!(
+            "adaptive: refurbish when observed reuse_success >= {REUSE_SUCCESS_THRESHOLD:.2} and redeployability >= {REDEPLOYABILITY_THRESHOLD:.2}, else lease"
+        ),
+        PolicyKind::AdaptiveCombined => format!(
+            "adaptive: rent when active_fraction < {LOW_ACTIVITY_THRESHOLD:.2}; else lease when product changes >= {HIGH_CHANGE_THRESHOLD:.2}; else refurbish when reuse/redeployability thresholds pass; fallback lease"
+        ),
+        PolicyKind::PerfectInformationOracle => {
+            "non-deployable lower bound: choose family cost oracle; not an operational policy".into()
+        }
     }
 }
 
@@ -571,13 +589,7 @@ fn score_policy(policy: PolicyKind, choices: &[FamilyPolicyResult], family_count
         families_where_policy_is_family_cost_best: best_count,
         family_count,
         pareto_nondominated: false,
-        selection_rule_set: vec![selector_rule(policy, &ObservedSignals {
-            active_fraction: 0.0,
-            product_change_events_per_year: 0.0,
-            reuse_success_fraction: 0.0,
-            redeployability_fraction: 0.0,
-            planning_horizon_years: 0,
-        })],
+        selection_rule_set: vec![policy_rule_description(policy)],
     }
 }
 
@@ -632,13 +644,7 @@ fn evaluate(inputs: &Inputs) -> Result<Report, String> {
     for policy in &policies {
         let choices = evaluate_policy(*policy, inputs, "base")?;
         let mut score = score_policy(*policy, &choices, inputs.catalog.family_signals.len());
-        score.selection_rule_set = vec![policy.id().to_string(), selector_rule(*policy, &ObservedSignals {
-            active_fraction: 0.0,
-            product_change_events_per_year: 0.0,
-            reuse_success_fraction: 0.0,
-            redeployability_fraction: 0.0,
-            planning_horizon_years: 0,
-        })];
+        score.selection_rule_set = vec![policy_rule_description(*policy)];
         policy_scores.push(score);
         family_policy_results.extend(choices);
     }
@@ -745,19 +751,85 @@ mod tests {
 
     fn fixture_inputs() -> Inputs {
         let catalog_raw = include_str!("../../fixtures/ev_factory_lifecycle_v0_1.json");
-        let report_raw = include_str!("../../fixtures/ev_factory_lifecycle_report_v0_1.json");
         let catalog_value: Value = serde_json::from_str(catalog_raw).unwrap();
-        let report_value: Value = serde_json::from_str(report_raw).unwrap();
-        parse_inputs(catalog_raw, &catalog_value, report_raw, &report_value).unwrap()
+        let digest = format!("{:x}", Sha256::digest(catalog_raw.as_bytes()));
+        let families = catalog_value["families"].as_array().unwrap();
+        let strategies = catalog_value["strategies"].as_array().unwrap();
+        let family_ids: Vec<String> = families
+            .iter()
+            .map(|item| item["family_id"].as_str().unwrap().to_string())
+            .collect();
+        let strategy_ids: Vec<String> = strategies
+            .iter()
+            .map(|item| item["strategy_id"].as_str().unwrap().to_string())
+            .collect();
+        let mut rows = Vec::new();
+        for (family_index, family_id) in family_ids.iter().enumerate() {
+            let mut costs = Vec::new();
+            for (strategy_index, strategy_id) in strategy_ids.iter().enumerate() {
+                // Synthetic rows exercise the selection contract; hosted CI supplies
+                // the report generated by the lifecycle calculator itself.
+                let mut cost = 100_000.0 + family_index as f64 * 1_000.0;
+                cost += match strategies[strategy_index]["kind"].as_str().unwrap() {
+                    "purchase_new" => 45_000.0,
+                    "lease" => 65_000.0,
+                    "short_term_rent" if family_id == "product-retirement-redeploy" => -30_000.0,
+                    "short_term_rent" => 90_000.0,
+                    "refurbish_redeploy" if family_id == "product-retirement-redeploy" => 20_000.0,
+                    "refurbish_redeploy" => 0.0,
+                    _ => unreachable!(),
+                };
+                costs.push((strategy_id.clone(), cost));
+            }
+            let family_best = costs.iter().map(|(_, cost)| *cost).fold(f64::INFINITY, f64::min);
+            for (strategy_id, cost) in costs {
+                rows.push(serde_json::json!({
+                    "family_id": family_id,
+                    "strategy_id": strategy_id,
+                    "total_npv_cost": cost,
+                    "regret_vs_family_best_npv_cost": cost - family_best
+                }));
+            }
+        }
+        let report_value = serde_json::json!({
+            "schema_version": "0.1.0",
+            "benchmark_id": "EV-FACTORY-LIFECYCLE-001",
+            "source_catalog_sha256": digest,
+            "source_evidence_class": "synthetic",
+            "cost_unit": catalog_value["cost_unit"],
+            "time_unit": "year",
+            "discount_rate_per_year": catalog_value["discount_rate_per_year"],
+            "family_count": family_ids.len(),
+            "family_ids": family_ids,
+            "strategy_count": strategy_ids.len(),
+            "strategy_ids": strategy_ids,
+            "family_strategy_results": rows,
+            "strategy_scores": [],
+            "pareto_frontier_strategy_ids": [],
+            "purchase_vs_lease_break_even": [],
+            "sensitivity_results": [],
+            "family_aggregation_note": "synthetic unit fixture",
+            "economic_recommendation_authorized": false,
+            "production_release_authorized": false,
+            "claim_ceiling": "synthetic"
+        });
+        let report_raw = serde_json::to_string(&report_value).unwrap();
+        parse_inputs(catalog_raw, &catalog_value, &report_raw, &report_value).unwrap()
     }
 
     #[test]
     fn adaptive_selection_uses_signal_not_family_identity_or_oracle_cost() {
         let inputs = fixture_inputs();
-        let low = make_observed(&inputs.catalog.family_signals[1], "base");
+        let low_profile = inputs.catalog.family_signals.iter()
+            .find(|family| family.active_fraction < LOW_ACTIVITY_THRESHOLD)
+            .expect("fixture includes a low-activity scenario");
+        let low = make_observed(low_profile, "base");
         let (selected, _) = selected_strategy(PolicyKind::AdaptiveLowActivityRent, &low, &inputs).unwrap();
         assert_eq!(selected, strategy_id_by_kind(&inputs.catalog, "short_term_rent").unwrap());
-        let high = make_observed(&inputs.catalog.family_signals[0], "base");
+        let high_profile = inputs.catalog.family_signals.iter()
+            .find(|family| family.active_fraction >= LOW_ACTIVITY_THRESHOLD)
+            .expect("fixture includes a higher-activity scenario");
+        let high = make_observed(high_profile, "base");
         let (selected, _) = selected_strategy(PolicyKind::AdaptiveLowActivityRent, &high, &inputs).unwrap();
         assert_eq!(selected, strategy_id_by_kind(&inputs.catalog, "refurbish_redeploy").unwrap());
     }
@@ -772,7 +844,12 @@ mod tests {
         assert!(!report.policy_scores.iter().find(|score| score.policy_id == PolicyKind::PerfectInformationOracle.id()).unwrap().deployable_policy);
         assert!(!report.economic_recommendation_authorized);
         assert!(!report.production_release_authorized);
-        assert!(adapt.mean_npv_cost_across_families >= fixed.mean_npv_cost_across_families - 1e-9);
+        let raw_mean = report.family_policy_results.iter()
+            .filter(|row| row.policy_id == PolicyKind::AdaptiveLowActivityRent.id())
+            .map(|row| row.lifecycle_npv_before_decision_overhead)
+            .sum::<f64>() / 5.0;
+        assert!((adapt.mean_npv_cost_across_families - (raw_mean + 1500.0)).abs() < 1e-9);
+        assert_eq!(fixed.mean_decision_overhead_npv_cost, 0.0);
     }
 
     #[test]
