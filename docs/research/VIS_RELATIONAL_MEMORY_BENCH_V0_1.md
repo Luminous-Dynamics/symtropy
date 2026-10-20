@@ -151,11 +151,12 @@ Before using the hazard result as an engineering acceptance claim, preregister t
 
 **Bug found:** prior generator versions set `confidence=350` iff the synthetic value was corrupted and `confidence=950` otherwise. Since memory policies received confidence, it was a direct corruption label rather than a noisy sensor-confidence estimate. The hazard-aware policy's high-confidence transition history and the selective policy's confidence threshold could exploit this shortcut. This invalidates their earlier performance interpretation for realistic noisy confidence—even though those runs were source-head-reproducible.
 
-**Correction in the current candidate:** use three confidence tiers with overlapping support:
-- Clean observation: (P(950,650,350)=(0.75,0.20,0.05)).
-- Corrupted observation: (P(950,650,350)=(0.15,0.40,0.45)).
+**Correction in the current candidate:** draw the reported confidence tier independently of whether the value is corrupted:
+- Confidence tier prior: (P(950,850,650)=(0.75,0.20,0.05)).
+- Conditional corruption risk by confidence tier: (p_c = p_{base}\times(20,160,320)/63) per thousand, where (p_{base}) comes from the episode's sampled profile.
+- These relative risks are normalized so the tier-weighted aggregate corruption rate is approximately the declared base rate. High-confidence events can still be corrupted, and low-confidence events can still be correct.
 
-Confidence remains informative but is no longer a deterministic reveal: corrupted evidence can receive high confidence, and clean evidence can receive low confidence. The report prints this model. A 20,000-draw-per-class negative control verifies each tier appears in both classes and high confidence is more frequent for clean observations. The report seed root has also changed to `0x3C6E_F372_FE94_F82B`.
+The report prints this model. A deterministic 100,000-draw calibration test verifies that error rates increase from high to medium to low confidence and that the aggregate remains near the profile base rate. The latest candidate uses seed root `0x510E_527F_ADE6_82D1`.
 
 **Interpretation rule:** rerun the full report on the current exact head. If the hazard-aware advantage shrinks or disappears, report that directly; do not restore the leakage to preserve an earlier result. The candidate should only be considered for external comparison if the noisy-confidence results support it, and then it must still pass benchmark-native external evaluation.
 
