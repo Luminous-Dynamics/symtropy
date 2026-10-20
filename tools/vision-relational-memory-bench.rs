@@ -757,10 +757,6 @@ mod tests {
 
     #[test]
     fn confidence_is_informative_but_not_a_corruption_label() {
-        let mut clean_rng = Rng::new(0xC1EA_0001);
-        let mut corrupt_rng = Rng::new(0xC077_0002);
-        let mut clean_counts = [0_usize; 3];
-        let mut corrupt_counts = [0_usize; 3];
         let confidence_bucket = |value: u16| match value {
             950 => 0,
             850 => 1,
