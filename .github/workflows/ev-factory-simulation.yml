@@ -11,6 +11,7 @@ on:
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
+      - "docs/research/EV_FACTORY_SEQUENCE_AWARE_DISPATCH_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
     branches: [main]
@@ -24,6 +25,7 @@ on:
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
+      - "docs/research/EV_FACTORY_SEQUENCE_AWARE_DISPATCH_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   workflow_dispatch:
 
@@ -90,6 +92,8 @@ jobs:
           jq -e '
             .benchmark_id == "EV-FACTORY-SIM-001"
             and .random_stream_policy == "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream"
+            and .dispatch_policy == "fifo"
+            and .max_variant_skip_seconds == 600
             and .replication_count == 20
             and (.replication_seeds | length) == 20
             and (.scenario_statistics | length) == 6
@@ -142,6 +146,29 @@ jobs:
             cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$fixture" > "$repeat"
             cmp "$report" "$repeat"
           done
+      - name: Run bounded variant-aware dispatch on matched seeds
+        run: |
+          jq '.dispatch_policy = "minimize_changeover" | .max_variant_skip_seconds = 240' \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            > ev-factory-sequence-aware-fixture.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            ev-factory-sequence-aware-fixture.json > ev-factory-sequence-aware-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .dispatch_policy == "minimize_changeover"
+            and .max_variant_skip_seconds == 240
+            and .replication_count == 20
+            and (.replication_seeds | length) == 20
+            and (.scenario_statistics | length) == 6
+            and (.station_sequence_statistics | length) == 30
+            and .release_ready == false
+            and .all_buffers_respected_capacity
+            and .output_never_exceeds_released_input
+            and all(.station_sequence_statistics[]; .out_of_order_output_transfers.mean <= .output_transfers.mean)
+          ' ev-factory-sequence-aware-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            ev-factory-sequence-aware-fixture.json > ev-factory-sequence-aware-repeat.json
+          cmp ev-factory-sequence-aware-report.json ev-factory-sequence-aware-repeat.json
       - name: Verify deterministic output for the declared seed
         run: |
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
@@ -167,8 +194,10 @@ jobs:
             docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
             docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
+            docs/research/EV_FACTORY_SEQUENCE_AWARE_DISPATCH_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
+            ev-factory-sequence-aware-report.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
       - uses: actions/upload-artifact@v4
@@ -176,6 +205,7 @@ jobs:
           name: ev-factory-discrete-event-simulation-report
           path: |
             ev-factory-simulation-report.json
+            ev-factory-sequence-aware-report.json
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json
             ev-factory-simulation-report.sha256

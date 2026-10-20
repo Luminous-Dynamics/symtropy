@@ -22,6 +22,10 @@ struct Catalog {
     productive_seconds_per_year: u64,
     variant_count: usize,
     variant_batch_size: u64,
+    #[serde(default)]
+    dispatch_policy: DispatchPolicy,
+    #[serde(default = "default_max_variant_skip_seconds")]
+    max_variant_skip_seconds: u64,
     mean_supply_interarrival_seconds: f64,
     supply_interarrival_variability_fraction: f64,
     source_buffer_capacity: usize,
@@ -50,6 +54,18 @@ struct Station {
     max_rework_attempts: u32,
     evidence_class: EvidenceClass,
     note: String,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+enum DispatchPolicy {
+    #[default]
+    Fifo,
+    MinimizeChangeover,
+}
+
+fn default_max_variant_skip_seconds() -> u64 {
+    600
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -81,6 +97,8 @@ struct Report {
     replication_count: usize,
     replication_seeds: Vec<u64>,
     random_stream_policy: String,
+    dispatch_policy: DispatchPolicy,
+    max_variant_skip_seconds: u64,
     scenario_count: usize,
     scenario_statistics: Vec<ScenarioStatistics>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
@@ -190,6 +208,7 @@ struct StationResult {
 struct Job {
     id: u64,
     variant: usize,
+    queued_since_seconds: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -441,6 +460,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         || catalog.source_buffer_capacity == 0
     {
         return Err("variant_and_source_buffer_dimensions_must_be_positive".into());
+    }
+    if catalog.max_variant_skip_seconds == 0 {
+        return Err("max_variant_skip_seconds_must_be_positive".into());
     }
     validate_positive_finite(
         "mean_supply_interarrival_seconds",
@@ -743,6 +765,8 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         replication_seeds: vec![catalog.seed],
         random_stream_policy:
             "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
+        dispatch_policy: catalog.dispatch_policy,
+        max_variant_skip_seconds: catalog.max_variant_skip_seconds,
         scenario_count: scenarios.len(),
         scenario_statistics: Vec::new(),
         station_sequence_statistics: Vec::new(),
@@ -830,6 +854,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     id,
                     variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
                         as usize,
+                    queued_since_seconds: state.now,
                 });
                 state.supplier_backlog_peak = state
                     .supplier_backlog_peak
@@ -1158,6 +1183,29 @@ fn record_output_transfer(
     *last_output_job_id = Some(last_output_job_id.map_or(job_id, |last| last.max(job_id)));
 }
 
+fn dispatch_pop(
+    queue: &mut VecDeque<Job>,
+    policy: DispatchPolicy,
+    last_variant: Option<usize>,
+    now_seconds: u64,
+    max_variant_skip_seconds: u64,
+) -> Option<Job> {
+    if policy == DispatchPolicy::MinimizeChangeover {
+        if let Some(oldest) = queue.front() {
+            let oldest_wait_seconds = now_seconds.saturating_sub(oldest.queued_since_seconds);
+            if oldest_wait_seconds < max_variant_skip_seconds {
+                if let Some(variant) = last_variant {
+                    if let Some(index) = queue.iter().position(|job| job.variant == variant) {
+                        return queue.remove(index);
+                    }
+                }
+            }
+        }
+    }
+    // FIFO fallback plus oldest-job aging prevents indefinite skipping.
+    queue.pop_front()
+}
+
 fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
     loop {
         let mut changed = false;
@@ -1207,7 +1255,9 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                         state.measured_good_units += 1;
                     }
                 } else {
-                    state.buffers[station_index].push_back(job);
+                    let mut queued_job = job;
+                    queued_job.queued_since_seconds = state.now;
+                    state.buffers[station_index].push_back(queued_job);
                     let length = state.buffers[station_index].len();
                     state.buffer_peak_occupancy[station_index] =
                         state.buffer_peak_occupancy[station_index].max(length);
@@ -1236,14 +1286,27 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 ) {
                     continue;
                 }
+                let last_variant = state.stations[station_index].servers[server_index].last_variant;
                 let job = if station_index == 0 {
-                    let value = state.source_buffer.pop_front();
+                    let value = dispatch_pop(
+                        &mut state.source_buffer,
+                        catalog.dispatch_policy,
+                        last_variant,
+                        state.now,
+                        catalog.max_variant_skip_seconds,
+                    );
                     if value.is_some() {
                         refill_source_buffer(state, catalog);
                     }
                     value
                 } else {
-                    state.buffers[station_index - 1].pop_front()
+                    dispatch_pop(
+                        &mut state.buffers[station_index - 1],
+                        catalog.dispatch_policy,
+                        last_variant,
+                        state.now,
+                        catalog.max_variant_skip_seconds,
+                    )
                 };
                 let Some(job) = job else {
                     continue;
@@ -1380,6 +1443,118 @@ mod tests {
         assert!(report.all_buffers_respected_capacity);
         assert!(report.station_time_accounting_within_horizon);
         assert!(!report.release_ready);
+    }
+
+    fn job(id: u64, variant: usize, queued_since_seconds: u64) -> Job {
+        Job {
+            id,
+            variant,
+            queued_since_seconds,
+        }
+    }
+
+    #[test]
+    fn fifo_policy_never_reorders_input_queue() {
+        let mut queue = VecDeque::from([job(1, 0, 0), job(2, 1, 1), job(3, 0, 2)]);
+        assert_eq!(
+            dispatch_pop(&mut queue, DispatchPolicy::Fifo, Some(1), 3, 10).map(|item| item.id),
+            Some(1)
+        );
+        assert_eq!(
+            queue.iter().map(|item| item.id).collect::<Vec<_>>(),
+            vec![2, 3]
+        );
+    }
+
+    #[test]
+    fn minimize_changeover_selects_oldest_matching_variant_with_fifo_ties() {
+        let mut queue = VecDeque::from([job(1, 0, 0), job(2, 1, 2), job(3, 1, 3), job(4, 0, 4)]);
+        assert_eq!(
+            dispatch_pop(
+                &mut queue,
+                DispatchPolicy::MinimizeChangeover,
+                Some(1),
+                5,
+                20,
+            )
+            .map(|item| item.id),
+            Some(2)
+        );
+        assert_eq!(
+            dispatch_pop(
+                &mut queue,
+                DispatchPolicy::MinimizeChangeover,
+                Some(1),
+                5,
+                20,
+            )
+            .map(|item| item.id),
+            Some(3)
+        );
+    }
+
+    #[test]
+    fn aging_threshold_forces_oldest_job_and_prevents_indefinite_skipping() {
+        let mut queue = VecDeque::from([job(1, 0, 0), job(2, 1, 80)]);
+        assert_eq!(
+            dispatch_pop(
+                &mut queue,
+                DispatchPolicy::MinimizeChangeover,
+                Some(1),
+                101,
+                100,
+            )
+            .map(|item| item.id),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn minimize_changeover_policy_is_explicit_and_reproducible() {
+        let mut catalog = fixture();
+        catalog.dispatch_policy = DispatchPolicy::MinimizeChangeover;
+        catalog.max_variant_skip_seconds = 240;
+        let first = evaluate_catalog(&catalog).expect("first policy run");
+        let second = evaluate_catalog(&catalog).expect("repeat policy run");
+        assert_eq!(first, second);
+        assert_eq!(first.dispatch_policy, DispatchPolicy::MinimizeChangeover);
+        assert!(first.all_buffers_respected_capacity);
+        assert!(first.output_never_exceeds_released_input);
+        assert!(!first.release_ready);
+    }
+
+    #[test]
+    fn homogeneous_no_setup_control_makes_policies_equivalent() {
+        let mut fifo = fixture();
+        fifo.replication_seeds.clear();
+        fifo.variant_count = 1;
+        fifo.variant_batch_size = 1;
+        for station in &mut fifo.stations {
+            station.changeover_seconds = 0.0;
+        }
+        fifo.dispatch_policy = DispatchPolicy::Fifo;
+        let mut variant_aware = fifo.clone();
+        variant_aware.dispatch_policy = DispatchPolicy::MinimizeChangeover;
+
+        let fifo_report = evaluate_catalog(&fifo).expect("FIFO no-setup control");
+        let aware_report =
+            evaluate_catalog(&variant_aware).expect("variant-aware no-setup control");
+        assert_eq!(fifo_report.scenarios, aware_report.scenarios);
+        assert_eq!(
+            fifo_report.scenario_statistics,
+            aware_report.scenario_statistics
+        );
+        assert_eq!(
+            fifo_report.station_sequence_statistics,
+            aware_report.station_sequence_statistics
+        );
+    }
+
+    #[test]
+    fn zero_skip_age_limit_fails_closed() {
+        let mut catalog = fixture();
+        catalog.max_variant_skip_seconds = 0;
+        assert!(validate_catalog(&catalog).is_err());
     }
 
     #[test]
