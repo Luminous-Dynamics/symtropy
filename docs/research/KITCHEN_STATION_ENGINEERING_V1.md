@@ -39,6 +39,8 @@ Keep commercial pre-rinse valves on a separate benchmark track from household fa
 
 The valve test method and any applicable commercial certification/compliance process do not replace a matched, real-task soil-removal test.
 
+A complementary test-rig plan is versioned at `docs/research/KITCHEN_PRERINSE_TEST_RIG_V1.md`. It separates valve-method measurements from a supplementary task-level soil-removal test, specifies a 20/40/60/80 psi exploratory matrix, provides stop/go gates, and requires stage-wise reference repeatability and a power/precision plan before confirmatory comparison. It explicitly says the rig has not been built or run and that an internal soil surrogate cannot establish sanitation or microbial reduction.
+
 ### Reproducible market reference file
 
 The machine-readable source ledger is `docs/research/KITCHEN_PRERINSE_MARKET_REFERENCE_V1.json`. It separates official U.S. flow/force classes and EPA operating-pressure guidance from the manufacturer's published T&S B-0107 specifications. The latter lists 1.15 US gpm and 7.5 ozf at 60 psi; this programme has not independently measured the product. The file also preserves the WaterSense sunset, target hypothesis, four proposed pressure test points (20/40/60/80 psi), and warnings against treating a datasheet as task performance. Three physical specimens per product is only a starting engineering target; statistical sufficiency must be established separately.
