@@ -1414,6 +1414,13 @@ mod randomized_timing {
             .expect("fixed-sweep baseline exists");
 
         for family in [SceneFamily::Development, SceneFamily::HeldOut] {
+            // Split early/late relative to each family's support so each
+            // profile has both strata; print the actual cutoff to avoid
+            // implying that the same absolute tick defines both families.
+            let early_cutoff = match family {
+                SceneFamily::Development => 2,
+                SceneFamily::HeldOut => 3,
+            };
             let mut totals = vec![Aggregate::default(); policies.len()];
             let mut early_onset = vec![Aggregate::default(); policies.len()];
             let mut late_onset = vec![Aggregate::default(); policies.len()];
@@ -1430,7 +1437,7 @@ mod randomized_timing {
                     let seed = seed_for(replicate, pair, family);
                     let persistent = TimedWorld::generated(seed, true, family);
                     let removed = persistent.paired_with(false);
-                    let is_early = persistent.occlusion_onset <= 2;
+                    let is_early = persistent.occlusion_onset <= early_cutoff;
 
                     for (index, policy) in policies.iter().copied().enumerate() {
                         let actor_seed = mix64(
@@ -1545,8 +1552,10 @@ mod randomized_timing {
             }
 
             println!(
-                "VIS-ACT-005 timing-stratum diagnostics for {} (early onset <= 2; late onset >= 3)",
-                family.name()
+                "VIS-ACT-005 timing-stratum diagnostics for {} (early onset <= {}; late onset > {})",
+                family.name(),
+                early_cutoff,
+                early_cutoff
             );
             println!("family\tstratum\tpolicy\tepisodes\tmean_loss\tabstention_rate\tremoved_false_persistence_rate\tfresh_evidence_rate_per_executed_view\trecovery_rate\tmean_recovery_steps_when_recovered\tview_attributable_recovery_rate\tmean_view_recovery_steps_when_attributed");
             for (stratum_name, strata) in [
@@ -1640,6 +1649,21 @@ mod randomized_timing {
         fn paired(seed: u64, family: SceneFamily) -> (TimedWorld, TimedWorld) {
             let persistent = TimedWorld::generated(seed, true, family);
             (persistent, persistent.paired_with(false))
+        }
+
+        #[test]
+        fn early_and_late_strata_exist_within_each_family_support() {
+            for family in [SceneFamily::Development, SceneFamily::HeldOut] {
+                let cutoff = match family {
+                    SceneFamily::Development => 2,
+                    SceneFamily::HeldOut => 3,
+                };
+                let worlds: Vec<TimedWorld> = (0..128)
+                    .map(|seed| TimedWorld::generated(seed, true, family))
+                    .collect();
+                assert!(worlds.iter().any(|world| world.occlusion_onset <= cutoff));
+                assert!(worlds.iter().any(|world| world.occlusion_onset > cutoff));
+            }
         }
 
         #[test]
