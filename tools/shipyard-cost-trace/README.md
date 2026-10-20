@@ -7,6 +7,7 @@ Dependency-free Rust reference kernel for Symtropy issue #2402. This is a delibe
 ~~~sh
 cargo test --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml
 cargo run --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --example synthetic
+cargo run --release --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --example scale
 ~~~
 
 The nested Cargo workspace isolates this slice from the main Symtropy workspace and uses no external crates.
@@ -55,7 +56,7 @@ This Rust kernel addresses only the narrow event identity, quantity reconciliati
 - Zero absent quantity observations represented as zero.
 - 100% of monetary outputs linked to a source reference and declared rate-card revision or direct financial source.
 - Deterministic reports under event input permutation.
-- Measure p50/p95 audit time and peak memory at 20, 200, 2,000 and 20,000 events.
+- The release-mode scale example measures median/p95 audit latency at 20, 200, 2,000 and 20,000 chained events (21 samples per size); it deliberately reverses event order to exercise long-lineage traversal. It does not measure peak memory, industrial throughput or end-to-end shipyard performance.
 - Report planned quantity, observed quantity, variance, simulated quantity, rate-card estimate, direct financial actual, currency basis, and unallocated/unknown scope independently.
 
 Every target remains unmeasured until execution and independent review. Synthetic events are never proof of real shipyard savings, manufacturing quality, physical feasibility or vessel certification.
