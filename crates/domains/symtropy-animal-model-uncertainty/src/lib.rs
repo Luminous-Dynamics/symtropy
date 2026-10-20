@@ -10,6 +10,10 @@ use std::collections::BTreeSet;
 pub const EMBEDDED_ORACLE: &str =
     include_str!("../../../../docs/living-world/ANIMAL_MODEL_STRUCTURE_UNCERTAINTY_ORACLE_V1.json");
 
+/// Embedded schema whose frozen corpus count must match the checked-in oracle.
+pub const EMBEDDED_SCHEMA: &str =
+    include_str!("../../../../docs/living-world/ANIMAL_MODEL_STRUCTURE_UNCERTAINTY_ORACLE_V1.schema.json");
+
 /// Validate the oracle's corpus-level invariants beyond basic JSON parsing.
 ///
 /// Returns the actual case count only when the whole corpus passes. Errors are
@@ -276,5 +280,16 @@ mod tests {
     fn malformed_json_is_rejected() {
         let error = validate_oracle_json("{not-json").expect_err("malformed JSON must fail");
         assert!(error[0].starts_with("invalid JSON"));
+    }
+
+    #[test]
+    fn schema_freezes_the_same_case_count_as_the_oracle() {
+        let oracle = parsed_fixture();
+        let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        let expected_count = oracle["cases"].as_array().expect("cases array").len();
+        assert_eq!(oracle["case_count"].as_u64(), Some(expected_count as u64));
+        assert_eq!(schema["properties"]["case_count"]["const"].as_u64(), Some(expected_count as u64));
+        assert_eq!(schema["properties"]["cases"]["minItems"].as_u64(), Some(expected_count as u64));
+        assert_eq!(schema["properties"]["cases"]["maxItems"].as_u64(), Some(expected_count as u64));
     }
 }
