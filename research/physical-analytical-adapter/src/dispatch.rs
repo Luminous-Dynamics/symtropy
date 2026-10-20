@@ -167,7 +167,7 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
     if schema_version != REQUEST_SCHEMA_V01 {
         return Err(format!("request.schema_version is unsupported: {schema_version}"));
     }
-    exact_keys_with_optional(value, REQUEST_KEYS_V01, &["input_bounds"], "request")?
+    exact_keys_with_optional(value, REQUEST_KEYS_V01, &["input_bounds"], "request")?;
     let request_id = required_string(value, "request_id", "request")?;
     validate_token(&request_id, "request ID")?;
     let source_revision = required_string(value, "source_revision", "request")?;
