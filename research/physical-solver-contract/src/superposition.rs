@@ -227,6 +227,14 @@ pub fn assess_superposition_relation_bytes(
             ));
         }
     };
+    if receipt_a.get("adapter") != receipt_b.get("adapter")
+        || receipt_a.get("adapter") != receipt_combined.get("adapter")
+    {
+        return Ok(unresolved(
+            report,
+            "A, B and combined receipts do not have identical solver/adapter build identity and configuration",
+        ));
+    }
 
     let mut output_results = Vec::with_capacity(manifest.output_pairs.len());
     let mut violation_count = 0usize;
@@ -1230,6 +1238,15 @@ mod tests {
         let report = assess(&bundle);
         assert_eq!(report["relation_status"], "UNRESOLVED");
         assert_eq!(report["combined_artifact_verification_status"], "FAIL");
+    }
+
+    #[test]
+    fn different_solver_adapter_identity_is_unresolved() {
+        let mut bundle = make_bundle(0.02);
+        let mut receipt: Value = serde_json::from_slice(&bundle.receipt_combined).unwrap();
+        receipt["adapter"]["configuration_sha256"] = json!("e".repeat(64));
+        bundle.receipt_combined = serde_json::to_vec(&receipt).unwrap();
+        assert_eq!(assess(&bundle)["relation_status"], "UNRESOLVED");
     }
 
     #[test]
