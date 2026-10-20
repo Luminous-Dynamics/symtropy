@@ -79,7 +79,9 @@
       "reference_history_fit": "observationally_compatible",
       "forage_recovery_lag_ticks": 100,
       "policy_visible_model_id": false,
-      "revealed_before_evaluation": true
+      "revealed_before_evaluation": true,
+      "parameter_source": "public_candidate_manifest",
+      "parameters_disclosed_in_public_fixture": true
     },
     {
       "id": "candidate_slow_regrowth",
@@ -87,15 +89,19 @@
       "reference_history_fit": "observationally_compatible",
       "forage_recovery_lag_ticks": 300,
       "policy_visible_model_id": false,
-      "revealed_before_evaluation": true
+      "revealed_before_evaluation": true,
+      "parameter_source": "public_candidate_manifest",
+      "parameters_disclosed_in_public_fixture": true
     },
     {
-      "id": "blind_challenger_delayed_rebound",
+      "id": "challenger_sealed_model_v0",
       "role": "blind_challenger",
       "reference_history_fit": "observationally_compatible",
-      "forage_recovery_lag_ticks": 180,
+      "forage_recovery_lag_ticks": null,
       "policy_visible_model_id": false,
-      "revealed_before_evaluation": false
+      "revealed_before_evaluation": false,
+      "parameter_source": "sealed_evaluator_manifest",
+      "parameters_disclosed_in_public_fixture": false
     }
   ],
   "agent": {
