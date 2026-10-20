@@ -285,7 +285,7 @@ fn disposition_summary(records: &[&Value], disposition: &str) -> Value {
     let selected = records
         .iter()
         .copied()
-        .filter(|record| string_at(record, "disposition") == Some(disposition))
+        .filter(|record| string_at(record, "disposition") == Some(*disposition))
         .collect::<Vec<_>>();
     let event_count = selected
         .iter()
