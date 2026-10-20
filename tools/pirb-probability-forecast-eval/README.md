@@ -27,6 +27,16 @@ The `pirb-hierarchy-coherence-audit` binary measures parent/child consistency fo
 
 The checked-in hierarchy fixture has invented aggregate counts. Its all-zero/all-one artifact digests are placeholders and do not identify captured provider data. The fixture includes two complete exact-sum constraints and one incomplete spatial constraint whose missing child must not be imputed as zero. See `docs/tech/PIRB_HIERARCHICAL_FORECAST_COHERENCE_V0_1.md` for the contract and claim limits.
 
+## Capacity-constrained action value
+
+The `pirb-action-value-audit` binary compares no-action, risk-ranked top-K, and expected-net-benefit top-K policies across every pre-registered capacity, cost-multiplier and effectiveness-multiplier scenario. It uses the same forecast-issued case pool and registered assumptions for all policies. Receipts distinguish model-expected avoided harm, assumed action costs, net benefit, residual model-estimated harm, observed event capture and label coverage.
+
+Expected avoided harm is assumption-conditioned, not observed and not causal. Abstained cases cannot be allocated by this policy and are counted separately; their risk is not imputed to zero. Unknown and immature labels remain unscored. Public fixtures use synthetic data and placeholder digests only. See `docs/tech/PIRB_ACTION_VALUE_AUDIT_V0_1.md` for formulas and claim limits.
+
+Run the synthetic receipt:
+
+    cargo run --bin pirb-action-value-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-action-value-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+
 ## Selective forecasting, abstention and regime shift
 
 The `pirb-selective-forecast-audit` binary evaluates a pre-registered threshold grid for a reason-coded forecast-serving policy. It measures risk versus coverage, Brier score and binary log loss on issued cases with mature known outcomes, and a clearly labeled offline full-candidate reference. It reports unknown/immature outcomes rather than imputing no-event, and separately reports selection by group and regime. Small group/regime summaries are suppressed below the policy's minimum count.
