@@ -22,6 +22,7 @@ cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml \
 
 The versioned JSON contract requires:
 - Trace ID, collection window, UTC start/end labels, timezone, clock basis, time unit and shift-calendar identifier.
+- UTC timestamps are strict whole-second `YYYY-MM-DDTHH:MM:SSZ`; the UTC interval must equal `collection_window_seconds`. The all-zero digest sentinel is accepted only for explicitly synthetic fixtures, never measured/public evidence.
 - An explicit evidence class and 64-hex-character source SHA-256 field.
 - Missingness declarations including an explanation even when none is known.
 - Station/resource identifiers, rework limits and one declared finite buffer between every sequential station.
