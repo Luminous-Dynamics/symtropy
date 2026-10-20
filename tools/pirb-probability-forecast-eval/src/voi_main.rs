@@ -533,13 +533,19 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                         )
                     })
                     .collect::<Distribution>();
-                let signal_probability = prior_map
-                    .iter()
-                    .map(|(state_id, prior_probability)| {
-                        prior_probability * likelihood_map[state_id]
-                    })
-                    .sum::<f64>();
-                if signal_probability <= 0.0 {
+                let mut signal_probability = 0.0;
+                let mut likelihood_table_complete = true;
+                for (state_id, prior_probability) in &prior_map {
+                    let Some(likelihood) = likelihood_map.get(state_id) else {
+                        likelihood_table_complete = false;
+                        break;
+                    };
+                    signal_probability += prior_probability * likelihood;
+                }
+                // Unknown/missing likelihood states are already reported above.
+                // Do not index a missing key or produce a second, misleading
+                // marginal-probability diagnostic for an invalid table.
+                if likelihood_table_complete && signal_probability <= 0.0 {
                     errors.push(format!(
                         "source {source_id} signal {} has zero marginal probability under the registered prior",
                         string_at(signal, "signal_id").unwrap_or("<missing>")
