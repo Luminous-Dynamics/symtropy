@@ -510,7 +510,8 @@ fn benchmark_summary(scenarios: &[Value]) -> Value {
             b1_oracle_matches += 1;
         }
         b1_actual_blocked_violations += b1["actual_blocked_edge_violations_against_oracle"]
-            .as_u64().unwrap_or(0) as usize;
+            .as_u64()
+            .unwrap_or(0) as usize;
 
         let b3 = &scenario["B3_evidence_bounded_feasible_choice"];
         if b3["no_evidenced_feasible_plan"].as_bool() == Some(true) {
@@ -519,7 +520,10 @@ fn benchmark_summary(scenarios: &[Value]) -> Value {
         if !b3["selected_plan_id"].is_null() {
             b3_selected += 1;
             let selected_id = b3["selected_plan_id"].as_str();
-            let selected_plan = b3["candidate_plans"].as_array().into_iter().flatten()
+            let selected_plan = b3["candidate_plans"]
+                .as_array()
+                .into_iter()
+                .flatten()
                 .find(|plan| plan["plan_id"].as_str() == selected_id);
             if selected_plan.is_none_or(|plan| plan["feasible"].as_bool() != Some(true)) {
                 b3_selected_infeasible += 1;
@@ -1050,15 +1054,45 @@ mod tests {
         let scenarios = validate_corpus(&fixture()).expect("fixture must validate");
         let summary = benchmark_summary(&scenarios);
         assert_eq!(summary["scenario_count"].as_u64(), Some(6));
-        assert_eq!(summary["B1_static_shortest_route"]["selected_plan_count"].as_u64(), Some(5));
-        assert_eq!(summary["B1_static_shortest_route"]["selected_infeasible_plan_count"].as_u64(), Some(5));
-        assert_eq!(summary["B1_static_shortest_route"]["actual_blocked_edge_violations_against_oracle"].as_u64(), Some(2));
-        assert_eq!(summary["B1_static_shortest_route"]["expected_choice_match_count"].as_u64(), Some(1));
-        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["selected_plan_count"].as_u64(), Some(3));
-        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["abstention_count"].as_u64(), Some(3));
-        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["selected_infeasible_plan_count"].as_u64(), Some(0));
-        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["expected_choice_match_count"].as_u64(), Some(6));
-        assert_eq!(summary["B3_evidence_bounded_feasible_choice"]["expected_choice_mismatch_count"].as_u64(), Some(0));
+        assert_eq!(
+            summary["B1_static_shortest_route"]["selected_plan_count"].as_u64(),
+            Some(5)
+        );
+        assert_eq!(
+            summary["B1_static_shortest_route"]["selected_infeasible_plan_count"].as_u64(),
+            Some(5)
+        );
+        assert_eq!(
+            summary["B1_static_shortest_route"]["actual_blocked_edge_violations_against_oracle"]
+                .as_u64(),
+            Some(2)
+        );
+        assert_eq!(
+            summary["B1_static_shortest_route"]["expected_choice_match_count"].as_u64(),
+            Some(1)
+        );
+        assert_eq!(
+            summary["B3_evidence_bounded_feasible_choice"]["selected_plan_count"].as_u64(),
+            Some(3)
+        );
+        assert_eq!(
+            summary["B3_evidence_bounded_feasible_choice"]["abstention_count"].as_u64(),
+            Some(3)
+        );
+        assert_eq!(
+            summary["B3_evidence_bounded_feasible_choice"]["selected_infeasible_plan_count"]
+                .as_u64(),
+            Some(0)
+        );
+        assert_eq!(
+            summary["B3_evidence_bounded_feasible_choice"]["expected_choice_match_count"].as_u64(),
+            Some(6)
+        );
+        assert_eq!(
+            summary["B3_evidence_bounded_feasible_choice"]["expected_choice_mismatch_count"]
+                .as_u64(),
+            Some(0)
+        );
     }
 
     #[test]
