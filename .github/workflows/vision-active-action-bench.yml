@@ -82,6 +82,8 @@ jobs:
           set -euo pipefail
           rustc --edition=2024 tools/vision-active-action-world.rs -o /tmp/vis-act-world
           /tmp/vis-act-world | tee causal-world-pilot.tsv
+          grep -Fq "development_levels" causal-world-pilot.tsv
+          grep -Fq "held_out_severity_levels" causal-world-pilot.tsv
           grep -Fq "always_cheap" causal-world-pilot.tsv
           grep -Fq "sequential_evidence" causal-world-pilot.tsv
 
