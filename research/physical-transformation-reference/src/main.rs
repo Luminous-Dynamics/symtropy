@@ -43,14 +43,25 @@ fn run() -> Result<(), String> {
     let outcome = run_reference_fixture()?;
     let mechanics = run_reference_fixtures()?;
     let recovery_validation = run_recovery_validation_fixture()?;
-    let recovery_status = match recovery_validation.status {
-        physical_transformation_reference::recovery_validation::ComparisonStatus::Measured => {
+    let recovery_evidence_status = match recovery_validation.evidence_status {
+        physical_transformation_reference::recovery_validation::EvidenceStatus::Measured => {
             "measured"
         }
-        physical_transformation_reference::recovery_validation::ComparisonStatus::Synthetic => {
+        physical_transformation_reference::recovery_validation::EvidenceStatus::Synthetic => {
             "synthetic"
         }
-        physical_transformation_reference::recovery_validation::ComparisonStatus::Unresolved => {
+        physical_transformation_reference::recovery_validation::EvidenceStatus::Unresolved => {
+            "unresolved"
+        }
+    };
+    let recovery_plan_agreement = match recovery_validation.plan_agreement {
+        physical_transformation_reference::recovery_validation::PlanAgreement::ExactMatch => {
+            "exact_match"
+        }
+        physical_transformation_reference::recovery_validation::PlanAgreement::Deviates => {
+            "deviates"
+        }
+        physical_transformation_reference::recovery_validation::PlanAgreement::Unresolved => {
             "unresolved"
         }
     };
@@ -108,7 +119,8 @@ fn run() -> Result<(), String> {
             "\"deconstruction_step_count\":{},",
             "\"deconstruction_recovered_component_count\":{},",
             "\"deconstruction_recovered_mass_mg\":{},",
-            "\"recovery_comparison_status\":\"{}\",",
+            "\"recovery_evidence_status\":\"{}\",",
+            "\"recovery_plan_agreement\":\"{}\",",
             "\"recovery_observed_mass_residual_mg\":{},",
             "\"recovery_reused_delta_mg\":{},",
             "\"recovery_recycled_delta_mg\":{},",
@@ -152,7 +164,8 @@ fn run() -> Result<(), String> {
         outcome.deconstruction_step_count,
         outcome.deconstruction_recovered_component_count,
         outcome.deconstruction_recovered_mass_mg,
-        recovery_status,
+        recovery_evidence_status,
+        recovery_plan_agreement,
         recovery_residual,
         recovery_reused_delta,
         recovery_recycled_delta,
