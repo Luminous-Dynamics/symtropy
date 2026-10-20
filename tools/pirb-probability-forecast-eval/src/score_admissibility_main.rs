@@ -278,12 +278,9 @@ mod tests {
             validate(&fixture()).expect("negative control is a structurally valid registration");
         assert_eq!(receipt["comparison_status"], "not_admissible");
         assert_eq!(receipt["score_name"], "log_score");
-        assert!(
-            receipt["reason_codes"]
-                .as_array()
-                .unwrap()
-                .contains(&json!("LOG_SCORE_NOT_ADMISSIBLE_FOR_RECONCILED_VS_UNRECONCILED_DISTRIBUTIONS"))
-        );
+        assert!(receipt["reason_codes"].as_array().unwrap().contains(&json!(
+            "LOG_SCORE_NOT_ADMISSIBLE_FOR_RECONCILED_VS_UNRECONCILED_DISTRIBUTIONS"
+        )));
         assert_eq!(receipt["score_calculated"], false);
         assert_eq!(receipt["ranking_permitted"], false);
         assert_eq!(receipt["comparison_superiority_established"], false);
