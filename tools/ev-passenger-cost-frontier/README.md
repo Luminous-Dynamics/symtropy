@@ -13,7 +13,7 @@ cargo run --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- \
 
 ## Cost boundary
 
-All monetary values are in the catalog currency. Each BOM component's cost range must be **landed at the assembly facility** and include the applicable supplier price, currency conversion, inbound freight, duties and non-recoverable charges. Factory conversion and warranty/service reserve are per good vehicle. Fixed program investment is amortized over the declared number of vehicles. VAT and the dealer/distributor allowance are applied only in the retail waterfall.
+All monetary values are in the catalog currency. Every BOM line carries a quantity unit and unit-cost basis (for example 42 kWh of cells at ZAR/kWh plus a vehicle-set cost for enclosure and BMS). Each cost range must be **landed at the assembly facility** and include the applicable supplier price, currency conversion, inbound freight, duties and non-recoverable charges. Factory conversion and warranty/service reserve are per good vehicle. Fixed program investment is amortized over the declared number of vehicles. VAT and the dealer/distributor allowance are applied only in the retail waterfall.
 
 - Retail ceiling = observed like-for-like baseline retail price × (1 − target undercut).
 - Ex-VAT retail = retail ceiling / (1 + VAT), if the baseline includes VAT.

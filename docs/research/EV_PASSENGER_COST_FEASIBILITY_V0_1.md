@@ -28,6 +28,8 @@ Safety is a hard gate, not a weighted metric that can be exchanged for a lower p
 
 ## Cost accounting
 
+Every bill-of-materials component carries an explicit quantity unit and unit-cost basis. For example, nominal pack cells are modelled as pack kWh multiplied by a cost per kWh; pack enclosure/thermal management and battery-management/high-voltage protection are separate per-vehicle-set line items. All numbers in the initial fixture are synthetic, and the line-item split is a modeling structure rather than a supplier quote.
+
 For target retail price (P_t), VAT fraction (v), distributor/dealer share (d) of ex-VAT retail, and target OEM gross margin (m):
 
 - If the observed retail price includes VAT, ex-VAT retail is (P_t/(1+v)); otherwise it is (P_t).

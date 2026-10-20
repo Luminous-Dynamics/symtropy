@@ -102,6 +102,8 @@ enum GateStatus {
 struct Component {
     component_id: String,
     quantity_per_vehicle: f64,
+    quantity_unit: String,
+    unit_cost_basis: String,
     unit_cost: CostRange,
 }
 
@@ -186,6 +188,11 @@ enum ReleaseDisposition {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 struct ComponentCostResult {
     component_id: String,
+    quantity_per_vehicle: f64,
+    quantity_unit: String,
+    unit_cost_basis: String,
+    unit_cost_low: f64,
+    unit_cost_high: f64,
     bom_cost_low: f64,
     bom_cost_high: f64,
     evidence_class: EvidenceClass,
@@ -449,6 +456,8 @@ fn validate_candidate(candidate: &Candidate) -> Result<(), String> {
     let mut component_ids = BTreeSet::new();
     for component in &candidate.components {
         nonblank("component_id", &component.component_id)?;
+        nonblank("quantity_unit", &component.quantity_unit)?;
+        nonblank("unit_cost_basis", &component.unit_cost_basis)?;
         if !component_ids.insert(component.component_id.clone()) {
             return Err(format!("duplicate_component_id: {}", component.component_id));
         }
@@ -662,6 +671,11 @@ fn evaluate_candidate(
         .iter()
         .map(|component| ComponentCostResult {
             component_id: component.component_id.clone(),
+            quantity_per_vehicle: component.quantity_per_vehicle,
+            quantity_unit: component.quantity_unit.clone(),
+            unit_cost_basis: component.unit_cost_basis.clone(),
+            unit_cost_low: component.unit_cost.low,
+            unit_cost_high: component.unit_cost.high,
             bom_cost_low: component.quantity_per_vehicle * component.unit_cost.low,
             bom_cost_high: component.quantity_per_vehicle * component.unit_cost.high,
             evidence_class: component.unit_cost.evidence_class,
@@ -839,6 +853,8 @@ mod tests {
                 components: vec![Component {
                     component_id: "core".to_string(),
                     quantity_per_vehicle: 1.0,
+                    quantity_unit: "unit".to_string(),
+                    unit_cost_basis: "ZAR_per_unit".to_string(),
                     unit_cost: band(50.0, 50.0, EvidenceClass::Measured),
                 }],
                 factory_conversion_cost: band(10.0, 10.0, EvidenceClass::Measured),

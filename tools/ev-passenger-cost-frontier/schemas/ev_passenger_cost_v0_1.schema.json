@@ -281,6 +281,8 @@
       "required": [
         "component_id",
         "quantity_per_vehicle",
+        "quantity_unit",
+        "unit_cost_basis",
         "unit_cost"
       ],
       "properties": {
@@ -293,6 +295,14 @@
         },
         "unit_cost": {
           "$ref": "#/$defs/cost_range"
+        },
+        "quantity_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_cost_basis": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
