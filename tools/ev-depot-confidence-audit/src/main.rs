@@ -358,7 +358,10 @@ fn analyze(root: &Value, confidence_level: f64, target: f64) -> Result<Report, S
             .cmp(&b.vocation)
             .then_with(|| a.fleet_size.cmp(&b.fleet_size))
             .then_with(|| a.policy.cmp(&b.policy))
-            .then_with(|| a.capacity_fraction_of_base.total_cmp(&b.capacity_fraction_of_base))
+            .then_with(|| {
+                a.capacity_fraction_of_base
+                    .total_cmp(&b.capacity_fraction_of_base)
+            })
     });
 
     let mut frontiers = Vec::new();
