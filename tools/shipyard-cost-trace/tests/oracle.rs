@@ -29,7 +29,7 @@ fn quantity_event(
     }
 }
 
-fn invoice_event(amount: f64) -> LedgerEvent {
+fn invoice_event(amount_minor_units: i64) -> LedgerEvent {
     LedgerEvent {
         event_id: "invoice-1".to_owned(),
         build_id: "oracle-build".to_owned(),
@@ -41,8 +41,8 @@ fn invoice_event(amount: f64) -> LedgerEvent {
         related_event_ids: Vec::new(),
         kind: EventKind::FinancialActual(FinancialTransaction {
             transaction_ref: "invoice-1:line-1".to_owned(),
-            amount,
-            currency_basis_id: "ZAR-2026-SA".to_owned(),
+            amount_minor_units,
+            currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
         }),
     }
 }
@@ -50,7 +50,7 @@ fn invoice_event(amount: f64) -> LedgerEvent {
 fn test_rate(rate: f64) -> QuantityRate {
     QuantityRate {
         unit_rate: rate,
-        currency_basis_id: "ZAR-2026-SA".to_owned(),
+        currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
         rate_card_ref: "oracle-rate-card-v1".to_owned(),
     }
 }
@@ -86,7 +86,7 @@ fn independent_cost_view_oracle_keeps_rate_estimate_and_invoice_separate() {
     let events = vec![
         quantity_event("planned-hours", Stage::Planned, 5.0, Some(test_rate(100.0))),
         quantity_event("observed-hours", Stage::Observed, 6.0, Some(test_rate(100.0))),
-        invoice_event(725.0),
+        invoice_event(72_500),
     ];
     let report = audit(&events).expect("valid mixed ledger");
     let planned_rate_estimate = report
@@ -103,7 +103,7 @@ fn independent_cost_view_oracle_keeps_rate_estimate_and_invoice_separate() {
     assert_eq!(planned_rate_estimate.amount, 500.0);
     assert_eq!(observed_rate_estimate.amount, 600.0);
     assert_eq!(report.financial_actuals.len(), 1);
-    assert_eq!(report.financial_actuals[0].amount, 725.0);
+    assert_eq!(report.financial_actuals[0].amount_minor_units, 72_500);
     assert_ne!(
         planned_rate_estimate.amount + observed_rate_estimate.amount,
         report.financial_actuals[0].amount
